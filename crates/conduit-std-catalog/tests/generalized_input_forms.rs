@@ -7,14 +7,14 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
+use conduit_presentation::install_geometry_catalogs;
 use conduit_std_catalog::{
     deterministic_generalized_input_fixture, gamepad_state_type, generalized_input_std_offers,
     input_axis_slot_type, input_axis_slots_type, input_axis_state_type,
-    input_button_transition_type, install_generalized_input_catalogs, install_geometry_catalogs,
-    pointer_event_type, touch_contacts_type, validate_normalized_axis,
-    validate_normalized_pressure, GeneralizedInputRefusal, GENERALIZED_INPUT_HOST_OPERATION,
-    MAXIMUM_INPUT_AXES, MAXIMUM_INPUT_BUTTONS, MAXIMUM_TOUCH_CONTACTS,
-    NORMALIZED_BIPOLAR_AXIS_PROFILE,
+    input_button_transition_type, install_generalized_input_catalogs, pointer_event_type,
+    touch_contacts_type, validate_normalized_axis, validate_normalized_pressure,
+    GeneralizedInputRefusal, GENERALIZED_INPUT_HOST_OPERATION, MAXIMUM_INPUT_AXES,
+    MAXIMUM_INPUT_BUTTONS, MAXIMUM_TOUCH_CONTACTS, NORMALIZED_BIPOLAR_AXIS_PROFILE,
 };
 
 const SOURCE: &str = include_str!("../../../examples/generalized-input.conduit");

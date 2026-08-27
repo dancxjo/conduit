@@ -7,12 +7,12 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
-    apply_transform2, apply_transform2_to_path, geometry_std_offers, image_region2_type,
-    install_geometry_catalogs, path2_type, path2_value, point2_type, point2_value,
-    robotics_pose2_type, transform2_value, GeometryRefusal, APPLY_TRANSFORM2_KIND,
-    GEOMETRY_HOST_OPERATION, MAXIMUM_GEOMETRY_PATH_POINTS, POINT2_LITERAL_KIND,
+use conduit_presentation::{
+    apply_transform2, apply_transform2_to_path, image_region2_type, install_geometry_catalogs,
+    path2_type, path2_value, point2_type, point2_value, robotics_pose2_type, transform2_value,
+    GeometryRefusal, APPLY_TRANSFORM2_KIND, MAXIMUM_GEOMETRY_PATH_POINTS, POINT2_LITERAL_KIND,
 };
+use conduit_std_host::hosted_geometry::{geometry_std_offers, GEOMETRY_HOST_OPERATION};
 
 const SOURCE: &str = include_str!("../../../examples/geometry-spatial.conduit");
 

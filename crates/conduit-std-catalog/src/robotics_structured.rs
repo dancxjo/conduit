@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase, QUANTITY_INFO_ID,
 };
 
-use crate::{robotics_pose2_type, vector2_type};
+use conduit_presentation::{robotics_pose2_type, vector2_type};
 
 pub const ROBOTICS_SAMPLE_CONTEXT_TYPE: &str = "RoboticsSampleContext";
 pub const ROBOTICS_POSE_SAMPLE_TYPE: &str = "RoboticsPoseSample";

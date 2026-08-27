@@ -28,12 +28,6 @@ mod structured_values;
 pub use structured_values::*;
 mod diverse_structured_info;
 pub use diverse_structured_info::*;
-mod geometry;
-pub use geometry::*;
-#[cfg(feature = "form-catalog")]
-mod geometry_catalog;
-#[cfg(feature = "form-catalog")]
-pub use geometry_catalog::*;
 mod vision;
 pub use vision::*;
 mod vision_realization;

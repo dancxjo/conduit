@@ -444,6 +444,7 @@ dependencies = [
  "conduit-net",
  "conduit-observatory",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-runtime",
  "conduit-signal",
  "conduit-signal-conformance",

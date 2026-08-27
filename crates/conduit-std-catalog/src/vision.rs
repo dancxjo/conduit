@@ -9,7 +9,7 @@ use conduit_core::{
     StructuredVariantCase, QUANTITY_INFO_ID, RESOURCE_REFERENCE_INFO_ID,
 };
 
-use crate::{point2_type, rect2_type};
+use conduit_presentation::{point2_type, rect2_type};
 
 pub const IMAGE_RESOURCE_TYPE: &str = "ImageResource";
 pub const VISION_DETECTION_TYPE: &str = "VisionDetection";
