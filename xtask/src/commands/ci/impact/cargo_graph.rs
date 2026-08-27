@@ -9,10 +9,28 @@ pub(super) struct Package {
     pub(super) name: String,
     pub(super) directory: PathBuf,
     pub(super) dependencies: BTreeSet<String>,
+    pub(super) workspace_member: bool,
     test_dependencies: BTreeSet<String>,
 }
 
 pub(super) fn discover(root: &Path) -> Result<BTreeMap<String, Package>, String> {
+    let workspace_manifest = fs::read_to_string(root.join("Cargo.toml"))
+        .map_err(|error| format!("workspace Cargo.toml: {error}"))?;
+    let workspace_value: toml::Value = toml::from_str(&workspace_manifest)
+        .map_err(|error| format!("workspace Cargo.toml: {error}"))?;
+    let workspace_directories: BTreeSet<PathBuf> = workspace_value
+        .get("workspace")
+        .and_then(|workspace| workspace.get("members"))
+        .and_then(toml::Value::as_array)
+        .ok_or_else(|| "workspace Cargo.toml omits workspace.members".to_owned())?
+        .iter()
+        .map(|member| {
+            member
+                .as_str()
+                .map(|member| normalize(&root.join(member)))
+                .ok_or_else(|| "workspace member is not a string".to_owned())
+        })
+        .collect::<Result<_, _>>()?;
     let mut manifests = Vec::new();
     collect_manifests(root, &mut manifests).map_err(|error| error.to_string())?;
     let mut parsed = Vec::new();
@@ -69,6 +87,7 @@ pub(super) fn discover(root: &Path) -> Result<BTreeMap<String, Package>, String>
             name.clone(),
             Package {
                 name,
+                workspace_member: workspace_directories.contains(&directory),
                 directory,
                 dependencies,
                 test_dependencies,
