@@ -3,7 +3,7 @@ compile_error!("the shared ConduitOS LoongArch64 A3/A4 implementation must compi
 
 use core::panic::PanicInfo;
 
-use conduitos::{allocation::BOOT_ARENA, arch, dual_region_plan, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, dual_region_plan, identity, sign_format};
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const ARTIFACT_COMMIT: &str = env!("CONDUITOS_ARTIFACT_COMMIT");

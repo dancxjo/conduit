@@ -7,7 +7,7 @@ compile_error!("the Raspberry Pi B+ A3 artifact requires an ARM target");
 
 use core::{arch::global_asm, cell::UnsafeCell, panic::PanicInfo};
 
-use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, sign_format};
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");

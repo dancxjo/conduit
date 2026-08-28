@@ -6,7 +6,7 @@ compile_error!("conduitos-aarch64-a3 is only an AArch64 ordinary-Form proof");
 
 use core::panic::PanicInfo;
 
-use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, sign_format};
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
