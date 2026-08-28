@@ -371,7 +371,9 @@ name = "conduit-std-offers"
 version = "0.1.0"
 dependencies = [
  "conduit-alife",
+ "conduit-audio",
  "conduit-core",
+ "conduit-midi",
  "conduit-presentation",
  "conduit-std-catalog",
  "conduit-text",
