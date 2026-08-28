@@ -13,9 +13,6 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Text" => kind_id("value/text@1"),
         "Tick" => kind_id("value/tick@1"),
         "Count" => kind_id("value/count@1"),
-        "ScalarField2" => kind_id("alife/scalar-field2@1"),
-        "Presentation" => kind_id("presentation/presentation@1"),
-        "Manifestation" => kind_id("presentation/manifestation@1"),
         exact => kind_id(exact),
     }
 }
@@ -24,6 +21,9 @@ pub(crate) fn checked_value_kind(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<KindId, StructuredInfoRefusal> {
+    if let Some(value_kind) = catalog.value_kind_alias(source_type) {
+        return Ok(value_kind.clone());
+    }
     catalog
         .structured_type(source_type)
         .map(|value_type| {
@@ -101,18 +101,25 @@ mod tests {
         assert_eq!(canonical_value_kind("Text").as_str(), "value/text@1");
         assert_eq!(canonical_value_kind("Tick").as_str(), "value/tick@1");
         assert_eq!(canonical_value_kind("Count").as_str(), "value/count@1");
-        assert_eq!(
-            canonical_value_kind("ScalarField2").as_str(),
-            "alife/scalar-field2@1"
-        );
-        assert_eq!(
-            canonical_value_kind("Presentation").as_str(),
-            "presentation/presentation@1"
-        );
-        assert_eq!(
-            canonical_value_kind("Manifestation").as_str(),
-            "presentation/manifestation@1"
-        );
         assert_eq!(canonical_value_kind("test/value").as_str(), "test/value");
+    }
+
+    #[test]
+    fn semantic_owner_can_register_a_value_spelling_without_form_changes() {
+        let mut catalog = StartupCatalog::new();
+        catalog
+            .insert_value_kind_alias("WeatherMap", kind_id("weather/map@1"))
+            .unwrap();
+
+        assert_eq!(
+            checked_value_kind("WeatherMap", &catalog).unwrap().as_str(),
+            "weather/map@1"
+        );
+        assert_eq!(
+            checked_value_kind("weather/exact-map@2", &catalog)
+                .unwrap()
+                .as_str(),
+            "weather/exact-map@2"
+        );
     }
 }

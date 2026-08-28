@@ -20,6 +20,7 @@ pub struct KindSignature {
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
+    value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
 }
 
 impl StartupCatalog {
@@ -60,15 +61,37 @@ impl StartupCatalog {
         if name.is_empty() {
             return Err("structured startup type name must not be empty".into());
         }
-        if self.structured_types.contains_key(&name) {
+        if self.structured_types.contains_key(&name) || self.value_kind_aliases.contains_key(&name)
+        {
             return Err(format!("duplicate structured startup type '{name}'"));
         }
         self.structured_types.insert(name, value_type);
         Ok(())
     }
 
+    pub fn insert_value_kind_alias(
+        &mut self,
+        name: impl Into<String>,
+        value_kind: conduit_core::KindId,
+    ) -> Result<(), String> {
+        let name = name.into();
+        if name.is_empty() {
+            return Err("startup value Kind alias must not be empty".into());
+        }
+        if self.value_kind_aliases.contains_key(&name) || self.structured_types.contains_key(&name)
+        {
+            return Err(format!("duplicate startup value type '{name}'"));
+        }
+        self.value_kind_aliases.insert(name, value_kind);
+        Ok(())
+    }
+
     pub(crate) fn structured_type(&self, name: &str) -> Option<&conduit_core::StructuredInfoType> {
         self.structured_types.get(name)
+    }
+
+    pub(crate) fn value_kind_alias(&self, name: &str) -> Option<&conduit_core::KindId> {
+        self.value_kind_aliases.get(name)
     }
 }
 
