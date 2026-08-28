@@ -9,7 +9,6 @@ use conduit_core::{
 use conduit_presentation::present_timed_calendar_event;
 use conduit_std_catalog::{
     CALENDAR_CREATE_KIND, REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND,
-    REMINDER_DELIVER_OPERATION,
 };
 use conduit_std_host::hosted_calendar::{
     google_calendar_authority_grant, google_calendar_offers, GoogleBearerToken,
@@ -20,6 +19,7 @@ use conduit_std_host::hosted_calendar::{
 use conduit_std_host::hosted_reminder::{
     deliver_ready_reminder, HostedReminderAdapter, ReminderAdapterError, ReminderDeliveryRefusal,
 };
+use conduit_std_offers::REMINDER_DELIVER_OPERATION;
 use conduit_time::{
     elapsed_trigger_window, AvailabilityBasis, AvailabilityInterval, AvailabilityState,
     CalendarEvent, CalendarEventTime, CivilTrigger, ClockChangeBehavior, InvitationEvidence,

@@ -8,9 +8,8 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_catalog::{
-    install_job_catalogs, job_lifecycle_type, job_request_type, job_std_offers, JOB_ARGUMENT_SLOTS,
-    JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_EXECUTABLE_RESOURCE_CLASS, JOB_RUN_KIND,
-    JOB_RUN_OPERATION,
+    install_job_catalogs, job_lifecycle_type, job_request_type, JOB_ARGUMENT_SLOTS,
+    JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_RUN_KIND,
 };
 
 const SOURCE: &str = include_str!("../../../examples/bounded-job.conduit");
@@ -24,7 +23,7 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authored = expand_canonical_form_for_authoring(&checked, "bounded-job", &profile).unwrap();
-    let host = host(job_std_offers());
+    let host = host(common::job_proof_offers());
     let run_offer = host
         .capabilities
         .iter()
@@ -67,17 +66,17 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
         .unwrap();
     assert_eq!(
         run.host_operations[0].contract_id.as_str(),
-        JOB_RUN_OPERATION
+        common::JOB_PROOF_RUN_OPERATION
     );
 
-    let offer = job_std_offers()
+    let offer = common::job_proof_offers()
         .into_iter()
         .find(|offer| offer.kind_id.as_str() == JOB_RUN_KIND)
         .unwrap();
     assert_eq!(offer.resource_requirements.len(), 1);
     assert_eq!(
         offer.resource_requirements[0].class_id.as_str(),
-        JOB_EXECUTABLE_RESOURCE_CLASS
+        common::JOB_PROOF_RESOURCE_CLASS
     );
     assert_eq!(offer.resource_requirements[0].units, 1);
     assert_eq!(offer.authority_requirements.len(), 1);
@@ -137,10 +136,11 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         profile: HostProfileId::from("std/job-proof@1"),
         resources: vec![resource_offer(
             "pool/job-executable",
-            JOB_EXECUTABLE_RESOURCE_CLASS,
+            common::JOB_PROOF_RESOURCE_CLASS,
             1,
         )],
         planner_capabilities: vec![],
         capabilities,
     }
 }
+mod common;

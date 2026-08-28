@@ -8,8 +8,7 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_std_catalog::{
-    install_reminder_catalogs, reminder_std_offers, REMINDER_DELIVERY_AUTHORITY,
-    REMINDER_DELIVER_KIND, REMINDER_DELIVER_OPERATION,
+    install_reminder_catalogs, REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND,
 };
 
 const SOURCE: &str = include_str!("../../../examples/scheduled-reminder.conduit");
@@ -24,7 +23,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
         expand_canonical_form_for_authoring(&checked, "scheduled-reminder", &profile).unwrap();
-    let host = host(reminder_std_offers());
+    let host = host(common::reminder_proof_offers());
     let placements = conduit_planner::default_expanded_placements(
         &expanded.expanded,
         core::slice::from_ref(&host),
@@ -93,7 +92,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
     );
     assert_eq!(
         delivery.authority[0].host_operation_contract_id.as_str(),
-        REMINDER_DELIVER_OPERATION
+        common::REMINDER_PROOF_DELIVER_OPERATION
     );
 }
 
@@ -109,3 +108,4 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         capabilities,
     }
 }
+mod common;

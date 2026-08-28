@@ -32,6 +32,8 @@ mod robotics;
 pub use robotics::*;
 mod calendar;
 pub use calendar::*;
+mod workflows;
+pub use workflows::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -310,6 +312,8 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/robotics.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/recurrence_catalog.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/calendar_proposal_catalog.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/job_catalog.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/reminder_catalog.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -386,6 +390,8 @@ mod tests {
                 "pub fn robotics_drive_differential_offer",
                 "pub fn recurrence_std_offer",
                 "pub fn calendar_proposal_std_offer",
+                "pub fn job_std_offers",
+                "pub fn reminder_std_offers",
             ] {
                 assert!(
                     !source.contains(forbidden),
