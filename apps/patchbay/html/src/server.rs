@@ -31,9 +31,9 @@ const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.
 const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const TEXT_LAB_RUNTIME_SCRIPT: &[u8] =
-    include_bytes!("../../../../hosts/browser-host/assets/text-lab-live-runtime.mjs");
+    include_bytes!("../../../../targets/browser/host/assets/text-lab-live-runtime.mjs");
 const WEBSOCKET_LINE_SCRIPT: &[u8] =
-    include_bytes!("../../../../hosts/browser-host/assets/websocket-line.mjs");
+    include_bytes!("../../../../targets/browser/host/assets/websocket-line.mjs");
 const BODY_WEBRTC_SESSIONS_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-sessions.mjs");
 const BODY_WEBRTC_SESSION_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-session.mjs");
 const WEBRTC_LINE_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-datachannel-line.mjs");

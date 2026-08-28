@@ -30,7 +30,7 @@ pub fn run_triple(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
             "conduit",
             "--",
             "run",
-            "fixtures/forms/triple-signal.conduit",
+            "proof/fixtures/forms/triple-signal.conduit",
             "--placements",
             "examples/triple-local.placements",
         ],

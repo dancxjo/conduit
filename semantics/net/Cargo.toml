@@ -1,0 +1,18 @@
+[package]
+name = "conduit-net"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-form = { path = "../../architecture/form", optional = true }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[features]
+default = []
+form-catalog = ["dep:conduit-form"]
+
+[dev-dependencies]
+conduit-form = { path = "../../architecture/form" }
+conduit-planner = { path = "../../architecture/planner" }
+serde_json = "1"

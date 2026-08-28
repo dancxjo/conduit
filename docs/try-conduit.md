@@ -274,7 +274,7 @@ cargo xtask prove std-pico-usb
 
 ## 5. Run the final std + browser + Pico proof
 
-The accepted S4 demonstration plans the unchanged `fixtures/forms/triple-signal.conduit`
+The accepted S4 demonstration plans the unchanged `proof/fixtures/forms/triple-signal.conduit`
 once and executes one kernel-owned source fan-out to:
 
 - native stdout;

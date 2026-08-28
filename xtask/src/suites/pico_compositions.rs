@@ -8,7 +8,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--bin",
             "conduit-pico-w-midi-fixture",
             "--no-default-features",
@@ -29,7 +29,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--target",
             "thumbv6m-none-eabi",
         ],
@@ -45,7 +45,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "pico-local-minimal",
@@ -64,7 +64,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "usb-remote",
@@ -83,7 +83,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "triple-remote",
@@ -102,7 +102,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "wifi-bootstrap",
@@ -121,7 +121,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "r1-control",
@@ -140,7 +140,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "appliance-hello",
@@ -159,7 +159,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "appliance-hil-client",
@@ -178,7 +178,7 @@ pub const PICO_COMPOSITION_STEPS: &[Step] = &[
         &[
             "check",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--no-default-features",
             "--features",
             "bluetooth-line",
@@ -198,8 +198,8 @@ mod tests {
 
     #[test]
     fn session_control_is_optional_and_every_composition_is_checked() {
-        let manifest = include_str!("../../../firmware/conduit-pico-w-signal/Cargo.toml");
-        let firmware = include_str!("../../../firmware/conduit-pico-w-signal/src/main.rs");
+        let manifest = include_str!("../../../targets/rp2040/firmware/pico-w-signal/Cargo.toml");
+        let firmware = include_str!("../../../targets/rp2040/firmware/pico-w-signal/src/main.rs");
         assert!(manifest.contains("pico-local = [\"session-control\"]"));
         assert!(manifest.contains("pico-local-minimal = []"));
         assert!(manifest.contains("usb-remote = [\"session-control\"]"));
@@ -222,7 +222,7 @@ mod tests {
         assert!(bluetooth_feature.contains("session-control"));
         assert!(!bluetooth_feature.contains("dep:conduit-wire"));
         assert!(manifest.contains(
-            "conduit-wire = { path = \"../../crates/conduit-wire\", default-features = false, optional = true }"
+            "conduit-wire = { path = \"../../../../architecture/wire\", default-features = false, optional = true }"
         ));
         assert!(firmware.contains("#[cfg(feature = \"session-control\")]\nmod usb_link;"));
         assert!(firmware.contains("#[cfg(feature = \"pico-local-minimal\")]"));
@@ -232,7 +232,8 @@ mod tests {
 
     #[test]
     fn appliance_access_point_is_explicitly_open_and_has_no_credential_path() {
-        let appliance = include_str!("../../../firmware/conduit-pico-w-signal/src/appliance.rs");
+        let appliance =
+            include_str!("../../../targets/rp2040/firmware/pico-w-signal/src/appliance.rs");
         assert!(appliance.contains("start_ap_open"));
         assert!(!appliance.contains("start_ap_wpa2"));
         assert!(!appliance.contains("password"));
@@ -241,7 +242,7 @@ mod tests {
 
     #[test]
     fn appliance_hil_client_usb_serial_fits_the_control_buffer() {
-        let usb = include_str!("../../../firmware/conduit-pico-w-signal/src/usb.rs");
+        let usb = include_str!("../../../targets/rp2040/firmware/pico-w-signal/src/usb.rs");
         let serial = "conduit-pico-hil-client";
         assert!(usb.contains(serial));
         assert!(serial.encode_utf16().count() * 2 + 2 <= 64);

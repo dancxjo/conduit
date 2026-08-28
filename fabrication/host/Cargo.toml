@@ -1,0 +1,18 @@
+[package]
+name = "conduit-host-fabrication"
+version = "0.1.0"
+edition = "2021"
+description = "Bounded PROFILE validation and identity for Conduit Host fabrication"
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-form = { path = "../../architecture/form" }
+conduit-presentation = { path = "../../semantics/presentation" }
+conduit-semantic-catalog = { path = "../../semantics/catalog" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+toml = "0.8"
+
+[dev-dependencies]
+conduit-std-offers = { path = "../../targets/std/offers" }

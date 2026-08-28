@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-conduit-alife = { path = "../../../crates/conduit-alife" }
-conduit-core = { path = "../../../crates/conduit-core" }
-conduit-form = { path = "../../../crates/conduit-form" }
-conduit-planner = { path = "../../../crates/conduit-planner" }
+conduit-alife = { path = "../../../semantics/alife" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-planner = { path = "../../../architecture/planner" }

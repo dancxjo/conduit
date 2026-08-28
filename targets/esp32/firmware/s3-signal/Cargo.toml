@@ -1,0 +1,71 @@
+[package]
+name = "conduit-esp32-s3-signal"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+[workspace]
+resolver = "2"
+
+[features]
+default = []
+kernel-signal = []
+bluetooth = [
+	"kernel-signal",
+	"dep:conduit-bluetooth",
+	"dep:embassy-futures",
+	"dep:embassy-sync",
+	"dep:embassy-time",
+	"dep:esp-radio",
+	"dep:heapless",
+	"dep:static_cell",
+	"dep:trouble-host",
+]
+
+[[bin]]
+name = "conduit-esp32-s3-signal"
+path = "../wroom-signal/src/main.rs"
+
+[dependencies]
+conduit-bluetooth = { path = "../../../../mechanisms/protocols/bluetooth", optional = true }
+conduit-core = { path = "../../../../architecture/core" }
+conduit-kernel = { path = "../../../../architecture/kernel" }
+conduit-signal = { path = "../../../../semantics/signal", default-features = false }
+conduit-wire = { path = "../../../../architecture/wire", default-features = false }
+critical-section = "1.2.0"
+embassy-executor = "0.10.0"
+embassy-futures = { version = "0.1", optional = true }
+embassy-sync = { version = "0.7.2", optional = true }
+embassy-time = { version = "0.5.1", optional = true }
+esp-alloc = { version = "0.10.0", features = ["esp32s3"] }
+esp-backtrace = { version = "0.19.0", features = ["esp32s3", "panic-handler", "println"] }
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32s3"] }
+esp-hal = { version = "~1.1.0", features = ["esp32s3", "log-04", "unstable"] }
+esp-println = { version = "0.17.0", features = ["esp32s3", "log-04"] }
+esp-radio = { version = "0.18.0", features = ["ble", "esp32s3", "log-04", "unstable"], optional = true }
+esp-rtos = { version = "0.3.0", features = ["embassy", "esp-radio", "esp32s3", "log-04"] }
+heapless = { version = "0.9.1", optional = true }
+log = "0.4.27"
+static_cell = { version = "2.1.1", optional = true }
+trouble-host = { version = "0.6.0", default-features = false, features = ["default-packet-pool-mtu-255", "derive", "gatt", "peripheral", "security"], optional = true }
+
+[build-dependencies]
+conduit-core = { path = "../../../../architecture/core" }
+conduit-embedded-build = { path = "../../../../fabrication/embedded-build" }
+conduit-form = { path = "../../../../architecture/form" }
+conduit-host-fabrication = { path = "../../../../fabrication/host" }
+conduit-host-esp32-fabrication = { path = "../../fabrication" }
+conduit-planner = { path = "../../../../architecture/planner" }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", default-features = false }
+conduit-signal = { path = "../../../../semantics/signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../../../proof/conformance/signal" }
+serde_json = "1"
+
+[profile.dev]
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = "fat"
+opt-level = "s"

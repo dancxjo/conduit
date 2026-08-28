@@ -11,12 +11,12 @@ fn representative_changes_select_only_owned_heavy_suites() {
         ),
         (vec!["apps/pete/src/lib.rs"], (false, false, false)),
         (
-            vec!["firmware/conduit-esp32-c3-signal/src/main.rs"],
+            vec!["targets/esp32/firmware/c3-signal/src/main.rs"],
             (true, false, false),
         ),
         (vec!["proof/browser/pointer.spec.mjs"], (false, true, false)),
-        (vec!["hosts/conduitos/src/main.rs"], (false, false, true)),
-        (vec!["crates/conduit-kernel/src/lib.rs"], (true, true, true)),
+        (vec!["targets/conduitos/src/main.rs"], (false, false, true)),
+        (vec!["architecture/kernel/src/lib.rs"], (true, true, true)),
         (vec![".github/workflows/check.yml"], (true, true, true)),
         (vec!["unknown/new-input.bin"], (true, true, true)),
     ];
@@ -62,7 +62,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let semantic = plan_for_paths(
         &root,
-        vec!["crates/conduit-language/src/lib.rs".to_owned()],
+        vec!["semantics/language/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -80,7 +80,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let browser = plan_for_paths(
         &root,
-        vec!["hosts/browser-runtime/src/lib.rs".to_owned()],
+        vec!["targets/browser/runtime/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -91,7 +91,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let kernel = plan_for_paths(
         &root,
-        vec!["crates/conduit-kernel/src/lib.rs".to_owned()],
+        vec!["architecture/kernel/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -143,7 +143,7 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
 
     let kernel = plan_for_paths(
         &root,
-        vec!["crates/conduit-kernel/src/lib.rs".to_owned()],
+        vec!["architecture/kernel/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -167,7 +167,7 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
 
     let time = plan_for_paths(
         &root,
-        vec!["crates/conduit-time/src/tick.rs".to_owned()],
+        vec!["semantics/time/src/tick.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -176,7 +176,7 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
 
     let pico = plan_for_paths(
         &root,
-        vec!["firmware/conduit-pico-w-signal/src/main.rs".to_owned()],
+        vec!["targets/rp2040/firmware/pico-w-signal/src/main.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -190,7 +190,7 @@ fn esp32_paths_select_exact_target_obligations() {
 
     let c3 = plan_for_paths(
         &root,
-        vec!["firmware/conduit-esp32-c3-signal/build.rs".to_owned()],
+        vec!["targets/esp32/firmware/c3-signal/build.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -204,7 +204,7 @@ fn esp32_paths_select_exact_target_obligations() {
 
     let s3 = plan_for_paths(
         &root,
-        vec!["firmware/conduit-esp32-s3-signal/board-descriptor.json".to_owned()],
+        vec!["targets/esp32/firmware/s3-signal/board-descriptor.json".to_owned()],
         &packages,
     )
     .unwrap();
@@ -212,7 +212,7 @@ fn esp32_paths_select_exact_target_obligations() {
 
     let shared_source = plan_for_paths(
         &root,
-        vec!["firmware/conduit-esp32-wroom-signal/src/main.rs".to_owned()],
+        vec!["targets/esp32/firmware/wroom-signal/src/main.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -228,7 +228,7 @@ fn esp32_paths_select_exact_target_obligations() {
 
     let shared_dependency = plan_for_paths(
         &root,
-        vec!["crates/conduit-kernel/src/lib.rs".to_owned()],
+        vec!["architecture/kernel/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -242,7 +242,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
 
     let xhci = plan_for_paths(
         &root,
-        vec!["hosts/conduitos/src/arch/x86_64/xhci.rs".to_owned()],
+        vec!["targets/conduitos/src/arch/x86_64/xhci.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -256,7 +256,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
 
     let riscv = plan_for_paths(
         &root,
-        vec!["hosts/conduitos/proof-appliances/riscv64/a3.rs".to_owned()],
+        vec!["targets/conduitos/proof-appliances/riscv64/a3.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -266,7 +266,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
 
     let product = plan_for_paths(
         &root,
-        vec!["hosts/conduitos/src/bin/aarch64_product.rs".to_owned()],
+        vec!["targets/conduitos/src/bin/aarch64_product.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -276,7 +276,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
 
     let common = plan_for_paths(
         &root,
-        vec!["hosts/conduitos/src/composition.rs".to_owned()],
+        vec!["targets/conduitos/src/composition.rs".to_owned()],
         &packages,
     )
     .unwrap();

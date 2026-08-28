@@ -246,7 +246,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         command: "cargo xtask pico build",
         proof_class: ProofClass::FirmwareBuild,
         required_tools_or_targets: &["thumbv6m-none-eabi", "elf2uf2-rs"],
-        named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
+        named_artifacts: &["targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
         allowed_claims: &["Pico W firmware artifact builds for the reviewed target"],
     },
     ProofCommandContract {
@@ -286,7 +286,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "physical 2.4 GHz radio path",
         ],
         named_artifacts: &[
-            "firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2",
+            "targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2",
             "target/pico-appliance-physical.json",
         ],
         allowed_claims: &["one physical client associates with the exact finite Pico W appliance, receives its bounded DHCP lease, resolves hello.conduit, loads the literal Hello response, and observes the exact terminal Sign sequence"],
@@ -336,7 +336,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "ordinary Wi-Fi LAN",
             "physical Wi-Fi/network fault",
         ],
-        named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
+        named_artifacts: &["targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
         allowed_claims: &["one physical Pico boot executes WebSocket-only Plan A, becomes unavailable after a real network fault, and executes distinct USB-only Plan B"],
     },
     ProofCommandContract {
@@ -350,7 +350,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "ordinary Wi-Fi LAN",
             "physical Wi-Fi/network fault",
         ],
-        named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
+        named_artifacts: &["targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
         allowed_claims: &["one physical Pico boot retains Plan C and Play C while its selected Line changes from unavailable WebSocket to already-admitted USB CDC after bounded reconciliation"],
     },
     ProofCommandContract {
@@ -365,7 +365,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "two physical Wi-Fi/network faults",
             "pinned Chromium",
         ],
-        named_artifacts: &["firmware/conduit-pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
+        named_artifacts: &["targets/rp2040/firmware/pico-w-signal/target/thumbv6m-none-eabi/release/conduit-pico-w-signal.uf2"],
         allowed_claims: &["one born Body and one physical Pico boot execute live three-peer control, new-Plan recovery, same-Plan continuation, Lull, and a later Wake"],
     },
     ProofCommandContract {

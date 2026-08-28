@@ -6,21 +6,21 @@ build = "build.rs"
 default-run = "patchbay-native"
 
 [dependencies]
-conduit-body = { path = "../../../crates/conduit-body" }
-conduit-chat = { path = "../../../crates/conduit-chat", features = ["form-catalog"] }
-conduit-core = { path = "../../../crates/conduit-core" }
-conduit-form = { path = "../../../crates/conduit-form" }
-conduit-net = { path = "../../../crates/conduit-net", features = ["form-catalog"] }
+conduit-body = { path = "../../../architecture/body" }
+conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-net = { path = "../../../semantics/net", features = ["form-catalog"] }
 conduit-r1-network-conformance = { path = "../../../proof/conformance/network-r1" }
-conduit-observatory = { path = "../../../crates/conduit-observatory" }
-conduit-planner = { path = "../../../crates/conduit-planner" }
-conduit-presentation = { path = "../../../crates/conduit-presentation" }
-conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog", features = ["form-catalog"] }
-conduit-text = { path = "../../../crates/conduit-text", default-features = false }
-conduit-std-host = { path = "../../../hosts/std" }
-conduit-std-offers = { path = "../../../hosts/std/offers" }
-conduit-system-continuity = { path = "../../../crates/conduit-system-continuity" }
-conduit-wire = { path = "../../../crates/conduit-wire" }
+conduit-observatory = { path = "../../../architecture/observatory" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", features = ["form-catalog"] }
+conduit-text = { path = "../../../semantics/text", default-features = false }
+conduit-std-host = { path = "../../../targets/std" }
+conduit-std-offers = { path = "../../../targets/std/offers" }
+conduit-system-continuity = { path = "../../../semantics/system-continuity" }
+conduit-wire = { path = "../../../architecture/wire" }
 embedded-graphics = "=0.8.1"
 patchbay-model = { path = "../model" }
 patchbay-hosted = { path = "../hosted" }
@@ -29,5 +29,5 @@ softbuffer = { version = "0.4", default-features = false, features = ["wayland",
 winit = { version = "0.30", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
 
 [dev-dependencies]
-conduit-browser-runtime = { path = "../../../hosts/browser-runtime" }
-conduitos = { path = "../../../hosts/conduitos" }
+conduit-browser-runtime = { path = "../../../targets/browser/runtime" }
+conduitos = { path = "../../../targets/conduitos" }

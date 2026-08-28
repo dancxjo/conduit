@@ -1,0 +1,26 @@
+[package]
+name = "conduit-semantic-catalog"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-alife = { path = "../alife" }
+conduit-audio = { path = "../audio" }
+conduit-core = { path = "../../architecture/core" }
+conduit-midi = { path = "../../mechanisms/protocols/midi" }
+conduit-presentation = { path = "../presentation" }
+conduit-web = { path = "../web", default-features = false }
+conduit-text = { path = "../text", default-features = false }
+conduit-time = { path = "../time", default-features = false }
+conduit-form = { path = "../../architecture/form" }
+conduit-planner = { path = "../../architecture/planner", optional = true }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[dev-dependencies]
+conduit-planner = { path = "../../architecture/planner" }
+
+[features]
+default = ["form-catalog"]
+form-catalog = ["conduit-time/form-catalog", "conduit-web/form-catalog", "conduit-text/form-catalog"]
+text-lab-plan = ["form-catalog", "dep:conduit-planner"]
+body-coordination-plan = ["form-catalog", "dep:conduit-planner"]

@@ -1,0 +1,26 @@
+[package]
+name = "conduit-browser-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-body = { path = "../../../architecture/body" }
+conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
+conduit-form = { path = "../../../architecture/form" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-net = { path = "../../../semantics/net", features = ["form-catalog"] }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
+conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
+conduit-text = { path = "../../../semantics/text", default-features = false }
+conduit-wire = { path = "../../../architecture/wire" }
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

@@ -45,7 +45,7 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
 }) => {
   test.skip(process.env.CONDUIT_THREE_HOST_FAILURE === "1", "running the failure proof only");
   test.setTimeout(60_000);
-  const form = readFileSync("fixtures/forms/triple-signal.conduit", "utf8").toLowerCase();
+  const form = readFileSync("proof/fixtures/forms/triple-signal.conduit", "utf8").toLowerCase();
   for (const forbidden of [
     "stdout", "dom", "gpio", "transport", "usb", "websocket", "browser", "pico",
     "firmware", "host", "address", "socket",
@@ -73,7 +73,7 @@ test("one unchanged form produces matching stdout, DOM, and physical Pico LED re
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser-host/assets/websocket-line.mjs"
+        "/targets/browser/host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,
@@ -173,7 +173,7 @@ test("a broken browser link fails the one kernel and reaches a physical Pico ter
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser-host/assets/websocket-line.mjs"
+        "/targets/browser/host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,

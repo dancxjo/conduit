@@ -5,14 +5,14 @@ edition = "2021"
 publish = false
 
 [dependencies]
-conduit-bluetooth = { path = "../../../crates/conduit-bluetooth" }
-conduit-core = { path = "../../../crates/conduit-core" }
-conduit-form = { path = "../../../crates/conduit-form" }
-conduit-planner = { path = "../../../crates/conduit-planner" }
-conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
-conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog", default-features = false, features = ["form-catalog"] }
-conduit-std-offers = { path = "../../../hosts/std/offers" }
-conduit-wire = { path = "../../../crates/conduit-wire", default-features = false }
+conduit-bluetooth = { path = "../../../mechanisms/protocols/bluetooth" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["form-catalog"] }
+conduit-std-offers = { path = "../../../targets/std/offers" }
+conduit-wire = { path = "../../../architecture/wire", default-features = false }
 
 [features]
 default = ["host-profile"]

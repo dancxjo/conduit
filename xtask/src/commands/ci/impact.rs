@@ -182,14 +182,14 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
 
 fn direct_prefixes(suite: &str) -> &'static [&'static str] {
     match suite {
-        "esp32" => &["firmware/conduit-esp32-", "targets/esp32/"],
+        "esp32" => &["targets/esp32/"],
         "browser" => &[
-            "hosts/browser-",
+            "targets/browser/",
             "apps/patchbay/",
             "proof/browser/",
             "assets/",
         ],
-        "conduitos" => &["hosts/conduitos/", "profiles/hosts/conduitos"],
+        "conduitos" => &["targets/conduitos/", "profiles/hosts/conduitos"],
         _ => &[],
     }
 }
@@ -310,15 +310,16 @@ fn plan_for_paths(
 }
 
 fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
-    if path.starts_with("targets/esp32/")
-        || path.starts_with("firmware/conduit-esp32-wroom-signal/src/")
+    if path.starts_with("targets/esp32/fabrication/")
+        || path == "targets/esp32/README.md"
+        || path.starts_with("targets/esp32/firmware/wroom-signal/src/")
     {
         *impact = Esp32Impact::all();
-    } else if path.starts_with("firmware/conduit-esp32-c3-signal/") {
+    } else if path.starts_with("targets/esp32/firmware/c3-signal/") {
         impact.targets.insert("c3".to_owned());
-    } else if path.starts_with("firmware/conduit-esp32-s3-signal/") {
+    } else if path.starts_with("targets/esp32/firmware/s3-signal/") {
         impact.targets.insert("s3".to_owned());
-    } else if path.starts_with("firmware/conduit-esp32-wroom-signal/") {
+    } else if path.starts_with("targets/esp32/firmware/wroom-signal/") {
         impact.targets.insert("wroom".to_owned());
     } else {
         *impact = Esp32Impact::all();
@@ -326,13 +327,13 @@ fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
 }
 
 fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
-    if path == "hosts/conduitos/src/bin/aarch64_product.rs"
+    if path == "targets/conduitos/src/bin/aarch64_product.rs"
         || path == "profiles/hosts/conduitos-aarch64-headless.profile.json"
     {
         impact.aarch64_product = true;
         return;
     }
-    if path.starts_with("hosts/conduitos/src/arch/x86_64/xhci") {
+    if path.starts_with("targets/conduitos/src/arch/x86_64/xhci") {
         // Every retained x86 appliance boots through the shared xHCI-enabled
         // image, including the front-door and product-journey keyboard paths.
         impact
@@ -340,18 +341,20 @@ fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
             .extend(CONDUITOS_X86_PROOFS.map(str::to_owned));
         return;
     }
-    if path.starts_with("hosts/conduitos/src/arch/x86_64/") {
+    if path.starts_with("targets/conduitos/src/arch/x86_64/") {
         impact
             .x86_proofs
             .extend(CONDUITOS_X86_PROOFS.map(str::to_owned));
         return;
     }
     for architecture in CONDUITOS_ARCHITECTURES {
-        if path.starts_with(&format!("hosts/conduitos/proof-appliances/{architecture}/")) {
+        if path.starts_with(&format!(
+            "targets/conduitos/proof-appliances/{architecture}/"
+        )) {
             impact.architectures.insert(architecture.to_owned());
             return;
         }
-        if path.starts_with(&format!("hosts/conduitos/src/arch/{architecture}/")) {
+        if path.starts_with(&format!("targets/conduitos/src/arch/{architecture}/")) {
             impact.architectures.insert(architecture.to_owned());
             if architecture == "aarch64" {
                 impact.aarch64_product = true;
@@ -359,7 +362,7 @@ fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
             return;
         }
         if path.starts_with(&format!(
-            "hosts/conduitos/fabrication/xtask/{architecture}_"
+            "targets/conduitos/fabrication/xtask/{architecture}_"
         )) {
             impact.architectures.insert(architecture.to_owned());
             return;

@@ -39,18 +39,32 @@ fn foundational_crates_do_not_depend_on_pete() {
         .parent()
         .and_then(Path::parent)
         .expect("workspace root");
-    let crates = root.join("crates");
-    for entry in fs::read_dir(crates).expect("read foundational crate directory") {
-        let package = entry.expect("read crate entry").path();
-        let package_manifest = package.join("Cargo.toml");
-        if !package_manifest.is_file() {
-            continue;
+    for owner in [
+        "architecture",
+        "fabrication",
+        "mechanisms",
+        "semantics",
+        "targets",
+    ] {
+        assert_no_pete_dependency(&root.join(owner));
+    }
+}
+
+fn assert_no_pete_dependency(directory: &Path) {
+    for entry in fs::read_dir(directory).expect("read lower ownership directory") {
+        let path = entry.expect("read lower ownership entry").path();
+        if path.is_dir() {
+            if path.file_name().and_then(|name| name.to_str()) == Some("target") {
+                continue;
+            }
+            assert_no_pete_dependency(&path);
+        } else if path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml") {
+            let contents = fs::read_to_string(&path).expect("read package manifest");
+            assert!(
+                !contents.contains("conduit-pete"),
+                "lower package {} depends on the Pete application",
+                path.display()
+            );
         }
-        let contents = fs::read_to_string(&package_manifest).expect("read crate manifest");
-        assert!(
-            !contents.contains("conduit-pete"),
-            "foundational crate {} depends on the Pete application",
-            package.display()
-        );
     }
 }

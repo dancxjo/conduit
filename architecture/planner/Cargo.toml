@@ -1,0 +1,25 @@
+[package]
+name = "conduit-planner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../core" }
+conduit-form = { path = "../form" }
+sha2 = { version = "0.10", default-features = false }
+
+[dev-dependencies]
+conduit-alife = { path = "../../semantics/alife" }
+conduit-body = { path = "../body", default-features = false }
+conduit-bluetooth = { path = "../../mechanisms/protocols/bluetooth" }
+conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
+conduit-host-fabrication = { path = "../../fabrication/host" }
+conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-kernel = { path = "../kernel" }
+conduit-plan-lowering = { path = "../plan-lowering" }
+conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
+conduit-semantic-catalog = { path = "../../semantics/catalog", features = ["form-catalog"] }
+conduit-std-offers = { path = "../../targets/std/offers" }
+conduit-wire = { path = "../wire" }
+serde_json = "1"

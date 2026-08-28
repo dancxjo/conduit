@@ -13,7 +13,7 @@ use sha2::{Digest, Sha256};
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 const FABRICATION_RUNNER_MANIFEST: &str =
-    "firmware/conduit-esp32-wroom-signal/fabrication-package-runner/Cargo.toml";
+    "targets/esp32/firmware/wroom-signal/fabrication-package-runner/Cargo.toml";
 const ESPFLASH_VERSION: &str = "4.5.0";
 const ESPFLASH_ARCHIVE: &str = "espflash-x86_64-unknown-linux-gnu.zip";
 const ESPFLASH_URL: &str = "https://github.com/esp-rs/espflash/releases/download/v4.5.0/espflash-x86_64-unknown-linux-gnu.zip";

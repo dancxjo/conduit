@@ -1,0 +1,16 @@
+[package]
+name = "conduit-std-offers"
+version = "0.1.0"
+edition = "2021"
+description = "Exact realization offers owned by the hosted std Host"
+
+[dependencies]
+conduit-alife = { path = "../../../semantics/alife" }
+conduit-audio = { path = "../../../semantics/audio" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-midi = { path = "../../../mechanisms/protocols/midi" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog" }
+conduit-time = { path = "../../../semantics/time" }
+conduit-text = { path = "../../../semantics/text" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-web = { path = "../../../semantics/web" }

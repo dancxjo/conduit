@@ -1,4 +1,4 @@
-#[path = "../../firmware/conduit-pico-w-signal/src/midi_fixture_mapping.rs"]
+#[path = "../../targets/rp2040/firmware/pico-w-signal/src/midi_fixture_mapping.rs"]
 mod mapping;
 
 use mapping::*;

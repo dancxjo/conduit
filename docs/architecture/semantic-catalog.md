@@ -6,7 +6,7 @@ catalog installation, and deterministic calculations. It is not a Host and it
 does not advertise that any implementation is currently available.
 
 The hosted reference Host owns its exact realization identities and
-`CapabilityOffer` construction in `hosts/std/offers` (`conduit-std-offers`).
+`CapabilityOffer` construction in `targets/std/offers` (`conduit-std-offers`).
 Its `supported_nucleus_offers()` inventory must preserve every selected
 portable face exactly while adding the std execution profile, implementation,
 artifact, Host-operation, resource, and authority facts required to execute it.
@@ -20,10 +20,10 @@ portable Kind contract and value meaning
     conduit-semantic-catalog and focused semantic crates
 
 hosted std realization offer
-    hosts/std/offers
+    targets/std/offers
 
 installed hosted operation and Host adapter
-    hosts/std
+    targets/std
 ```
 
 Education, vision, structured robotics, job/reminder workflows, recurrence and

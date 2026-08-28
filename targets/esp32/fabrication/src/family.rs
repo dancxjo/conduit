@@ -31,11 +31,11 @@ impl Esp32FamilyTarget {
         match self {
             Self::Wroom => hw463_esp_wroom_32_sample(),
             Self::C3 => serde_json::from_str(include_str!(
-                "../../../../firmware/conduit-esp32-c3-signal/board-descriptor.json"
+                "../../firmware/c3-signal/board-descriptor.json"
             ))
             .expect("package-owned C3 descriptor must decode"),
             Self::S3 => serde_json::from_str(include_str!(
-                "../../../../firmware/conduit-esp32-s3-signal/board-descriptor.json"
+                "../../firmware/s3-signal/board-descriptor.json"
             ))
             .expect("package-owned S3 descriptor must decode"),
         }
@@ -124,7 +124,7 @@ const WROOM: Esp32FamilyTargetFacts = Esp32FamilyTargetFacts {
     label: "ESP32-WROOM-32",
     architecture: "xtensa-lx6",
     machine: "hw-463-esp-wroom-32",
-    package_dir: "firmware/conduit-esp32-wroom-signal",
+    package_dir: "targets/esp32/firmware/wroom-signal",
     rust_toolchain: "esp-conduit-1.91.1",
     cargo_target: "xtensa-esp32-none-elf",
     artifact_name: "conduit-esp32-wroom-signal",
@@ -141,7 +141,7 @@ const C3: Esp32FamilyTargetFacts = Esp32FamilyTargetFacts {
     label: "ESP32-C3",
     architecture: "riscv32imc",
     machine: "usb-dcf8355d-esp32-c3",
-    package_dir: "firmware/conduit-esp32-c3-signal",
+    package_dir: "targets/esp32/firmware/c3-signal",
     rust_toolchain: "1.91.1",
     cargo_target: "riscv32imc-unknown-none-elf",
     artifact_name: "conduit-esp32-c3-signal",
@@ -158,7 +158,7 @@ const S3: Esp32FamilyTargetFacts = Esp32FamilyTargetFacts {
     label: "ESP32-S3",
     architecture: "xtensa-lx7",
     machine: "usb-54e2006398-esp32-s3",
-    package_dir: "firmware/conduit-esp32-s3-signal",
+    package_dir: "targets/esp32/firmware/s3-signal",
     rust_toolchain: "esp-conduit-1.91.1",
     cargo_target: "xtensa-esp32s3-none-elf",
     artifact_name: "conduit-esp32-s3-signal",
