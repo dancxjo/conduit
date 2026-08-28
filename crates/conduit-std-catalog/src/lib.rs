@@ -97,17 +97,9 @@ mod recurrence_catalog;
 #[cfg(feature = "form-catalog")]
 pub use recurrence_catalog::*;
 #[cfg(feature = "form-catalog")]
-mod recurrence_offer;
-#[cfg(feature = "form-catalog")]
-pub use recurrence_offer::recurrence_std_offer;
-#[cfg(feature = "form-catalog")]
 mod calendar_proposal_catalog;
 #[cfg(feature = "form-catalog")]
 pub use calendar_proposal_catalog::*;
-#[cfg(feature = "form-catalog")]
-mod calendar_proposal_offer;
-#[cfg(feature = "form-catalog")]
-pub use calendar_proposal_offer::*;
 #[cfg(feature = "form-catalog")]
 mod calendar_provider_catalog;
 #[cfg(feature = "form-catalog")]

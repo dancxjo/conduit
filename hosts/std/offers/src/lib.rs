@@ -30,6 +30,8 @@ mod music;
 pub use music::*;
 mod robotics;
 pub use robotics::*;
+mod calendar;
+pub use calendar::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -306,6 +308,8 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/music_input.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/structured_music_form.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/robotics.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/recurrence_catalog.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/calendar_proposal_catalog.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -380,6 +384,8 @@ mod tests {
                 "pub fn robotics_observe_battery_offer",
                 "pub fn robotics_velocity_intent_offer",
                 "pub fn robotics_drive_differential_offer",
+                "pub fn recurrence_std_offer",
+                "pub fn calendar_proposal_std_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),
