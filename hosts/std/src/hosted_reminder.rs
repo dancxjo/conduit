@@ -5,9 +5,8 @@
 //! and performs exactly one adapter call.
 
 use conduit_core::AuthorityBinding;
-use conduit_std_catalog::{
-    REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND, REMINDER_DELIVER_OPERATION,
-};
+use conduit_std_catalog::{REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND};
+use conduit_std_offers::REMINDER_DELIVER_OPERATION;
 use conduit_time::{
     ReminderOccurrence, ScheduledIntent, ScheduledIntentRefusal, ScheduledOccurrenceDecision,
 };
