@@ -21,7 +21,7 @@ fn civil_recurrence_is_checked_and_planned_as_one_exact_typed_request() {
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "meeting", &profile).unwrap();
-    let offer = conduit_std_catalog::recurrence_std_offer();
+    let offer = common::recurrence_proof_offer();
     let host = host(offer);
     let placements =
         conduit_planner::default_expanded_placements(&expanded, core::slice::from_ref(&host))
@@ -57,3 +57,4 @@ fn host(offer: CapabilityOffer) -> HostAdvertisement {
         capabilities: vec![offer],
     }
 }
+mod common;

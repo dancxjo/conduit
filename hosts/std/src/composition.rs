@@ -180,8 +180,8 @@ pub(super) fn build_advertisement(
             conduit_std_offers::time_timeout_offer(),
             conduit_std_offers::time_delay_offer(),
             conduit_std_offers::time_throttle_offer(),
-            conduit_std_catalog::recurrence_std_offer(),
-            conduit_std_catalog::calendar_proposal_std_offer(),
+            conduit_std_offers::recurrence_std_offer(),
+            conduit_std_offers::calendar_proposal_std_offer(),
             conduit_std_offers::tick_presentation_offer(),
             conduit_std_offers::bool_presentation_offer(),
         ]);

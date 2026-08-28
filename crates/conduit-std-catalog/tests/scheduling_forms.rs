@@ -12,8 +12,8 @@ use conduit_form::{
 use conduit_std_catalog::{
     assess_schedule_values, assess_workflow_timing, deterministic_schedule_fixture,
     install_recurrence_catalogs, install_schedule_catalogs, recurrence_occurrence_type,
-    recurrence_std_offer, scheduled_intent_type, ScheduleRefusal, ScheduleWindowPosition,
-    WorkflowLifecycle, WorkflowTimingOutcome, SCHEDULE_ASSESS_KIND, SCHEDULE_FIXTURE_KIND,
+    scheduled_intent_type, ScheduleRefusal, ScheduleWindowPosition, WorkflowLifecycle,
+    WorkflowTimingOutcome, SCHEDULE_ASSESS_KIND, SCHEDULE_FIXTURE_KIND,
 };
 
 const SOURCE: &str = include_str!("../../../examples/scheduling-workflow.conduit");
@@ -32,7 +32,7 @@ fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {
         bounded.expanded.gears[0].kind_id.as_str(),
         conduit_std_catalog::RECURRENCE_KIND
     );
-    let recurrence_host = host(vec![recurrence_std_offer()]);
+    let recurrence_host = host(vec![common::recurrence_proof_offer()]);
     let recurrence_placements = conduit_planner::default_expanded_placements(
         &bounded.expanded,
         core::slice::from_ref(&recurrence_host),
@@ -284,3 +284,4 @@ fn leaf_text(value: &StructuredInfoValue) -> &str {
     };
     core::str::from_utf8(bytes).unwrap()
 }
+mod common;

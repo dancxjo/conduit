@@ -8,7 +8,7 @@ use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueSto
 use conduit_time::RecurrenceRule;
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::RECURRENCE_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::RECURRENCE_STD_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -65,7 +65,7 @@ fn request(placement: &PlannedGear) -> Result<recurrence_codec::DecodedRecurrenc
 }
 
 fn validate(placement: &PlannedGear) -> Result<recurrence_codec::DecodedRecurrence, String> {
-    let offer = conduit_std_catalog::recurrence_std_offer();
+    let offer = conduit_std_offers::recurrence_std_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

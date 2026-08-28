@@ -7,7 +7,7 @@ use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
 use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::CALENDAR_PROPOSAL_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::CALENDAR_PROPOSAL_STD_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -68,7 +68,7 @@ fn request(
 fn validate(
     placement: &PlannedGear,
 ) -> Result<calendar_proposal_codec::DecodedCalendarProposal, String> {
-    let offer = conduit_std_catalog::calendar_proposal_std_offer();
+    let offer = conduit_std_offers::calendar_proposal_std_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
