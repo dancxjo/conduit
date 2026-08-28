@@ -851,8 +851,8 @@ conduit-form
 conduit-plan
     host advertisements, placement validation, exact plans, diagnostics
 
-conduit-runtime-core
-    bounded source/sink lifecycle, cord semantics, Play start state machine
+conduit-plan-lowering
+    exact rich-Plan to fixed numeric kernel-table lowering and identity recovery
 
 conduit-host-std
     portable Rust std host, stdout, timers, operator/planner fixture
