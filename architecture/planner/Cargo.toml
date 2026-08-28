@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../core" }
 conduit-form = { path = "../form" }
-conduit-human = { path = "../../semantics/human" }
 sha2 = { version = "0.10", default-features = false }
 
 [dev-dependencies]

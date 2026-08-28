@@ -817,7 +817,6 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-host-fabrication",
- "conduit-human",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-semantic-catalog",

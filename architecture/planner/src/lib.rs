@@ -71,7 +71,6 @@ mod fact_policy;
 mod functional_compatibility;
 mod fusion;
 mod generic_selection;
-mod human_media;
 mod incremental;
 mod locality;
 mod observations;
@@ -161,7 +160,6 @@ pub use fusion::{
     FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
     MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,
 };
-pub use human_media::{plan_media_acquisition, select_acquired_media};
 pub use incremental::{
     plan_cold, CandidateEvaluation, CandidateEvaluationDisposition, CandidateStructure, FactDomain,
     IncrementalCandidateEvidence, IncrementalPlan, IncrementalPlanner, IncrementalPlannerMetrics,

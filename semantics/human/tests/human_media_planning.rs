@@ -3,11 +3,11 @@ use conduit_core::{
     HostOperationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
 };
 use conduit_human::{
-    AcquiredMediaResource, HumanMediaKind, KnownPermissionState, MediaAcquisitionAuthority,
-    MediaAcquisitionOffer, MediaAcquisitionRequest, MediaAcquisitionResult, MediaConstraints,
-    MediaFlowBounds, MediaPlanningRefusal, MediaResourceAvailability, MediaUseRequirement,
+    plan_media_acquisition, select_acquired_media, AcquiredMediaResource, HumanMediaKind,
+    KnownPermissionState, MediaAcquisitionAuthority, MediaAcquisitionOffer,
+    MediaAcquisitionRequest, MediaAcquisitionResult, MediaConstraints, MediaFlowBounds,
+    MediaPlanningRefusal, MediaResourceAvailability, MediaUseRequirement,
 };
-use conduit_planner::{plan_media_acquisition, select_acquired_media};
 
 fn bounds() -> MediaFlowBounds {
     MediaFlowBounds {
@@ -119,10 +119,69 @@ fn acquisition_plan_is_immutable_evidence_and_use_requires_new_resource_truth() 
 
 #[test]
 fn acquisition_refusals_remain_distinct() {
+    let mut invalid_constraints = request();
+    invalid_constraints.constraints = MediaConstraints::Camera {
+        minimum_width: 0,
+        maximum_width: 1280,
+        minimum_height: 240,
+        maximum_height: 720,
+        maximum_frames_per_second: 30,
+    };
+    assert_eq!(
+        plan_media_acquisition(
+            PlanId::from("p"),
+            &offer(),
+            Some(&authority()),
+            invalid_constraints,
+            0
+        ),
+        Err(MediaPlanningRefusal::InvalidConstraints)
+    );
+
+    let mut invalid_bounds = request();
+    invalid_bounds.flow_bounds.maximum_queue_items = 0;
+    assert_eq!(
+        plan_media_acquisition(
+            PlanId::from("p"),
+            &offer(),
+            Some(&authority()),
+            invalid_bounds,
+            0
+        ),
+        Err(MediaPlanningRefusal::InvalidBounds)
+    );
+
+    let mut unavailable = offer();
+    unavailable.maximum_in_flight = 0;
+    assert_eq!(
+        plan_media_acquisition(
+            PlanId::from("p"),
+            &unavailable,
+            Some(&authority()),
+            request(),
+            0
+        ),
+        Err(MediaPlanningRefusal::OfferUnavailable)
+    );
+
     assert_eq!(
         plan_media_acquisition(PlanId::from("p"), &offer(), None, request(), 0),
         Err(MediaPlanningRefusal::RequestAuthorityMissing)
     );
+
+    let mut stale_authority = authority();
+    stale_authority.boot_id = BootId::from("browser-boot/stale");
+    assert_eq!(
+        plan_media_acquisition(
+            PlanId::from("p"),
+            &offer(),
+            Some(&stale_authority),
+            request(),
+            0
+        ),
+        Err(MediaPlanningRefusal::RequestAuthorityMismatch)
+    );
+
     assert_eq!(
         plan_media_acquisition(
             PlanId::from("p"),
@@ -178,5 +237,51 @@ fn later_loss_and_closure_are_not_generic_unavailability() {
     assert_eq!(
         select_acquired_media(&requirement, &resource, Some(&resource.use_authority_grant)),
         Err(MediaPlanningRefusal::ResourceClosed)
+    );
+}
+
+#[test]
+fn use_authority_kind_and_bounds_refuse_independently() {
+    let resource = AcquiredMediaResource {
+        host_id: HostId::from("browser/one"),
+        boot_id: BootId::from("browser-boot/one"),
+        handle_id: ResourceHandleId::from("track"),
+        class_id: ResourceClassId::from("camera"),
+        value_kind: KindId::from("frame"),
+        settings: camera_constraints(),
+        flow_bounds: bounds(),
+        use_authority_contract: AuthorityContractId::from("use"),
+        use_authority_grant: AuthorityGrantId::from("use-grant"),
+        availability: MediaResourceAvailability::Available,
+    };
+    let requirement = MediaUseRequirement {
+        kind: HumanMediaKind::Camera,
+        output_port: PortId::from("frame"),
+        class_id: resource.class_id.clone(),
+        value_kind: resource.value_kind.clone(),
+        flow_bounds: bounds(),
+    };
+
+    assert_eq!(
+        select_acquired_media(
+            &requirement,
+            &resource,
+            Some(&AuthorityGrantId::from("wrong-grant"))
+        ),
+        Err(MediaPlanningRefusal::UseAuthorityMissing)
+    );
+
+    let mut wrong_kind = requirement.clone();
+    wrong_kind.value_kind = KindId::from("wrong-frame");
+    assert_eq!(
+        select_acquired_media(&wrong_kind, &resource, Some(&resource.use_authority_grant)),
+        Err(MediaPlanningRefusal::WrongResourceKind)
+    );
+
+    let mut excessive = requirement;
+    excessive.flow_bounds.maximum_queue_bytes += 1;
+    assert_eq!(
+        select_acquired_media(&excessive, &resource, Some(&resource.use_authority_grant)),
+        Err(MediaPlanningRefusal::BoundsUnsatisfied)
     );
 }
