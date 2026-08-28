@@ -5,7 +5,7 @@ use conduit_planner::proof::heterogeneous::{
 };
 use conduit_planner::{DegradationAssessment, DegradationFragment, DegradationFragmentDisposition};
 
-use crate::PatchbayHeterogeneousCapstoneExplanation;
+use crate::proof::PatchbayHeterogeneousCapstoneExplanation;
 
 fn measurement(strategy: SchedulerStrategy, latency: u64, throughput: u64) -> CapstoneMeasurement {
     CapstoneMeasurement {

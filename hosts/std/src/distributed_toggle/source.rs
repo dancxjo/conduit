@@ -1,4 +1,4 @@
-//! Struct definition and kernel orchestration for the S4 toggle-demo std source.
+//! Struct definition and kernel orchestration for the distributed toggle std source.
 //!
 //! `DistributedToggleSource` prepares the kernel fragment (trigger + toggle)
 //! and drives the WebSocket session to the browser sink host.

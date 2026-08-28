@@ -3,7 +3,7 @@
 use conduit_kernel::scheduler::SchedulerStatus;
 
 use crate::{
-    composition::{MachineProof, MachineRunError},
+    composition::{MachineRunError, MachineRunReceipt},
     machine::{IdleBase, InterruptBase, MonotonicClockBase, SerialBase},
     text_planned_kernel::TextPlannedKernel,
 };
@@ -16,7 +16,7 @@ pub fn run<C, S, I, D>(
     serial: &mut S,
     interrupts: &mut I,
     idle: &mut D,
-) -> Result<MachineProof, MachineRunError>
+) -> Result<MachineRunReceipt, MachineRunError>
 where
     C: MonotonicClockBase,
     S: SerialBase,
@@ -82,7 +82,7 @@ where
                     .map_err(|_| MachineRunError::InterruptBaseFailure)?;
             }
             SchedulerStatus::Complete => {
-                return Ok(MachineProof {
+                return Ok(MachineRunReceipt {
                     logical_operations: 3,
                     decisions: kernel.decisions(),
                     kernel_signs: kernel.sign_count(),

@@ -12,7 +12,8 @@ pete-create = ["dep:conduit-create-oi"]
 [dependencies]
 conduit-ai = { path = "../../crates/conduit-ai", features = ["form-catalog"] }
 conduit-audio = { path = "../../crates/conduit-audio" }
-conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
+conduit-alife = { path = "../../crates/conduit-alife" }
+conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
 conduit-body = { path = "../../crates/conduit-body" }
 conduit-bluetooth = { path = "../../crates/conduit-bluetooth" }
 conduit-browser-runtime = { path = "../browser-runtime" }

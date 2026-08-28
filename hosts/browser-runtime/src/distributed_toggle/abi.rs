@@ -1,4 +1,4 @@
-//! WASM ABI exports for the S4 toggle-demo browser sink.
+//! WASM ABI exports for the distributed toggle browser sink.
 //!
 //! Thread-local state and `#[no_mangle]` extern C functions called from JavaScript
 //! to drive the toggle demonstration.

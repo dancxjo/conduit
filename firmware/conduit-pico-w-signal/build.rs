@@ -73,13 +73,13 @@ fn main() {
 }
 
 fn generate_pico_lenia_image(out: &Path) {
-    let exact = conduit_alife::exact_distributed_lenia_plan()
+    let exact = conduit_alife_distributed_conformance::exact_distributed_lenia_plan()
         .expect("the exact distributed Lenia Plan must resolve");
     let fragment = exact
         .plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID)
+        .find(|fragment| fragment.host_id.as_str() == conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_PICO_HOST_ID)
         .expect("distributed Lenia Plan must contain the Pico worker");
     let lowered = lower_plan_fragment(fragment).expect("Pico Lenia fragment must lower");
     let generated = generate_embedded_plan(
@@ -97,16 +97,16 @@ fn generate_pico_lenia_image(out: &Path) {
             maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 2,
             maximum_cord_value_slots: 2,
-            maximum_cord_value_bytes: conduit_alife::DISTRIBUTED_LENIA_VALUE_BYTES * 2,
+            maximum_cord_value_bytes: conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_VALUE_BYTES * 2,
             maximum_sign_items: 16,
             maximum_sign_bytes: 1024,
         },
     )
     .expect("Pico Lenia fragment must fit reviewed fixed-image bounds");
-    let bindings = conduit_alife::distributed_lenia_participant_bindings(
+    let bindings = conduit_alife_distributed_conformance::distributed_lenia_participant_bindings(
         &exact.plan,
-        conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID,
-        conduit_alife::DISTRIBUTED_LENIA_PICO_BOOT_ID,
+        conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_PICO_HOST_ID,
+        conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_PICO_BOOT_ID,
     )
     .expect("Pico Lenia bindings must resolve");
     let mut module = generated.render_no_alloc_firmware_module();

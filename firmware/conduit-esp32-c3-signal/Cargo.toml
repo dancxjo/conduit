@@ -51,7 +51,7 @@ static_cell = { version = "2.1.1", optional = true }
 trouble-host = { version = "0.6.0", default-features = false, features = ["default-packet-pool-mtu-255", "derive", "gatt", "peripheral", "security"], optional = true }
 
 [build-dependencies]
-conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
+conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
 conduit-form = { path = "../../crates/conduit-form" }

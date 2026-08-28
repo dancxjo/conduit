@@ -1,4 +1,4 @@
-//! One finite, pre-admitted cooperative lane for machine A2 proofs.
+//! One finite, pre-admitted cooperative timer lane.
 //!
 //! The architecture supplies only an exact timer completion fact. The
 //! production kernel remains the sole owner of operation lifecycle and

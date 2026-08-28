@@ -1,4 +1,4 @@
-//! Kernel operation types for the S4 toggle-demo source fragment.
+//! Kernel operation types for the distributed toggle source fragment.
 //!
 //! `ToggleSourceOperation` covers both `interaction/trigger` (stdin await-trigger
 //! requests) and `state/toggle` (stateful bool flip with exact ValueRef validation).

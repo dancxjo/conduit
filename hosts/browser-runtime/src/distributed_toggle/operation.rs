@@ -1,4 +1,4 @@
-//! Kernel operation for the S4 toggle-demo browser sink.
+//! Kernel operation for the distributed toggle browser sink.
 //!
 //! `ToggleShowOperation` awaits canonical Boolean values over the remote cord
 //! and drives `presentation/bool` through the browser kernel.

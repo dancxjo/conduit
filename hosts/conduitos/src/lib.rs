@@ -8,6 +8,7 @@ pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod bounded_host_operations;
 pub mod composition;
+pub mod cooperative_timer_lane;
 pub mod display;
 pub mod dual_region_composition;
 pub mod dual_region_kernel;
@@ -46,7 +47,6 @@ pub mod keyboard_text_play;
 mod keyboard_text_play_tests;
 pub mod local_rescue;
 pub mod machine;
-pub mod machine_a2_kernel;
 #[cfg(any(test, feature = "native-compositor"))]
 pub mod native_compositor;
 pub mod observatory;
@@ -86,9 +86,9 @@ mod product_bindings;
 pub mod product_front_door;
 #[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
 pub mod product_journey;
-pub mod proof;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
+pub mod sign_format;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod synth_nucleus;
 pub mod text_composition;

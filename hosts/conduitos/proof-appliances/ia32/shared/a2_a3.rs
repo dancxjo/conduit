@@ -5,7 +5,7 @@ use conduit_kernel::scheduler::SchedulerStatus;
 use conduitos::{
     allocation::BootArena,
     arch,
-    machine_a2_kernel::{AdmittedLane, LANE_ID},
+    cooperative_timer_lane::{AdmittedLane, LANE_ID},
 };
 use core::panic::PanicInfo;
 
@@ -202,12 +202,12 @@ extern "C" fn conduitos_ia32_a3_rust_entry() -> ! {
         &mut idle,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let sign = conduitos::proof::machine_accepted(
+    let sign = conduitos::sign_format::machine_accepted(
         &identities,
         &offer,
         &report,
         &prepared,
-        conduitos::proof::AllocationProof {
+        conduitos::sign_format::AllocationReceipt {
             before_play: before,
             after_play: BOOT_ARENA.used(),
             capacity: BOOT_ARENA.capacity(),

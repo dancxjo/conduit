@@ -1,4 +1,4 @@
-//! Std source half of the S4 toggle-demo distributed proof.
+//! Std source half of the distributed toggle proof.
 //!
 //! Split by stable responsibility:
 //! - `plan`: planning, advertisement resolution, two-fragment plan creation.

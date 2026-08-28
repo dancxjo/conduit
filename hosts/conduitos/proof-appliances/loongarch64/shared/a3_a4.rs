@@ -95,12 +95,12 @@ pub extern "C" fn conduitos_loongarch64_a3_start() -> ! {
         &mut idle,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let sign = proof::machine_accepted(
+    let sign = sign_format::machine_accepted(
         &identities,
         &offer,
         &report,
         &prepared,
-        proof::AllocationProof {
+        sign_format::AllocationReceipt {
             before_play: before,
             after_play: BOOT_ARENA.used(),
             capacity: BOOT_ARENA.capacity(),

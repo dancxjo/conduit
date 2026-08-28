@@ -85,7 +85,7 @@ async fn main(_spawner: Spawner) {
     let software_interrupts = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timer_group.timer0, software_interrupts.software_interrupt0);
     // Keep the descriptor-bound generated image resident. Its planner input
-    // used explicitly synthetic fixture identities. This build-only checkpoint
+    // used explicitly synthetic build-only identities. This checkpoint
     // emits no BOOT or HOST receipt and therefore cannot be mistaken for one.
     let _exact_kernel_node_specs: &[conduit_kernel::scheduler::NodeSpec<
         { generated::GENERATED_PORTS_PER_NODE },

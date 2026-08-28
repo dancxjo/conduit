@@ -270,7 +270,7 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(offer) => offer,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
-            match proof::accepted(&record, &identities, fabrication, offer.generation) {
+            match sign_format::accepted(&record, &identities, fabrication, offer.generation) {
                 Ok(sign) => {
                     arch::early_write(sign.as_bytes());
                     arch::early_write(b"CONDUIT_BOOT_STAGE identities\n");
@@ -598,7 +598,7 @@ extern "C" fn conduitos_start() -> ! {
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
             arch::early_write(b"CONDUIT_BOOT_STAGE opl2-play-finished\n");
-            let mut opl2_sign = proof::FixedText::new();
+            let mut opl2_sign = sign_format::FixedText::new();
             if writeln!(
                 opl2_sign,
                 "CONDUIT_OPL2_SIGN {{\"schema\":\"conduit.conduitos.opl2-proof/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"base_id\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"patch_profile\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"placements\":{},\"cords\":{},\"events\":{},\"peak_voices\":{},\"voice_capacity\":9,\"reset_writes\":{},\"patch_writes\":{},\"event_writes\":{},\"quiesce_writes\":{},\"register_write_capacity\":512,\"kernel_decisions\":{},\"kernel_signs\":{},\"final_active_voices\":{},\"normalized_events\":{},\"normalized_terminal\":\"completed\",\"normalized_plan_id\":\"{}\",\"normalized_implementation\":\"{}\",\"device\":\"qemu-adlib-ym3812\",\"iobase\":904,\"pcm_claimed\":false,\"subtractive_controls_claimed\":false,\"physical_hardware_claimed\":false,\"bounded\":true,\"completed\":{}}}",
@@ -643,7 +643,7 @@ extern "C" fn conduitos_start() -> ! {
                     Ok(report) => report,
                     Err(error) => emit_machine_refusal(error.as_str()),
                 };
-            let mut pc_speaker_sign = proof::FixedText::new();
+            let mut pc_speaker_sign = sign_format::FixedText::new();
             if writeln!(
                 pc_speaker_sign,
                 "CONDUIT_PC_SPEAKER_SIGN {{\"schema\":\"conduit.conduitos.pc-speaker-tone/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"base_id\":\"{}\",\"kind\":\"{}\",\"implementation\":\"{}\",\"execution_profile\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"node_count\":{},\"cord_count\":{},\"requested_millihertz\":[{},{},{},{}],\"realized_millihertz\":[{},{},{},{}],\"divisors\":[{},{},{},{}],\"gate_transitions\":[{},{},{},{}],\"transition_count\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"final_gate_open\":{},\"bounded\":true,\"completed\":{}}}\n",
@@ -694,12 +694,12 @@ extern "C" fn conduitos_start() -> ! {
                 &mut interrupts,
                 &mut idle,
             ) {
-                Ok(report) => match proof::machine_accepted(
+                Ok(report) => match sign_format::machine_accepted(
                     &identities,
                     &offer,
                     &report,
                     &prepared,
-                    proof::AllocationProof {
+                    sign_format::AllocationReceipt {
                         before_play: allocation_before_play,
                         after_play: BOOT_ARENA.used(),
                         capacity: BOOT_ARENA.capacity(),
@@ -724,7 +724,7 @@ extern "C" fn conduitos_start() -> ! {
 
 #[cfg(target_os = "none")]
 fn emit_machine_refusal(reason: &str) -> ! {
-    if let Ok(sign) = proof::machine_refused(reason) {
+    if let Ok(sign) = sign_format::machine_refused(reason) {
         arch::early_write(sign.as_bytes());
     }
     arch::deterministic_exit(false)
@@ -735,7 +735,7 @@ fn main() {}
 
 #[cfg(target_os = "none")]
 fn emit_refusal(reason: &str) -> ! {
-    if let Ok(sign) = proof::refused(reason) {
+    if let Ok(sign) = sign_format::refused(reason) {
         arch::early_write(sign.as_bytes());
     }
     arch::deterministic_exit(false)

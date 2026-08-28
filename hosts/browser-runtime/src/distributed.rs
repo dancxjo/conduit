@@ -1,4 +1,4 @@
-//! Browser/WASM sink half of the live S4 distributed Signal checkpoint.
+//! Browser/WASM sink half of the distributed Signal realization.
 
 use super::{
     map_scheduler_error, write_common_frame, write_presentation_completion_frame,

@@ -9,7 +9,7 @@ use core::panic::PanicInfo;
 use conduit_kernel::scheduler::SchedulerStatus;
 use conduitos::{
     arch,
-    machine_a2_kernel::{AdmittedLane, LANE_ID},
+    cooperative_timer_lane::{AdmittedLane, LANE_ID},
 };
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");

@@ -1,4 +1,4 @@
-//! Exact std source half of the live S4 std-to-browser Signal proof.
+//! Exact std source half of the live std-to-browser Signal proof.
 
 use crate::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_core::{bind_active_play, Observation, PlanFragment};

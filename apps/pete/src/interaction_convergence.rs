@@ -359,7 +359,7 @@ pub fn quantity(
     value(QUANTITY_INFO_ID, &Quantity::new(number, unit).encode())
 }
 
-pub fn capstone_physical_projection(
+pub fn physical_control_surface_projection(
     application: &InteractionConvergenceApplication,
 ) -> Result<PhysicalInteractionPlanProjection, InteractionConvergenceError> {
     let resource = |resource_id: &str, generation| PhysicalResourceBinding {
