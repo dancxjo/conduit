@@ -46,12 +46,13 @@ fn main() {
         "\npub const GENERATED_FABRICATION_DESCRIPTOR_BINDING: &str = {descriptor_binding:?};\n"
     ));
     if distributed {
-        let bindings = conduit_alife_distributed_conformance::distributed_lenia_participant_bindings(
-            &plan,
-            conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_WROOM_HOST_ID,
-            conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_WROOM_BOOT_ID,
-        )
-        .expect("WROOM Lenia bindings must resolve");
+        let bindings =
+            conduit_alife_distributed_conformance::distributed_lenia_participant_bindings(
+                &plan,
+                conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_WROOM_HOST_ID,
+                conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_WROOM_BOOT_ID,
+            )
+            .expect("WROOM Lenia bindings must resolve");
         render_lenia_bindings(&mut module, &bindings);
     }
     fs::write(out.join("signal_image.rs"), module).expect("generated WROOM image must be writable");

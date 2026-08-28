@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BootId, BaseImplementationId, HostId, PlacementId,
-    PlanId,
+    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, BootId, HostId,
+    PlacementId, PlanId,
 };
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
@@ -79,7 +79,10 @@ fn generate_pico_lenia_image(out: &Path) {
         .plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_PICO_HOST_ID)
+        .find(|fragment| {
+            fragment.host_id.as_str()
+                == conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_PICO_HOST_ID
+        })
         .expect("distributed Lenia Plan must contain the Pico worker");
     let lowered = lower_plan_fragment(fragment).expect("Pico Lenia fragment must lower");
     let generated = generate_embedded_plan(
@@ -94,10 +97,12 @@ fn generate_pico_lenia_image(out: &Path) {
             maximum_resources: 0,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 0,
-            maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+            maximum_ports_per_node:
+                conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 2,
             maximum_cord_value_slots: 2,
-            maximum_cord_value_bytes: conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_VALUE_BYTES * 2,
+            maximum_cord_value_bytes:
+                conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_VALUE_BYTES * 2,
             maximum_sign_items: 16,
             maximum_sign_bytes: 1024,
         },
@@ -367,7 +372,9 @@ fn generate_r1_recovery_signal_images(out: &Path) {
             .plan
             .fragments
             .iter()
-            .find(|fragment| fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID)
+            .find(|fragment| {
+                fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+            })
             .expect("R1 recovery Plan must contain the Pico fragment");
         let lowered = lower_plan_fragment(fragment).expect("R1 Pico Signal fragment must lower");
         let generated = generate_embedded_plan(fragment, &lowered, pico_signal_bounds())
@@ -398,7 +405,9 @@ fn generate_pico_network_image(out: &Path) {
         .plan
         .fragments
         .iter()
-        .find(|fragment| fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID)
+        .find(|fragment| {
+            fragment.host_id.as_str() == conduit_r1_network_conformance::R1_PICO_HOST_ID
+        })
         .expect("R1 bootstrap Plan must contain the Pico fragment");
     let lowered = lower_plan_fragment(fragment).expect("Pico network fragment must lower");
     let generated = generate_embedded_plan(
@@ -413,7 +422,8 @@ fn generate_pico_network_image(out: &Path) {
             maximum_resources: 1,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 0,
-            maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+            maximum_ports_per_node:
+                conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 1,
             maximum_cord_value_slots: 2,
             maximum_cord_value_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES
@@ -747,7 +757,8 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_resources: 2,
         maximum_sign_expectations: 8,
         maximum_configuration_entries: 3,
-        maximum_ports_per_node: conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+        maximum_ports_per_node:
+            conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: 2,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
         maximum_cord_value_bytes: SIGNAL_ENCODED_LEN,
