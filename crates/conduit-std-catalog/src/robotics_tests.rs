@@ -1,28 +1,10 @@
 use super::*;
 
 #[test]
-fn robotics_contracts_are_typed_bounded_and_prewake_offers_are_authority_free() {
-    for (contract, revision) in robotics_contracts_with_revisions() {
-        let implementation = match contract.kind_id.as_str() {
-            ROBOTICS_OBSERVE_BUMP_KIND => ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION,
-            ROBOTICS_OBSERVE_IMU_KIND => ROBOTICS_OBSERVE_IMU_IMPLEMENTATION,
-            ROBOTICS_OBSERVE_RANGE_KIND => ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION,
-            ROBOTICS_OBSERVE_ODOMETRY_KIND => ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION,
-            ROBOTICS_OBSERVE_BATTERY_KIND => ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION,
-            ROBOTICS_VELOCITY_INTENT_KIND => ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION,
-            ROBOTICS_DRIVE_DIFFERENTIAL_KIND => ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION,
-            _ => unreachable!(),
-        };
-        let offer = offer(contract.clone(), revision, "test", implementation);
+fn robotics_contracts_are_typed_and_bounded() {
+    for (contract, _) in robotics_contracts_with_revisions() {
         assert_eq!(contract.limits.max_queue_items, 1);
-        assert!(offer.host_operations.is_empty());
-        assert!(offer.resource_requirements.is_empty());
-        assert!(offer.authority_requirements.is_empty());
-        assert!(offer
-            .implementation
-            .implementation_id
-            .as_str()
-            .contains("prewake"));
+        assert!(contract.limits.max_queue_bytes > 0);
     }
 }
 

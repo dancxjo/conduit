@@ -13,19 +13,19 @@ use conduit_kernel::{
 };
 
 pub(super) static ROBOTICS_OBSERVE_BUMP_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION);
 pub(super) static ROBOTICS_OBSERVE_IMU_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_OBSERVE_IMU_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_IMU_IMPLEMENTATION);
 pub(super) static ROBOTICS_OBSERVE_RANGE_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION);
 pub(super) static ROBOTICS_OBSERVE_ODOMETRY_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION);
 pub(super) static ROBOTICS_OBSERVE_BATTERY_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION);
 pub(super) static ROBOTICS_VELOCITY_INTENT_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION);
 pub(super) static ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY: InstalledFactory =
-    factory(conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION);
+    factory(conduit_std_offers::ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION);
 
 const fn factory(implementation_id: &'static str) -> InstalledFactory {
     InstalledFactory {
@@ -226,25 +226,25 @@ fn prepare_robotics(
 fn expected_offer(placement: &PlannedGear) -> Result<conduit_core::CapabilityOffer, String> {
     match placement.kind_id.as_str() {
         conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
-            Ok(conduit_std_catalog::robotics_observe_bump_offer())
+            Ok(conduit_std_offers::robotics_observe_bump_offer())
         }
         conduit_std_catalog::ROBOTICS_OBSERVE_IMU_KIND => {
-            Ok(conduit_std_catalog::robotics_observe_imu_offer())
+            Ok(conduit_std_offers::robotics_observe_imu_offer())
         }
         conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_KIND => {
-            Ok(conduit_std_catalog::robotics_observe_range_offer())
+            Ok(conduit_std_offers::robotics_observe_range_offer())
         }
         conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => {
-            Ok(conduit_std_catalog::robotics_observe_odometry_offer())
+            Ok(conduit_std_offers::robotics_observe_odometry_offer())
         }
         conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => {
-            Ok(conduit_std_catalog::robotics_observe_battery_offer())
+            Ok(conduit_std_offers::robotics_observe_battery_offer())
         }
         conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_KIND => {
-            Ok(conduit_std_catalog::robotics_velocity_intent_offer())
+            Ok(conduit_std_offers::robotics_velocity_intent_offer())
         }
         conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND => {
-            Ok(conduit_std_catalog::robotics_drive_differential_offer())
+            Ok(conduit_std_offers::robotics_drive_differential_offer())
         }
         _ => Err("unsupported installed robotics Kind".to_string()),
     }

@@ -427,34 +427,63 @@ fn json_offer(
 
 pub fn robotics_offers() -> Vec<CapabilityOffer> {
     [
-        conduit_std_catalog::robotics_observe_bump_offer(),
-        conduit_std_catalog::robotics_observe_imu_offer(),
-        conduit_std_catalog::robotics_observe_range_offer(),
-        conduit_std_catalog::robotics_observe_odometry_offer(),
-        conduit_std_catalog::robotics_observe_battery_offer(),
-        conduit_std_catalog::robotics_velocity_intent_offer(),
-        conduit_std_catalog::robotics_drive_differential_offer(),
+        (
+            conduit_std_catalog::robotics_observe_bump_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+        ),
+        (
+            conduit_std_catalog::robotics_observe_imu_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
+        ),
+        (
+            conduit_std_catalog::robotics_observe_range_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_REVISION,
+        ),
+        (
+            conduit_std_catalog::robotics_observe_odometry_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
+        ),
+        (
+            conduit_std_catalog::robotics_observe_battery_contract(),
+            conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
+        ),
+        (
+            conduit_std_catalog::robotics_velocity_intent_contract(),
+            conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_REVISION,
+        ),
+        (
+            conduit_std_catalog::robotics_drive_differential_contract(),
+            conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
+        ),
     ]
     .into_iter()
-    .map(|offer| {
-        let slug = offer
+    .map(|(contract, contract_revision)| {
+        let slug = contract
             .kind_id
             .as_str()
             .strip_prefix("robotics/")
             .map(String::from)
             .expect("canonical robotics Kind has prefix");
         let revision =
-            if offer.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
+            if contract.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
                 2
             } else {
                 1
             };
-        realize_with(
-            offer,
-            &alloc::format!("conduitos-robotics-{slug}@1"),
-            ROBOTICS_PROFILE,
-            &alloc::format!("conduitos/kernel-robotics-prewake-{slug}@{revision}"),
-            "conduitos/robotics-prewake@1",
+        conduit_std_catalog::realization_offer(
+            contract,
+            contract_revision,
+            conduit_std_catalog::RealizationOfferIdentity {
+                capability: &alloc::format!("conduitos-robotics-{slug}@1"),
+                execution_profile: ROBOTICS_PROFILE,
+                implementation: &alloc::format!(
+                    "conduitos/kernel-robotics-prewake-{slug}@{revision}"
+                ),
+                artifact: "conduitos/robotics-prewake@1",
+            },
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
         )
     })
     .collect()
@@ -586,20 +615,6 @@ fn timing_contract(
         resources,
         Vec::new(),
     )
-}
-
-fn realize_with(
-    mut offer: CapabilityOffer,
-    capability: &str,
-    profile: &str,
-    implementation: &str,
-    artifact: &str,
-) -> CapabilityOffer {
-    offer.capability_id = CapabilityId::from(capability);
-    offer.implementation.execution_profile_id = ExecutionProfileId::from(profile);
-    offer.implementation.implementation_id = ImplementationId::from(implementation);
-    offer.implementation.artifact_id = ArtifactId::from(artifact);
-    offer
 }
 
 fn realize_contract(

@@ -251,13 +251,13 @@ pub(super) fn build_advertisement(
     }
     if composition.robotics {
         capabilities.extend([
-            conduit_std_catalog::robotics_observe_bump_offer(),
-            conduit_std_catalog::robotics_observe_imu_offer(),
-            conduit_std_catalog::robotics_observe_range_offer(),
-            conduit_std_catalog::robotics_observe_odometry_offer(),
-            conduit_std_catalog::robotics_observe_battery_offer(),
-            conduit_std_catalog::robotics_velocity_intent_offer(),
-            conduit_std_catalog::robotics_drive_differential_offer(),
+            conduit_std_offers::robotics_observe_bump_offer(),
+            conduit_std_offers::robotics_observe_imu_offer(),
+            conduit_std_offers::robotics_observe_range_offer(),
+            conduit_std_offers::robotics_observe_odometry_offer(),
+            conduit_std_offers::robotics_observe_battery_offer(),
+            conduit_std_offers::robotics_velocity_intent_offer(),
+            conduit_std_offers::robotics_drive_differential_offer(),
         ]);
     }
     if composition.files {
