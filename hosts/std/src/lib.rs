@@ -734,7 +734,7 @@ impl StdHost {
             .iter()
             .find(|offer| {
                 offer.implementation.implementation_id.as_str()
-                    == conduit_std_catalog::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+                    == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
             })
             .ok_or_else(|| "selected playback capability is not advertised".to_string())?;
         let requirement = capability
@@ -773,7 +773,7 @@ impl StdHost {
             .iter()
             .find(|offer| {
                 offer.implementation.implementation_id.as_str()
-                    == conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+                    == conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION
             })
             .ok_or_else(|| "selected MIDI output capability is not advertised".to_string())?;
         if capability.authority_requirements.len() != 2 {

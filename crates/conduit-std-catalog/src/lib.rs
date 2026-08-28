@@ -67,7 +67,7 @@ mod job_catalog;
 pub use job_catalog::*;
 mod palette_metadata;
 mod tick;
-use functional_face::startup_face;
+pub use functional_face::startup_face;
 pub use palette_metadata::*;
 pub use tick::*;
 mod tick_presentation;

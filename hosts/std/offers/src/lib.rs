@@ -26,6 +26,8 @@ mod keyboard;
 pub use keyboard::*;
 mod generalized_input;
 pub use generalized_input::*;
+mod music;
+pub use music::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -156,7 +158,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         tick_capability_offer(),
         time_every_offer(),
         audio_render_demand_offer(),
-        conduit_std_catalog::music_synth_reference_offer(),
+        music_synth_reference_offer(),
         time_debounce_offer(),
         time_timeout_offer(),
         time_delay_offer(),
@@ -298,6 +300,9 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/structured_selector.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/keyboard.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/generalized_input_catalog.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/sound.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/music_input.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/structured_music_form.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -359,6 +364,12 @@ mod tests {
                 "pub fn orbium_seed_offer",
                 "pub fn lenia_step_offer",
                 "pub fn scalar_field_presentation_offer",
+                "pub fn music_play_midi_offer",
+                "pub fn music_synth_reference_offer",
+                "pub fn audio_play_alsa_hw_offer",
+                "pub fn music_input_midi_offer",
+                "pub fn rhythm_compare_std_offer",
+                "pub fn instrument_map_std_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),

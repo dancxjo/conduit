@@ -65,7 +65,7 @@ pub fn output_compatibility_profile(
         conduit_audio::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
             .map_err(|_| "MIDI maximum pitch profile is invalid")?;
     Ok(conduit_std_catalog::SoundCompatibilityProfile {
-        profile_id: conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE.into(),
+        profile_id: conduit_std_offers::MUSIC_PLAY_MIDI_PROFILE.into(),
         seam: conduit_std_catalog::SoundSeam::MusicalEvents,
         minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
         maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
@@ -168,7 +168,7 @@ impl HostedMidiSelection {
             class_id: conduit_core::ResourceClassId::from(match self.observation.direction {
                 MidiEndpointDirection::ReadableSource => "conduit.resource/midi-input@1",
                 MidiEndpointDirection::WritableDestination => {
-                    conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS
+                    conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS
                 }
             }),
             health: ResourceHealth::Ready,
@@ -355,11 +355,11 @@ mod tests {
         .unwrap();
         assert!(host.advertisement().capabilities.iter().any(|capability| {
             capability.implementation.execution_profile_id.as_str()
-                == conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE
+                == conduit_std_offers::MUSIC_PLAY_MIDI_PROFILE
         }));
         assert!(host.advertisement().resources.iter().any(|resource| {
             resource.pool_id == output.resource_pool_id()
-                && resource.class_id.as_str() == conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS
+                && resource.class_id.as_str() == conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS
         }));
         assert!(crate::StdHost::new_with_midi_output(
             crate::StdHostConfig {

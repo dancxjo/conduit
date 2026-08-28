@@ -10,15 +10,12 @@ use crate::{
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_audio::{
-    AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID, CONTROL_EVENT_ENCODED_LEN,
-    MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID, NOTE_EVENT_ENCODED_LEN,
+    AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
     PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,18 +25,7 @@ pub const MUSIC_SYNTH_KIND: &str = "music/synth";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const SOUND_TONE_PLAY_REVISION: &str = "conduit.std/sound-tone-play@1";
 pub const MUSIC_PLAY_REVISION: &str = "conduit.std/music-play@1";
-pub const MUSIC_PLAY_MIDI_PROFILE: &str = "std/midi1-channel-12tet-a440-output@1";
-pub const MUSIC_PLAY_MIDI_IMPLEMENTATION: &str = "std/kernel-music-play-midi1@1";
-pub const MUSIC_PLAY_MIDI_ARTIFACT: &str = "conduit-std-host/music-play-midi1@1";
-pub const MUSIC_PLAY_MIDI_NOTE_OPERATION: &str = "conduit.host/midi1-output-note@1";
-pub const MUSIC_PLAY_MIDI_CONTROL_OPERATION: &str = "conduit.host/midi1-output-control@1";
-pub const MIDI_OUTPUT_RESOURCE_CLASS: &str = "conduit.resource/midi-output@1";
-pub const MIDI_OUTPUT_AUTHORITY_CONTRACT: &str = "conduit.authority/midi-output@1";
 pub const MUSIC_SYNTH_REVISION: &str = "conduit.std/music-synth@1";
-pub const MUSIC_SYNTH_REFERENCE_PROFILE: &str = "conduit.reference/music-synth-fixed-q16@1";
-pub const MUSIC_SYNTH_REFERENCE_IMPLEMENTATION: &str = "std/kernel-music-synth-fixed-q16@1";
-pub const MUSIC_SYNTH_REFERENCE_ARTIFACT: &str = "conduit-std-host/music-synth-fixed-q16@1";
-pub const MUSIC_SYNTH_HOST_OPERATION: &str = "conduit.host/music-synth-render-fixed-q16@1";
 pub const MUSIC_SYNTH_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 256 * 4;
 pub const SYNTH_MAXIMUM_VOICES_KEY: &str = "maximum-voices";
 pub const SYNTH_OSCILLATOR_KEY: &str = "oscillator";
@@ -56,12 +42,6 @@ pub const SYNTH_LFO_DEPTH_KEY: &str = "lfo-depth-q16";
 pub const SYNTH_MASTER_GAIN_KEY: &str = "master-gain-q16";
 pub const SYNTH_STEAL_POLICY_KEY: &str = "voice-steal-policy";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
-pub const AUDIO_PLAY_ALSA_HW_PROFILE: &str = "std/alsa-hw-s16le-48000-stereo-p256-b1024@1";
-pub const AUDIO_PLAY_ALSA_HW_IMPLEMENTATION: &str = "std/kernel-audio-play-alsa-hw@1";
-pub const AUDIO_PLAY_ALSA_HW_ARTIFACT: &str = "conduit-std-host/alsa-aplay-hw@1";
-pub const AUDIO_PLAY_ALSA_HW_OPERATION: &str = "conduit.host/audio-play-alsa-hw@1";
-pub const AUDIO_PLAYBACK_RESOURCE_CLASS: &str = "conduit.resource/audio-playback-alsa-hw@1";
-pub const AUDIO_PLAYBACK_AUTHORITY_CONTRACT: &str = "conduit.authority/audio-playback@1";
 pub const AUDIO_PLAY_ALSA_PERIOD_FRAMES: u16 = 256;
 pub const AUDIO_PLAY_ALSA_BUFFER_FRAMES: u16 = 1_024;
 pub const AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS: u16 = 256;
@@ -135,68 +115,6 @@ pub fn music_play_contract() -> StandardKindContract {
     )
 }
 
-/// Exact classic-MIDI output realization of the compatible `music/play`
-/// subset. Endpoint identity and profile facts come from the containing Host
-/// advertisement; this offer alone neither discovers nor authorizes a port.
-pub fn music_play_midi_offer() -> CapabilityOffer {
-    let contract = music_play_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("music-play-midi1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(MUSIC_PLAY_REVISION),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(MUSIC_PLAY_MIDI_PROFILE),
-            implementation_id: ImplementationId::from(MUSIC_PLAY_MIDI_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(MUSIC_PLAY_MIDI_ARTIFACT),
-        },
-        host_operations: vec![
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(MUSIC_PLAY_MIDI_CONTROL_OPERATION),
-                target_kind: Some(kind_id(MUSIC_CONTROL_INFO_ID)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: CONTROL_EVENT_ENCODED_LEN as u32,
-                maximum_output_bytes: 0,
-            },
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(MUSIC_PLAY_MIDI_NOTE_OPERATION),
-                target_kind: Some(kind_id(MUSIC_NOTE_INFO_ID)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: NOTE_EVENT_ENCODED_LEN as u32,
-                maximum_output_bytes: 0,
-            },
-        ],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            MIDI_OUTPUT_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: vec![
-            conduit_core::AuthorityRequirement {
-                contract_id: conduit_core::AuthorityContractId::from(
-                    MIDI_OUTPUT_AUTHORITY_CONTRACT,
-                ),
-                host_operation_contract_id: HostOperationContractId::from(
-                    MUSIC_PLAY_MIDI_CONTROL_OPERATION,
-                ),
-                subject_kind: kind_id(MUSIC_CONTROL_INFO_ID),
-            },
-            conduit_core::AuthorityRequirement {
-                contract_id: conduit_core::AuthorityContractId::from(
-                    MIDI_OUTPUT_AUTHORITY_CONTRACT,
-                ),
-                host_operation_contract_id: HostOperationContractId::from(
-                    MUSIC_PLAY_MIDI_NOTE_OPERATION,
-                ),
-                subject_kind: kind_id(MUSIC_NOTE_INFO_ID),
-            },
-        ],
-        limits: event_limits(),
-    }
-}
-
 pub fn music_synth_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(MUSIC_SYNTH_KIND),
@@ -220,34 +138,6 @@ pub fn music_synth_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "synth: music/synth".to_string(),
-    }
-}
-
-pub fn music_synth_reference_offer() -> CapabilityOffer {
-    let contract = music_synth_contract();
-    CapabilityOffer {
-        startup_parameters: crate::startup_face(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from("music-synth-fixed-q16"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(MUSIC_SYNTH_REVISION),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(MUSIC_SYNTH_REFERENCE_PROFILE),
-            implementation_id: ImplementationId::from(MUSIC_SYNTH_REFERENCE_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(MUSIC_SYNTH_REFERENCE_ARTIFACT),
-        },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(MUSIC_SYNTH_HOST_OPERATION),
-            target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: NOTE_EVENT_ENCODED_LEN.max(CONTROL_EVENT_ENCODED_LEN) as u32,
-            maximum_output_bytes: MUSIC_SYNTH_PCM_BLOCK_BYTES,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: audio_limits(),
     }
 }
 
@@ -326,48 +216,6 @@ pub fn audio_play_contract() -> StandardKindContract {
         vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
         audio_limits(),
     )
-}
-
-/// Exact direct-ALSA playback implementation. The containing Host
-/// advertisement must contribute one freshly observed playback resource; the
-/// offer alone neither discovers nor authorizes a device.
-pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
-    let contract = audio_play_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("audio-play-alsa-hw"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(AUDIO_PLAY_REVISION),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(AUDIO_PLAY_ALSA_HW_PROFILE),
-            implementation_id: ImplementationId::from(AUDIO_PLAY_ALSA_HW_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(AUDIO_PLAY_ALSA_HW_ARTIFACT),
-        },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
-            target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            AUDIO_PLAYBACK_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: vec![conduit_core::AuthorityRequirement {
-            contract_id: conduit_core::AuthorityContractId::from(AUDIO_PLAYBACK_AUTHORITY_CONTRACT),
-            host_operation_contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
-            subject_kind: kind_id(AUDIO_PCM_INFO_ID),
-        }],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: MAXIMUM_AUDIO_QUEUE_ITEMS,
-            max_queue_bytes: MAXIMUM_AUDIO_QUEUE_BYTES,
-        },
-    }
 }
 
 pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 6] {
@@ -573,49 +421,6 @@ mod tests {
                 .value,
             ConfigurationValue::U64(10_000)
         );
-    }
-
-    #[test]
-    fn alsa_playback_offer_requires_resource_and_independent_authority() {
-        let offer = audio_play_alsa_hw_offer();
-        assert_eq!(offer.kind_id.as_str(), AUDIO_PLAY_KIND);
-        assert_eq!(offer.resource_requirements.len(), 1);
-        assert_eq!(offer.authority_requirements.len(), 1);
-        assert_eq!(offer.host_operations.len(), 1);
-        assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
-        assert_eq!(offer.host_operations[0].maximum_output_bytes, 0);
-        assert_eq!(
-            offer.host_operations[0].maximum_input_bytes,
-            AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
-        );
-    }
-
-    #[test]
-    fn midi_output_offer_keeps_typed_ports_and_authority_exact() {
-        let offer = music_play_midi_offer();
-        assert_eq!(offer.kind_id.as_str(), MUSIC_PLAY_KIND);
-        assert_eq!(offer.resource_requirements.len(), 1);
-        assert_eq!(offer.host_operations.len(), 2);
-        assert_eq!(offer.authority_requirements.len(), 2);
-        assert_eq!(
-            offer.host_operations[0]
-                .target_kind
-                .as_ref()
-                .unwrap()
-                .as_str(),
-            MUSIC_CONTROL_INFO_ID
-        );
-        assert_eq!(
-            offer.host_operations[1]
-                .target_kind
-                .as_ref()
-                .unwrap()
-                .as_str(),
-            MUSIC_NOTE_INFO_ID
-        );
-        assert!(offer.host_operations.iter().all(
-            |operation| operation.maximum_in_flight == 1 && operation.maximum_output_bytes == 0
-        ));
     }
 
     #[cfg(feature = "form-catalog")]

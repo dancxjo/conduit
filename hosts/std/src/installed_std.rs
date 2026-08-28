@@ -383,9 +383,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let deadline_contract_id = conduit_core::HostOperationContractId::from(
         conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT,
     );
-    let midi_input_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_catalog::MUSIC_INPUT_MIDI_OPERATION,
-    );
+    let midi_input_contract_id =
+        conduit_core::HostOperationContractId::from(conduit_std_offers::MUSIC_INPUT_MIDI_OPERATION);
     let keyboard_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
     );
@@ -466,7 +465,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .iter()
         .map(|placement| {
             if placement.implementation_id.as_str()
-                == conduit_std_catalog::RHYTHM_COMPARE_STD_IMPLEMENTATION
+                == conduit_std_offers::RHYTHM_COMPARE_STD_IMPLEMENTATION
             {
                 rhythm_compare_host::RhythmCompareHost::from_placement(placement).map(Some)
             } else {
@@ -506,7 +505,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .iter()
         .map(|placement| {
             if placement.implementation_id.as_str()
-                == conduit_std_catalog::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+                == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
             {
                 audio_play_operation::prepare_session(placement, playback).map(Some)
             } else {
@@ -519,7 +518,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .iter()
         .map(|placement| {
             if placement.implementation_id.as_str()
-                == conduit_std_catalog::MUSIC_INPUT_MIDI_IMPLEMENTATION
+                == conduit_std_offers::MUSIC_INPUT_MIDI_IMPLEMENTATION
             {
                 midi_input_operation::prepare_session(placement, midi_input).map(Some)
             } else {
@@ -534,7 +533,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .iter()
         .map(|placement| {
             if placement.implementation_id.as_str()
-                == conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+                == conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION
             {
                 midi_output_operation::prepare_session(placement, midi_output).map(Some)
             } else {
@@ -547,7 +546,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .iter()
         .map(|placement| {
             if placement.implementation_id.as_str()
-                == conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+                == conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION
             {
                 midi_output_operation::prepare_adapter().map(Some)
             } else {
@@ -604,8 +603,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 http_host.cancel();
             } else if matches!(
                 cancelled_operation.contract_id.as_str(),
-                conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION
-                    | conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION
+                conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION
+                    | conduit_std_offers::MUSIC_PLAY_MIDI_CONTROL_OPERATION
             ) {
                 let session = midi_output_sessions
                     .get_mut(usize::from(cancellation.node.0))
@@ -798,9 +797,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
             if matches!(
                 contract.as_str(),
-                conduit_std_catalog::RHYTHM_PERFORMANCE_HOST_OPERATION
-                    | conduit_std_catalog::RHYTHM_REFERENCE_HOST_OPERATION
-                    | conduit_std_catalog::RHYTHM_DRAIN_HOST_OPERATION
+                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION
+                    | conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION
+                    | conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION
             ) {
                 let completion = rhythm_compare_hosts
                     .get_mut(usize::from(request.node.0))
@@ -957,8 +956,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 continue;
             } else if matches!(
                 contract.as_str(),
-                conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION
-                    | conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION
+                conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION
+                    | conduit_std_offers::MUSIC_PLAY_MIDI_CONTROL_OPERATION
             ) {
                 let node = usize::from(request.node.0);
                 let session = midi_output_sessions

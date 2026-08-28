@@ -6,7 +6,7 @@ use conduit_kernel::{
 };
 
 pub(super) static MIDI_OUTPUT_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -111,7 +111,7 @@ fn prepare(
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::music_play_midi_offer();
+    let offer = conduit_std_offers::music_play_midi_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
@@ -130,13 +130,13 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
             .any(|port| port.direction != PortDirection::Input)
         || placement.resources.len() != 1
         || placement.resources[0].class_id.as_str()
-            != conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS
+            != conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS
         || placement.resources[0].units != 1
         || placement.resources[0].protected.is_some()
         || placement.resources[0].compute.is_some()
         || placement.authority.len() != 2
         || !placement.authority.iter().all(|authority| {
-            authority.contract_id.as_str() == conduit_std_catalog::MIDI_OUTPUT_AUTHORITY_CONTRACT
+            authority.contract_id.as_str() == conduit_std_offers::MIDI_OUTPUT_AUTHORITY_CONTRACT
                 && authority.host_id == placement.host_id
                 && authority.boot_id == placement.boot_id
                 && authority.capability_id == placement.capability_id
@@ -196,7 +196,7 @@ pub(super) fn execute(
     contract: &str,
     input: &[u8],
 ) -> conduit_kernel::HostOperationOutcome {
-    if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION {
+    if contract == conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION {
         let Ok(event) = conduit_audio::MusicalNoteEvent::decode(input) else {
             return failed(conduit_kernel::FailureCode::InvalidInput, 84);
         };
@@ -208,7 +208,7 @@ pub(super) fn execute(
             Err(error) => output_failure(error),
         };
     }
-    let encoded = if contract == conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION {
+    let encoded = if contract == conduit_std_offers::MUSIC_PLAY_MIDI_CONTROL_OPERATION {
         conduit_audio::MusicalControlEvent::decode(input)
             .map_err(|_| ())
             .and_then(|event| adapter.encode_control(event).map_err(|_| ()))

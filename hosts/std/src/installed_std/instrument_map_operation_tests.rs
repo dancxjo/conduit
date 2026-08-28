@@ -5,7 +5,7 @@ use conduit_core::{
 };
 
 fn placement() -> PlannedGear {
-    let offer = conduit_std_catalog::instrument_map_std_offer();
+    let offer = conduit_std_offers::instrument_map_std_offer();
     PlannedGear {
         placement_id: PlacementId::from("instrument-map-placement"),
         gear_id: GearId::from("mapper"),

@@ -10,7 +10,7 @@ use conduit_kernel::{
 
 pub(super) use super::synth_render::{execute, InstalledSynthState};
 
-pub(super) const SYNTH_HOST_OPERATION: &str = conduit_std_catalog::MUSIC_SYNTH_HOST_OPERATION;
+pub(super) const SYNTH_HOST_OPERATION: &str = conduit_std_offers::MUSIC_SYNTH_HOST_OPERATION;
 pub(super) const PCM_BLOCK_BYTES: u32 = conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES;
 
 pub(super) static MUSIC_SYNTH_FACTORY: InstalledFactory = InstalledFactory {
@@ -20,11 +20,11 @@ pub(super) static MUSIC_SYNTH_FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(super) fn host_requirement() -> HostOperationRequirement {
-    conduit_std_catalog::music_synth_reference_offer().host_operations[0].clone()
+    conduit_std_offers::music_synth_reference_offer().host_operations[0].clone()
 }
 
 pub(crate) fn offer() -> CapabilityOffer {
-    conduit_std_catalog::music_synth_reference_offer()
+    conduit_std_offers::music_synth_reference_offer()
 }
 
 pub(super) struct MusicSynthOperation {

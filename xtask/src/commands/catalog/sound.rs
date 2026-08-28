@@ -205,7 +205,7 @@ fn realizations() -> Result<Vec<Realization>, CatalogError> {
         ),
         realization(
             "midi-output",
-            conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION,
+            conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION,
             midi,
             ProofClass::DeterministicReference,
             ProofClass::HostedLiveDevice,
@@ -221,7 +221,7 @@ fn realizations() -> Result<Vec<Realization>, CatalogError> {
         ),
         realization(
             "hosted-pcm",
-            conduit_std_catalog::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
+            conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
             conduit_std_host::hosted_audio::compatibility_profile(),
             ProofClass::HostedLiveDevice,
             ProofClass::HostedLiveDevice,

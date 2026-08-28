@@ -122,10 +122,10 @@ impl HostedRawMidiSelection {
             pool_id: self.resource_pool_id(),
             class_id: conduit_core::ResourceClassId::from(match self.observation.direction {
                 MidiEndpointDirection::ReadableSource => {
-                    conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS
+                    conduit_std_offers::MIDI_INPUT_RESOURCE_CLASS
                 }
                 MidiEndpointDirection::WritableDestination => {
-                    conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS
+                    conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS
                 }
             }),
             health: ResourceHealth::Ready,
@@ -149,7 +149,7 @@ impl HostedRawMidiSelection {
             return Err("raw MIDI subdevice has no exact direct device node");
         }
         let profile = conduit_std_catalog::SoundCompatibilityProfile {
-            profile_id: conduit_std_catalog::MUSIC_INPUT_MIDI_PROFILE.into(),
+            profile_id: conduit_std_offers::MUSIC_INPUT_MIDI_PROFILE.into(),
             seam: conduit_std_catalog::SoundSeam::MusicalEvents,
             minimum_pitch_millihertz: conduit_audio::MINIMUM_PITCH_MILLIHERTZ,
             maximum_pitch_millihertz: conduit_audio::MAXIMUM_PITCH_MILLIHERTZ,
@@ -234,7 +234,7 @@ impl HostedRawMidiSelection {
             conduit_audio::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
                 .map_err(|_| "MIDI maximum pitch profile is invalid")?;
         let profile = conduit_std_catalog::SoundCompatibilityProfile {
-            profile_id: conduit_std_catalog::MUSIC_PLAY_MIDI_PROFILE.into(),
+            profile_id: conduit_std_offers::MUSIC_PLAY_MIDI_PROFILE.into(),
             seam: conduit_std_catalog::SoundSeam::MusicalEvents,
             minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
             maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
@@ -531,7 +531,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             capability.implementation.implementation_id.as_str(),
-            conduit_std_catalog::MUSIC_INPUT_MIDI_IMPLEMENTATION
+            conduit_std_offers::MUSIC_INPUT_MIDI_IMPLEMENTATION
         );
         let resource = host
             .advertisement()
@@ -541,18 +541,18 @@ mod tests {
             .unwrap();
         assert_eq!(
             resource.class_id.as_str(),
-            conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS
+            conduit_std_offers::MIDI_INPUT_RESOURCE_CLASS
         );
         assert_eq!(resource.capacity_units, 1);
 
         let grant = host.midi_input_authority_grant("allow-controller").unwrap();
         assert_eq!(
             grant.contract_id.as_str(),
-            conduit_std_catalog::MIDI_INPUT_AUTHORITY_CONTRACT
+            conduit_std_offers::MIDI_INPUT_AUTHORITY_CONTRACT
         );
         assert_eq!(
             grant.host_operation_contract_id.as_str(),
-            conduit_std_catalog::MUSIC_INPUT_MIDI_OPERATION
+            conduit_std_offers::MUSIC_INPUT_MIDI_OPERATION
         );
         assert_eq!(grant.host_id.as_str(), "host-input");
         assert_eq!(grant.boot_id, boot_id);

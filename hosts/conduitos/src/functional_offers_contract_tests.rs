@@ -162,10 +162,7 @@ fn realization_preserves_portable_contract_and_bounds() {
                 true,
             ),
         ),
-        (
-            music_synth_offer(),
-            conduit_std_catalog::music_synth_reference_offer(),
-        ),
+        (music_synth_offer(), portable_music_synth_offer()),
         (
             json_encode_offer(),
             portable_json_offer(
@@ -216,6 +213,32 @@ fn realization_preserves_portable_contract_and_bounds() {
                 .starts_with("conduitos/")
         );
     }
+}
+
+fn portable_music_synth_offer() -> conduit_core::CapabilityOffer {
+    conduit_std_catalog::realization_offer(
+        conduit_std_catalog::music_synth_contract(),
+        conduit_std_catalog::MUSIC_SYNTH_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "proof/music-synth",
+            execution_profile: "proof/music-synth@1",
+            implementation: "proof/music-synth@1",
+            artifact: "proof/music-synth@1",
+        },
+        vec![conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from(
+                "proof/music-synth-operation@1",
+            ),
+            target_kind: Some(conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
+                .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN)
+                as u32,
+            maximum_output_bytes: conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
+        }],
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 fn portable_json_offer(

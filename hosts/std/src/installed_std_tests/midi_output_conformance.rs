@@ -147,7 +147,7 @@ fn planned_portable_performance_runs_through_the_production_kernel() {
     assert_eq!(evidence.selected.plan_id, expected_plan_id);
     assert_eq!(
         evidence.selected.implementation_id.as_str(),
-        conduit_std_catalog::MUSIC_PLAY_MIDI_IMPLEMENTATION
+        conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION
     );
     assert_eq!(evidence.trace.events[0].occurrence, 41);
     assert_eq!(evidence.trace.events[0].admitted_pitch_millihertz, 440_000);

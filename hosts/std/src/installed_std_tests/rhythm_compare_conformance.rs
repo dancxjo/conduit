@@ -43,7 +43,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
         PERFORMANCE_SOURCE,
         FEEDBACK_SINK,
     );
-    let compare_offer = conduit_std_catalog::rhythm_compare_std_offer();
+    let compare_offer = conduit_std_offers::rhythm_compare_std_offer();
 
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
