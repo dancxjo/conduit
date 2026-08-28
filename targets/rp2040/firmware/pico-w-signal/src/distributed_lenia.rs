@@ -2,13 +2,13 @@
 
 #![allow(clippy::needless_borrows_for_generic_args)]
 
+use conduit_alife::{
+    DistributedLeniaWorker, LeniaLineFrameIdentity, LeniaLineFrameView, LeniaWorkerAdmission,
+    LENIA_LINE_FRAME_MAX_BYTES,
+};
 use conduit_bluetooth::{
     encode_fragment, fragment_count, BleGattProfile, BleReassembler, CONDUIT_BLE_SERVICE_UUID,
     MAXIMUM_BLE_GATT_PACKET_BYTES,
-};
-use conduit_core::{
-    DistributedLeniaWorker, LeniaLineFrameIdentity, LeniaLineFrameView, LeniaWorkerAdmission,
-    LENIA_LINE_FRAME_MAX_BYTES,
 };
 use embassy_executor::Spawner;
 use embassy_futures::select::{select, Either};

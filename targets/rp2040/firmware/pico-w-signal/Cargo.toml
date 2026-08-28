@@ -14,7 +14,7 @@ r1-control = ["wifi-bootstrap"]
 appliance-hello = ["session-control", "dep:conduit-net", "dep:conduit-rp2040-network-realization", "dep:embassy-net"]
 appliance-hil-client = ["session-control", "dep:conduit-net", "dep:conduit-rp2040-network-realization", "dep:embassy-net"]
 bluetooth-line = ["session-control", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
-distributed-lenia = ["session-control", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
+distributed-lenia = ["session-control", "dep:conduit-alife", "dep:conduit-bluetooth", "dep:embassy-sync", "dep:heapless09", "dep:trouble-host", "cyw43/bluetooth"]
 usb-midi-fixture = ["dep:embassy-futures"]
 pete-capstone = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
@@ -44,6 +44,7 @@ embassy-net = { version = "0.9", features = ["dhcpv4", "dns", "medium-ethernet",
 embedded-websocket = { version = "0.9.5", default-features = false }
 httparse = { version = "1.10", default-features = false }
 
+conduit-alife = { path = "../../../../semantics/alife", default-features = false, optional = true }
 conduit-core = { path = "../../../../architecture/core", default-features = false }
 conduit-create-oi = { path = "../../../../mechanisms/devices/create-oi" }
 conduit-body = { path = "../../../../architecture/body" }

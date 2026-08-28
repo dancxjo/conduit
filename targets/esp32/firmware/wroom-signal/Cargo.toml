@@ -21,13 +21,14 @@ bluetooth = [
 	"dep:static_cell",
 	"dep:trouble-host",
 ]
-distributed-lenia = ["bluetooth"]
+distributed-lenia = ["bluetooth", "dep:conduit-alife"]
 
 [[bin]]
 name = "conduit-esp32-wroom-signal"
 path = "src/main.rs"
 
 [dependencies]
+conduit-alife = { path = "../../../../semantics/alife", default-features = false, optional = true }
 conduit-bluetooth = { path = "../../../../mechanisms/protocols/bluetooth", optional = true }
 conduit-core = { path = "../../../../architecture/core" }
 conduit-kernel = { path = "../../../../architecture/kernel" }

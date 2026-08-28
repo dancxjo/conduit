@@ -1,11 +1,11 @@
 //! Exact Plan-scoped distributed-Lenia worker session above ESP GATT.
 
-use conduit_bluetooth::{
-    BleGattProfile, BleReassembler, MAXIMUM_BLE_GATT_PACKET_BYTES, encode_fragment, fragment_count,
-};
-use conduit_core::{
+use conduit_alife::{
     DistributedLeniaWorker, LENIA_LINE_FRAME_MAX_BYTES, LeniaLineFrameIdentity, LeniaLineFrameView,
     LeniaWorkerAdmission,
+};
+use conduit_bluetooth::{
+    BleGattProfile, BleReassembler, MAXIMUM_BLE_GATT_PACKET_BYTES, encode_fragment, fragment_count,
 };
 use heapless::Vec;
 

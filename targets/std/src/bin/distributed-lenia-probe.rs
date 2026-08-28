@@ -2,12 +2,13 @@
 
 use std::{str::FromStr, time::Duration};
 
-use conduit_bluetooth::BleGattProfile;
-use conduit_core::{
+use conduit_alife::{
     LeniaLineFrameIdentity, LeniaLineFrameView, LeniaParameters, LeniaPartition,
     LeniaRegionChunkKind, LeniaRegionId, LeniaRegionResult, LeniaRegionTransferIdentity,
-    LENIA_LINE_FRAME_MAX_BYTES, LENIA_REGION_CHUNK_MAX_BYTES, LENIA_REGION_CHUNK_MAX_CELLS,
+    DISTRIBUTED_LENIA_REGION_WIDTHS, LENIA_LINE_FRAME_MAX_BYTES, LENIA_REGION_CHUNK_MAX_BYTES,
+    LENIA_REGION_CHUNK_MAX_CELLS,
 };
+use conduit_bluetooth::BleGattProfile;
 use conduit_std_host::bluetooth_gatt::{discover_ble_gatt_candidate, BluezBleGattLine};
 
 const IO_TIMEOUT: Duration = Duration::from_secs(30);
@@ -23,10 +24,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.len() == 11 && !withhold_pico {
         return Err("the bounded loss proof only permits --withhold-region 2".into());
     }
-    let initial = conduit_core::orbium_seed(32, 32, 1).map_err(debug_error)?;
-    let partition =
-        LeniaPartition::vertical(&initial, &conduit_core::DISTRIBUTED_LENIA_REGION_WIDTHS)
-            .map_err(debug_error)?;
+    let initial = conduit_alife::orbium_seed(32, 32, 1).map_err(debug_error)?;
+    let partition = LeniaPartition::vertical(&initial, &DISTRIBUTED_LENIA_REGION_WIDTHS)
+        .map_err(debug_error)?;
     let direct = initial
         .evolve_reference(LeniaParameters::ORBIUM, 1)
         .map_err(debug_error)?;

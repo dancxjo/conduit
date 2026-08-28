@@ -229,6 +229,7 @@ dependencies = [
 name = "conduit-esp32-wroom-signal"
 version = "0.1.0"
 dependencies = [
+ "conduit-alife",
  "conduit-alife-distributed-conformance",
  "conduit-bluetooth",
  "conduit-core",

@@ -357,6 +357,7 @@ name = "conduit-pico-w-signal"
 version = "0.1.0"
 dependencies = [
  "aligned",
+ "conduit-alife",
  "conduit-alife-distributed-conformance",
  "conduit-bluetooth",
  "conduit-body",

@@ -38,3 +38,27 @@ fn alife_owner_remains_host_neutral() {
         assert!(!dependencies.contains(forbidden));
     }
 }
+
+#[test]
+fn distributed_lenia_probe_uses_the_portable_alife_owner() {
+    for (owner, source) in [
+        (
+            "std proof",
+            include_str!("../../../targets/std/src/bin/distributed-lenia-probe.rs"),
+        ),
+        (
+            "ESP32 WROOM firmware",
+            include_str!("../../../targets/esp32/firmware/wroom-signal/src/lenia_session.rs"),
+        ),
+        (
+            "Pico W firmware",
+            include_str!("../../../targets/rp2040/firmware/pico-w-signal/src/distributed_lenia.rs"),
+        ),
+    ] {
+        assert!(source.contains("use conduit_alife::{"), "{owner}");
+        assert!(
+            !source.contains("conduit_core::"),
+            "{owner} must not restore the removed core compatibility owner"
+        );
+    }
+}
