@@ -216,7 +216,7 @@ async fn connect(
 
 async fn receive_result(
     line: &mut BluezBleGattLine,
-    binding: &conduit_alife::DistributedLeniaLineBinding,
+    binding: &conduit_alife_distributed_conformance::DistributedLeniaLineBinding,
     participant_boot: &str,
     session_id: [u8; 16],
     work: LeniaRegionTransferIdentity,

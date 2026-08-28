@@ -91,7 +91,7 @@ fn image_bounds(distributed: bool) -> EmbeddedImageBounds {
 
 fn render_lenia_bindings(
     module: &mut String,
-    bindings: &conduit_alife::DistributedLeniaParticipantBindings,
+    bindings: &conduit_alife_distributed_conformance::DistributedLeniaParticipantBindings,
 ) {
     for (prefix, binding) in [("WORK", &bindings.work), ("RESULT", &bindings.result)] {
         for (name, value) in [
