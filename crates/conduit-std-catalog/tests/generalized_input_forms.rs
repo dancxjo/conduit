@@ -9,12 +9,13 @@ use conduit_form::{
 };
 use conduit_presentation::install_geometry_catalogs;
 use conduit_std_catalog::{
-    deterministic_generalized_input_fixture, gamepad_state_type, generalized_input_std_offers,
-    input_axis_slot_type, input_axis_slots_type, input_axis_state_type,
-    input_button_transition_type, install_generalized_input_catalogs, pointer_event_type,
-    touch_contacts_type, validate_normalized_axis, validate_normalized_pressure,
-    GeneralizedInputRefusal, GENERALIZED_INPUT_HOST_OPERATION, MAXIMUM_INPUT_AXES,
-    MAXIMUM_INPUT_BUTTONS, MAXIMUM_TOUCH_CONTACTS, NORMALIZED_BIPOLAR_AXIS_PROFILE,
+    deterministic_gamepad_outputs, deterministic_generalized_input_fixture,
+    deterministic_pointer_touch_outputs, gamepad_state_type, input_axis_slot_type,
+    input_axis_slots_type, input_axis_state_type, input_button_transition_type,
+    install_generalized_input_catalogs, pointer_event_type, touch_contacts_type,
+    validate_normalized_axis, validate_normalized_pressure, GeneralizedInputRefusal,
+    MAXIMUM_INPUT_AXES, MAXIMUM_INPUT_BUTTONS, MAXIMUM_TOUCH_CONTACTS,
+    NORMALIZED_BIPOLAR_AXIS_PROFILE,
 };
 
 const SOURCE: &str = include_str!("../../../examples/generalized-input.conduit");
@@ -49,7 +50,7 @@ fn canonical_form_consumes_gamepad_button_pointer_touch_and_rotary_info() {
     for placement in &plan.fragments[0].placements {
         assert_eq!(
             placement.host_operations[0].contract_id.as_str(),
-            GENERALIZED_INPUT_HOST_OPERATION
+            "proof/generalized-input@1"
         );
         assert!(placement.resources.is_empty());
         assert!(placement.authority.is_empty());
@@ -174,8 +175,55 @@ fn host() -> HostAdvertisement {
         profile: HostProfileId::from("std/generalized-input-proof@1"),
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: generalized_input_std_offers(),
+        capabilities: proof_offers(),
     }
+}
+
+fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
+    [
+        (
+            conduit_std_catalog::DETERMINISTIC_GAMEPAD_KIND,
+            deterministic_gamepad_outputs(),
+        ),
+        (
+            conduit_std_catalog::DETERMINISTIC_POINTER_TOUCH_KIND,
+            deterministic_pointer_touch_outputs(),
+        ),
+    ]
+    .into_iter()
+    .map(|(kind, outputs)| conduit_core::CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),
+        kind_id: conduit_core::kind_id(kind),
+        kind_contract_revision: conduit_core::KindContractRevision::from(
+            conduit_std_catalog::GENERALIZED_INPUT_REVISION,
+        ),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: conduit_core::ExecutionProfileId::from(
+                "proof/generalized-input@1",
+            ),
+            implementation_id: conduit_core::ImplementationId::from(format!("proof/{kind}@1")),
+            artifact_id: conduit_core::ArtifactId::from("proof/generalized-input@1"),
+        },
+        inputs: vec![],
+        outputs,
+        host_operations: vec![conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from("proof/generalized-input@1"),
+            target_kind: Some(conduit_core::kind_id(kind)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 0,
+            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        }],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 8,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
+        },
+    })
+    .collect()
 }
 
 fn record_field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a StructuredInfoValue {

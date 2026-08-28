@@ -1,16 +1,13 @@
-//! Canonical Forms and deterministic hosted offers for generalized input Info.
+//! Canonical Forms for generalized input Info.
 
 use alloc::{
-    format,
     string::{String, ToString},
     vec,
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -23,9 +20,6 @@ pub const DETERMINISTIC_GAMEPAD_KIND: &str = "input/deterministic-gamepad";
 pub const DETERMINISTIC_POINTER_TOUCH_KIND: &str = "input/deterministic-pointer-touch";
 pub const POINTER_SOURCE_KIND: &str = "input/pointer-source";
 pub const GENERALIZED_INPUT_REVISION: &str = "conduit.std/generalized-input@1";
-pub const GENERALIZED_INPUT_PROFILE: &str = "std/generalized-input-deterministic@1";
-pub const GENERALIZED_INPUT_ARTIFACT: &str = "conduit-std-host/generalized-input@1";
-pub const GENERALIZED_INPUT_HOST_OPERATION: &str = "conduit.host/generalized-input@1";
 
 pub fn install_generalized_input_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -50,48 +44,32 @@ pub fn install_generalized_input_catalogs(
         startup,
         profile,
         DETERMINISTIC_GAMEPAD_KIND,
-        vec![
-            port(
-                "button",
-                &input_button_transition_type(),
-                PortDirection::Output,
-            ),
-            port("gamepad", &gamepad_state_type(), PortDirection::Output),
-            port("rotary", &rotary_step_type(), PortDirection::Output),
-        ],
+        deterministic_gamepad_outputs(),
     )?;
     insert_kind(
         startup,
         profile,
         DETERMINISTIC_POINTER_TOUCH_KIND,
-        vec![
-            port("pointer", &pointer_event_type(), PortDirection::Output),
-            port("touch", &touch_frame_type(), PortDirection::Output),
-        ],
+        deterministic_pointer_touch_outputs(),
     )
 }
 
-pub fn generalized_input_std_offers() -> Vec<CapabilityOffer> {
+pub fn deterministic_gamepad_outputs() -> Vec<PortDescriptor> {
     vec![
-        offer(
-            DETERMINISTIC_GAMEPAD_KIND,
-            vec![
-                port(
-                    "button",
-                    &input_button_transition_type(),
-                    PortDirection::Output,
-                ),
-                port("gamepad", &gamepad_state_type(), PortDirection::Output),
-                port("rotary", &rotary_step_type(), PortDirection::Output),
-            ],
+        port(
+            "button",
+            &input_button_transition_type(),
+            PortDirection::Output,
         ),
-        offer(
-            DETERMINISTIC_POINTER_TOUCH_KIND,
-            vec![
-                port("pointer", &pointer_event_type(), PortDirection::Output),
-                port("touch", &touch_frame_type(), PortDirection::Output),
-            ],
-        ),
+        port("gamepad", &gamepad_state_type(), PortDirection::Output),
+        port("rotary", &rotary_step_type(), PortDirection::Output),
+    ]
+}
+
+pub fn deterministic_pointer_touch_outputs() -> Vec<PortDescriptor> {
+    vec![
+        port("pointer", &pointer_event_type(), PortDirection::Output),
+        port("touch", &touch_frame_type(), PortDirection::Output),
     ]
 }
 
@@ -128,36 +106,5 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
             .clone(),
         direction,
         temporal: PortTemporal::Value,
-    }
-}
-
-fn offer(kind: &str, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("std/{kind}@1")),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(GENERALIZED_INPUT_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
-            artifact_id: ArtifactId::from(GENERALIZED_INPUT_ARTIFACT),
-        },
-        inputs: vec![],
-        outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(GENERALIZED_INPUT_HOST_OPERATION),
-            target_kind: Some(kind_id(kind)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 8,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
-        },
     }
 }
