@@ -2,17 +2,26 @@
 
 extern crate alloc;
 
+#[cfg(feature = "composition")]
 mod r1_control_planning;
+#[cfg(feature = "composition")]
 mod r1_host_loss;
+#[cfg(feature = "composition")]
 mod r1_planning;
+#[cfg(feature = "composition")]
 mod r1_recovery;
 mod r1_route;
+#[cfg(feature = "composition")]
 mod r1_wifi_bootstrap;
 
+#[cfg(feature = "composition")]
 pub use r1_control_planning::*;
+#[cfg(feature = "composition")]
 pub use r1_planning::*;
+#[cfg(feature = "composition")]
 pub use r1_recovery::*;
 pub use r1_route::*;
+#[cfg(feature = "composition")]
 pub use r1_wifi_bootstrap::*;
 
 pub const R1_WIFI_STATION_POOL_ID: &str = "r1/pico-wifi-station-0";

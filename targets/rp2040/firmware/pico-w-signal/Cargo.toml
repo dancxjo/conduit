@@ -53,7 +53,7 @@ conduit-mpu6050 = { path = "../../../../mechanisms/devices/mpu6050" }
 conduit-ssd1306 = { path = "../../../../mechanisms/devices/ssd1306" }
 conduit-net = { path = "../../../../semantics/net", default-features = false, optional = true }
 conduit-rp2040-network-realization = { path = "../../network-realization", optional = true }
-conduit-r1-network-conformance = { path = "../../../../proof/conformance/network-r1", optional = true }
+conduit-r1-network-conformance = { path = "../../../../proof/conformance/network-r1", default-features = false, optional = true }
 conduit-signal = { path = "../../../../semantics/signal", default-features = false }
 conduit-wire = { path = "../../../../architecture/wire", default-features = false, optional = true }
 conduit-bluetooth = { path = "../../../../mechanisms/protocols/bluetooth", optional = true }
