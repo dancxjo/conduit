@@ -23,7 +23,7 @@ const CORDS: usize = 7;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 8;
-const MAX_VALUE_BYTES: usize = conduit_core::ROBOTICS_ODOMETRY_ENCODED_LEN;
+const MAX_VALUE_BYTES: usize = conduit_robotics::ROBOTICS_ODOMETRY_ENCODED_LEN;
 const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 160;
 

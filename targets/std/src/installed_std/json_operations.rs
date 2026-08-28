@@ -1,9 +1,10 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{JsonRefusal, JsonValue, PlannedGear};
+use conduit_core::PlannedGear;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
     OperationAction, OperationInput, PortId, RequestId,
 };
+use conduit_web::{JsonRefusal, JsonValue};
 use std::vec::Vec;
 
 pub(super) struct JsonHost {
@@ -13,7 +14,7 @@ pub(super) struct JsonHost {
 impl JsonHost {
     pub(super) fn prepare() -> Self {
         Self {
-            output: Vec::with_capacity(conduit_core::JSON_MAXIMUM_ENCODED_BYTES),
+            output: Vec::with_capacity(conduit_web::JSON_MAXIMUM_ENCODED_BYTES),
         }
     }
 
@@ -63,7 +64,7 @@ impl JsonOperation {
                     operation: HostOperationId(0),
                     input: match BoundedValueRef::new(
                         value,
-                        conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+                        conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
                     ) {
                         Ok(input) => input,
                         Err(_) => return InstalledOperation::fail(101),
@@ -137,10 +138,10 @@ fn budget(
     }
     Ok(OperationBudget {
         value_items: 4,
-        value_bytes: (conduit_core::JSON_MAXIMUM_ENCODED_BYTES * 4) as u32,
+        value_bytes: (conduit_web::JSON_MAXIMUM_ENCODED_BYTES * 4) as u32,
         host_requests: 4,
         sign_items: 64,
-        maximum_value_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+        maximum_value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
     })
 }
 

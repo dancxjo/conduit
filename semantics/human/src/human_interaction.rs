@@ -3,8 +3,8 @@
 //! These contracts describe semantic state and proposals. Presentation, renderer-local focus,
 //! manifestation, application acceptance, and resulting state remain separate identities.
 
-use crate::{KindId, QuantityUnit, StructuredInfoValue};
 use alloc::{collections::VecDeque, string::String, vec::Vec};
+use conduit_core::{KindId, QuantityUnit, StructuredInfoValue};
 
 #[path = "human_interaction/canonical.rs"]
 mod canonical;

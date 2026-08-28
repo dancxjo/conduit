@@ -1,7 +1,8 @@
 //! Portable body-relative proximity, beacon, button, and acceleration values.
 
-use crate::info::semantic_digest;
-use crate::{InfoDecodeError, BODY_SECTOR_MASK};
+use conduit_core::{semantic_digest, InfoDecodeError};
+
+use crate::BODY_SECTOR_MASK;
 
 pub const ROBOTICS_PROXIMITY_INFO_ID: &str = "robotics/proximity-body-sectors@1";
 pub const ROBOTICS_BEACON_INFO_ID: &str = "robotics/beacon-observation@1";

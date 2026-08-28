@@ -1,6 +1,8 @@
 //! Portable modifier-chord meaning, separate from text and product actions.
 
-use crate::{info::semantic_digest, InfoDecodeError, KeyEvent, KeyModifiers, KeyTransition};
+use conduit_core::{semantic_digest, InfoDecodeError};
+
+use crate::{KeyEvent, KeyModifiers, KeyTransition};
 
 pub const CHORD_INFO_ID: &str = "input/chord@1";
 pub const CHORD_ENCODED_LEN: usize = 4;

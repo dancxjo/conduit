@@ -2,14 +2,14 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::robotics_effect::SimulatedDriveEffect;
-use conduit_core::{
-    ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, ROBOTICS_BATTERY_ENCODED_LEN,
-    ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_ORIENTATION_ENCODED_LEN, ROBOTICS_RANGE_ENCODED_LEN,
-    SCALAR_ENCODED_LEN,
-};
+use conduit_core::{ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, OperationAction, OperationInput, PortId, ValueRef,
     ValueStorage,
+};
+use conduit_robotics::{
+    ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_ORIENTATION_ENCODED_LEN,
+    ROBOTICS_RANGE_ENCODED_LEN,
 };
 
 pub(super) static ROBOTICS_OBSERVE_BUMP_FACTORY: InstalledFactory =

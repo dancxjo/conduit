@@ -2,7 +2,8 @@
 
 use alloc::{format, string::String, vec};
 use conduit_body::SeedId;
-use conduit_core::{BootId, CheckedFormId, HostId, KeyEvent, OfferGeneration, SourceDocumentId};
+use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};
+use conduit_human::KeyEvent;
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionRefusal, PresentationBasis,
     PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
@@ -139,7 +140,7 @@ impl FrontDoor {
         if revision != self.revision {
             return Err(Error::StaleInput);
         }
-        if event.transition() != conduit_core::KeyTransition::Pressed {
+        if event.transition() != conduit_human::KeyTransition::Pressed {
             return Ok(false);
         }
         match event.usage() {
@@ -381,7 +382,7 @@ impl FrontDoor {
 
     pub fn resolve_action(
         &self,
-        action: conduit_core::PatchbayAction,
+        action: patchbay_control::PatchbayAction,
         presentation_revision: u64,
     ) -> Result<PresentationAction, Error> {
         let presentation = self.presentation()?;
@@ -437,8 +438,8 @@ mod tests {
     fn key(usage: u8) -> KeyEvent {
         KeyEvent::new(
             usage,
-            conduit_core::KeyTransition::Pressed,
-            conduit_core::KeyModifiers::from_bits(0),
+            conduit_human::KeyTransition::Pressed,
+            conduit_human::KeyModifiers::from_bits(0),
         )
         .unwrap()
     }
@@ -514,11 +515,11 @@ mod tests {
         let mut door = door();
         assert_eq!(door.accept(key(ENTER), 0), Err(Error::StaleInput));
         assert_eq!(
-            door.resolve_action(conduit_core::PatchbayAction::OpenBack, 0),
+            door.resolve_action(patchbay_control::PatchbayAction::OpenBack, 0),
             Err(Error::StaleAction)
         );
         assert_eq!(
-            door.resolve_action(conduit_core::PatchbayAction::Birth, door.revision()),
+            door.resolve_action(patchbay_control::PatchbayAction::Birth, door.revision()),
             Err(Error::ActionUnavailable)
         );
         door.revision = u64::MAX;
@@ -531,8 +532,8 @@ mod tests {
         let mut door = door();
         let release = KeyEvent::new(
             ENTER,
-            conduit_core::KeyTransition::Released,
-            conduit_core::KeyModifiers::from_bits(0),
+            conduit_human::KeyTransition::Released,
+            conduit_human::KeyModifiers::from_bits(0),
         )
         .unwrap();
         assert!(!door.accept(release, 1).unwrap());

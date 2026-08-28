@@ -462,10 +462,10 @@ fn simulated_keyboard_offer() -> conduit_core::CapabilityOffer {
         outputs: contract.outputs,
         host_operations: vec![conduit_core::HostOperationRequirement {
             contract_id: "proof/input-next-key-event@1".into(),
-            target_kind: Some(conduit_core::kind_id(conduit_core::KEY_EVENT_INFO_ID)),
+            target_kind: Some(conduit_core::kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,
-            maximum_output_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         }],
         resource_requirements: vec![conduit_core::resource_requirement(
             conduit_core::INPUT_RESOURCE_CLASS,

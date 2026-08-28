@@ -3,14 +3,15 @@ use std::collections::BTreeMap;
 use conduit_body::MembershipCredential;
 use conduit_browser_runtime::human_media::acquired_camera_source_offer;
 use conduit_core::{
-    process_owned_line_offer_with_limits, resource_offer, AcquiredMediaResource,
-    AuthorityContractId, AuthorityGrant, BaseImplementationId, HostAdvertisement,
-    HostOperationContractId, KindId, LinkLimits, Plan, PortId,
+    process_owned_line_offer_with_limits, resource_offer, AuthorityContractId, AuthorityGrant,
+    BaseImplementationId, HostAdvertisement, HostOperationContractId, KindId, LinkLimits, Plan,
+    PortId,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
     ProfileCatalog, StartupCatalog,
 };
+use conduit_human::AcquiredMediaResource;
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };

@@ -1,6 +1,6 @@
 //! One fixed production-kernel Play for the planned portable keyboard Gear.
 
-use conduit_core::KeyEvent;
+use conduit_human::KeyEvent;
 use conduit_kernel::scheduler::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
     StepOutcome,
@@ -159,7 +159,7 @@ pub fn run(
             CordCapacity {
                 slot_start: 0,
                 item_capacity: 1,
-                byte_capacity: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+                byte_capacity: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
             },
         )],
         routes,
@@ -199,7 +199,7 @@ pub fn run(
     Ok(KeyboardPlayReport {
         values,
         cord_item_capacity: 1,
-        cord_byte_capacity: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+        cord_byte_capacity: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         completed: true,
     })
 }
@@ -213,7 +213,7 @@ mod tests {
         keyboard_plan,
         offer::{CpuFeatures, HostOffer},
     };
-    use conduit_core::{KeyModifiers, KeyTransition};
+    use conduit_human::{KeyModifiers, KeyTransition};
 
     #[test]
     fn planned_keyboard_values_cross_the_fixed_kernel_and_close() {

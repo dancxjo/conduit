@@ -4,7 +4,7 @@ use crate::{
     offer::{CpuFeatures, HostOffer},
 };
 use conduit_body::WakeLifecycle;
-use conduit_core::{KeyEvent, KeyModifiers, KeyTransition};
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduit_presentation::PresentationActionAvailability;
 
 fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {

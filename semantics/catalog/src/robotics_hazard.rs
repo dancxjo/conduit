@@ -11,6 +11,8 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, BOOL_INFO_ID,
+};
+use conduit_robotics::{
     ROBOTICS_CHARGING_INFO_ID, ROBOTICS_CLIFF_INFO_ID, ROBOTICS_CONTACT_INFO_ID,
     ROBOTICS_WHEEL_DROP_INFO_ID,
 };
@@ -234,7 +236,7 @@ mod tests {
             assert!(contract
                 .outputs
                 .iter()
-                .all(|port| port.value_kind.as_str() != conduit_core::ROBOTICS_RANGE_INFO_ID));
+                .all(|port| port.value_kind.as_str() != conduit_robotics::ROBOTICS_RANGE_INFO_ID));
         }
     }
 

@@ -9,6 +9,7 @@ default-run = "patchbay-native"
 conduit-body = { path = "../../../architecture/body" }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-core = { path = "../../../architecture/core" }
+conduit-human = { path = "../../../semantics/human" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-net = { path = "../../../semantics/net", features = ["form-catalog"] }
 conduit-r1-network-conformance = { path = "../../../proof/conformance/network-r1" }

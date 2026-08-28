@@ -4,12 +4,14 @@ use super::{
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, BatteryObservation, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
-    InfoBool, OdometryObservation, OrientationObservation, PortDescriptor, PortDirection,
-    PortTemporal, RangeObservation, Scalar, BOOL_INFO_ID, MAXIMUM_BATTERY_MILLIVOLTS,
-    MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM, PI_MICRORADIANS,
-    ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID, ROBOTICS_ORIENTATION_INFO_ID,
-    ROBOTICS_RANGE_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool,
+    PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID, SCALAR_INFO_ID,
+};
+use conduit_robotics::{
+    BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
+    MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM,
+    PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID,
+    ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID,
 };
 
 pub const ROBOTICS_OBSERVE_BUMP_KIND: &str = "robotics/observe-bump";
@@ -148,8 +150,8 @@ pub fn robotics_observe_imu_contract() -> StandardKindContract {
             i64_field(
                 "pitch-microradians",
                 0,
-                -i64::from(conduit_core::HALF_PI_MICRORADIANS),
-                i64::from(conduit_core::HALF_PI_MICRORADIANS),
+                -i64::from(conduit_robotics::HALF_PI_MICRORADIANS),
+                i64::from(conduit_robotics::HALF_PI_MICRORADIANS),
             ),
             i64_field(
                 "yaw-microradians",

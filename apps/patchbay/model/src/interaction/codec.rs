@@ -6,7 +6,7 @@ impl PatchbayInteractionRequest {
     /// Project an invocation onto the portable semantic-control envelope.
     pub fn control_request(
         &self,
-    ) -> Result<Option<conduit_core::PatchbayControlRequest>, InteractionError> {
+    ) -> Result<Option<patchbay_control::PatchbayControlRequest>, InteractionError> {
         let Self::Invoke {
             request_id,
             invocation,
@@ -14,7 +14,7 @@ impl PatchbayInteractionRequest {
         else {
             return Ok(None);
         };
-        conduit_core::PatchbayControlRequest::new(
+        patchbay_control::PatchbayControlRequest::new(
             request_id.as_str(),
             invocation.presentation_id.clone(),
             invocation.presentation_revision,

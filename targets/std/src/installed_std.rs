@@ -448,7 +448,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         kind_id(conduit_semantic_catalog::GRAPHICS_ICON_KIND),
     ];
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
-    let mut input_keymaps = [conduit_core::ConduitIntlKeymap::new(); MAX_NODES];
+    let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut http_output =

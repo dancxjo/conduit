@@ -158,7 +158,7 @@ pub fn validate(
     if keymap.configuration.len() != 1
         || keymap.configuration[0].key.as_str() != "layout"
         || keymap.configuration[0].value
-            != conduit_core::ConfigurationValue::Text(conduit_core::CONDUIT_INTL_LAYOUT.into())
+            != conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
         || keymap.host_operations.len() != 1
         || keymap.host_operations[0].contract_id.as_str()
             != crate::functional_offers::KEYMAP_HOST_OPERATION
@@ -171,7 +171,7 @@ pub fn validate(
             "key",
             "keymap",
             "key",
-            conduit_core::KEY_EVENT_INFO_ID,
+            conduit_human::KEY_EVENT_INFO_ID,
         ),
         (
             "keymap",

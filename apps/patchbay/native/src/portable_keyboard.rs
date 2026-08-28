@@ -2,9 +2,9 @@
 
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, ImplementationId, KeyEvent, KeyModifiers, KeyTransition,
-    ResourceOffer, INPUT_RESOURCE_CLASS,
+    ExecutionProfileId, HostAdvertisement, ImplementationId, ResourceOffer, INPUT_RESOURCE_CLASS,
 };
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use std::sync::{Arc, Mutex};
 use winit::event::ElementState;
 use winit::keyboard::{KeyCode, PhysicalKey};

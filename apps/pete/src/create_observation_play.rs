@@ -15,7 +15,7 @@ use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationOutcome, SignSink,
 };
 
-pub(super) const MAXIMUM_VALUE_BYTES: usize = conduit_core::ROBOTICS_CHARGING_ENCODED_LEN;
+pub(super) const MAXIMUM_VALUE_BYTES: usize = conduit_robotics::ROBOTICS_CHARGING_ENCODED_LEN;
 
 #[derive(Clone, Copy)]
 struct PendingObservationCompletion {

@@ -9,10 +9,8 @@ use conduit_body::{
     PartReturnChallenge, SpawnInvitationId, ADMISSION_SIGNATURE_BYTES,
     MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
 };
-use conduit_core::{
-    AcquiredMediaResource, BootId, HostAdvertisement, HostId, MediaResourceAvailability, PlanId,
-    PortId, ResourceHandleId,
-};
+use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
+use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 

@@ -66,12 +66,12 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
         .unwrap();
     assert_eq!(
         keymap.controls[0].value,
-        ConfigurationValue::Text(conduit_core::CONDUIT_INTL_LAYOUT.into())
+        ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
     );
     assert!(matches!(
         keymap.controls[0].kind,
         FaceControlKind::TextChoice { ref choices }
-            if choices == &[conduit_core::CONDUIT_INTL_LAYOUT.to_string()]
+            if choices == &[conduit_human::CONDUIT_INTL_LAYOUT.to_string()]
     ));
     let chords = graph
         .gears
@@ -80,7 +80,7 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
         .unwrap();
     assert_eq!(
         chords.controls[0].value,
-        ConfigurationValue::Text(conduit_core::CORE_CHORD_MAP.into())
+        ConfigurationValue::Text(conduit_human::CORE_CHORD_MAP.into())
     );
 }
 
@@ -139,9 +139,8 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
 
 #[test]
 fn instrument_configuration_uses_common_typed_proposals_and_replans() {
-    use conduit_core::{
-        HumanInteractionProposal, InteractionProposalPayload, InteractionValue, KindId,
-    };
+    use conduit_core::KindId;
+    use conduit_human::{HumanInteractionProposal, InteractionProposalPayload, InteractionValue};
 
     let mut editor = editor(
         "form instrument {\n    synth: music/synth(maximum-voices = 8, oscillator = \"saw\")\n}\n",
@@ -159,7 +158,7 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
     let interaction = waveform.interaction.as_ref().unwrap();
     assert!(matches!(
         interaction.contract.family,
-        conduit_core::InteractionFamily::ChooseOne { .. }
+        conduit_human::InteractionFamily::ChooseOne { .. }
     ));
     let proposal = HumanInteractionProposal::new(
         &interaction.contract,

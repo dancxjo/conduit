@@ -1,6 +1,6 @@
 //! Finite Pico control-surface realization of portable interaction contracts.
 
-use conduit_core::{
+use conduit_human::{
     HumanInteractionProposal, InteractionContract, InteractionCurrentState,
     InteractionProposalPayload, InteractionRefusal, InteractionValue, ScalarRealizationMapping,
 };
@@ -173,11 +173,11 @@ impl PicoInteractionSurface {
                 != projection.scalar_contract.contract_identity
             || !matches!(
                 projection.action_contract.family,
-                conduit_core::InteractionFamily::Activate
+                conduit_human::InteractionFamily::Activate
             )
             || !matches!(
                 projection.scalar_contract.family,
-                conduit_core::InteractionFamily::Scalar { .. }
+                conduit_human::InteractionFamily::Scalar { .. }
             )
             || projection.calibration.minimum_sample != projection.scalar_mapping.source_minimum
             || projection.calibration.maximum_sample != projection.scalar_mapping.source_maximum
@@ -186,7 +186,7 @@ impl PicoInteractionSurface {
                     || binding.option_identity.is_empty()
                     || binding.value.value_kind
                         != match &projection.choice_contract.family {
-                            conduit_core::InteractionFamily::ChooseOne { value_kind, .. } => {
+                            conduit_human::InteractionFamily::ChooseOne { value_kind, .. } => {
                                 value_kind.clone()
                             }
                             _ => return true,

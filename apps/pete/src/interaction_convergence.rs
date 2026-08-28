@@ -1,14 +1,16 @@
 //! One semantic control surface shared by materially different Presenters.
 
 use conduit_core::{
-    BoundKind, CheckedFormId, ExpandedFormId, HumanInteractionProposal, InfoBool,
-    InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
-    InteractionOption, InteractionProposalPayload, InteractionRefusal, InteractionValue,
-    KindContractRevision, KindId, OptionAvailability, Quantity, QuantityUnit,
-    RealizationRangePolicy, ScalarQuantization, ScalarRealizationMapping, SourceDocumentId,
-    BOOL_INFO_ID, QUANTITY_INFO_ID, TEXT_INFO_ID,
+    CheckedFormId, ExpandedFormId, InfoBool, KindContractRevision, KindId, Quantity, QuantityUnit,
+    SourceDocumentId, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
 use conduit_form::{parse, ConfigurationField, KindDefinition, ProfileCatalog};
+use conduit_human::{
+    BoundKind, HumanInteractionProposal, InteractionContract, InteractionCurrentState,
+    InteractionDomain, InteractionFamily, InteractionOption, InteractionProposalPayload,
+    InteractionRefusal, InteractionValue, OptionAvailability, RealizationRangePolicy,
+    ScalarQuantization, ScalarRealizationMapping, TEXT_INFO_ID,
+};
 
 use crate::{
     CalibrationProfile, ChoiceBinding, DebounceProfile, PhysicalInteractionPlanProjection,

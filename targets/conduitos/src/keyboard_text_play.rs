@@ -1,7 +1,8 @@
 //! Fixed-storage production-kernel execution for the ordinary keyboard text Form.
 
 use alloc::boxed::Box;
-use conduit_core::{ConduitIntlKeymap, KeyEvent, KeymapDisposition, PlanFragment};
+use conduit_core::PlanFragment;
+use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, SignSink,

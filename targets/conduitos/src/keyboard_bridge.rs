@@ -1,6 +1,7 @@
 //! Narrow HID-local to portable key-event conversion.
 
-use conduit_core::{InfoDecodeError, KeyEvent, KeyModifiers, KeyTransition};
+use conduit_core::InfoDecodeError;
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 
 pub fn portable_key_event(
     usage: u8,
@@ -28,12 +29,12 @@ mod tests {
         let released = portable_key_event(4, false, 0).unwrap();
         assert_eq!(pressed.encode(), [4, 0, 0]);
         assert_eq!(released.encode(), [4, 1, 0]);
-        assert_eq!(pressed.encode().len(), conduit_core::KEY_EVENT_ENCODED_LEN);
+        assert_eq!(pressed.encode().len(), conduit_human::KEY_EVENT_ENCODED_LEN);
     }
 
     #[test]
     fn usb_bridge_matches_every_shared_peer_conformance_value() {
-        for vector in conduit_core::KEY_EVENT_CONFORMANCE_VECTORS {
+        for vector in conduit_human::KEY_EVENT_CONFORMANCE_VECTORS {
             let value = portable_key_event(
                 vector.encoded[0],
                 vector.encoded[1] == KeyTransition::Pressed as u8,

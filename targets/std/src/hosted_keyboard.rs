@@ -3,7 +3,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HostedKeyboardPoll {
     Pending,
-    Event(conduit_core::KeyEvent),
+    Event(conduit_human::KeyEvent),
     Cancelled,
     Failed(u16),
 }

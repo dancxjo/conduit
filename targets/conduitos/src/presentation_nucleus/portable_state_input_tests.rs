@@ -1,4 +1,4 @@
-use conduit_core::{KeyEvent, KeyModifiers, KeyTransition};
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 
 use super::{prepare_portable_state_input, run_portable_state_input};
 

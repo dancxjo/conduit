@@ -93,7 +93,7 @@ fn portable_face_and_provider_protocol_keep_realization_and_failures_distinct() 
         body: conduit_web::HttpBody::inline(br#"{"output":"world"}"#.to_vec()),
     };
     let decoded =
-        conduit_core::JsonValue::decode_text(provider_http_response(&response).unwrap()).unwrap();
+        conduit_web::JsonValue::decode_text(provider_http_response(&response).unwrap()).unwrap();
     assert_eq!(provider_result(&decoded).unwrap(), "world");
 
     let mut limited = response.clone();
@@ -429,8 +429,8 @@ fn json_proof_offer(
             contract_id: HostOperationContractId::from(operation),
             target_kind: Some(target_kind),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
-            maximum_output_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            maximum_input_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            maximum_output_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         }],
         Vec::new(),
         Vec::new(),

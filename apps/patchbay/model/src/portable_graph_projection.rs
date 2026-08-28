@@ -134,16 +134,16 @@ pub(super) fn append_exact_graph(
     }
 }
 
-fn interaction_family(family: &conduit_core::InteractionFamily) -> &'static str {
+fn interaction_family(family: &conduit_human::InteractionFamily) -> &'static str {
     match family {
-        conduit_core::InteractionFamily::Activate => "Activate",
-        conduit_core::InteractionFamily::Boolean => "Boolean",
-        conduit_core::InteractionFamily::ChooseOne { .. } => "ChooseOne",
-        conduit_core::InteractionFamily::ChooseMany { .. } => "ChooseMany",
-        conduit_core::InteractionFamily::Scalar { .. } => "Scalar",
-        conduit_core::InteractionFamily::RelativeAdjustment { .. } => "RelativeAdjustment",
-        conduit_core::InteractionFamily::Text { .. } => "Text",
-        conduit_core::InteractionFamily::Structured { .. } => "Structured",
+        conduit_human::InteractionFamily::Activate => "Activate",
+        conduit_human::InteractionFamily::Boolean => "Boolean",
+        conduit_human::InteractionFamily::ChooseOne { .. } => "ChooseOne",
+        conduit_human::InteractionFamily::ChooseMany { .. } => "ChooseMany",
+        conduit_human::InteractionFamily::Scalar { .. } => "Scalar",
+        conduit_human::InteractionFamily::RelativeAdjustment { .. } => "RelativeAdjustment",
+        conduit_human::InteractionFamily::Text { .. } => "Text",
+        conduit_human::InteractionFamily::Structured { .. } => "Structured",
     }
 }
 

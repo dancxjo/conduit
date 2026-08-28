@@ -12,7 +12,6 @@ use edit_form::{
 };
 
 use conduit_core::ConfigurationValue;
-pub use conduit_core::PatchbayAction;
 use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FaceStartupParameter,
@@ -25,6 +24,7 @@ use conduit_form::{
     ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
+pub use patchbay_control::PatchbayAction;
 use std::collections::VecDeque;
 
 pub const MAX_INTERACTION_ID_BYTES: usize = 768;

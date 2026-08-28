@@ -5,15 +5,16 @@
 //! separate packets. This module keeps those absences explicit.
 
 use crate::CreateOiPacket;
-use conduit_core::{
-    BatteryObservation, BeaconKind, BeaconObservation, ButtonSetObservation, ChargingObservation,
-    ChargingState, CliffObservation, ContactObservation, InfoDecodeError, ProximityObservation,
-    WheelDropObservation, BODY_SECTOR_FRONT_LEFT, BODY_SECTOR_FRONT_RIGHT, BODY_SECTOR_LEFT,
-    BODY_SECTOR_RIGHT, CHARGING_SOURCE_MASK, WHEEL_CASTER, WHEEL_LEFT, WHEEL_RIGHT,
-};
+use conduit_core::InfoDecodeError;
 use conduit_create_oi::{
     Create1BatteryEstimate, Create1BatteryNormalizationDisposition,
     NormalizedCreate1BatteryEstimate,
+};
+use conduit_robotics::{
+    BatteryObservation, BeaconKind, BeaconObservation, ButtonSetObservation, ChargingObservation,
+    ChargingState, CliffObservation, ContactObservation, ProximityObservation,
+    WheelDropObservation, BODY_SECTOR_FRONT_LEFT, BODY_SECTOR_FRONT_RIGHT, BODY_SECTOR_LEFT,
+    BODY_SECTOR_RIGHT, CHARGING_SOURCE_MASK, WHEEL_CASTER, WHEEL_LEFT, WHEEL_RIGHT,
 };
 
 pub const CREATE_GROUP_ZERO_PACKET_ID: u8 = 0;
@@ -197,7 +198,7 @@ fn require_packet(packet: &CreateOiPacket, expected: u8) -> Result<(), CreateSen
 mod tests {
     use super::*;
     use crate::{decode_stream_frame, CreateOiFailure};
-    use conduit_core::{CHARGING_SOURCE_HOME_BASE, CHARGING_SOURCE_INTERNAL};
+    use conduit_robotics::{CHARGING_SOURCE_HOME_BASE, CHARGING_SOURCE_INTERNAL};
 
     fn frame(packet_id: u8, payload: &[u8]) -> Vec<u8> {
         let mut frame = vec![19, payload.len() as u8 + 1, packet_id];

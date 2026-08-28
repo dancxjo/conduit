@@ -71,7 +71,7 @@ impl TestJsonSinkOperation {
                     operation: HostOperationId(0),
                     input: BoundedValueRef::new(
                         value,
-                        conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+                        conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
                     )
                     .unwrap(),
                 }
@@ -112,7 +112,7 @@ pub(crate) fn sink_offer() -> CapabilityOffer {
         PortDirection::Input,
         vec![present_host_operation_requirement(
             kind_id("presentation/stdout-text"),
-            conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         )],
     )
 }
@@ -126,7 +126,7 @@ fn offer(
 ) -> CapabilityOffer {
     let descriptor = PortDescriptor {
         port_id: port_id("value"),
-        value_kind: kind_id(conduit_core::JSON_TEXT_INFO_ID),
+        value_kind: kind_id(conduit_web::JSON_TEXT_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
     };
@@ -164,7 +164,7 @@ fn offer(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
-            max_queue_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            max_queue_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         },
     }
 }
@@ -204,7 +204,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 32,
         host_requests: 0,
         sign_items: 16,
-        maximum_value_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+        maximum_value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
     })
 }
 fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
@@ -214,7 +214,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: 0,
         host_requests: 1,
         sign_items: 16,
-        maximum_value_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+        maximum_value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
     })
 }
 fn prepare_source(

@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-human = { path = "../../../semantics/human" }
+patchbay-control = { path = "../control" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-observatory = { path = "../../../architecture/observatory" }

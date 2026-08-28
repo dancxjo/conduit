@@ -251,7 +251,7 @@ pub fn keymap_offer() -> CapabilityOffer {
             contract_id: HostOperationContractId::from(KEYMAP_HOST_OPERATION),
             target_kind: Some(kind_id(KEYMAP_HOST_TARGET)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
             maximum_output_bytes: 4,
         }],
     )
@@ -267,8 +267,8 @@ pub fn chords_offer() -> CapabilityOffer {
             contract_id: HostOperationContractId::from(CHORDS_HOST_OPERATION),
             target_kind: Some(kind_id(CHORDS_HOST_TARGET)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
-            maximum_output_bytes: conduit_core::CHORD_ENCODED_LEN as u32,
+            maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
+            maximum_output_bytes: conduit_human::CHORD_ENCODED_LEN as u32,
         }],
     )
 }
@@ -415,8 +415,8 @@ fn json_offer(
             contract_id: HostOperationContractId::from(operation),
             target_kind: Some(target_kind),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
-            maximum_output_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            maximum_input_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            maximum_output_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         }],
         Vec::new(),
         Vec::new(),

@@ -11,7 +11,7 @@ const SINK_NODE: NodeId = NodeId(1);
 const OPERATION: HostOperationId = HostOperationId(0);
 const PORTS: usize = 1;
 const SIGNS: usize = 64;
-const MAXIMUM_VALUE_BYTES: usize = conduit_core::ROBOTICS_CHARGING_ENCODED_LEN;
+const MAXIMUM_VALUE_BYTES: usize = conduit_robotics::ROBOTICS_CHARGING_ENCODED_LEN;
 
 #[derive(Clone, Copy)]
 pub(super) struct ObservationSource {

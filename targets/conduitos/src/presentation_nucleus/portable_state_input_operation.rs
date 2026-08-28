@@ -255,7 +255,7 @@ mod tests {
                 detail: 60
             })
         );
-        let exact = value(2, conduit_core::KEY_EVENT_ENCODED_LEN as u32);
+        let exact = value(2, conduit_human::KEY_EVENT_ENCODED_LEN as u32);
         assert_eq!(
             tee.resume(OperationInput::Value {
                 port: PortId(0),
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn cancellation_releases_pending_tee_and_sink_state() {
-        let exact = value(2, conduit_core::KEY_EVENT_ENCODED_LEN as u32);
+        let exact = value(2, conduit_human::KEY_EVENT_ENCODED_LEN as u32);
         let mut tee = PortableStateInputOperation::KeyTee {
             pending: Some(exact),
             phase: 1,

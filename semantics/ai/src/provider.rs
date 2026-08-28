@@ -10,15 +10,15 @@ use conduit_core::{
     kind_id, port_id, protected_resource_requirement, resource_requirement, ArtifactId,
     AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, JsonRefusal, JsonValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_web::{
-    HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget, HttpTransactionId,
+    HttpHeader, HttpMethod, HttpRequest, HttpResponse, HttpTarget, HttpTransactionId, JsonRefusal,
+    JsonValue,
 };
 
 use crate::{GENERATE_TEXT_KIND, TEXT_VALUE_KIND};
@@ -249,13 +249,13 @@ fn provider_definitions() -> Vec<KindDefinition> {
             TEXT_VALUE_KIND,
             PortTemporal::Value,
             "value",
-            conduit_core::JSON_INFO_ID,
+            conduit_web::JSON_INFO_ID,
             PortTemporal::Value,
         ),
         definition(
             PROVIDER_ENVELOPE_KIND,
             "json",
-            conduit_core::JSON_TEXT_INFO_ID,
+            conduit_web::JSON_TEXT_INFO_ID,
             PortTemporal::Value,
             "request",
             conduit_web::http_request_type()
@@ -275,13 +275,13 @@ fn provider_definitions() -> Vec<KindDefinition> {
                 .as_str(),
             PortTemporal::Flow { closes: true },
             "json",
-            conduit_core::JSON_TEXT_INFO_ID,
+            conduit_web::JSON_TEXT_INFO_ID,
             PortTemporal::Value,
         ),
         definition(
             PROVIDER_RESULT_KIND,
             "value",
-            conduit_core::JSON_INFO_ID,
+            conduit_web::JSON_INFO_ID,
             PortTemporal::Value,
             "text",
             TEXT_VALUE_KIND,
@@ -354,7 +354,7 @@ fn adapter_offer(definition: KindDefinition) -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            max_queue_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         },
     }
 }

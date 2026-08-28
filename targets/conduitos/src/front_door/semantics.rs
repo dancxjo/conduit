@@ -112,7 +112,7 @@ fn action(
     target: &str,
     availability: PresentationActionAvailability,
 ) -> PresentationAction {
-    let semantic = conduit_core::PatchbayAction::from_name(name)
+    let semantic = patchbay_control::PatchbayAction::from_name(name)
         .expect("the finite ConduitOS action table contains known portable actions");
     PresentationAction {
         identity: format!("action/{name}/{target}"),

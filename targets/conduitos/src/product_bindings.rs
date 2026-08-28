@@ -1,6 +1,6 @@
 //! Finite Presenter-local bindings for the ConduitOS product journey.
 
-use conduit_core::PatchbayAction;
+use patchbay_control::PatchbayAction;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ProductBinding {

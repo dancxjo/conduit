@@ -24,7 +24,7 @@ fn ordinary_form_runs_shared_bounded_json_through_the_production_kernel() {
         assert_eq!(placement.host_operations.len(), 1);
         assert_eq!(
             placement.host_operations[0].maximum_input_bytes,
-            conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32
+            conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32
         );
     }
 

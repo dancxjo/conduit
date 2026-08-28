@@ -16,7 +16,7 @@ fn straight_turn_curve_reverse_and_wrap_are_exact_and_deterministic() {
             .unwrap()
             .value
             .components(),
-        (0, 0, conduit_core::HALF_PI_MICRORADIANS)
+        (0, 0, conduit_robotics::HALF_PI_MICRORADIANS)
     );
     let north = turn_then_forward.integrate(100, 0).unwrap();
     assert_eq!(north.value.components(), (0, 100, 1_570_797));
@@ -222,10 +222,10 @@ fn fixed_cordic_cardinals_are_bounded_and_repeatable() {
     assert_eq!(east, fixed_sin_cos(0));
     assert!(east.0.abs() <= 8);
     assert!(east.1.abs_diff(1_000_000) <= 8);
-    let north = fixed_sin_cos(conduit_core::HALF_PI_MICRORADIANS as i64);
+    let north = fixed_sin_cos(conduit_robotics::HALF_PI_MICRORADIANS as i64);
     assert!(north.0.abs_diff(1_000_000) <= 8);
     assert!(north.1.abs() <= 8);
-    let west = fixed_sin_cos(conduit_core::PI_MICRORADIANS as i64);
+    let west = fixed_sin_cos(conduit_robotics::PI_MICRORADIANS as i64);
     assert!(west.0.abs() <= 8);
     assert!(west.1.abs_diff(-1_000_000) <= 8);
 }

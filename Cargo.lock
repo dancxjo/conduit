@@ -557,6 +557,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-kernel",
  "conduit-net",
  "conduit-plan-lowering",
@@ -706,10 +707,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-human"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-human",
 ]
 
 [[package]]
@@ -771,11 +782,13 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-form",
+ "conduit-human",
  "conduit-kernel",
  "conduit-mpu6050",
  "conduit-observatory",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -805,6 +818,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-host-fabrication",
+ "conduit-human",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-semantic-catalog",
@@ -844,6 +858,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-robotics"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-rp2040-network-realization"
 version = "0.1.0"
 dependencies = [
@@ -867,9 +888,11 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-midi",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-robotics",
  "conduit-text",
  "conduit-time",
  "conduit-web",
@@ -923,6 +946,7 @@ dependencies = [
  "conduit-data",
  "conduit-form",
  "conduit-host-fabrication",
+ "conduit-human",
  "conduit-kernel",
  "conduit-language",
  "conduit-midi",
@@ -931,6 +955,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-r1-network-conformance",
+ "conduit-robotics",
  "conduit-rp2040-network-realization",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -963,6 +988,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-human",
  "conduit-midi",
  "conduit-presentation",
  "conduit-semantic-catalog",
@@ -1078,11 +1104,13 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-kernel",
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-synth",
@@ -1090,6 +1118,7 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "limine",
+ "patchbay-control",
  "serde_json",
  "sha2 0.10.9",
 ]
@@ -2574,6 +2603,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "patchbay-control"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "patchbay-hosted"
 version = "0.1.0"
 dependencies = [
@@ -2611,6 +2647,7 @@ dependencies = [
  "conduit-browser-runtime",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-kernel",
  "conduit-observatory",
  "conduit-plan-lowering",
@@ -2624,6 +2661,7 @@ dependencies = [
  "conduit-text",
  "conduit-time",
  "conduit-wire",
+ "patchbay-control",
  "serde",
  "serde_json",
 ]
@@ -2637,6 +2675,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-net",
  "conduit-observatory",
  "conduit-planner",
@@ -4499,6 +4538,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-r1-network-conformance",
+ "conduit-robotics",
  "conduit-rp2040-network-realization",
  "conduit-semantic-catalog",
  "conduit-signal",
