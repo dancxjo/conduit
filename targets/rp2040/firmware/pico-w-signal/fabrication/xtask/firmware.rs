@@ -70,18 +70,18 @@ impl FirmwareIdentity {
         for (image, routes) in [
             (
                 &family.plan_a,
-                conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+                conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
             ),
             (
                 &family.plan_b,
-                conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+                conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
             ),
             (
                 &family.plan_c,
-                conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+                conduit_r1_network_conformance::R1SignalRouteSet::WebSocketThenUsb,
             ),
         ] {
-            let exact = conduit_system_continuity::exact_r1_control_plan(
+            let exact = conduit_r1_network_conformance::exact_r1_control_plan(
                 conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
                 routes,
             )?;

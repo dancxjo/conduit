@@ -213,7 +213,7 @@ fn generate_body_advertisement(out: &Path, mode: &str) {
         "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000",
     );
     let advertisement = if mode == "r1-control" {
-        conduit_system_continuity::r1_signal_pico_advertisement(boot_id)
+        conduit_r1_network_conformance::r1_signal_pico_advertisement(boot_id)
     } else {
         let mut advertisement = pico_local_advertisement();
         advertisement.boot_id = boot_id;
@@ -354,18 +354,18 @@ fn generate_r1_recovery_signal_images(out: &Path) {
     for (stem, routes) in [
         (
             "r1_plan_a_signal",
-            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
         ),
         (
             "r1_plan_b_signal",
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         ),
         (
             "r1_plan_c_signal",
-            conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+            conduit_r1_network_conformance::R1SignalRouteSet::WebSocketThenUsb,
         ),
     ] {
-        let exact = conduit_system_continuity::exact_r1_signal_plan(
+        let exact = conduit_r1_network_conformance::exact_r1_signal_plan(
             BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             routes,
         )
@@ -387,7 +387,7 @@ fn generate_r1_recovery_signal_images(out: &Path) {
             .expect("generated R1 Pico Signal image should be writable");
         if matches!(
             routes,
-            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly
+            conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly
         ) {
             fs::write(out.join("pico_signal_image.rs"), &rendered)
                 .expect("active R1 WebSocket Signal image should be writable");

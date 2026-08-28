@@ -169,9 +169,9 @@ impl R1ControlKernel {
 }
 
 pub fn run_live_three_peer_input(bind: &str) -> Result<(), String> {
-    let exact = conduit_system_continuity::exact_r1_control_plan(
+    let exact = conduit_r1_network_conformance::exact_r1_control_plan(
         conduit_core::BootId::from("r1/live-input-pico-boot"),
-        conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+        conduit_r1_network_conformance::R1SignalRouteSet::WebSocketThenUsb,
     )?;
     let fragment = exact
         .plan
@@ -240,7 +240,7 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_system_continuity::{exact_r1_control_plan, R1SignalRouteSet};
+    use conduit_r1_network_conformance::{exact_r1_control_plan, R1SignalRouteSet};
 
     fn kernel() -> R1ControlKernel {
         let exact = exact_r1_control_plan(

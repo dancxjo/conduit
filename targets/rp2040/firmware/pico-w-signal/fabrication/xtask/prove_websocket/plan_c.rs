@@ -28,9 +28,9 @@ pub(crate) fn verify_plan_c_continuation(
     if !interactive {
         return Err("physical R1 Plan C network-loss proof requires --interactive".into());
     }
-    let plan = conduit_system_continuity::exact_r1_control_plan(
+    let plan = conduit_r1_network_conformance::exact_r1_control_plan(
         BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-        conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+        conduit_r1_network_conformance::R1SignalRouteSet::WebSocketThenUsb,
     )?
     .plan;
     let mut websocket = super::connect_with_query(

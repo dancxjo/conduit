@@ -8,9 +8,9 @@ use conduit_embedded_build::{
     GenerationError,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment;
+use conduit_r1_network_conformance::{exact_r1_signal_plan, R1SignalRouteSet};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
 use conduit_signal_conformance::{pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS};
-use conduit_system_continuity::{exact_r1_signal_plan, R1SignalRouteSet};
 
 #[test]
 fn local_assigned_plan_has_a_deterministic_golden_round_trip() {

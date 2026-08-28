@@ -73,7 +73,6 @@ conduit-signal-conformance = { path = "../../../../proof/conformance/signal" }
 conduit-net = { path = "../../../../semantics/net", features = ["form-catalog"] }
 conduit-rp2040-network-realization = { path = "../../network-realization" }
 conduit-r1-network-conformance = { path = "../../../../proof/conformance/network-r1" }
-conduit-system-continuity = { path = "../../../../semantics/system-continuity", features = ["r1-recovery"] }
 serde_json = "1"
 
 [[bin]]

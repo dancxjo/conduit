@@ -1,10 +1,12 @@
 use conduit_core::{BaseImplementationId, BootId, HostId};
+use conduit_r1_network_conformance::{
+    exact_r1_control_plan, exact_r1_signal_plan, R1SignalRouteSet,
+};
 use conduit_std_host::pico_usb_source::PicoUsbSource;
 use conduit_std_host::{
     pico_control_source::PicoControlSource,
     r1_control::{R1ControlPeer, R1InputEvent},
 };
-use conduit_system_continuity::{exact_r1_control_plan, exact_r1_signal_plan, R1SignalRouteSet};
 use conduit_wire::{
     decode_session_checkpoint, encode_session_checkpoint_into, SessionMachine, SessionMessage,
     SessionResumeAction, SessionRole,

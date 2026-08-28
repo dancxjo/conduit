@@ -631,7 +631,6 @@ dependencies = [
  "conduit-r1-network-conformance",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-system-continuity",
 ]
 
 [[package]]
@@ -849,11 +848,15 @@ dependencies = [
 name = "conduit-r1-network-conformance"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-form",
  "conduit-net",
  "conduit-planner",
+ "conduit-signal",
+ "conduit-signal-conformance",
  "conduit-wire",
+ "serde",
  "serde_json",
 ]
 
@@ -962,7 +965,6 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-std-offers",
  "conduit-synth",
- "conduit-system-continuity",
  "conduit-text",
  "conduit-time",
  "conduit-web",
@@ -1009,14 +1011,8 @@ dependencies = [
 name = "conduit-system-continuity"
 version = "0.1.0"
 dependencies = [
- "conduit-body",
  "conduit-core",
- "conduit-form",
- "conduit-net",
  "conduit-observatory",
- "conduit-planner",
- "conduit-r1-network-conformance",
- "conduit-signal",
  "conduit-signal-conformance",
  "conduit-wire",
  "serde",
@@ -2684,7 +2680,6 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-std-offers",
- "conduit-system-continuity",
  "conduit-text",
  "conduit-wire",
  "conduitos",
@@ -4546,7 +4541,6 @@ dependencies = [
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-synth",
- "conduit-system-continuity",
  "conduit-text",
  "conduit-time",
  "conduit-wire",

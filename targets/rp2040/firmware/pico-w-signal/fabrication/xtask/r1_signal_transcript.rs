@@ -159,9 +159,9 @@ mod tests {
         FirmwareIdentity,
         RuntimeTranscriptIdentity,
     ) {
-        let plan = conduit_system_continuity::exact_r1_signal_plan(
+        let plan = conduit_r1_network_conformance::exact_r1_signal_plan(
             BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         )
         .unwrap()
         .plan;

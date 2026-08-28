@@ -231,9 +231,9 @@ mod tests {
 
     #[test]
     fn six_deliberate_inputs_cross_the_exact_control_session_with_pressure() {
-        let exact = conduit_system_continuity::exact_r1_control_plan(
+        let exact = conduit_r1_network_conformance::exact_r1_control_plan(
             BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
         let mut source = PicoControlSource::prepare_plan(
@@ -320,9 +320,9 @@ mod tests {
 
     #[test]
     fn pulse_source_and_control_source_cannot_masquerade_as_each_other() {
-        let exact = conduit_system_continuity::exact_r1_control_plan(
+        let exact = conduit_r1_network_conformance::exact_r1_control_plan(
             BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
         assert!(crate::pico_usb_source::PicoUsbSource::prepare_plan(

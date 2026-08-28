@@ -162,14 +162,15 @@ pub(super) fn run(args: &PicoArgs) -> PicoResult<()> {
 
 fn plan_from_advertisement(advertisement: &HostAdvertisement) -> PicoResult<Plan> {
     if advertisement.profile.as_str() == "rp2040-r1-kernel" {
-        let expected =
-            conduit_system_continuity::r1_signal_pico_advertisement(advertisement.boot_id.clone());
+        let expected = conduit_r1_network_conformance::r1_signal_pico_advertisement(
+            advertisement.boot_id.clone(),
+        );
         if advertisement != &expected {
             return Err("R1 Pico advertisement differs from the exact active profile".into());
         }
-        return Ok(conduit_system_continuity::exact_r1_signal_plan(
+        return Ok(conduit_r1_network_conformance::exact_r1_signal_plan(
             advertisement.boot_id.clone(),
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         )?
         .plan);
     }
@@ -247,7 +248,7 @@ mod tests {
 
     #[test]
     fn exact_r1_advertisement_yields_std_to_admitted_pico_plan() {
-        let advertisement = conduit_system_continuity::r1_signal_pico_advertisement(
+        let advertisement = conduit_r1_network_conformance::r1_signal_pico_advertisement(
             conduit_core::BootId::from("r1/test-boot"),
         );
         let plan = plan_from_advertisement(&advertisement).unwrap();
@@ -263,7 +264,7 @@ mod tests {
 
     #[test]
     fn altered_r1_advertisement_cannot_select_the_canonical_plan() {
-        let mut advertisement = conduit_system_continuity::r1_signal_pico_advertisement(
+        let mut advertisement = conduit_r1_network_conformance::r1_signal_pico_advertisement(
             conduit_core::BootId::from("r1/test-boot"),
         );
         advertisement.capabilities.clear();

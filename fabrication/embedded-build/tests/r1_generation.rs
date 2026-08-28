@@ -1,7 +1,9 @@
 use conduit_core::{BaseImplementationId, BootId};
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
-use conduit_system_continuity::{exact_r1_control_plan, exact_r1_signal_plan, R1SignalRouteSet};
+use conduit_r1_network_conformance::{
+    exact_r1_control_plan, exact_r1_signal_plan, R1SignalRouteSet,
+};
 
 #[test]
 fn current_r1_plans_generate_exact_single_and_dual_line_ingress() {

@@ -4,7 +4,7 @@ use conduit_core::{
     ActivePlayId, BaseImplementationId, BootId, ControlLoopEvent, GearId, HostId, LineAvailability,
     LineAvailabilitySign, LineId, PlanId, SignId,
 };
-use conduit_system_continuity::{
+use conduit_r1_network_conformance::{
     exact_r1_signal_plan, R1LedResultSign, R1NewPlanRecovery, R1RecoveryStartSigns,
     R1ReplacementSigns, R1SignalRouteSet,
 };
@@ -141,7 +141,7 @@ fn verify() -> Result<SoftwareRecoveryOutcome, String> {
         .plan_b_session_binding()
         .map_err(|error| format!("invalid Plan B session: {error:?}"))?;
     recovery
-        .record_led_result(conduit_system_continuity::R1LedResultObservation {
+        .record_led_result(conduit_r1_network_conformance::R1LedResultObservation {
             pico_host_id: HostId::from(conduit_r1_network_conformance::R1_PICO_HOST_ID),
             pico_boot_id: pico_boot,
             plan_id: plan_b_id.clone(),

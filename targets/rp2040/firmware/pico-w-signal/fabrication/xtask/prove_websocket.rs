@@ -26,9 +26,9 @@ pub(super) fn verify(
     runtime: &RuntimeTranscriptIdentity,
 ) -> PicoResult<()> {
     let mut websocket = connect(usb, sign, identity, runtime)?;
-    let plan_a = conduit_system_continuity::exact_r1_signal_plan(
+    let plan_a = conduit_r1_network_conformance::exact_r1_signal_plan(
         BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-        conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+        conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
     )?
     .plan;
     let source_host = conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID);
@@ -126,7 +126,7 @@ pub(super) fn verify_new_plan_recovery(
     let cord_connection_id = plan_a_connection.connection_id.clone();
     let source_host = conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID);
     let source_boot = BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID);
-    let mut recovery = conduit_system_continuity::R1NewPlanRecovery::begin(
+    let mut recovery = conduit_r1_network_conformance::R1NewPlanRecovery::begin(
         plan_a.clone(),
         conduit_core::GearId::from("signal-demo/show"),
         1,
@@ -134,7 +134,7 @@ pub(super) fn verify_new_plan_recovery(
         source_host.clone(),
         source_boot.clone(),
         0,
-        conduit_system_continuity::R1RecoveryStartSigns {
+        conduit_r1_network_conformance::R1RecoveryStartSigns {
             birth: conduit_core::SignId::from("r1/physical/body-born"),
             wake: conduit_core::SignId::from("r1/physical/body-woke"),
             plan_ready: conduit_core::SignId::from("r1/physical/plan-a-ready"),
@@ -213,7 +213,7 @@ pub(super) fn verify_new_plan_recovery(
             source_host.clone(),
             source_boot,
             0,
-            conduit_system_continuity::R1ReplacementSigns {
+            conduit_r1_network_conformance::R1ReplacementSigns {
                 request: conduit_core::SignId::from("r1/physical/replan-requested"),
                 planned: conduit_core::SignId::from("r1/physical/plan-b-planned"),
                 superseded: conduit_core::SignId::from("r1/physical/plan-a-superseded"),
@@ -267,7 +267,7 @@ pub(super) fn verify_new_plan_recovery(
         .active_play_id
         .clone();
     recovery
-        .record_led_result(conduit_system_continuity::R1LedResultObservation {
+        .record_led_result(conduit_r1_network_conformance::R1LedResultObservation {
             pico_host_id: conduit_core::HostId::from(
                 conduit_r1_network_conformance::R1_PICO_HOST_ID,
             ),
@@ -358,20 +358,20 @@ struct PhysicalNewPlanRecoveryOutcome<'a> {
     plan_b_link_binding_id: &'static str,
     plan_b_base_instance_id: &'static str,
     control_events: &'a [conduit_core::ControlLoopEvent],
-    led_results: &'a [conduit_system_continuity::R1LedResultSign],
+    led_results: &'a [conduit_r1_network_conformance::R1LedResultSign],
     lifecycle: &'a super::r1_lifecycle::R1LullSign,
     branch_a_physical_acceptance: bool,
 }
 
 fn recovery_plans() -> PicoResult<(conduit_core::Plan, conduit_core::Plan)> {
     let planned_boot = BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID);
-    let plan_a = conduit_system_continuity::exact_r1_control_plan(
+    let plan_a = conduit_r1_network_conformance::exact_r1_control_plan(
         planned_boot.clone(),
-        conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+        conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
     )?;
-    let plan_b = conduit_system_continuity::exact_r1_control_plan(
+    let plan_b = conduit_r1_network_conformance::exact_r1_control_plan(
         planned_boot,
-        conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+        conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
     )?;
     Ok((plan_a.plan, plan_b.plan))
 }

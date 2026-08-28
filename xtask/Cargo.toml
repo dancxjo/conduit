@@ -51,7 +51,6 @@ conduit-planner = { path = "../architecture/planner" }
 conduit-presentation = { path = "../semantics/presentation", features = ["form-catalog"] }
 conduit-plan-lowering = { path = "../architecture/plan-lowering", default-features = false }
 conduit-std-host = { path = "../targets/std", features = ["local-model-proof", "pete-create"] }
-conduit-system-continuity = { path = "../semantics/system-continuity", features = ["r1-recovery"] }
 conduit-wire = { path = "../architecture/wire" }
 patchbay-model = { path = "../apps/patchbay/model" }
 
