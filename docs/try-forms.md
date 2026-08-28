@@ -152,9 +152,9 @@ Presentation, Manifestation, interaction, Form, checked, expanded, Plan,
 fragment, Play, placement, and host-operation identities are retained without
 recording message content.
 
-This is mechanically distinct from `ConnectionBase::WebSocket`, which
-transports Conduit sessions between Hosts. No Line, link binding, or session
-frame appears in the authored external-WebSocket plan.
+This is mechanically distinct from a Conduit-session Line using the exact
+`conduit.base/websocket-rfc6455@1` Base realization identity. No Line, link
+binding, or session frame appears in the authored external-WebSocket plan.
 
 Focused proof:
 

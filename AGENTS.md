@@ -42,7 +42,7 @@ Every change must preserve these rules unless an explicit architecture issue cha
 Parallel work is encouraged only when ownership is clear.
 
 - Prefer separate issues and branches with disjoint file allowlists.
-- Avoid assigning multiple agents to `conduit-core`, `conduit-kernel`, `conduit-runtime`, root manifests, CI, or the same architecture document at once.
+- Avoid assigning multiple agents to `conduit-core`, `conduit-kernel`, `conduit-plan-lowering`, root manifests, CI, or the same architecture document at once.
 - Reserve integration files such as `README.md`, `STATUS.md`, `docs/reuse-ledger.md`, root manifests, the `justfile`, and workflow files for the integration owner unless a sidecar issue explicitly owns them.
 - Sidecar PRs should add isolated tests, fixtures, scripts, or documents without opportunistic refactors.
 - Do not edit another agent's branch, rewrite its history, or absorb its issue without an explicit handoff.

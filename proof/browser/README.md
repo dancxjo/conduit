@@ -53,6 +53,7 @@ shows the remaining peer continues. History is limited to sixteen items,
 messages to 256 bytes, and input events to eight. Disconnect, malformed input,
 oversize input, and successful host completion stay distinct.
 
-`net/websocket` is the authored external protocol operation.
-`ConnectionBase::WebSocket` remains the unrelated line for Conduit
-sessions; the webchat does not use that line or its session runtime.
+`net/websocket` is the authored external protocol operation. A Line using the
+exact `conduit.base/websocket-rfc6455@1` Base realization remains the unrelated
+carrier for Conduit sessions; the webchat does not use that Line or its session
+runtime.
