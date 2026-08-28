@@ -16,7 +16,7 @@ use alloc::format;
 #[cfg(target_os = "none")]
 use conduitos::{
     allocation::BOOT_ARENA, arch, boot, display::PixelTarget, dual_region_plan, identity,
-    pc_speaker_plan, pc_speaker_play, presentation_nucleus, proof,
+    pc_speaker_plan, pc_speaker_play, presentation_nucleus, sign_format,
 };
 
 #[cfg(target_os = "none")]
