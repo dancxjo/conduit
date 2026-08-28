@@ -76,7 +76,7 @@ pub fn exact_std_pico_bluetooth_plan(
     )
     .map_err(|error| alloc::format!("Bluetooth Line offer: {error:?}"))?;
     let form = conduit_form::parse_with_startup(
-        include_str!("../../../../fixtures/forms/signal-demo.conduit"),
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
         &crate::signal_startup_catalog(),
         &signal_profile_catalog(),
     )

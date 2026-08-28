@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-conduit-core = { path = "../../../crates/conduit-core" }
-conduit-form = { path = "../../../crates/conduit-form" }
-conduit-std-host = { path = "../../../hosts/std" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-std-host = { path = "../../../targets/std" }
 patchbay-model = { path = "../model" }

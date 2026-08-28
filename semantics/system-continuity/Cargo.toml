@@ -1,0 +1,38 @@
+[package]
+name = "conduit-system-continuity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-body = { path = "../../architecture/body", default-features = false, optional = true }
+conduit-form = { path = "../../architecture/form", optional = true }
+conduit-net = { path = "../net", optional = true }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1", optional = true }
+conduit-observatory = { path = "../../architecture/observatory" }
+conduit-planner = { path = "../../architecture/planner", optional = true }
+conduit-signal = { path = "../signal", features = ["host-profile"], optional = true }
+conduit-signal-conformance = { path = "../../proof/conformance/signal", optional = true }
+conduit-wire = { path = "../../architecture/wire" }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[features]
+default = []
+r1-recovery = [
+    "dep:conduit-body",
+    "dep:conduit-form",
+    "dep:conduit-net",
+    "dep:conduit-r1-network-conformance",
+    "dep:conduit-planner",
+    "dep:conduit-signal",
+    "dep:conduit-signal-conformance",
+]
+
+[[test]]
+name = "r1_recovery"
+required-features = ["r1-recovery"]
+
+[dev-dependencies]
+conduit-signal = { path = "../signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }

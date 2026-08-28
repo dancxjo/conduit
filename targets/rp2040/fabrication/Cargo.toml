@@ -5,4 +5,4 @@ edition = "2021"
 description = "RP2040/Pico W Host fabrication anchor package"
 
 [dependencies]
-conduit-host-fabrication = { path = "../../../crates/conduit-host-fabrication" }
+conduit-host-fabrication = { path = "../../../fabrication/host" }

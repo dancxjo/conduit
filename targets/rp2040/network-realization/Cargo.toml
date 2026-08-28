@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-conduit-core = { path = "../../../crates/conduit-core", default-features = false }
+conduit-core = { path = "../../../architecture/core", default-features = false }
 
 [dev-dependencies]
 smoltcp = { version = "0.13.1", default-features = false, features = ["medium-ethernet", "proto-ipv4", "socket-dhcpv4"] }

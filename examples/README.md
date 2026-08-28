@@ -12,5 +12,5 @@ Canonical source uses the `.conduit` suffix and the face/back/gear surface:
   expressed as canonical face/back/gear Forms.
 
 `hello.panel` and the placement files are retained proof inputs, not Form
-source. Historical pre-canonical Form bytes live under `fixtures/forms/` so
+source. Historical pre-canonical Form bytes live under `proof/fixtures/forms/` so
 they cannot be mistaken for programs users should author or run.

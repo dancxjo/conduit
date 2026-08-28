@@ -1,0 +1,13 @@
+[package]
+name = "conduit-web"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-form = { path = "../../architecture/form", optional = true }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[features]
+default = ["form-catalog"]
+form-catalog = ["dep:conduit-form"]

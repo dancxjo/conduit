@@ -1,0 +1,11 @@
+[package]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../core" }
+conduit-kernel = { path = "../kernel" }
+
+[[test]]
+name = "lowering_boundary"

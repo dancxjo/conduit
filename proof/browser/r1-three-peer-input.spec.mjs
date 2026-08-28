@@ -31,7 +31,7 @@ test.afterAll(() => {
 });
 
 test("terminal and two Chromium peers independently issue keydown on and keyup off", async ({ browser, request }) => {
-  const authored = await (await request.get("/fixtures/forms/r1-three-peer-control.conduit")).text();
+  const authored = await (await request.get("/proof/fixtures/forms/r1-three-peer-control.conduit")).text();
   expect(authored).toContain("terminal: interaction/level");
   expect(authored).toContain("browser-a: interaction/level");
   expect(authored).toContain("browser-b: interaction/level");

@@ -44,10 +44,10 @@ assert_classification false "$readme_rewrite" "$broken_visual"
 restored_visual="$(commit_file docs/visual-evidence.md "$canonical_visual")"
 assert_classification true "$broken_visual" "$restored_visual"
 
-source_change="$(commit_file crates/example/src/lib.rs code)"
+source_change="$(commit_file architecture/example/src/lib.rs code)"
 assert_classification false "$restored_visual" "$source_change"
 
-manifest_change="$(commit_file crates/example/Cargo.toml manifest)"
+manifest_change="$(commit_file architecture/example/Cargo.toml manifest)"
 assert_classification false "$source_change" "$manifest_change"
 
 lock_change="$(commit_file Cargo.lock lock)"
@@ -61,8 +61,8 @@ assert_classification false "$workflow_change" "$baseline_change"
 
 mixed_base="$baseline_change"
 printf '%s\n' mixed >> "$fixture/README.md"
-printf '%s\n' mixed >> "$fixture/crates/example/src/lib.rs"
-git -C "$fixture" add README.md crates/example/src/lib.rs
+printf '%s\n' mixed >> "$fixture/architecture/example/src/lib.rs"
+git -C "$fixture" add README.md architecture/example/src/lib.rs
 git -C "$fixture" commit -qm "mixed fixture"
 mixed="$(git -C "$fixture" rev-parse HEAD)"
 assert_classification false "$mixed_base" "$mixed"

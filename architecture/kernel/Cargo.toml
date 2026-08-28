@@ -1,0 +1,11 @@
+[package]
+name = "conduit-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+alloc = []
+
+[dev-dependencies]
+conduit-core = { path = "../core" }

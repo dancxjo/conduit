@@ -1,0 +1,73 @@
+[package]
+name = "conduit-std-host"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
+local-model-proof = []
+pete-create = ["dep:conduit-create-oi"]
+
+[dependencies]
+conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
+conduit-audio = { path = "../../semantics/audio" }
+conduit-alife = { path = "../../semantics/alife" }
+conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
+conduit-body = { path = "../../architecture/body" }
+conduit-bluetooth = { path = "../../mechanisms/protocols/bluetooth" }
+conduit-browser-runtime = { path = "../browser/runtime" }
+conduit-core = { path = "../../architecture/core" }
+conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
+conduit-form = { path = "../../architecture/form" }
+conduit-host-fabrication = { path = "../../fabrication/host" }
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduit-language = { path = "../../semantics/language" }
+conduit-data = { path = "../../semantics/data" }
+conduit-midi = { path = "../../mechanisms/protocols/midi" }
+conduit-create-oi = { path = "../../mechanisms/devices/create-oi", optional = true }
+conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
+conduit-rp2040-network-realization = { path = "../rp2040/network-realization" }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
+conduit-planner = { path = "../../architecture/planner" }
+conduit-presentation = { path = "../../semantics/presentation" }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
+conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
+conduit-system-continuity = { path = "../../semantics/system-continuity", features = ["r1-recovery"] }
+conduit-synth = { path = "../../mechanisms/implementations/synth" }
+conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["body-coordination-plan", "form-catalog", "text-lab-plan"] }
+conduit-std-offers = { path = "offers" }
+conduit-time = { path = "../../semantics/time" }
+conduit-text = { path = "../../semantics/text", default-features = false }
+conduit-wire = { path = "../../architecture/wire" }
+conduit-web = { path = "../../semantics/web", default-features = false }
+tungstenite = "0.30.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+instant-distance = "=0.6.1"
+ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+bluer = { version = "0.17.4", features = ["bluetoothd"], optional = true }
+dbus = { version = "0.9.12", features = ["vendored"], optional = true }
+futures = { version = "0.3", optional = true }
+tokio = { version = "1", features = ["io-util", "time"], optional = true }
+uuid = { version = "1", optional = true }
+
+[[bin]]
+name = "bluetooth-line-probe"
+path = "src/bin/bluetooth-line-probe.rs"
+required-features = ["bluetooth-bluez"]
+
+[[bin]]
+name = "distributed-lenia-probe"
+path = "src/bin/distributed-lenia-probe.rs"
+required-features = ["bluetooth-bluez"]
+
+[dev-dependencies]
+conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+ed25519-dalek = "2.2"

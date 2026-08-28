@@ -249,7 +249,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
             "check",
             "--locked",
             "--manifest-path",
-            "firmware/conduit-pico-w-signal/Cargo.toml",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
             "--target",
             "thumbv6m-none-eabi",
             "--release",

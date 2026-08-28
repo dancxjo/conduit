@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-conduit-body = { path = "../../../crates/conduit-body" }
-conduit-core = { path = "../../../crates/conduit-core" }
-conduit-kernel = { path = "../../../crates/conduit-kernel", features = ["alloc"] }
-conduit-presentation = { path = "../../../crates/conduit-presentation" }
-conduit-plan-lowering = { path = "../../../crates/conduit-plan-lowering", default-features = false }
-conduit-std-host = { path = "../../../hosts/std" }
-conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog" }
-conduit-wire = { path = "../../../crates/conduit-wire" }
+conduit-body = { path = "../../../architecture/body" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
+conduit-std-host = { path = "../../../targets/std" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog" }
+conduit-wire = { path = "../../../architecture/wire" }
 patchbay-model = { path = "../model" }
 patchbay-hosted = { path = "../hosted" }
 serde = { version = "1", features = ["derive"] }

@@ -43,7 +43,7 @@ function lineCollector(stream) {
 test("unchanged toggle form runs std kernel to browser WASM kernel over live bounded WebSocket", async ({
   page,
 }) => {
-  const sourceText = readFileSync("fixtures/forms/remote-toggle.conduit", "utf8");
+  const sourceText = readFileSync("proof/fixtures/forms/remote-toggle.conduit", "utf8");
   for (const forbidden of [
     "websocket",
     "127.0.0.1",
@@ -193,7 +193,7 @@ test("a broken toggle link after four delivered values fails with retained exact
     const browserReady = page.evaluate(async ({ url }) => {
       const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser-host/assets/websocket-line.mjs"
+        "/targets/browser/host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedToggleRuntime,

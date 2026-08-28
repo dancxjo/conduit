@@ -237,7 +237,7 @@ The `check` workflow requires:
   a subsequent immutable Plan selecting one typed camera Cord over one finite
   WebRTC Line, one observed bounded value, and distinct refusal, pressure,
   replacement, and Host-loss outcomes without a physical-media claim;
-- direct unchanged `fixtures/forms/signal-demo.conduit` to Pico-local plan, selected
+- direct unchanged `proof/fixtures/forms/signal-demo.conduit` to Pico-local plan, selected
   fragment, lowered fragment, and generated fixed-image conformance with exact
   reviewed bounds and fail-closed identity/lowering/remote-connection negatives;
 - Pico verifier tests rejecting static identity mutation, firmware-build
@@ -396,7 +396,7 @@ IDs carried by each effect. S3 is accepted at this boundary.
 The S4 browser-local kernel checkpoint is accepted at exact main
 `b7852eed1e784a27dcd78e700b2f89ddc01bc097`; workflow `31022565054` passed
 both the full Rust gate and the pinned Chromium job. Two independent WASM
-instances parse and plan unchanged `fixtures/forms/signal-demo.conduit`, lower their
+instances parse and plan unchanged `proof/fixtures/forms/signal-demo.conduit`, lower their
 exact local fragments through the shared contract, and execute through
 `conduit-kernel`. JavaScript remains the real-timer/DOM adapter. Fixed frames,
 exact completion correlation, item/byte limits, duplicate/malformed/wrong
@@ -407,7 +407,7 @@ to be measured; the accepted claim is precise capacity stability.
 The S4 live std-to-browser Signal checkpoint is accepted at exact main
 `a1f479dfa58b8537427b5747da73795628504913`; workflow `31031406945` passed
 both the full Rust gate and the pinned Chromium job. The unchanged
-`fixtures/forms/signal-demo.conduit` lowers into exact std-source and browser-sink
+`proof/fixtures/forms/signal-demo.conduit` lowers into exact std-source and browser-sink
 fragments. Both execute through `conduit-kernel`; a binary-only loopback RFC
 6455 base carries the remote-cord session without owning scheduling or
 value lifecycle. Sixteen values reach the DOM in order through one-item and
@@ -432,7 +432,7 @@ capacity, and a structured four-receipt link-break failure. PR #432 merged as
 The Pico-local code path is now generated from the unchanged portable form.
 PR #426 exact head `2f5fa237f5e246ae0d8b38438e64b9c3b83572ce` passed workflow
 `31057256898` and merged as `fb5be830f3a77cb99a491813a3b6d5f3138d7b1b`.
-Its firmware build parses `fixtures/forms/signal-demo.conduit`, plans both Gears
+Its firmware build parses `proof/fixtures/forms/signal-demo.conduit`, plans both Gears
 onto the Pico-local advertisement, lowers the selected fragment, and emits the
 allocator-free fixed image consumed by the RP2040 firmware. Hand-authored
 firmware topology/configuration ordinals are no longer the execution source.
@@ -502,7 +502,7 @@ passed `check` and `browser-host` on that merge commit. Its exact tested head
 `05e43888ee6117b6a61a6b1b382dd2905d9333a0` also passed workflow
 `31195495733` and two recorded attached-board runs with a clean firmware image
 bound to that head. One run produced sixteen matching ordered stdout, Chromium
-DOM, and physical Pico LED receipts from unchanged `fixtures/forms/triple-signal.conduit`
+DOM, and physical Pico LED receipts from unchanged `proof/fixtures/forms/triple-signal.conduit`
 with bounded WebSocket and USB CDC sessions, one shared source kernel, stable
 capacities, zero retained/in-flight values, and reciprocal completed terminals.
 The negative run broke the browser link after four delivered values, retained

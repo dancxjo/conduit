@@ -1,0 +1,22 @@
+[package]
+name = "conduit-chat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-form = { path = "../../architecture/form", optional = true }
+conduit-net = { path = "../net" }
+conduit-presentation = { path = "../presentation", default-features = false }
+
+[features]
+default = []
+form-catalog = [
+    "dep:conduit-form",
+    "conduit-net/form-catalog",
+    "conduit-presentation/form-catalog",
+]
+
+[dev-dependencies]
+conduit-form = { path = "../../architecture/form" }
+conduit-planner = { path = "../../architecture/planner" }

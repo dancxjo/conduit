@@ -237,15 +237,26 @@ This is what lets the same semantics remain meaningful on a workstation, browser
 
 | Path | Responsibility |
 |---|---|
-| `crates/` | Portable contracts, form tooling, planner, kernel, runtime, catalogs, body/host/resource machinery, product CLI |
-| `hosts/` | Hosted, browser, ConduitOS, and Patchbay platform realizations |
-| `firmware/` | Constrained firmware targets and generated-image consumers |
+| `architecture/` | Universal Form, Body, Plan, Play, planner, kernel, wire, and authoritative projection substrate |
+| `semantics/` | Host-neutral semantic Kinds, values, contracts, and domain algorithms |
+| `fabrication/` | Generic Host, Body, workspace, and fixed-build construction machinery; fabrication remains inert before boot |
+| `targets/` | Exact hosted, browser, ConduitOS, board-family, firmware-product, machine, build, and boot realizations |
+| `mechanisms/` | Reusable device protocols and implementation mechanics below semantic and Host composition |
+| `apps/` | Product and application compositions, including the `conduit` CLI, Patchbay, and Pete |
+| `proof/` | Conformance packages, browser evidence, and deterministic fixtures fenced from production truth |
 | `profiles/` | Checked host and body construction source |
-| `fixtures/` | Deterministic conformance fixtures fenced from production truth |
 | `examples/` | Canonical executable forms |
 | `xtask/` | Repository development, fabrication, proof, doctor, and hardware workflows |
+| `tools/` | Narrow tooling support used by repository-development entrances |
 | `docs/` | Canon, architecture, runnable guides, truth boundaries, and design history |
 | `assets/` | README and presentation assets |
+
+Add a new semantic Kind under `semantics/`; an exact Host, board, or machine
+target under `targets/`; a reusable device or protocol under `mechanisms/`; a
+product composition under `apps/`; and conformance-only material under
+`proof/`. A directory states ownership, while a crate states the dependency
+boundary. Sharing a CPU architecture does not merge exact machine, board,
+firmware, boot, artifact, or proof identities.
 
 If you are new to the codebase, start with `conduit run examples/hello.conduit`, then open Patchbay, follow [Try Conduit](docs/try-conduit.md), and read [the Conduit canon](docs/conduit-canon.md). Read [AGENTS.md](AGENTS.md) before changing architecture.
 

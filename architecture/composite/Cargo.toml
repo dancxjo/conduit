@@ -1,0 +1,15 @@
+[package]
+name = "conduit-composite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../core" }
+conduit-form = { path = "../form" }
+conduit-kernel = { path = "../kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../plan-lowering", default-features = false }
+
+[dev-dependencies]
+conduit-planner = { path = "../planner" }
+conduit-signal = { path = "../../semantics/signal", default-features = false, features = ["host-profile"] }
+conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }

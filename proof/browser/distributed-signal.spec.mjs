@@ -88,7 +88,7 @@ test("native Patchbay source and browser peer execute one exact distributed Play
     const result = await page.evaluate(async ({ url, sourceHostId, sourceBootId }) => {
       const { BrowserDomHost } = await import("/proof/browser/signal-dom-host.mjs");
       const { BrowserWebSocketLine } = await import(
-        "/hosts/browser-host/assets/websocket-line.mjs"
+        "/targets/browser/host/assets/websocket-line.mjs"
       );
       const {
         instantiateDistributedBrowserRuntime,

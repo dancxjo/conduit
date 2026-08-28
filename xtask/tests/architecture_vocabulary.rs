@@ -1,13 +1,6 @@
 use std::{fs, path::Path};
 
-const ROOTS: &[&str] = &[
-    "apps",
-    "crates",
-    "firmware",
-    "hosts",
-    "mechanisms",
-    "targets",
-];
+const ROOTS: &[&str] = &["apps", "architecture", "mechanisms", "semantics", "targets"];
 const MARKERS: &[&str] = &[
     "capstone", "takeover", "r1_", "s4_", "a0_", "a1_", "a2_", "a3_", "a4_",
 ];
@@ -26,82 +19,82 @@ const ALLOWLIST: &[(&str, &str, &str)] = &[
         "accepted Body Plan and Play identities are preserved without migration",
     ),
     (
-        "crates/conduit-audio/src/sound_info.rs",
+        "semantics/audio/src/sound_info.rs",
         "a4_",
         "A4 is the musical tuning reference, not a proof rung",
     ),
     (
-        "crates/conduit-midi/src/adapter.rs",
+        "mechanisms/protocols/midi/src/adapter.rs",
         "a4_",
         "A4 is the musical tuning reference, not a proof rung",
     ),
     (
-        "crates/conduit-semantic-catalog/src/music_input.rs",
+        "semantics/catalog/src/music_input.rs",
         "a4_",
         "A4 is the musical tuning reference, not a proof rung",
     ),
     (
-        "crates/conduit-system-continuity/src/r1_control_planning.rs",
+        "semantics/system-continuity/src/r1_control_planning.rs",
         "r1_",
         "feature-gated R1 recovery conformance retained by issue 1798",
     ),
     (
-        "crates/conduit-system-continuity/src/r1_planning.rs",
+        "semantics/system-continuity/src/r1_planning.rs",
         "r1_",
         "feature-gated R1 recovery conformance retained by issue 1798",
     ),
     (
-        "crates/conduit-system-continuity/src/r1_recovery.rs",
+        "semantics/system-continuity/src/r1_recovery.rs",
         "r1_",
         "feature-gated R1 recovery conformance retained by issue 1798",
     ),
     (
-        "crates/conduit-system-continuity/src/lib.rs",
+        "semantics/system-continuity/src/lib.rs",
         "r1_",
         "feature-gated R1 recovery conformance exports retained by issue 1798",
     ),
     (
-        "firmware/conduit-pico-w-signal/build.rs",
+        "targets/rp2040/firmware/pico-w-signal/build.rs",
         "r1_",
         "exact proof-image generation retained by issue 1798",
     ),
     (
-        "firmware/conduit-pico-w-signal/build.rs",
+        "targets/rp2040/firmware/pico-w-signal/build.rs",
         "capstone",
         "exact physical proof-image generation retains its artifact identity",
     ),
     (
-        "firmware/conduit-pico-w-signal/src/websocket_route.rs",
+        "targets/rp2040/firmware/pico-w-signal/src/websocket_route.rs",
         "r1_",
         "R1 conformance frame bound retained by issue 1798",
     ),
     (
-        "firmware/conduit-pico-w-signal/src/websocket_transport.rs",
+        "targets/rp2040/firmware/pico-w-signal/src/websocket_transport.rs",
         "r1_",
         "R1 conformance frame bound retained by issue 1798",
     ),
     (
-        "hosts/std/src/r1_control.rs",
+        "targets/std/src/r1_control.rs",
         "r1_",
         "exact R1 control participant retained by issue 1798",
     ),
     (
-        "hosts/std/src/lib.rs",
+        "targets/std/src/lib.rs",
         "r1_",
         "exact R1 control exports retained by issue 1798",
     ),
     (
-        "hosts/std/src/pico_control_source.rs",
+        "targets/std/src/pico_control_source.rs",
         "r1_",
         "exact R1 control participant retained by issue 1798",
     ),
     (
-        "hosts/std/src/r1_control_input.rs",
+        "targets/std/src/r1_control_input.rs",
         "r1_",
         "exact R1 control participant retained by issue 1798",
     ),
     (
-        "hosts/std/src/hosted_midi/mod.rs",
+        "targets/std/src/hosted_midi/mod.rs",
         "a4_",
         "A4 is the musical tuning reference, not a proof rung",
     ),

@@ -1,0 +1,19 @@
+[package]
+name = "conduit-embedded-build"
+version = "0.1.0"
+edition = "2021"
+description = "Host-only current-plan to fixed Conduit kernel table generator"
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-kernel = { path = "../../architecture/kernel" }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
+
+[dev-dependencies]
+conduit-form = { path = "../../architecture/form" }
+conduit-net = { path = "../../semantics/net" }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
+conduit-planner = { path = "../../architecture/planner" }
+conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
+conduit-system-continuity = { path = "../../semantics/system-continuity", features = ["r1-recovery"] }

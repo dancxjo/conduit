@@ -8,7 +8,7 @@ pub mod calendar_google;
 pub mod catalog;
 pub mod check;
 pub mod ci;
-#[path = "../../../hosts/conduitos/fabrication/xtask/mod.rs"]
+#[path = "../../../targets/conduitos/fabrication/xtask/mod.rs"]
 pub mod conduitos;
 pub mod demo;
 pub mod distributed_lenia;
@@ -29,7 +29,7 @@ pub mod pete_std_observe;
 pub mod pete_std_speaker;
 #[cfg(test)]
 mod pete_std_test_support;
-#[path = "../../../firmware/conduit-pico-w-signal/fabrication/xtask/mod.rs"]
+#[path = "../../../targets/rp2040/firmware/pico-w-signal/fabrication/xtask/mod.rs"]
 pub mod pico;
 pub mod proofs;
 pub mod prove;

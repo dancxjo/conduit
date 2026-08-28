@@ -2,11 +2,11 @@
 
 This directory owns browser conformance fixtures and proof-only launch support.
 It is not a third browser Host implementation. The authoritative product owners
-are `hosts/browser-host` for the browser Host and assets and
-`hosts/browser-runtime` for browser composition and Bases.
+are `targets/browser/host` for the browser Host and assets and
+`targets/browser/runtime` for browser composition and Bases.
 
 The primary specimen parses and plans unchanged
-`fixtures/forms/signal-demo.conduit`, lowers its exact local fragment through
+`proof/fixtures/forms/signal-demo.conduit`, lowers its exact local fragment through
 the shared plan-to-kernel contract, and executes it with `conduit-kernel`'s
 port-aware fixed scheduler compiled to `wasm32-unknown-unknown`. It has no
 alternate executor.

@@ -1,0 +1,9 @@
+[package]
+name = "conduit-host-hosted"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-host-fabrication = { path = "../../../fabrication/host" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog" }
+conduit-std-offers = { path = "../offers" }

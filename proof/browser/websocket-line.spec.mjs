@@ -38,7 +38,7 @@ test("actual Chromium and native RFC 6455 lines exchange bounded binary protocol
     await page.goto("/proof/browser/websocket-line.test.html");
     const result = await page.evaluate(async ({ url }) => {
       const { BrowserWebSocketLine, BrowserWebSocketFailure } = await import(
-        "/hosts/browser-host/assets/websocket-line.mjs"
+        "/targets/browser/host/assets/websocket-line.mjs"
       );
       let invalidBinding;
       try {

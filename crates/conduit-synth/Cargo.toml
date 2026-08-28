@@ -1,8 +1,0 @@
-[package]
-name = "conduit-synth"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-conduit-audio = { path = "../conduit-audio" }
-conduit-core = { path = "../conduit-core" }
