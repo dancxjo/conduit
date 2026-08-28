@@ -199,7 +199,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::key_event_tee_offer(),
             conduit_std_offers::keymap_offer(),
             conduit_std_offers::chords_offer(),
-            conduit_std_catalog::instrument_map_std_offer(),
+            conduit_std_offers::instrument_map_std_offer(),
         ]);
     }
     if composition.state {
@@ -285,13 +285,13 @@ pub(super) fn build_advertisement(
         capabilities.extend(conduit_std_offers::alife_offers());
     }
     if playback.is_some() {
-        capabilities.push(conduit_std_catalog::audio_play_alsa_hw_offer());
+        capabilities.push(conduit_std_offers::audio_play_alsa_hw_offer());
     }
     if midi_input.is_some() {
-        capabilities.push(conduit_std_catalog::music_input_midi_offer());
+        capabilities.push(conduit_std_offers::music_input_midi_offer());
     }
     if midi_output.is_some() {
-        capabilities.push(conduit_std_catalog::music_play_midi_offer());
+        capabilities.push(conduit_std_offers::music_play_midi_offer());
     }
     if playback_proof {
         capabilities.push(installed_std::test_pcm_source_offer());
@@ -572,6 +572,6 @@ mod tests {
             .advertisement()
             .capabilities
             .iter()
-            .any(|offer| { offer == &conduit_std_catalog::instrument_map_std_offer() }));
+            .any(|offer| { offer == &conduit_std_offers::instrument_map_std_offer() }));
     }
 }

@@ -46,7 +46,7 @@ pub fn realization_offer(
     }
 }
 
-pub(crate) fn startup_face(fields: &[StandardConfigurationField]) -> Vec<FaceStartupParameter> {
+pub fn startup_face(fields: &[StandardConfigurationField]) -> Vec<FaceStartupParameter> {
     fields
         .iter()
         .map(|field| FaceStartupParameter {

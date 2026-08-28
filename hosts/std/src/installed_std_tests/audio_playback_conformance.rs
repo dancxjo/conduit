@@ -92,7 +92,7 @@ fn exact_grant_and_resource_run_bounded_specimen_through_production_kernel() {
     assert!(!playback.resources[0].pool_id.as_str().contains("default"));
     assert_eq!(
         playback.execution_profile_id.as_str(),
-        conduit_std_catalog::AUDIO_PLAY_ALSA_HW_PROFILE
+        conduit_std_offers::AUDIO_PLAY_ALSA_HW_PROFILE
     );
     assert_eq!(fragment.connections.len(), 1);
     assert_eq!(fragment.connections[0].item_capacity, 1);

@@ -60,21 +60,21 @@ pub(super) fn offers(
     if let Some(playback) = playback {
         resources.push(resource_offer(
             playback.pool_id().as_str(),
-            conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS,
+            conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
             1,
         ));
     }
     if let Some(midi_input) = midi_input {
         resources.push(resource_offer(
             midi_input.resource_pool_id().as_str(),
-            conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS,
+            conduit_std_offers::MIDI_INPUT_RESOURCE_CLASS,
             1,
         ));
     }
     if let Some(midi_output) = midi_output {
         resources.push(resource_offer(
             midi_output.resource_pool_id().as_str(),
-            conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS,
+            conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS,
             1,
         ));
     }

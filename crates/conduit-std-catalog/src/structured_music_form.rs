@@ -7,9 +7,7 @@ use alloc::{
 };
 use conduit_audio::{MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
     PortTemporal, StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue,
     StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
 };
@@ -21,19 +19,10 @@ pub const INSTRUMENT_CONTROL_TYPE: &str = "InstrumentControl";
 pub const INSTRUMENT_MAPPING_TYPE: &str = "InstrumentMapping";
 pub const INSTRUMENT_MAP_KIND: &str = "music/instrument-map";
 pub const INSTRUMENT_MAP_REVISION: &str = "conduit.std/music-instrument-map@1";
-pub const INSTRUMENT_MAP_STD_PROFILE: &str = "std/instrument-map-kernel@1";
-pub const INSTRUMENT_MAP_STD_IMPLEMENTATION: &str = "std/kernel-music-instrument-map@1";
-pub const INSTRUMENT_MAP_STD_ARTIFACT: &str = "conduit-std-host/music-instrument-map@1";
 pub const BEAT_REFERENCE_TYPE: &str = "BeatReference";
 pub const TIMING_FEEDBACK_TYPE: &str = "TimingFeedback";
 pub const RHYTHM_COMPARE_KIND: &str = "music/rhythm-compare";
 pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
-pub const RHYTHM_COMPARE_STD_PROFILE: &str = "std/music-rhythm-compare-kernel-hosted@1";
-pub const RHYTHM_COMPARE_STD_IMPLEMENTATION: &str = "std/kernel-music-rhythm-compare@1";
-pub const RHYTHM_COMPARE_STD_ARTIFACT: &str = "conduit-std-host/music-rhythm-compare@1";
-pub const RHYTHM_PERFORMANCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-performance@1";
-pub const RHYTHM_REFERENCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-reference@1";
-pub const RHYTHM_DRAIN_HOST_OPERATION: &str = "conduit.host/music-rhythm-drain@1";
 pub const RHYTHM_MAXIMUM_PENDING_BEATS: u16 = 16;
 
 pub fn beat_reference_type() -> StructuredInfoType {
@@ -160,37 +149,8 @@ pub fn install_structured_music_form_catalogs(
         })
         .map_err(|error| error.to_string())?;
 
-    let mapping_profile = mapping
-        .profile()
-        .map_err(|error| alloc::format!("{error:?}"))?;
     profile
-        .insert(KindDefinition {
-            kind_id: kind_id(INSTRUMENT_MAP_KIND),
-            kind_contract_revision: KindContractRevision::from(INSTRUMENT_MAP_REVISION),
-            inputs: vec![PortDescriptor {
-                port_id: port_id("input"),
-                value_kind: control
-                    .profile()
-                    .map_err(|error| alloc::format!("{error:?}"))?
-                    .value_kind()
-                    .clone(),
-                direction: PortDirection::Input,
-                temporal: PortTemporal::Flow { closes: true },
-            }],
-            outputs: vec![
-                flow_port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Output),
-                flow_port("controls", MUSIC_CONTROL_INFO_ID, PortDirection::Output),
-            ],
-            configuration: vec![ConfigurationField {
-                key: "mapping".into(),
-                default_value: ConfigurationValue::Structured(
-                    default_instrument_mapping_configuration()?,
-                ),
-                validation: ConfigurationRule::Structured {
-                    profile: mapping_profile.value_kind().clone(),
-                },
-            }],
-        })
+        .insert(instrument_map_definition()?)
         .map_err(|error| error.to_string())?;
     profile
         .insert(rhythm_compare_definition())
@@ -198,7 +158,7 @@ pub fn install_structured_music_form_catalogs(
     Ok(())
 }
 
-fn rhythm_compare_definition() -> KindDefinition {
+pub fn rhythm_compare_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(RHYTHM_COMPARE_KIND),
         kind_contract_revision: KindContractRevision::from(RHYTHM_COMPARE_REVISION),
@@ -232,87 +192,23 @@ fn rhythm_compare_definition() -> KindDefinition {
     }
 }
 
-pub fn rhythm_compare_std_offer() -> CapabilityOffer {
-    let definition = rhythm_compare_definition();
-    let target_kind = definition.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: vec![
-            conduit_core::FaceStartupParameter {
-                name: "target-offset-micros".into(),
-                value_type: "Scalar".into(),
-                has_default: true,
-            },
-            conduit_core::FaceStartupParameter {
-                name: "tolerance-micros".into(),
-                value_type: "Count".into(),
-                has_default: true,
-            },
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from("music-rhythm-compare"),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(RHYTHM_COMPARE_STD_PROFILE),
-            implementation_id: ImplementationId::from(RHYTHM_COMPARE_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(RHYTHM_COMPARE_STD_ARTIFACT),
-        },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: [
-            RHYTHM_DRAIN_HOST_OPERATION,
-            RHYTHM_PERFORMANCE_HOST_OPERATION,
-            RHYTHM_REFERENCE_HOST_OPERATION,
-        ]
-        .into_iter()
-        .map(|contract| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(contract),
-            target_kind: Some(target_kind.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: if contract == RHYTHM_DRAIN_HOST_OPERATION {
-                0
-            } else {
-                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-            },
-            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        })
-        .collect(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: RHYTHM_MAXIMUM_PENDING_BEATS,
-            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                * usize::from(RHYTHM_MAXIMUM_PENDING_BEATS)
-                * 3) as u32,
-        },
-    }
-}
-
-pub fn instrument_map_std_offer() -> CapabilityOffer {
-    let control = instrument_control_type();
-    CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
-            name: "mapping".into(),
-            value_type: INSTRUMENT_MAPPING_TYPE.into(),
-            has_default: false,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from("music-instrument-map"),
+pub fn instrument_map_definition() -> Result<KindDefinition, String> {
+    let control_kind = instrument_control_type()
+        .profile()
+        .map_err(|error| alloc::format!("{error:?}"))?
+        .value_kind()
+        .clone();
+    let mapping_kind = instrument_mapping_type()
+        .profile()
+        .map_err(|error| alloc::format!("{error:?}"))?
+        .value_kind()
+        .clone();
+    Ok(KindDefinition {
         kind_id: kind_id(INSTRUMENT_MAP_KIND),
         kind_contract_revision: KindContractRevision::from(INSTRUMENT_MAP_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(INSTRUMENT_MAP_STD_PROFILE),
-            implementation_id: ImplementationId::from(INSTRUMENT_MAP_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(INSTRUMENT_MAP_STD_ARTIFACT),
-        },
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
-            value_kind: control
-                .profile()
-                .expect("control profile is finite")
-                .value_kind()
-                .clone(),
+            value_kind: control_kind,
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
         }],
@@ -320,15 +216,16 @@ pub fn instrument_map_std_offer() -> CapabilityOffer {
             flow_port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Output),
             flow_port("controls", MUSIC_CONTROL_INFO_ID, PortDirection::Output),
         ],
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 16,
-            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
-        },
-    }
+        configuration: vec![ConfigurationField {
+            key: "mapping".into(),
+            default_value: ConfigurationValue::Structured(
+                default_instrument_mapping_configuration()?,
+            ),
+            validation: ConfigurationRule::Structured {
+                profile: mapping_kind,
+            },
+        }],
+    })
 }
 
 pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurationValue, String> {

@@ -34,7 +34,7 @@ pub const SOURCE_CLOCK_ID: u64 = 1;
 pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile {
     use conduit_std_catalog::*;
     SoundCompatibilityProfile {
-        profile_id: AUDIO_PLAY_ALSA_HW_PROFILE.into(),
+        profile_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_PROFILE.into(),
         seam: SoundSeam::PcmPlayback,
         minimum_pitch_millihertz: 0,
         maximum_pitch_millihertz: 0,
@@ -104,7 +104,7 @@ impl HostedPlaybackSelection {
             offer_generation: self.offer_generation,
             pool_id: self.pool_id(),
             class_id: conduit_core::ResourceClassId::from(
-                conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS,
+                conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
             ),
             health: ResourceHealth::Ready,
             unreserved_units: 1,

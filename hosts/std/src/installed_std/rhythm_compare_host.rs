@@ -64,18 +64,18 @@ impl RhythmCompareHost {
         input: &[u8],
     ) -> Result<Option<&[u8]>, RhythmCompareRefusal> {
         match contract {
-            conduit_std_catalog::RHYTHM_PERFORMANCE_HOST_OPERATION => {
+            conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION => {
                 let note = MusicalNoteEvent::decode(input)
                     .map_err(|_| RhythmCompareRefusal::MalformedPerformance)?;
                 if note.gate == Gate::On {
                     self.push_performance(note.event_time_micros)?;
                 }
             }
-            conduit_std_catalog::RHYTHM_REFERENCE_HOST_OPERATION => {
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION => {
                 let beat = decode_beat(input, &self.beat_type_prefix)?;
                 self.push_beat(beat)?;
             }
-            conduit_std_catalog::RHYTHM_DRAIN_HOST_OPERATION => {
+            conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION => {
                 self.performance_closed = true;
             }
             _ => return Err(RhythmCompareRefusal::WrongOperation),

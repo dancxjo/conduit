@@ -14,7 +14,7 @@ use conduit_kernel::{
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::INSTRUMENT_MAP_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::INSTRUMENT_MAP_STD_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -232,7 +232,7 @@ fn mapping(placement: &PlannedGear) -> Result<InstrumentMapping, String> {
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::instrument_map_std_offer();
+    let offer = conduit_std_offers::instrument_map_std_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

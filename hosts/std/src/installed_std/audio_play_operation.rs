@@ -6,10 +6,10 @@ use conduit_kernel::{
 };
 
 pub(super) const DRAIN_MARKER: [u8; 1] = [0xff];
-pub(super) const HOST_OPERATION: &str = conduit_std_catalog::AUDIO_PLAY_ALSA_HW_OPERATION;
+pub(super) const HOST_OPERATION: &str = conduit_std_offers::AUDIO_PLAY_ALSA_HW_OPERATION;
 
 pub(super) static AUDIO_PLAY_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -136,14 +136,14 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs[0].direction != PortDirection::Input
         || placement.resources.len() != 1
         || resource.is_none_or(|binding| {
-            binding.class_id.as_str() != conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CLASS
+            binding.class_id.as_str() != conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS
                 || binding.units != 1
                 || binding.protected.is_some()
                 || binding.compute.is_some()
         })
         || placement.authority.len() != 1
         || authority.is_none_or(|binding| {
-            binding.contract_id.as_str() != conduit_std_catalog::AUDIO_PLAYBACK_AUTHORITY_CONTRACT
+            binding.contract_id.as_str() != conduit_std_offers::AUDIO_PLAYBACK_AUTHORITY_CONTRACT
                 || binding.host_operation_contract_id.as_str() != HOST_OPERATION
                 || binding.subject_kind.as_str() != conduit_audio::AUDIO_PCM_INFO_ID
                 || binding.host_id != placement.host_id
@@ -161,7 +161,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 }
 
 pub(super) fn offer() -> CapabilityOffer {
-    conduit_std_catalog::audio_play_alsa_hw_offer()
+    conduit_std_offers::audio_play_alsa_hw_offer()
 }
 
 pub(super) fn prepare_session(

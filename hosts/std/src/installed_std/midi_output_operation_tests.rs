@@ -27,14 +27,14 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
     )
     .unwrap()
     .with_fake_output(crate::hosted_midi::output_fake::FakeMidiOutputBehavior::Healthy);
-    let offer = conduit_std_catalog::music_play_midi_offer();
+    let offer = conduit_std_offers::music_play_midi_offer();
     let advertisement = selection
         .output_realization_advertisement(host_id.clone())
         .unwrap();
     let resource = ResourceBinding {
         pool_id: selection.resource_pool_id(),
         class_id: conduit_core::ResourceClassId::from(
-            conduit_std_catalog::MIDI_OUTPUT_RESOURCE_CLASS,
+            conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS,
         ),
         units: 1,
         protected: None,
@@ -106,15 +106,15 @@ fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
         .unwrap();
     for (contract, encoded) in [
         (
-            conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION,
+            conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
             on.encode().to_vec(),
         ),
         (
-            conduit_std_catalog::MUSIC_PLAY_MIDI_CONTROL_OPERATION,
+            conduit_std_offers::MUSIC_PLAY_MIDI_CONTROL_OPERATION,
             sustain.encode().to_vec(),
         ),
         (
-            conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION,
+            conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
             off.encode().to_vec(),
         ),
     ] {
@@ -160,7 +160,7 @@ fn stale_authority_and_unrepresentable_pitch_fail_closed() {
     let outcome = execute(
         &mut adapter,
         &mut session,
-        conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION,
+        conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
         &event.encode(),
     );
     assert_eq!(outcome.disposition, HostOperationDisposition::Failed);
@@ -191,7 +191,7 @@ fn provider_loss_remains_a_host_failure() {
     let outcome = execute(
         &mut adapter,
         &mut session,
-        conduit_std_catalog::MUSIC_PLAY_MIDI_NOTE_OPERATION,
+        conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
         &event.encode(),
     );
     assert_eq!(outcome.disposition, HostOperationDisposition::Failed);

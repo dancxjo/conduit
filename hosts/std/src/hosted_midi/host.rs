@@ -205,7 +205,7 @@ impl StdHost {
             .iter()
             .find(|offer| {
                 offer.implementation.implementation_id.as_str()
-                    == conduit_std_catalog::MUSIC_INPUT_MIDI_IMPLEMENTATION
+                    == conduit_std_offers::MUSIC_INPUT_MIDI_IMPLEMENTATION
             })
             .ok_or_else(|| "selected MIDI input capability is not advertised".to_string())?;
         let requirement = capability

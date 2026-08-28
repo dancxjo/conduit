@@ -1,6 +1,8 @@
 use conduit_core::{
-    BaseImplementationId, BootId, ConfigurationValue, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, PROTOCOL_VERSION,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ConfigurationValue, ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId,
+    HostProfileId, ImplementationId, ImplementationOffer, KindId, OfferGeneration,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -9,10 +11,11 @@ use conduit_form::{
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_catalog::{
     education_std_offers, install_education_catalogs, install_structured_music_form_catalogs,
-    instrument_map_std_offer, instrument_mapping_type, rhythm_compare_std_offer,
-    EDUCATION_RHYTHM_FEEDBACK_KIND, INSTRUMENT_MAP_KIND, INSTRUMENT_MAP_STD_IMPLEMENTATION,
-    RHYTHM_COMPARE_STD_IMPLEMENTATION,
+    instrument_mapping_type, EDUCATION_RHYTHM_FEEDBACK_KIND, INSTRUMENT_MAP_KIND,
 };
+
+const INSTRUMENT_MAP_PROOF_IMPLEMENTATION: &str = "proof/music-instrument-map@1";
+const RHYTHM_COMPARE_PROOF_IMPLEMENTATION: &str = "proof/music-rhythm-compare@1";
 
 const SOURCE: &str = include_str!("../../../examples/breadboard-instrument.conduit");
 const LESSON_SOURCE: &str = include_str!("../../../examples/rhythm-lesson.conduit");
@@ -49,7 +52,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
 
     let mut host = host();
     host.capabilities = vec![
-        rhythm_compare_std_offer(),
+        proof_rhythm_offer(&profile),
         education_std_offers()
             .into_iter()
             .find(|offer| offer.kind_id.as_str() == EDUCATION_RHYTHM_FEEDBACK_KIND)
@@ -71,7 +74,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
         .unwrap();
     assert_eq!(
         comparison.implementation_id.as_str(),
-        RHYTHM_COMPARE_STD_IMPLEMENTATION
+        RHYTHM_COMPARE_PROOF_IMPLEMENTATION
     );
     assert_eq!(comparison.host_operations.len(), 3);
 
@@ -187,7 +190,7 @@ fn exact_mapping_reaches_an_ordinary_plan_and_shape_changes_change_identity() {
     );
     assert_eq!(
         plan.fragments[0].placements[0].implementation_id.as_str(),
-        INSTRUMENT_MAP_STD_IMPLEMENTATION
+        INSTRUMENT_MAP_PROOF_IMPLEMENTATION
     );
 
     let changed = SOURCE.replace(
@@ -219,6 +222,7 @@ fn mapping_length_and_control_schema_refuse_before_expansion() {
 }
 
 fn host() -> HostAdvertisement {
+    let (_, profile) = catalogs();
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("instrument-host"),
@@ -226,7 +230,80 @@ fn host() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/instrument-host@1"),
         resources: vec![],
-        capabilities: vec![instrument_map_std_offer()],
+        capabilities: vec![proof_offer(
+            &profile,
+            INSTRUMENT_MAP_KIND,
+            INSTRUMENT_MAP_PROOF_IMPLEMENTATION,
+            vec![FaceStartupParameter {
+                name: "mapping".into(),
+                value_type: conduit_std_catalog::INSTRUMENT_MAPPING_TYPE.into(),
+                has_default: false,
+            }],
+        )],
         planner_capabilities: vec![],
     }
+}
+
+fn proof_offer(
+    profile: &ProfileCatalog,
+    kind: &str,
+    implementation: &str,
+    startup_parameters: Vec<FaceStartupParameter>,
+) -> CapabilityOffer {
+    let definition = profile.get(&KindId::from(kind)).unwrap().clone();
+    CapabilityOffer {
+        startup_parameters,
+        shorthand: None,
+        capability_id: CapabilityId::from(implementation),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("proof/music@1"),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from("proof/music@1"),
+        },
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 16,
+            max_queue_bytes: 65_536,
+        },
+    }
+}
+
+fn proof_rhythm_offer(profile: &ProfileCatalog) -> CapabilityOffer {
+    let mut offer = proof_offer(
+        profile,
+        conduit_std_catalog::RHYTHM_COMPARE_KIND,
+        RHYTHM_COMPARE_PROOF_IMPLEMENTATION,
+        vec![
+            FaceStartupParameter {
+                name: "target-offset-micros".into(),
+                value_type: "Scalar".into(),
+                has_default: true,
+            },
+            FaceStartupParameter {
+                name: "tolerance-micros".into(),
+                value_type: "Count".into(),
+                has_default: true,
+            },
+        ],
+    );
+    offer.host_operations = ["drain", "performance", "reference"]
+        .into_iter()
+        .map(|operation| conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from(format!(
+                "proof/music-rhythm-{operation}@1"
+            )),
+            target_kind: Some(offer.kind_id.clone()),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        })
+        .collect();
+    offer
 }

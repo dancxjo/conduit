@@ -8,7 +8,7 @@ use conduit_kernel::{
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::RHYTHM_COMPARE_STD_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::RHYTHM_COMPARE_STD_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -139,7 +139,7 @@ impl RhythmCompareOperation {
 }
 
 pub(super) fn validate(placement: &PlannedGear) -> Result<(i64, u64), String> {
-    let offer = conduit_std_catalog::rhythm_compare_std_offer();
+    let offer = conduit_std_offers::rhythm_compare_std_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id

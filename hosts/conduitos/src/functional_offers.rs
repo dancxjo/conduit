@@ -348,12 +348,29 @@ pub fn time_throttle_offer() -> CapabilityOffer {
 }
 
 pub fn music_synth_offer() -> CapabilityOffer {
-    realize_with(
-        conduit_std_catalog::music_synth_reference_offer(),
-        "conduitos-music-synth-fixed-q16",
-        "conduitos/music-synth-fixed-q16@1",
-        "conduitos/kernel-music-synth-fixed-q16@1",
-        "conduitos/music-synth-fixed-q16@1",
+    let contract = conduit_std_catalog::music_synth_contract();
+    conduit_std_catalog::realization_offer(
+        contract,
+        conduit_std_catalog::MUSIC_SYNTH_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: "conduitos-music-synth-fixed-q16",
+            execution_profile: "conduitos/music-synth-fixed-q16@1",
+            implementation: "conduitos/kernel-music-synth-fixed-q16@1",
+            artifact: "conduitos/music-synth-fixed-q16@1",
+        },
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(
+                "conduit.host/music-synth-render-fixed-q16@1",
+            ),
+            target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
+                .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN)
+                as u32,
+            maximum_output_bytes: conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
+        }],
+        Vec::new(),
+        Vec::new(),
     )
 }
 

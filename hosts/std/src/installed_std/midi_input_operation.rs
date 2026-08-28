@@ -10,7 +10,7 @@ use conduit_midi::{
 };
 
 pub(super) static MIDI_INPUT_FACTORY: InstalledFactory = InstalledFactory {
-    implementation_id: conduit_std_catalog::MUSIC_INPUT_MIDI_IMPLEMENTATION,
+    implementation_id: conduit_std_offers::MUSIC_INPUT_MIDI_IMPLEMENTATION,
     budget,
     prepare,
 };
@@ -147,7 +147,7 @@ fn prepare(
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_catalog::music_input_midi_offer();
+    let offer = conduit_std_offers::music_input_midi_offer();
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
@@ -166,8 +166,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
             .iter()
             .any(|port| port.direction != PortDirection::Output)
         || placement.resources.len() != 1
-        || placement.resources[0].class_id.as_str()
-            != conduit_std_catalog::MIDI_INPUT_RESOURCE_CLASS
+        || placement.resources[0].class_id.as_str() != conduit_std_offers::MIDI_INPUT_RESOURCE_CLASS
         || placement.resources[0].units != 1
         || placement.resources[0].protected.is_some()
         || placement.resources[0].compute.is_some()
@@ -178,7 +177,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     }
     let authority = &placement.authority[0];
     let operation = &placement.host_operations[0];
-    if authority.contract_id.as_str() != conduit_std_catalog::MIDI_INPUT_AUTHORITY_CONTRACT
+    if authority.contract_id.as_str() != conduit_std_offers::MIDI_INPUT_AUTHORITY_CONTRACT
         || authority.host_operation_contract_id != operation.contract_id
         || authority.subject_kind.as_str()
             != operation
