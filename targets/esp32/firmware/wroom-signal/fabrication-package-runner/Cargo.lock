@@ -100,6 +100,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-human"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
@@ -120,6 +129,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-robotics"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-semantic-catalog"
 version = "0.1.0"
 dependencies = [
@@ -127,8 +143,10 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-midi",
  "conduit-presentation",
+ "conduit-robotics",
  "conduit-text",
  "conduit-time",
  "conduit-web",

@@ -284,6 +284,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-human"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 
@@ -309,6 +318,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "sha2",
 ]
 
@@ -322,6 +332,31 @@ dependencies = [
  "conduit-time",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-robotics"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
+name = "conduit-semantic-catalog"
+version = "0.1.0"
+dependencies = [
+ "conduit-alife",
+ "conduit-audio",
+ "conduit-core",
+ "conduit-form",
+ "conduit-human",
+ "conduit-midi",
+ "conduit-presentation",
+ "conduit-robotics",
+ "conduit-text",
+ "conduit-time",
+ "conduit-web",
+ "serde",
 ]
 
 [[package]]
@@ -343,26 +378,10 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
- "conduit-signal",
  "conduit-semantic-catalog",
+ "conduit-signal",
  "conduit-std-offers",
  "conduit-wire",
-]
-
-[[package]]
-name = "conduit-semantic-catalog"
-version = "0.1.0"
-dependencies = [
- "conduit-alife",
- "conduit-audio",
- "conduit-core",
- "conduit-form",
- "conduit-midi",
- "conduit-presentation",
- "conduit-text",
- "conduit-time",
- "conduit-web",
- "serde",
 ]
 
 [[package]]
@@ -372,6 +391,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-human",
  "conduit-midi",
  "conduit-presentation",
  "conduit-semantic-catalog",
