@@ -1,8 +1,8 @@
-use conduit_core::{
+use conduit_core::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
+use conduit_human::{
     BoundKind, InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
-    InteractionOption, InteractionProposalPayload, InteractionValue, KindId, OptionAvailability,
-    Quantity, QuantityUnit, RealizationRangePolicy, ScalarQuantization, ScalarRealizationMapping,
-    QUANTITY_INFO_ID,
+    InteractionOption, InteractionProposalPayload, InteractionValue, OptionAvailability,
+    RealizationRangePolicy, ScalarQuantization, ScalarRealizationMapping,
 };
 use conduit_pete::{
     CalibrationProfile, ChoiceBinding, DebounceProfile, PhysicalEvent, PhysicalInput,

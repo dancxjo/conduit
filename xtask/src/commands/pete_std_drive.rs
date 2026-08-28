@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use clap::{Args, ValueEnum};
-use conduit_core::{BootId, ChargingState, HostId, OfferGeneration, Scalar};
+use conduit_core::{BootId, HostId, OfferGeneration, Scalar};
 use conduit_create_oi::{
     IndependentWatchdogObservation, LocalSafetyEnvelope, MotionAuthority, MotionSafetyAuthority,
     SafetyInputObservation, SafetyInputs, SafetyObservation, UartProfile,
@@ -16,6 +16,7 @@ use conduit_pete::{
     SafeDispositionCause, BOUNDED_DRIVE_FORM, BOUNDED_DRIVE_GRANT, CREATE_DRIVE_IMPLEMENTATION,
     CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, CREATE_DRIVE_REDUCED_SAFETY_PROFILE,
 };
+use conduit_robotics::ChargingState;
 use conduit_std_host::std_create_uart::{
     monotonic_millis, StdCreateUartBase, StdCreateUartObservation,
     MAXIMUM_CREATE_UART_WRITE_WAIT_MS,

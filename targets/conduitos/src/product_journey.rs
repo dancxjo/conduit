@@ -21,7 +21,9 @@ use crate::{
 
 mod play;
 
-pub use conduit_core::{PatchbayAction as JourneyAction, PatchbayControlRequest as JourneyRequest};
+pub use patchbay_control::{
+    PatchbayAction as JourneyAction, PatchbayControlRequest as JourneyRequest,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JourneyStatus {

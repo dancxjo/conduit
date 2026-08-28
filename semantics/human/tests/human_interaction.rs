@@ -1,9 +1,12 @@
 use conduit_core::{
-    BoundKind, HumanInteractionProposal, InfoBool, InteractionApplicationOutcome,
-    InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
-    InteractionOption, InteractionProposalPayload, InteractionProposalQueue, InteractionRefusal,
-    InteractionValue, KindId, OptionAvailability, Quantity, QuantityUnit, StructuredInfoType,
-    StructuredInfoValue, BOOL_INFO_ID, QUANTITY_INFO_ID, TEXT_INFO_ID,
+    InfoBool, KindId, Quantity, QuantityUnit, StructuredInfoType, StructuredInfoValue,
+    BOOL_INFO_ID, QUANTITY_INFO_ID,
+};
+use conduit_human::{
+    BoundKind, HumanInteractionProposal, InteractionApplicationOutcome, InteractionContract,
+    InteractionCurrentState, InteractionDomain, InteractionFamily, InteractionOption,
+    InteractionProposalPayload, InteractionProposalQueue, InteractionRefusal, InteractionValue,
+    OptionAvailability, TEXT_INFO_ID,
 };
 
 const WAVEFORM_KIND: &str = "music/waveform@1";
@@ -457,7 +460,7 @@ fn canonical_contract_state_proposal_and_result_vectors_are_deterministic() {
         InteractionProposalPayload::Values(vec![value(WAVEFORM_KIND, b"pulse")]),
     )
     .unwrap();
-    let result = conduit_core::InteractionApplicationResult::new(
+    let result = conduit_human::InteractionApplicationResult::new(
         &proposal,
         InteractionApplicationOutcome::Accepted {
             resulting_state_identity: "interaction-state/result".into(),

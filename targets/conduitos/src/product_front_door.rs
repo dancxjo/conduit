@@ -2,7 +2,7 @@
 
 use alloc::{format, string::String};
 
-use conduit_core::KeyTransition;
+use conduit_human::KeyTransition;
 
 use crate::{
     arch::{self, HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},

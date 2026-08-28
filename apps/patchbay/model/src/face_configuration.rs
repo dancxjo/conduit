@@ -1,11 +1,13 @@
 //! Exact source edits initiated by compact controls on a Gear Face.
 
 use conduit_core::{
-    ConfigurationValue, HumanInteractionProposal, InfoBool, InteractionFamily,
-    InteractionProposalPayload, InteractionValue, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,
-    TEXT_INFO_ID,
+    ConfigurationValue, InfoBool, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
 use conduit_form::{parse_syntax_document, Argument, BackStatement};
+use conduit_human::{
+    HumanInteractionProposal, InteractionFamily, InteractionProposalPayload, InteractionValue,
+    TEXT_INFO_ID,
+};
 use conduit_semantic_catalog::StandardConfigurationRule;
 
 use crate::{FormEditor, FormEditorError, PatchbayGraph};

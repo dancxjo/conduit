@@ -5,11 +5,13 @@ use crate::{
     CreateSensorLoweringError, OiMode,
 };
 use conduit_core::{
-    resource_offer, resource_requirement, ArtifactId, BatteryObservation, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    OfferGeneration, PROTOCOL_VERSION, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_BEACON_ENCODED_LEN,
+    resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ConfigurationValue, ExecutionProfileId, FaceStartupParameter,
+    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION,
+};
+use conduit_robotics::{
+    BatteryObservation, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_BEACON_ENCODED_LEN,
     ROBOTICS_BUTTONS_ENCODED_LEN, ROBOTICS_CHARGING_ENCODED_LEN, ROBOTICS_CLIFF_ENCODED_LEN,
     ROBOTICS_CONTACT_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_PROXIMITY_ENCODED_LEN,
     ROBOTICS_WHEEL_DROP_ENCODED_LEN,

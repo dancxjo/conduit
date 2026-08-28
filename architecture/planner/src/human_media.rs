@@ -1,7 +1,8 @@
-use conduit_core::{
+use conduit_core::PlanId;
+use conduit_human::{
     AcquiredMediaResource, MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionPlan,
     MediaAcquisitionRequest, MediaAcquisitionReservation, MediaPlanningRefusal,
-    MediaResourceAvailability, MediaUseRequirement, PlanId, SelectedMediaResource,
+    MediaResourceAvailability, MediaUseRequirement, SelectedMediaResource,
 };
 
 pub fn plan_media_acquisition(

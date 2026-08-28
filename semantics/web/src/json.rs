@@ -18,8 +18,8 @@ pub fn json_encode_semantics() -> PortableKindContract {
     contract(
         JSON_ENCODE_KIND,
         JSON_ENCODE_REVISION,
-        conduit_core::JSON_INFO_ID,
-        conduit_core::JSON_TEXT_INFO_ID,
+        crate::JSON_INFO_ID,
+        crate::JSON_TEXT_INFO_ID,
     )
 }
 
@@ -27,8 +27,8 @@ pub fn json_decode_semantics() -> PortableKindContract {
     contract(
         JSON_DECODE_KIND,
         JSON_DECODE_REVISION,
-        conduit_core::JSON_TEXT_INFO_ID,
-        conduit_core::JSON_INFO_ID,
+        crate::JSON_TEXT_INFO_ID,
+        crate::JSON_INFO_ID,
     )
 }
 
@@ -66,7 +66,7 @@ fn contract(kind: &str, revision: &str, input: &str, output: &str) -> PortableKi
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
-            max_queue_bytes: conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32,
+            max_queue_bytes: crate::JSON_MAXIMUM_ENCODED_BYTES as u32,
         },
     }
 }

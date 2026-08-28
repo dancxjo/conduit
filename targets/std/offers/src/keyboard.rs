@@ -3,8 +3,9 @@
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    INPUT_RESOURCE_CLASS, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
+    INPUT_RESOURCE_CLASS,
 };
+use conduit_human::{KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID};
 
 pub const NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/input-next-key-event@1";
 pub const HOSTED_KEYBOARD_EXECUTION_PROFILE: &str = "conduit.std/input-keyboard-kernel-hosted@1";

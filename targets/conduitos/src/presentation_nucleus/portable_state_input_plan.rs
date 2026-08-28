@@ -3,11 +3,12 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KeyEvent,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
     KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
     PortTemporal, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
+use conduit_human::KeyEvent;
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
 
 use super::portable_state_input_play::PortableStateInputError;
@@ -127,9 +128,9 @@ fn fixture_offers() -> Vec<CapabilityOffer> {
         ),
         source_offer(
             KEY_SOURCE_KIND,
-            conduit_core::KEY_EVENT_INFO_ID,
+            conduit_human::KEY_EVENT_INFO_ID,
             "key",
-            conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         ),
         sink_offer(
             COUNT_SINK_KIND,
@@ -147,16 +148,16 @@ fn fixture_offers() -> Vec<CapabilityOffer> {
         ),
         sink_offer(
             TEXT_KEY_SINK_KIND,
-            conduit_core::KEY_EVENT_INFO_ID,
+            conduit_human::KEY_EVENT_INFO_ID,
             "key",
-            conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            conduit_human::KEY_EVENT_ENCODED_LEN as u32,
             PortTemporal::Flow { closes: true },
         ),
         sink_offer(
             CHORD_KEY_SINK_KIND,
-            conduit_core::KEY_EVENT_INFO_ID,
+            conduit_human::KEY_EVENT_INFO_ID,
             "key",
-            conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+            conduit_human::KEY_EVENT_ENCODED_LEN as u32,
             PortTemporal::Flow { closes: true },
         ),
     ]

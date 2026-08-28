@@ -1,4 +1,4 @@
-use conduit_core::{KeyEvent, KeyModifiers, KeyTransition};
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduit_kernel::scheduler::SchedulerStatus;
 
 use crate::{

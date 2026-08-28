@@ -8,4 +8,5 @@ default = []
 alloc = []
 
 [dev-dependencies]
+conduit-human = { path = "../../semantics/human" }
 conduit-core = { path = "../core" }

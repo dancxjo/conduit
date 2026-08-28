@@ -1,7 +1,6 @@
 //! Portable keyboard transitions, independent of any device or platform Base.
 
-use crate::info::semantic_digest;
-use crate::InfoDecodeError;
+use conduit_core::{semantic_digest, InfoDecodeError};
 
 pub const KEY_EVENT_INFO_ID: &str = "input/key-event@1";
 pub const KEY_EVENT_ENCODED_LEN: usize = 3;

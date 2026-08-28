@@ -1,6 +1,6 @@
 //! Native production-kernel half of the exact split Text Lab Plan.
 
-use conduit_core::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
+use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
@@ -128,7 +128,7 @@ impl Operation for NativeOperation {
                     operation: HostOperationId(0),
                     input: match BoundedValueRef::new(
                         value,
-                        conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+                        conduit_human::KEY_EVENT_ENCODED_LEN as u32,
                     ) {
                         Ok(value) => value,
                         Err(_) => return Self::fail(2),
@@ -363,7 +363,7 @@ impl NativeTextLabFragment {
                     .store_host_value(&event.encode())
                     .map_err(|error| format!("{error:?}"))?;
                 Some(
-                    BoundedValueRef::new(value, conduit_core::KEY_EVENT_ENCODED_LEN as u32)
+                    BoundedValueRef::new(value, conduit_human::KEY_EVENT_ENCODED_LEN as u32)
                         .map_err(|error| format!("{error:?}"))?,
                 )
             }
@@ -381,7 +381,7 @@ impl NativeTextLabFragment {
                     .store_host_value(text.as_bytes())
                     .map_err(|error| format!("{error:?}"))?;
                 Some(
-                    BoundedValueRef::new(value, conduit_core::CHORD_ENCODED_LEN as u32)
+                    BoundedValueRef::new(value, conduit_human::CHORD_ENCODED_LEN as u32)
                         .map_err(|error| format!("{error:?}"))?,
                 )
             }

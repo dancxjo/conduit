@@ -5,12 +5,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::{Args, Subcommand};
-use conduit_core::ChargingState;
 use conduit_pete::{
     Create1BatteryNormalizationDisposition, CreateObservationFailure, CreateObservationSession,
     CreateOdometryAccumulator, CreateOdometryError, CreatePortableObservation,
     CreateSensorLoweringError, CREATE_OBSERVATION_MAXIMUM_DISCARDED_BYTES,
 };
+use conduit_robotics::ChargingState;
 use conduit_std_host::std_create_uart::{
     monotonic_millis, StdCreateUartBase, StdCreateUartObservation, StdCreateUartOpenError,
     MAXIMUM_CREATE_UART_WRITE_WAIT_MS,

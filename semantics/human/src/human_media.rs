@@ -4,7 +4,7 @@
 //! Browser device identifiers and permission APIs are host-adapter truth and
 //! therefore never appear in these contracts.
 
-use crate::{
+use conduit_core::{
     AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
     HostOperationId, ImplementationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId,
     ResourceHandleId,

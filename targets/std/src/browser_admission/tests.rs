@@ -2,9 +2,10 @@ use super::*;
 use conduit_core::{
     bind_active_play, AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId,
     ConnectionId, FragmentId, HostProfileId, KindId, LineId, LinkBindingId, LinkEndpointId,
-    LinkLimits, MediaConstraints, MediaFlowBounds, OfferGeneration, PlanId, PortId,
-    ResourceClassId, ResourceHandleId, PROTOCOL_VERSION,
+    LinkLimits, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
+    PROTOCOL_VERSION,
 };
+use conduit_human::{MediaConstraints, MediaFlowBounds};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
     SessionEndpointIdentity, SessionFrame, SessionLimits, SessionMessage,

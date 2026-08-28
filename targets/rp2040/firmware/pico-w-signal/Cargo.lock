@@ -320,6 +320,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-human"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 
@@ -419,6 +428,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "sha2",
 ]
 
@@ -446,6 +456,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-robotics"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-rp2040-network-realization"
 version = "0.1.0"
 dependencies = [
@@ -460,8 +477,10 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-form",
+ "conduit-human",
  "conduit-midi",
  "conduit-presentation",
+ "conduit-robotics",
  "conduit-text",
  "conduit-time",
  "conduit-web",
@@ -504,6 +523,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-human",
  "conduit-midi",
  "conduit-presentation",
  "conduit-semantic-catalog",

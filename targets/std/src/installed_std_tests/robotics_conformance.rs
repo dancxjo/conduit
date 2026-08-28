@@ -17,7 +17,7 @@ fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
+            connection_byte_capacity: conduit_robotics::ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],

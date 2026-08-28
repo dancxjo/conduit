@@ -1,7 +1,8 @@
 use alloc::{boxed::Box, format, string::String};
 
 use conduit_body::WakeLifecycle;
-use conduit_core::{KeyEvent, SignId};
+use conduit_core::SignId;
+use conduit_human::KeyEvent;
 use conduit_kernel::scheduler::SchedulerStatus;
 
 use crate::{

@@ -63,7 +63,7 @@ pub fn prepare_robotics(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
+            connection_byte_capacity: conduit_robotics::ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -101,10 +101,19 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
 fn discard_kinds() -> [(&'static str, &'static str); 5] {
     [
         (BUMP_SINK_KIND, conduit_core::BOOL_INFO_ID),
-        (RANGE_SINK_KIND, conduit_core::ROBOTICS_RANGE_INFO_ID),
-        (IMU_SINK_KIND, conduit_core::ROBOTICS_ORIENTATION_INFO_ID),
-        (ODOMETRY_SINK_KIND, conduit_core::ROBOTICS_ODOMETRY_INFO_ID),
-        (BATTERY_SINK_KIND, conduit_core::ROBOTICS_BATTERY_INFO_ID),
+        (RANGE_SINK_KIND, conduit_robotics::ROBOTICS_RANGE_INFO_ID),
+        (
+            IMU_SINK_KIND,
+            conduit_robotics::ROBOTICS_ORIENTATION_INFO_ID,
+        ),
+        (
+            ODOMETRY_SINK_KIND,
+            conduit_robotics::ROBOTICS_ODOMETRY_INFO_ID,
+        ),
+        (
+            BATTERY_SINK_KIND,
+            conduit_robotics::ROBOTICS_BATTERY_INFO_ID,
+        ),
     ]
 }
 
@@ -138,7 +147,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_core::ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
+            max_queue_bytes: conduit_robotics::ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
         },
     }
 }

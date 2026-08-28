@@ -1,8 +1,8 @@
 //! One finite, canonical JSON semantic value and whole-document codec.
 
-use crate::Scalar;
 use alloc::string::String;
 use alloc::vec::Vec;
+use conduit_core::Scalar;
 
 pub const JSON_INFO_ID: &str = "value/json@1";
 pub const JSON_TEXT_INFO_ID: &str = "text/json-utf8@1";

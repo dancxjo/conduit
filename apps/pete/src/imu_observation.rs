@@ -6,9 +6,8 @@ use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
     HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, OrientationObservation,
-    ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
-    ROBOTICS_ORIENTATION_ENCODED_LEN,
+    ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
+    ResourceObservation, SignId, PROTOCOL_VERSION,
 };
 use conduit_mpu6050::{
     DerivationFailure, DerivedImuObservation, GravityCalibration, ImuDeriver, ImuThresholds,
@@ -18,6 +17,7 @@ use conduit_planner::{
     plan_selected_realizations_with_characteristics_and_authority, PlannerError,
     SelectedRealizationPlanning,
 };
+use conduit_robotics::{OrientationObservation, ROBOTICS_ORIENTATION_ENCODED_LEN};
 
 pub const MPU6050_PROFILE: &str = "pete/mpu6050-observation@1";
 pub const MPU6050_CAPABILITY: &str = "pete/mpu6050/orientation";
@@ -288,7 +288,7 @@ fn mpu6050_offer() -> CapabilityOffer {
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(MPU6050_OPERATION),
             target_kind: Some(conduit_core::kind_id(
-                conduit_core::ROBOTICS_ORIENTATION_INFO_ID,
+                conduit_robotics::ROBOTICS_ORIENTATION_INFO_ID,
             )),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,

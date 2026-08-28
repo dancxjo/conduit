@@ -52,7 +52,7 @@ fn snapshot() -> CreateObservationSnapshot {
         maximum_age_ticks: 20,
         observation: observation(),
         odometry: Some(CreateOdometrySample {
-            value: conduit_core::OdometryObservation::new(-120, 0, 523_599).unwrap(),
+            value: conduit_robotics::OdometryObservation::new(-120, 0, 523_599).unwrap(),
             frame_generation: 1,
             sample_generation: 4,
         }),
@@ -129,7 +129,7 @@ fn one_correlated_observation_encodes_each_portable_channel_exactly() {
         .unwrap()
         .get());
     let mut clear = snapshot.clone();
-    clear.observation.group_zero.contact = conduit_core::ContactObservation::new(0).unwrap();
+    clear.observation.group_zero.contact = conduit_robotics::ContactObservation::new(0).unwrap();
     let clear_bump =
         encode_create_observation(&clear, CreateObservationChannel::BumpAggregate, 100)
             .unwrap()

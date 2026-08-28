@@ -42,8 +42,8 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
         if let (
             Some(patchbay_model::FaceInteraction {
                 contract:
-                    conduit_core::InteractionContract {
-                        family: conduit_core::InteractionFamily::Text { maximum_bytes, .. },
+                    conduit_human::InteractionContract {
+                        family: conduit_human::InteractionFamily::Text { maximum_bytes, .. },
                         ..
                     },
                 ..
@@ -162,17 +162,17 @@ fn action_label(
         .as_ref()
         .map(|value| &value.contract.family)
     {
-        Some(conduit_core::InteractionFamily::Scalar { .. }) => {
+        Some(conduit_human::InteractionFamily::Scalar { .. }) => {
             let marker = if side == 0 { "−" } else { "+" };
             format!("{marker} {}", displayed_value(value))
         }
-        Some(conduit_core::InteractionFamily::Boolean) => {
+        Some(conduit_human::InteractionFamily::Boolean) => {
             format!("☐ {}", displayed_value(value))
         }
-        Some(conduit_core::InteractionFamily::ChooseOne { .. }) => {
+        Some(conduit_human::InteractionFamily::ChooseOne { .. }) => {
             format!("▾ {}", displayed_value(value))
         }
-        Some(conduit_core::InteractionFamily::Text { .. }) => {
+        Some(conduit_human::InteractionFamily::Text { .. }) => {
             let prefix = if count == 1 { "EDIT" } else { "SET" };
             format!("{prefix} {}", displayed_value(value))
         }
@@ -230,11 +230,11 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
         &control.value,
     ) {
         (
-            Some(conduit_core::InteractionFamily::Boolean),
+            Some(conduit_human::InteractionFamily::Boolean),
             conduit_core::ConfigurationValue::Bool(value),
         ) => vec![conduit_core::ConfigurationValue::Bool(!value)],
         (
-            Some(conduit_core::InteractionFamily::ChooseOne { .. }),
+            Some(conduit_human::InteractionFamily::ChooseOne { .. }),
             conduit_core::ConfigurationValue::Text(value),
         ) => control
             .kind
@@ -247,7 +247,7 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
             .into_iter()
             .collect(),
         (
-            Some(conduit_core::InteractionFamily::Scalar {
+            Some(conduit_human::InteractionFamily::Scalar {
                 minimum, maximum, ..
             }),
             conduit_core::ConfigurationValue::U64(value),
@@ -264,7 +264,7 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
             ),
         ],
         (
-            Some(conduit_core::InteractionFamily::Scalar {
+            Some(conduit_human::InteractionFamily::Scalar {
                 minimum, maximum, ..
             }),
             conduit_core::ConfigurationValue::I64(value),
@@ -273,7 +273,7 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
             conduit_core::ConfigurationValue::I64(value.saturating_add(1).min(*maximum)),
         ],
         (
-            Some(conduit_core::InteractionFamily::Text { .. }),
+            Some(conduit_human::InteractionFamily::Text { .. }),
             conduit_core::ConfigurationValue::Text(value),
         ) => (!value.is_empty())
             .then(|| conduit_core::ConfigurationValue::Text(String::new()))

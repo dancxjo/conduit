@@ -38,7 +38,7 @@ pub struct Mpu6050ExecutionReport {
     pub body_frame_id: String,
     pub mounting_id: String,
     pub raw: Option<conduit_mpu6050::RawImuSample>,
-    pub orientation: Option<conduit_core::OrientationObservation>,
+    pub orientation: Option<conduit_robotics::OrientationObservation>,
     pub calibration_generation: Option<u64>,
     pub tilt_active: Option<bool>,
     pub impact_active: Option<bool>,
@@ -52,7 +52,7 @@ pub struct Mpu6050ExecutionReport {
 struct PendingCompletion {
     request: HostOperationRequest,
     output: BoundedValueRef,
-    canonical: [u8; conduit_core::ROBOTICS_ORIENTATION_ENCODED_LEN],
+    canonical: [u8; conduit_robotics::ROBOTICS_ORIENTATION_ENCODED_LEN],
 }
 
 pub struct PreparedMpu6050Execution {
@@ -71,7 +71,7 @@ pub fn prepare_mpu6050_execution(
 ) -> Result<PreparedMpu6050Execution, &'static str> {
     validate_mpu6050_plan(plan, evidence)?;
     Ok(PreparedMpu6050Execution {
-        scheduler: prepare_scheduler(conduit_core::ROBOTICS_ORIENTATION_ENCODED_LEN as u32)?,
+        scheduler: prepare_scheduler(conduit_robotics::ROBOTICS_ORIENTATION_ENCODED_LEN as u32)?,
         realization: Mpu6050Realization::new(evidence).map_err(|_| "invalid MPU-6050 evidence")?,
         plan_id: plan.plan_id.clone(),
         evidence: evidence.clone(),
@@ -245,7 +245,7 @@ fn fail_request(
 fn report(
     execution: &PreparedMpu6050Execution,
     terminal: Mpu6050Terminal,
-    canonical: Option<[u8; conduit_core::ROBOTICS_ORIENTATION_ENCODED_LEN]>,
+    canonical: Option<[u8; conduit_robotics::ROBOTICS_ORIENTATION_ENCODED_LEN]>,
 ) -> Mpu6050ExecutionReport {
     let snapshot = canonical.and(execution.snapshot.as_ref());
     Mpu6050ExecutionReport {

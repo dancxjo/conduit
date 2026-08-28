@@ -9,6 +9,8 @@ conduit-ai = { path = "../../semantics/ai" }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-core = { path = "../../architecture/core" }
+conduit-human = { path = "../../semantics/human" }
+conduit-robotics = { path = "../../semantics/robotics" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-mpu6050 = { path = "../../mechanisms/devices/mpu6050" }

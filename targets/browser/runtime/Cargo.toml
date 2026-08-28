@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-form = { path = "../../../architecture/form" }

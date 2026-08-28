@@ -1,9 +1,10 @@
 //! Admitted browser media lifecycle. Browser APIs remain outside this module.
 
-use conduit_core::{
-    AcquiredMediaResource, AuthorityGrantId, HostOperationId, MediaAcquisitionAuthority,
-    MediaAcquisitionOffer, MediaAcquisitionPlan, MediaAcquisitionRequest, MediaAcquisitionResult,
-    MediaPlanningRefusal, MediaUseRequirement, PlanId, SelectedMediaResource,
+use conduit_core::{AuthorityGrantId, HostOperationId, PlanId};
+use conduit_human::{
+    AcquiredMediaResource, MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionPlan,
+    MediaAcquisitionRequest, MediaAcquisitionResult, MediaPlanningRefusal, MediaUseRequirement,
+    SelectedMediaResource,
 };
 use conduit_planner::{plan_media_acquisition, select_acquired_media};
 

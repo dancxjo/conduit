@@ -65,7 +65,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
         .unwrap();
     assert_eq!(
         keymap.configuration[0].value,
-        conduit_core::ConfigurationValue::Text(conduit_core::CONDUIT_INTL_LAYOUT.into())
+        conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
     );
     let chords = fragment
         .placements
@@ -74,7 +74,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
         .unwrap();
     assert_eq!(
         chords.configuration[0].value,
-        conduit_core::ConfigurationValue::Text(conduit_core::CORE_CHORD_MAP.into())
+        conduit_core::ConfigurationValue::Text(conduit_human::CORE_CHORD_MAP.into())
     );
 
     let mut output = Vec::with_capacity(16_384);

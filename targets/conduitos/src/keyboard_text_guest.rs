@@ -1,7 +1,7 @@
 //! Freestanding presentation of the reviewed keyboard-text Plays.
 
 use alloc::format;
-use conduit_core::KeyEvent;
+use conduit_human::KeyEvent;
 
 use crate::{
     arch, boot::BootRecord, identity, keyboard_text_observatory, keyboard_text_plan,

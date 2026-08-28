@@ -18,6 +18,8 @@ conduit-body = { path = "../../architecture/body" }
 conduit-bluetooth = { path = "../../mechanisms/protocols/bluetooth" }
 conduit-browser-runtime = { path = "../browser/runtime" }
 conduit-core = { path = "../../architecture/core" }
+conduit-human = { path = "../../semantics/human" }
+conduit-robotics = { path = "../../semantics/robotics" }
 conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
 conduit-form = { path = "../../architecture/form" }
 conduit-host-fabrication = { path = "../../fabrication/host" }

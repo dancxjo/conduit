@@ -120,7 +120,7 @@ fn production_kernel_dispatches_correlated_session_and_delivers_canonical_value(
     assert_eq!(report.canonical_value_len, 1);
     assert_eq!(
         report.canonical_value[0],
-        conduit_core::BODY_SECTOR_FRONT_LEFT | conduit_core::BODY_SECTOR_FRONT_RIGHT
+        conduit_robotics::BODY_SECTOR_FRONT_LEFT | conduit_robotics::BODY_SECTOR_FRONT_RIGHT
     );
     assert_eq!(report.observation_generation, Some(1));
     assert_eq!(report.serial_base_id, "base/tty-create");
@@ -272,7 +272,7 @@ fn odometry_state_crosses_sessions_and_reset_advances_the_exact_frame() {
     assert_eq!(first_report.odometry_frame_generation, Some(1));
     assert_eq!(first_report.odometry_sample_generation, Some(1));
     assert_eq!(
-        conduit_core::OdometryObservation::decode(
+        conduit_robotics::OdometryObservation::decode(
             &first_report.canonical_value[..usize::from(first_report.canonical_value_len)]
         )
         .unwrap()
@@ -293,7 +293,7 @@ fn odometry_state_crosses_sessions_and_reset_advances_the_exact_frame() {
         run_create_observation_execution(&mut second, &mut second_provider, 115, 110, 110);
     assert_eq!(second_report.odometry_sample_generation, Some(2));
     assert_eq!(
-        conduit_core::OdometryObservation::decode(
+        conduit_robotics::OdometryObservation::decode(
             &second_report.canonical_value[..usize::from(second_report.canonical_value_len)]
         )
         .unwrap()
@@ -333,7 +333,7 @@ fn odometry_state_crosses_sessions_and_reset_advances_the_exact_frame() {
     assert_eq!(reset_report.odometry_frame_generation, Some(2));
     assert_eq!(reset_report.odometry_sample_generation, Some(1));
     assert_eq!(
-        conduit_core::OdometryObservation::decode(
+        conduit_robotics::OdometryObservation::decode(
             &reset_report.canonical_value[..usize::from(reset_report.canonical_value_len)]
         )
         .unwrap()

@@ -7,8 +7,10 @@ edition = "2021"
 conduit-alife = { path = "../alife" }
 conduit-audio = { path = "../audio" }
 conduit-core = { path = "../../architecture/core" }
+conduit-human = { path = "../human" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-presentation = { path = "../presentation" }
+conduit-robotics = { path = "../robotics" }
 conduit-web = { path = "../web", default-features = false }
 conduit-text = { path = "../text", default-features = false }
 conduit-time = { path = "../time", default-features = false }

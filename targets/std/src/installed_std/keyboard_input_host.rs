@@ -61,7 +61,7 @@ impl<'a> KeyboardInputHost<'a> {
                 HostOperationOutcome {
                     disposition: HostOperationDisposition::Completed,
                     output: Some(
-                        BoundedValueRef::new(value, conduit_core::KEY_EVENT_ENCODED_LEN as u32)
+                        BoundedValueRef::new(value, conduit_human::KEY_EVENT_ENCODED_LEN as u32)
                             .map_err(|error| format!("bound portable keyboard event: {error:?}"))?,
                     ),
                     failure: None,

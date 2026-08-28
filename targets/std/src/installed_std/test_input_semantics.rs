@@ -1,12 +1,14 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ChordInfo,
-    CoreChordId, ExecutionProfileId, ImplementationId, KeyEvent, KeyModifiers, KeyTransition,
-    KindContractRevision, PlannedGear, PortDescriptor, PortDirection, PortTemporal,
-    CHORD_ENCODED_LEN, CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
-    TIMER_RESOURCE_CLASS,
+    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
+    PortDirection, PortTemporal, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_human::{
+    ChordInfo, CoreChordId, KeyEvent, KeyModifiers, KeyTransition, CHORD_ENCODED_LEN,
+    CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
+};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,

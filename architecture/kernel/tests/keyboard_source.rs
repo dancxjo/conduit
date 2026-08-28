@@ -1,4 +1,4 @@
-use conduit_core::{KeyEvent, KEY_EVENT_CONFORMANCE_VECTORS};
+use conduit_human::{KeyEvent, KEY_EVENT_CONFORMANCE_VECTORS};
 use conduit_kernel::scheduler::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
     StepOperation, StepOutcome,

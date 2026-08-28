@@ -171,6 +171,9 @@ loongarch64-a4 = []
 conduit-audio = { path = "../../semantics/audio" }
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
+conduit-human = { path = "../../semantics/human" }
+conduit-robotics = { path = "../../semantics/robotics" }
+patchbay-control = { path = "../../apps/patchbay/control" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-observatory = { path = "../../architecture/observatory" }

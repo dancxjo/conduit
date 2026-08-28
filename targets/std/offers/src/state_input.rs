@@ -1,9 +1,7 @@
 //! Exact state and portable-input realizations owned by the hosted std Host.
 
-use conduit_core::{
-    kind_id, CapabilityOffer, HostOperationContractId, HostOperationRequirement, CHORD_ENCODED_LEN,
-    KEY_EVENT_ENCODED_LEN,
-};
+use conduit_core::{kind_id, CapabilityOffer, HostOperationContractId, HostOperationRequirement};
+use conduit_human::{CHORD_ENCODED_LEN, KEY_EVENT_ENCODED_LEN};
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const STATE_COUNT_EXECUTION_PROFILE: &str = "conduit.std/state-count-kernel-hosted@1";

@@ -1,6 +1,7 @@
 use super::portable_keyboard::*;
-use conduit_core::{
-    BaseImplementationId, ChordInfo, ConduitIntlKeymap, CoreChordId, KeyEvent, KeymapDisposition,
+use conduit_core::BaseImplementationId;
+use conduit_human::{
+    ChordInfo, ConduitIntlKeymap, CoreChordId, KeyEvent, KeymapDisposition,
     KEY_EVENT_CONFORMANCE_VECTORS,
 };
 use conduit_planner::{
@@ -214,8 +215,8 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
         .any(|binding| binding.class_id.as_str() == WINDOW_INPUT_RESOURCE));
     assert!(fragment.connections.iter().all(|cord| {
         cord.item_capacity == 1
-            && (cord.value_kind.as_str() != conduit_core::KEY_EVENT_INFO_ID
-                || cord.byte_capacity >= conduit_core::KEY_EVENT_ENCODED_LEN as u32)
+            && (cord.value_kind.as_str() != conduit_human::KEY_EVENT_INFO_ID
+                || cord.byte_capacity >= conduit_human::KEY_EVENT_ENCODED_LEN as u32)
     }));
     let encoded = serde_json::to_string(model.advertisement()).unwrap();
     assert!(!encoded.contains("xhci"));

@@ -5,7 +5,9 @@ use super::{
     MAXIMUM_INTERACTION_OPTIONS, MAXIMUM_INTERACTION_SELECTIONS, MAXIMUM_INTERACTION_VALUE_BYTES,
     TEXT_INFO_ID,
 };
-use crate::{InfoBool, KindId, Quantity, StructuredInfoValue, BOOL_INFO_ID, QUANTITY_INFO_ID};
+use conduit_core::{
+    InfoBool, KindId, Quantity, StructuredInfoValue, BOOL_INFO_ID, QUANTITY_INFO_ID,
+};
 
 pub(super) fn validate_family(family: &InteractionFamily) -> Result<(), InteractionRefusal> {
     match family {

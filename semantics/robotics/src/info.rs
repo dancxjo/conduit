@@ -3,8 +3,7 @@
 //! Units and reference frames are part of each Info identity. These values do
 //! not imply a sensor, Host, Base, implementation, or physical observation.
 
-use crate::info::semantic_digest;
-use crate::{InfoDecodeError, Quantity, QuantityUnit};
+use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 
 pub const ROBOTICS_RANGE_INFO_ID: &str = "robotics/range-mm-sensor-forward@1";
 pub const ROBOTICS_RANGE_ENCODED_LEN: usize = 8;

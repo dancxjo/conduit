@@ -165,6 +165,7 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
                 "conduit-browser-runtime",
                 "patchbay-html",
                 "patchbay-hosted",
+                "patchbay-control",
                 "patchbay-model",
                 "patchbay-native",
             ]),

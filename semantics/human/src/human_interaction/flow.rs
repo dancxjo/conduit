@@ -5,8 +5,8 @@ use super::{
     InteractionProposalPayload, InteractionProposalQueue, InteractionRefusal, InteractionValue,
     MAXIMUM_INTERACTION_SELECTIONS,
 };
-use crate::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
 use alloc::{string::String, vec::Vec};
+use conduit_core::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
 
 pub const MAXIMUM_INTERACTION_COMBINATION_RULES: usize = 32;
 

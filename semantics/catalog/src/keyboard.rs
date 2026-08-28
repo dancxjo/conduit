@@ -4,8 +4,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
+    PortTemporal,
 };
+use conduit_human::{KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID};
 
 pub const KEYBOARD_KIND: &str = "input/keyboard";
 pub const KEYBOARD_PORT: &str = "key";

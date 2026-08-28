@@ -1,11 +1,13 @@
 //! Compact Gear Face controls derived from authoritative checked contracts.
 
 use conduit_core::{
-    BoundKind, ConfigurationValue, InfoBool, InteractionContract, InteractionCurrentState,
-    InteractionDomain, InteractionFamily, InteractionOption, InteractionValue, KindId,
-    OptionAvailability, Quantity, QuantityUnit, BOOL_INFO_ID, QUANTITY_INFO_ID, TEXT_INFO_ID,
+    ConfigurationValue, InfoBool, KindId, Quantity, QuantityUnit, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
 use conduit_form::CheckedGear;
+use conduit_human::{
+    BoundKind, InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
+    InteractionOption, InteractionValue, OptionAvailability, TEXT_INFO_ID,
+};
 use conduit_semantic_catalog::StandardConfigurationRule;
 
 use crate::PatchbayGraphError;

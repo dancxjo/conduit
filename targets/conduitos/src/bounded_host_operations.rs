@@ -1,10 +1,9 @@
 //! Finite semantic host operations shared by ordinary ConduitOS planned Plays.
 
-use conduit_core::{
-    ChordInfo, ConduitIntlKeymap, InfoBool, KeyEvent, KeymapDisposition, KeymapRefusal, Scalar,
-};
+use conduit_core::{InfoBool, Scalar};
+use conduit_human::{ChordInfo, ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal};
 
-const OUTPUT_BYTES: usize = conduit_core::JSON_MAXIMUM_ENCODED_BYTES;
+const OUTPUT_BYTES: usize = conduit_web::JSON_MAXIMUM_ENCODED_BYTES;
 const TEXT_OUTPUT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -13,7 +12,7 @@ pub enum BoundedHostOperationError {
     InvalidConfiguration,
     Overflow,
     Unsupported,
-    Json(conduit_core::JsonRefusal),
+    Json(conduit_web::JsonRefusal),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -87,14 +86,14 @@ impl BoundedHostOperations {
     }
 
     pub fn json_encode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostOperationError> {
-        let output = conduit_core::JsonValue::decode_info(input)
+        let output = conduit_web::JsonValue::decode_info(input)
             .and_then(|value| value.encode_text())
             .map_err(BoundedHostOperationError::Json)?;
         BoundedOutput::from_slice(&output)
     }
 
     pub fn json_decode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostOperationError> {
-        let output = conduit_core::JsonValue::decode_text(input)
+        let output = conduit_web::JsonValue::decode_text(input)
             .and_then(|value| value.encode_info())
             .map_err(BoundedHostOperationError::Json)?;
         BoundedOutput::from_slice(&output)
@@ -167,7 +166,7 @@ impl BoundedHostOperations {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{KeyModifiers, KeyTransition};
+    use conduit_human::{KeyModifiers, KeyTransition};
 
     #[test]
     fn finite_operations_match_portable_semantics_and_refuse_overflow() {
@@ -238,7 +237,7 @@ mod tests {
         assert_eq!(
             host.json_decode(b"{\"a\":1,\"a\":2}"),
             Err(BoundedHostOperationError::Json(
-                conduit_core::JsonRefusal::DuplicateKey
+                conduit_web::JsonRefusal::DuplicateKey
             ))
         );
     }

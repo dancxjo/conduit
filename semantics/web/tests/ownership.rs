@@ -17,6 +17,14 @@ fn portable_owner_has_no_upward_host_or_semantic_catalog_dependency() {
 }
 
 #[test]
+fn canonical_json_value_is_owned_here_not_in_core() {
+    let core = include_str!("../../../architecture/core/src/lib.rs");
+    assert!(!core.contains("mod json_info;"));
+    assert_eq!(conduit_web::JSON_INFO_ID, "value/json@1");
+    assert_eq!(conduit_web::JSON_TEXT_INFO_ID, "text/json-utf8@1");
+}
+
+#[test]
 fn exact_http_and_json_identities_and_bounds_are_stable() {
     let client = conduit_web::http_client_semantics();
     let server = conduit_web::http_server_semantics();
@@ -65,14 +73,14 @@ fn exact_http_and_json_identities_and_bounds_are_stable() {
     );
     assert_eq!(
         encode.inputs[0].value_kind.as_str(),
-        conduit_core::JSON_INFO_ID
+        conduit_web::JSON_INFO_ID
     );
     assert_eq!(
         decode.outputs[0].value_kind.as_str(),
-        conduit_core::JSON_INFO_ID
+        conduit_web::JSON_INFO_ID
     );
     assert_eq!(
         encode.limits.max_queue_bytes,
-        conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32
+        conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32
     );
 }

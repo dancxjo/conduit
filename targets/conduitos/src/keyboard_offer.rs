@@ -154,10 +154,10 @@ pub(crate) fn append_to_advertisement(
                 contract_id: conduit_core::HostOperationContractId::from(
                     NEXT_KEY_EVENT_HOST_OPERATION,
                 ),
-                target_kind: Some(conduit_core::kind_id(conduit_core::KEY_EVENT_INFO_ID)),
+                target_kind: Some(conduit_core::kind_id(conduit_human::KEY_EVENT_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
-                maximum_output_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+                maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
             }],
             resource_requirements: requirements,
             authority_requirements: Vec::new(),

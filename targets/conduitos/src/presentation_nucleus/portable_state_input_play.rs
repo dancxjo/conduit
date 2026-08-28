@@ -1,7 +1,8 @@
 //! Production fixed-scheduler execution for portable state and typed key fan-out.
 
 use alloc::vec::Vec;
-use conduit_core::{InfoBool, KeyEvent};
+use conduit_core::InfoBool;
+use conduit_human::KeyEvent;
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
@@ -324,11 +325,11 @@ fn scheduler(
                         }
                         TEXT_KEY_SINK_KIND => {
                             text_sink = Some(node);
-                            conduit_core::KEY_EVENT_ENCODED_LEN as u32
+                            conduit_human::KEY_EVENT_ENCODED_LEN as u32
                         }
                         _ => {
                             chord_sink = Some(node);
-                            conduit_core::KEY_EVENT_ENCODED_LEN as u32
+                            conduit_human::KEY_EVENT_ENCODED_LEN as u32
                         }
                     };
                     PortableStateInputOperation::Sink {

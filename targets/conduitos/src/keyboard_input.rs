@@ -1,6 +1,6 @@
 //! Consumers of validated HID transitions for proof and ordinary guest profiles.
 
-use conduit_core::KeyEvent;
+use conduit_human::KeyEvent;
 
 use crate::{
     arch::{HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},

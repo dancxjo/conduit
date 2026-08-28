@@ -1,7 +1,5 @@
-use conduit_core::{
-    HumanInteractionProposal, InfoBool, InteractionProposalPayload, Quantity, QuantityUnit,
-    BOOL_INFO_ID, TEXT_INFO_ID,
-};
+use conduit_core::{InfoBool, Quantity, QuantityUnit, BOOL_INFO_ID};
+use conduit_human::{HumanInteractionProposal, InteractionProposalPayload, TEXT_INFO_ID};
 use conduit_pete::{
     physical_control_surface_projection, quantity, value, InteractionConvergenceApplication,
     PhysicalEvent, PhysicalInput, PhysicalInteractionFailure, PhysicalResourceStatus,
@@ -29,8 +27,8 @@ fn physical(resource_id: &str, mapping_identity: Option<String>) -> PresenterSou
 }
 
 fn proposal(
-    contract: &conduit_core::InteractionContract,
-    state: &conduit_core::InteractionCurrentState,
+    contract: &conduit_human::InteractionContract,
+    state: &conduit_human::InteractionCurrentState,
     sequence: u64,
     payload: InteractionProposalPayload,
 ) -> HumanInteractionProposal {
@@ -233,7 +231,7 @@ fn boolean_relative_and_text_asymmetry_remain_truthful() {
     assert_eq!(offers.choice_option_identities.len(), 4);
     assert_eq!(
         app.contracts().name.family,
-        conduit_core::InteractionFamily::Text {
+        conduit_human::InteractionFamily::Text {
             maximum_bytes: 32,
             allow_empty: false
         }

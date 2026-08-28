@@ -30,6 +30,7 @@ conduit-browser-runtime = { path = "../targets/browser/runtime" }
 conduit-chat = { path = "../semantics/chat", features = ["form-catalog"] }
 conduit-ai = { path = "../semantics/ai" }
 conduit-core = { path = "../architecture/core" }
+conduit-robotics = { path = "../semantics/robotics" }
 conduit-create-oi = { path = "../mechanisms/devices/create-oi" }
 conduit-form = { path = "../architecture/form" }
 conduit-host-fabrication = { path = "../fabrication/host" }

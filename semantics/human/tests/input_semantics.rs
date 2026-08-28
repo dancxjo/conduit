@@ -1,4 +1,4 @@
-use conduit_core::{
+use conduit_human::{
     ChordInfo, ConduitIntlKeymap, CoreChordId, KeyEvent, KeyModifiers, KeyTransition,
     KeymapDisposition, KeymapRefusal,
 };

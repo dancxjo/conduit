@@ -3,11 +3,13 @@ use super::{
     MAXIMUM_BROWSER_MEDIA_VALUE_BYTES,
 };
 use conduit_core::{
-    AcquiredMediaResource, AuthorityContractId, AuthorityGrantId, BootId, HostId,
-    HostOperationContractId, HostOperationId, HumanMediaKind, KindId, KnownPermissionState,
-    MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionRequest,
-    MediaAcquisitionResult, MediaConstraints, MediaFlowBounds, MediaResourceAvailability,
-    MediaUseRequirement, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
+    AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
+    HostOperationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
+};
+use conduit_human::{
+    AcquiredMediaResource, HumanMediaKind, KnownPermissionState, MediaAcquisitionAuthority,
+    MediaAcquisitionOffer, MediaAcquisitionRequest, MediaAcquisitionResult, MediaConstraints,
+    MediaFlowBounds, MediaResourceAvailability, MediaUseRequirement,
 };
 use std::cell::RefCell;
 

@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{
-    ChordInfo, ConduitIntlKeymap, ConfigurationValue, KeyEvent, KeymapDisposition, KeymapRefusal,
-    PlannedGear, PortDescriptor, PortDirection, CHORD_ENCODED_LEN, CONDUIT_INTL_LAYOUT,
-    CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
+use conduit_core::{ConfigurationValue, PlannedGear, PortDescriptor, PortDirection};
+use conduit_human::{
+    ChordInfo, ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal, CHORD_ENCODED_LEN,
+    CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, OperationAction,
@@ -350,7 +350,7 @@ fn validate_identity(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{KeyModifiers, KeyTransition};
+    use conduit_human::{KeyModifiers, KeyTransition};
 
     #[test]
     fn host_semantics_share_the_core_state_machine_and_refuse_malformed_input() {
@@ -369,7 +369,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             ChordInfo::decode(chord.as_slice()).unwrap().chord_id(),
-            conduit_core::CoreChordId::CancelOrEscape
+            conduit_human::CoreChordId::CancelOrEscape
         );
     }
 

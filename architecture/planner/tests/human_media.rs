@@ -1,10 +1,11 @@
 use conduit_core::{
-    AcquiredMediaResource, AuthorityContractId, AuthorityGrantId, BootId, HostId,
-    HostOperationContractId, HostOperationId, HumanMediaKind, KindId, KnownPermissionState,
-    MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionRequest,
-    MediaAcquisitionResult, MediaConstraints, MediaFlowBounds, MediaPlanningRefusal,
-    MediaResourceAvailability, MediaUseRequirement, OfferGeneration, PlanId, PortId,
-    ResourceClassId, ResourceHandleId,
+    AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
+    HostOperationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
+};
+use conduit_human::{
+    AcquiredMediaResource, HumanMediaKind, KnownPermissionState, MediaAcquisitionAuthority,
+    MediaAcquisitionOffer, MediaAcquisitionRequest, MediaAcquisitionResult, MediaConstraints,
+    MediaFlowBounds, MediaPlanningRefusal, MediaResourceAvailability, MediaUseRequirement,
 };
 use conduit_planner::{plan_media_acquisition, select_acquired_media};
 

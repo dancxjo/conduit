@@ -503,7 +503,7 @@ extern "C" fn conduitos_start() -> ! {
             ) {
                 emit_machine_refusal(error.as_str());
             }
-            let keyboard_text_events: [conduit_core::KeyEvent;
+            let keyboard_text_events: [conduit_human::KeyEvent;
                 conduitos::keyboard_text_guest::PHYSICAL_TRANSITIONS] =
                 core::array::from_fn(|index| {
                     let transition = proof_transitions[index + 2];

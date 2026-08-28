@@ -44,7 +44,7 @@ impl KeyboardInputOperation {
                 let Some(canonical) = canonical else {
                     return InstalledOperation::fail(111);
                 };
-                if conduit_core::KeyEvent::decode(canonical).is_err() {
+                if conduit_human::KeyEvent::decode(canonical).is_err() {
                     return fail(FailureCode::InvalidInput, 112);
                 }
                 let Ok(value) = conduit_kernel::CanonicalValue::new(canonical) else {
@@ -105,10 +105,10 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: 2,
-        value_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+        value_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         host_requests: MAX_PLAY_EVENTS as usize,
         sign_items: (MAX_PLAY_EVENTS as u16).saturating_mul(4),
-        maximum_value_bytes: conduit_core::KEY_EVENT_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
     })
 }
 

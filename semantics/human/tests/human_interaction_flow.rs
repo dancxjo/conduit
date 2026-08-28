@@ -1,10 +1,10 @@
-use conduit_core::{
+use conduit_core::{KindId, Quantity, QuantityUnit, QUANTITY_INFO_ID};
+use conduit_human::{
     BoundKind, HumanInteractionProposal, InteractionApplicationOutcome, InteractionContract,
     InteractionCurrentState, InteractionDomain, InteractionFamily, InteractionOption,
     InteractionProposalPayload, InteractionRefusal, InteractionSelectionRules, InteractionValue,
-    KindId, MutuallyExclusiveValues, OptionAvailability, Quantity, QuantityUnit,
-    RealizationRangePolicy, ScalarQuantization, ScalarRealizationMapping, TypedInteractionFlow,
-    QUANTITY_INFO_ID,
+    MutuallyExclusiveValues, OptionAvailability, RealizationRangePolicy, ScalarQuantization,
+    ScalarRealizationMapping, TypedInteractionFlow,
 };
 
 const CHANNEL_KIND: &str = "audio/channel@1";

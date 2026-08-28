@@ -1,8 +1,10 @@
 use super::*;
 use conduit_core::{
-    AuthorityContractId, BootId, HostId, HumanMediaKind, KindId, KnownPermissionState,
-    MediaConstraints, MediaFlowBounds, MediaResourceAvailability, OfferGeneration, ResourceClassId,
-    ResourceHandleId,
+    AuthorityContractId, BootId, HostId, KindId, OfferGeneration, ResourceClassId, ResourceHandleId,
+};
+use conduit_human::{
+    HumanMediaKind, KnownPermissionState, MediaConstraints, MediaFlowBounds,
+    MediaResourceAvailability,
 };
 
 fn constraints() -> MediaConstraints {

@@ -1,9 +1,9 @@
-use conduit_core::{
-    BatteryObservation, InfoDecodeError, OdometryObservation, OrientationObservation, Quantity,
-    QuantityConversionRefusal, QuantityUnit, RangeObservation, HALF_PI_MICRORADIANS,
-    MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM,
-    PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID,
-    ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID,
+use conduit_core::{InfoDecodeError, Quantity, QuantityConversionRefusal, QuantityUnit};
+use conduit_robotics::{
+    BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
+    HALF_PI_MICRORADIANS, MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS,
+    MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM, PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID,
+    ROBOTICS_ODOMETRY_INFO_ID, ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID,
 };
 
 #[test]

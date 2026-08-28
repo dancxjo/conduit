@@ -13,8 +13,11 @@ use alloc::vec::Vec;
 use conduit_core::KindContractRevision;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, CHORD_ENCODED_LEN, CHORD_INFO_ID, CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP,
-    KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
+    PortTemporal,
+};
+use conduit_human::{
+    CHORD_ENCODED_LEN, CHORD_INFO_ID, CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
+    KEY_EVENT_INFO_ID,
 };
 
 pub const KEY_EVENT_TEE_KIND: &str = "input/key-tee";

@@ -1,6 +1,7 @@
-use conduit_core::{
-    InfoDecodeError, KeyEvent, KeyModifiers, KeyTransition, KEY_EVENT_CONFORMANCE_VECTORS,
-    KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
+use conduit_core::InfoDecodeError;
+use conduit_human::{
+    KeyEvent, KeyModifiers, KeyTransition, KEY_EVENT_CONFORMANCE_VECTORS, KEY_EVENT_ENCODED_LEN,
+    KEY_EVENT_INFO_ID,
 };
 
 fn event(usage: u8, transition: KeyTransition, modifiers: u8) -> KeyEvent {

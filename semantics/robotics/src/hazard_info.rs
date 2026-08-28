@@ -5,8 +5,7 @@
 //! producing Host/Boot, clock, and Sign provenance remain in the enclosing
 //! observation/Port evidence rather than being invented inside the value.
 
-use crate::info::semantic_digest;
-use crate::InfoDecodeError;
+use conduit_core::{semantic_digest, InfoDecodeError};
 
 pub const ROBOTICS_CONTACT_INFO_ID: &str = "robotics/contact-body-sectors@1";
 pub const ROBOTICS_CLIFF_INFO_ID: &str = "robotics/cliff-body-sectors@1";

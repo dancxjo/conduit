@@ -6,6 +6,8 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
+};
+use conduit_robotics::{
     ROBOTICS_ACCELERATION_INFO_ID, ROBOTICS_BEACON_INFO_ID, ROBOTICS_BUTTONS_INFO_ID,
     ROBOTICS_PROXIMITY_INFO_ID,
 };
@@ -149,7 +151,7 @@ mod tests {
             robotics_observe_proximity_contract().outputs[0]
                 .value_kind
                 .as_str(),
-            conduit_core::ROBOTICS_RANGE_INFO_ID
+            conduit_robotics::ROBOTICS_RANGE_INFO_ID
         );
     }
 

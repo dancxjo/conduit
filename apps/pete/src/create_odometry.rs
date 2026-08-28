@@ -1,14 +1,15 @@
 //! Deterministic start-local odometry over Create distance/angle deltas.
 
-use conduit_core::{BootId, HostId, OdometryObservation, OfferGeneration, MAXIMUM_ODOMETRY_MM};
+use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_robotics::{OdometryObservation, MAXIMUM_ODOMETRY_MM};
 
 const SCALE: i64 = 1_000_000;
 const DEGREES_PER_TURN: i64 = 360;
-const PI_MICRORADIANS: i64 = conduit_core::PI_MICRORADIANS as i64;
-const HALF_PI_MICRORADIANS: i64 = conduit_core::HALF_PI_MICRORADIANS as i64;
+const PI_MICRORADIANS: i64 = conduit_robotics::PI_MICRORADIANS as i64;
+const HALF_PI_MICRORADIANS: i64 = conduit_robotics::HALF_PI_MICRORADIANS as i64;
 const TURN_NUMERATOR: i64 = DEGREES_PER_TURN * PI_MICRORADIANS;
 const HALF_TURN_NUMERATOR: i64 = TURN_NUMERATOR / 2;
-const POSITION_LIMIT_SCALED: i64 = conduit_core::MAXIMUM_ODOMETRY_MM as i64 * SCALE;
+const POSITION_LIMIT_SCALED: i64 = conduit_robotics::MAXIMUM_ODOMETRY_MM as i64 * SCALE;
 const CORDIC_GAIN_INVERSE: i64 = 607_253;
 const CORDIC_ATAN_MICRORADIANS: [i64; 20] = [
     785_398, 463_648, 244_979, 124_355, 62_419, 31_240, 15_624, 7_812, 3_906, 1_953, 977, 488, 244,

@@ -62,7 +62,7 @@ mod tests {
         assert_eq!(described_decode.limits, portable_decode.limits);
         assert_eq!(
             described_encode.inputs[0].value_kind.as_str(),
-            conduit_core::JSON_INFO_ID
+            conduit_web::JSON_INFO_ID
         );
         assert_eq!(
             described_encode.outputs[0].value_kind,
@@ -70,7 +70,7 @@ mod tests {
         );
         assert_eq!(
             described_encode.limits.max_queue_bytes,
-            conduit_core::JSON_MAXIMUM_ENCODED_BYTES as u32
+            conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32
         );
     }
 }

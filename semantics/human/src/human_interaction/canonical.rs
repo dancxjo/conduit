@@ -2,7 +2,7 @@ use alloc::{string::String, vec::Vec};
 use sha2::{Digest, Sha256};
 
 use super::{InteractionDomain, InteractionFamily, InteractionValue, OptionAvailability};
-use crate::QuantityUnit;
+use conduit_core::QuantityUnit;
 
 pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
     match family {
