@@ -118,7 +118,7 @@ pub(crate) fn append_to_advertisement(
     advertisement
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    let contract = conduit_std_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_contract();
     let mut requirements = vec![conduit_core::resource_requirement(
         "conduit.resource/runtime-memory@1",
         4_096,
@@ -142,7 +142,7 @@ pub(crate) fn append_to_advertisement(
             shorthand: None,
             capability_id: CapabilityId::from("conduitos/input-keyboard@1"),
             kind_id: contract.kind_id,
-            kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+            kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
             implementation: conduit_core::ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from(KEYBOARD_EXECUTION_PROFILE),
                 implementation_id: ImplementationId::from(KEYBOARD_IMPLEMENTATION),

@@ -14,7 +14,7 @@ use conduit_form::{
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     install_human_media_catalogs, CAMERA_FRAME_KIND, CAMERA_SOURCE_KIND, MEDIA_USE_OPERATION,
 };
 use conduit_std_host::browser_admission::browser_webrtc_line_contract;

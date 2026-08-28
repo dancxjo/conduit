@@ -37,7 +37,7 @@ impl CalendarProviderHost {
                     .map_err(|error| format!("decode calendar semantic request: {error:?}"))?
                     .to_vec();
                 if semantic_json.len()
-                    > conduit_std_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES as usize
+                    > conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES as usize
                 {
                     return Err("calendar semantic request exceeds the admitted bound".into());
                 }
@@ -109,7 +109,7 @@ pub(super) const fn refusal_detail(refusal: GoogleCalendarRefusal) -> u16 {
 fn realization_json(input: &[u8]) -> Result<Vec<u8>, GoogleCalendarRefusal> {
     let value = StructuredInfoValue::from_canonical_bytes(input)
         .map_err(|_| GoogleCalendarRefusal::InvalidRequest)?;
-    if value.value_type() != &conduit_std_catalog::calendar_write_receipt_type() {
+    if value.value_type() != &conduit_semantic_catalog::calendar_write_receipt_type() {
         return Err(GoogleCalendarRefusal::InvalidRequest);
     }
     Ok(envelope_text(&value, "realization_json")?.to_vec())
@@ -119,18 +119,22 @@ fn encode_result(
     operation: CalendarHostedOperation,
     realization: Vec<u8>,
 ) -> Result<Vec<u8>, GoogleCalendarRefusal> {
-    if realization.len() > conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES as usize
+    if realization.len() > conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES as usize
         || core::str::from_utf8(&realization).is_err()
     {
         return Err(GoogleCalendarRefusal::ProviderResponseTooLarge);
     }
     let value_type = match operation {
-        CalendarHostedOperation::Read => conduit_std_catalog::calendar_read_result_type(),
-        CalendarHostedOperation::FreeBusy => conduit_std_catalog::calendar_free_busy_result_type(),
+        CalendarHostedOperation::Read => conduit_semantic_catalog::calendar_read_result_type(),
+        CalendarHostedOperation::FreeBusy => {
+            conduit_semantic_catalog::calendar_free_busy_result_type()
+        }
         CalendarHostedOperation::Create
         | CalendarHostedOperation::Update
-        | CalendarHostedOperation::Invite => conduit_std_catalog::calendar_write_receipt_type(),
-        CalendarHostedOperation::Cancel => conduit_std_catalog::calendar_cancel_receipt_type(),
+        | CalendarHostedOperation::Invite => {
+            conduit_semantic_catalog::calendar_write_receipt_type()
+        }
+        CalendarHostedOperation::Cancel => conduit_semantic_catalog::calendar_cancel_receipt_type(),
     };
     let leaf = StructuredInfoValue::leaf(
         StructuredInfoType::leaf(kind_id("value/text@1"))

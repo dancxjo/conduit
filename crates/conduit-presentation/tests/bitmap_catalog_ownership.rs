@@ -10,13 +10,13 @@ fn bitmap_presentation_meaning_has_one_host_neutral_owner() {
         .split_once("[dev-dependencies]")
         .expect("presentation owner declares dev dependencies")
         .0;
-    for forbidden in ["conduit-std-catalog", "conduit-std-host", "hosts/"] {
+    for forbidden in ["conduit-semantic-catalog", "conduit-std-host", "hosts/"] {
         assert!(!dependencies.contains(forbidden));
     }
 
     let former_owner = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../conduit-std-catalog/src/graphics_presentation.rs"
+        "/../conduit-semantic-catalog/src/graphics_presentation.rs"
     );
     let source = fs::read_to_string(former_owner).expect("read former bitmap catalog owner");
     for forbidden in [

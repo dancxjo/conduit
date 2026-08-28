@@ -97,7 +97,7 @@ impl CalendarHostedOperation {
 }
 
 pub fn google_calendar_offers() -> Vec<CapabilityOffer> {
-    conduit_std_catalog::calendar_provider_contracts()
+    conduit_semantic_catalog::calendar_provider_contracts()
         .into_iter()
         .zip([
             CalendarHostedOperation::Read,
@@ -142,10 +142,10 @@ pub fn google_calendar_authority_grant(
 }
 
 fn offer(
-    contract: conduit_std_catalog::CalendarProviderKindContract,
+    contract: conduit_semantic_catalog::CalendarProviderKindContract,
     operation: CalendarHostedOperation,
 ) -> CapabilityOffer {
-    let request = conduit_std_catalog::calendar_request_type(&contract);
+    let request = conduit_semantic_catalog::calendar_request_type(&contract);
     let subject_kind = request
         .profile()
         .expect("reviewed calendar request profile")
@@ -156,11 +156,11 @@ fn offer(
         target_kind: Some(subject_kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: if contract.input_type.is_some() {
-            conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES
+            conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES
         } else {
-            conduit_std_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES
+            conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES
         },
-        maximum_output_bytes: conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+        maximum_output_bytes: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
     };
     let mut authority_requirements = vec![authority(
         operation.authority(),
@@ -213,7 +213,7 @@ fn offer(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+            max_queue_bytes: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
         },
     }
 }

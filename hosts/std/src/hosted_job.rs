@@ -3,7 +3,7 @@
 use conduit_core::{
     ResourceDereferenceRequirement, ResourceReferenceAccessRefusal, ResourceReferenceBinding,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     JobExitDisposition, JobLifecycleEvent, JobOutput, JobRequest, JobRequestRefusal,
     JobResourceUsage, JobStreamPressure, JobTerminalOutcome, JOB_EXECUTABLE_ACCESS_CLASS,
     JOB_EXECUTABLE_AUTHORITY, JOB_EXECUTABLE_CONTENT_PROFILE,
@@ -221,7 +221,7 @@ fn empty_terminal_report(
     }
 }
 
-fn empty_output(profile: conduit_std_catalog::JobOutputProfile) -> JobOutput {
+fn empty_output(profile: conduit_semantic_catalog::JobOutputProfile) -> JobOutput {
     JobOutput {
         profile,
         bytes: Vec::new(),
@@ -257,7 +257,7 @@ struct DrainedOutput {
 }
 
 impl DrainedOutput {
-    fn output(self, profile: conduit_std_catalog::JobOutputProfile) -> JobOutput {
+    fn output(self, profile: conduit_semantic_catalog::JobOutputProfile) -> JobOutput {
         let pressure = if self.observed_bytes > self.retained.len() as u64 {
             JobStreamPressure::Truncated {
                 observed_minimum_bytes: self.observed_bytes,

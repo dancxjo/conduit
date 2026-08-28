@@ -240,11 +240,11 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
             vec![conduit_form::ConfigurationField {
                 key: "maximum-enable-updates".into(),
                 default_value: conduit_core::ConfigurationValue::U64(
-                    conduit_std_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
+                    conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
                 ),
                 validation: conduit_form::ConfigurationRule::U64Range {
                     minimum: 1,
-                    maximum: conduit_std_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
+                    maximum: conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
                 },
             }],
         ),

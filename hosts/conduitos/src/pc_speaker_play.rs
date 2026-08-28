@@ -409,7 +409,7 @@ fn validate_prepared(prepared: &PreparedPcSpeakerPlay) -> Result<(), Preparation
     if fragment.placements.len() != 2
         || fragment.connections.len() != 1
         || !fragment.placements.iter().any(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::SOUND_TONE_PLAY_KIND
+            placement.kind_id.as_str() == conduit_semantic_catalog::SOUND_TONE_PLAY_KIND
         })
         || prepared.active_play.plan_id != prepared.plan.plan_id
         || prepared.active_play.host_id != fragment.host_id

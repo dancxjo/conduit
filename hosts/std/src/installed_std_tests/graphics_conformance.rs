@@ -96,7 +96,9 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
     let graphics = unsupported
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_TEXT_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_TEXT_KIND
+        })
         .unwrap();
     graphics.execution_profile_id =
         conduit_core::ExecutionProfileId::from("renderer/private-profile@1");

@@ -51,7 +51,7 @@ impl TestRecurrenceSinkOperation {
 }
 
 pub(crate) fn offer() -> CapabilityOffer {
-    let value_kind = conduit_std_catalog::recurrence_result_type()
+    let value_kind = conduit_semantic_catalog::recurrence_result_type()
         .profile()
         .unwrap()
         .value_kind()
@@ -83,9 +83,9 @@ pub(crate) fn offer() -> CapabilityOffer {
         authority_requirements: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS,
+            max_queue_items: conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS,
             max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                * usize::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS))
+                * usize::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS))
                 as u32,
         },
     }
@@ -99,7 +99,9 @@ fn expected(placement: &PlannedGear) -> Result<u32, String> {
         ("expected", ConfigurationValue::U64(value)) => (*value)
             .try_into()
             .ok()
-            .filter(|value| *value <= u32::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS))
+            .filter(|value| {
+                *value <= u32::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS)
+            })
             .ok_or_else(|| "recurrence sink expected count exceeds profile".into()),
         _ => Err("recurrence sink expected count is malformed".into()),
     }

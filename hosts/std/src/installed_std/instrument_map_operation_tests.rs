@@ -15,7 +15,7 @@ fn placement() -> PlannedGear {
         configuration: vec![ConfigurationEntry {
             key: "mapping".into(),
             value: ConfigurationValue::Structured(
-                conduit_std_catalog::default_instrument_mapping_configuration().unwrap(),
+                conduit_semantic_catalog::default_instrument_mapping_configuration().unwrap(),
             ),
         }],
         host_id: HostId::from("instrument-host"),
@@ -55,7 +55,7 @@ fn leaf(kind: &str, value: impl ToString) -> StructuredInfoValue {
 }
 
 fn control(tag: &str, fields: Vec<(&str, StructuredInfoValue)>) -> StructuredInfoValue {
-    let control_type = conduit_std_catalog::instrument_control_type();
+    let control_type = conduit_semantic_catalog::instrument_control_type();
     let payload_type = match control_type.shape() {
         conduit_core::StructuredInfoTypeShape::Variant { cases, .. } => cases
             .iter()
@@ -254,7 +254,7 @@ fn wrong_profile_and_malformed_canonical_input_fail_closed() {
 fn admitted_event_bound_fails_closed_before_consuming_more_input() {
     let mut operation = InstrumentMapOperation {
         mapping: test_mapping(),
-        next_order: u32::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
+        next_order: u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
         emitted: false,
     };
     let canonical = button(0, true, 1, 10).canonical_bytes().unwrap();

@@ -6,7 +6,7 @@ use conduit_core::{
     ResourceReferenceAvailability, ResourceReferenceBinding, ResourceSemanticIdentity,
     ResourceVersionIdentity,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     ready_job_request, JobLifecycleEvent, JobOutputProfile, JobRequest, JobTerminalOutcome,
     JOB_EXECUTABLE_ACCESS_CLASS, JOB_EXECUTABLE_AUTHORITY, JOB_EXECUTABLE_CONTENT_PROFILE,
 };

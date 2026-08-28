@@ -34,7 +34,7 @@ fn alife_owner_remains_host_neutral() {
         .split_once("[dev-dependencies]")
         .expect("alife owner declares dev dependencies")
         .0;
-    for forbidden in ["conduit-std-catalog", "conduit-std-host", "hosts/"] {
+    for forbidden in ["conduit-semantic-catalog", "conduit-std-host", "hosts/"] {
         assert!(!dependencies.contains(forbidden));
     }
 }

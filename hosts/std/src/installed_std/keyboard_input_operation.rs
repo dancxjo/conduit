@@ -129,10 +129,11 @@ fn prepare(
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let contract = conduit_std_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_contract();
     let operation = conduit_std_offers::next_key_event_host_operation_requirement();
     if placement.kind_id != contract.kind_id
-        || placement.kind_contract_revision != conduit_std_catalog::keyboard_contract_revision()
+        || placement.kind_contract_revision
+            != conduit_semantic_catalog::keyboard_contract_revision()
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::HOSTED_KEYBOARD_EXECUTION_PROFILE
         || placement.implementation_id.as_str()

@@ -16,7 +16,7 @@ use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_do
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     install_human_media_catalogs, CAMERA_FRAME_KIND, CAMERA_RESOURCE_CLASS, CAMERA_SOURCE_KIND,
     MEDIA_USE_AUTHORITY, MEDIA_USE_OPERATION,
 };

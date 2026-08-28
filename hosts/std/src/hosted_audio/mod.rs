@@ -25,14 +25,14 @@ use conduit_core::{
 
 pub const SAMPLE_RATE_HZ: u32 = 48_000;
 pub const CHANNELS: u8 = 2;
-pub const PERIOD_FRAMES: u16 = conduit_std_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
-pub const BUFFER_FRAMES: u16 = conduit_std_catalog::AUDIO_PLAY_ALSA_BUFFER_FRAMES;
+pub const PERIOD_FRAMES: u16 = conduit_semantic_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
+pub const BUFFER_FRAMES: u16 = conduit_semantic_catalog::AUDIO_PLAY_ALSA_BUFFER_FRAMES;
 pub const SOURCE_CLOCK_ID: u64 = 1;
 
 /// Exact PCM profile of the reviewed direct ALSA hardware adapter. Device
 /// presence, identity, and authority remain fresh observation facts.
-pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile {
-    use conduit_std_catalog::*;
+pub fn compatibility_profile() -> conduit_semantic_catalog::SoundCompatibilityProfile {
+    use conduit_semantic_catalog::*;
     SoundCompatibilityProfile {
         profile_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_PROFILE.into(),
         seam: SoundSeam::PcmPlayback,
@@ -114,7 +114,7 @@ impl HostedPlaybackSelection {
     }
 
     pub fn realization_advertisement(&self, host_id: HostId) -> RealizationAdvertisement {
-        use conduit_std_catalog::*;
+        use conduit_semantic_catalog::*;
         let profile = compatibility_profile();
         let mut characteristics = sound_profile_characteristics(&profile);
         characteristics.extend([
@@ -179,7 +179,7 @@ fn count(id: &str, value: u64) -> RealizationCharacteristic {
         id,
         id,
         "Stable reviewed audio realization quantity.",
-        conduit_std_catalog::sound_characteristic_unit(id),
+        conduit_semantic_catalog::sound_characteristic_unit(id),
         u64::MAX,
         value,
     )
@@ -259,7 +259,10 @@ mod profile_tests {
     #[test]
     fn playback_profile_is_reusable_without_claiming_a_device() {
         let profile = compatibility_profile();
-        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::PcmPlayback);
+        assert_eq!(
+            profile.seam,
+            conduit_semantic_catalog::SoundSeam::PcmPlayback
+        );
         let pcm = profile.pcm.unwrap();
         assert_eq!(pcm.sample_rate_hz, SAMPLE_RATE_HZ);
         assert_eq!(pcm.maximum_frames_per_block, PERIOD_FRAMES);

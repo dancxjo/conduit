@@ -35,11 +35,11 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
     let gate = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::GATE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)
         .expect("gate placement exists");
     assert_eq!(
         gate.kind_contract_revision.as_str(),
-        conduit_std_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION
+        conduit_semantic_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION
     );
     assert_eq!(
         gate.inputs[0].value_kind.as_str(),
@@ -127,7 +127,7 @@ fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
     fragment
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::GATE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)
         .expect("gate placement exists")
         .host_operations[0]
         .contract_id = conduit_core::HostOperationContractId::from("mutated/decode-bool");
@@ -149,12 +149,12 @@ fn assert_gate_face_is_advertised(
     let gear = form
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_std_catalog::GATE_KIND)
+        .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)
         .expect("checked gate Gear exists");
     let offer = host
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::GATE_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)
         .expect("reference std Host advertises gate");
     assert_eq!(offer.checked_face(), gear.checked_face());
 }

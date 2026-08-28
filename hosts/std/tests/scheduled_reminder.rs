@@ -2,7 +2,7 @@ use conduit_core::{
     AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId, HostId,
     HostOperationContractId, KindId,
 };
-use conduit_std_catalog::{REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND};
+use conduit_semantic_catalog::{REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND};
 use conduit_std_host::hosted_reminder::{
     deliver_ready_reminder, HostedReminderAdapter, ReminderAdapterError, ReminderDeliveryRefusal,
 };

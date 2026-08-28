@@ -49,7 +49,7 @@ pub const RHYTHM_REFERENCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-ref
 pub const RHYTHM_DRAIN_HOST_OPERATION: &str = "conduit.host/music-rhythm-drain@1";
 
 pub fn music_play_midi_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::music_play_contract();
+    let contract = conduit_semantic_catalog::music_play_contract();
     let operations = [
         (
             MUSIC_PLAY_MIDI_CONTROL_OPERATION,
@@ -68,7 +68,7 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from("music-play-midi1"),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::MUSIC_PLAY_REVISION,
+            conduit_semantic_catalog::MUSIC_PLAY_REVISION,
         ),
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -101,14 +101,14 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
 }
 
 pub fn music_synth_reference_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::music_synth_contract();
+    let contract = conduit_semantic_catalog::music_synth_contract();
     CapabilityOffer {
-        startup_parameters: conduit_std_catalog::startup_face(&contract.configuration),
+        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("music-synth-fixed-q16"),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::MUSIC_SYNTH_REVISION,
+            conduit_semantic_catalog::MUSIC_SYNTH_REVISION,
         ),
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -122,7 +122,7 @@ pub fn music_synth_reference_offer() -> CapabilityOffer {
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: NOTE_EVENT_ENCODED_LEN.max(CONTROL_EVENT_ENCODED_LEN) as u32,
-            maximum_output_bytes: conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
+            maximum_output_bytes: conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
         }],
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
@@ -131,14 +131,14 @@ pub fn music_synth_reference_offer() -> CapabilityOffer {
 }
 
 pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::audio_play_contract();
+    let contract = conduit_semantic_catalog::audio_play_contract();
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("audio-play-alsa-hw"),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::AUDIO_PLAY_REVISION,
+            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
         ),
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -151,7 +151,7 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
             contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            maximum_input_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             maximum_output_bytes: 0,
         }],
         resource_requirements: vec![resource_requirement(AUDIO_PLAYBACK_RESOURCE_CLASS, 1)],
@@ -162,14 +162,14 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
         }],
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: conduit_std_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
-            max_queue_bytes: conduit_std_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
+            max_queue_items: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
+            max_queue_bytes: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
         },
     }
 }
 
 pub fn music_input_midi_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::music_input_contract();
+    let contract = conduit_semantic_catalog::music_input_contract();
     let operation = HostOperationRequirement {
         contract_id: HostOperationContractId::from(MUSIC_INPUT_MIDI_OPERATION),
         target_kind: Some(kind_id(conduit_midi::MIDI_INPUT_OBSERVATION_INFO_ID)),
@@ -178,12 +178,12 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
         maximum_output_bytes: conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN as u32,
     };
     CapabilityOffer {
-        startup_parameters: conduit_std_catalog::startup_face(&contract.configuration),
+        startup_parameters: conduit_semantic_catalog::startup_face(&contract.configuration),
         shorthand: None,
         capability_id: CapabilityId::from("music-input-midi1"),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::MUSIC_INPUT_REVISION,
+            conduit_semantic_catalog::MUSIC_INPUT_REVISION,
         ),
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -204,7 +204,7 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
 }
 
 pub fn rhythm_compare_std_offer() -> CapabilityOffer {
-    let definition = conduit_std_catalog::rhythm_compare_definition();
+    let definition = conduit_semantic_catalog::rhythm_compare_definition();
     let target_kind = definition.kind_id.clone();
     CapabilityOffer {
         startup_parameters: vec![
@@ -244,21 +244,21 @@ pub fn rhythm_compare_std_offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 8,
-            max_queue_items: conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS,
+            max_queue_items: conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS,
             max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                * usize::from(conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
+                * usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
                 * 3) as u32,
         },
     }
 }
 
 pub fn instrument_map_std_offer() -> CapabilityOffer {
-    let definition = conduit_std_catalog::instrument_map_definition()
+    let definition = conduit_semantic_catalog::instrument_map_definition()
         .expect("portable instrument-map definition is finite");
     CapabilityOffer {
         startup_parameters: vec![startup(
             "mapping",
-            conduit_std_catalog::INSTRUMENT_MAPPING_TYPE,
+            conduit_semantic_catalog::INSTRUMENT_MAPPING_TYPE,
             false,
         )],
         shorthand: None,
@@ -308,28 +308,28 @@ mod tests {
         let midi = music_play_midi_offer();
         assert_eq!(
             midi.inputs,
-            conduit_std_catalog::music_play_contract().inputs
+            conduit_semantic_catalog::music_play_contract().inputs
         );
         assert_eq!(midi.host_operations.len(), 2);
         assert_eq!(midi.authority_requirements.len(), 2);
         let input = music_input_midi_offer();
         assert_eq!(
             input.outputs,
-            conduit_std_catalog::music_input_contract().outputs
+            conduit_semantic_catalog::music_input_contract().outputs
         );
         assert_eq!(input.resource_requirements.len(), 1);
         assert_eq!(input.authority_requirements.len(), 1);
         let audio = audio_play_alsa_hw_offer();
         assert_eq!(
             audio.host_operations[0].maximum_input_bytes,
-            conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
+            conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
         );
         assert_eq!(audio.resource_requirements.len(), 1);
         assert_eq!(audio.authority_requirements.len(), 1);
         let synth = music_synth_reference_offer();
         assert_eq!(
             synth.outputs,
-            conduit_std_catalog::music_synth_contract().outputs
+            conduit_semantic_catalog::music_synth_contract().outputs
         );
     }
 }

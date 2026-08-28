@@ -18,7 +18,7 @@ pub fn prepare_copy_task(
     grants: &[ProtectedResourceGrant; 2],
 ) -> Result<PreparedCopyTask, String> {
     let mut catalog = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_copy_file_catalog(&mut catalog)?;
+    conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)?;
     let form =
         conduit_form::parse(COPY_FORM_SOURCE, &catalog).map_err(|error| error.to_string())?;
     let placements = default_placements(&form, std::slice::from_ref(host.advertisement()))

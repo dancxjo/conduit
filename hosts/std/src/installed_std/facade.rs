@@ -46,7 +46,7 @@ pub(crate) fn test_recurrence_sink_offer() -> conduit_core::CapabilityOffer {
 pub(crate) fn playback_proof_catalog() -> conduit_form::ProfileCatalog {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
         .expect("sound proof catalog identities are unique");
     super::test_audio_source::install_catalog(&mut profile);
     profile

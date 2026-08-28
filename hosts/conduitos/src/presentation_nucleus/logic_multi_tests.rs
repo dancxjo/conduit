@@ -6,17 +6,17 @@ use super::{prepare_logic_multi, run_logic_multi};
 fn ordinary_compare_and_select_agree_with_shared_portable_semantics() {
     let cases = [
         (
-            conduit_std_catalog::ScalarComparison::Less,
+            conduit_semantic_catalog::ScalarComparison::Less,
             Scalar::from_raw_microunits(-2),
             Scalar::from_raw_microunits(3),
         ),
         (
-            conduit_std_catalog::ScalarComparison::Equal,
+            conduit_semantic_catalog::ScalarComparison::Equal,
             Scalar::from_raw_microunits(5),
             Scalar::from_raw_microunits(4),
         ),
         (
-            conduit_std_catalog::ScalarComparison::GreaterOrEqual,
+            conduit_semantic_catalog::ScalarComparison::GreaterOrEqual,
             Scalar::from_raw_microunits(9),
             Scalar::from_raw_microunits(9),
         ),
@@ -37,11 +37,11 @@ fn ordinary_compare_and_select_agree_with_shared_portable_semantics() {
         let fragment = &prepared.plan.fragments[0];
         for (kind, implementation) in [
             (
-                conduit_std_catalog::LOGIC_COMPARE_KIND,
+                conduit_semantic_catalog::LOGIC_COMPARE_KIND,
                 crate::functional_offers::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
             ),
             (
-                conduit_std_catalog::LOGIC_SELECT_KIND,
+                conduit_semantic_catalog::LOGIC_SELECT_KIND,
                 crate::functional_offers::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
             ),
         ] {
@@ -61,7 +61,7 @@ fn ordinary_compare_and_select_agree_with_shared_portable_semantics() {
         assert_eq!(proof.decision.get(), decision);
         assert_eq!(
             proof.output,
-            conduit_std_catalog::select_scalar(decision, when_false, when_true)
+            conduit_semantic_catalog::select_scalar(decision, when_false, when_true)
         );
     }
 }
@@ -73,7 +73,7 @@ fn plan_identity_seals_comparison_configuration_and_exact_sources() {
         "logic-boot",
         Scalar::ZERO,
         Scalar::ONE,
-        conduit_std_catalog::ScalarComparison::Less,
+        conduit_semantic_catalog::ScalarComparison::Less,
         Scalar::ZERO,
         Scalar::ONE,
     )
@@ -83,7 +83,7 @@ fn plan_identity_seals_comparison_configuration_and_exact_sources() {
         "logic-boot",
         Scalar::ZERO,
         Scalar::ONE,
-        conduit_std_catalog::ScalarComparison::Equal,
+        conduit_semantic_catalog::ScalarComparison::Equal,
         Scalar::ZERO,
         Scalar::ONE,
     )

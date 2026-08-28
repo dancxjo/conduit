@@ -5,10 +5,10 @@ use conduit_core::{StructuredInfoType, StructuredInfoValue};
 use conduit_time::RecurrenceOccurrence;
 
 pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u8>, String> {
-    if occurrences.len() > usize::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS) {
+    if occurrences.len() > usize::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS) {
         return Err("recurrence result exceeds the installed batch profile".into());
     }
-    let result_type = conduit_std_catalog::recurrence_result_type();
+    let result_type = conduit_semantic_catalog::recurrence_result_type();
     let slot_type = collection_element(&result_type, "occurrences")?;
     let mut slots = occurrences
         .iter()
@@ -21,7 +21,7 @@ pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u
             .map_err(structured)
         })
         .collect::<Result<Vec<_>, String>>()?;
-    while slots.len() < usize::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS) {
+    while slots.len() < usize::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS) {
         slots.push(
             StructuredInfoValue::variant(slot_type.clone(), "unused", leaf("value/unit@1", "")?)
                 .map_err(structured)?,
@@ -30,7 +30,7 @@ pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u
     let slots = StructuredInfoValue::collection(
         StructuredInfoType::collection(
             slot_type,
-            Some(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS),
+            Some(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS),
         )
         .map_err(structured)?,
         slots,
@@ -49,7 +49,7 @@ pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u
 
 fn occurrence_value(occurrence: &RecurrenceOccurrence) -> Result<StructuredInfoValue, String> {
     StructuredInfoValue::record(
-        conduit_std_catalog::recurrence_occurrence_type(),
+        conduit_semantic_catalog::recurrence_occurrence_type(),
         vec![
             value_field("identity", leaf("value/text@1", &occurrence.identity)?),
             value_field("instant", occurrence_instant(&occurrence.at)?),

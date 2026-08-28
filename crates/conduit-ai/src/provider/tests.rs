@@ -172,12 +172,12 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
         })
         .collect::<Vec<_>>();
     provider_capabilities.push(json_proof_offer(
-        conduit_std_catalog::json_encode_contract(),
+        conduit_semantic_catalog::json_encode_contract(),
         "conduit.std/json-encode@1",
         "conduit.host/json-encode@1",
     ));
     provider_capabilities.push(json_proof_offer(
-        conduit_std_catalog::json_decode_contract(),
+        conduit_semantic_catalog::json_decode_contract(),
         "conduit.std/json-decode@1",
         "conduit.host/json-decode@1",
     ));
@@ -406,7 +406,7 @@ fn unchanged_form_selects_direct_face_or_distributed_provider_back_exactly() {
 }
 
 fn json_proof_offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     operation: &str,
 ) -> conduit_core::CapabilityOffer {
@@ -416,10 +416,10 @@ fn json_proof_offer(
     } else {
         "proof/json-decode"
     };
-    let mut offer = conduit_std_catalog::realization_offer(
+    let mut offer = conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: identity,
             execution_profile: "proof/json",
             implementation: identity,

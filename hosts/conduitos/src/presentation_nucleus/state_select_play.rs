@@ -268,7 +268,7 @@ fn scheduler(
                     values: true_values,
                     phase: 0,
                 },
-                conduit_std_catalog::STATE_SELECT_KIND => StateSelectOperation::Select {
+                conduit_semantic_catalog::STATE_SELECT_KIND => StateSelectOperation::Select {
                     selector: None,
                     candidates: [None; 2],
                     closed: [false; 3],

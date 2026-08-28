@@ -5,7 +5,7 @@ use conduit_browser_runtime::human_media::{
 #[test]
 fn browser_media_realizations_are_owned_by_the_browser_host() {
     let catalog_source =
-        include_str!("../../../crates/conduit-std-catalog/src/browser_human_io.rs");
+        include_str!("../../../crates/conduit-semantic-catalog/src/browser_human_io.rs");
     assert!(!catalog_source.contains("browser/human-media@1"));
     assert!(!catalog_source.contains("conduit-browser-runtime/human-media@1"));
 

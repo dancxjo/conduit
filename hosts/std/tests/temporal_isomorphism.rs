@@ -3,7 +3,7 @@ use conduit_core::{
     kind_id, BoundedResourceRef, KindId, PlanId, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     validate_scheduled_job, JobOutputProfile, JobRequest, JOB_EXECUTABLE_ACCESS_CLASS,
     JOB_EXECUTABLE_CONTENT_PROFILE,
 };

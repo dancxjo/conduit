@@ -18,7 +18,7 @@ pub fn structured_literal_std_offer(
     value_type: &conduit_core::StructuredInfoType,
 ) -> CapabilityOffer {
     offer(
-        conduit_std_catalog::structured_literal_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_literal_contract(type_name, value_type),
         true,
     )
 }
@@ -28,12 +28,15 @@ pub fn structured_presentation_std_offer(
     value_type: &conduit_core::StructuredInfoType,
 ) -> CapabilityOffer {
     offer(
-        conduit_std_catalog::structured_presentation_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_presentation_contract(type_name, value_type),
         false,
     )
 }
 
-fn offer(contract: conduit_std_catalog::StructuredValueContract, source: bool) -> CapabilityOffer {
+fn offer(
+    contract: conduit_semantic_catalog::StructuredValueContract,
+    source: bool,
+) -> CapabilityOffer {
     let value_kind = contract
         .outputs
         .first()
@@ -77,7 +80,7 @@ fn offer(contract: conduit_std_catalog::StructuredValueContract, source: bool) -
             Vec::new()
         } else {
             vec![present_host_operation_requirement(
-                kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET),
+                kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
                 conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             )]
         },
@@ -97,15 +100,18 @@ mod tests {
 
     #[test]
     fn offers_preserve_exact_portable_faces() {
-        let value_type = conduit_std_catalog::copy_result_type();
+        let value_type = conduit_semantic_catalog::copy_result_type();
         for (offer, contract) in [
             (
                 structured_literal_std_offer("FileCopyResult", &value_type),
-                conduit_std_catalog::structured_literal_contract("FileCopyResult", &value_type),
+                conduit_semantic_catalog::structured_literal_contract(
+                    "FileCopyResult",
+                    &value_type,
+                ),
             ),
             (
                 structured_presentation_std_offer("FileCopyResult", &value_type),
-                conduit_std_catalog::structured_presentation_contract(
+                conduit_semantic_catalog::structured_presentation_contract(
                     "FileCopyResult",
                     &value_type,
                 ),

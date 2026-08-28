@@ -66,7 +66,9 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
     let planned = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::CALENDAR_PROPOSAL_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::CALENDAR_PROPOSAL_KIND
+        })
         .unwrap();
     assert!(matches!(
         planned.configuration[0].value,
@@ -287,7 +289,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
             .iter()
             .map(|identity| format!("participant(\"{identity}\")"))
             .collect(),
-        conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
+        conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
     );
     let candidates = slots(
         fixture
@@ -303,7 +305,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
                 )
             })
             .collect(),
-        conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES,
+        conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES,
     );
     let availability = slots(
         fixture
@@ -323,7 +325,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
                             )
                         })
                         .collect(),
-                    conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_INTERVALS,
+                    conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_INTERVALS,
                 );
                 format!(
                     "participant({{ basis_identity: \"{}\", intervals: [{}], observed_at: {}, participant_identity: \"{}\", usable_until: {}, zone: \"{}\", zone_rule_set: \"{}\" }})",
@@ -337,7 +339,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
                 )
             })
             .collect(),
-        conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
+        conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
     );
     format!(
         "form calendar-proof {{\n  propose: calendar/propose-meeting({{ availability: [{availability}], candidates: [{candidates}], identity: \"{}\", maximum_results: {}, participant_identities: [{participants}], reference_at: {} }})\n  sink: {SINK}(value = \"{expected_hex}\")\n  propose.proposal > sink.input\n}}\n",
@@ -419,8 +421,9 @@ fn catalogs() -> (
 ) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_calendar_proposal_catalogs(&mut startup, &mut profile).unwrap();
-    let value_type = conduit_std_catalog::calendar_proposal_result_type();
+    conduit_semantic_catalog::install_calendar_proposal_catalogs(&mut startup, &mut profile)
+        .unwrap();
+    let value_type = conduit_semantic_catalog::calendar_proposal_result_type();
     let mut sink_offer =
         installed_std::test_structured_selector::offer(&value_type, PortDirection::Input);
     sink_offer.inputs[0].temporal = PortTemporal::Value;

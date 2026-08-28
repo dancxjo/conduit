@@ -172,9 +172,9 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
     let syntax = conduit_form::parse_syntax_document(source);
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let form = conduit_form::expand_canonical_form(&checked, "conduitos-keyboard-upper", &profile)
         .unwrap();
@@ -189,7 +189,7 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -202,7 +202,7 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
     let keyboard = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
         .unwrap();
     assert_eq!(
         keyboard.implementation_id.as_str(),

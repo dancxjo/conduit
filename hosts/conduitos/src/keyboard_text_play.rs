@@ -116,10 +116,11 @@ impl KeyboardTextKernel {
         let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
             .map_err(|_| PreparationError::LoweringRejected)?;
         validate_shape(fragment, &lowered)?;
-        let keyboard_node = node_for(fragment, conduit_std_catalog::KEYBOARD_KIND)?;
-        let keymap_node = node_for(fragment, conduit_std_catalog::KEYMAP_KIND)?;
+        let keyboard_node = node_for(fragment, conduit_semantic_catalog::KEYBOARD_KIND)?;
+        let keymap_node = node_for(fragment, conduit_semantic_catalog::KEYMAP_KIND)?;
         let upper_node = node_for(fragment, conduit_text::TEXT_UPPER_KIND)?;
-        let presentation_node = node_for(fragment, conduit_std_catalog::TEXT_PRESENTATION_KIND)?;
+        let presentation_node =
+            node_for(fragment, conduit_semantic_catalog::TEXT_PRESENTATION_KIND)?;
         let mut values =
             FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BYTE_CAPACITY as u32)
                 .map_err(|_| PreparationError::KernelRejected)?;

@@ -220,7 +220,7 @@ The `time/tick` row was the first rearticulated installed `conduit.std` kind:
 `conduit.std/time-tick@2` over `value/tick@1`, implemented by the std host through
 `conduit-kernel`. Every row above is a real current host offer; the exact
 contracts, limits, implementations, and platform stop lines are recorded in
-[`architecture/std-catalog.md`](architecture/std-catalog.md). Programs 1–4 in
+[`architecture/semantic-catalog.md`](architecture/semantic-catalog.md). Programs 1–4 in
 [`try-forms.md`](try-forms.md) exercise the text/time/state nucleus.
 
 ## 4. Drive a physical Pico W over USB CDC

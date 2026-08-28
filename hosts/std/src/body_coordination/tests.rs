@@ -1,6 +1,6 @@
 use super::{run_in_process, CoordinationEndpoint};
 use conduit_core::BootId;
-use conduit_std_catalog::{exact_body_coordination_plan, FOREBRAIN_HOST, MOTHERBRAIN_HOST};
+use conduit_semantic_catalog::{exact_body_coordination_plan, FOREBRAIN_HOST, MOTHERBRAIN_HOST};
 
 #[test]
 fn two_production_kernel_fragments_exchange_message_and_reply() {

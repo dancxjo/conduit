@@ -6,7 +6,7 @@ use conduit_core::{
     TEXT_INFO_ID,
 };
 use conduit_form::{parse_syntax_document, Argument, BackStatement};
-use conduit_std_catalog::StandardConfigurationRule;
+use conduit_semantic_catalog::StandardConfigurationRule;
 
 use crate::{FormEditor, FormEditorError, PatchbayGraph};
 
@@ -84,7 +84,7 @@ impl FormEditor {
             .iter()
             .find(|control| control.key == key)
             .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;
-        let rule = conduit_std_catalog::supported_nucleus_contracts()
+        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
             .into_iter()
             .find(|contract| contract.kind_id == gear.kind_id)
             .and_then(|contract| {
@@ -137,7 +137,7 @@ impl FormEditor {
             .iter()
             .find(|gear| gear.gear_id.as_str() == expanded_gear_id)
             .ok_or_else(|| FormEditorError::UnknownGear(gear_name.into()))?;
-        let contract = conduit_std_catalog::supported_nucleus_contracts()
+        let contract = conduit_semantic_catalog::supported_nucleus_contracts()
             .into_iter()
             .find(|contract| contract.kind_id == gear.kind_id)
             .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?;

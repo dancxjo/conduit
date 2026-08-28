@@ -20,7 +20,7 @@ impl TimerAdapter for RecordingTimer {
 fn ordinary_semantics_match_the_materially_different_std_realization() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut catalog = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog).unwrap();
     let syntax =
         conduit_form::parse_syntax_document(conduitos::ordinary_plan::ORDINARY_FORM_SOURCE);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();

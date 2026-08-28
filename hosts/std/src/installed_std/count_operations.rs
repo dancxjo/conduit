@@ -85,7 +85,8 @@ impl CountPresentationOperation {
             } if self.pending.is_none() && self.next < self.maximum_values => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, conduit_std_catalog::COUNT_ENCODED_LEN)
+                let Ok(input) =
+                    BoundedValueRef::new(value, conduit_semantic_catalog::COUNT_ENCODED_LEN)
                 else {
                     return InstalledOperation::fail(11);
                 };
@@ -119,13 +120,13 @@ impl CountPresentationOperation {
 
 fn state_count_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_count(placement)?;
-    let values = conduit_std_catalog::MAX_COUNT_VALUES;
+    let values = conduit_semantic_catalog::MAX_COUNT_VALUES;
     Ok(OperationBudget {
         value_items: values as u16,
-        value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN * values as u32,
+        value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN * values as u32,
         host_requests: 0,
         sign_items: 96,
-        maximum_value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN,
+        maximum_value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
     })
 }
 
@@ -135,9 +136,9 @@ fn prepare_state_count(
 ) -> Result<InstalledOperation, String> {
     validate_state_count(placement)?;
     let start = count_configuration(placement, "start", u64::MAX)?;
-    let mut prepared = Vec::with_capacity(conduit_std_catalog::MAX_COUNT_VALUES as usize);
-    for offset in 0..conduit_std_catalog::MAX_COUNT_VALUES {
-        let count = conduit_std_catalog::bounded_count_value(start, offset)
+    let mut prepared = Vec::with_capacity(conduit_semantic_catalog::MAX_COUNT_VALUES as usize);
+    for offset in 0..conduit_semantic_catalog::MAX_COUNT_VALUES {
+        let count = conduit_semantic_catalog::bounded_count_value(start, offset)
             .ok_or_else(|| "state/count exceeds the Count range".to_string())?;
         prepared.push(
             values
@@ -157,14 +158,14 @@ fn count_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget,
     let maximum = count_configuration(
         placement,
         "maximum-values",
-        conduit_std_catalog::MAX_COUNT_VALUES,
+        conduit_semantic_catalog::MAX_COUNT_VALUES,
     )?;
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: maximum as usize,
         sign_items: 64,
-        maximum_value_bytes: conduit_std_catalog::COUNT_ENCODED_LEN,
+        maximum_value_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
     })
 }
 
@@ -180,7 +181,7 @@ fn prepare_count_presentation(
             maximum_values: count_configuration(
                 placement,
                 "maximum-values",
-                conduit_std_catalog::MAX_COUNT_VALUES,
+                conduit_semantic_catalog::MAX_COUNT_VALUES,
             )? as u32,
         },
     ))
@@ -207,8 +208,8 @@ fn count_configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Resu
 fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
-        conduit_std_catalog::STATE_COUNT_KIND,
-        conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION,
+        conduit_semantic_catalog::STATE_COUNT_KIND,
+        conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION,
         conduit_std_offers::STATE_COUNT_EXECUTION_PROFILE,
         conduit_std_offers::STATE_COUNT_IMPLEMENTATION,
         conduit_std_offers::STATE_COUNT_ARTIFACT,
@@ -217,7 +218,7 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
         PortTemporal::Flow { closes: true },
         Some((
             "value",
-            conduit_std_catalog::STATE_COUNT_VALUE_KIND,
+            conduit_semantic_catalog::STATE_COUNT_VALUE_KIND,
             PortTemporal::Current,
         )),
     )?;
@@ -232,20 +233,20 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
 fn validate_count_presentation(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
-        conduit_std_catalog::COUNT_PRESENTATION_KIND,
-        conduit_std_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
+        conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
         conduit_std_offers::COUNT_PRESENTATION_EXECUTION_PROFILE,
         conduit_std_offers::COUNT_PRESENTATION_IMPLEMENTATION,
         conduit_std_offers::COUNT_PRESENTATION_ARTIFACT,
         "value",
-        conduit_std_catalog::STATE_COUNT_VALUE_KIND,
+        conduit_semantic_catalog::STATE_COUNT_VALUE_KIND,
         PortTemporal::Current,
         None,
     )?;
     let maximum = count_configuration(
         placement,
         "maximum-values",
-        conduit_std_catalog::MAX_COUNT_VALUES,
+        conduit_semantic_catalog::MAX_COUNT_VALUES,
     )?;
     if maximum == 0 {
         return Err("presentation/count maximum-values must be positive".to_string());
@@ -296,7 +297,7 @@ fn validate_identity(
 }
 
 pub(super) fn decode_count(bytes: &[u8]) -> Result<u64, String> {
-    let encoded: [u8; conduit_std_catalog::COUNT_ENCODED_LEN as usize] = bytes
+    let encoded: [u8; conduit_semantic_catalog::COUNT_ENCODED_LEN as usize] = bytes
         .try_into()
         .map_err(|_| "count presentation input is not an exact Count".to_string())?;
     Ok(u64::from_le_bytes(encoded))

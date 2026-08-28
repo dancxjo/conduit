@@ -41,13 +41,13 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
         secondary_base: None,
         input: Some(PortOffer {
             name: "text",
-            value_kind: conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            value_kind: conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
             direction: PortDirection::Input,
             closes: true,
         }),
         output: Some(PortOffer {
             name: "text",
-            value_kind: conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            value_kind: conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
             direction: PortDirection::Output,
             closes: true,
         }),

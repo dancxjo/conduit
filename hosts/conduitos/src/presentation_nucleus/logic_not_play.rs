@@ -88,7 +88,7 @@ pub fn prepare_not(
     input: InfoBool,
 ) -> Result<PreparedLogicNot, LogicNotError> {
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_logic_catalogs(&mut StartupCatalog::new(), &mut catalog)
+    conduit_semantic_catalog::install_logic_catalogs(&mut StartupCatalog::new(), &mut catalog)
         .map_err(|_| LogicNotError::Catalog)?;
     catalog
         .insert(conduit_form::KindDefinition {
@@ -349,7 +349,7 @@ fn scheduler(
                         .map_err(|_| LogicNotError::Value)?,
                     emitted: false,
                 },
-                conduit_std_catalog::LOGIC_NOT_KIND => {
+                conduit_semantic_catalog::LOGIC_NOT_KIND => {
                     transform = Some(NodeId(index as u16));
                     PresentationOperation::Transform {
                         maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
@@ -437,7 +437,7 @@ mod tests {
             let placement = prepared.plan.fragments[0]
                 .placements
                 .iter()
-                .find(|p| p.kind_id.as_str() == conduit_std_catalog::LOGIC_NOT_KIND)
+                .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::LOGIC_NOT_KIND)
                 .unwrap();
             assert_eq!(
                 placement.implementation_id.as_str(),
@@ -454,7 +454,7 @@ mod tests {
         let transform = prepared.plan.fragments[0]
             .placements
             .iter_mut()
-            .find(|p| p.kind_id.as_str() == conduit_std_catalog::LOGIC_NOT_KIND)
+            .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::LOGIC_NOT_KIND)
             .unwrap();
         transform.artifact_id = ArtifactId::from("mutated/not");
         assert!(!conduit_core::verify_plan(&prepared.plan));

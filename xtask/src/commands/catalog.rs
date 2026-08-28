@@ -364,20 +364,20 @@ mod tests {
         assert_eq!(
             std_missing,
             vec![
-                conduit_std_catalog::PATCHBAY_PRESENTATION_KIND,
-                conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND,
-                conduit_std_catalog::PATCHBAY_PORT_KIND,
-                conduit_std_catalog::PATCHBAY_CORD_KIND,
+                conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND,
+                conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND,
+                conduit_semantic_catalog::PATCHBAY_PORT_KIND,
+                conduit_semantic_catalog::PATCHBAY_CORD_KIND,
             ]
         );
         assert!(std.entries.iter().any(|entry| {
-            entry.kind_id == conduit_std_catalog::STATE_TOGGLE_KIND
+            entry.kind_id == conduit_semantic_catalog::STATE_TOGGLE_KIND
                 && matches!(entry.coverage, Coverage::Direct)
         }));
 
         let browser = build_report(&[CatalogHost::Browser], None).unwrap();
         assert!(browser.entries.iter().any(|entry| {
-            entry.kind_id == conduit_std_catalog::BOOL_PRESENTATION_KIND
+            entry.kind_id == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
                 && matches!(entry.coverage, Coverage::Direct)
         }));
 
@@ -407,7 +407,7 @@ mod tests {
         let gear_face = os
             .entries
             .iter()
-            .find(|entry| entry.kind_id == conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND)
+            .find(|entry| entry.kind_id == conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND)
             .unwrap();
         assert!(matches!(gear_face.coverage, Coverage::Recursive));
         assert!(gear_face.implementation.is_none());
@@ -480,10 +480,10 @@ mod tests {
     fn patchbay_high_level_and_subject_kinds_are_recursive_on_the_constrained_profile() {
         let report = build_report(&[CatalogHost::PatchbayConstrained], None).unwrap();
         for kind in [
-            conduit_std_catalog::PATCHBAY_PRESENTATION_KIND,
-            conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND,
-            conduit_std_catalog::PATCHBAY_PORT_KIND,
-            conduit_std_catalog::PATCHBAY_CORD_KIND,
+            conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND,
+            conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND,
+            conduit_semantic_catalog::PATCHBAY_PORT_KIND,
+            conduit_semantic_catalog::PATCHBAY_CORD_KIND,
         ] {
             let entry = report
                 .entries
@@ -506,7 +506,7 @@ mod tests {
         let entries = report
             .entries
             .iter()
-            .filter(|entry| entry.kind_id == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND)
+            .filter(|entry| entry.kind_id == conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND)
             .collect::<Vec<_>>();
         assert_eq!(entries.len(), CatalogHost::ALL.len());
         let std_profile = profiles::advertisement(CatalogHost::Std)
@@ -537,7 +537,7 @@ mod tests {
             conduitos::presentation_nucleus::presentation_nucleus_offers()
                 .into_iter()
                 .find(|offer| {
-                    offer.kind_id.as_str() == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+                    offer.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
                 })
                 .unwrap()
                 .implementation

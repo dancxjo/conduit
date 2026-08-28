@@ -80,10 +80,10 @@ fn validate_observatory(
     conduit_observatory::validate_snapshot(snapshot)
         .map_err(|error| ConduitosError::refusal("invalid-keyboard-text-observatory", error))?;
     let expected_kinds = [
-        conduit_std_catalog::KEYBOARD_KIND,
-        conduit_std_catalog::KEYMAP_KIND,
+        conduit_semantic_catalog::KEYBOARD_KIND,
+        conduit_semantic_catalog::KEYMAP_KIND,
         conduit_text::TEXT_UPPER_KIND,
-        conduit_std_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
     ];
     let Some(plan) = snapshot.plans.first() else {
         return Err(ConduitosError::refusal(

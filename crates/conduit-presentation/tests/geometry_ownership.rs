@@ -10,11 +10,11 @@ fn portable_geometry_has_one_host_neutral_owner() {
         .split_once("[dev-dependencies]")
         .expect("presentation owner declares dev dependencies")
         .0;
-    for forbidden in ["conduit-std-catalog", "conduit-std-host", "hosts/"] {
+    for forbidden in ["conduit-semantic-catalog", "conduit-std-host", "hosts/"] {
         assert!(!dependencies.contains(forbidden));
     }
 
-    let old_owner = Path::new(env!("CARGO_MANIFEST_DIR")).join("../conduit-std-catalog/src");
+    let old_owner = Path::new(env!("CARGO_MANIFEST_DIR")).join("../conduit-semantic-catalog/src");
     for entry in fs::read_dir(&old_owner).expect("read former owner source directory") {
         let path = entry.expect("read former owner source entry").path();
         let name = path

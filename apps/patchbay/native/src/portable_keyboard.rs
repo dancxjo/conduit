@@ -15,7 +15,7 @@ pub const NATIVE_KEYBOARD_ARTIFACT: &str = "patchbay-native/winit-physical-key-a
 pub const WINDOW_INPUT_RESOURCE: &str = "patchbay-native.resource/window-input-base@1";
 pub const EVENT_QUEUE_RESOURCE: &str = "patchbay-native.resource/key-event-slot@1";
 pub const OPERATION_RESOURCE: &str = "patchbay-native.resource/input-operation-slot@1";
-pub const EVENT_CAPACITY: usize = conduit_std_catalog::KEYBOARD_MAX_QUEUE_ITEMS as usize;
+pub const EVENT_CAPACITY: usize = conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS as usize;
 const HELD_CAPACITY: usize = 16;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -240,7 +240,7 @@ impl conduit_std_host::hosted_keyboard::HostedKeyboardAdapter for NativeKeyboard
 
 pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String> {
     if advertisement.capabilities.iter().any(|offer| {
-        offer.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND
+        offer.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND
             || offer.implementation.implementation_id.as_str() == NATIVE_KEYBOARD_IMPLEMENTATION
     }) {
         return Err("native keyboard offer duplicates an existing implementation".into());
@@ -257,7 +257,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         resource_offer(&format!("{base}/input"), INPUT_RESOURCE_CLASS, 1),
     ];
     append_resources(&mut advertisement.resources, resources)?;
-    let contract = conduit_std_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_contract();
     let mut requirements = vec![
         resource_requirement(INPUT_RESOURCE_CLASS, 1),
         resource_requirement(WINDOW_INPUT_RESOURCE, 1),
@@ -270,7 +270,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-native/input-keyboard@1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(NATIVE_KEYBOARD_PROFILE),
             implementation_id: ImplementationId::from(NATIVE_KEYBOARD_IMPLEMENTATION),

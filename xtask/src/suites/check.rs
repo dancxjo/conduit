@@ -76,13 +76,13 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &["check", "-p", "conduit-wire", "--no-default-features"],
     ),
     Step::new(
-        "check.no-std.std-catalog",
-        "std-catalog no-default-features check",
+        "check.no-std.semantic-catalog",
+        "semantic-catalog no-default-features check",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-std-catalog",
+            "conduit-semantic-catalog",
             "--no-default-features",
         ],
     ),
@@ -282,13 +282,13 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "check.thumb.std-catalog",
-        "std-catalog thumb target check",
+        "check.thumb.semantic-catalog",
+        "semantic-catalog thumb target check",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-std-catalog",
+            "conduit-semantic-catalog",
             "--no-default-features",
             "--target",
             "thumbv6m-none-eabi",
@@ -747,21 +747,21 @@ pub const OBSERVATORY_READINESS_STEPS: &[Step] = &[
     ),
 ];
 
-pub const STD_CATALOG_READINESS_STEPS: &[Step] = &[
+pub const SEMANTIC_CATALOG_READINESS_STEPS: &[Step] = &[
     Step::new(
-        "check.std-catalog.test",
-        "test conduit-std-catalog",
+        "check.semantic-catalog.test",
+        "test conduit-semantic-catalog",
         "cargo",
-        &["test", "-p", "conduit-std-catalog"],
+        &["test", "-p", "conduit-semantic-catalog"],
     ),
     Step::typed(
-        "check.std-catalog.thumb",
-        "check conduit-std-catalog thumb target",
+        "check.semantic-catalog.thumb",
+        "check conduit-semantic-catalog thumb target",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-std-catalog",
+            "conduit-semantic-catalog",
             "--no-default-features",
             "--target",
             "thumbv6m-none-eabi",
@@ -819,7 +819,7 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
             "-p",
             "conduit-core",
             "-p",
-            "conduit-std-catalog",
+            "conduit-semantic-catalog",
             "--no-default-features",
             "--target",
             "thumbv6m-none-eabi",

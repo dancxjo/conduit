@@ -57,16 +57,16 @@ pub const MIDI_READINESS_WAIT_MILLIS: u16 = 10;
 /// Exact portable-musical subset preserved by the reviewed MIDI 1.0 output
 /// adapter. Endpoint availability and authority remain observation facts.
 pub fn output_compatibility_profile(
-) -> Result<conduit_std_catalog::SoundCompatibilityProfile, &'static str> {
+) -> Result<conduit_semantic_catalog::SoundCompatibilityProfile, &'static str> {
     let minimum_pitch =
         conduit_audio::MusicalPitch::from_equal_tempered(-69, A4_REFERENCE_MILLIHERTZ, 0)
             .map_err(|_| "MIDI minimum pitch profile is invalid")?;
     let maximum_pitch =
         conduit_audio::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
             .map_err(|_| "MIDI maximum pitch profile is invalid")?;
-    Ok(conduit_std_catalog::SoundCompatibilityProfile {
+    Ok(conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: conduit_std_offers::MUSIC_PLAY_MIDI_PROFILE.into(),
-        seam: conduit_std_catalog::SoundSeam::MusicalEvents,
+        seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
         minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
         maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
         maximum_polyphony: 128,
@@ -189,7 +189,7 @@ impl HostedMidiSelection {
             return Err("a readable MIDI source cannot realize music/play output");
         }
         let profile = output_compatibility_profile()?;
-        let mut characteristics = conduit_std_catalog::sound_profile_characteristics(&profile);
+        let mut characteristics = conduit_semantic_catalog::sound_profile_characteristics(&profile);
         characteristics.extend([
             label(MIDI_DIRECTION_CHARACTERISTIC, "writable-destination"),
             label(
@@ -237,7 +237,7 @@ fn count(id: &str, value: u64) -> RealizationCharacteristic {
         id,
         id,
         "Stable reviewed MIDI realization quantity.",
-        conduit_std_catalog::sound_characteristic_unit(id),
+        conduit_semantic_catalog::sound_characteristic_unit(id),
         u64::MAX,
         value,
     )
@@ -261,7 +261,10 @@ mod tests {
     #[test]
     fn output_profile_is_reusable_without_claiming_an_endpoint() {
         let profile = output_compatibility_profile().unwrap();
-        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::MusicalEvents);
+        assert_eq!(
+            profile.seam,
+            conduit_semantic_catalog::SoundSeam::MusicalEvents
+        );
         assert_eq!(profile.maximum_polyphony, 128);
         assert!(profile.preserves_velocity);
         assert!(!profile.accepts_microtonal_pitch);

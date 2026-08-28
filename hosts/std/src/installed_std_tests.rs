@@ -152,20 +152,20 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     let latest = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::LATEST_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::LATEST_KIND)
         .expect("latest placement exists");
     let tee = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::TEE_KIND)
         .expect("tee placement exists");
     assert_eq!(
         latest.kind_contract_revision.as_str(),
-        conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION
+        conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION
     );
     assert_eq!(
         tee.kind_contract_revision.as_str(),
-        conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION
+        conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION
     );
     assert!(latest
         .inputs
@@ -234,7 +234,7 @@ fn mutated_typed_tee_identity_fails_before_play() {
     fragment
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::TEE_KIND)
         .expect("tee placement exists")
         .artifact_id = conduit_core::ArtifactId::from("mutated/tee-artifact");
 
@@ -561,7 +561,7 @@ fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
 "#;
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_form::expand_canonical_form(&checked, "hello", &profile).unwrap();
@@ -594,7 +594,7 @@ form welcome {
 "#;
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_form::expand_canonical_form(&checked, "welcome", &profile).unwrap();
@@ -617,7 +617,8 @@ fn canonical_clock_has_zero_successful_post_play_start_allocations() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+        .unwrap();
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_form::expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
@@ -657,8 +658,9 @@ form count-demo {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+        .unwrap();
+    conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_form::expand_canonical_form(&checked, "count-demo", &profile).unwrap();
@@ -669,7 +671,7 @@ form count-demo {
     let state = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::STATE_COUNT_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::STATE_COUNT_KIND)
         .unwrap();
     assert_eq!(
         state.inputs[0].temporal,

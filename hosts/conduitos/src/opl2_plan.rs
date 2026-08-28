@@ -129,18 +129,18 @@ pub fn validate(
     let sink = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MUSIC_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::MUSIC_PLAY_KIND)
         .ok_or(PreparationError::PlanRejected)?;
-    if sink.kind_contract_revision.as_str() != conduit_std_catalog::MUSIC_PLAY_REVISION
+    if sink.kind_contract_revision.as_str() != conduit_semantic_catalog::MUSIC_PLAY_REVISION
         || sink.execution_profile_id.as_str() != OPL2_EXECUTION_PROFILE
         || sink.implementation_id.as_str() != OPL2_IMPLEMENTATION
         || sink.artifact_id.as_str() != format!("conduitos-build/{build_id}")
-        || sink.inputs != conduit_std_catalog::music_play_contract().inputs
+        || sink.inputs != conduit_semantic_catalog::music_play_contract().inputs
         || !sink.outputs.is_empty()
         || sink.host_operations.len() != 1
         || sink.host_operations[0].contract_id.as_str() != crate::opl2_offer::OPL2_HOST_OPERATION
         || sink.realization_characteristics
-            != conduit_std_catalog::sound_profile_characteristics(
+            != conduit_semantic_catalog::sound_profile_characteristics(
                 &crate::opl2_offer::compatibility_profile(),
             )
     {
@@ -193,7 +193,7 @@ fn checked_form() -> Result<conduit_form::CheckedForm, PreparationError> {
 fn checked(source: &str) -> Result<conduit_form::CheckedForm, PreparationError> {
     let mut catalog = conduit_form::ProfileCatalog::new();
     let mut startup = conduit_form::StartupCatalog::new();
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog)
         .map_err(|_| PreparationError::FormRejected)?;
     catalog
         .insert(conduit_form::KindDefinition {
@@ -302,7 +302,7 @@ fn realization_advertisement(
         boot_id: host.boot_id.clone(),
         offer_generation: host.offer_generation,
         capability_id: capability.capability_id.clone(),
-        characteristics: conduit_std_catalog::sound_profile_characteristics(&profile),
+        characteristics: conduit_semantic_catalog::sound_profile_characteristics(&profile),
     })
 }
 
@@ -310,18 +310,18 @@ fn fixture_requirements() -> BTreeMap<GearId, HardRealizationRequirements> {
     let mut requirements = BTreeMap::new();
     let mut output = HardRealizationRequirements::default();
     output.required_characteristic_labels.insert(
-        CharacteristicId::from(conduit_std_catalog::SOUND_SEAM_CHARACTERISTIC),
+        CharacteristicId::from(conduit_semantic_catalog::SOUND_SEAM_CHARACTERISTIC),
         "musical-events".into(),
     );
     output.minimum_characteristic_counts.insert(
-        CharacteristicId::from(conduit_std_catalog::MUSIC_MAXIMUM_POLYPHONY_CHARACTERISTIC),
+        CharacteristicId::from(conduit_semantic_catalog::MUSIC_MAXIMUM_POLYPHONY_CHARACTERISTIC),
         conduit_core::CharacteristicQuantity {
             value: 3,
             unit: conduit_core::CharacteristicUnit::Items,
         },
     );
     output.required_characteristic_flags.insert(
-        CharacteristicId::from(conduit_std_catalog::MUSIC_SUBTRACTIVE_FILTER_CHARACTERISTIC),
+        CharacteristicId::from(conduit_semantic_catalog::MUSIC_SUBTRACTIVE_FILTER_CHARACTERISTIC),
         false,
     );
     requirements.insert(GearId::from("conduitos-opl2-music/output"), output);
@@ -404,14 +404,14 @@ pub(crate) mod tests {
         let mut subtractive = offered.clone();
         subtractive.supports_subtractive_filter = true;
         assert_eq!(
-            conduit_std_catalog::compatibility(&subtractive, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::SubtractiveFilterUnsupported)
+            conduit_semantic_catalog::compatibility(&subtractive, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::SubtractiveFilterUnsupported)
         );
         let mut pcm = offered.clone();
-        pcm.seam = conduit_std_catalog::SoundSeam::PcmPlayback;
+        pcm.seam = conduit_semantic_catalog::SoundSeam::PcmPlayback;
         assert_eq!(
-            conduit_std_catalog::compatibility(&pcm, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::WrongSemanticSeam)
+            conduit_semantic_catalog::compatibility(&pcm, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::WrongSemanticSeam)
         );
     }
 }

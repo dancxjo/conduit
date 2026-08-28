@@ -364,7 +364,9 @@ fn prepare_debounce(
         cancellation: None,
         candidate: None,
         released: None,
-        terminal_releases: Vec::with_capacity(conduit_std_catalog::TIME_MAXIMUM_VALUES as usize),
+        terminal_releases: Vec::with_capacity(
+            conduit_semantic_catalog::TIME_MAXIMUM_VALUES as usize,
+        ),
         retain_resumed: false,
         closing: false,
         complete_after_emit: false,
@@ -393,7 +395,7 @@ fn prepare_timeout(
         pending: None,
         cancellation: None,
         terminal_releases: Vec::with_capacity(
-            conduit_std_catalog::TIME_TIMEOUT_MAXIMUM_VALUES as usize * 3,
+            conduit_semantic_catalog::TIME_TIMEOUT_MAXIMUM_VALUES as usize * 3,
         ),
         timed_out: false,
         closing: false,
@@ -432,7 +434,7 @@ fn validate_debounce(placement: &PlannedGear) -> Result<(), String> {
     validate(
         placement,
         &conduit_std_offers::time_debounce_offer(),
-        conduit_std_catalog::TIME_DEBOUNCE_KIND,
+        conduit_semantic_catalog::TIME_DEBOUNCE_KIND,
     )
 }
 
@@ -440,7 +442,7 @@ fn validate_timeout(placement: &PlannedGear) -> Result<(), String> {
     validate(
         placement,
         &conduit_std_offers::time_timeout_offer(),
-        conduit_std_catalog::TIME_TIMEOUT_KIND,
+        conduit_semantic_catalog::TIME_TIMEOUT_KIND,
     )
 }
 

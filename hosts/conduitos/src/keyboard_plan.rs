@@ -49,8 +49,8 @@ pub fn prepare(
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
-            connection_item_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_ITEMS,
-            connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+            connection_item_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_ITEMS,
+            connection_byte_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -97,13 +97,14 @@ pub fn validate(
         return Err(PreparationError::PlanRejected);
     }
     let placement = &fragment.placements[0];
-    if placement.kind_id.as_str() != conduit_std_catalog::KEYBOARD_KIND
-        || placement.kind_contract_revision != conduit_std_catalog::keyboard_contract_revision()
+    if placement.kind_id.as_str() != conduit_semantic_catalog::KEYBOARD_KIND
+        || placement.kind_contract_revision
+            != conduit_semantic_catalog::keyboard_contract_revision()
         || placement.execution_profile_id.as_str() != KEYBOARD_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != KEYBOARD_IMPLEMENTATION
         || placement.artifact_id.as_str() != alloc::format!("conduitos-build/{build_id}")
         || !placement.inputs.is_empty()
-        || placement.outputs != conduit_std_catalog::keyboard_outputs()
+        || placement.outputs != conduit_semantic_catalog::keyboard_outputs()
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -148,7 +149,7 @@ fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, Prepar
     let syntax = conduit_form::parse_syntax_document(KEYBOARD_FORM_SOURCE);
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::FormRejected)?;

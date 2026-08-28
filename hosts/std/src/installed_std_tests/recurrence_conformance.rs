@@ -20,7 +20,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
     let sink_offer = installed_std::test_recurrence_sink_offer();
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_recurrence_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profile).unwrap();
     install_sink(&mut startup, &mut profile, &sink_offer);
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
@@ -53,7 +53,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
     let planned = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::RECURRENCE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::RECURRENCE_KIND)
         .unwrap();
     assert!(matches!(
         planned.configuration[0].value,
@@ -112,7 +112,7 @@ fn install_sink(
                 default_value: ConfigurationValue::U64(1),
                 validation: ConfigurationRule::U64Range {
                     minimum: 0,
-                    maximum: u64::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS),
+                    maximum: u64::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS),
                 },
             }],
         })

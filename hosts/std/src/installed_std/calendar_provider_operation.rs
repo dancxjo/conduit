@@ -96,9 +96,9 @@ impl CalendarProviderOperation {
     fn request(&mut self, value: ValueRef) -> OperationAction {
         self.pending = true;
         let maximum_input_bytes = if self.requires_prior {
-            conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES
+            conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES
         } else {
-            conduit_std_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES
+            conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES
         };
         let Ok(input) = BoundedValueRef::new(value, maximum_input_bytes) else {
             return fail(FailureCode::InvalidInput, 245);
@@ -136,11 +136,11 @@ pub(super) fn request_value(placement: &PlannedGear) -> Result<StructuredInfoVal
         .into_iter()
         .find(|offer| offer.implementation.implementation_id == placement.implementation_id)
         .ok_or_else(|| "calendar provider offer is absent".to_string())?;
-    let contract = conduit_std_catalog::calendar_provider_contracts()
+    let contract = conduit_semantic_catalog::calendar_provider_contracts()
         .into_iter()
         .find(|contract| contract.kind == offer.kind_id.as_str())
         .ok_or_else(|| "calendar provider portable contract is absent".to_string())?;
-    let expected = conduit_std_catalog::calendar_request_type(&contract);
+    let expected = conduit_semantic_catalog::calendar_request_type(&contract);
     if value.value_type() != &expected
         || operation.contract() != offer.host_operations[0].contract_id.as_str()
     {
@@ -226,11 +226,12 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 2,
         value_bytes: request_bytes
-            .checked_add(conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES)
+            .checked_add(conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES)
             .ok_or_else(|| "calendar value byte budget overflow".to_string())?,
         host_requests: 1,
         sign_items: 24,
-        maximum_value_bytes: request_bytes.max(conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES),
+        maximum_value_bytes: request_bytes
+            .max(conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES),
     })
 }
 

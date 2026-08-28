@@ -9,11 +9,11 @@ fn ordinary_latest_and_tee_plan_and_run_through_the_fixed_kernel() {
     let fragment = &prepared.plan.fragments[0];
     for (kind, implementation) in [
         (
-            conduit_std_catalog::LATEST_KIND,
+            conduit_semantic_catalog::LATEST_KIND,
             crate::functional_offers::STATE_LATEST_SCALAR_IMPLEMENTATION,
         ),
         (
-            conduit_std_catalog::TEE_KIND,
+            conduit_semantic_catalog::TEE_KIND,
             crate::functional_offers::FLOW_TEE_SCALAR_IMPLEMENTATION,
         ),
     ] {

@@ -356,7 +356,9 @@ mod tests {
         let grant =
             |handle: &str, role: &str, access, policy| conduit_core::ProtectedResourceGrant {
                 handle_id: ResourceHandleId::from(handle),
-                class_id: ResourceClassId::from(conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS),
+                class_id: ResourceClassId::from(
+                    conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
+                ),
                 gear_id: GearId::from("copy-task/task"),
                 role_id: ResourceBindingRoleId::from(role),
                 host_id: host.advertisement().host_id.clone(),
@@ -369,13 +371,13 @@ mod tests {
         [
             grant(
                 "counter/source",
-                conduit_std_catalog::COPY_SOURCE_ROLE,
+                conduit_semantic_catalog::COPY_SOURCE_ROLE,
                 ProtectedResourceAccess::ReadExisting,
                 ProtectedResourceCommitPolicy::NotApplicable,
             ),
             grant(
                 "counter/destination",
-                conduit_std_catalog::COPY_DESTINATION_ROLE,
+                conduit_semantic_catalog::COPY_DESTINATION_ROLE,
                 ProtectedResourceAccess::Create,
                 ProtectedResourceCommitPolicy::CreateOnly,
             ),

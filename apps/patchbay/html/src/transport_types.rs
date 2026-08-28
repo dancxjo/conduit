@@ -21,7 +21,7 @@ pub struct BrowserPalettePort {
 pub struct BrowserPaletteConfiguration {
     pub key: String,
     pub default_value: conduit_core::ConfigurationValue,
-    pub rule: conduit_std_catalog::StandardConfigurationRule,
+    pub rule: conduit_semantic_catalog::StandardConfigurationRule,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

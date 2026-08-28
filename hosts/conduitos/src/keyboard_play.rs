@@ -104,7 +104,7 @@ pub fn run(
         .first()
         .ok_or(PreparationError::PlanRejected)?;
     if fragment.placements.len() != 1
-        || fragment.placements[0].kind_id.as_str() != conduit_std_catalog::KEYBOARD_KIND
+        || fragment.placements[0].kind_id.as_str() != conduit_semantic_catalog::KEYBOARD_KIND
         || prepared.active_play.plan_id != prepared.plan.plan_id
         || prepared.active_play.host_id != fragment.host_id
         || prepared.active_play.boot_id != fragment.boot_id

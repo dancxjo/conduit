@@ -35,7 +35,7 @@ impl AudioPlayOperation {
             } if self.pending.is_none()
                 && !self.closed
                 && self.next_request
-                    < u32::from(conduit_std_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) =>
+                    < u32::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) =>
             {
                 self.request(value, false)
             }
@@ -77,9 +77,10 @@ impl AudioPlayOperation {
         self.next_request = self.next_request.saturating_add(1);
         self.pending = Some(request);
         self.draining = drain;
-        let Ok(input) =
-            BoundedValueRef::new(value, conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES)
-        else {
+        let Ok(input) = BoundedValueRef::new(
+            value,
+            conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+        ) else {
             return InstalledOperation::fail(62);
         };
         OperationAction::RequestHostOperation {
@@ -95,9 +96,9 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 1,
         value_bytes: DRAIN_MARKER.len() as u32,
-        host_requests: usize::from(conduit_std_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) + 1,
+        host_requests: usize::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) + 1,
         sign_items: 64,
-        maximum_value_bytes: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+        maximum_value_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
     })
 }
 

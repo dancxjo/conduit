@@ -9,7 +9,7 @@ pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 
 pub fn json_encode_std_offer() -> CapabilityOffer {
     json_offer(
-        conduit_std_catalog::json_encode_contract(),
+        conduit_semantic_catalog::json_encode_contract(),
         conduit_web::JSON_ENCODE_REVISION,
         "std-json-encode-v1",
         JSON_ENCODE_STD_IMPLEMENTATION,
@@ -19,7 +19,7 @@ pub fn json_encode_std_offer() -> CapabilityOffer {
 
 pub fn json_decode_std_offer() -> CapabilityOffer {
     json_offer(
-        conduit_std_catalog::json_decode_contract(),
+        conduit_semantic_catalog::json_decode_contract(),
         conduit_web::JSON_DECODE_REVISION,
         "std-json-decode-v1",
         JSON_DECODE_STD_IMPLEMENTATION,
@@ -28,17 +28,17 @@ pub fn json_decode_std_offer() -> CapabilityOffer {
 }
 
 fn json_offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
     operation: &str,
 ) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    let mut offer = conduit_std_catalog::realization_offer(
+    let mut offer = conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: "std/no-std-bounded-json@1",
             implementation,
@@ -71,11 +71,11 @@ mod tests {
         let decode = json_decode_std_offer();
         assert_eq!(
             encode.kind_id,
-            conduit_std_catalog::json_encode_contract().kind_id
+            conduit_semantic_catalog::json_encode_contract().kind_id
         );
         assert_eq!(
             decode.kind_id,
-            conduit_std_catalog::json_decode_contract().kind_id
+            conduit_semantic_catalog::json_decode_contract().kind_id
         );
         assert!(encode.authority_requirements.is_empty());
         assert!(decode.authority_requirements.is_empty());

@@ -1,6 +1,6 @@
 use conduit_browser_runtime::text_lab_split::BrowserTextLabFragment;
 use conduit_core::{Plan, PlanFragment};
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_FORWARD_LINE,
     TEXT_LAB_MAXIMUM_VALUES, TEXT_LAB_NATIVE_HOST, TEXT_LAB_RETURN_LINE,
 };

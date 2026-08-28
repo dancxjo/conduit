@@ -119,7 +119,7 @@ fn plan_fragment(
             observations: &observations,
             policies: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             authority_grants: &grants,
         },
     )
@@ -160,7 +160,7 @@ fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
     let synth = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MUSIC_SYNTH_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::MUSIC_SYNTH_KIND)
         .unwrap();
     assert_eq!(synth.configuration.len(), 14);
     assert_eq!(synth.resources.len(), 0);
@@ -168,15 +168,15 @@ fn ordinary_form_runs_midi_synth_and_playback_through_one_kernel() {
     let input = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MUSIC_INPUT_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::MUSIC_INPUT_KIND)
         .unwrap();
     assert_eq!(input.configuration.len(), 2);
     assert!(input.configuration.iter().any(|entry| {
-        entry.key == conduit_std_catalog::MUSIC_INPUT_A4_REFERENCE_KEY
+        entry.key == conduit_semantic_catalog::MUSIC_INPUT_A4_REFERENCE_KEY
             && entry.value == conduit_core::ConfigurationValue::U64(442_000)
     }));
     assert!(input.configuration.iter().any(|entry| {
-        entry.key == conduit_std_catalog::MUSIC_INPUT_TRANSPOSE_KEY
+        entry.key == conduit_semantic_catalog::MUSIC_INPUT_TRANSPOSE_KEY
             && entry.value == conduit_core::ConfigurationValue::I64(12)
     }));
 

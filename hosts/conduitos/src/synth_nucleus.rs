@@ -2,7 +2,7 @@
 
 use conduit_audio::{AudioRenderDemand, MusicalControlEvent, MusicalNoteEvent, PcmChannelLayout};
 
-const MAXIMUM_PCM_BYTES: usize = conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize;
+const MAXIMUM_PCM_BYTES: usize = conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SynthNucleusError {
@@ -54,7 +54,7 @@ impl SynthNucleus {
     }
 
     pub fn render(&mut self, demand: AudioRenderDemand) -> Result<SynthOutput, SynthNucleusError> {
-        if demand.clock_id != conduit_std_catalog::AUDIO_RENDER_CLOCK_ID
+        if demand.clock_id != conduit_semantic_catalog::AUDIO_RENDER_CLOCK_ID
             || demand.sequence != self.next_sequence
             || demand.start_frame != self.synth.frame_cursor()
         {

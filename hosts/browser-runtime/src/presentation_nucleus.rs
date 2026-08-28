@@ -106,7 +106,7 @@ pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
     let structured = conduit_presentation::StructuredSignPresentation::from_sign(
         1,
         &structured_sign,
-        &conduit_std_catalog::education_feedback_type(),
+        &conduit_semantic_catalog::education_feedback_type(),
     )
     .map_err(|error| format!("project browser structured presentation: {error:?}"))?;
     Ok(BrowserNucleusProof {
@@ -261,8 +261,8 @@ fn prepare_scheduler(
     let mut drivers = Vec::with_capacity(MAX_NODES);
     for placement in &fragment.placements {
         let operation = match placement.kind_id.as_str() {
-            conduit_std_catalog::LAYOUT_VIEWPORT_KIND => {
-                let value = conduit_std_catalog::execute_layout_source(placement)?;
+            conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => {
+                let value = conduit_semantic_catalog::execute_layout_source(placement)?;
                 let encoded = value.encode();
                 NucleusOperation::Source {
                     value: values
@@ -271,8 +271,8 @@ fn prepare_scheduler(
                     emitted: false,
                 }
             }
-            conduit_std_catalog::PRESENTATION_ICON_KIND => {
-                let value = conduit_std_catalog::execute_presentation_source(placement)?;
+            conduit_semantic_catalog::PRESENTATION_ICON_KIND => {
+                let value = conduit_semantic_catalog::execute_presentation_source(placement)?;
                 let encoded = value.encode();
                 NucleusOperation::Source {
                     value: values
@@ -309,36 +309,38 @@ fn prepare_scheduler(
 
 fn transform(placement: &conduit_core::PlannedGear, input: &[u8]) -> Result<Vec<u8>, String> {
     match placement.kind_id.as_str() {
-        conduit_std_catalog::LAYOUT_ROW_KIND
-        | conduit_std_catalog::LAYOUT_COLUMN_KIND
-        | conduit_std_catalog::LAYOUT_STACK_KIND
-        | conduit_std_catalog::LAYOUT_INSET_KIND
-        | conduit_std_catalog::LAYOUT_ALIGN_KIND => {
+        conduit_semantic_catalog::LAYOUT_ROW_KIND
+        | conduit_semantic_catalog::LAYOUT_COLUMN_KIND
+        | conduit_semantic_catalog::LAYOUT_STACK_KIND
+        | conduit_semantic_catalog::LAYOUT_INSET_KIND
+        | conduit_semantic_catalog::LAYOUT_ALIGN_KIND => {
             let frame = LayoutFrame::decode(input)
                 .map_err(|error| format!("decode browser layout input: {error:?}"))?;
-            let output = conduit_std_catalog::execute_layout_transform(placement, frame)?;
+            let output = conduit_semantic_catalog::execute_layout_transform(placement, frame)?;
             Ok(output.encode()[..output.encoded_len()].to_vec())
         }
-        conduit_std_catalog::PRESENTATION_FRAME_KIND
-        | conduit_std_catalog::PRESENTATION_BADGE_KIND => {
+        conduit_semantic_catalog::PRESENTATION_FRAME_KIND
+        | conduit_semantic_catalog::PRESENTATION_BADGE_KIND => {
             let value = PresentationComposition::decode(input)
                 .map_err(|error| format!("decode browser presentation input: {error:?}"))?;
-            let output = conduit_std_catalog::execute_presentation_transform(placement, value)?;
+            let output =
+                conduit_semantic_catalog::execute_presentation_transform(placement, value)?;
             Ok(output.encode()[..output.encoded_len()].to_vec())
         }
-        conduit_std_catalog::GRAPHICS_RECT_KIND => {
+        conduit_semantic_catalog::GRAPHICS_RECT_KIND => {
             let value = PresentationComposition::decode(input)
                 .map_err(|error| format!("decode browser graphics composition: {error:?}"))?;
-            encode_scene(conduit_std_catalog::execute_graphics_transform(
+            encode_scene(conduit_semantic_catalog::execute_graphics_transform(
                 placement,
                 Some(value),
                 None,
             )?)
         }
-        conduit_std_catalog::GRAPHICS_TEXT_KIND | conduit_std_catalog::GRAPHICS_ICON_KIND => {
+        conduit_semantic_catalog::GRAPHICS_TEXT_KIND
+        | conduit_semantic_catalog::GRAPHICS_ICON_KIND => {
             let scene = GraphicsScene::decode(input)
                 .map_err(|error| format!("decode browser graphics scene: {error:?}"))?;
-            encode_scene(conduit_std_catalog::execute_graphics_transform(
+            encode_scene(conduit_semantic_catalog::execute_graphics_transform(
                 placement,
                 None,
                 Some(scene),

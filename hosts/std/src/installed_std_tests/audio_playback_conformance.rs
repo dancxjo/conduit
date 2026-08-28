@@ -70,7 +70,7 @@ fn fragment(host: &StdHost, with_authority: bool) -> Result<conduit_core::PlanFr
             observations: &[observation],
             policies: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             authority_grants: &grants,
         },
     )
@@ -85,7 +85,7 @@ fn exact_grant_and_resource_run_bounded_specimen_through_production_kernel() {
     let playback = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::AUDIO_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND)
         .unwrap();
     assert_eq!(playback.resources.len(), 1);
     assert_eq!(playback.authority.len(), 1);
@@ -98,7 +98,7 @@ fn exact_grant_and_resource_run_bounded_specimen_through_production_kernel() {
     assert_eq!(fragment.connections[0].item_capacity, 1);
     assert_eq!(
         fragment.connections[0].byte_capacity,
-        conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
+        conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
     );
 
     let report = host

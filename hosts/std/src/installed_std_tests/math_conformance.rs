@@ -51,15 +51,15 @@ fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
     }));
     for (kind, implementation) in [
         (
-            conduit_std_catalog::MATH_DEADBAND_KIND,
+            conduit_semantic_catalog::MATH_DEADBAND_KIND,
             conduit_std_offers::MATH_DEADBAND_IMPLEMENTATION,
         ),
         (
-            conduit_std_catalog::MATH_SCALE_KIND,
+            conduit_semantic_catalog::MATH_SCALE_KIND,
             conduit_std_offers::MATH_SCALE_IMPLEMENTATION,
         ),
         (
-            conduit_std_catalog::MATH_CLAMP_KIND,
+            conduit_semantic_catalog::MATH_CLAMP_KIND,
             conduit_std_offers::MATH_CLAMP_IMPLEMENTATION,
         ),
     ] {
@@ -110,7 +110,7 @@ fn invalid_clamp_and_mutated_math_implementation_refuse_before_play() {
     fragment
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MATH_SCALE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::MATH_SCALE_KIND)
         .expect("scale placement exists")
         .artifact_id = ArtifactId::from("mutated/math-scale");
     assert!(host

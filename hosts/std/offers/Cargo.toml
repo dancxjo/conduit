@@ -9,7 +9,7 @@ conduit-alife = { path = "../../../crates/conduit-alife" }
 conduit-audio = { path = "../../../crates/conduit-audio" }
 conduit-core = { path = "../../../crates/conduit-core" }
 conduit-midi = { path = "../../../crates/conduit-midi" }
-conduit-std-catalog = { path = "../../../crates/conduit-std-catalog" }
+conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog" }
 conduit-time = { path = "../../../crates/conduit-time" }
 conduit-text = { path = "../../../crates/conduit-text" }
 conduit-presentation = { path = "../../../crates/conduit-presentation" }

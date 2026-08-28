@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, CapabilityOffer, HostOperationContractId, HostOperationRequirement, CHORD_ENCODED_LEN,
     KEY_EVENT_ENCODED_LEN,
 };
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const STATE_COUNT_EXECUTION_PROFILE: &str = "conduit.std/state-count-kernel-hosted@1";
 pub const STATE_COUNT_IMPLEMENTATION: &str = "std/kernel-state-count@1";
@@ -34,8 +34,8 @@ pub const CHORDS_HOST_TARGET: &str = "input/chord-fragment";
 
 pub fn state_count_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::state_count_contract(),
-        conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_count_contract(),
+        conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION,
         STATE_COUNT_CAPABILITY,
         STATE_COUNT_EXECUTION_PROFILE,
         STATE_COUNT_IMPLEMENTATION,
@@ -46,8 +46,8 @@ pub fn state_count_offer() -> CapabilityOffer {
 
 pub fn state_toggle_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::state_toggle_contract(),
-        conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_toggle_contract(),
+        conduit_semantic_catalog::STATE_TOGGLE_CONTRACT_REVISION,
         STATE_TOGGLE_CAPABILITY,
         STATE_TOGGLE_EXECUTION_PROFILE,
         STATE_TOGGLE_IMPLEMENTATION,
@@ -58,8 +58,8 @@ pub fn state_toggle_offer() -> CapabilityOffer {
 
 pub fn key_event_tee_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::key_event_tee_contract(),
-        conduit_std_catalog::KEY_EVENT_TEE_REVISION,
+        conduit_semantic_catalog::key_event_tee_contract(),
+        conduit_semantic_catalog::KEY_EVENT_TEE_REVISION,
         KEY_EVENT_TEE_CAPABILITY,
         KEY_EVENT_TEE_PROFILE,
         KEY_EVENT_TEE_IMPLEMENTATION,
@@ -70,8 +70,8 @@ pub fn key_event_tee_offer() -> CapabilityOffer {
 
 pub fn keymap_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::keymap_contract(),
-        conduit_std_catalog::KEYMAP_REVISION,
+        conduit_semantic_catalog::keymap_contract(),
+        conduit_semantic_catalog::KEYMAP_REVISION,
         KEYMAP_CAPABILITY,
         KEYMAP_PROFILE,
         KEYMAP_IMPLEMENTATION,
@@ -82,8 +82,8 @@ pub fn keymap_offer() -> CapabilityOffer {
 
 pub fn chords_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::chords_contract(),
-        conduit_std_catalog::CHORDS_REVISION,
+        conduit_semantic_catalog::chords_contract(),
+        conduit_semantic_catalog::CHORDS_REVISION,
         CHORDS_CAPABILITY,
         CHORDS_PROFILE,
         CHORDS_IMPLEMENTATION,
@@ -98,7 +98,7 @@ pub fn chords_offer() -> CapabilityOffer {
 
 #[allow(clippy::too_many_arguments)]
 fn offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     profile: &str,
@@ -140,18 +140,18 @@ mod tests {
         for (offer, contract) in [
             (
                 state_count_offer(),
-                conduit_std_catalog::state_count_contract(),
+                conduit_semantic_catalog::state_count_contract(),
             ),
             (
                 state_toggle_offer(),
-                conduit_std_catalog::state_toggle_contract(),
+                conduit_semantic_catalog::state_toggle_contract(),
             ),
             (
                 key_event_tee_offer(),
-                conduit_std_catalog::key_event_tee_contract(),
+                conduit_semantic_catalog::key_event_tee_contract(),
             ),
-            (keymap_offer(), conduit_std_catalog::keymap_contract()),
-            (chords_offer(), conduit_std_catalog::chords_contract()),
+            (keymap_offer(), conduit_semantic_catalog::keymap_contract()),
+            (chords_offer(), conduit_semantic_catalog::chords_contract()),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);
             assert_eq!(offer.inputs, contract.inputs);

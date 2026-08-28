@@ -52,7 +52,7 @@ pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, Prepa
     let checked = check_syntax_document(&parse_syntax_document(FORM_SOURCE), &startup)
         .map_err(|_| PreparationError::Form)?;
     let mut backs = CanonicalBackCatalog::new();
-    conduit_std_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
+    conduit_semantic_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
         .map_err(|_| PreparationError::Back)?;
     let form = expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
         .map_err(|_| PreparationError::Back)?;
@@ -125,7 +125,7 @@ fn text_source_offer() -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("text"),
-            value_kind: kind_id(conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND),
+            value_kind: kind_id(conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
@@ -143,19 +143,19 @@ fn text_source_offer() -> CapabilityOffer {
 fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
-    conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::Catalog)?;
     startup
         .insert(conduit_form::KindSignature {
@@ -188,7 +188,7 @@ mod tests {
         };
         assert_eq!(
             back.kind_id.as_str(),
-            conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
+            conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
         );
         assert_eq!(back.invocation_path, "conduitos-gear-face/face");
         assert_ne!(
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(fragment.placements.len(), 11);
         assert_eq!(fragment.connections.len(), 8);
         assert!(fragment.placements.iter().any(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_INSET_KIND
+            placement.kind_id.as_str() == conduit_semantic_catalog::LAYOUT_INSET_KIND
                 && placement.implementation_id.as_str() == "conduitos/layout/inset-implementation@1"
         }));
         assert_eq!(fragment.realization_backs, prepared.plan.realization_backs);
@@ -211,7 +211,7 @@ mod tests {
             .placements
             .iter()
             .find(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+                placement.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
             })
             .unwrap();
         assert_eq!(
@@ -237,9 +237,9 @@ mod tests {
         host_without_patchbay_direct.capabilities.retain(|offer| {
             !matches!(
                 offer.kind_id.as_str(),
-                conduit_std_catalog::PATCHBAY_PRESENTATION_KIND
-                    | conduit_std_catalog::PATCHBAY_PORT_KIND
-                    | conduit_std_catalog::PATCHBAY_CORD_KIND
+                conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND
+                    | conduit_semantic_catalog::PATCHBAY_PORT_KIND
+                    | conduit_semantic_catalog::PATCHBAY_CORD_KIND
             )
         });
         let missing_back =
@@ -247,14 +247,16 @@ mod tests {
                 .unwrap_err();
 
         let mut backs = CanonicalBackCatalog::new();
-        conduit_std_catalog::install_patchbay_presentation_backs(&startup, &profile, &mut backs)
-            .unwrap();
+        conduit_semantic_catalog::install_patchbay_presentation_backs(
+            &startup, &profile, &mut backs,
+        )
+        .unwrap();
         let expanded =
             expand_canonical_form_with_backs(&checked, "conduitos-gear-face", &profile, &backs)
                 .unwrap();
         let mut host = host_without_patchbay_direct;
         host.capabilities.retain(|offer| {
-            offer.kind_id.as_str() != conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
+            offer.kind_id.as_str() != conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
         });
         let missing_leaf = default_expanded_placements(&expanded, &[host]).unwrap_err();
         assert_ne!(missing_back.to_string(), missing_leaf.to_string());

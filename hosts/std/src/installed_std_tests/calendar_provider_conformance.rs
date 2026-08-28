@@ -46,16 +46,16 @@ fn read_and_free_busy_use_distinct_authority_through_plan_and_play() {
     for (operation, kind, output_port, result_type, result) in [
         (
             CalendarHostedOperation::Read,
-            conduit_std_catalog::CALENDAR_READ_KIND,
+            conduit_semantic_catalog::CALENDAR_READ_KIND,
             "events",
-            conduit_std_catalog::calendar_read_result_type(),
+            conduit_semantic_catalog::calendar_read_result_type(),
             br#"{"resource":{"account_identity":"account/alice","calendar_id":"primary"},"events":[],"next_page_token":null}"#.to_vec(),
         ),
         (
             CalendarHostedOperation::FreeBusy,
-            conduit_std_catalog::CALENDAR_FREE_BUSY_KIND,
+            conduit_semantic_catalog::CALENDAR_FREE_BUSY_KIND,
             "availability",
-            conduit_std_catalog::calendar_free_busy_result_type(),
+            conduit_semantic_catalog::calendar_free_busy_result_type(),
             br#"{"resource":{"account_identity":"account/alice","calendar_id":"primary"},"observed_unix_seconds":7,"usable_until_unix_seconds":67,"participants":[]}"#.to_vec(),
         ),
     ] {
@@ -85,7 +85,7 @@ fn read_and_free_busy_use_distinct_authority_through_plan_and_play() {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: 1,
-                connection_byte_capacity: conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+                connection_byte_capacity: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
                 authority_grants: &grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
@@ -102,14 +102,14 @@ fn authorized_create_update_and_cancel_chain_exact_receipts_through_plan_and_pla
     let updated = br#"{"resource":{"account_identity":"account/alice","calendar_id":"primary"},"portable_event_identity":"event/review","provider_event_id":"google-7","provider_revision":"etag-8","event":{"summary":"Review moved"}}"#.to_vec();
     let cancelled = br#"{"resource":{"account_identity":"account/alice","calendar_id":"primary"},"portable_event_identity":"event/review","provider_event_id":"google-7","cancelled_revision":"etag-8"}"#.to_vec();
     let expected = result_value(
-        conduit_std_catalog::calendar_cancel_receipt_type(),
+        conduit_semantic_catalog::calendar_cancel_receipt_type(),
         &cancelled,
     );
     let source = format!(
         "form proof {{\n create: calendar/create-event(request = {{semantic_json: \"{{}}\"}})\n update: calendar/update-event(request = {{semantic_json: \"{{}}\"}})\n cancel: calendar/cancel-event(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n create.receipt > update.prior\n update.receipt > cancel.prior\n cancel.receipt > sink.input\n}}\n",
         hex(&expected)
     );
-    let result_type = conduit_std_catalog::calendar_cancel_receipt_type();
+    let result_type = conduit_semantic_catalog::calendar_cancel_receipt_type();
     let (startup, profile, sink) = catalogs(&result_type);
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
@@ -148,7 +148,7 @@ fn authorized_create_update_and_cancel_chain_exact_receipts_through_plan_and_pla
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
             authority_grants: &grants,
             protected_resource_grants: &[],
             line_offers: &[],
@@ -214,7 +214,8 @@ fn catalogs(
 ) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_calendar_provider_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profile)
+        .unwrap();
     let mut sink = installed_std::test_structured_selector::offer(value_type, PortDirection::Input);
     sink.inputs[0].temporal = conduit_core::PortTemporal::Value;
     startup
@@ -237,7 +238,7 @@ fn catalogs(
                 key: "value".into(),
                 default_value: ConfigurationValue::Text(String::new()),
                 validation: ConfigurationRule::TextBytes {
-                    maximum: conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES * 2,
+                    maximum: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES * 2,
                 },
             }],
         })

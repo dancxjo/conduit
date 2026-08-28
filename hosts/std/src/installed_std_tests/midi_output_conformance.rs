@@ -7,7 +7,9 @@ use crate::{RunControl, RunControlRequestId, StdHost, StdHostComposition, StdHos
 use conduit_core::{
     BaseImplementationId, BootId, HostId, ObservationKind, OfferGeneration, TerminalDisposition,
 };
-use conduit_std_catalog::{NormalizedSoundTrace, RealizedSoundEvidence, SelectedSoundRealization};
+use conduit_semantic_catalog::{
+    NormalizedSoundTrace, RealizedSoundEvidence, SelectedSoundRealization,
+};
 use std::collections::BTreeMap;
 
 fn host() -> StdHost {
@@ -89,7 +91,7 @@ fn planned_portable_performance_runs_through_the_production_kernel() {
     let output = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MUSIC_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::MUSIC_PLAY_KIND)
         .unwrap();
     assert_eq!(output.resources.len(), 1);
     assert_eq!(output.authority.len(), 2);

@@ -23,7 +23,7 @@ pub struct MidiOutputReport {
     pub lifecycle: MidiOutputLifecycle,
     pub sent_messages: u16,
     pub all_notes_off_sent: bool,
-    pub normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
+    pub normalized_note_events: Vec<conduit_semantic_catalog::NormalizedNoteEvidence>,
     #[cfg(test)]
     pub encoded_messages: Vec<[u8; 3]>,
 }
@@ -31,7 +31,7 @@ pub struct MidiOutputReport {
 pub(crate) enum MidiOutputSession {
     Unsupported {
         lifecycle: MidiOutputLifecycle,
-        normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
+        normalized_note_events: Vec<conduit_semantic_catalog::NormalizedNoteEvidence>,
     },
     #[cfg(test)]
     Fake(super::output_fake::FakeMidiOutputSession),
@@ -40,7 +40,7 @@ pub(crate) enum MidiOutputSession {
         lifecycle: MidiOutputLifecycle,
         sent_messages: u16,
         all_notes_off_sent: bool,
-        normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
+        normalized_note_events: Vec<conduit_semantic_catalog::NormalizedNoteEvidence>,
     },
 }
 
@@ -97,7 +97,7 @@ impl MidiOutputSession {
         encoded: [u8; 3],
     ) -> Result<(), MidiOutputFailure> {
         self.send(encoded)?;
-        let evidence = conduit_std_catalog::NormalizedNoteEvidence::exact(event);
+        let evidence = conduit_semantic_catalog::NormalizedNoteEvidence::exact(event);
         match self {
             Self::Unsupported {
                 normalized_note_events,

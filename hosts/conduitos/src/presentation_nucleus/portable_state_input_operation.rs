@@ -110,7 +110,7 @@ impl Operation for PortableStateInputOperation {
                     value,
                 },
             ) if pending.is_none()
-                && conduit_std_catalog::key_event_tee_accepts_encoded_len(value.byte_len) =>
+                && conduit_semantic_catalog::key_event_tee_accepts_encoded_len(value.byte_len) =>
             {
                 *pending = Some(value);
                 *phase = 1;

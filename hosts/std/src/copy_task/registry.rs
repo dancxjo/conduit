@@ -56,7 +56,9 @@ impl ProtectedFileRegistry {
             host_id,
             boot_id,
             capability_id,
-            class_id: ResourceClassId::from(conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS),
+            class_id: ResourceClassId::from(
+                conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
+            ),
             access,
             maximum_bytes,
             commit_policy,

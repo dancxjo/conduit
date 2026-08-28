@@ -317,7 +317,7 @@ fn validate_pc_speaker(
         || sign.host_id != boot.host_id
         || sign.boot_id != boot.boot_id
         || !exact_id(&sign.base_id)
-        || sign.kind != conduit_std_catalog::SOUND_TONE_PLAY_KIND
+        || sign.kind != conduit_semantic_catalog::SOUND_TONE_PLAY_KIND
         || sign.implementation != conduitos::pc_speaker_offer::PC_SPEAKER_IMPLEMENTATION
         || sign.execution_profile != conduitos::pc_speaker_offer::PC_SPEAKER_EXECUTION_PROFILE
         || !exact_id(&sign.plan_id)
@@ -353,8 +353,8 @@ fn validate_presentation(
         || sign.status != "completed"
         || sign.proof_class != "freestanding-emulator"
         || sign.realization != "recursive"
-        || sign.back_kind != conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
-        || sign.back_contract_revision != conduit_std_catalog::PATCHBAY_PRESENTATION_REVISION
+        || sign.back_kind != conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
+        || sign.back_contract_revision != conduit_semantic_catalog::PATCHBAY_PRESENTATION_REVISION
         || sign.back_invocation_path != "conduitos-gear-face/face"
         || !exact_id(&sign.back_source_document_id)
         || !exact_id(&sign.back_checked_form_id)

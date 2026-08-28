@@ -32,7 +32,9 @@ fn current_booleans_manifest_through_the_admitted_std_operation() {
     let placement = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
+        })
         .expect("Boolean presenter is placed");
     assert_eq!(
         placement.implementation_id.as_str(),
@@ -71,7 +73,9 @@ fn mutated_std_presenter_identity_refuses_before_play() {
     plan.fragments[0]
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
+        })
         .unwrap()
         .artifact_id = conduit_core::ArtifactId::from("mutated/bool-presenter");
     let mut host = host;

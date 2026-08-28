@@ -92,7 +92,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "serde",
  "serde_json",
  "sha2",
@@ -120,7 +120,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-std-catalog"
+name = "conduit-semantic-catalog"
 version = "0.1.0"
 dependencies = [
  "conduit-alife",

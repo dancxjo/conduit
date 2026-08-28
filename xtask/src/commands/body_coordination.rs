@@ -4,7 +4,7 @@ use conduit_body::{
 };
 use conduit_core::{bind_active_play, BootId, HostAdvertisement, SignId};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     exact_body_coordination_line_loss, exact_body_coordination_plan, BodyCoordinationPlan,
     BODY_COORDINATION_MAXIMUM_FRAME_BYTES, FOREBRAIN_TO_MOTHERBRAIN_LINE,
     MOTHERBRAIN_TO_FOREBRAIN_LINE,

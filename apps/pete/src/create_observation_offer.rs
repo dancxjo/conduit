@@ -217,56 +217,60 @@ pub(crate) fn observation_offer(channel: CreateObservationChannel) -> Capability
 
 fn contract(
     channel: CreateObservationChannel,
-) -> (conduit_std_catalog::StandardKindContract, &'static str, u32) {
+) -> (
+    conduit_semantic_catalog::StandardKindContract,
+    &'static str,
+    u32,
+) {
     match channel {
         CreateObservationChannel::Contact => (
-            conduit_std_catalog::robotics_observe_contact_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_CONTACT_REVISION,
+            conduit_semantic_catalog::robotics_observe_contact_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_CONTACT_REVISION,
             ROBOTICS_CONTACT_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::Cliff => (
-            conduit_std_catalog::robotics_observe_cliff_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_CLIFF_REVISION,
+            conduit_semantic_catalog::robotics_observe_cliff_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_CLIFF_REVISION,
             ROBOTICS_CLIFF_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::WheelDrop => (
-            conduit_std_catalog::robotics_observe_wheel_drop_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_WHEEL_DROP_REVISION,
+            conduit_semantic_catalog::robotics_observe_wheel_drop_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_WHEEL_DROP_REVISION,
             ROBOTICS_WHEEL_DROP_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::Proximity => (
-            conduit_std_catalog::robotics_observe_proximity_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_PROXIMITY_REVISION,
+            conduit_semantic_catalog::robotics_observe_proximity_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_PROXIMITY_REVISION,
             ROBOTICS_PROXIMITY_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::VirtualWall | CreateObservationChannel::Infrared => (
-            conduit_std_catalog::robotics_observe_beacon_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_BEACON_REVISION,
+            conduit_semantic_catalog::robotics_observe_beacon_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_BEACON_REVISION,
             ROBOTICS_BEACON_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::Buttons => (
-            conduit_std_catalog::robotics_observe_buttons_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_BUTTONS_REVISION,
+            conduit_semantic_catalog::robotics_observe_buttons_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_BUTTONS_REVISION,
             ROBOTICS_BUTTONS_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::Charging => (
-            conduit_std_catalog::robotics_observe_charging_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_CHARGING_REVISION,
+            conduit_semantic_catalog::robotics_observe_charging_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_CHARGING_REVISION,
             ROBOTICS_CHARGING_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::Battery => (
-            conduit_std_catalog::robotics_observe_battery_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
+            conduit_semantic_catalog::robotics_observe_battery_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
             ROBOTICS_BATTERY_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::Odometry => (
-            conduit_std_catalog::robotics_observe_odometry_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
+            conduit_semantic_catalog::robotics_observe_odometry_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
             ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
         ),
         CreateObservationChannel::BumpAggregate => (
-            conduit_std_catalog::robotics_observe_bump_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+            conduit_semantic_catalog::robotics_observe_bump_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
             conduit_core::BOOL_ENCODED_LEN as u32,
         ),
     }

@@ -36,7 +36,7 @@ pub(super) fn offers(
     if composition.files {
         resources.push(resource_offer(
             "std/protected-file",
-            conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS,
+            conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
             2,
         ));
     }

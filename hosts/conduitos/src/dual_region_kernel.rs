@@ -63,10 +63,10 @@ impl DualRegionKernel {
         let literal_index = placement_index(fragment, conduit_text::TEXT_LITERAL_KIND)?;
         let upper_index = placement_index(fragment, conduit_text::TEXT_UPPER_KIND)?;
         let text_presentation_index =
-            placement_index(fragment, conduit_std_catalog::TEXT_PRESENTATION_KIND)?;
-        let timer_index = placement_index(fragment, conduit_std_catalog::TICK_KIND)?;
+            placement_index(fragment, conduit_semantic_catalog::TEXT_PRESENTATION_KIND)?;
+        let timer_index = placement_index(fragment, conduit_semantic_catalog::TICK_KIND)?;
         let tick_presentation_index =
-            placement_index(fragment, conduit_std_catalog::TICK_PRESENTATION_KIND)?;
+            placement_index(fragment, conduit_semantic_catalog::TICK_PRESENTATION_KIND)?;
 
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
         let period_ms =

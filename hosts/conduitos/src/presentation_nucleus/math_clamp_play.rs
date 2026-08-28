@@ -88,7 +88,7 @@ pub fn prepare_clamp(
     input: Scalar,
 ) -> Result<PreparedMathClamp, MathClampError> {
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_math_catalogs(&mut StartupCatalog::new(), &mut catalog)
+    conduit_semantic_catalog::install_math_catalogs(&mut StartupCatalog::new(), &mut catalog)
         .map_err(|_| MathClampError::Catalog)?;
     catalog
         .insert(conduit_form::KindDefinition {
@@ -159,10 +159,10 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
     let clamp = fragment
         .placements
         .iter()
-        .find(|p| p.kind_id.as_str() == conduit_std_catalog::MATH_CLAMP_KIND)
+        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::MATH_CLAMP_KIND)
         .ok_or(MathClampError::Shape)?;
-    let minimum = configured_scalar(clamp, conduit_std_catalog::CLAMP_MINIMUM_KEY)?;
-    let maximum = configured_scalar(clamp, conduit_std_catalog::CLAMP_MAXIMUM_KEY)?;
+    let minimum = configured_scalar(clamp, conduit_semantic_catalog::CLAMP_MINIMUM_KEY)?;
+    let maximum = configured_scalar(clamp, conduit_semantic_catalog::CLAMP_MAXIMUM_KEY)?;
     let mut scheduler = scheduler(fragment, &lowered, input)?;
     let mut output = None;
     let mut captured = None;
@@ -174,7 +174,7 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
                 .map_err(|_| MathClampError::Value)?;
             let value = Scalar::decode(bytes).map_err(|_| MathClampError::Value)?;
             if request.node == scheduler.transform && output.is_none() {
-                let clamped = conduit_std_catalog::clamp_scalar(value, minimum, maximum)
+                let clamped = conduit_semantic_catalog::clamp_scalar(value, minimum, maximum)
                     .map_err(|_| MathClampError::Value)?;
                 complete_transform(&mut scheduler.kernel, request, clamped)?;
                 output = Some(clamped);
@@ -377,7 +377,7 @@ fn scheduler(
                         .map_err(|_| MathClampError::Value)?,
                     emitted: false,
                 },
-                conduit_std_catalog::MATH_CLAMP_KIND => {
+                conduit_semantic_catalog::MATH_CLAMP_KIND => {
                     transform = Some(NodeId(index as u16));
                     PresentationOperation::Transform {
                         maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

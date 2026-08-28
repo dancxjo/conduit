@@ -47,10 +47,10 @@ pub(super) fn validate_create_dock_plan(
         .iter()
         .any(|entry| entry.key == "initial" && entry.value == ConfigurationValue::Bool(true));
     let connection = connections[0];
-    if source.kind_id.as_str() != conduit_std_catalog::STATE_TOGGLE_KIND
+    if source.kind_id.as_str() != conduit_semantic_catalog::STATE_TOGGLE_KIND
         || source.implementation_id.as_str() != conduit_std_offers::STATE_TOGGLE_IMPLEMENTATION
         || !initial_true
-        || dock_graph_placement.kind_id.as_str() != conduit_std_catalog::ROBOTICS_DOCK_KIND
+        || dock_graph_placement.kind_id.as_str() != conduit_semantic_catalog::ROBOTICS_DOCK_KIND
         || connection.source_placement_id != source.placement_id
         || connection.source_port_id != port_id("value")
         || connection.sink_placement_id != dock_graph_placement.placement_id
@@ -125,8 +125,8 @@ pub(super) fn validate_create_dock_plan(
             _ => None,
         })
         .ok_or("Plan has no exact Create dock timeout")?;
-    if !(conduit_std_catalog::ROBOTICS_DOCK_MINIMUM_TIMEOUT_MS
-        ..=conduit_std_catalog::ROBOTICS_DOCK_MAXIMUM_TIMEOUT_MS)
+    if !(conduit_semantic_catalog::ROBOTICS_DOCK_MINIMUM_TIMEOUT_MS
+        ..=conduit_semantic_catalog::ROBOTICS_DOCK_MAXIMUM_TIMEOUT_MS)
         .contains(&u64::from(timeout))
     {
         return Err("Plan Create dock timeout is outside the realization");

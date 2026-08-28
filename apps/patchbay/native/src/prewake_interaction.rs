@@ -195,7 +195,9 @@ mod tests {
         assert!(simulated_plan.fragments[0]
             .placements
             .iter()
-            .any(|placement| { placement.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND }));
+            .any(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND
+            }));
         assert!(
             !application
                 .prewake

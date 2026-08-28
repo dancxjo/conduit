@@ -7,7 +7,7 @@ use conduit_core::{
     HostOperationContractId, KindId, PlanId, SignId,
 };
 use conduit_presentation::present_timed_calendar_event;
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     CALENDAR_CREATE_KIND, REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND,
 };
 use conduit_std_host::hosted_calendar::{

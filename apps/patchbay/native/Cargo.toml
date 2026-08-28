@@ -15,7 +15,7 @@ conduit-r1-network-conformance = { path = "../../../proof/conformance/network-r1
 conduit-observatory = { path = "../../../crates/conduit-observatory" }
 conduit-planner = { path = "../../../crates/conduit-planner" }
 conduit-presentation = { path = "../../../crates/conduit-presentation" }
-conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", features = ["form-catalog"] }
+conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog", features = ["form-catalog"] }
 conduit-text = { path = "../../../crates/conduit-text", default-features = false }
 conduit-std-host = { path = "../../../hosts/std" }
 conduit-std-offers = { path = "../../../hosts/std/offers" }

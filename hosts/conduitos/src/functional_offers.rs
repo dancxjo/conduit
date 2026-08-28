@@ -40,13 +40,13 @@ pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     with_operation(
         realize_contract(
-            conduit_std_catalog::logic_compare_scalar_contract(),
-            conduit_std_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
+            conduit_semantic_catalog::logic_compare_scalar_contract(),
+            conduit_semantic_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
             "conduitos/logic-compare-scalar@1",
             LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
         ),
         "conduit.host/logic-compare-scalar@1",
-        conduit_std_catalog::LOGIC_COMPARE_KIND,
+        conduit_semantic_catalog::LOGIC_COMPARE_KIND,
         conduit_core::SCALAR_ENCODED_LEN as u32,
         conduit_core::BOOL_ENCODED_LEN as u32,
     )
@@ -55,13 +55,13 @@ pub fn logic_compare_scalar_offer() -> CapabilityOffer {
 pub fn logic_not_offer() -> CapabilityOffer {
     with_operation(
         realize_contract(
-            conduit_std_catalog::logic_not_contract(),
-            conduit_std_catalog::LOGIC_NOT_CONTRACT_REVISION,
+            conduit_semantic_catalog::logic_not_contract(),
+            conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION,
             "conduitos/logic-not@1",
             LOGIC_NOT_IMPLEMENTATION,
         ),
         "conduit.host/logic-not@1",
-        conduit_std_catalog::LOGIC_NOT_KIND,
+        conduit_semantic_catalog::LOGIC_NOT_KIND,
         conduit_core::BOOL_ENCODED_LEN as u32,
         conduit_core::BOOL_ENCODED_LEN as u32,
     )
@@ -70,13 +70,13 @@ pub fn logic_not_offer() -> CapabilityOffer {
 pub fn logic_select_scalar_offer() -> CapabilityOffer {
     with_operation(
         realize_contract(
-            conduit_std_catalog::logic_select_scalar_contract(),
-            conduit_std_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+            conduit_semantic_catalog::logic_select_scalar_contract(),
+            conduit_semantic_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
             "conduitos/logic-select-scalar@1",
             LOGIC_SELECT_SCALAR_IMPLEMENTATION,
         ),
         "conduit.host/logic-select-scalar@1",
-        conduit_std_catalog::LOGIC_SELECT_KIND,
+        conduit_semantic_catalog::LOGIC_SELECT_KIND,
         conduit_core::SCALAR_ENCODED_LEN as u32,
         conduit_core::SCALAR_ENCODED_LEN as u32,
     )
@@ -85,13 +85,13 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
 pub fn math_clamp_offer() -> CapabilityOffer {
     with_operation(
         realize_contract(
-            conduit_std_catalog::math_clamp_contract(),
-            conduit_std_catalog::MATH_CLAMP_CONTRACT_REVISION,
+            conduit_semantic_catalog::math_clamp_contract(),
+            conduit_semantic_catalog::MATH_CLAMP_CONTRACT_REVISION,
             "conduitos/math-clamp-scalar@1",
             MATH_CLAMP_IMPLEMENTATION,
         ),
         "conduit.host/math-clamp-scalar@1",
-        conduit_std_catalog::MATH_CLAMP_KIND,
+        conduit_semantic_catalog::MATH_CLAMP_KIND,
         conduit_core::SCALAR_ENCODED_LEN as u32,
         conduit_core::SCALAR_ENCODED_LEN as u32,
     )
@@ -100,13 +100,13 @@ pub fn math_clamp_offer() -> CapabilityOffer {
 pub fn math_scale_offer() -> CapabilityOffer {
     with_operation(
         realize_contract(
-            conduit_std_catalog::math_scale_contract(),
-            conduit_std_catalog::MATH_SCALE_CONTRACT_REVISION,
+            conduit_semantic_catalog::math_scale_contract(),
+            conduit_semantic_catalog::MATH_SCALE_CONTRACT_REVISION,
             "conduitos-math-scale-scalar-v1",
             "conduitos/kernel-math-scale-scalar@1",
         ),
         "conduit.host/math-scale-scalar@1",
-        conduit_std_catalog::MATH_SCALE_KIND,
+        conduit_semantic_catalog::MATH_SCALE_KIND,
         conduit_core::SCALAR_ENCODED_LEN as u32,
         conduit_core::SCALAR_ENCODED_LEN as u32,
     )
@@ -115,13 +115,13 @@ pub fn math_scale_offer() -> CapabilityOffer {
 pub fn math_deadband_offer() -> CapabilityOffer {
     with_operation(
         realize_contract(
-            conduit_std_catalog::math_deadband_contract(),
-            conduit_std_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+            conduit_semantic_catalog::math_deadband_contract(),
+            conduit_semantic_catalog::MATH_DEADBAND_CONTRACT_REVISION,
             "conduitos-math-deadband-scalar-v1",
             "conduitos/kernel-math-deadband-scalar@1",
         ),
         "conduit.host/math-deadband-scalar@1",
-        conduit_std_catalog::MATH_DEADBAND_KIND,
+        conduit_semantic_catalog::MATH_DEADBAND_KIND,
         conduit_core::SCALAR_ENCODED_LEN as u32,
         conduit_core::SCALAR_ENCODED_LEN as u32,
     )
@@ -129,8 +129,8 @@ pub fn math_deadband_offer() -> CapabilityOffer {
 
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
     realize_flow_contract(
-        conduit_std_catalog::state_latest_scalar_contract(),
-        conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_latest_scalar_contract(),
+        conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
         "conduitos-state-latest-scalar-v1",
         STATE_LATEST_SCALAR_IMPLEMENTATION,
         Vec::new(),
@@ -139,8 +139,8 @@ pub fn state_latest_scalar_offer() -> CapabilityOffer {
 
 pub fn flow_tee_scalar_offer() -> CapabilityOffer {
     realize_flow_contract(
-        conduit_std_catalog::flow_tee_scalar_contract(),
-        conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::flow_tee_scalar_contract(),
+        conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
         "conduitos-flow-tee-scalar-v1",
         FLOW_TEE_SCALAR_IMPLEMENTATION,
         Vec::new(),
@@ -149,8 +149,8 @@ pub fn flow_tee_scalar_offer() -> CapabilityOffer {
 
 pub fn state_select_scalar_offer() -> CapabilityOffer {
     realize_flow_contract(
-        conduit_std_catalog::state_select_scalar_contract(),
-        conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_select_scalar_contract(),
+        conduit_semantic_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
         "conduitos-state-select-scalar-v1",
         STATE_SELECT_SCALAR_IMPLEMENTATION,
         Vec::new(),
@@ -159,8 +159,8 @@ pub fn state_select_scalar_offer() -> CapabilityOffer {
 
 pub fn flow_gate_scalar_offer() -> CapabilityOffer {
     realize_flow_contract(
-        conduit_std_catalog::flow_gate_scalar_contract(),
-        conduit_std_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::flow_gate_scalar_contract(),
+        conduit_semantic_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
         "conduitos-flow-gate-scalar-v1",
         "conduitos/kernel-flow-gate-scalar@1",
         vec![HostOperationRequirement {
@@ -175,8 +175,8 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
 
 pub fn state_count_offer() -> CapabilityOffer {
     realize_state_input_contract(
-        conduit_std_catalog::state_count_contract(),
-        conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_count_contract(),
+        conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION,
         "conduitos-state-count-v1",
         "conduitos/kernel-state-count@1",
         Vec::new(),
@@ -185,8 +185,8 @@ pub fn state_count_offer() -> CapabilityOffer {
 
 pub fn state_toggle_offer() -> CapabilityOffer {
     realize_state_input_contract(
-        conduit_std_catalog::state_toggle_contract(),
-        conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_toggle_contract(),
+        conduit_semantic_catalog::STATE_TOGGLE_CONTRACT_REVISION,
         "conduitos-state-toggle-v1",
         "conduitos/kernel-state-toggle@1",
         Vec::new(),
@@ -195,8 +195,8 @@ pub fn state_toggle_offer() -> CapabilityOffer {
 
 pub fn key_event_tee_offer() -> CapabilityOffer {
     realize_state_input_contract(
-        conduit_std_catalog::key_event_tee_contract(),
-        conduit_std_catalog::KEY_EVENT_TEE_REVISION,
+        conduit_semantic_catalog::key_event_tee_contract(),
+        conduit_semantic_catalog::KEY_EVENT_TEE_REVISION,
         "conduitos-key-event-tee-v1",
         "conduitos/kernel-key-event-tee@1",
         Vec::new(),
@@ -243,8 +243,8 @@ pub fn text_join_offer() -> CapabilityOffer {
 
 pub fn keymap_offer() -> CapabilityOffer {
     realize_input_host_operation_contract(
-        conduit_std_catalog::keymap_contract(),
-        conduit_std_catalog::KEYMAP_REVISION,
+        conduit_semantic_catalog::keymap_contract(),
+        conduit_semantic_catalog::KEYMAP_REVISION,
         "conduitos-input-keymap-v1",
         "conduitos/kernel-input-keymap@1",
         vec![HostOperationRequirement {
@@ -259,8 +259,8 @@ pub fn keymap_offer() -> CapabilityOffer {
 
 pub fn chords_offer() -> CapabilityOffer {
     realize_input_host_operation_contract(
-        conduit_std_catalog::chords_contract(),
-        conduit_std_catalog::CHORDS_REVISION,
+        conduit_semantic_catalog::chords_contract(),
+        conduit_semantic_catalog::CHORDS_REVISION,
         "conduitos-input-chords-v1",
         "conduitos/kernel-input-chords@1",
         vec![HostOperationRequirement {
@@ -275,7 +275,7 @@ pub fn chords_offer() -> CapabilityOffer {
 
 pub fn time_every_offer() -> CapabilityOffer {
     let mut offer = timing_contract(
-        conduit_std_catalog::time_every_contract(),
+        conduit_semantic_catalog::time_every_contract(),
         conduit_time::TIME_EVERY_CONTRACT_REVISION,
         "conduitos-time-every-v1",
         "conduitos/monotonic-timer-fixed@1",
@@ -291,7 +291,7 @@ pub fn time_every_offer() -> CapabilityOffer {
 
 pub fn tick_offer() -> CapabilityOffer {
     timing_contract(
-        conduit_std_catalog::tick_contract(),
+        conduit_semantic_catalog::tick_contract(),
         conduit_time::TICK_CONTRACT_REVISION,
         "conduitos-time-tick-v1",
         "conduitos/monotonic-timer-fixed@1",
@@ -304,8 +304,8 @@ pub fn tick_offer() -> CapabilityOffer {
 
 pub fn audio_render_demand_offer() -> CapabilityOffer {
     timing_contract(
-        conduit_std_catalog::audio_render_demand_contract(),
-        conduit_std_catalog::AUDIO_RENDER_DEMAND_REVISION,
+        conduit_semantic_catalog::audio_render_demand_contract(),
+        conduit_semantic_catalog::AUDIO_RENDER_DEMAND_REVISION,
         "conduitos-audio-render-demand-v1",
         "conduitos/monotonic-audio-render-fixed@1",
         "conduitos/kernel-audio-render-demand@1",
@@ -317,42 +317,42 @@ pub fn audio_render_demand_offer() -> CapabilityOffer {
 
 pub fn time_debounce_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_debounce_contract(),
-        conduit_std_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_debounce_contract(),
+        conduit_semantic_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
         "conduitos/kernel-time-debounce-bool@1",
     )
 }
 
 pub fn time_timeout_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_timeout_contract(),
-        conduit_std_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_timeout_contract(),
+        conduit_semantic_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
         "conduitos/kernel-time-timeout-tick-bool@1",
     )
 }
 
 pub fn time_delay_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_delay_contract(),
-        conduit_std_catalog::TIME_DELAY_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_delay_contract(),
+        conduit_semantic_catalog::TIME_DELAY_CONTRACT_REVISION,
         "conduitos/kernel-time-delay-bool@1",
     )
 }
 
 pub fn time_throttle_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_throttle_contract(),
-        conduit_std_catalog::TIME_THROTTLE_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_throttle_contract(),
+        conduit_semantic_catalog::TIME_THROTTLE_CONTRACT_REVISION,
         "conduitos/kernel-time-throttle-bool-leading@1",
     )
 }
 
 pub fn music_synth_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::music_synth_contract();
-    conduit_std_catalog::realization_offer(
+    let contract = conduit_semantic_catalog::music_synth_contract();
+    conduit_semantic_catalog::realization_offer(
         contract,
-        conduit_std_catalog::MUSIC_SYNTH_REVISION,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::MUSIC_SYNTH_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: "conduitos-music-synth-fixed-q16",
             execution_profile: "conduitos/music-synth-fixed-q16@1",
             implementation: "conduitos/kernel-music-synth-fixed-q16@1",
@@ -367,7 +367,7 @@ pub fn music_synth_offer() -> CapabilityOffer {
             maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
                 .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN)
                 as u32,
-            maximum_output_bytes: conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
+            maximum_output_bytes: conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
         }],
         Vec::new(),
         Vec::new(),
@@ -376,7 +376,7 @@ pub fn music_synth_offer() -> CapabilityOffer {
 
 pub fn json_encode_offer() -> CapabilityOffer {
     json_offer(
-        conduit_std_catalog::json_encode_contract(),
+        conduit_semantic_catalog::json_encode_contract(),
         conduit_web::JSON_ENCODE_REVISION,
         "conduitos-json-encode-v1",
         "conduitos/kernel-json-encode@1",
@@ -386,7 +386,7 @@ pub fn json_encode_offer() -> CapabilityOffer {
 
 pub fn json_decode_offer() -> CapabilityOffer {
     json_offer(
-        conduit_std_catalog::json_decode_contract(),
+        conduit_semantic_catalog::json_decode_contract(),
         conduit_web::JSON_DECODE_REVISION,
         "conduitos-json-decode-v1",
         "conduitos/kernel-json-decode@1",
@@ -395,17 +395,17 @@ pub fn json_decode_offer() -> CapabilityOffer {
 }
 
 fn json_offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
     operation: &str,
 ) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    let mut offer = conduit_std_catalog::realization_offer(
+    let mut offer = conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: "conduitos/fixed-bounded-json@1",
             implementation,
@@ -428,32 +428,32 @@ fn json_offer(
 pub fn robotics_offers() -> Vec<CapabilityOffer> {
     [
         (
-            conduit_std_catalog::robotics_observe_bump_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+            conduit_semantic_catalog::robotics_observe_bump_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
         ),
         (
-            conduit_std_catalog::robotics_observe_imu_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
+            conduit_semantic_catalog::robotics_observe_imu_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
         ),
         (
-            conduit_std_catalog::robotics_observe_range_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_REVISION,
+            conduit_semantic_catalog::robotics_observe_range_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_REVISION,
         ),
         (
-            conduit_std_catalog::robotics_observe_odometry_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
+            conduit_semantic_catalog::robotics_observe_odometry_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
         ),
         (
-            conduit_std_catalog::robotics_observe_battery_contract(),
-            conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
+            conduit_semantic_catalog::robotics_observe_battery_contract(),
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
         ),
         (
-            conduit_std_catalog::robotics_velocity_intent_contract(),
-            conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_REVISION,
+            conduit_semantic_catalog::robotics_velocity_intent_contract(),
+            conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_REVISION,
         ),
         (
-            conduit_std_catalog::robotics_drive_differential_contract(),
-            conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
+            conduit_semantic_catalog::robotics_drive_differential_contract(),
+            conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
         ),
     ]
     .into_iter()
@@ -464,16 +464,17 @@ pub fn robotics_offers() -> Vec<CapabilityOffer> {
             .strip_prefix("robotics/")
             .map(String::from)
             .expect("canonical robotics Kind has prefix");
-        let revision =
-            if contract.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
-                2
-            } else {
-                1
-            };
-        conduit_std_catalog::realization_offer(
+        let revision = if contract.kind_id.as_str()
+            == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
+        {
+            2
+        } else {
+            1
+        };
+        conduit_semantic_catalog::realization_offer(
             contract,
             contract_revision,
-            conduit_std_catalog::RealizationOfferIdentity {
+            conduit_semantic_catalog::RealizationOfferIdentity {
                 capability: &alloc::format!("conduitos-robotics-{slug}@1"),
                 execution_profile: ROBOTICS_PROFILE,
                 implementation: &alloc::format!(
@@ -490,16 +491,16 @@ pub fn robotics_offers() -> Vec<CapabilityOffer> {
 }
 
 fn realize_state_input_contract(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    conduit_std_catalog::realization_offer(
+    conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: PORTABLE_STATE_INPUT_PROFILE,
             implementation,
@@ -512,16 +513,16 @@ fn realize_state_input_contract(
 }
 
 fn realize_input_host_operation_contract(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    conduit_std_catalog::realization_offer(
+    conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: TEXT_PROFILE,
             implementation,
@@ -573,7 +574,7 @@ fn text_offer(
 }
 
 fn timing_offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     implementation: &str,
 ) -> CapabilityOffer {
@@ -593,7 +594,7 @@ fn timing_offer(
 
 #[allow(clippy::too_many_arguments)]
 fn timing_contract(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     profile: &str,
@@ -602,10 +603,10 @@ fn timing_contract(
     host_operations: Vec<HostOperationRequirement>,
     resources: Vec<conduit_core::ResourceRequirement>,
 ) -> CapabilityOffer {
-    conduit_std_catalog::realization_offer(
+    conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: profile,
             implementation,
@@ -618,15 +619,15 @@ fn timing_contract(
 }
 
 fn realize_contract(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
 ) -> CapabilityOffer {
-    conduit_std_catalog::realization_offer(
+    conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: FUNCTIONAL_KERNEL_PROFILE,
             implementation,
@@ -639,16 +640,16 @@ fn realize_contract(
 }
 
 fn realize_flow_contract(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    conduit_std_catalog::realization_offer(
+    conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability,
             execution_profile: FLOW_STATE_PROFILE,
             implementation,

@@ -128,7 +128,7 @@ pub enum CheckSuite {
     PlanningS2,
     FormS3,
     Observatory,
-    StdCatalog,
+    SemanticCatalog,
     InputSemantics,
     All,
 }

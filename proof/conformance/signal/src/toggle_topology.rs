@@ -95,10 +95,10 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
 }
 
 pub fn toggle_browser_presentation_offer(capability_id: &str) -> CapabilityOffer {
-    let mut offer = conduit_std_catalog::realization_offer(
-        conduit_std_catalog::bool_presentation_contract(),
-        conduit_std_catalog::BOOL_PRESENTATION_CONTRACT_REVISION,
-        conduit_std_catalog::RealizationOfferIdentity {
+    let mut offer = conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::bool_presentation_contract(),
+        conduit_semantic_catalog::BOOL_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: "browser-bool-presentation-v1",
             execution_profile: "conduit.browser/present-bool@1",
             implementation: "browser/kernel-dom-show-bool@1",

@@ -23,8 +23,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+        .unwrap();
+    conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
 
@@ -42,7 +43,7 @@ fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
     let state = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::STATE_COUNT_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::STATE_COUNT_KIND)
         .unwrap();
     assert_eq!(
         state.inputs[0].temporal,
@@ -99,7 +100,7 @@ fn temporal_mismatch_range_overflow_and_selected_identity_fail_before_output() {
     let state = plan.fragments[0]
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::STATE_COUNT_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::STATE_COUNT_KIND)
         .unwrap();
     state.implementation_id = conduit_core::ImplementationId::from("wrong/state-count@1");
     let mut output = Vec::with_capacity(512);

@@ -6,7 +6,7 @@ use conduit_core::{
     OptionAvailability, Quantity, QuantityUnit, BOOL_INFO_ID, QUANTITY_INFO_ID, TEXT_INFO_ID,
 };
 use conduit_form::CheckedGear;
-use conduit_std_catalog::StandardConfigurationRule;
+use conduit_semantic_catalog::StandardConfigurationRule;
 
 use crate::PatchbayGraphError;
 
@@ -67,7 +67,7 @@ pub struct FaceInteraction {
 }
 
 pub(crate) fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, PatchbayGraphError> {
-    let Some(contract) = conduit_std_catalog::supported_nucleus_contracts()
+    let Some(contract) = conduit_semantic_catalog::supported_nucleus_contracts()
         .into_iter()
         .find(|contract| contract.kind_id == gear.kind_id)
     else {

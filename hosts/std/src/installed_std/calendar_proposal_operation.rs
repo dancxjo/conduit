@@ -52,7 +52,7 @@ fn request(
     };
     let value = StructuredInfoValue::from_canonical_bytes(configuration.canonical_value())
         .map_err(|error| format!("decode planned calendar request: {error:?}"))?;
-    let expected = conduit_std_catalog::calendar_proposal_request_type();
+    let expected = conduit_semantic_catalog::calendar_proposal_request_type();
     if value.value_type() != &expected
         || configuration.profile()
             != expected
@@ -86,16 +86,17 @@ fn validate(
     }
     let decoded = request(placement)?;
     if decoded.request.participant_identities.len()
-        > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS)
+        > usize::from(conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS)
         || decoded.request.candidates.len()
-            > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES)
+            > usize::from(conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES)
         || decoded.availability.len()
-            > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS)
+            > usize::from(conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS)
         || decoded.availability.iter().any(|participant| {
             participant.intervals.len()
-                > usize::from(conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_INTERVALS)
+                > usize::from(conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_INTERVALS)
         })
-        || decoded.request.maximum_results > conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS
+        || decoded.request.maximum_results
+            > conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS
     {
         return Err("calendar proposal exceeds installed profile".into());
     }

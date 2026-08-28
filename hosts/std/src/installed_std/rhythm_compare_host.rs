@@ -40,7 +40,7 @@ impl RhythmCompareHost {
     pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let (target_offset_micros, tolerance_micros) =
             super::rhythm_compare_operation::validate(placement)?;
-        let capacity = usize::from(conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS);
+        let capacity = usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS);
         Ok(Self {
             target_offset_micros,
             tolerance_micros,
@@ -48,10 +48,10 @@ impl RhythmCompareHost {
             performance: VecDeque::with_capacity(capacity),
             performance_closed: false,
             previous_absolute_delta: None,
-            beat_type_prefix: conduit_std_catalog::beat_reference_type()
+            beat_type_prefix: conduit_semantic_catalog::beat_reference_type()
                 .canonical_bytes()
                 .map_err(|error| format!("beat type encoding: {error:?}"))?,
-            feedback_type_prefix: conduit_std_catalog::timing_feedback_type()
+            feedback_type_prefix: conduit_semantic_catalog::timing_feedback_type()
                 .canonical_bytes()
                 .map_err(|error| format!("feedback type encoding: {error:?}"))?,
             output: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
@@ -86,7 +86,7 @@ impl RhythmCompareHost {
     fn push_performance(&mut self, event_time_micros: u64) -> Result<(), RhythmCompareRefusal> {
         if self.performance_closed
             || self.performance.len()
-                == usize::from(conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
+                == usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
         {
             return Err(RhythmCompareRefusal::CapacityExhausted);
         }
@@ -95,7 +95,7 @@ impl RhythmCompareHost {
     }
 
     fn push_beat(&mut self, beat: BeatReference) -> Result<(), RhythmCompareRefusal> {
-        if self.beats.len() == usize::from(conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS) {
+        if self.beats.len() == usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS) {
             return Err(RhythmCompareRefusal::CapacityExhausted);
         }
         self.beats.push_back(beat);
@@ -272,7 +272,7 @@ fn feedback(
         previous_absolute_delta,
     )?;
     StructuredInfoValue::record(
-        conduit_std_catalog::timing_feedback_type(),
+        conduit_semantic_catalog::timing_feedback_type(),
         vec![
             value_field("beat", count_leaf(beat.beat)),
             value_field(

@@ -5,7 +5,7 @@ use conduit_core::{
     resource_requirement, wait_host_operation_requirement, CapabilityOffer,
     HostOperationRequirement, ResourceRequirement, TIMER_RESOURCE_CLASS,
 };
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
 
 pub const TICK_EXECUTION_PROFILE: &str = "conduit.std/time-tick-kernel-hosted@2";
 pub const TICK_IMPLEMENTATION: &str = "std/kernel-time-tick@2";
@@ -33,7 +33,7 @@ pub const TIME_THROTTLE_ARTIFACT: &str = "conduit-std-host/time-throttle-bool-le
 
 pub fn tick_capability_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::tick_contract(),
+        conduit_semantic_catalog::tick_contract(),
         conduit_time::TICK_CONTRACT_REVISION,
         Identity {
             capability: "time-tick-v2",
@@ -48,7 +48,7 @@ pub fn tick_capability_offer() -> CapabilityOffer {
 
 pub fn time_every_offer() -> CapabilityOffer {
     let mut offer = offer(
-        conduit_std_catalog::time_every_contract(),
+        conduit_semantic_catalog::time_every_contract(),
         conduit_time::TIME_EVERY_CONTRACT_REVISION,
         Identity {
             capability: "time-every-v1",
@@ -66,8 +66,8 @@ pub fn time_every_offer() -> CapabilityOffer {
 
 pub fn audio_render_demand_offer() -> CapabilityOffer {
     monotonic_offer(
-        conduit_std_catalog::audio_render_demand_contract(),
-        conduit_std_catalog::AUDIO_RENDER_DEMAND_REVISION,
+        conduit_semantic_catalog::audio_render_demand_contract(),
+        conduit_semantic_catalog::AUDIO_RENDER_DEMAND_REVISION,
         Identity {
             capability: "audio-render-demand-v1",
             profile: AUDIO_RENDER_DEMAND_PROFILE,
@@ -80,8 +80,8 @@ pub fn audio_render_demand_offer() -> CapabilityOffer {
 
 pub fn time_debounce_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_debounce_contract(),
-        conduit_std_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_debounce_contract(),
+        conduit_semantic_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
         "time-debounce-bool-v1",
         TIME_DEBOUNCE_EXECUTION_PROFILE,
         TIME_DEBOUNCE_IMPLEMENTATION,
@@ -91,8 +91,8 @@ pub fn time_debounce_offer() -> CapabilityOffer {
 
 pub fn time_timeout_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_timeout_contract(),
-        conduit_std_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_timeout_contract(),
+        conduit_semantic_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
         "time-timeout-tick-bool-v1",
         TIME_TIMEOUT_EXECUTION_PROFILE,
         TIME_TIMEOUT_IMPLEMENTATION,
@@ -102,8 +102,8 @@ pub fn time_timeout_offer() -> CapabilityOffer {
 
 pub fn time_delay_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_delay_contract(),
-        conduit_std_catalog::TIME_DELAY_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_delay_contract(),
+        conduit_semantic_catalog::TIME_DELAY_CONTRACT_REVISION,
         "time-delay-bool-v1",
         TIME_DELAY_EXECUTION_PROFILE,
         TIME_DELAY_IMPLEMENTATION,
@@ -113,8 +113,8 @@ pub fn time_delay_offer() -> CapabilityOffer {
 
 pub fn time_throttle_offer() -> CapabilityOffer {
     timing_offer(
-        conduit_std_catalog::time_throttle_contract(),
-        conduit_std_catalog::TIME_THROTTLE_CONTRACT_REVISION,
+        conduit_semantic_catalog::time_throttle_contract(),
+        conduit_semantic_catalog::TIME_THROTTLE_CONTRACT_REVISION,
         "time-throttle-bool-leading-v1",
         TIME_THROTTLE_EXECUTION_PROFILE,
         TIME_THROTTLE_IMPLEMENTATION,

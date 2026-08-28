@@ -12,12 +12,12 @@ fn plan(source: &str) -> (super::StdHost, conduit_core::PlanFragment) {
         .advertisement()
         .capabilities
         .iter()
-        .any(|offer| offer.kind_id.as_str() == conduit_std_catalog::KEYMAP_KIND));
+        .any(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND));
     let form = parse(source, &installed_std::test_catalog()).expect("portable input Form checks");
     for kind in [
-        conduit_std_catalog::KEY_EVENT_TEE_KIND,
-        conduit_std_catalog::KEYMAP_KIND,
-        conduit_std_catalog::CHORDS_KIND,
+        conduit_semantic_catalog::KEY_EVENT_TEE_KIND,
+        conduit_semantic_catalog::KEYMAP_KIND,
+        conduit_semantic_catalog::CHORDS_KIND,
     ] {
         let Some(gear) = form.gears.iter().find(|gear| gear.kind_id.as_str() == kind) else {
             continue;
@@ -61,7 +61,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
     let keymap = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::KEYMAP_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND)
         .unwrap();
     assert_eq!(
         keymap.configuration[0].value,
@@ -70,7 +70,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
     let chords = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::CHORDS_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::CHORDS_KIND)
         .unwrap();
     assert_eq!(
         chords.configuration[0].value,

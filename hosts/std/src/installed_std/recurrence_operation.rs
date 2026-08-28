@@ -51,7 +51,7 @@ fn request(placement: &PlannedGear) -> Result<recurrence_codec::DecodedRecurrenc
     };
     let value = StructuredInfoValue::from_canonical_bytes(configuration.canonical_value())
         .map_err(|error| format!("decode planned recurrence request: {error:?}"))?;
-    let expected = conduit_std_catalog::recurrence_request_type();
+    let expected = conduit_semantic_catalog::recurrence_request_type();
     if value.value_type() != &expected
         || configuration.profile()
             != expected
@@ -79,7 +79,7 @@ fn validate(placement: &PlannedGear) -> Result<recurrence_codec::DecodedRecurren
     }
     let request = request(placement)?;
     if request.expansion.maximum_results
-        > u32::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS)
+        > u32::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS)
     {
         return Err("recurrence result bound exceeds the installed profile".into());
     }

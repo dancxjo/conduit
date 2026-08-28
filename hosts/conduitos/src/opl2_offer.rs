@@ -27,10 +27,10 @@ pub const OPL2_MINIMUM_PITCH_MILLIHERTZ: u64 = 16_000;
 pub const OPL2_MAXIMUM_PITCH_MILLIHERTZ: u64 = 6_200_000;
 pub const OPL2_MAXIMUM_EVENTS_PER_SECOND: u32 = 1_000;
 
-pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile {
-    conduit_std_catalog::SoundCompatibilityProfile {
+pub fn compatibility_profile() -> conduit_semantic_catalog::SoundCompatibilityProfile {
+    conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: OPL2_EXECUTION_PROFILE.into(),
-        seam: conduit_std_catalog::SoundSeam::MusicalEvents,
+        seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
         minimum_pitch_millihertz: OPL2_MINIMUM_PITCH_MILLIHERTZ,
         maximum_pitch_millihertz: OPL2_MAXIMUM_PITCH_MILLIHERTZ,
         maximum_polyphony: OPL2_CHANNELS,
@@ -142,7 +142,7 @@ pub fn append_to_advertisement(
     advertisement
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    let contract = conduit_std_catalog::music_play_contract();
+    let contract = conduit_semantic_catalog::music_play_contract();
     let mut requirements = vec![
         conduit_core::resource_requirement(
             conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
@@ -163,7 +163,7 @@ pub fn append_to_advertisement(
         capability_id: CapabilityId::from(OPL2_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::MUSIC_PLAY_REVISION,
+            conduit_semantic_catalog::MUSIC_PLAY_REVISION,
         ),
         inputs: contract.inputs,
         outputs: contract.outputs,

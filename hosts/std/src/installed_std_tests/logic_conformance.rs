@@ -54,15 +54,15 @@ fn compare_not_and_select_plan_and_execute_together_through_the_production_kerne
     }));
     for (kind, implementation) in [
         (
-            conduit_std_catalog::LOGIC_COMPARE_KIND,
+            conduit_semantic_catalog::LOGIC_COMPARE_KIND,
             conduit_std_offers::LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
         ),
         (
-            conduit_std_catalog::LOGIC_NOT_KIND,
+            conduit_semantic_catalog::LOGIC_NOT_KIND,
             conduit_std_offers::LOGIC_NOT_IMPLEMENTATION,
         ),
         (
-            conduit_std_catalog::LOGIC_SELECT_KIND,
+            conduit_semantic_catalog::LOGIC_SELECT_KIND,
             conduit_std_offers::LOGIC_SELECT_SCALAR_IMPLEMENTATION,
         ),
     ] {
@@ -115,7 +115,7 @@ fn mutated_logic_implementation_fails_before_play() {
     fragment
         .placements
         .iter_mut()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::LOGIC_SELECT_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::LOGIC_SELECT_KIND)
         .expect("select placement exists")
         .artifact_id = ArtifactId::from("mutated/logic-select");
     let mut output = Vec::new();

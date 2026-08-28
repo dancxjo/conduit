@@ -73,7 +73,7 @@ pub fn prepare(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -123,14 +123,17 @@ pub fn validate(
         return Err(PreparationError::PlanRejected);
     }
     for (kind, implementation) in [
-        (conduit_std_catalog::KEYBOARD_KIND, KEYBOARD_IMPLEMENTATION),
-        (conduit_std_catalog::KEYMAP_KIND, KEYMAP_IMPLEMENTATION),
+        (
+            conduit_semantic_catalog::KEYBOARD_KIND,
+            KEYBOARD_IMPLEMENTATION,
+        ),
+        (conduit_semantic_catalog::KEYMAP_KIND, KEYMAP_IMPLEMENTATION),
         (
             conduit_text::TEXT_UPPER_KIND,
             crate::offer::TEXT_UPPER_IMPLEMENTATION,
         ),
         (
-            conduit_std_catalog::TEXT_PRESENTATION_KIND,
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
             crate::offer::TEXT_PRESENTATION_IMPLEMENTATION,
         ),
     ] {
@@ -150,7 +153,7 @@ pub fn validate(
     let keymap = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::KEYMAP_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND)
         .ok_or(PreparationError::PlanRejected)?;
     if keymap.configuration.len() != 1
         || keymap.configuration[0].key.as_str() != "layout"
@@ -175,14 +178,14 @@ pub fn validate(
             "text",
             "upper",
             "text",
-            conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
         ),
         (
             "upper",
             "text",
             "show",
             "text",
-            conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
         ),
     ];
     for (source_gear, source_port, sink_gear, sink_port, value_kind) in expected {
@@ -203,7 +206,7 @@ pub fn validate(
                 && connection.sink_port_id.as_str() == sink_port
                 && connection.value_kind.as_str() == value_kind
                 && connection.item_capacity == 1
-                && connection.byte_capacity == conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES
+                && connection.byte_capacity == conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES
         }) {
             return Err(PreparationError::PlanRejected);
         }
@@ -228,11 +231,11 @@ fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, Prepar
     let syntax = conduit_form::parse_syntax_document(FORM_SOURCE);
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::FormRejected)?;
@@ -313,9 +316,11 @@ mod tests {
         let syntax = conduit_form::parse_syntax_document(&unsupported);
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
-        conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
-        conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
-        conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+        conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
+        conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
+            .unwrap();
+        conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+            .unwrap();
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         assert!(
             conduit_form::expand_canonical_form(&checked, "conduitos-keyboard-upper", &profile,)

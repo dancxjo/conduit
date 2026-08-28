@@ -58,7 +58,7 @@ The current implementation checkpoint is recorded in [Planning scope membership 
 
 The first read-only operational projection is recorded in [Host Observatory readiness](host-observatory.md).
 
-The small reusable standard catalog is recorded in [Small `conduit.std` catalog readiness](std-catalog.md).
+The host-neutral portable catalog is recorded in [Portable catalog and hosted std offer boundary](semantic-catalog.md).
 
 A planning scope records or observes:
 

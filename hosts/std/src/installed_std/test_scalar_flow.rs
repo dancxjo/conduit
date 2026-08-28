@@ -289,21 +289,21 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
             }],
         },
         KindDefinition {
-            kind_id: kind_id(conduit_std_catalog::LATEST_KIND),
+            kind_id: kind_id(conduit_semantic_catalog::LATEST_KIND),
             kind_contract_revision: KindContractRevision::from(
-                conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
+                conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
             ),
-            inputs: conduit_std_catalog::state_latest_scalar_contract().inputs,
-            outputs: conduit_std_catalog::state_latest_scalar_contract().outputs,
+            inputs: conduit_semantic_catalog::state_latest_scalar_contract().inputs,
+            outputs: conduit_semantic_catalog::state_latest_scalar_contract().outputs,
             configuration: Vec::new(),
         },
         KindDefinition {
-            kind_id: kind_id(conduit_std_catalog::TEE_KIND),
+            kind_id: kind_id(conduit_semantic_catalog::TEE_KIND),
             kind_contract_revision: KindContractRevision::from(
-                conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
+                conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
             ),
-            inputs: conduit_std_catalog::flow_tee_scalar_contract().inputs,
-            outputs: conduit_std_catalog::flow_tee_scalar_contract().outputs,
+            inputs: conduit_semantic_catalog::flow_tee_scalar_contract().inputs,
+            outputs: conduit_semantic_catalog::flow_tee_scalar_contract().outputs,
             configuration: Vec::new(),
         },
     ] {

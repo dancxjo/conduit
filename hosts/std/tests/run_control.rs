@@ -28,7 +28,8 @@ fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_sign() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+        .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "clock-demo", &profile).unwrap();
     let mut host = StdHost::new();

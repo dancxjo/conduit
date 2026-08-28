@@ -11,7 +11,7 @@ pub(crate) struct FakeMidiOutputSession {
     lifecycle: MidiOutputLifecycle,
     messages: Vec<[u8; 3]>,
     all_notes_off_sent: bool,
-    normalized_note_events: Vec<conduit_std_catalog::NormalizedNoteEvidence>,
+    normalized_note_events: Vec<conduit_semantic_catalog::NormalizedNoteEvidence>,
 }
 
 impl FakeMidiOutputSession {
@@ -29,7 +29,7 @@ impl FakeMidiOutputSession {
 
     pub(crate) fn record_note(
         &mut self,
-        evidence: conduit_std_catalog::NormalizedNoteEvidence,
+        evidence: conduit_semantic_catalog::NormalizedNoteEvidence,
     ) -> Result<(), MidiOutputFailure> {
         if self.normalized_note_events.len() == self.normalized_note_events.capacity() {
             return Err(MidiOutputFailure::Pressure);

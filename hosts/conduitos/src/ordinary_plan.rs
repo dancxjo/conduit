@@ -147,9 +147,9 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].contract_revision != conduit_text::TEXT_LITERAL_CONTRACT_REVISION
         || fixed.capabilities[3].kind != conduit_text::TEXT_UPPER_KIND
         || fixed.capabilities[3].contract_revision != conduit_text::TEXT_UPPER_CONTRACT_REVISION
-        || fixed.capabilities[4].kind != conduit_std_catalog::TEXT_PRESENTATION_KIND
+        || fixed.capabilities[4].kind != conduit_semantic_catalog::TEXT_PRESENTATION_KIND
         || fixed.capabilities[4].contract_revision
-            != conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION
         || fixed.capabilities[2].implementation != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || fixed.capabilities[3].implementation != crate::offer::TEXT_UPPER_IMPLEMENTATION
         || fixed.capabilities[4].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
@@ -158,7 +158,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[2].output.is_none_or(|port| {
             port.name != "text"
-                || port.value_kind != conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind != conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
                 || port.direction != crate::offer::PortDirection::Output
         })
         || fixed.capabilities[3].required_base != crate::machine::BaseKind::Memory
@@ -171,7 +171,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[4].maximum_input_bytes != crate::offer::SERIAL_MAXIMUM_BYTES
         || fixed.capabilities[4].input.is_none_or(|port| {
             port.name != "text"
-                || port.value_kind != conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind != conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
                 || port.direction != crate::offer::PortDirection::Input
         })
         || fixed
@@ -191,7 +191,7 @@ pub(crate) fn advertisement(
     let mut upper = crate::functional_offers::text_upper_offer();
     bind_native_capability(&mut upper, &fixed.capabilities[3], build_id, "text-upper");
     let mut presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_std_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
     )
     .expect("ConduitOS owns text presentation");
     bind_native_capability(
@@ -485,7 +485,8 @@ mod tests {
         let syntax = conduit_form::parse_syntax_document(&source);
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
-        conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+        conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+            .unwrap();
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         assert!(conduit_form::expand_canonical_form(&checked, "too-large", &profile).is_err());
 

@@ -4,7 +4,7 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
-use conduit_std_catalog::PaletteIconKey;
+use conduit_semantic_catalog::PaletteIconKey;
 use resvg::{tiny_skia, usvg};
 
 use crate::cli::PaletteIconsArgs;

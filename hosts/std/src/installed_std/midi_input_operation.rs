@@ -96,7 +96,7 @@ impl MidiInputOperation {
         if self.pending.is_some() || self.emitted {
             return InstalledOperation::fail(100);
         }
-        if self.next_request >= u32::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
+        if self.next_request >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
             return fail(FailureCode::StorageExhausted, 101);
         }
         let request = RequestId(self.next_request);
@@ -118,8 +118,8 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_items: 3,
         value_bytes: (conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN
             + conduit_audio::NOTE_EVENT_ENCODED_LEN) as u32,
-        host_requests: usize::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
-        sign_items: conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS.saturating_mul(4),
+        host_requests: usize::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
+        sign_items: conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS.saturating_mul(4),
         maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
     })
 }
@@ -194,7 +194,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 }
 
 fn configuration_is_exact(placement: &PlannedGear) -> bool {
-    let expected = conduit_std_catalog::music_input_configuration();
+    let expected = conduit_semantic_catalog::music_input_configuration();
     placement.configuration.len() == expected.len()
         && expected.iter().all(|field| {
             placement
@@ -211,9 +211,10 @@ fn profile(placement: &PlannedGear) -> Result<MidiProfile, String> {
         .configuration
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            (conduit_std_catalog::MUSIC_INPUT_A4_REFERENCE_KEY, ConfigurationValue::U64(value)) => {
-                Some(*value)
-            }
+            (
+                conduit_semantic_catalog::MUSIC_INPUT_A4_REFERENCE_KEY,
+                ConfigurationValue::U64(value),
+            ) => Some(*value),
             _ => None,
         })
         .ok_or_else(|| "planned MIDI input A4 reference is missing or invalid".to_string())?;
@@ -221,9 +222,10 @@ fn profile(placement: &PlannedGear) -> Result<MidiProfile, String> {
         .configuration
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            (conduit_std_catalog::MUSIC_INPUT_TRANSPOSE_KEY, ConfigurationValue::I64(value)) => {
-                i16::try_from(*value).ok()
-            }
+            (
+                conduit_semantic_catalog::MUSIC_INPUT_TRANSPOSE_KEY,
+                ConfigurationValue::I64(value),
+            ) => i16::try_from(*value).ok(),
             _ => None,
         })
         .ok_or_else(|| "planned MIDI input transpose is missing or invalid".to_string())?;

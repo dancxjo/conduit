@@ -38,14 +38,14 @@ pub(super) fn prepare_copy_scheduler(
     let command = values
         .store(&[0])
         .map_err(|error| format!("store copy command: {error:?}"))?;
-    let success = conduit_std_catalog::copy_success_value(expected_bytes)?;
+    let success = conduit_semantic_catalog::copy_success_value(expected_bytes)?;
     let success_encoded = success
         .canonical_bytes()
         .map_err(|error| format!("encode admitted copy result: {error:?}"))?;
     let mut drivers = Vec::with_capacity(2);
     for node in &lowered.nodes {
         let placement = &fragment.placements[usize::from(node.node.0)];
-        let operation = if placement.kind_id.as_str() == conduit_std_catalog::COPY_FILE_KIND {
+        let operation = if placement.kind_id.as_str() == conduit_semantic_catalog::COPY_FILE_KIND {
             CopyTaskOperation::Copy(CopyOperation::new(command))
         } else if placement.implementation_id.as_str()
             == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION

@@ -45,7 +45,7 @@ package_test_shard!(
         "conduit-signal",
         "conduit-signal-conformance",
         "conduit-r1-network-conformance",
-        "conduit-std-catalog",
+        "conduit-semantic-catalog",
         "conduit-midi",
         "conduit-presentation",
         "conduit-body",

@@ -17,7 +17,7 @@ pub(super) fn append_exact_graph(
 ) {
     let mut semantic_subjects = Vec::new();
     for gear in &graph.gears {
-        let icon = conduit_std_catalog::palette_metadata(&gear.kind_id)
+        let icon = conduit_semantic_catalog::palette_metadata(&gear.kind_id)
             .map(|metadata| metadata.icon)
             .unwrap_or(PresentationIconKey::GenericGear);
         let subject = content.subject_with_identity(

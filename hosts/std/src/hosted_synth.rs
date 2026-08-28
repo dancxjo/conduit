@@ -4,11 +4,11 @@
 /// This describes synthesis semantics; it neither selects nor opens playback.
 pub fn compatibility_profile(
     profile: conduit_synth::ReferenceSynthProfile,
-) -> Result<conduit_std_catalog::SoundCompatibilityProfile, conduit_synth::SynthProfileError> {
+) -> Result<conduit_semantic_catalog::SoundCompatibilityProfile, conduit_synth::SynthProfileError> {
     let profile = profile.validate()?;
-    Ok(conduit_std_catalog::SoundCompatibilityProfile {
+    Ok(conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: conduit_synth::REFERENCE_SYNTH_PROFILE_ID.into(),
-        seam: conduit_std_catalog::SoundSeam::Synthesis,
+        seam: conduit_semantic_catalog::SoundSeam::Synthesis,
         minimum_pitch_millihertz: conduit_audio::MINIMUM_PITCH_MILLIHERTZ,
         maximum_pitch_millihertz: conduit_audio::MAXIMUM_PITCH_MILLIHERTZ,
         maximum_polyphony: u16::from(profile.maximum_voices),
@@ -32,7 +32,7 @@ mod tests {
     fn profile_is_derived_from_validated_plan_sealed_synth_facts() {
         let required = conduit_synth::ReferenceSynthProfile::musician_reference();
         let profile = compatibility_profile(required).unwrap();
-        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::Synthesis);
+        assert_eq!(profile.seam, conduit_semantic_catalog::SoundSeam::Synthesis);
         assert_eq!(
             profile.maximum_polyphony,
             u16::from(required.maximum_voices)

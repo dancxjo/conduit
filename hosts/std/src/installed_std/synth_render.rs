@@ -45,7 +45,7 @@ impl InstalledSynthState {
             clock_origin_micros: 0,
             next_demand_sequence: 0,
             pending_events: VecDeque::with_capacity(usize::from(
-                conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS,
+                conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS,
             )),
         })
     }
@@ -120,7 +120,7 @@ fn render_demand(
     demand: AudioRenderDemand,
     output: &mut Vec<u8>,
 ) -> Result<bool, String> {
-    if demand.clock_id != conduit_std_catalog::AUDIO_RENDER_CLOCK_ID
+    if demand.clock_id != conduit_semantic_catalog::AUDIO_RENDER_CLOCK_ID
         || demand.sequence != state.next_demand_sequence
         || demand.start_frame != state.synth.frame_cursor()
         || demand.frame_count > conduit_synth::REFERENCE_MAXIMUM_BLOCK_FRAMES
@@ -211,7 +211,7 @@ mod tests {
             InstalledSynthState::new(conduit_synth::ReferenceSynthProfile::musician_reference())
                 .unwrap();
         let mut output =
-            Vec::with_capacity(conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
+            Vec::with_capacity(conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
         assert!(!execute(&mut state, &note(1, Gate::On, 0, 0).encode(), &mut output).unwrap());
         assert!(!execute(
             &mut state,
@@ -231,7 +231,7 @@ mod tests {
             .iter()
             .all(|frame| frame[..2] == frame[2..]));
         assert!(payload.iter().any(|byte| *byte != 0));
-        assert!(output.len() <= conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
+        assert!(output.len() <= conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
     }
 
     #[test]
@@ -241,7 +241,7 @@ mod tests {
                 .unwrap();
         state.set_clock_origin(9_000_000);
         let mut output =
-            Vec::with_capacity(conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
+            Vec::with_capacity(conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
         execute(
             &mut state,
             &note(1, Gate::On, 9_000_000, 2).encode(),
@@ -276,7 +276,7 @@ mod tests {
             InstalledSynthState::new(conduit_synth::ReferenceSynthProfile::musician_reference())
                 .unwrap();
         let mut output =
-            Vec::with_capacity(conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
+            Vec::with_capacity(conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES as usize);
         execute(
             &mut state,
             &note(1, Gate::On, 2_500, 0).encode(),

@@ -12,7 +12,7 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_MAXIMUM_VALUES,
 };
 use conduit_text::{MAX_TEXT_BYTES, TEXT_UPPER_KIND};

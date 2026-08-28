@@ -300,12 +300,12 @@ fn branch_placements(
             placement.kind_id.as_str(),
             conduit_text::TEXT_LITERAL_KIND
                 | conduit_text::TEXT_UPPER_KIND
-                | conduit_std_catalog::TEXT_PRESENTATION_KIND
+                | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
         ) {
             text.push(placement.placement_id.clone());
         } else if matches!(
             placement.kind_id.as_str(),
-            conduit_std_catalog::TICK_KIND | conduit_std_catalog::TICK_PRESENTATION_KIND
+            conduit_semantic_catalog::TICK_KIND | conduit_semantic_catalog::TICK_PRESENTATION_KIND
         ) {
             timer.push(placement.placement_id.clone());
         } else {

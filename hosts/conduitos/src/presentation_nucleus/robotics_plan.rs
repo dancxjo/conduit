@@ -33,7 +33,7 @@ pub fn prepare_robotics(
 ) -> Result<PreparedRobotics, RoboticsError> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
         .map_err(|_| RoboticsError::Catalog)?;
     for (kind, value_kind) in discard_kinds() {
         catalog

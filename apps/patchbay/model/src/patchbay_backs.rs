@@ -7,7 +7,9 @@ use conduit_presentation::{
     LayoutRect, PresentationComposition, PresentationIconKey,
 };
 
-pub use conduit_std_catalog::{PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND};
+pub use conduit_semantic_catalog::{
+    PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND,
+};
 pub const MAX_PATCHBAY_PRESENTATION_TEXT_BYTES: usize = 256;
 pub const PATCHBAY_BACK_KINDS: [&str; 3] = [
     PATCHBAY_GEAR_FACE_KIND,
@@ -213,7 +215,7 @@ pub fn normalized_subject(realization: &PatchbayRealization) -> (&str, &str) {
 }
 
 fn gear_graphics(face: &GearFacePresentation) -> Result<GraphicsScene, PatchbayBackError> {
-    let icon = conduit_std_catalog::palette_metadata(&face.kind_id)
+    let icon = conduit_semantic_catalog::palette_metadata(&face.kind_id)
         .map(|metadata| metadata.icon)
         .unwrap_or(PresentationIconKey::GenericGear);
     let composition = PresentationComposition::icon(icon.as_str(), &face.accessibility_name)?

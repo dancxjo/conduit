@@ -8,7 +8,7 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::install_geometry_catalogs;
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     deterministic_gamepad_outputs, deterministic_generalized_input_fixture,
     deterministic_pointer_touch_outputs, gamepad_state_type, input_axis_slot_type,
     input_axis_slots_type, input_axis_state_type, input_button_transition_type,
@@ -182,11 +182,11 @@ fn host() -> HostAdvertisement {
 fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
     [
         (
-            conduit_std_catalog::DETERMINISTIC_GAMEPAD_KIND,
+            conduit_semantic_catalog::DETERMINISTIC_GAMEPAD_KIND,
             deterministic_gamepad_outputs(),
         ),
         (
-            conduit_std_catalog::DETERMINISTIC_POINTER_TOUCH_KIND,
+            conduit_semantic_catalog::DETERMINISTIC_POINTER_TOUCH_KIND,
             deterministic_pointer_touch_outputs(),
         ),
     ]
@@ -197,7 +197,7 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
         capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),
         kind_id: conduit_core::kind_id(kind),
         kind_contract_revision: conduit_core::KindContractRevision::from(
-            conduit_std_catalog::GENERALIZED_INPUT_REVISION,
+            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: conduit_core::ExecutionProfileId::from(

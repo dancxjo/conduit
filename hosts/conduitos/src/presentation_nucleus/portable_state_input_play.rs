@@ -25,7 +25,7 @@ const CORDS: usize = 7;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 9;
-const MAX_VALUE_BYTES: usize = conduit_std_catalog::COUNT_ENCODED_LEN as usize;
+const MAX_VALUE_BYTES: usize = conduit_semantic_catalog::COUNT_ENCODED_LEN as usize;
 const VALUE_BYTES: usize = 64;
 const SIGNS: usize = 192;
 
@@ -244,7 +244,7 @@ fn scheduler(
             .map_err(|_| PortableStateInputError::Value)?,
         values
             .store(
-                &conduit_std_catalog::bounded_count_value(prepared.count_start, 1)
+                &conduit_semantic_catalog::bounded_count_value(prepared.count_start, 1)
                     .ok_or(PortableStateInputError::Value)?
                     .to_le_bytes(),
             )
@@ -254,7 +254,7 @@ fn scheduler(
         values
             .store(
                 &InfoBool::new(
-                    conduit_std_catalog::bounded_toggle_value(prepared.toggle_initial, 0)
+                    conduit_semantic_catalog::bounded_toggle_value(prepared.toggle_initial, 0)
                         .ok_or(PortableStateInputError::Value)?,
                 )
                 .encode(),
@@ -263,7 +263,7 @@ fn scheduler(
         values
             .store(
                 &InfoBool::new(
-                    conduit_std_catalog::bounded_toggle_value(prepared.toggle_initial, 1)
+                    conduit_semantic_catalog::bounded_toggle_value(prepared.toggle_initial, 1)
                         .ok_or(PortableStateInputError::Value)?,
                 )
                 .encode(),
@@ -293,26 +293,30 @@ fn scheduler(
                     value: key,
                     emitted: false,
                 },
-                conduit_std_catalog::STATE_COUNT_KIND => PortableStateInputOperation::Count {
+                conduit_semantic_catalog::STATE_COUNT_KIND => PortableStateInputOperation::Count {
                     values: count_values,
                     next: 0,
                     initial_emitted: false,
                 },
-                conduit_std_catalog::STATE_TOGGLE_KIND => PortableStateInputOperation::Toggle {
-                    values: toggle_values,
-                    next: 0,
-                    initial_emitted: false,
-                },
-                conduit_std_catalog::KEY_EVENT_TEE_KIND => PortableStateInputOperation::KeyTee {
-                    pending: None,
-                    phase: 0,
-                },
+                conduit_semantic_catalog::STATE_TOGGLE_KIND => {
+                    PortableStateInputOperation::Toggle {
+                        values: toggle_values,
+                        next: 0,
+                        initial_emitted: false,
+                    }
+                }
+                conduit_semantic_catalog::KEY_EVENT_TEE_KIND => {
+                    PortableStateInputOperation::KeyTee {
+                        pending: None,
+                        phase: 0,
+                    }
+                }
                 COUNT_SINK_KIND | BOOL_SINK_KIND | TEXT_KEY_SINK_KIND | CHORD_KEY_SINK_KIND => {
                     let node = NodeId(index as u16);
                     let maximum_bytes = match placement.kind_id.as_str() {
                         COUNT_SINK_KIND => {
                             count_sink = Some(node);
-                            conduit_std_catalog::COUNT_ENCODED_LEN
+                            conduit_semantic_catalog::COUNT_ENCODED_LEN
                         }
                         BOOL_SINK_KIND => {
                             bool_sink = Some(node);

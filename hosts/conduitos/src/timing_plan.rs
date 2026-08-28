@@ -55,7 +55,7 @@ pub fn prepare_timing(
         .insert(conduit_time::tick_kind_definition())
         .map_err(|_| PreparationError::FormRejected)?;
     catalog
-        .insert(conduit_std_catalog::tick_presentation_kind_definition())
+        .insert(conduit_semantic_catalog::tick_presentation_kind_definition())
         .map_err(|_| PreparationError::FormRejected)?;
     let form = conduit_form::parse(TIMING_FORM_SOURCE, &catalog)
         .map_err(|_| PreparationError::FormRejected)?;
@@ -130,11 +130,11 @@ fn advertisement(
         || fixed.boot_id != identities.boot
         || fixed.generation == 0
         || fixed.capabilities.len() != crate::offer::CAPABILITY_COUNT
-        || fixed.capabilities[0].kind != conduit_std_catalog::TICK_KIND
+        || fixed.capabilities[0].kind != conduit_semantic_catalog::TICK_KIND
         || fixed.capabilities[0].contract_revision != conduit_time::TICK_CONTRACT_REVISION
-        || fixed.capabilities[1].kind != conduit_std_catalog::TICK_PRESENTATION_KIND
+        || fixed.capabilities[1].kind != conduit_semantic_catalog::TICK_PRESENTATION_KIND
         || fixed.capabilities[1].contract_revision
-            != conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION
         || fixed.capabilities[0].implementation != crate::offer::TIME_TICK_IMPLEMENTATION
         || fixed.capabilities[1].implementation != crate::offer::TICK_PRESENTATION_IMPLEMENTATION
         || fixed
@@ -147,7 +147,7 @@ fn advertisement(
     let mut tick = crate::functional_offers::tick_offer();
     bind_native_capability(&mut tick, &fixed.capabilities[0], build_id, "time-tick");
     let mut presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_std_catalog::TICK_PRESENTATION_KIND,
+        conduit_semantic_catalog::TICK_PRESENTATION_KIND,
     )
     .expect("ConduitOS owns tick presentation");
     bind_native_capability(

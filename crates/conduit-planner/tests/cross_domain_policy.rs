@@ -224,7 +224,7 @@ fn presentation_fixture() -> (
 ) {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
         .expect("presentation catalogs install");
     let form = conduit_form::parse(
         "form styled {\n    canvas: presentation/patchbay\n}\n",

@@ -36,7 +36,7 @@ members = [
 	"crates/conduit-tongues",
 	"crates/conduit-synth",
 	"crates/conduit-midi",
-	"crates/conduit-std-catalog",
+	"crates/conduit-semantic-catalog",
 	"crates/conduit",
 	"hosts/browser-runtime",
 	"hosts/browser-host",

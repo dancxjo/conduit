@@ -10,7 +10,7 @@ use conduit_core::{
 };
 use conduit_form::{ProfileCatalog, StartupCatalog};
 use conduit_presentation::install_geometry_catalogs;
-use conduit_std_catalog::install_vision_catalogs;
+use conduit_semantic_catalog::install_vision_catalogs;
 
 const INTENT: &str =
     "Watch this camera, recognize birds, count them by species, and show a dashboard.";

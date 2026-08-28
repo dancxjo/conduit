@@ -16,9 +16,9 @@ fn count_toggle_and_key_tee_execute_in_one_ordinary_fixed_plan() {
     assert_eq!(proof.text_key, key());
     assert_eq!(proof.chord_key, key());
     for kind in [
-        conduit_std_catalog::STATE_COUNT_KIND,
-        conduit_std_catalog::STATE_TOGGLE_KIND,
-        conduit_std_catalog::KEY_EVENT_TEE_KIND,
+        conduit_semantic_catalog::STATE_COUNT_KIND,
+        conduit_semantic_catalog::STATE_TOGGLE_KIND,
+        conduit_semantic_catalog::KEY_EVENT_TEE_KIND,
     ] {
         assert_eq!(
             prepared
@@ -53,15 +53,15 @@ fn authoritative_offers_keep_exact_portable_contracts() {
     ];
     assert_eq!(
         offers[0].kind_contract_revision.as_str(),
-        conduit_std_catalog::STATE_COUNT_CONTRACT_REVISION
+        conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION
     );
     assert_eq!(
         offers[1].kind_contract_revision.as_str(),
-        conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION
+        conduit_semantic_catalog::STATE_TOGGLE_CONTRACT_REVISION
     );
     assert_eq!(
         offers[2].kind_contract_revision.as_str(),
-        conduit_std_catalog::KEY_EVENT_TEE_REVISION
+        conduit_semantic_catalog::KEY_EVENT_TEE_REVISION
     );
     assert!(offers.iter().all(|offer| {
         offer.implementation.execution_profile_id.as_str()

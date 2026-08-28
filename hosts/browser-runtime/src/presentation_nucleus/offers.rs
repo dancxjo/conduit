@@ -28,10 +28,10 @@ pub fn human_io_advertisement_offers() -> Vec<CapabilityOffer> {
     advertisement.extend(offers().into_iter().filter(|offer| {
         matches!(
             offer.kind_id.as_str(),
-            conduit_std_catalog::TEXT_PRESENTATION_KIND
-                | conduit_std_catalog::GRAPHICS_RECT_KIND
-                | conduit_std_catalog::GRAPHICS_TEXT_KIND
-                | conduit_std_catalog::GRAPHICS_ICON_KIND
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                | conduit_semantic_catalog::GRAPHICS_RECT_KIND
+                | conduit_semantic_catalog::GRAPHICS_TEXT_KIND
+                | conduit_semantic_catalog::GRAPHICS_ICON_KIND
         )
     }));
     advertisement.push(crate::human_media::browser_camera_frame_sink_offer());
@@ -43,7 +43,7 @@ pub fn human_io_advertisement_offers() -> Vec<CapabilityOffer> {
 pub(super) fn canonical_offer(kind: &str) -> Option<CapabilityOffer> {
     offer_composition::portable_offer(kind)
         .or_else(|| {
-            (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND)
+            (kind == conduit_semantic_catalog::TEXT_PRESENTATION_KIND)
                 .then(offer_composition::text_offer)
         })
         .or_else(|| (kind == conduit_text::TEXT_UPPER_KIND).then(super::browser_text_upper_offer))
@@ -76,7 +76,7 @@ pub(super) fn advertisement() -> HostAdvertisement {
 pub(super) fn text_advertisement() -> HostAdvertisement {
     let text_presentation = offers()
         .into_iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND)
         .expect("browser text presentation offer is installed");
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -113,7 +113,7 @@ fn text_source_offer() -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("text"),
-            value_kind: kind_id(conduit_std_catalog::TEXT_PRESENTATION_VALUE_KIND),
+            value_kind: kind_id(conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
@@ -165,7 +165,7 @@ fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> Capability
 }
 
 pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
-    let mut catalog = conduit_std_catalog::standard_profile_catalog();
+    let mut catalog = conduit_semantic_catalog::standard_profile_catalog();
     for (kind, value_kind) in [
         (
             FIXTURE_GRAPHICS_KIND,
@@ -196,9 +196,12 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
 pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, String> {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profiles = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_presentation_composition_catalogs(
+        &mut startup,
+        &mut profiles,
+    )?;
+    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
     for kind in [FIXTURE_GRAPHICS_KIND, FIXTURE_LAYOUT_KIND] {
         startup
             .insert(conduit_form::KindSignature {
@@ -213,7 +216,7 @@ pub(super) fn fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, 
 pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> {
     let mut catalog = conduit_form::ProfileCatalog::new();
     let mut startup = conduit_form::StartupCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)?;
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)?;
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(FIXTURE_TEXT_KIND),
@@ -229,7 +232,7 @@ pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, Str
 pub(super) fn text_fixture_startup_catalog() -> Result<conduit_form::StartupCatalog, String> {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profiles = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     startup
         .insert(conduit_form::KindSignature {
             kind: FIXTURE_TEXT_KIND.to_string(),
@@ -247,17 +250,17 @@ mod ownership_tests {
     fn browser_human_io_is_portable_and_contains_no_renderer_kind() {
         let offers = human_io_offers();
         assert!(offers.iter().any(|offer| {
-            offer.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND
+            offer.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
         }));
         assert!(offers
             .iter()
-            .any(|offer| offer.kind_id.as_str() == conduit_std_catalog::GRAPHICS_RECT_KIND));
+            .any(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_RECT_KIND));
         assert!(!offers.iter().any(|offer| {
             let kind = offer.kind_id.as_str();
             kind.contains("dom") || kind.contains("canvas")
         }));
-        assert!(offers
-            .iter()
-            .all(|offer| { offer.kind_id.as_str() != conduit_std_catalog::CAMERA_SOURCE_KIND }));
+        assert!(offers.iter().all(|offer| {
+            offer.kind_id.as_str() != conduit_semantic_catalog::CAMERA_SOURCE_KIND
+        }));
     }
 }

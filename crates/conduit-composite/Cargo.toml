@@ -12,4 +12,4 @@ conduit-plan-lowering = { path = "../conduit-plan-lowering", default-features = 
 [dev-dependencies]
 conduit-planner = { path = "../conduit-planner" }
 conduit-signal = { path = "../conduit-signal", default-features = false, features = ["host-profile"] }
-conduit-std-catalog = { path = "../conduit-std-catalog", default-features = false, features = ["form-catalog"] }
+conduit-semantic-catalog = { path = "../conduit-semantic-catalog", default-features = false, features = ["form-catalog"] }

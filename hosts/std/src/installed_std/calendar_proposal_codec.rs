@@ -13,7 +13,7 @@ pub(super) struct DecodedCalendarProposal {
 }
 
 pub(super) fn decode(value: &StructuredInfoValue) -> Result<DecodedCalendarProposal, String> {
-    if value.value_type() != &conduit_std_catalog::calendar_proposal_request_type() {
+    if value.value_type() != &conduit_semantic_catalog::calendar_proposal_request_type() {
         return Err("calendar proposal request differs from installed contract".into());
     }
     let fields = record(value)?;

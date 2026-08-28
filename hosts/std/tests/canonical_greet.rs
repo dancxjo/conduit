@@ -10,7 +10,7 @@ const GREET_PROGRAM: &str = include_str!("../../../examples/greet.conduit");
 fn checked_and_profile() -> (CheckedSyntaxDocument, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(GREET_PROGRAM);
     assert_eq!(syntax.round_trip(), GREET_PROGRAM);
     let checked = check_syntax_document(&syntax, &startup).expect("greet source checks");
@@ -110,7 +110,7 @@ fn join_output_bound_and_selected_realization_identity_fail_before_presentation(
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "bad", &profile).unwrap();

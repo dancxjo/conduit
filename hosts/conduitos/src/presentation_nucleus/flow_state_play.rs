@@ -200,12 +200,12 @@ fn scheduler(
                         .map_err(|_| FlowStateError::Value)?,
                     emitted: false,
                 },
-                conduit_std_catalog::LATEST_KIND => FlowStateOperation::Latest {
+                conduit_semantic_catalog::LATEST_KIND => FlowStateOperation::Latest {
                     held: None,
                     released: None,
                     retain_resumed: false,
                 },
-                conduit_std_catalog::TEE_KIND => FlowStateOperation::Tee {
+                conduit_semantic_catalog::TEE_KIND => FlowStateOperation::Tee {
                     pending: None,
                     phase: 0,
                 },

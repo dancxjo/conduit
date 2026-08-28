@@ -20,7 +20,7 @@ use crate::MAX_SIGNAL_COUNT;
 
 pub const TRIGGER_VALUE_KIND: &str = conduit_time::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
-pub use conduit_std_catalog::{
+pub use conduit_semantic_catalog::{
     BOOL_PRESENTATION_CONTRACT_REVISION as TOGGLE_PRESENTATION_CONTRACT_REVISION,
     BOOL_PRESENTATION_KIND as TOGGLE_PRESENTATION_KIND,
     STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION, STATE_TOGGLE_KIND as TOGGLE_KIND,
@@ -111,11 +111,11 @@ pub fn trigger_outputs() -> Vec<PortDescriptor> {
 }
 
 pub fn toggle_inputs() -> Vec<PortDescriptor> {
-    conduit_std_catalog::state_toggle_contract().inputs
+    conduit_semantic_catalog::state_toggle_contract().inputs
 }
 
 pub fn toggle_outputs() -> Vec<PortDescriptor> {
-    conduit_std_catalog::state_toggle_contract().outputs
+    conduit_semantic_catalog::state_toggle_contract().outputs
 }
 
 pub fn trigger_configuration_entries(config: &TriggerConfiguration) -> Vec<ConfigurationEntry> {
@@ -217,7 +217,7 @@ pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog)
             }],
         })
         .expect("signal profile kinds are unique");
-    conduit_std_catalog::install_bool_presentation_catalog(catalog)
+    conduit_semantic_catalog::install_bool_presentation_catalog(catalog)
         .expect("toggle presentation kind is unique");
     catalog
         .insert(KindDefinition {

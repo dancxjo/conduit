@@ -71,7 +71,7 @@ fn plan(host: &StdHost, form: &conduit_form::CheckedForm) -> conduit_core::Plan 
             observations: &observations,
             policies: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             authority_grants: &grants,
         },
     )
@@ -148,7 +148,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             authority_grants: &grants_b,
             protected_resource_grants: &[],
             line_offers: &[],
@@ -172,12 +172,12 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
     let playback_a = plan_a.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::AUDIO_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND)
         .expect("Plan A playback placement");
     let playback_b = plan_b.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::AUDIO_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND)
         .expect("Plan B playback placement");
     assert_ne!(playback_a.resources, playback_b.resources);
     assert_ne!(playback_a.authority, playback_b.authority);
@@ -267,7 +267,7 @@ fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
                 connection_bases: &connection_bases,
                 line_candidates: &line_candidates,
                 connection_item_capacity: 1,
-                connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+                connection_byte_capacity: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
                 authority_grants: grants,
                 protected_resource_grants: &[],
                 line_offers: &[],

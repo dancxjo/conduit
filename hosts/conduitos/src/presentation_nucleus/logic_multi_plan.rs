@@ -29,7 +29,7 @@ pub struct PreparedLogicMulti {
     pub(super) right: Scalar,
     pub(super) when_false: Scalar,
     pub(super) when_true: Scalar,
-    pub(super) comparison: conduit_std_catalog::ScalarComparison,
+    pub(super) comparison: conduit_semantic_catalog::ScalarComparison,
 }
 
 pub fn prepare_logic_multi(
@@ -37,13 +37,13 @@ pub fn prepare_logic_multi(
     boot: &str,
     left: Scalar,
     right: Scalar,
-    comparison: conduit_std_catalog::ScalarComparison,
+    comparison: conduit_semantic_catalog::ScalarComparison,
     when_false: Scalar,
     when_true: Scalar,
 ) -> Result<PreparedLogicMulti, LogicMultiError> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_logic_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut catalog)
         .map_err(|_| LogicMultiError::Catalog)?;
     let sources = [
         (LEFT_KIND, left),
@@ -73,12 +73,12 @@ pub fn prepare_logic_multi(
         })
         .map_err(|_| LogicMultiError::Catalog)?;
     let operator = match comparison {
-        conduit_std_catalog::ScalarComparison::Less => "lt",
-        conduit_std_catalog::ScalarComparison::LessOrEqual => "le",
-        conduit_std_catalog::ScalarComparison::Equal => "eq",
-        conduit_std_catalog::ScalarComparison::NotEqual => "ne",
-        conduit_std_catalog::ScalarComparison::GreaterOrEqual => "ge",
-        conduit_std_catalog::ScalarComparison::Greater => "gt",
+        conduit_semantic_catalog::ScalarComparison::Less => "lt",
+        conduit_semantic_catalog::ScalarComparison::LessOrEqual => "le",
+        conduit_semantic_catalog::ScalarComparison::Equal => "eq",
+        conduit_semantic_catalog::ScalarComparison::NotEqual => "ne",
+        conduit_semantic_catalog::ScalarComparison::GreaterOrEqual => "ge",
+        conduit_semantic_catalog::ScalarComparison::Greater => "gt",
     };
     let source = format!(
         "form logic_multi {{\n left: {LEFT_KIND}\n right: {RIGHT_KIND}\n compare: logic/compare(operator = \"{operator}\")\n when_false: {FALSE_KIND}\n when_true: {TRUE_KIND}\n select: logic/select\n sink: {SINK_KIND}\n left.value > compare.left\n right.value > compare.right\n compare.out > select.selector\n when_false.value > select.when-false\n when_true.value > select.when-true\n select.out > sink.value\n}}\n"

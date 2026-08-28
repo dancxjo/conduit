@@ -76,29 +76,29 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     let mut startup = conduit_form::StartupCatalog::new();
     conduit_web::install_json_catalogs(&mut startup, &mut catalog)
         .expect("JSON catalogs are exact and unique");
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)
         .expect("text catalogs are exact and unique");
-    conduit_std_catalog::install_timing_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut catalog)
         .expect("timing catalogs are exact and unique");
-    conduit_std_catalog::install_bool_presentation_catalog(&mut catalog)
+    conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)
         .expect("Boolean presentation catalog is exact and unique");
-    conduit_std_catalog::install_logic_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut catalog)
         .expect("logic catalogs are exact and unique");
-    conduit_std_catalog::install_math_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut catalog)
         .expect("math catalogs are exact and unique");
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut catalog)
         .expect("layout catalogs are exact and unique");
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)
         .expect("input semantic catalogs are exact and unique");
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_presentation_composition_catalogs(&mut startup, &mut catalog)
         .expect("presentation composition catalogs are exact and unique");
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut catalog)
         .expect("graphics catalogs are exact and unique");
-    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut catalog)
         .expect("graphics presentation catalog is exact and unique");
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut catalog)
         .expect("graphics presentation catalog is exact and unique");
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog)
         .expect("sound catalogs are exact and unique");
     catalog
         .insert(KindDefinition {
@@ -132,7 +132,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
             configuration: Vec::new(),
         })
         .expect("layout sink is unique");
-    conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
         .expect("robotics catalogs are exact and unique");
     catalog
 }

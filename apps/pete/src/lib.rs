@@ -78,11 +78,11 @@ mod tests {
     fn shared_realization_ttl_profile_matches_portable_robotics_contract() {
         assert_eq!(
             MINIMUM_MOTION_TTL_MS,
-            conduit_std_catalog::ROBOTICS_MINIMUM_MOTION_TTL_MS as u32
+            conduit_semantic_catalog::ROBOTICS_MINIMUM_MOTION_TTL_MS as u32
         );
         assert_eq!(
             MAXIMUM_MOTION_TTL_MS,
-            conduit_std_catalog::ROBOTICS_MAXIMUM_MOTION_TTL_MS as u32
+            conduit_semantic_catalog::ROBOTICS_MAXIMUM_MOTION_TTL_MS as u32
         );
     }
 }
