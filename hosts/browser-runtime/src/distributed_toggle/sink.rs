@@ -1,4 +1,4 @@
-//! Browser sink kernel and session logic for the S4 toggle-demo.
+//! Browser sink kernel and session logic for the distributed toggle demo.
 //!
 //! `ToggleDistributedSink` prepares and drives the `presentation/show` fragment
 //! receiving canonical Boolean values over the WebSocket cord from the std source.

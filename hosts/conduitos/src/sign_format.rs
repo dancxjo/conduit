@@ -5,7 +5,7 @@ use core::fmt::{self, Write};
 #[cfg(any(test, target_arch = "x86_64"))]
 use crate::{boot::BootRecord, fabrication::FabricationRecord};
 use crate::{
-    composition::MachineProof,
+    composition::MachineRunReceipt,
     dual_region_plan::PreparedDualRegionPlay,
     identity::BootIdentities,
     offer::{HostOffer, SERIAL_MAXIMUM_BYTES},
@@ -17,7 +17,7 @@ pub const MACHINE_SIGN_SCHEMA: &str = "conduit.conduitos.kernel-sign/v2";
 pub const MAX_STRUCTURED_SIGN_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct AllocationProof {
+pub struct AllocationReceipt {
     pub before_play: usize,
     pub after_play: usize,
     pub capacity: usize,
@@ -102,9 +102,9 @@ pub fn refused(reason: &str) -> Result<FixedText, fmt::Error> {
 pub fn machine_accepted(
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
-    report: &MachineProof,
+    report: &MachineRunReceipt,
     prepared: &PreparedDualRegionPlay,
-    allocation: AllocationProof,
+    allocation: AllocationReceipt,
     build_id: &str,
 ) -> Result<FixedText, fmt::Error> {
     let [text_region, timer_region] = prepared.plan.fragments[0].execution_regions.as_slice()
@@ -274,7 +274,7 @@ mod tests {
         let output = machine_accepted(
             &identities,
             &offer,
-            &MachineProof {
+            &MachineRunReceipt {
                 logical_operations: 3,
                 decisions: 6,
                 kernel_signs: 12,
@@ -288,7 +288,7 @@ mod tests {
                 physical_parallelism: false,
             },
             &crate::dual_region_plan::prepare(&identities, &offer, "build").unwrap(),
-            AllocationProof {
+            AllocationReceipt {
                 before_play: 1024,
                 after_play: 1024,
                 capacity: 262_144,

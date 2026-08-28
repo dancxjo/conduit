@@ -1,4 +1,4 @@
-//! QEMU `virt` AArch64 A2 machine mechanisms below the generic host seam.
+//! QEMU `virt` AArch64 machine mechanisms below the generic Host seam.
 
 use core::{
     cell::UnsafeCell,

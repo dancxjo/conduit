@@ -3,14 +3,9 @@ name = "conduit-alife"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-default = []
-planning = ["dep:conduit-planner"]
-
 [dependencies]
 conduit-core = { path = "../conduit-core" }
 conduit-form = { path = "../conduit-form" }
-conduit-planner = { path = "../conduit-planner", optional = true }
 conduit-presentation = { path = "../conduit-presentation", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../conduit-time" }
 sha2 = { version = "0.10", default-features = false }

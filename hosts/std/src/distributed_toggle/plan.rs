@@ -1,4 +1,4 @@
-//! Planning for the S4 toggle-demo distributed proof.
+//! Planning for the distributed toggle proof.
 //!
 //! Resolves the canonical `remote-toggle.conduit` against the std source and browser sink
 //! advertisements and returns the exact two-fragment plan.

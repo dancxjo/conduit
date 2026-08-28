@@ -165,10 +165,19 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
- "conduit-planner",
  "conduit-presentation",
  "conduit-time",
  "sha2",
+]
+
+[[package]]
+name = "conduit-alife-distributed-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-alife",
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
 ]
 
 [[package]]
@@ -220,7 +229,7 @@ dependencies = [
 name = "conduit-esp32-wroom-signal"
 version = "0.1.0"
 dependencies = [
- "conduit-alife",
+ "conduit-alife-distributed-conformance",
  "conduit-bluetooth",
  "conduit-core",
  "conduit-embedded-build",
@@ -326,6 +335,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-semantic-catalog"
+version = "0.1.0"
+dependencies = [
+ "conduit-alife",
+ "conduit-audio",
+ "conduit-core",
+ "conduit-form",
+ "conduit-midi",
+ "conduit-presentation",
+ "conduit-text",
+ "conduit-time",
+ "conduit-web",
+ "serde",
+]
+
+[[package]]
 name = "conduit-signal"
 version = "0.1.0"
 dependencies = [
@@ -344,26 +369,10 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
- "conduit-signal",
  "conduit-semantic-catalog",
+ "conduit-signal",
  "conduit-std-offers",
  "conduit-wire",
-]
-
-[[package]]
-name = "conduit-semantic-catalog"
-version = "0.1.0"
-dependencies = [
- "conduit-alife",
- "conduit-audio",
- "conduit-core",
- "conduit-form",
- "conduit-midi",
- "conduit-presentation",
- "conduit-text",
- "conduit-time",
- "conduit-web",
- "serde",
 ]
 
 [[package]]

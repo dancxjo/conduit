@@ -6,7 +6,7 @@ compile_error!("conduitos-aarch64-a3 is only an AArch64 ordinary-Form proof");
 
 use core::panic::PanicInfo;
 
-use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, sign_format};
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
@@ -87,12 +87,12 @@ pub extern "C" fn conduitos_aarch64_a3_start() -> ! {
         &mut idle,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let sign = proof::machine_accepted(
+    let sign = sign_format::machine_accepted(
         &identities,
         &offer,
         &report,
         &prepared,
-        proof::AllocationProof {
+        sign_format::AllocationReceipt {
             before_play: allocation_before_play,
             after_play: BOOT_ARENA.used(),
             capacity: BOOT_ARENA.capacity(),

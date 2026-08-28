@@ -1,4 +1,8 @@
-//! Exact four-Host realization of the reviewed three-region Lenia Back.
+//! Exact four-Host conformance realization of the reviewed three-region Lenia Back.
+
+#![no_std]
+
+extern crate alloc;
 
 use alloc::{
     collections::BTreeMap,
@@ -16,7 +20,9 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 
-use crate::{expanded_three_region_lenia, LENIA_REGION_RESULT_INFO_ID, LENIA_REGION_WORK_INFO_ID};
+use conduit_alife::{
+    expanded_three_region_lenia, LENIA_REGION_RESULT_INFO_ID, LENIA_REGION_WORK_INFO_ID,
+};
 
 pub const DISTRIBUTED_LENIA_STD_HOST_ID: &str = "std/distributed-lenia-coordinator";
 pub const DISTRIBUTED_LENIA_STD_BOOT_ID: &str = "std/distributed-lenia/image-boot";

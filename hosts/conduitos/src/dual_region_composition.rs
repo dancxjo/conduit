@@ -3,7 +3,7 @@
 use conduit_kernel::scheduler::SchedulerStatus;
 
 use crate::{
-    composition::{MachineProof, MachineRunError},
+    composition::{MachineRunError, MachineRunReceipt},
     dual_region_kernel::DualRegionKernel,
     machine::{IdleBase, InterruptBase, MonotonicClockBase, SerialBase, TimerBase},
 };
@@ -17,7 +17,7 @@ pub fn run<C, T, S, I, D>(
     serial: &mut S,
     interrupts: &mut I,
     idle: &mut D,
-) -> Result<MachineProof, MachineRunError>
+) -> Result<MachineRunReceipt, MachineRunError>
 where
     C: MonotonicClockBase,
     T: TimerBase,
@@ -127,7 +127,7 @@ where
                 if !overlap_witness || !timer_completed {
                     return Err(MachineRunError::KernelFailure);
                 }
-                return Ok(MachineProof {
+                return Ok(MachineRunReceipt {
                     logical_operations: 5,
                     decisions: kernel.decisions(),
                     kernel_signs: kernel.sign_count(),

@@ -61,7 +61,7 @@ ed25519-dalek = { version = "2.2", default-features = false }
 serde-json-core = "0.6"
 
 [build-dependencies]
-conduit-alife = { path = "../../crates/conduit-alife", features = ["planning"] }
+conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
 conduit-core = { path = "../../crates/conduit-core" }
 conduit-embedded-build = { path = "../../crates/conduit-embedded-build" }
 conduit-form = { path = "../../crates/conduit-form" }

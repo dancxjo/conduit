@@ -31,8 +31,6 @@ mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
 mod graphical_patchbay;
-#[cfg(test)]
-mod heterogeneous_capstone_explanation;
 mod host_adapter;
 mod interaction;
 mod layout;
@@ -61,10 +59,11 @@ mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
 mod presentation_layout;
-mod presenter_capstone;
+mod presenter_plans;
 #[cfg(test)]
-mod presenter_capstone_tests;
+mod presenter_plans_tests;
 mod prewake;
+pub mod proof;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
@@ -77,7 +76,6 @@ mod text_lab_explanation;
 mod text_lab_explanation_loss;
 mod theme;
 mod topology;
-mod voyager_capstone_explanation;
 mod zero_body_authoring;
 mod zero_body_front_door;
 mod zero_body_projection;
@@ -132,11 +130,6 @@ pub use graphical_patchbay::{
     PatchbayFacePort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
     PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
     MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
-};
-#[cfg(test)]
-pub use heterogeneous_capstone_explanation::{
-    PatchbayCapstoneBaseline, PatchbayHeterogeneousCapstoneExplanation,
-    MAX_CAPSTONE_EXPLANATION_BYTES,
 };
 pub use host_adapter::{PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile};
 pub use interaction::{
@@ -199,7 +192,7 @@ pub use presentation_layout::{
     PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
-pub use presenter_capstone::*;
+pub use presenter_plans::*;
 pub use prewake::*;
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
@@ -233,10 +226,6 @@ pub use text_lab_explanation::{
 };
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
-pub use voyager_capstone_explanation::{
-    explain_voyager_capstone, VoyagerCapstoneExplanation, VoyagerCapstoneExplanationError,
-    VoyagerScarStageExplanation, MAX_VOYAGER_CAPSTONE_EXPLANATION_BYTES,
-};
 pub use zero_body_front_door::{
     BodyJoinCandidate, OpenedFrontDoorSubject, SeedCandidate, ZeroBodyFrontDoor,
     ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_REFUSAL_SIGNS,
@@ -256,8 +245,6 @@ mod front_door_tests;
 mod gear_realization_tests;
 #[cfg(test)]
 mod graphical_patchbay_tests;
-#[cfg(test)]
-mod heterogeneous_capstone_explanation_tests;
 #[cfg(test)]
 mod interaction_tests;
 #[cfg(test)]

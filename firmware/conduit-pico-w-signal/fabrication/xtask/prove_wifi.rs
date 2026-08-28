@@ -330,15 +330,15 @@ fn wait_for_network_session_readiness(
     line: &mut NativePathCdcLine,
 ) -> PicoResult<NetworkSessionReadiness> {
     line.send_raw_stream_frame(
-        conduit_rp2040_network_realization::R1_USB_NETWORK_SESSION_QUERY,
+        conduit_r1_network_conformance::R1_USB_NETWORK_SESSION_QUERY,
         Duration::from_secs(2),
     )?;
     let mut raw = [0_u8; 1024];
     let reply = line.receive_raw_stream_frame(&mut raw, Duration::from_secs(30))?;
-    if reply == conduit_rp2040_network_realization::R1_USB_NETWORK_SESSION_FAILED {
+    if reply == conduit_r1_network_conformance::R1_USB_NETWORK_SESSION_FAILED {
         return Ok(NetworkSessionReadiness::Failed);
     }
-    if reply != conduit_rp2040_network_realization::R1_USB_NETWORK_SESSION_READY {
+    if reply != conduit_r1_network_conformance::R1_USB_NETWORK_SESSION_READY {
         return Err("Pico returned an unexpected network Session readiness payload".into());
     }
     Ok(NetworkSessionReadiness::Ready)
@@ -354,7 +354,7 @@ fn read_recovery_sign(
     std::thread::scope(|scope| -> Box<dyn std::error::Error> {
         let disposition = scope.spawn(|| -> Result<Vec<u8>, String> {
             line.send_raw_stream_frame(
-                conduit_rp2040_network_realization::R1_USB_NETWORK_FAILURE_SIGN_READY,
+                conduit_r1_network_conformance::R1_USB_NETWORK_FAILURE_SIGN_READY,
                 Duration::from_secs(2),
             )
             .map_err(|error| error.to_string())?;
@@ -373,14 +373,13 @@ fn read_recovery_sign(
             Ok(Err(error)) => return error.into(),
             Err(_) => return "Pico recovery disposition reader panicked".into(),
         };
-        if status == conduit_rp2040_network_realization::R1_USB_NETWORK_FAILURE_SIGN_FORMAT_FAILED {
+        if status == conduit_r1_network_conformance::R1_USB_NETWORK_FAILURE_SIGN_FORMAT_FAILED {
             return "Pico recovery Sign exceeded its admitted format bound".into();
         }
-        if status == conduit_rp2040_network_realization::R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED {
+        if status == conduit_r1_network_conformance::R1_USB_NETWORK_FAILURE_SIGN_DISCONNECTED {
             return "Pico recovery Sign face disconnected during delivery".into();
         }
-        if status.as_slice()
-            != conduit_rp2040_network_realization::R1_USB_NETWORK_FAILURE_SIGN_WRITTEN
+        if status.as_slice() != conduit_r1_network_conformance::R1_USB_NETWORK_FAILURE_SIGN_WRITTEN
         {
             return "Pico returned an unexpected recovery Sign disposition".into();
         }

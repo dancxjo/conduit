@@ -7,7 +7,7 @@ compile_error!("the Raspberry Pi B+ A3 artifact requires an ARM target");
 
 use core::{arch::global_asm, cell::UnsafeCell, panic::PanicInfo};
 
-use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, boot, dual_region_plan, identity, sign_format};
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const IMAGE_ID: &str = env!("CONDUITOS_IMAGE_ID");
@@ -130,12 +130,12 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a3_start() -> ! {
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     stage("play");
-    let sign = proof::machine_accepted(
+    let sign = sign_format::machine_accepted(
         &identities,
         &offer,
         &report,
         &prepared,
-        proof::AllocationProof {
+        sign_format::AllocationReceipt {
             before_play: allocation_before_play,
             after_play: BOOT_ARENA.used(),
             capacity: BOOT_ARENA.capacity(),

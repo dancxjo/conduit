@@ -44,6 +44,7 @@ package_test_shard!(
         "conduit-planner",
         "conduit-signal",
         "conduit-signal-conformance",
+        "conduit-alife-distributed-conformance",
         "conduit-r1-network-conformance",
         "conduit-semantic-catalog",
         "conduit-midi",

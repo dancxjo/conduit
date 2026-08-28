@@ -1,4 +1,4 @@
-//! WebSocket session and line orchestration for the S4 toggle-demo std source.
+//! WebSocket session and Line orchestration for the distributed toggle std source.
 //!
 //! Owns: `send`, `receive`, the main `run` loop, and `bind_listener`.
 //! All methods access `DistributedToggleSource`'s `pub(super)` fields.

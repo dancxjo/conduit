@@ -9,7 +9,7 @@ use core::{arch::global_asm, panic::PanicInfo};
 use conduit_kernel::scheduler::SchedulerStatus;
 use conduitos::{
     arch,
-    machine_a2_kernel::{AdmittedLane, LANE_ID},
+    cooperative_timer_lane::{AdmittedLane, LANE_ID},
 };
 
 global_asm!(

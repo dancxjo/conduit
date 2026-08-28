@@ -3,7 +3,7 @@ compile_error!("the shared ConduitOS LoongArch64 A3/A4 implementation must compi
 
 use core::panic::PanicInfo;
 
-use conduitos::{allocation::BOOT_ARENA, arch, dual_region_plan, identity, proof};
+use conduitos::{allocation::BOOT_ARENA, arch, dual_region_plan, identity, sign_format};
 
 const BUILD_ID: &str = env!("CONDUITOS_BUILD_ID");
 const ARTIFACT_COMMIT: &str = env!("CONDUITOS_ARTIFACT_COMMIT");
@@ -95,12 +95,12 @@ pub extern "C" fn conduitos_loongarch64_a3_start() -> ! {
         &mut idle,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
-    let sign = proof::machine_accepted(
+    let sign = sign_format::machine_accepted(
         &identities,
         &offer,
         &report,
         &prepared,
-        proof::AllocationProof {
+        sign_format::AllocationReceipt {
             before_play: before,
             after_play: BOOT_ARENA.used(),
             capacity: BOOT_ARENA.capacity(),

@@ -27,7 +27,7 @@ fn main() {
         .expect("the inspected C3 fabrication descriptor must have an exact binding");
     let distributed = env::var_os("CARGO_FEATURE_DISTRIBUTED_LENIA").is_some();
     let plan = if distributed {
-        conduit_alife::exact_distributed_lenia_plan()
+        conduit_alife_distributed_conformance::exact_distributed_lenia_plan()
             .expect("the distributed Lenia image must plan")
             .plan
     } else {
@@ -50,12 +50,13 @@ fn main() {
         "\npub const GENERATED_FABRICATION_DESCRIPTOR_BINDING: &str = {descriptor_binding:?};\n"
     ));
     if distributed {
-        let bindings = conduit_alife::distributed_lenia_participant_bindings(
-            &plan,
-            conduit_alife::DISTRIBUTED_LENIA_C3_HOST_ID,
-            conduit_alife::DISTRIBUTED_LENIA_C3_BOOT_ID,
-        )
-        .expect("C3 Lenia bindings must resolve");
+        let bindings =
+            conduit_alife_distributed_conformance::distributed_lenia_participant_bindings(
+                &plan,
+                conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_C3_HOST_ID,
+                conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_C3_BOOT_ID,
+            )
+            .expect("C3 Lenia bindings must resolve");
         render_lenia_bindings(&mut module, &bindings);
     }
     fs::write(out.join("signal_image.rs"), module).expect("generated C3 image must be writable");
@@ -79,7 +80,7 @@ fn image_bounds(distributed: bool) -> EmbeddedImageBounds {
             DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
         },
         maximum_cord_value_bytes: if distributed {
-            conduit_alife::DISTRIBUTED_LENIA_VALUE_BYTES * 2
+            conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_VALUE_BYTES * 2
         } else {
             SIGNAL_ENCODED_LEN
         },
@@ -90,7 +91,7 @@ fn image_bounds(distributed: bool) -> EmbeddedImageBounds {
 
 fn render_lenia_bindings(
     module: &mut String,
-    bindings: &conduit_alife::DistributedLeniaParticipantBindings,
+    bindings: &conduit_alife_distributed_conformance::DistributedLeniaParticipantBindings,
 ) {
     for (prefix, binding) in [("WORK", &bindings.work), ("RESULT", &bindings.result)] {
         for (name, value) in [

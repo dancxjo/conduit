@@ -1,4 +1,4 @@
-//! QEMU `virt` RISC-V64 A2 mechanisms below the generic machine seam.
+//! QEMU `virt` RISC-V64 mechanisms below the generic machine seam.
 
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 

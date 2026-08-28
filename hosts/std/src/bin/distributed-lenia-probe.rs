@@ -62,14 +62,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let c3_line = connect(&adapter, c3_address, 1).await?;
     let wroom = participant(
         wroom_line,
-        conduit_alife::DISTRIBUTED_LENIA_WROOM_HOST_ID,
+        conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_WROOM_HOST_ID,
         &args[3],
         work0,
         0,
     );
     let c3 = participant(
         c3_line,
-        conduit_alife::DISTRIBUTED_LENIA_C3_HOST_ID,
+        conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_C3_HOST_ID,
         &args[5],
         work1,
         1,
@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "{}",
             serde_json::to_string(&serde_json::json!({
                 "success": true, "schema": "conduit.alife/distributed-lenia-loss-physical@1",
-                "plan_id": conduit_alife::exact_distributed_lenia_plan()?.plan.plan_id.as_str(),
+                "plan_id": conduit_alife_distributed_conformance::exact_distributed_lenia_plan()?.plan.plan_id.as_str(),
                 "completed": false, "received_regions": [0, 1], "missing_region": 2,
                 "terminal": "participant-withheld",
             }))?
@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let pico = participant(
         pico_line.expect("non-withheld Pico Line must be connected"),
-        conduit_alife::DISTRIBUTED_LENIA_PICO_HOST_ID,
+        conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_PICO_HOST_ID,
         &args[7],
         work2,
         2,
@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "{}",
         serde_json::to_string(&serde_json::json!({
             "success": true, "schema": "conduit.alife/distributed-lenia-physical@1",
-            "plan_id": conduit_alife::exact_distributed_lenia_plan()?.plan.plan_id.as_str(),
+            "plan_id": conduit_alife_distributed_conformance::exact_distributed_lenia_plan()?.plan.plan_id.as_str(),
             "regions": [0, 1, 2], "direct_digest": hex(&direct_digest),
             "joined_digest": hex(&joined_digest), "bitmap_kind": "graphics/bitmap-gray8@1",
             "bitmap_width": bitmap.width(), "bitmap_height": bitmap.height(),
@@ -140,8 +140,12 @@ async fn participant(
     work: conduit_alife::LeniaRegionWork,
     region: u8,
 ) -> Result<LeniaRegionResult, Box<dyn std::error::Error>> {
-    let exact = conduit_alife::exact_distributed_lenia_plan()?;
-    let bindings = conduit_alife::distributed_lenia_participant_bindings(&exact.plan, host, boot)?;
+    let exact = conduit_alife_distributed_conformance::exact_distributed_lenia_plan()?;
+    let bindings = conduit_alife_distributed_conformance::distributed_lenia_participant_bindings(
+        &exact.plan,
+        host,
+        boot,
+    )?;
     let session_id = [region.wrapping_add(1); 16];
     let transfer = LeniaRegionTransferIdentity {
         kind: LeniaRegionChunkKind::Work,
@@ -212,7 +216,7 @@ async fn connect(
 
 async fn receive_result(
     line: &mut BluezBleGattLine,
-    binding: &conduit_alife::DistributedLeniaLineBinding,
+    binding: &conduit_alife_distributed_conformance::DistributedLeniaLineBinding,
     participant_boot: &str,
     session_id: [u8; 16],
     work: LeniaRegionTransferIdentity,
@@ -222,7 +226,8 @@ async fn receive_result(
     let mut admitted = 0usize;
     // The BlueZ Line API requires the full admitted transport frame bound even
     // though the Lenia envelope has a smaller semantic bound.
-    let mut bytes = [0; conduit_alife::DISTRIBUTED_LENIA_FRAME_BYTES as usize];
+    let mut bytes =
+        [0; conduit_alife_distributed_conformance::DISTRIBUTED_LENIA_FRAME_BYTES as usize];
     while admitted < result_total {
         let length = tokio::time::timeout(IO_TIMEOUT, line.receive_frame(&mut bytes))
             .await?

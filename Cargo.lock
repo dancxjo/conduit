@@ -493,6 +493,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-alife-distributed-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-alife",
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+]
+
+[[package]]
 name = "conduit-audio"
 version = "0.1.0"
 dependencies = [
@@ -902,6 +912,7 @@ dependencies = [
  "bluer",
  "conduit-ai",
  "conduit-alife",
+ "conduit-alife-distributed-conformance",
  "conduit-audio",
  "conduit-bluetooth",
  "conduit-body",

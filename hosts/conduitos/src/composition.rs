@@ -10,7 +10,7 @@ use crate::{
 const MAXIMUM_KERNEL_STEPS: u32 = 128;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct MachineProof {
+pub struct MachineRunReceipt {
     pub logical_operations: u8,
     pub decisions: u32,
     pub kernel_signs: u16,
@@ -62,7 +62,7 @@ pub fn run<C, T, S, I, D>(
     serial: &mut S,
     interrupts: &mut I,
     idle: &mut D,
-) -> Result<MachineProof, MachineRunError>
+) -> Result<MachineRunReceipt, MachineRunError>
 where
     C: MonotonicClockBase,
     T: TimerBase,
@@ -126,7 +126,7 @@ where
             }
             SchedulerStatus::Complete => {
                 let ended = clock.now();
-                return Ok(MachineProof {
+                return Ok(MachineRunReceipt {
                     logical_operations: 2,
                     decisions: kernel.decisions(),
                     kernel_signs: kernel.sign_count(),

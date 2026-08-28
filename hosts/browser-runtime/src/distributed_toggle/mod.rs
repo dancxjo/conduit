@@ -1,4 +1,4 @@
-//! Browser/WASM sink half of the S4 toggle-demo distributed proof.
+//! Browser/WASM sink half of the distributed toggle proof.
 //!
 //! Split by stable responsibility:
 //! - `operation`: `ToggleShowOperation` kernel state machine.

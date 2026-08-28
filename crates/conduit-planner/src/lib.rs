@@ -26,15 +26,7 @@ planner API but are not planner architecture or production extension points.
 New policy belongs in a focused reusable module; new end-to-end evidence belongs
 under `proof`.
 
-The old flat capstone imports are deliberately absent:
-
-```compile_fail
-use conduit_planner::prove_voyager_capstone;
-```
-
-```compile_fail
-use conduit_planner::evaluate_heterogeneous_capstone;
-```
+Named acceptance compositions are deliberately unavailable as flat imports.
 "#]
 
 #[macro_use]

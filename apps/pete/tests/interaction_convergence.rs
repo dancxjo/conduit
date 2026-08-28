@@ -3,7 +3,7 @@ use conduit_core::{
     BOOL_INFO_ID, TEXT_INFO_ID,
 };
 use conduit_pete::{
-    capstone_physical_projection, quantity, value, InteractionConvergenceApplication,
+    physical_control_surface_projection, quantity, value, InteractionConvergenceApplication,
     PhysicalEvent, PhysicalInput, PhysicalInteractionFailure, PhysicalResourceStatus,
     PicoInteractionSurface, PresenterSource, BROWSER_IMPLEMENTATION_ID, CONTROL_SURFACE_BODY_ID,
     CONTROL_SURFACE_FORM, CONTROL_SURFACE_PLAN_ID, CONTROL_SURFACE_PLAY_ID,
@@ -75,7 +75,7 @@ fn unchanged_checked_form_and_two_materially_different_presenters_share_meaning(
         BROWSER_IMPLEMENTATION_ID,
         conduit_pete::PICO_INTERACTION_IMPLEMENTATION
     );
-    let projection = capstone_physical_projection(&app).unwrap();
+    let projection = physical_control_surface_projection(&app).unwrap();
     assert_eq!(projection.plan_id, CONTROL_SURFACE_PLAN_ID);
     assert_eq!(projection.choices.len(), 4);
     assert_eq!(projection.maximum_pending_events, 2);
@@ -85,7 +85,8 @@ fn unchanged_checked_form_and_two_materially_different_presenters_share_meaning(
 fn physical_and_browser_choice_scalar_and_action_converge_through_application_state() {
     let mut app = InteractionConvergenceApplication::new().unwrap();
     let mut surface =
-        PicoInteractionSurface::prepare(capstone_physical_projection(&app).unwrap()).unwrap();
+        PicoInteractionSurface::prepare(physical_control_surface_projection(&app).unwrap())
+            .unwrap();
 
     let saw = surface
         .propose(physical_event(
@@ -215,7 +216,8 @@ fn boolean_relative_and_text_asymmetry_remain_truthful() {
     );
 
     let surface =
-        PicoInteractionSurface::prepare(capstone_physical_projection(&app).unwrap()).unwrap();
+        PicoInteractionSurface::prepare(physical_control_surface_projection(&app).unwrap())
+            .unwrap();
     let offers = surface.offers(&PhysicalResourceStatus {
         available_resource_ids: vec![
             "pico/gpio/10/switch".into(),
@@ -250,9 +252,10 @@ fn either_presenter_can_disappear_without_forwarding_or_erasing_the_other() {
     assert!(browser_only.submit(browser(), browser_choice).is_ok());
 
     let mut physical_only = InteractionConvergenceApplication::new().unwrap();
-    let mut surface =
-        PicoInteractionSurface::prepare(capstone_physical_projection(&physical_only).unwrap())
-            .unwrap();
+    let mut surface = PicoInteractionSurface::prepare(
+        physical_control_surface_projection(&physical_only).unwrap(),
+    )
+    .unwrap();
     let physical_choice = surface
         .propose(physical_event(
             "pico/gpio/3/switch",

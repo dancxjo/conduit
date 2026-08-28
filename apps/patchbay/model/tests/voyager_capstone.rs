@@ -3,7 +3,7 @@ use conduit_planner::proof::voyager::{
     VoyagerCapstoneEvidence, VoyagerProofClass, VoyagerScarKind, VoyagerStageEvidence,
     VoyagerStageMetrics,
 };
-use patchbay_model::explain_voyager_capstone;
+use patchbay_model::proof::explain_voyager_capstone;
 
 fn metrics(index: u16) -> VoyagerStageMetrics {
     VoyagerStageMetrics {

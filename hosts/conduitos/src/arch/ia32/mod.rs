@@ -1,4 +1,4 @@
-//! QEMU IA-32 A2 mechanisms below the generic machine/Base seam.
+//! QEMU IA-32 mechanisms below the generic machine/Base seam.
 
 use crate::machine::{
     BaseError, FixedTimerSlots, IdleBase, InterruptBase, InterruptState, KernelInterest,
