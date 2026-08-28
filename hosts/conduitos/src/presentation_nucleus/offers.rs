@@ -1,6 +1,6 @@
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 use alloc::format;
-use alloc::{vec, vec::Vec};
+use alloc::{string::String, vec, vec::Vec};
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 use conduit_core::{ArtifactId, ExecutionProfileId, ImplementationId};
 use conduit_core::{
@@ -51,10 +51,12 @@ pub fn presentation_nucleus_offers() -> Vec<CapabilityOffer> {
     })
     .collect();
     offers.extend(
-        conduit_std_catalog::patchbay_presentation_offers()
+        conduit_std_catalog::patchbay_presentation_contracts()
             .into_iter()
-            .filter(|offer| offer.kind_id.as_str() != conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND)
-            .map(bind_conduitos_presentation),
+            .filter(|contract| {
+                contract.kind_id.as_str() != conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
+            })
+            .map(conduitos_patchbay_offer),
     );
     offers
 }
@@ -185,16 +187,28 @@ fn sink_offer(kind: &str) -> Option<CapabilityOffer> {
 }
 
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
-fn bind_conduitos_presentation(mut offer: CapabilityOffer) -> CapabilityOffer {
-    let kind = offer.kind_id.as_str();
-    offer.capability_id =
-        conduit_core::CapabilityId::from(format!("conduitos/{kind}-capability@1").as_str());
-    offer.implementation.execution_profile_id =
-        ExecutionProfileId::from(CONDUITOS_PRESENTATION_PROFILE);
-    offer.implementation.implementation_id =
-        ImplementationId::from(format!("conduitos/{kind}-implementation@1").as_str());
-    offer.implementation.artifact_id = ArtifactId::from(CONDUITOS_PRESENTATION_ARTIFACT);
-    offer
+fn conduitos_patchbay_offer(
+    contract: conduit_std_catalog::StandardKindContract,
+) -> CapabilityOffer {
+    let kind = String::from(contract.kind_id.as_str());
+    let capability = format!("conduitos/{kind}-capability@1");
+    let implementation = format!("conduitos/{kind}-implementation@1");
+    conduit_std_catalog::realization_offer(
+        contract,
+        conduit_std_catalog::PATCHBAY_PRESENTATION_REVISION,
+        conduit_std_catalog::RealizationOfferIdentity {
+            capability: &capability,
+            execution_profile: CONDUITOS_PRESENTATION_PROFILE,
+            implementation: &implementation,
+            artifact: CONDUITOS_PRESENTATION_ARTIFACT,
+        },
+        vec![present_host_operation_requirement(
+            kind_id("presentation/patchbay-surface@1"),
+            conduit_std_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
+        )],
+        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
 }
 
 #[cfg(test)]

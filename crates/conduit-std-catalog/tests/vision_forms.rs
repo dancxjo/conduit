@@ -11,9 +11,9 @@ use conduit_presentation::{install_geometry_catalogs, point2_type, rect2_type};
 use conduit_std_catalog::{
     deterministic_detect_image, deterministic_vision_fixture, image_resource_type,
     install_vision_catalogs, validate_confidence, vision_detection_type, vision_detections_type,
-    vision_keypoint_type, vision_std_offers, VisionRefusal, MAXIMUM_VISION_DETECTIONS,
-    MAXIMUM_VISION_LANDMARKS, VISION_DETECT_KIND, VISION_FIXTURE_KIND, VISION_HOST_OPERATION,
-    VISION_IMAGE_ACCESS_CLASS, VISION_IMAGE_CONTENT_PROFILE,
+    vision_keypoint_type, VisionRefusal, MAXIMUM_VISION_DETECTIONS, MAXIMUM_VISION_LANDMARKS,
+    VISION_DETECT_KIND, VISION_FIXTURE_KIND, VISION_IMAGE_ACCESS_CLASS,
+    VISION_IMAGE_CONTENT_PROFILE,
 };
 
 const SOURCE: &str = include_str!("../../../examples/vision-metadata.conduit");
@@ -53,7 +53,7 @@ fn image_resource_and_detection_metadata_flow_through_one_ordinary_form() {
             .unwrap();
         assert_eq!(
             placement.host_operations[0].contract_id.as_str(),
-            VISION_HOST_OPERATION
+            DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());
         assert!(placement.authority.is_empty());
@@ -166,7 +166,7 @@ fn host() -> HostAdvertisement {
         profile: HostProfileId::from("std/vision-proof@1"),
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: vision_std_offers(),
+        capabilities: vision_proof_offers(),
     }
 }
 
@@ -212,3 +212,6 @@ fn leaf_bytes(value: &StructuredInfoValue) -> &[u8] {
     };
     bytes
 }
+mod common;
+
+use common::{vision_proof_offers, DOMAIN_PROOF_OPERATION};

@@ -116,7 +116,7 @@ fn direct_host() -> HostAdvertisement {
         "patchbay/browser-direct@1",
         vec![
             text_literal_fixture_offer("patchbay/browser-text-literal@1"),
-            conduit_std_catalog::patchbay_presentation_offers()[0].clone(),
+            conduit_std_offers::patchbay_presentation_offers()[0].clone(),
         ],
     )
 }

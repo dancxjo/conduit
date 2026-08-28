@@ -69,7 +69,7 @@ fn presentation_fixture() -> (
             HostId::from(format!("style-{family}")),
             conduit_core::BootId::from(format!("style-{family}-boot")),
         );
-        let mut offer = conduit_std_catalog::patchbay_presentation_offers()[0].clone();
+        let mut offer = conduit_std_offers::patchbay_presentation_offers()[0].clone();
         offer.capability_id = CapabilityId::from(format!("style-{family}/patchbay@1"));
         offer.implementation.implementation_id =
             ImplementationId::from(format!("style-{family}/presenter@1"));
