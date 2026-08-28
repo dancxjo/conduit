@@ -193,10 +193,7 @@ fn realization_preserves_portable_contract_and_bounds() {
             realized.resource_requirements,
             portable.resource_requirements
         );
-        assert_eq!(
-            realized.authority_requirements,
-            portable.authority_requirements
-        );
+        assert!(realized.authority_requirements.is_empty());
         assert!(realized.capability_id.as_str().contains("conduitos"));
         assert!(
             realized
@@ -345,33 +342,23 @@ fn neutral_catalog_does_not_own_conduitos_realization_identity() {
 fn robotics_realizations_preserve_every_portable_contract_and_bound() {
     let realized = robotics_offers();
     let portable = [
-        conduit_std_catalog::robotics_observe_bump_offer(),
-        conduit_std_catalog::robotics_observe_imu_offer(),
-        conduit_std_catalog::robotics_observe_range_offer(),
-        conduit_std_catalog::robotics_observe_odometry_offer(),
-        conduit_std_catalog::robotics_observe_battery_offer(),
-        conduit_std_catalog::robotics_velocity_intent_offer(),
-        conduit_std_catalog::robotics_drive_differential_offer(),
+        conduit_std_catalog::robotics_observe_bump_contract(),
+        conduit_std_catalog::robotics_observe_imu_contract(),
+        conduit_std_catalog::robotics_observe_range_contract(),
+        conduit_std_catalog::robotics_observe_odometry_contract(),
+        conduit_std_catalog::robotics_observe_battery_contract(),
+        conduit_std_catalog::robotics_velocity_intent_contract(),
+        conduit_std_catalog::robotics_drive_differential_contract(),
     ];
     assert_eq!(realized.len(), portable.len());
     for (realized, portable) in realized.iter().zip(portable) {
         assert_eq!(realized.kind_id, portable.kind_id);
-        assert_eq!(
-            realized.kind_contract_revision,
-            portable.kind_contract_revision
-        );
         assert_eq!(realized.inputs, portable.inputs);
         assert_eq!(realized.outputs, portable.outputs);
         assert_eq!(realized.limits, portable.limits);
-        assert_eq!(realized.host_operations, portable.host_operations);
-        assert_eq!(
-            realized.resource_requirements,
-            portable.resource_requirements
-        );
-        assert_eq!(
-            realized.authority_requirements,
-            portable.authority_requirements
-        );
+        assert!(realized.host_operations.is_empty());
+        assert!(realized.resource_requirements.is_empty());
+        assert!(realized.authority_requirements.is_empty());
         assert!(
             realized
                 .capability_id

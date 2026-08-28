@@ -28,6 +28,8 @@ mod generalized_input;
 pub use generalized_input::*;
 mod music;
 pub use music::*;
+mod robotics;
+pub use robotics::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -199,13 +201,13 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         graphics_icon_offer(),
         graphics_presentation_offer(),
         bitmap_presentation_offer(),
-        conduit_std_catalog::robotics_observe_bump_offer(),
-        conduit_std_catalog::robotics_observe_imu_offer(),
-        conduit_std_catalog::robotics_observe_range_offer(),
-        conduit_std_catalog::robotics_observe_odometry_offer(),
-        conduit_std_catalog::robotics_observe_battery_offer(),
-        conduit_std_catalog::robotics_velocity_intent_offer(),
-        conduit_std_catalog::robotics_drive_differential_offer(),
+        robotics_observe_bump_offer(),
+        robotics_observe_imu_offer(),
+        robotics_observe_range_offer(),
+        robotics_observe_odometry_offer(),
+        robotics_observe_battery_offer(),
+        robotics_velocity_intent_offer(),
+        robotics_drive_differential_offer(),
         copy_file_offer(),
         json_encode_std_offer(),
         json_decode_std_offer(),
@@ -303,6 +305,7 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/sound.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/music_input.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/structured_music_form.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/robotics.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -370,6 +373,13 @@ mod tests {
                 "pub fn music_input_midi_offer",
                 "pub fn rhythm_compare_std_offer",
                 "pub fn instrument_map_std_offer",
+                "pub fn robotics_observe_bump_offer",
+                "pub fn robotics_observe_imu_offer",
+                "pub fn robotics_observe_range_offer",
+                "pub fn robotics_observe_odometry_offer",
+                "pub fn robotics_observe_battery_offer",
+                "pub fn robotics_velocity_intent_offer",
+                "pub fn robotics_drive_differential_offer",
             ] {
                 assert!(
                     !source.contains(forbidden),

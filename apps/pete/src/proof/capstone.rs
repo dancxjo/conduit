@@ -155,7 +155,7 @@ pub fn capstone_advertisement(
             CAPSTONE_PICO_SELECT_IMPLEMENTATION,
         ),
     };
-    let mut velocity = conduit_std_catalog::robotics_velocity_intent_offer();
+    let mut velocity = conduit_std_offers::robotics_velocity_intent_offer();
     velocity.capability_id = CapabilityId::from(format!("{profile}/velocity"));
     velocity.implementation.execution_profile_id = ExecutionProfileId::from(profile);
     velocity.implementation.implementation_id = ImplementationId::from(velocity_implementation);

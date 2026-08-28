@@ -2,15 +2,14 @@ use super::{
     StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
 };
 use alloc::string::ToString;
-use alloc::{format, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, BatteryObservation, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConfigurationEntry, ConfigurationValue, ExecutionProfileId, ImplementationId,
-    InfoBool, KindContractRevision, OdometryObservation, OrientationObservation, PortDescriptor,
-    PortDirection, PortTemporal, RangeObservation, Scalar, BOOL_INFO_ID,
-    MAXIMUM_BATTERY_MILLIVOLTS, MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM,
-    PI_MICRORADIANS, ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID,
-    ROBOTICS_ORIENTATION_INFO_ID, ROBOTICS_RANGE_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, BatteryObservation, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
+    InfoBool, OdometryObservation, OrientationObservation, PortDescriptor, PortDirection,
+    PortTemporal, RangeObservation, Scalar, BOOL_INFO_ID, MAXIMUM_BATTERY_MILLIVOLTS,
+    MAXIMUM_OBSERVATION_AGE_MS, MAXIMUM_ODOMETRY_MM, MAXIMUM_RANGE_MM, PI_MICRORADIANS,
+    ROBOTICS_BATTERY_INFO_ID, ROBOTICS_ODOMETRY_INFO_ID, ROBOTICS_ORIENTATION_INFO_ID,
+    ROBOTICS_RANGE_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const ROBOTICS_OBSERVE_BUMP_KIND: &str = "robotics/observe-bump";
@@ -37,20 +36,6 @@ pub const ROBOTICS_MAXIMUM_VELOCITY_MICROUNITS: i64 = 5_000_000;
 pub const ROBOTICS_MINIMUM_MOTION_TTL_MS: u64 = 10;
 pub const ROBOTICS_MAXIMUM_MOTION_TTL_MS: u64 = 60_000;
 
-pub const ROBOTICS_EXECUTION_PROFILE: &str = "conduit.std/robotics-prewake-sim-kernel@1";
-pub const ROBOTICS_ARTIFACT: &str = "conduit-std-host/robotics-prewake-sim@1";
-pub const ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION: &str = "std/kernel-robotics-prewake-observe-bump@1";
-pub const ROBOTICS_OBSERVE_IMU_IMPLEMENTATION: &str = "std/kernel-robotics-prewake-observe-imu@1";
-pub const ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION: &str =
-    "std/kernel-robotics-prewake-observe-range@1";
-pub const ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION: &str =
-    "std/kernel-robotics-prewake-observe-odometry@1";
-pub const ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION: &str =
-    "std/kernel-robotics-prewake-observe-battery@1";
-pub const ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION: &str =
-    "std/kernel-robotics-prewake-velocity-intent@1";
-pub const ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION: &str =
-    "std/kernel-robotics-prewake-drive-differential@2";
 const MAXIMUM_VALUE_BYTES: u32 = 12;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -296,69 +281,6 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
     }
 }
 
-pub fn robotics_observe_bump_offer() -> CapabilityOffer {
-    offer(
-        robotics_observe_bump_contract(),
-        ROBOTICS_OBSERVE_BUMP_REVISION,
-        "observe-bump",
-        ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION,
-    )
-}
-
-pub fn robotics_observe_imu_offer() -> CapabilityOffer {
-    offer(
-        robotics_observe_imu_contract(),
-        ROBOTICS_OBSERVE_IMU_REVISION,
-        "observe-imu",
-        ROBOTICS_OBSERVE_IMU_IMPLEMENTATION,
-    )
-}
-
-pub fn robotics_observe_range_offer() -> CapabilityOffer {
-    offer(
-        robotics_observe_range_contract(),
-        ROBOTICS_OBSERVE_RANGE_REVISION,
-        "observe-range",
-        ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION,
-    )
-}
-
-pub fn robotics_observe_odometry_offer() -> CapabilityOffer {
-    offer(
-        robotics_observe_odometry_contract(),
-        ROBOTICS_OBSERVE_ODOMETRY_REVISION,
-        "observe-odometry",
-        ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION,
-    )
-}
-
-pub fn robotics_observe_battery_offer() -> CapabilityOffer {
-    offer(
-        robotics_observe_battery_contract(),
-        ROBOTICS_OBSERVE_BATTERY_REVISION,
-        "observe-battery",
-        ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION,
-    )
-}
-
-pub fn robotics_velocity_intent_offer() -> CapabilityOffer {
-    offer(
-        robotics_velocity_intent_contract(),
-        ROBOTICS_VELOCITY_INTENT_REVISION,
-        "velocity-intent",
-        ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION,
-    )
-}
-
-pub fn robotics_drive_differential_offer() -> CapabilityOffer {
-    offer(
-        robotics_drive_differential_contract(),
-        ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
-        "drive-differential",
-        ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION,
-    )
-}
-
 #[cfg(any(feature = "form-catalog", test))]
 pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, &'static str)> {
     vec![
@@ -414,40 +336,6 @@ fn source_contract(
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: example.to_string(),
-    }
-}
-
-fn offer(
-    contract: StandardKindContract,
-    revision: &str,
-    slug: &str,
-    implementation: &str,
-) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: contract
-            .configuration
-            .iter()
-            .map(|field| conduit_core::FaceStartupParameter {
-                name: field.key.clone(),
-                value_type: configuration_type(field).to_string(),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("robotics-prewake-sim-{slug}")),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(ROBOTICS_EXECUTION_PROFILE),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(ROBOTICS_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 
