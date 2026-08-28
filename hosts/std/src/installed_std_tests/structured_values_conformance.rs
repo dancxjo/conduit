@@ -59,7 +59,7 @@ fn catalogs() -> (
     let (value_type, default) = quantity_record();
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_structured_value_catalogs(
+    conduit_semantic_catalog::install_structured_value_catalogs(
         "TimedTone",
         &value_type,
         &default,

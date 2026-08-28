@@ -19,7 +19,7 @@ pub(crate) fn structured_literal_offer(
     identity: BrowserOfferIdentity<'_>,
 ) -> CapabilityOffer {
     offer(
-        conduit_std_catalog::structured_literal_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_literal_contract(type_name, value_type),
         identity,
         false,
     )
@@ -31,14 +31,14 @@ pub(crate) fn structured_presentation_offer(
     identity: BrowserOfferIdentity<'_>,
 ) -> CapabilityOffer {
     offer(
-        conduit_std_catalog::structured_presentation_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_presentation_contract(type_name, value_type),
         identity,
         true,
     )
 }
 
 fn offer(
-    contract: conduit_std_catalog::StructuredValueContract,
+    contract: conduit_semantic_catalog::StructuredValueContract,
     identity: BrowserOfferIdentity<'_>,
     presentation: bool,
 ) -> CapabilityOffer {
@@ -57,7 +57,7 @@ fn offer(
         outputs: contract.outputs,
         host_operations: if presentation {
             vec![present_host_operation_requirement(
-                kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET),
+                kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
                 conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             )]
         } else {

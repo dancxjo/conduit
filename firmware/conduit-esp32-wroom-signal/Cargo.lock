@@ -277,7 +277,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "serde",
  "serde_json",
  "sha2",
@@ -331,7 +331,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-time",
  "serde",
 ]
@@ -345,13 +345,13 @@ dependencies = [
  "conduit-form",
  "conduit-planner",
  "conduit-signal",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-std-offers",
  "conduit-wire",
 ]
 
 [[package]]
-name = "conduit-std-catalog"
+name = "conduit-semantic-catalog"
 version = "0.1.0"
 dependencies = [
  "conduit-alife",
@@ -375,7 +375,7 @@ dependencies = [
  "conduit-core",
  "conduit-midi",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-text",
  "conduit-time",
  "conduit-web",

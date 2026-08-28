@@ -65,7 +65,7 @@ impl TextPlannedKernel {
             .placements
             .iter()
             .position(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND
+                placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
             })
             .ok_or(SchedulerError::InvalidPlan)?;
         let upper_index = fragment
@@ -282,7 +282,9 @@ fn validate_shape(
     let presentation = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+        })
         .ok_or(SchedulerError::InvalidPlan)?;
     let upper = fragment
         .placements
@@ -305,7 +307,7 @@ fn validate_shape(
         || upper.host_operations[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || configured_text(&literal.configuration, "value")? != crate::ordinary_plan::TEXT_LITERAL
         || configured_u64(&presentation.configuration, "maximum-values")?
-            != conduit_std_catalog::MAX_TEXT_VALUES
+            != conduit_semantic_catalog::MAX_TEXT_VALUES
     {
         return Err(SchedulerError::InvalidPlan);
     }

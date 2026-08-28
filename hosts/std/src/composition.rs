@@ -340,7 +340,7 @@ pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
         offer_generation: conduit_core::OfferGeneration(1),
     });
 
-    let contracts = conduit_std_catalog::supported_nucleus_contracts();
+    let contracts = conduit_semantic_catalog::supported_nucleus_contracts();
     let missing = contracts
         .iter()
         .filter(|contract| {
@@ -548,10 +548,11 @@ mod tests {
             .iter()
             .filter(|offer| {
                 let revision = offer.kind_contract_revision.as_str();
-                offer.kind_id.as_str() != conduit_std_catalog::INSTRUMENT_MAP_KIND
+                offer.kind_id.as_str() != conduit_semantic_catalog::INSTRUMENT_MAP_KIND
                     && (revision.starts_with("conduit.std/")
                         || revision.starts_with("conduit.input/")
-                        || offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND
+                        || offer.kind_id.as_str()
+                            == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
                         || offer.kind_id.as_str() == conduit_presentation::BITMAP_PRESENTATION_KIND)
             })
             .cloned()

@@ -381,7 +381,8 @@ fn wire_event(event: &EventSemantic) -> Result<GoogleWireEvent, GoogleCalendarRe
 
 fn prior_receipt(prior: Option<&[u8]>) -> Result<WriteRealization, GoogleCalendarRefusal> {
     let prior = prior.ok_or(GoogleCalendarRefusal::InvalidRequest)?;
-    if prior.is_empty() || prior.len() > conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES as usize
+    if prior.is_empty()
+        || prior.len() > conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES as usize
     {
         return Err(GoogleCalendarRefusal::InvalidRequest);
     }
@@ -426,7 +427,7 @@ fn resource_realization<T: GoogleCalendarTransport>(
 
 fn decode<T: for<'de> Deserialize<'de>>(input: &[u8]) -> Result<T, GoogleCalendarRefusal> {
     if input.is_empty()
-        || input.len() > conduit_std_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES as usize
+        || input.len() > conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES as usize
     {
         return Err(GoogleCalendarRefusal::InvalidRequest);
     }
@@ -436,7 +437,7 @@ fn decode<T: for<'de> Deserialize<'de>>(input: &[u8]) -> Result<T, GoogleCalenda
 fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, GoogleCalendarRefusal> {
     let encoded =
         serde_json::to_vec(value).map_err(|_| GoogleCalendarRefusal::ProviderResponseMalformed)?;
-    if encoded.len() > conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES as usize
+    if encoded.len() > conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES as usize
         || encoded.len() > GOOGLE_CALENDAR_MAXIMUM_EVENTS * 1_024
     {
         Err(GoogleCalendarRefusal::ProviderResponseTooLarge)

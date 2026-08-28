@@ -168,7 +168,7 @@ impl RoboticsDriveOperation {
 fn robotics_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     let offer = expected_offer(placement)?;
     validate_exact_placement(placement, &offer)?;
-    if placement.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
+    if placement.kind_id.as_str() == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
         return Ok(OperationBudget {
             value_items: 0,
             value_bytes: 0,
@@ -193,7 +193,7 @@ fn prepare_robotics(
 ) -> Result<InstalledOperation, String> {
     let offer = expected_offer(placement)?;
     validate_exact_placement(placement, &offer)?;
-    if placement.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
+    if placement.kind_id.as_str() == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
         return Ok(InstalledOperation::RoboticsDrive(RoboticsDriveOperation {
             linear: None,
             angular: None,
@@ -225,25 +225,25 @@ fn prepare_robotics(
 
 fn expected_offer(placement: &PlannedGear) -> Result<conduit_core::CapabilityOffer, String> {
     match placement.kind_id.as_str() {
-        conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
             Ok(conduit_std_offers::robotics_observe_bump_offer())
         }
-        conduit_std_catalog::ROBOTICS_OBSERVE_IMU_KIND => {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND => {
             Ok(conduit_std_offers::robotics_observe_imu_offer())
         }
-        conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_KIND => {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_KIND => {
             Ok(conduit_std_offers::robotics_observe_range_offer())
         }
-        conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => {
             Ok(conduit_std_offers::robotics_observe_odometry_offer())
         }
-        conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => {
             Ok(conduit_std_offers::robotics_observe_battery_offer())
         }
-        conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_KIND => {
+        conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_KIND => {
             Ok(conduit_std_offers::robotics_velocity_intent_offer())
         }
-        conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND => {
+        conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND => {
             Ok(conduit_std_offers::robotics_drive_differential_offer())
         }
         _ => Err("unsupported installed robotics Kind".to_string()),
@@ -276,30 +276,30 @@ fn validate_exact_placement(
 
 fn source_shape(placement: &PlannedGear) -> Result<(u16, u32, u32), String> {
     match placement.kind_id.as_str() {
-        conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
             Ok((1, BOOL_ENCODED_LEN as u32, BOOL_ENCODED_LEN as u32))
         }
-        conduit_std_catalog::ROBOTICS_OBSERVE_IMU_KIND => Ok((
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND => Ok((
             1,
             ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
             ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
         )),
-        conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_KIND => Ok((
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_KIND => Ok((
             1,
             ROBOTICS_RANGE_ENCODED_LEN as u32,
             ROBOTICS_RANGE_ENCODED_LEN as u32,
         )),
-        conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => Ok((
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => Ok((
             1,
             ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
             ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
         )),
-        conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => Ok((
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => Ok((
             1,
             ROBOTICS_BATTERY_ENCODED_LEN as u32,
             ROBOTICS_BATTERY_ENCODED_LEN as u32,
         )),
-        conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_KIND => Ok((
+        conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_KIND => Ok((
             2,
             (SCALAR_ENCODED_LEN * 2) as u32,
             SCALAR_ENCODED_LEN as u32,
@@ -309,7 +309,7 @@ fn source_shape(placement: &PlannedGear) -> Result<(u16, u32, u32), String> {
 }
 
 fn source_values(placement: &PlannedGear) -> Result<[Option<Vec<u8>>; 2], String> {
-    conduit_std_catalog::robotics_simulation_values(
+    conduit_semantic_catalog::robotics_simulation_values(
         placement.kind_id.as_str(),
         &placement.configuration,
     )
@@ -317,14 +317,16 @@ fn source_values(placement: &PlannedGear) -> Result<[Option<Vec<u8>>; 2], String
 }
 
 fn availability(entries: &[ConfigurationEntry]) -> Result<SimulatedAvailability, String> {
-    match conduit_std_catalog::robotics_simulation_availability(entries).map_err(str::to_string)? {
-        conduit_std_catalog::RoboticsSimulationAvailability::Fresh => {
+    match conduit_semantic_catalog::robotics_simulation_availability(entries)
+        .map_err(str::to_string)?
+    {
+        conduit_semantic_catalog::RoboticsSimulationAvailability::Fresh => {
             Ok(SimulatedAvailability::Fresh)
         }
-        conduit_std_catalog::RoboticsSimulationAvailability::Missing => {
+        conduit_semantic_catalog::RoboticsSimulationAvailability::Missing => {
             Ok(SimulatedAvailability::Missing)
         }
-        conduit_std_catalog::RoboticsSimulationAvailability::Stale => {
+        conduit_semantic_catalog::RoboticsSimulationAvailability::Stale => {
             Ok(SimulatedAvailability::Stale)
         }
     }

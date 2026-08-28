@@ -395,7 +395,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let count_target_kind = kind_id(conduit_std_offers::COUNT_PRESENTATION_TARGET);
     let bool_target_kind = kind_id(conduit_std_offers::BOOL_PRESENTATION_TARGET);
     let structured_presentation_target_kind =
-        kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET);
+        kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET);
     let upper_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT,
     );
@@ -421,31 +421,31 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let math_deadband_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::MATH_DEADBAND_HOST_OPERATION,
     );
-    let math_clamp_target_kind = kind_id(conduit_std_catalog::MATH_CLAMP_KIND);
-    let math_scale_target_kind = kind_id(conduit_std_catalog::MATH_SCALE_KIND);
-    let math_deadband_target_kind = kind_id(conduit_std_catalog::MATH_DEADBAND_KIND);
+    let math_clamp_target_kind = kind_id(conduit_semantic_catalog::MATH_CLAMP_KIND);
+    let math_scale_target_kind = kind_id(conduit_semantic_catalog::MATH_SCALE_KIND);
+    let math_deadband_target_kind = kind_id(conduit_semantic_catalog::MATH_DEADBAND_KIND);
     let layout_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::LAYOUT_HOST_OPERATION);
     let layout_target_kinds = [
-        kind_id(conduit_std_catalog::LAYOUT_INSET_KIND),
-        kind_id(conduit_std_catalog::LAYOUT_ROW_KIND),
-        kind_id(conduit_std_catalog::LAYOUT_COLUMN_KIND),
-        kind_id(conduit_std_catalog::LAYOUT_STACK_KIND),
-        kind_id(conduit_std_catalog::LAYOUT_ALIGN_KIND),
+        kind_id(conduit_semantic_catalog::LAYOUT_INSET_KIND),
+        kind_id(conduit_semantic_catalog::LAYOUT_ROW_KIND),
+        kind_id(conduit_semantic_catalog::LAYOUT_COLUMN_KIND),
+        kind_id(conduit_semantic_catalog::LAYOUT_STACK_KIND),
+        kind_id(conduit_semantic_catalog::LAYOUT_ALIGN_KIND),
     ];
     let presentation_composition_contract_id = conduit_core::HostOperationContractId::from(
         conduit_std_offers::PRESENTATION_COMPOSITION_HOST_OPERATION,
     );
     let presentation_composition_target_kinds = [
-        kind_id(conduit_std_catalog::PRESENTATION_FRAME_KIND),
-        kind_id(conduit_std_catalog::PRESENTATION_BADGE_KIND),
+        kind_id(conduit_semantic_catalog::PRESENTATION_FRAME_KIND),
+        kind_id(conduit_semantic_catalog::PRESENTATION_BADGE_KIND),
     ];
     let graphics_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::GRAPHICS_HOST_OPERATION);
     let graphics_target_kinds = [
-        kind_id(conduit_std_catalog::GRAPHICS_RECT_KIND),
-        kind_id(conduit_std_catalog::GRAPHICS_TEXT_KIND),
-        kind_id(conduit_std_catalog::GRAPHICS_ICON_KIND),
+        kind_id(conduit_semantic_catalog::GRAPHICS_RECT_KIND),
+        kind_id(conduit_semantic_catalog::GRAPHICS_TEXT_KIND),
+        kind_id(conduit_semantic_catalog::GRAPHICS_ICON_KIND),
     ];
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut input_keymaps = [conduit_core::ConduitIntlKeymap::new(); MAX_NODES];

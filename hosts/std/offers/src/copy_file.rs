@@ -18,14 +18,14 @@ pub const COPY_RESULT_PRESENTATION_IMPLEMENTATION: &str =
     "std/kernel-file-copy-result-presentation@1";
 
 pub fn copy_file_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::copy_file_contract();
+    let contract = conduit_semantic_catalog::copy_file_contract();
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(COPY_FILE_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::COPY_FILE_CONTRACT_REVISION,
+            conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
@@ -36,20 +36,20 @@ pub fn copy_file_offer() -> CapabilityOffer {
         outputs: contract.outputs,
         host_operations: vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(COPY_FILE_HOST_OPERATION_CONTRACT),
-            target_kind: Some(kind_id(conduit_std_catalog::COPY_FILE_KIND)),
+            target_kind: Some(kind_id(conduit_semantic_catalog::COPY_FILE_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: COPY_COMMAND_BYTES,
             maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         }],
         resource_requirements: vec![
             protected_resource_requirement(
-                conduit_std_catalog::COPY_DESTINATION_ROLE,
-                conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS,
+                conduit_semantic_catalog::COPY_DESTINATION_ROLE,
+                conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
                 1,
             ),
             protected_resource_requirement(
-                conduit_std_catalog::COPY_SOURCE_ROLE,
-                conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS,
+                conduit_semantic_catalog::COPY_SOURCE_ROLE,
+                conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
                 1,
             ),
         ],
@@ -59,7 +59,7 @@ pub fn copy_file_offer() -> CapabilityOffer {
 }
 
 pub fn copy_result_presentation_offer() -> CapabilityOffer {
-    let value_kind = conduit_std_catalog::copy_result_type()
+    let value_kind = conduit_semantic_catalog::copy_result_type()
         .profile()
         .expect("checked copy result type has a finite profile")
         .value_kind()
@@ -68,9 +68,9 @@ pub fn copy_result_presentation_offer() -> CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("std-file-copy-result-presentation"),
-        kind_id: kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_KIND),
+        kind_id: kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND),
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::STRUCTURED_PRESENTATION_REVISION,
+            conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
@@ -85,7 +85,7 @@ pub fn copy_result_presentation_offer() -> CapabilityOffer {
         }],
         outputs: Vec::new(),
         host_operations: vec![present_host_operation_requirement(
-            kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET),
+            kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
             conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         )],
         resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
@@ -113,14 +113,14 @@ mod tests {
                 .protected_role
                 .as_ref()
                 .map(|role| role.as_str()),
-            Some(conduit_std_catalog::COPY_DESTINATION_ROLE)
+            Some(conduit_semantic_catalog::COPY_DESTINATION_ROLE)
         );
         assert_eq!(
             offer.resource_requirements[1]
                 .protected_role
                 .as_ref()
                 .map(|role| role.as_str()),
-            Some(conduit_std_catalog::COPY_SOURCE_ROLE)
+            Some(conduit_semantic_catalog::COPY_SOURCE_ROLE)
         );
         assert_eq!(offer.host_operations[0].maximum_input_bytes, 1);
         assert_eq!(

@@ -272,7 +272,7 @@ fn throttle_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, &conduit_std_offers::time_throttle_offer())?;
     let configuration = timing_configuration::parse_pacing(
         placement,
-        Some(conduit_std_catalog::TIME_POLICY_LEADING),
+        Some(conduit_semantic_catalog::TIME_POLICY_LEADING),
     )?;
     timing_configuration::budget(
         configuration.maximum_values,
@@ -310,7 +310,7 @@ fn prepare_throttle(
     validate(placement, &conduit_std_offers::time_throttle_offer())?;
     let configuration = timing_configuration::parse_pacing(
         placement,
-        Some(conduit_std_catalog::TIME_POLICY_LEADING),
+        Some(conduit_semantic_catalog::TIME_POLICY_LEADING),
     )?;
     let maximum_values = configuration.maximum_values;
     Ok(InstalledOperation::TimeThrottle(ThrottleOperation {

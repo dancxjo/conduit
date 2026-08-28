@@ -16,9 +16,9 @@ const LOCAL_HOST: &str = "text-lab/native";
 fn checked_form() -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_form::parse(SOURCE, &profile).expect("checked-in Text Lab checks unchanged")
 }
 
@@ -62,13 +62,13 @@ fn hosts() -> (
 }
 
 fn keyboard_fixture_offer() -> conduit_core::CapabilityOffer {
-    let contract = conduit_std_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_contract();
     conduit_core::CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: "text-lab-native-keyboard".into(),
         kind_id: contract.kind_id,
-        kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: "browser-test/native-text-lab@1".into(),
             implementation_id: "text-lab/native-keyboard@1".into(),
@@ -93,10 +93,10 @@ fn keyboard_fixture_offer() -> conduit_core::CapabilityOffer {
 }
 
 fn native_keymap_fixture_offer() -> conduit_core::CapabilityOffer {
-    conduit_std_catalog::realization_offer(
-        conduit_std_catalog::keymap_contract(),
-        conduit_std_catalog::KEYMAP_REVISION,
-        conduit_std_catalog::RealizationOfferIdentity {
+    conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::keymap_contract(),
+        conduit_semantic_catalog::KEYMAP_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: "text-lab-native-keymap",
             execution_profile: "text-lab/native-fixture@1",
             implementation: "text-lab/native-keymap@1",
@@ -166,14 +166,14 @@ fn split_plan(
                 conduit_core::GearId::from("text-lab/keyboard"),
                 PlacementChoice {
                     host_id: local.host_id.clone(),
-                    capability_id: capability(local, conduit_std_catalog::KEYBOARD_KIND),
+                    capability_id: capability(local, conduit_semantic_catalog::KEYBOARD_KIND),
                 },
             ),
             (
                 conduit_core::GearId::from("text-lab/keymap"),
                 PlacementChoice {
                     host_id: local.host_id.clone(),
-                    capability_id: capability(local, conduit_std_catalog::KEYMAP_KIND),
+                    capability_id: capability(local, conduit_semantic_catalog::KEYMAP_KIND),
                 },
             ),
             (
@@ -187,7 +187,10 @@ fn split_plan(
                 conduit_core::GearId::from("text-lab/presentation"),
                 PlacementChoice {
                     host_id: local.host_id.clone(),
-                    capability_id: capability(local, conduit_std_catalog::TEXT_PRESENTATION_KIND),
+                    capability_id: capability(
+                        local,
+                        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+                    ),
                 },
             ),
         ]),

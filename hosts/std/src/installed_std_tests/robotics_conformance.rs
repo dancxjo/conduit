@@ -90,17 +90,17 @@ fn portable_drive_meaning_has_one_effect_free_prewake_projection() {
 fn every_robotics_observation_contract_plans_with_distinct_exact_info() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
-    let infos = conduit_std_catalog::supported_nucleus_contracts()
+    conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
+    let infos = conduit_semantic_catalog::supported_nucleus_contracts()
         .into_iter()
         .filter(|contract| {
             matches!(
                 contract.kind_id.as_str(),
-                conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_KIND
-                    | conduit_std_catalog::ROBOTICS_OBSERVE_IMU_KIND
-                    | conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_KIND
-                    | conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND
-                    | conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_KIND
+                conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_KIND
+                    | conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND
+                    | conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_KIND
+                    | conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND
+                    | conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_KIND
             )
         })
         .map(|contract| contract.outputs[0].value_kind.clone())
@@ -159,7 +159,7 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
         .placements
         .iter_mut()
         .find(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
+            placement.kind_id.as_str() == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
         })
         .unwrap()
         .implementation_id = conduit_core::ImplementationId::from("std/missing-robotics@1");

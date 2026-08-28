@@ -15,7 +15,7 @@ pub fn structured_selector_std_offer(
     selector: &StructuredSelector,
     temporal: PortTemporal,
 ) -> CapabilityOffer {
-    let contract = conduit_std_catalog::structured_selector_contract(selector, temporal);
+    let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
     let digest = contract
         .kind_id
         .as_str()
@@ -59,12 +59,12 @@ mod tests {
     #[test]
     fn offer_preserves_dynamic_portable_contract() {
         let selector = conduit_core::StructuredSelector::field(
-            conduit_std_catalog::copy_result_type(),
+            conduit_semantic_catalog::copy_result_type(),
             "outcome",
         )
         .unwrap();
         let contract =
-            conduit_std_catalog::structured_selector_contract(&selector, PortTemporal::Value);
+            conduit_semantic_catalog::structured_selector_contract(&selector, PortTemporal::Value);
         let offer = structured_selector_std_offer(&selector, PortTemporal::Value);
         assert_eq!(offer.kind_id, contract.kind_id);
         assert_eq!(

@@ -34,20 +34,20 @@ fn timing_controls_expose_bounded_duration_policy_and_capacity() {
         controls[0].kind,
         FaceControlKind::Number {
             minimum: 0,
-            maximum: conduit_std_catalog::TIME_MAXIMUM_DURATION_MS,
+            maximum: conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS,
             unit: Some("ms")
         }
     ));
     assert!(matches!(
         controls[1].kind,
         FaceControlKind::TextChoice { ref choices }
-            if choices == &[conduit_std_catalog::TIME_POLICY_TRAILING.to_string()]
+            if choices == &[conduit_semantic_catalog::TIME_POLICY_TRAILING.to_string()]
     ));
     assert!(matches!(
         controls[2].kind,
         FaceControlKind::Range {
             minimum: 1,
-            maximum: conduit_std_catalog::TIME_MAXIMUM_VALUES,
+            maximum: conduit_semantic_catalog::TIME_MAXIMUM_VALUES,
             unit: None
         }
     ));
@@ -98,16 +98,16 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
         .iter()
         .all(|control| control.interaction.is_some()));
     for required in [
-        conduit_std_catalog::SYNTH_MAXIMUM_VOICES_KEY,
-        conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
-        conduit_std_catalog::SYNTH_ATTACK_KEY,
-        conduit_std_catalog::SYNTH_RELEASE_KEY,
-        conduit_std_catalog::SYNTH_FILTER_CUTOFF_KEY,
-        conduit_std_catalog::SYNTH_FILTER_RESONANCE_KEY,
-        conduit_std_catalog::SYNTH_FILTER_ENVELOPE_KEY,
-        conduit_std_catalog::SYNTH_LFO_RATE_KEY,
-        conduit_std_catalog::SYNTH_LFO_DEPTH_KEY,
-        conduit_std_catalog::SYNTH_MASTER_GAIN_KEY,
+        conduit_semantic_catalog::SYNTH_MAXIMUM_VOICES_KEY,
+        conduit_semantic_catalog::SYNTH_OSCILLATOR_KEY,
+        conduit_semantic_catalog::SYNTH_ATTACK_KEY,
+        conduit_semantic_catalog::SYNTH_RELEASE_KEY,
+        conduit_semantic_catalog::SYNTH_FILTER_CUTOFF_KEY,
+        conduit_semantic_catalog::SYNTH_FILTER_RESONANCE_KEY,
+        conduit_semantic_catalog::SYNTH_FILTER_ENVELOPE_KEY,
+        conduit_semantic_catalog::SYNTH_LFO_RATE_KEY,
+        conduit_semantic_catalog::SYNTH_LFO_DEPTH_KEY,
+        conduit_semantic_catalog::SYNTH_MASTER_GAIN_KEY,
     ] {
         assert!(synth.controls.iter().any(|control| control.key == required));
     }
@@ -118,7 +118,7 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
             editor.view().revision,
             &before.expanded_form_id,
             "synth",
-            conduit_std_catalog::SYNTH_FILTER_CUTOFF_KEY,
+            conduit_semantic_catalog::SYNTH_FILTER_CUTOFF_KEY,
             ConfigurationValue::U64(18_001),
         )
         .unwrap();
@@ -154,7 +154,7 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
     let waveform = graph.gears[0]
         .controls
         .iter()
-        .find(|control| control.key == conduit_std_catalog::SYNTH_OSCILLATOR_KEY)
+        .find(|control| control.key == conduit_semantic_catalog::SYNTH_OSCILLATOR_KEY)
         .unwrap();
     let interaction = waveform.interaction.as_ref().unwrap();
     assert!(matches!(
@@ -177,7 +177,7 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
             0,
             &before.expanded_form_id,
             "synth",
-            conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
+            conduit_semantic_catalog::SYNTH_OSCILLATOR_KEY,
             &proposal,
         )
         .unwrap();
@@ -195,7 +195,7 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
             0,
             &before.expanded_form_id,
             "synth",
-            conduit_std_catalog::SYNTH_OSCILLATOR_KEY,
+            conduit_semantic_catalog::SYNTH_OSCILLATOR_KEY,
             &proposal,
         )
         .unwrap_err();
@@ -232,9 +232,9 @@ fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
 fn boolean_contract_projects_a_toggle_with_explicit_choices() {
     let gear = conduit_form::CheckedGear {
         gear_id: conduit_core::GearId::from("controls/pulse"),
-        kind_id: conduit_core::kind_id(conduit_std_catalog::STATE_TOGGLE_KIND),
+        kind_id: conduit_core::kind_id(conduit_semantic_catalog::STATE_TOGGLE_KIND),
         kind_contract_revision: conduit_core::KindContractRevision::from(
-            conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION,
+            conduit_semantic_catalog::STATE_TOGGLE_CONTRACT_REVISION,
         ),
         startup_parameters: Vec::new(),
         shorthand: None,

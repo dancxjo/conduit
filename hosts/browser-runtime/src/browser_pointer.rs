@@ -18,7 +18,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     normalized_pointer_value, pointer_event_type, NormalizedPointerSample, POINTER_EVENT_TYPE,
     POINTER_SOURCE_KIND, STRUCTURED_PRESENTATION_KIND,
 };
@@ -329,14 +329,14 @@ pub fn execute_browser_pointer(
 fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
     startup
         .insert(KindSignature {
             kind: STRUCTURED_PRESENTATION_KIND.into(),
             startup_parameters: Vec::new(),
         })
         .map_err(|error| error.to_string())?;
-    let presenter = conduit_std_catalog::structured_presentation_contract(
+    let presenter = conduit_semantic_catalog::structured_presentation_contract(
         POINTER_EVENT_TYPE,
         value.value_type(),
     );
@@ -365,7 +365,7 @@ fn advertisement() -> HostAdvertisement {
         capability_id: CapabilityId::from("browser-pointer-source@1"),
         kind_id: kind_id(POINTER_SOURCE_KIND),
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::GENERALIZED_INPUT_REVISION,
+            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),

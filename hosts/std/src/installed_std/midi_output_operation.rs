@@ -29,7 +29,7 @@ impl MidiOutputOperation {
                     && usize::from(port.0) < self.closed.len()
                     && !self.closed[usize::from(port.0)]
                     && self.next_request
-                        < u32::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) =>
+                        < u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) =>
             {
                 let maximum = if port == PortId(0) {
                     conduit_audio::NOTE_EVENT_ENCODED_LEN as u32
@@ -91,7 +91,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
-        host_requests: usize::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
+        host_requests: usize::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
         sign_items: 64,
         maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
             .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN) as u32,

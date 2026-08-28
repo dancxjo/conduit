@@ -18,40 +18,42 @@ pub const MOTION_PROOF_AUTHORITY: &str = "proof.authority/robotics-motion@1";
 
 pub fn education_proof_offers() -> Vec<CapabilityOffer> {
     proof_domain_offers(
-        conduit_std_catalog::education_kind_contracts(),
-        conduit_std_catalog::EDUCATION_REVISION,
+        conduit_semantic_catalog::education_kind_contracts(),
+        conduit_semantic_catalog::EDUCATION_REVISION,
     )
 }
 
 pub fn vision_proof_offers() -> Vec<CapabilityOffer> {
     proof_domain_offers(
-        conduit_std_catalog::vision_kind_contracts(),
-        conduit_std_catalog::VISION_REVISION,
+        conduit_semantic_catalog::vision_kind_contracts(),
+        conduit_semantic_catalog::VISION_REVISION,
     )
 }
 
 pub fn robotics_structured_proof_offers() -> Vec<CapabilityOffer> {
     proof_domain_offers(
-        conduit_std_catalog::robotics_structured_kind_contracts()
+        conduit_semantic_catalog::robotics_structured_kind_contracts()
             .into_iter()
             .filter(|(kind, _, _)| {
-                kind.as_str() != conduit_std_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+                kind.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
             })
             .collect(),
-        conduit_std_catalog::ROBOTICS_STRUCTURED_REVISION,
+        conduit_semantic_catalog::ROBOTICS_STRUCTURED_REVISION,
     )
 }
 
 pub fn robotics_motion_proof_offer() -> CapabilityOffer {
-    let (kind, inputs, outputs) = conduit_std_catalog::robotics_structured_kind_contracts()
+    let (kind, inputs, outputs) = conduit_semantic_catalog::robotics_structured_kind_contracts()
         .into_iter()
-        .find(|(kind, _, _)| kind.as_str() == conduit_std_catalog::ROBOTICS_EXECUTE_MOTION_KIND)
+        .find(|(kind, _, _)| {
+            kind.as_str() == conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+        })
         .expect("portable motion contract");
     let mut offer = proof_domain_offer(
         kind.clone(),
         inputs,
         outputs,
-        conduit_std_catalog::ROBOTICS_STRUCTURED_REVISION,
+        conduit_semantic_catalog::ROBOTICS_STRUCTURED_REVISION,
         MOTION_PROOF_OPERATION,
     );
     offer.authority_requirements.push(AuthorityRequirement {
@@ -119,18 +121,18 @@ fn proof_domain_offer(
 }
 
 pub fn recurrence_proof_offer() -> CapabilityOffer {
-    let result = conduit_std_catalog::recurrence_result_type();
+    let result = conduit_semantic_catalog::recurrence_result_type();
     CapabilityOffer {
         startup_parameters: vec![FaceStartupParameter {
             name: "request".into(),
-            value_type: conduit_std_catalog::RECURRENCE_REQUEST_TYPE.into(),
+            value_type: conduit_semantic_catalog::RECURRENCE_REQUEST_TYPE.into(),
             has_default: false,
         }],
         shorthand: None,
         capability_id: CapabilityId::from("proof/time-expand-recurrence"),
-        kind_id: kind_id(conduit_std_catalog::RECURRENCE_KIND),
+        kind_id: kind_id(conduit_semantic_catalog::RECURRENCE_KIND),
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::RECURRENCE_REVISION,
+            conduit_semantic_catalog::RECURRENCE_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("proof/recurrence-kernel@1"),
@@ -149,9 +151,9 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
         authority_requirements: vec![],
         limits: CapabilityLimits {
             max_active_instances: 4,
-            max_queue_items: conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS,
+            max_queue_items: conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS,
             max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                * usize::from(conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS))
+                * usize::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS))
                 as u32,
         },
     }
@@ -160,44 +162,44 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
 pub fn job_proof_offers() -> Vec<CapabilityOffer> {
     vec![
         workflow_proof_offer(
-            conduit_std_catalog::JOB_FIXTURE_KIND,
-            conduit_std_catalog::JOB_REVISION,
+            conduit_semantic_catalog::JOB_FIXTURE_KIND,
+            conduit_semantic_catalog::JOB_REVISION,
             "proof.host/process-job-fixture@1",
             vec![],
             vec![typed_port(
                 "request",
-                &conduit_std_catalog::job_request_type(),
+                &conduit_semantic_catalog::job_request_type(),
                 PortDirection::Output,
             )],
             None,
             None,
         ),
         workflow_proof_offer(
-            conduit_std_catalog::JOB_RUN_KIND,
-            conduit_std_catalog::JOB_REVISION,
+            conduit_semantic_catalog::JOB_RUN_KIND,
+            conduit_semantic_catalog::JOB_REVISION,
             JOB_PROOF_RUN_OPERATION,
             vec![typed_port(
                 "request",
-                &conduit_std_catalog::job_request_type(),
+                &conduit_semantic_catalog::job_request_type(),
                 PortDirection::Input,
             )],
             vec![typed_port(
                 "lifecycle",
-                &conduit_std_catalog::job_lifecycle_type(),
+                &conduit_semantic_catalog::job_lifecycle_type(),
                 PortDirection::Output,
             )],
             Some(JOB_PROOF_RESOURCE_CLASS),
-            Some(conduit_std_catalog::JOB_EXECUTABLE_AUTHORITY),
+            Some(conduit_semantic_catalog::JOB_EXECUTABLE_AUTHORITY),
         ),
     ]
 }
 
 pub fn reminder_proof_offers() -> Vec<CapabilityOffer> {
-    let reminder = conduit_std_catalog::reminder_occurrence_type();
+    let reminder = conduit_semantic_catalog::reminder_occurrence_type();
     vec![
         workflow_proof_offer(
-            conduit_std_catalog::REMINDER_FIXTURE_KIND,
-            conduit_std_catalog::REMINDER_REVISION,
+            conduit_semantic_catalog::REMINDER_FIXTURE_KIND,
+            conduit_semantic_catalog::REMINDER_REVISION,
             "proof.host/reminder-fixture@1",
             vec![],
             vec![typed_port("reminder", &reminder, PortDirection::Output)],
@@ -205,13 +207,13 @@ pub fn reminder_proof_offers() -> Vec<CapabilityOffer> {
             None,
         ),
         workflow_proof_offer(
-            conduit_std_catalog::REMINDER_DELIVER_KIND,
-            conduit_std_catalog::REMINDER_REVISION,
+            conduit_semantic_catalog::REMINDER_DELIVER_KIND,
+            conduit_semantic_catalog::REMINDER_REVISION,
             REMINDER_PROOF_DELIVER_OPERATION,
             vec![typed_port("reminder", &reminder, PortDirection::Input)],
             vec![],
             None,
-            Some(conduit_std_catalog::REMINDER_DELIVERY_AUTHORITY),
+            Some(conduit_semantic_catalog::REMINDER_DELIVERY_AUTHORITY),
         ),
     ]
 }

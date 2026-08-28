@@ -7,7 +7,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     adapt_rhythm_feedback, deterministic_arithmetic_fixture, deterministic_hint_request,
     deterministic_refused_response, deterministic_timeout, education_assessment_outcome_type,
     education_progress_type, education_question_type, education_rhythm_feedback_type,

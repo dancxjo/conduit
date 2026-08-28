@@ -1,7 +1,7 @@
 use conduit_core::{CapabilityOffer, ConfigurationEntry, ConfigurationValue};
 
 #[cfg(test)]
-pub(crate) use conduit_std_catalog::{
+pub(crate) use conduit_semantic_catalog::{
     TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND, TEXT_PRESENTATION_VALUE_KIND,
 };
 pub(crate) use conduit_std_offers::text_presentation_offer as text_offer;

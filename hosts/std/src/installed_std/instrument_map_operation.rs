@@ -51,7 +51,7 @@ impl InstrumentMapOperation {
         if port != PortId(0) || self.emitted {
             return InstalledOperation::fail(171);
         }
-        if self.next_order >= u32::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
+        if self.next_order >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
             return fail(FailureCode::StorageExhausted, 172);
         }
         let Some(next_order) = self.next_order.checked_add(1) else {
@@ -63,7 +63,7 @@ impl InstrumentMapOperation {
         let Ok(control) = StructuredInfoValue::from_canonical_bytes(bytes) else {
             return fail(FailureCode::InvalidInput, 175);
         };
-        if control.value_type() != &conduit_std_catalog::instrument_control_type() {
+        if control.value_type() != &conduit_semantic_catalog::instrument_control_type() {
             return fail(FailureCode::InvalidInput, 176);
         }
         let event = match map_control(&self.mapping, &control, self.next_order) {
@@ -186,9 +186,9 @@ fn mapping(placement: &PlannedGear) -> Result<InstrumentMapping, String> {
     };
     let value = StructuredInfoValue::from_canonical_bytes(configuration.canonical_value())
         .map_err(|error| format!("decode planned instrument mapping: {error:?}"))?;
-    if value.value_type() != &conduit_std_catalog::instrument_mapping_type()
+    if value.value_type() != &conduit_semantic_catalog::instrument_mapping_type()
         || configuration.profile()
-            != conduit_std_catalog::instrument_mapping_type()
+            != conduit_semantic_catalog::instrument_mapping_type()
                 .profile()
                 .map_err(|error| format!("profile instrument mapping: {error:?}"))?
                 .value_kind()
@@ -256,7 +256,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
             + conduit_audio::NOTE_EVENT_ENCODED_LEN * 3) as u32,
         host_requests: 0,
-        sign_items: conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS.saturating_mul(4),
+        sign_items: conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS.saturating_mul(4),
         maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
     })
 }

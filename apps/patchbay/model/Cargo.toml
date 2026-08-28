@@ -16,7 +16,7 @@ conduit-browser-runtime = { path = "../../../hosts/browser-runtime" }
 conduit-ai = { path = "../../../crates/conduit-ai", features = ["form-catalog"] }
 conduit-signal = { path = "../../../crates/conduit-signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
-conduit-std-catalog = { path = "../../../crates/conduit-std-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
+conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog", default-features = false, features = ["form-catalog", "text-lab-plan"] }
 conduit-std-offers = { path = "../../../hosts/std/offers" }
 conduit-time = { path = "../../../crates/conduit-time" }
 conduit-text = { path = "../../../crates/conduit-text", default-features = false }

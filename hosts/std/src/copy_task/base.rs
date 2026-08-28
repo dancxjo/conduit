@@ -57,7 +57,7 @@ impl CopyFiles {
         {
             return Err(self.fail_and_cleanup());
         }
-        let mut chunk = [0_u8; conduit_std_catalog::COPY_CHUNK_BYTES as usize];
+        let mut chunk = [0_u8; conduit_semantic_catalog::COPY_CHUNK_BYTES as usize];
         let read = self
             .source
             .read(&mut chunk)

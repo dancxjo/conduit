@@ -1,4 +1,4 @@
-//! Std-catalog descriptions projected from host-neutral HTTP contracts.
+//! Semantic-catalog descriptions projected from host-neutral HTTP contracts.
 
 use crate::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};

@@ -74,7 +74,7 @@ impl AudioRenderDemandOperation {
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
-    let blocks = conduit_std_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS;
+    let blocks = conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS;
     let value_items = blocks
         .checked_mul(2)
         .ok_or_else(|| "audio render-demand value item budget overflow".to_string())?;
@@ -99,14 +99,14 @@ fn prepare(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
-    let blocks = usize::from(conduit_std_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS);
+    let blocks = usize::from(conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS);
     let mut demands = Vec::with_capacity(blocks);
     let mut waits = Vec::with_capacity(blocks);
-    for sequence in 0..conduit_std_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS {
+    for sequence in 0..conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS {
         let demand = AudioRenderDemand::new(
-            conduit_std_catalog::AUDIO_RENDER_CLOCK_ID,
-            u64::from(sequence) * u64::from(conduit_std_catalog::AUDIO_RENDER_BLOCK_FRAMES),
-            conduit_std_catalog::AUDIO_RENDER_BLOCK_FRAMES,
+            conduit_semantic_catalog::AUDIO_RENDER_CLOCK_ID,
+            u64::from(sequence) * u64::from(conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES),
+            conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES,
             u32::from(sequence),
         )
         .map_err(|error| format!("construct audio render demand: {error:?}"))?;
@@ -117,7 +117,7 @@ fn prepare(
         );
         waits.push(
             values
-                .store(&conduit_std_catalog::AUDIO_RENDER_PERIOD_MILLIS.to_le_bytes())
+                .store(&conduit_semantic_catalog::AUDIO_RENDER_PERIOD_MILLIS.to_le_bytes())
                 .map_err(|error| format!("store audio render wait: {error:?}"))?,
         );
     }
@@ -135,17 +135,17 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = offer();
     let configuration_is_exact = placement.configuration.len() == 2
         && placement.configuration.iter().any(|entry| {
-            entry.key == conduit_std_catalog::AUDIO_RENDER_BLOCK_FRAMES_KEY
+            entry.key == conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES_KEY
                 && entry.value
                     == ConfigurationValue::U64(u64::from(
-                        conduit_std_catalog::AUDIO_RENDER_BLOCK_FRAMES,
+                        conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES,
                     ))
         })
         && placement.configuration.iter().any(|entry| {
-            entry.key == conduit_std_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS_KEY
+            entry.key == conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS_KEY
                 && entry.value
                     == ConfigurationValue::U64(u64::from(
-                        conduit_std_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS,
+                        conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS,
                     ))
         });
     if placement.kind_id != offer.kind_id

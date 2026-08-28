@@ -7,7 +7,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     install_reminder_catalogs, REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND,
 };
 

@@ -95,7 +95,7 @@ pub fn run(
     let [realization_back] = prepared.plan.realization_backs.as_slice() else {
         return Err(PresentationRunError::Shape);
     };
-    if realization_back.kind_id.as_str() != conduit_std_catalog::PATCHBAY_GEAR_FACE_KIND
+    if realization_back.kind_id.as_str() != conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
         || realization_back.invocation_path != "conduitos-gear-face/face"
         || fragment.realization_backs != prepared.plan.realization_backs
     {
@@ -118,7 +118,7 @@ pub fn run(
                 .map_err(|_| PresentationRunError::Value)?
                 .to_vec();
             match placement.kind_id.as_str() {
-                conduit_std_catalog::TEXT_PRESENTATION_KIND => {
+                conduit_semantic_catalog::TEXT_PRESENTATION_KIND => {
                     if text.is_some() {
                         return Err(PresentationRunError::Text);
                     }
@@ -127,7 +127,7 @@ pub fn run(
                     text = Some(value);
                     complete(&mut scheduler, request, None)?;
                 }
-                conduit_std_catalog::GRAPHICS_PRESENTATION_KIND => {
+                conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND => {
                     if display_receipt.is_some() {
                         return Err(PresentationRunError::Graphics);
                     }
@@ -144,7 +144,7 @@ pub fn run(
                 _ => {
                     let output = transform(placement, &input)?;
                     let terminal_layout =
-                        placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_COLUMN_KIND;
+                        placement.kind_id.as_str() == conduit_semantic_catalog::LAYOUT_COLUMN_KIND;
                     if terminal_layout {
                         let frame = LayoutFrame::decode(&output)
                             .map_err(|_| PresentationRunError::Layout)?;
@@ -264,22 +264,22 @@ fn prepare_scheduler(
     let mut drivers = Vec::with_capacity(NODES);
     for placement in &fragment.placements {
         let operation = match placement.kind_id.as_str() {
-            conduit_std_catalog::LAYOUT_VIEWPORT_KIND => {
-                let value = conduit_std_catalog::execute_layout_source(placement)
+            conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => {
+                let value = conduit_semantic_catalog::execute_layout_source(placement)
                     .map_err(|_| PresentationRunError::Transform)?;
                 let encoded = value.encode();
                 source(&mut values, &encoded[..value.encoded_len()])?
             }
-            conduit_std_catalog::PRESENTATION_ICON_KIND => {
-                let value = conduit_std_catalog::execute_presentation_source(placement)
+            conduit_semantic_catalog::PRESENTATION_ICON_KIND => {
+                let value = conduit_semantic_catalog::execute_presentation_source(placement)
                     .map_err(|_| PresentationRunError::Transform)?;
                 let encoded = value.encode();
                 source(&mut values, &encoded[..value.encoded_len()])?
             }
             TEXT_SOURCE_KIND => source(&mut values, b"Gear Face")?,
-            conduit_std_catalog::TEXT_PRESENTATION_KIND
-            | conduit_std_catalog::GRAPHICS_PRESENTATION_KIND
-            | conduit_std_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            | conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
+            | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
                 maximum_input_bytes: placement
                     .host_operations
                     .first()
@@ -330,36 +330,37 @@ fn transform(
     input: &[u8],
 ) -> Result<Vec<u8>, PresentationRunError> {
     match placement.kind_id.as_str() {
-        conduit_std_catalog::LAYOUT_INSET_KIND
-        | conduit_std_catalog::LAYOUT_ROW_KIND
-        | conduit_std_catalog::LAYOUT_COLUMN_KIND
-        | conduit_std_catalog::LAYOUT_STACK_KIND
-        | conduit_std_catalog::LAYOUT_ALIGN_KIND => {
+        conduit_semantic_catalog::LAYOUT_INSET_KIND
+        | conduit_semantic_catalog::LAYOUT_ROW_KIND
+        | conduit_semantic_catalog::LAYOUT_COLUMN_KIND
+        | conduit_semantic_catalog::LAYOUT_STACK_KIND
+        | conduit_semantic_catalog::LAYOUT_ALIGN_KIND => {
             let frame = LayoutFrame::decode(input).map_err(|_| PresentationRunError::Layout)?;
-            let output = conduit_std_catalog::execute_layout_transform(placement, frame)
+            let output = conduit_semantic_catalog::execute_layout_transform(placement, frame)
                 .map_err(|_| PresentationRunError::Transform)?;
             Ok(output.encode()[..output.encoded_len()].to_vec())
         }
-        conduit_std_catalog::PRESENTATION_FRAME_KIND
-        | conduit_std_catalog::PRESENTATION_BADGE_KIND => {
+        conduit_semantic_catalog::PRESENTATION_FRAME_KIND
+        | conduit_semantic_catalog::PRESENTATION_BADGE_KIND => {
             let value = PresentationComposition::decode(input)
                 .map_err(|_| PresentationRunError::Transform)?;
-            let output = conduit_std_catalog::execute_presentation_transform(placement, value)
+            let output = conduit_semantic_catalog::execute_presentation_transform(placement, value)
                 .map_err(|_| PresentationRunError::Transform)?;
             Ok(output.encode()[..output.encoded_len()].to_vec())
         }
-        conduit_std_catalog::GRAPHICS_RECT_KIND => {
+        conduit_semantic_catalog::GRAPHICS_RECT_KIND => {
             let value = PresentationComposition::decode(input)
                 .map_err(|_| PresentationRunError::Graphics)?;
             encode_scene(
-                conduit_std_catalog::execute_graphics_transform(placement, Some(value), None)
+                conduit_semantic_catalog::execute_graphics_transform(placement, Some(value), None)
                     .map_err(|_| PresentationRunError::Transform)?,
             )
         }
-        conduit_std_catalog::GRAPHICS_TEXT_KIND | conduit_std_catalog::GRAPHICS_ICON_KIND => {
+        conduit_semantic_catalog::GRAPHICS_TEXT_KIND
+        | conduit_semantic_catalog::GRAPHICS_ICON_KIND => {
             let scene = GraphicsScene::decode(input).map_err(|_| PresentationRunError::Graphics)?;
             encode_scene(
-                conduit_std_catalog::execute_graphics_transform(placement, None, Some(scene))
+                conduit_semantic_catalog::execute_graphics_transform(placement, None, Some(scene))
                     .map_err(|_| PresentationRunError::Transform)?,
             )
         }

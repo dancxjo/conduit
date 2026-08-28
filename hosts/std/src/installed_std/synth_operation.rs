@@ -11,7 +11,7 @@ use conduit_kernel::{
 pub(super) use super::synth_render::{execute, InstalledSynthState};
 
 pub(super) const SYNTH_HOST_OPERATION: &str = conduit_std_offers::MUSIC_SYNTH_HOST_OPERATION;
-pub(super) const PCM_BLOCK_BYTES: u32 = conduit_std_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES;
+pub(super) const PCM_BLOCK_BYTES: u32 = conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES;
 
 pub(super) static MUSIC_SYNTH_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_synth::REFERENCE_SYNTH_IMPLEMENTATION_ID,
@@ -136,8 +136,8 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 3,
         value_bytes: PCM_BLOCK_BYTES * 3,
-        host_requests: usize::from(conduit_std_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS)
-            + usize::from(conduit_std_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS),
+        host_requests: usize::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS)
+            + usize::from(conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS),
         sign_items: 4_096,
         maximum_value_bytes: PCM_BLOCK_BYTES,
     })
@@ -158,7 +158,7 @@ fn prepare(
 }
 
 pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let expected_configuration = conduit_std_catalog::music_synth_configuration();
+    let expected_configuration = conduit_semantic_catalog::music_synth_configuration();
     let configuration_is_exact = placement.configuration.len() == expected_configuration.len()
         && expected_configuration.iter().all(|field| {
             placement
@@ -168,8 +168,9 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
                 .count()
                 == 1
         });
-    if placement.kind_id.as_str() != conduit_std_catalog::MUSIC_SYNTH_KIND
-        || placement.kind_contract_revision.as_str() != conduit_std_catalog::MUSIC_SYNTH_REVISION
+    if placement.kind_id.as_str() != conduit_semantic_catalog::MUSIC_SYNTH_KIND
+        || placement.kind_contract_revision.as_str()
+            != conduit_semantic_catalog::MUSIC_SYNTH_REVISION
         || placement.execution_profile_id.as_str() != conduit_synth::REFERENCE_SYNTH_PROFILE_ID
         || placement.implementation_id.as_str() != conduit_synth::REFERENCE_SYNTH_IMPLEMENTATION_ID
         || placement.artifact_id.as_str() != conduit_synth::REFERENCE_SYNTH_ARTIFACT_ID
@@ -191,7 +192,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
 pub(super) fn profile(
     placement: &PlannedGear,
 ) -> Result<conduit_synth::ReferenceSynthProfile, String> {
-    use conduit_std_catalog::*;
+    use conduit_semantic_catalog::*;
 
     let oscillator = match text(placement, SYNTH_OSCILLATOR_KEY)? {
         "sine" => conduit_synth::OscillatorShape::Sine,

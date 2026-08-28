@@ -9,7 +9,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     assess_schedule_values, assess_workflow_timing, deterministic_schedule_fixture,
     install_recurrence_catalogs, install_schedule_catalogs, recurrence_occurrence_type,
     scheduled_intent_type, ScheduleRefusal, ScheduleWindowPosition, WorkflowLifecycle,
@@ -30,7 +30,7 @@ fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {
     assert_eq!(bounded.expanded.gears.len(), 1);
     assert_eq!(
         bounded.expanded.gears[0].kind_id.as_str(),
-        conduit_std_catalog::RECURRENCE_KIND
+        conduit_semantic_catalog::RECURRENCE_KIND
     );
     let recurrence_host = host(vec![common::recurrence_proof_offer()]);
     let recurrence_placements = conduit_planner::default_expanded_placements(
@@ -230,7 +230,9 @@ fn schedule_conformance_offers(profile: &ProfileCatalog) -> Vec<CapabilityOffer>
                         "test/schedule-contract-fixture@1",
                     ),
                     implementation_id: ImplementationId::from(format!("test/{kind}@1")),
-                    artifact_id: ArtifactId::from("conduit-std-catalog/test-schedule-contract@1"),
+                    artifact_id: ArtifactId::from(
+                        "conduit-semantic-catalog/test-schedule-contract@1",
+                    ),
                 },
                 inputs: definition.inputs.clone(),
                 outputs: definition.outputs.clone(),

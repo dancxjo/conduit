@@ -24,7 +24,7 @@ pub(super) static LOGIC_SELECT_SCALAR_FACTORY: InstalledFactory = InstalledFacto
     prepare: prepare_select,
 };
 
-use conduit_std_catalog::ScalarComparison as CompareOperator;
+use conduit_semantic_catalog::ScalarComparison as CompareOperator;
 
 struct DecisionValues {
     values: [Option<ValueRef>; 2],
@@ -381,10 +381,12 @@ fn prepare_select(
 
 fn comparison_operator(placement: &PlannedGear) -> Result<CompareOperator, String> {
     match placement.configuration.as_slice() {
-        [entry] if entry.key == conduit_std_catalog::COMPARE_OPERATOR_KEY => match &entry.value {
-            ConfigurationValue::Text(value) => CompareOperator::parse(value),
-            _ => None,
-        },
+        [entry] if entry.key == conduit_semantic_catalog::COMPARE_OPERATOR_KEY => {
+            match &entry.value {
+                ConfigurationValue::Text(value) => CompareOperator::parse(value),
+                _ => None,
+            }
+        }
         _ => None,
     }
     .ok_or_else(|| "planned logic/compare operator is missing or unsupported".to_string())

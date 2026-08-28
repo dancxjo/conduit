@@ -160,10 +160,10 @@ pub fn capstone_advertisement(
     velocity.implementation.execution_profile_id = ExecutionProfileId::from(profile);
     velocity.implementation.implementation_id = ImplementationId::from(velocity_implementation);
     velocity.implementation.artifact_id = ArtifactId::from(CAPSTONE_ARTIFACT);
-    let select = conduit_std_catalog::realization_offer(
-        conduit_std_catalog::state_select_scalar_contract(),
-        conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
-        conduit_std_catalog::RealizationOfferIdentity {
+    let select = conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::state_select_scalar_contract(),
+        conduit_semantic_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: &format!("{profile}/state-select"),
             execution_profile: profile,
             implementation: select_implementation,
@@ -441,14 +441,16 @@ mod tests {
             .placements
             .iter()
             .find(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
+                placement.kind_id.as_str()
+                    == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
             })
             .unwrap();
         let pico_drive = pico_plan.fragments[0]
             .placements
             .iter()
             .find(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
+                placement.kind_id.as_str()
+                    == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
             })
             .unwrap();
         assert_eq!(

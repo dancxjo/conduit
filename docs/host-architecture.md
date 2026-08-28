@@ -53,7 +53,7 @@ strict subset. The planner consumes only the resulting exact offers.
 | `conduit-kernel` operation protocol | host core execution contract | Numeric admitted effects/completions; owns no platform implementation |
 | [`conduit-plan-lowering`](architecture/plan-kernel-lowering.md) | plan-to-kernel boundary | Lowers exact selected placements under an explicit fixed storage profile; not a host composition |
 | `conduit-planner` | planner | Matches canonical checked faces against current offers, then admits exact facts |
-| `conduit-std-catalog` | semantic catalog plus some reference offers | Operation contracts are semantic; offer constructors are current reference-host implementation facts |
+| `conduit-semantic-catalog` | host-neutral semantic catalog | Portable Kind/value contracts and deterministic semantic calculations; it owns no Host realization offers |
 | `conduit-signal` host-profile modules | capability contracts and profile fixtures | Shared Signal faces plus exact std/browser/Pico offers used by accepted vertical proofs |
 | `hosts/std::StdHostComposition` | host composition | Selects existing Signal, time, text, and state implementation families; `reference()` is broad and `minimal()` promises none of them |
 | `hosts/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and lines beneath selected plans; WebSocket/USB are not host-core methods |

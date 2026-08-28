@@ -18,14 +18,14 @@ pub const ROBOTICS_STRUCTURED_HOST_OPERATION: &str =
     "conduit.host/robotics-structured-deterministic@1";
 
 pub fn education_std_offers() -> Vec<CapabilityOffer> {
-    conduit_std_catalog::education_kind_contracts()
+    conduit_semantic_catalog::education_kind_contracts()
         .into_iter()
         .map(|(kind, inputs, outputs)| {
             offer(
                 kind,
                 inputs,
                 outputs,
-                conduit_std_catalog::EDUCATION_REVISION,
+                conduit_semantic_catalog::EDUCATION_REVISION,
                 EDUCATION_PROFILE,
                 EDUCATION_ARTIFACT,
                 EDUCATION_HOST_OPERATION,
@@ -37,34 +37,36 @@ pub fn education_std_offers() -> Vec<CapabilityOffer> {
 }
 
 pub fn vision_std_offers() -> Vec<CapabilityOffer> {
-    conduit_std_catalog::vision_kind_contracts()
+    conduit_semantic_catalog::vision_kind_contracts()
         .into_iter()
         .map(|(kind, inputs, outputs)| {
             offer(
                 kind,
                 inputs,
                 outputs,
-                conduit_std_catalog::VISION_REVISION,
+                conduit_semantic_catalog::VISION_REVISION,
                 VISION_PROFILE,
                 VISION_ARTIFACT,
                 VISION_HOST_OPERATION,
                 4,
-                conduit_std_catalog::MAXIMUM_VISION_DETECTIONS,
+                conduit_semantic_catalog::MAXIMUM_VISION_DETECTIONS,
             )
         })
         .collect()
 }
 
 pub fn robotics_structured_deterministic_offers() -> Vec<CapabilityOffer> {
-    conduit_std_catalog::robotics_structured_kind_contracts()
+    conduit_semantic_catalog::robotics_structured_kind_contracts()
         .into_iter()
-        .filter(|(kind, _, _)| kind.as_str() != conduit_std_catalog::ROBOTICS_EXECUTE_MOTION_KIND)
+        .filter(|(kind, _, _)| {
+            kind.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+        })
         .map(|(kind, inputs, outputs)| {
             offer(
                 kind,
                 inputs,
                 outputs,
-                conduit_std_catalog::ROBOTICS_STRUCTURED_REVISION,
+                conduit_semantic_catalog::ROBOTICS_STRUCTURED_REVISION,
                 ROBOTICS_STRUCTURED_PROFILE,
                 ROBOTICS_STRUCTURED_ARTIFACT,
                 ROBOTICS_STRUCTURED_HOST_OPERATION,
@@ -141,7 +143,7 @@ mod tests {
         assert_eq!(vision.len(), 2);
         assert_eq!(robotics.len(), 2);
         assert!(robotics.iter().all(|offer| {
-            offer.kind_id.as_str() != conduit_std_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+            offer.kind_id.as_str() != conduit_semantic_catalog::ROBOTICS_EXECUTE_MOTION_KIND
                 && offer.authority_requirements.is_empty()
         }));
     }

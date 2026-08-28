@@ -1,7 +1,7 @@
 //! Hosted std realizations of portable flow/state contracts.
 
 use conduit_core::{kind_id, CapabilityOffer, HostOperationContractId, HostOperationRequirement};
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const STATE_LATEST_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-latest-scalar-kernel@2";
 pub const STATE_LATEST_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-latest-scalar@2";
@@ -20,8 +20,8 @@ pub const STATE_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/state-select-sc
 
 pub fn state_latest_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::state_latest_scalar_contract(),
-        conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_latest_scalar_contract(),
+        conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
         "state-latest-scalar-v2",
         STATE_LATEST_SCALAR_EXECUTION_PROFILE,
         STATE_LATEST_SCALAR_IMPLEMENTATION,
@@ -32,8 +32,8 @@ pub fn state_latest_scalar_offer() -> CapabilityOffer {
 
 pub fn flow_tee_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::flow_tee_scalar_contract(),
-        conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::flow_tee_scalar_contract(),
+        conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
         "flow-tee-scalar-v2",
         FLOW_TEE_SCALAR_EXECUTION_PROFILE,
         FLOW_TEE_SCALAR_IMPLEMENTATION,
@@ -44,8 +44,8 @@ pub fn flow_tee_scalar_offer() -> CapabilityOffer {
 
 pub fn flow_gate_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::flow_gate_scalar_contract(),
-        conduit_std_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::flow_gate_scalar_contract(),
+        conduit_semantic_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
         "flow-gate-scalar-v1",
         FLOW_GATE_SCALAR_EXECUTION_PROFILE,
         FLOW_GATE_SCALAR_IMPLEMENTATION,
@@ -62,8 +62,8 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
 
 pub fn state_select_scalar_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::state_select_scalar_contract(),
-        conduit_std_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::state_select_scalar_contract(),
+        conduit_semantic_catalog::STATE_SELECT_SCALAR_CONTRACT_REVISION,
         "state-select-scalar-v1",
         STATE_SELECT_SCALAR_EXECUTION_PROFILE,
         STATE_SELECT_SCALAR_IMPLEMENTATION,
@@ -73,7 +73,7 @@ pub fn state_select_scalar_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     profile: &str,
@@ -105,19 +105,19 @@ mod tests {
         for (offer, contract) in [
             (
                 state_latest_scalar_offer(),
-                conduit_std_catalog::state_latest_scalar_contract(),
+                conduit_semantic_catalog::state_latest_scalar_contract(),
             ),
             (
                 flow_tee_scalar_offer(),
-                conduit_std_catalog::flow_tee_scalar_contract(),
+                conduit_semantic_catalog::flow_tee_scalar_contract(),
             ),
             (
                 flow_gate_scalar_offer(),
-                conduit_std_catalog::flow_gate_scalar_contract(),
+                conduit_semantic_catalog::flow_gate_scalar_contract(),
             ),
             (
                 state_select_scalar_offer(),
-                conduit_std_catalog::state_select_scalar_contract(),
+                conduit_semantic_catalog::state_select_scalar_contract(),
             ),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);

@@ -1,7 +1,7 @@
 //! Authoritative, bounded discovery projection for reusable semantic Kinds.
 
 use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
-pub use conduit_std_catalog::{PaletteCategory, PaletteIconKey, StandardConfigurationRule};
+pub use conduit_semantic_catalog::{PaletteCategory, PaletteIconKey, StandardConfigurationRule};
 
 pub const MAX_PALETTE_ENTRIES: usize = 69;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
@@ -69,13 +69,13 @@ impl GearPalette {
     /// Projects the supported executable nucleus, rather than maintaining a
     /// Patchbay-private list of Kind contracts.
     pub fn standard() -> Result<Self, PaletteError> {
-        let contracts = conduit_std_catalog::palette_contracts();
+        let contracts = conduit_semantic_catalog::palette_contracts();
         if contracts.len() > MAX_PALETTE_ENTRIES {
             return Err(PaletteError::CatalogTooLarge);
         }
         let mut entries = Vec::with_capacity(contracts.len());
         for contract in contracts {
-            let metadata = conduit_std_catalog::palette_metadata(&contract.kind_id)
+            let metadata = conduit_semantic_catalog::palette_metadata(&contract.kind_id)
                 .ok_or_else(|| PaletteError::MissingMetadata(contract.kind_id.clone()))?;
             entries.push(PaletteEntry {
                 kind_id: contract.kind_id,
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn standard_palette_is_exact_bounded_and_searches_contract_truth() {
         let palette = GearPalette::standard().unwrap();
-        let supported = conduit_std_catalog::palette_contracts().len();
+        let supported = conduit_semantic_catalog::palette_contracts().len();
         assert_eq!(supported, MAX_PALETTE_ENTRIES);
         assert_eq!(palette.entries().len(), supported);
         assert_eq!(palette.search("").unwrap().len(), supported);

@@ -52,13 +52,13 @@ mod tests {
             encoded.len()
         );
         for kind in [
-            conduit_std_catalog::CAMERA_ACQUIRE_KIND,
-            conduit_std_catalog::MICROPHONE_ACQUIRE_KIND,
+            conduit_semantic_catalog::CAMERA_ACQUIRE_KIND,
+            conduit_semantic_catalog::MICROPHONE_ACQUIRE_KIND,
             conduit_presentation::INTERACTION_KIND,
             conduit_presentation::RENDERER_KIND,
-            conduit_std_catalog::TEXT_PRESENTATION_KIND,
-            conduit_std_catalog::GRAPHICS_RECT_KIND,
-            conduit_std_catalog::CAMERA_FRAME_SINK_KIND,
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+            conduit_semantic_catalog::GRAPHICS_RECT_KIND,
+            conduit_semantic_catalog::CAMERA_FRAME_SINK_KIND,
         ] {
             assert!(advertisement
                 .capabilities
@@ -68,6 +68,6 @@ mod tests {
         assert!(advertisement
             .capabilities
             .iter()
-            .all(|offer| offer.kind_id.as_str() != conduit_std_catalog::CAMERA_SOURCE_KIND));
+            .all(|offer| offer.kind_id.as_str() != conduit_semantic_catalog::CAMERA_SOURCE_KIND));
     }
 }

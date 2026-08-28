@@ -16,8 +16,10 @@ use conduit_presentation::{
     PresentationDisclosureLevel, PresentationPropertyValue, PresentationRelationshipKind,
     PresentationRole, MAX_NAVIGATION_HISTORY,
 };
-use conduit_std_catalog::TextLabLineLossReceipt;
-use conduit_std_catalog::{exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_RETURN_LINE};
+use conduit_semantic_catalog::TextLabLineLossReceipt;
+use conduit_semantic_catalog::{
+    exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_RETURN_LINE,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::text_lab_explanation_loss::validate_loss;

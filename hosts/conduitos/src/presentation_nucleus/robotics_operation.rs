@@ -11,7 +11,7 @@ pub enum RoboticsDriveEffect {
 }
 
 pub(super) struct RoboticsSourceOperation {
-    pub(super) availability: conduit_std_catalog::RoboticsSimulationAvailability,
+    pub(super) availability: conduit_semantic_catalog::RoboticsSimulationAvailability,
     pub(super) values: [Option<ValueRef>; 2],
     pub(super) next: usize,
     pub(super) cancelled: bool,
@@ -23,11 +23,13 @@ impl RoboticsSourceOperation {
             return fail(FailureCode::Cancelled, 47);
         }
         match self.availability {
-            conduit_std_catalog::RoboticsSimulationAvailability::Fresh => self.emit_or_complete(),
-            conduit_std_catalog::RoboticsSimulationAvailability::Missing => {
+            conduit_semantic_catalog::RoboticsSimulationAvailability::Fresh => {
+                self.emit_or_complete()
+            }
+            conduit_semantic_catalog::RoboticsSimulationAvailability::Missing => {
                 fail(FailureCode::InvalidInput, 40)
             }
-            conduit_std_catalog::RoboticsSimulationAvailability::Stale => {
+            conduit_semantic_catalog::RoboticsSimulationAvailability::Stale => {
                 fail(FailureCode::InvalidInput, 41)
             }
         }

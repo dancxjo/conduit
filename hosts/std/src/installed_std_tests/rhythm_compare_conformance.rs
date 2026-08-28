@@ -19,13 +19,13 @@ const FEEDBACK_SINK: &str = "conduit-test/rhythm-feedback-sink";
 fn portable_lesson_executes_with_generic_structured_sources() {
     let performance = note(1_020);
     let reference = record(
-        conduit_std_catalog::beat_reference_type(),
+        conduit_semantic_catalog::beat_reference_type(),
         [("beat", 1), ("expected_time_micros", 1_000)],
     );
     let feedback =
         installed_std::rhythm_compare_host::expected_feedback(1, 1_000, Some(1_020), 0, 30_000);
-    let reference_type = conduit_std_catalog::beat_reference_type();
-    let feedback_type = conduit_std_catalog::timing_feedback_type();
+    let reference_type = conduit_semantic_catalog::beat_reference_type();
+    let feedback_type = conduit_semantic_catalog::timing_feedback_type();
 
     let performance_offer = installed_std::test_structured_selector::raw_source_offer(
         PERFORMANCE_SOURCE,
@@ -47,7 +47,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
 
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_structured_music_form_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_structured_music_form_catalogs(&mut startup, &mut profile)
         .unwrap();
     for (kind, value) in [(REFERENCE_SOURCE, &reference), (FEEDBACK_SINK, &feedback)] {
         install_fixture(

@@ -76,7 +76,7 @@ pub fn live_create_drive_advertisement(
         }
     };
 
-    let contract = conduit_std_catalog::robotics_drive_differential_contract();
+    let contract = conduit_semantic_catalog::robotics_drive_differential_contract();
     let mut resources = vec![
         resource_offer(
             &observation.serial_base_id,
@@ -114,7 +114,7 @@ pub fn live_create_drive_advertisement(
             capability_id: CapabilityId::from(CREATE_DRIVE_CAPABILITY),
             kind_id: contract.kind_id,
             kind_contract_revision: KindContractRevision::from(
-                conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
+                conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
             ),
             implementation: ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from(profile),

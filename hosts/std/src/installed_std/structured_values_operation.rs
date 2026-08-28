@@ -116,9 +116,9 @@ fn validate_literal(placement: &PlannedGear) -> Result<(), String> {
     let [output] = placement.outputs.as_slice() else {
         return Err("structured literal requires one output".into());
     };
-    if placement.kind_id != kind_id(conduit_std_catalog::STRUCTURED_LITERAL_KIND)
+    if placement.kind_id != kind_id(conduit_semantic_catalog::STRUCTURED_LITERAL_KIND)
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::STRUCTURED_LITERAL_REVISION
+            != conduit_semantic_catalog::STRUCTURED_LITERAL_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::STRUCTURED_LITERAL_STD_PROFILE
         || placement.implementation_id.as_str()
@@ -141,9 +141,9 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
     let [input] = placement.inputs.as_slice() else {
         return Err("structured presentation requires one input".into());
     };
-    if placement.kind_id != kind_id(conduit_std_catalog::STRUCTURED_PRESENTATION_KIND)
+    if placement.kind_id != kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND)
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::STRUCTURED_PRESENTATION_REVISION
+            != conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::STRUCTURED_PRESENTATION_STD_PROFILE
         || placement.implementation_id.as_str()
@@ -157,7 +157,7 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
         || placement.host_operations.len() != 1
         || placement.host_operations[0].target_kind.as_ref()
             != Some(&kind_id(
-                conduit_std_catalog::STRUCTURED_PRESENTATION_TARGET,
+                conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET,
             ))
         || placement.resources.len() != 1
         || !placement.configuration.is_empty()

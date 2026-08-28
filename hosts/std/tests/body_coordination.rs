@@ -1,5 +1,5 @@
 use conduit_core::{BootId, HostId};
-use conduit_std_catalog::{exact_body_coordination_plan, FOREBRAIN_HOST, MOTHERBRAIN_HOST};
+use conduit_semantic_catalog::{exact_body_coordination_plan, FOREBRAIN_HOST, MOTHERBRAIN_HOST};
 use conduit_std_host::body_coordination::CoordinationEndpoint;
 
 #[test]

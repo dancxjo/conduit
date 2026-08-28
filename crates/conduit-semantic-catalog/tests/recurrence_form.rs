@@ -16,7 +16,7 @@ pub const CIVIL_FORM: &str = r#"form meeting {
 fn civil_recurrence_is_checked_and_planned_as_one_exact_typed_request() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_recurrence_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profile).unwrap();
     let parsed = parse_syntax_document(CIVIL_FORM);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
@@ -41,7 +41,7 @@ fn civil_recurrence_is_checked_and_planned_as_one_exact_typed_request() {
     let decoded = StructuredInfoValue::from_canonical_bytes(request.canonical_value()).unwrap();
     assert_eq!(
         decoded.value_type(),
-        &conduit_std_catalog::recurrence_request_type()
+        &conduit_semantic_catalog::recurrence_request_type()
     );
 }
 

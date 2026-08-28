@@ -1,6 +1,6 @@
 # Portable catalog and hosted std offer boundary
 
-`conduit-std-catalog` is the remaining host-neutral semantic catalog. It owns
+`conduit-semantic-catalog` is the remaining host-neutral semantic catalog. It owns
 portable Kind faces, configuration rules, finite semantic limits, canonical
 catalog installation, and deterministic calculations. It is not a Host and it
 does not advertise that any implementation is currently available.
@@ -17,7 +17,7 @@ The boundary is therefore:
 
 ```text
 portable Kind contract and value meaning
-    conduit-std-catalog and focused semantic crates
+    conduit-semantic-catalog and focused semantic crates
 
 hosted std realization offer
     hosts/std/offers
@@ -45,7 +45,7 @@ and advertisement remain deterministic and finite.
 ## Audit checks
 
 ```text
-cargo test -p conduit-std-catalog
+cargo test -p conduit-semantic-catalog
 cargo test -p conduit-std-offers
-cargo check -p conduit-std-catalog --no-default-features --target thumbv6m-none-eabi
+cargo check -p conduit-semantic-catalog --no-default-features --target thumbv6m-none-eabi
 ```

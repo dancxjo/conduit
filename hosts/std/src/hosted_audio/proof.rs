@@ -69,7 +69,7 @@ pub fn run_playback_proof<W: Write>(
             observations: &[observation],
             policies: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             authority_grants: &[grant],
         },
     )
@@ -82,19 +82,19 @@ pub fn run_playback_proof<W: Write>(
     let playback_placement = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::AUDIO_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND)
         .ok_or_else(|| "hosted audio proof has no audio/play placement".to_string())?;
     for required in [
-        conduit_std_catalog::AUDIO_SAMPLE_REPRESENTATION_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_SAMPLE_RATE_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_CHANNEL_LAYOUT_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_PERIOD_FRAMES_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_BUFFER_FRAMES_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_MAXIMUM_BLOCKS_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_SOURCE_CLOCK_ID_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_DEVICE_CLOCK_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_PLAYBACK_RESOURCE_CHARACTERISTIC,
-        conduit_std_catalog::AUDIO_TIMING_CLASS_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_SAMPLE_REPRESENTATION_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_SAMPLE_RATE_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_CHANNEL_LAYOUT_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_PERIOD_FRAMES_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_BUFFER_FRAMES_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_MAXIMUM_BLOCKS_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_SOURCE_CLOCK_ID_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_DEVICE_CLOCK_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_PLAYBACK_RESOURCE_CHARACTERISTIC,
+        conduit_semantic_catalog::AUDIO_TIMING_CLASS_CHARACTERISTIC,
     ] {
         let id = CharacteristicId::from(required);
         if !playback_placement

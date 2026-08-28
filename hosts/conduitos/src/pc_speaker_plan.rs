@@ -103,12 +103,14 @@ pub fn validate(
     let placement = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::SOUND_TONE_PLAY_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::SOUND_TONE_PLAY_KIND
+        })
         .ok_or(PreparationError::PlanRejected)?;
-    let expected_input = conduit_std_catalog::sound_tone_play_contract().inputs;
-    if placement.kind_id.as_str() != conduit_std_catalog::SOUND_TONE_PLAY_KIND
+    let expected_input = conduit_semantic_catalog::sound_tone_play_contract().inputs;
+    if placement.kind_id.as_str() != conduit_semantic_catalog::SOUND_TONE_PLAY_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::SOUND_TONE_PLAY_REVISION
+            != conduit_semantic_catalog::SOUND_TONE_PLAY_REVISION
         || placement.execution_profile_id.as_str() != PC_SPEAKER_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != PC_SPEAKER_IMPLEMENTATION
         || placement.artifact_id.as_str() != alloc::format!("conduitos-build/{build_id}")
@@ -181,7 +183,7 @@ fn checked_expanded(
     let syntax = conduit_form::parse_syntax_document(source);
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     startup
         .insert(conduit_form::KindSignature {
@@ -289,7 +291,7 @@ pub(crate) mod tests {
             .placements
             .iter()
             .find(|placement| {
-                placement.kind_id.as_str() == conduit_std_catalog::SOUND_TONE_PLAY_KIND
+                placement.kind_id.as_str() == conduit_semantic_catalog::SOUND_TONE_PLAY_KIND
             })
             .unwrap();
         assert_eq!(sink.resources.len(), 4);
@@ -332,7 +334,7 @@ pub(crate) mod tests {
         );
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
-        conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profile).unwrap();
+        conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile).unwrap();
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         assert!(conduit_form::expand_canonical_form(&checked, "invalid", &profile).is_err());
         assert!(
@@ -341,8 +343,8 @@ pub(crate) mod tests {
                 .capabilities
                 .iter()
                 .all(|capability| capability.kind_id.as_str()
-                    != conduit_std_catalog::MUSIC_PLAY_KIND
-                    && capability.kind_id.as_str() != conduit_std_catalog::AUDIO_PLAY_KIND)
+                    != conduit_semantic_catalog::MUSIC_PLAY_KIND
+                    && capability.kind_id.as_str() != conduit_semantic_catalog::AUDIO_PLAY_KIND)
         );
     }
 

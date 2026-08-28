@@ -4,7 +4,7 @@ use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, HostOperationOutcome,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     MAX_TEXT_VALUES, TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND,
     TEXT_PRESENTATION_VALUE_KIND,
 };

@@ -47,7 +47,7 @@ impl KeyEventTeeOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if conduit_std_catalog::key_event_tee_accepts_encoded_len(value.byte_len)
+            } if conduit_semantic_catalog::key_event_tee_accepts_encoded_len(value.byte_len)
                 && self.pending.is_none() =>
             {
                 self.pending = Some(value);
@@ -99,7 +99,7 @@ impl InputSemanticOperation {
                 port: PortId(0),
                 value,
             } if self.pending.is_none()
-                && self.next < conduit_std_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES.into() =>
+                && self.next < conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES.into() =>
             {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
@@ -199,14 +199,14 @@ fn key_event_tee_budget(placement: &PlannedGear) -> Result<OperationBudget, Stri
     validate_identity(
         placement,
         Identity {
-            kind: conduit_std_catalog::KEY_EVENT_TEE_KIND,
-            revision: conduit_std_catalog::KEY_EVENT_TEE_REVISION,
+            kind: conduit_semantic_catalog::KEY_EVENT_TEE_KIND,
+            revision: conduit_semantic_catalog::KEY_EVENT_TEE_REVISION,
             profile: conduit_std_offers::KEY_EVENT_TEE_PROFILE,
             implementation: conduit_std_offers::KEY_EVENT_TEE_IMPLEMENTATION,
             artifact: conduit_std_offers::KEY_EVENT_TEE_ARTIFACT,
         },
-        &conduit_std_catalog::key_event_tee_contract().inputs,
-        &conduit_std_catalog::key_event_tee_contract().outputs,
+        &conduit_semantic_catalog::key_event_tee_contract().inputs,
+        &conduit_semantic_catalog::key_event_tee_contract().outputs,
         None,
     )?;
     Ok(OperationBudget {
@@ -230,10 +230,10 @@ fn chords_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 
 fn semantic_budget(maximum_value_bytes: u32) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
-        value_items: conduit_std_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES,
-        value_bytes: u32::from(conduit_std_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES)
+        value_items: conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES,
+        value_bytes: u32::from(conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES)
             * maximum_value_bytes,
-        host_requests: conduit_std_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES.into(),
+        host_requests: conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES.into(),
         sign_items: 128,
         maximum_value_bytes,
     })
@@ -276,14 +276,14 @@ fn validate_keymap(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         Identity {
-            kind: conduit_std_catalog::KEYMAP_KIND,
-            revision: conduit_std_catalog::KEYMAP_REVISION,
+            kind: conduit_semantic_catalog::KEYMAP_KIND,
+            revision: conduit_semantic_catalog::KEYMAP_REVISION,
             profile: conduit_std_offers::KEYMAP_PROFILE,
             implementation: conduit_std_offers::KEYMAP_IMPLEMENTATION,
             artifact: conduit_std_offers::KEYMAP_ARTIFACT,
         },
-        &conduit_std_catalog::keymap_contract().inputs,
-        &conduit_std_catalog::keymap_contract().outputs,
+        &conduit_semantic_catalog::keymap_contract().inputs,
+        &conduit_semantic_catalog::keymap_contract().outputs,
         Some(("layout", CONDUIT_INTL_LAYOUT)),
     )
 }
@@ -292,14 +292,14 @@ fn validate_chords(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         Identity {
-            kind: conduit_std_catalog::CHORDS_KIND,
-            revision: conduit_std_catalog::CHORDS_REVISION,
+            kind: conduit_semantic_catalog::CHORDS_KIND,
+            revision: conduit_semantic_catalog::CHORDS_REVISION,
             profile: conduit_std_offers::CHORDS_PROFILE,
             implementation: conduit_std_offers::CHORDS_IMPLEMENTATION,
             artifact: conduit_std_offers::CHORDS_ARTIFACT,
         },
-        &conduit_std_catalog::chords_contract().inputs,
-        &conduit_std_catalog::chords_contract().outputs,
+        &conduit_semantic_catalog::chords_contract().inputs,
+        &conduit_semantic_catalog::chords_contract().outputs,
         Some(("map", CORE_CHORD_MAP)),
     )
 }

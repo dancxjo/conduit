@@ -9,7 +9,7 @@ fn portable_audio_meaning_has_one_host_neutral_owner() {
         .1;
     for forbidden in [
         "conduit-midi",
-        "conduit-std-catalog",
+        "conduit-semantic-catalog",
         "conduit-std-host",
         "conduit-synth",
         "hosts/",

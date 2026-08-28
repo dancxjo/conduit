@@ -58,40 +58,43 @@ impl CanonicalSource {
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_timing_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_flow_state_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_state_toggle_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_logic_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_math_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_state_toggle_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_presentation_composition_catalogs(
+        &mut startup,
+        &mut profiles,
+    )?;
+    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profiles)?;
     conduit_web::install_http_catalogs(&mut startup, &mut profiles)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_recurrence_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_schedule_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_calendar_provider_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_schedule_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profiles)?;
     conduit_presentation::install_geometry_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_vision_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profiles)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_finance_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_job_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profiles)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_robotics_structured_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_education_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_robotics_structured_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_education_catalogs(&mut startup, &mut profiles)?;
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)?;
-    conduit_std_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
 }

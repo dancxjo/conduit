@@ -124,7 +124,7 @@ fn specimen(
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::MUSIC_PLAY_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::MUSIC_PLAY_KIND)
         .ok_or_else(|| {
             CatalogError::new(
                 "sound-plan-missing-output",

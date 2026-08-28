@@ -12,7 +12,7 @@ use conduit_kernel::{
         SchedulerStatus,
     },
 };
-use conduit_std_catalog::{NormalizedNoteEvidence, SelectedSoundRealization};
+use conduit_semantic_catalog::{NormalizedNoteEvidence, SelectedSoundRealization};
 
 use crate::{
     machine::{Opl2Base, Opl2Pitch},
@@ -478,7 +478,7 @@ fn validate_prepared(prepared: &PreparedOpl2Play) -> Result<(), PreparationError
     if fragment.placements.len() != 3
         || fragment.connections.len() != 2
         || !fragment.placements.iter().any(|placement| {
-            placement.kind_id.as_str() == conduit_std_catalog::MUSIC_PLAY_KIND
+            placement.kind_id.as_str() == conduit_semantic_catalog::MUSIC_PLAY_KIND
                 && placement.implementation_id.as_str() == crate::opl2_offer::OPL2_IMPLEMENTATION
         })
         || prepared.active_play.plan_id != prepared.plan.plan_id

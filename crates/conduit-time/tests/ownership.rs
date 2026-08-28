@@ -7,17 +7,17 @@ fn portable_time_meaning_has_one_host_neutral_owner() {
         .split_once("[dependencies]")
         .expect("time owner declares dependencies")
         .1;
-    for forbidden in ["conduit-std-catalog", "conduit-std-host", "hosts/"] {
+    for forbidden in ["conduit-semantic-catalog", "conduit-std-host", "hosts/"] {
         assert!(!dependencies.contains(forbidden));
     }
 
     let former_tick_owner = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../conduit-std-catalog/src/tick.rs"
+        "/../conduit-semantic-catalog/src/tick.rs"
     );
     let former_every_owner = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../conduit-std-catalog/src/time_every.rs"
+        "/../conduit-semantic-catalog/src/time_every.rs"
     );
     let former_sources = [former_tick_owner, former_every_owner]
         .map(|path| fs::read_to_string(path).expect("read former time semantic owner"));
@@ -49,10 +49,10 @@ fn semantic_consumers_do_not_import_tick_meaning_from_std_inventory() {
     ] {
         let source = fs::read_to_string(workspace.join(relative)).expect("read semantic consumer");
         for forbidden in [
-            "conduit_std_catalog::TICK_VALUE_KIND",
-            "conduit_std_catalog::TICK_ENCODED_LEN",
-            "conduit_std_catalog::encode_tick",
-            "conduit_std_catalog::decode_tick",
+            "conduit_semantic_catalog::TICK_VALUE_KIND",
+            "conduit_semantic_catalog::TICK_ENCODED_LEN",
+            "conduit_semantic_catalog::encode_tick",
+            "conduit_semantic_catalog::decode_tick",
         ] {
             assert!(
                 !source.contains(forbidden),

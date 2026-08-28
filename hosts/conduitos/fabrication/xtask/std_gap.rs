@@ -78,7 +78,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 
 fn build_report() -> Result<StdGapReport, ConduitosError> {
     let inventory = catalog::inventory::derive().map_err(|error| {
-        ConduitosError::refusal("std-catalog-inventory-invalid", error.to_string())
+        ConduitosError::refusal("semantic-catalog-inventory-invalid", error.to_string())
     })?;
     let host = catalog::profiles::conduitos_advertisement()
         .map_err(|error| ConduitosError::refusal("conduitos-profile-invalid", error.to_string()))?;
@@ -156,7 +156,7 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
     Ok(StdGapReport {
         schema: SCHEMA,
         catalog_basis:
-            "conduit_std_catalog::supported_nucleus_contracts()+conduit_std_host::supported_nucleus_offers()",
+            "conduit_semantic_catalog::supported_nucleus_contracts()+conduit_std_host::supported_nucleus_offers()",
         catalog_inventory_schema: catalog::inventory::SCHEMA,
         catalog_digest_algorithm: "sha256-canonical-json",
         catalog_digest: inventory.digest,

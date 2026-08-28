@@ -40,7 +40,9 @@ fn fixed_kernel_selects_false_and_true_with_exact_profile_identity() {
         let placement = prepared.plan.fragments[0]
             .placements
             .iter()
-            .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::STATE_SELECT_KIND)
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::STATE_SELECT_KIND
+            })
             .unwrap();
         assert_eq!(
             placement.implementation_id.as_str(),

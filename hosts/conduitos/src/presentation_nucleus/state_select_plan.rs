@@ -59,7 +59,7 @@ pub fn prepare_state_select(
     validate_sequence(&sequence)?;
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_flow_state_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut catalog)
         .map_err(|_| StateSelectError::Catalog)?;
     for offer in source_and_sink_offers(sequence) {
         catalog

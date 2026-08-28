@@ -16,12 +16,12 @@ pub const GENERALIZED_INPUT_HOST_OPERATION: &str = "conduit.host/generalized-inp
 pub fn generalized_input_std_offers() -> Vec<CapabilityOffer> {
     vec![
         offer(
-            conduit_std_catalog::DETERMINISTIC_GAMEPAD_KIND,
-            conduit_std_catalog::deterministic_gamepad_outputs(),
+            conduit_semantic_catalog::DETERMINISTIC_GAMEPAD_KIND,
+            conduit_semantic_catalog::deterministic_gamepad_outputs(),
         ),
         offer(
-            conduit_std_catalog::DETERMINISTIC_POINTER_TOUCH_KIND,
-            conduit_std_catalog::deterministic_pointer_touch_outputs(),
+            conduit_semantic_catalog::DETERMINISTIC_POINTER_TOUCH_KIND,
+            conduit_semantic_catalog::deterministic_pointer_touch_outputs(),
         ),
     ]
 }
@@ -33,7 +33,7 @@ fn offer(kind: &str, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
         capability_id: CapabilityId::from(format!("std/{kind}@1")),
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::GENERALIZED_INPUT_REVISION,
+            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(GENERALIZED_INPUT_PROFILE),
@@ -69,11 +69,11 @@ mod tests {
         assert_eq!(offers.len(), 2);
         assert_eq!(
             offers[0].outputs,
-            conduit_std_catalog::deterministic_gamepad_outputs()
+            conduit_semantic_catalog::deterministic_gamepad_outputs()
         );
         assert_eq!(
             offers[1].outputs,
-            conduit_std_catalog::deterministic_pointer_touch_outputs()
+            conduit_semantic_catalog::deterministic_pointer_touch_outputs()
         );
         for offer in offers {
             assert_eq!(offer.host_operations.len(), 1);

@@ -1,7 +1,7 @@
 //! Exact validation of native Text Lab loss before portable projection.
 
-use conduit_std_catalog::TextLabLineLossReceipt;
-use conduit_std_catalog::{
+use conduit_semantic_catalog::TextLabLineLossReceipt;
+use conduit_semantic_catalog::{
     exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, TEXT_LAB_RETURN_LINE,
 };
 

@@ -1,4 +1,4 @@
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     compatibility, IncompatibilityReason, PcmCompatibilityProfile, SoundCompatibilityProfile,
     SoundSeam,
 };
@@ -149,8 +149,8 @@ fn build() -> Result<Report, CatalogError> {
         canonical_forms,
         cross_realization_plans,
         recursive_realization: RecursiveRealization {
-            requirement_kind: conduit_std_catalog::MUSIC_PLAY_THROUGH_SYNTH.requirement_kind,
-            stages: conduit_std_catalog::MUSIC_PLAY_THROUGH_SYNTH.stages,
+            requirement_kind: conduit_semantic_catalog::MUSIC_PLAY_THROUGH_SYNTH.requirement_kind,
+            stages: conduit_semantic_catalog::MUSIC_PLAY_THROUGH_SYNTH.stages,
             selection_basis: "ordinary-offers-faces-resources-policy-and-constraints",
             proof_class: ProofClass::DeterministicReference,
             proof_command: "cargo test -p conduit-composite --test sound_realization",
@@ -390,8 +390,8 @@ mod tests {
         assert_eq!(
             report.recursive_realization.stages,
             [
-                conduit_std_catalog::MUSIC_SYNTH_KIND,
-                conduit_std_catalog::AUDIO_PLAY_KIND
+                conduit_semantic_catalog::MUSIC_SYNTH_KIND,
+                conduit_semantic_catalog::AUDIO_PLAY_KIND
             ]
         );
         assert!(matches!(

@@ -42,7 +42,7 @@ pub use patchbay::*;
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
 };
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const LOGIC_COMPARE_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-compare-scalar@1";
 pub const LOGIC_NOT_IMPLEMENTATION: &str = "std/kernel-logic-not@1";
@@ -56,8 +56,8 @@ pub const MATH_DEADBAND_HOST_OPERATION: &str = "conduit.host/math-deadband-scala
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_std_catalog::logic_compare_scalar_contract(),
-        conduit_std_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::logic_compare_scalar_contract(),
+        conduit_semantic_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
         "logic-compare-scalar-v1",
         "conduit.std/logic-compare-scalar-kernel@1",
         LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
@@ -68,8 +68,8 @@ pub fn logic_compare_scalar_offer() -> CapabilityOffer {
 
 pub fn logic_not_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_std_catalog::logic_not_contract(),
-        conduit_std_catalog::LOGIC_NOT_CONTRACT_REVISION,
+        conduit_semantic_catalog::logic_not_contract(),
+        conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION,
         "logic-not-v1",
         "conduit.std/logic-not-kernel@1",
         LOGIC_NOT_IMPLEMENTATION,
@@ -80,8 +80,8 @@ pub fn logic_not_offer() -> CapabilityOffer {
 
 pub fn logic_select_scalar_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_std_catalog::logic_select_scalar_contract(),
-        conduit_std_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::logic_select_scalar_contract(),
+        conduit_semantic_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
         "logic-select-scalar-v1",
         "conduit.std/logic-select-scalar-kernel@1",
         LOGIC_SELECT_SCALAR_IMPLEMENTATION,
@@ -92,8 +92,8 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
 
 pub fn math_clamp_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_std_catalog::math_clamp_contract(),
-        conduit_std_catalog::MATH_CLAMP_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_clamp_contract(),
+        conduit_semantic_catalog::MATH_CLAMP_CONTRACT_REVISION,
         "math-clamp-scalar-v1",
         "conduit.std/math-clamp-scalar-kernel@1",
         MATH_CLAMP_IMPLEMENTATION,
@@ -104,8 +104,8 @@ pub fn math_clamp_offer() -> CapabilityOffer {
 
 pub fn math_scale_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_std_catalog::math_scale_contract(),
-        conduit_std_catalog::MATH_SCALE_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_scale_contract(),
+        conduit_semantic_catalog::MATH_SCALE_CONTRACT_REVISION,
         "math-scale-scalar-v1",
         "conduit.std/math-scale-scalar-kernel@1",
         MATH_SCALE_IMPLEMENTATION,
@@ -116,8 +116,8 @@ pub fn math_scale_offer() -> CapabilityOffer {
 
 pub fn math_deadband_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_std_catalog::math_deadband_contract(),
-        conduit_std_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_deadband_contract(),
+        conduit_semantic_catalog::MATH_DEADBAND_CONTRACT_REVISION,
         "math-deadband-scalar-v1",
         "conduit.std/math-deadband-scalar-kernel@1",
         MATH_DEADBAND_IMPLEMENTATION,
@@ -128,7 +128,7 @@ pub fn math_deadband_offer() -> CapabilityOffer {
 
 #[allow(clippy::too_many_arguments)]
 fn functional_offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     execution_profile: &str,
@@ -231,33 +231,33 @@ mod tests {
         for (offer, contract, revision) in [
             (
                 logic_compare_scalar_offer(),
-                conduit_std_catalog::logic_compare_scalar_contract(),
-                conduit_std_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
+                conduit_semantic_catalog::logic_compare_scalar_contract(),
+                conduit_semantic_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
             ),
             (
                 logic_not_offer(),
-                conduit_std_catalog::logic_not_contract(),
-                conduit_std_catalog::LOGIC_NOT_CONTRACT_REVISION,
+                conduit_semantic_catalog::logic_not_contract(),
+                conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION,
             ),
             (
                 logic_select_scalar_offer(),
-                conduit_std_catalog::logic_select_scalar_contract(),
-                conduit_std_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+                conduit_semantic_catalog::logic_select_scalar_contract(),
+                conduit_semantic_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
             ),
             (
                 math_clamp_offer(),
-                conduit_std_catalog::math_clamp_contract(),
-                conduit_std_catalog::MATH_CLAMP_CONTRACT_REVISION,
+                conduit_semantic_catalog::math_clamp_contract(),
+                conduit_semantic_catalog::MATH_CLAMP_CONTRACT_REVISION,
             ),
             (
                 math_scale_offer(),
-                conduit_std_catalog::math_scale_contract(),
-                conduit_std_catalog::MATH_SCALE_CONTRACT_REVISION,
+                conduit_semantic_catalog::math_scale_contract(),
+                conduit_semantic_catalog::MATH_SCALE_CONTRACT_REVISION,
             ),
             (
                 math_deadband_offer(),
-                conduit_std_catalog::math_deadband_contract(),
-                conduit_std_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+                conduit_semantic_catalog::math_deadband_contract(),
+                conduit_semantic_catalog::MATH_DEADBAND_CONTRACT_REVISION,
             ),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn hosted_inventory_matches_every_portable_nucleus_contract_exactly() {
-        let contracts = conduit_std_catalog::supported_nucleus_contracts();
+        let contracts = conduit_semantic_catalog::supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
         assert_eq!(offers.len(), contracts.len());
 
@@ -285,45 +285,57 @@ mod tests {
     #[test]
     fn neutral_sources_contain_no_moved_hosted_offer_identity() {
         for source in [
-            include_str!("../../../../crates/conduit-std-catalog/src/logic.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/math.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/flow_state.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/tick.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/time_every.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/timing.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/audio_render_demand.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/layout.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/presentation_composition.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/graphics.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/tick_presentation.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/presentation_bool.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/text_presentation.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/graphics_presentation.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/text_transform.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/state_count.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/state_toggle.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/input_semantics.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/alife.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/json.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/copy_file.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/structured_values.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/structured_selector.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/keyboard.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/generalized_input_catalog.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/sound.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/music_input.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/structured_music_form.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/robotics.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/recurrence_catalog.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/calendar_proposal_catalog.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/job_catalog.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/reminder_catalog.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/education_catalog.rs"),
-            include_str!("../../../../crates/conduit-std-catalog/src/vision_catalog.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/logic.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/math.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/flow_state.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/tick.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/time_every.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/timing.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/audio_render_demand.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/layout.rs"),
             include_str!(
-                "../../../../crates/conduit-std-catalog/src/robotics_structured_catalog.rs"
+                "../../../../crates/conduit-semantic-catalog/src/presentation_composition.rs"
             ),
-            include_str!("../../../../crates/conduit-std-catalog/src/patchbay_presentation.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/graphics.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/tick_presentation.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/presentation_bool.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/text_presentation.rs"),
+            include_str!(
+                "../../../../crates/conduit-semantic-catalog/src/graphics_presentation.rs"
+            ),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/text_transform.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/state_count.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/state_toggle.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/input_semantics.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/alife.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/json.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/copy_file.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/structured_values.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/structured_selector.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/keyboard.rs"),
+            include_str!(
+                "../../../../crates/conduit-semantic-catalog/src/generalized_input_catalog.rs"
+            ),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/sound.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/music_input.rs"),
+            include_str!(
+                "../../../../crates/conduit-semantic-catalog/src/structured_music_form.rs"
+            ),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/robotics.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/recurrence_catalog.rs"),
+            include_str!(
+                "../../../../crates/conduit-semantic-catalog/src/calendar_proposal_catalog.rs"
+            ),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/job_catalog.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/reminder_catalog.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/education_catalog.rs"),
+            include_str!("../../../../crates/conduit-semantic-catalog/src/vision_catalog.rs"),
+            include_str!(
+                "../../../../crates/conduit-semantic-catalog/src/robotics_structured_catalog.rs"
+            ),
+            include_str!(
+                "../../../../crates/conduit-semantic-catalog/src/patchbay_presentation.rs"
+            ),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -419,7 +431,7 @@ mod tests {
             }
         }
         assert!(
-            !include_str!("../../../../crates/conduit-std-catalog/src/state_count.rs")
+            !include_str!("../../../../crates/conduit-semantic-catalog/src/state_count.rs")
                 .contains("pub fn count_presentation_offer")
         );
     }

@@ -180,7 +180,7 @@ impl NativeControl {
         let plan = if expanded
             .gears
             .iter()
-            .any(|gear| gear.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND)
+            .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
         {
             let hosts = [self.advertisement.clone()];
             let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
@@ -196,7 +196,7 @@ impl NativeControl {
                     connection_bases: &BTreeMap::new(),
                     line_candidates: &BTreeMap::new(),
                     connection_item_capacity: 1,
-                    connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+                    connection_byte_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES,
                     authority_grants: &[],
                     protected_resource_grants: &[],
                     line_offers: &[],
@@ -440,7 +440,8 @@ impl NativeControl {
     pub fn presented_text(&self) -> Option<String> {
         let output = std::str::from_utf8(self.presentation.as_deref()?).ok()?;
         let mut presented = String::with_capacity(
-            conduit_std_catalog::MAX_TEXT_VALUES as usize * conduit_text::MAX_TEXT_BYTES as usize,
+            conduit_semantic_catalog::MAX_TEXT_VALUES as usize
+                * conduit_text::MAX_TEXT_BYTES as usize,
         );
         let mut decoded = Vec::with_capacity(conduit_text::MAX_TEXT_BYTES as usize);
         let mut found = false;

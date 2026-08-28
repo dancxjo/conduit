@@ -17,7 +17,7 @@ default = []
 form-catalog = ["dep:conduit-form", "dep:conduit-web"]
 
 [dev-dependencies]
-conduit-std-catalog = { path = "../conduit-std-catalog", features = ["form-catalog"] }
+conduit-semantic-catalog = { path = "../conduit-semantic-catalog", features = ["form-catalog"] }
 conduit-form = { path = "../conduit-form" }
 conduit-kernel = { path = "../conduit-kernel", features = ["alloc"] }
 conduit-planner = { path = "../conduit-planner" }

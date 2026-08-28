@@ -1,7 +1,7 @@
 //! Hosted std realizations of portable layout and scene-composition contracts.
 
 use conduit_core::{CapabilityOffer, HostOperationContractId, HostOperationRequirement};
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
 
 pub const LAYOUT_HOST_OPERATION: &str = "conduit.host/layout-frame-transform@1";
 pub const LAYOUT_VIEWPORT_IMPLEMENTATION: &str = "std/layout/viewport-implementation@1";
@@ -21,69 +21,69 @@ pub const GRAPHICS_ICON_IMPLEMENTATION: &str = "std/graphics/icon-implementation
 pub const GRAPHICS_HOST_OPERATION: &str = "conduit.host/graphics-scene-transform@1";
 
 pub fn layout_viewport_offer() -> CapabilityOffer {
-    layout_offer(conduit_std_catalog::layout_viewport_contract())
+    layout_offer(conduit_semantic_catalog::layout_viewport_contract())
 }
 pub fn layout_inset_offer() -> CapabilityOffer {
-    layout_offer(conduit_std_catalog::layout_inset_contract())
+    layout_offer(conduit_semantic_catalog::layout_inset_contract())
 }
 pub fn layout_row_offer() -> CapabilityOffer {
-    layout_offer(conduit_std_catalog::layout_row_contract())
+    layout_offer(conduit_semantic_catalog::layout_row_contract())
 }
 pub fn layout_column_offer() -> CapabilityOffer {
-    layout_offer(conduit_std_catalog::layout_column_contract())
+    layout_offer(conduit_semantic_catalog::layout_column_contract())
 }
 pub fn layout_stack_offer() -> CapabilityOffer {
-    layout_offer(conduit_std_catalog::layout_stack_contract())
+    layout_offer(conduit_semantic_catalog::layout_stack_contract())
 }
 pub fn layout_align_offer() -> CapabilityOffer {
-    layout_offer(conduit_std_catalog::layout_align_contract())
+    layout_offer(conduit_semantic_catalog::layout_align_contract())
 }
 
 pub fn layout_offer_for(kind: &str) -> Option<CapabilityOffer> {
-    conduit_std_catalog::layout_contract_for(kind).map(layout_offer)
+    conduit_semantic_catalog::layout_contract_for(kind).map(layout_offer)
 }
 
 pub fn presentation_icon_offer() -> CapabilityOffer {
-    presentation_composition_offer(conduit_std_catalog::presentation_icon_contract())
+    presentation_composition_offer(conduit_semantic_catalog::presentation_icon_contract())
 }
 pub fn presentation_frame_offer() -> CapabilityOffer {
-    presentation_composition_offer(conduit_std_catalog::presentation_frame_contract())
+    presentation_composition_offer(conduit_semantic_catalog::presentation_frame_contract())
 }
 pub fn presentation_badge_offer() -> CapabilityOffer {
-    presentation_composition_offer(conduit_std_catalog::presentation_badge_contract())
+    presentation_composition_offer(conduit_semantic_catalog::presentation_badge_contract())
 }
 
 pub fn presentation_composition_offer_for(kind: &str) -> Option<CapabilityOffer> {
-    conduit_std_catalog::presentation_composition_contract_for(kind)
+    conduit_semantic_catalog::presentation_composition_contract_for(kind)
         .map(presentation_composition_offer)
 }
 
 pub fn graphics_rect_offer() -> CapabilityOffer {
-    graphics_offer(conduit_std_catalog::graphics_rect_contract())
+    graphics_offer(conduit_semantic_catalog::graphics_rect_contract())
 }
 pub fn graphics_text_offer() -> CapabilityOffer {
-    graphics_offer(conduit_std_catalog::graphics_text_contract())
+    graphics_offer(conduit_semantic_catalog::graphics_text_contract())
 }
 pub fn graphics_icon_offer() -> CapabilityOffer {
-    graphics_offer(conduit_std_catalog::graphics_icon_contract())
+    graphics_offer(conduit_semantic_catalog::graphics_icon_contract())
 }
 
 pub fn graphics_offer_for(kind: &str) -> Option<CapabilityOffer> {
-    conduit_std_catalog::graphics_contract_for(kind).map(graphics_offer)
+    conduit_semantic_catalog::graphics_contract_for(kind).map(graphics_offer)
 }
 
 fn layout_offer(contract: StandardKindContract) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
     let implementation = match kind.as_str() {
-        conduit_std_catalog::LAYOUT_VIEWPORT_KIND => LAYOUT_VIEWPORT_IMPLEMENTATION,
-        conduit_std_catalog::LAYOUT_INSET_KIND => LAYOUT_INSET_IMPLEMENTATION,
-        conduit_std_catalog::LAYOUT_ROW_KIND => LAYOUT_ROW_IMPLEMENTATION,
-        conduit_std_catalog::LAYOUT_COLUMN_KIND => LAYOUT_COLUMN_IMPLEMENTATION,
-        conduit_std_catalog::LAYOUT_STACK_KIND => LAYOUT_STACK_IMPLEMENTATION,
-        conduit_std_catalog::LAYOUT_ALIGN_KIND => LAYOUT_ALIGN_IMPLEMENTATION,
+        conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => LAYOUT_VIEWPORT_IMPLEMENTATION,
+        conduit_semantic_catalog::LAYOUT_INSET_KIND => LAYOUT_INSET_IMPLEMENTATION,
+        conduit_semantic_catalog::LAYOUT_ROW_KIND => LAYOUT_ROW_IMPLEMENTATION,
+        conduit_semantic_catalog::LAYOUT_COLUMN_KIND => LAYOUT_COLUMN_IMPLEMENTATION,
+        conduit_semantic_catalog::LAYOUT_STACK_KIND => LAYOUT_STACK_IMPLEMENTATION,
+        conduit_semantic_catalog::LAYOUT_ALIGN_KIND => LAYOUT_ALIGN_IMPLEMENTATION,
         _ => unreachable!("layout contract mapper admits only layout Kinds"),
     };
-    let operations = if kind == conduit_std_catalog::LAYOUT_VIEWPORT_KIND {
+    let operations = if kind == conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND {
         Vec::new()
     } else {
         vec![operation(
@@ -95,7 +95,7 @@ fn layout_offer(contract: StandardKindContract) -> CapabilityOffer {
     };
     offer(
         contract,
-        conduit_std_catalog::LAYOUT_CONTRACT_REVISION,
+        conduit_semantic_catalog::LAYOUT_CONTRACT_REVISION,
         &format!("std/{kind}-capability@1"),
         "conduit.std/layout-frame-kernel@1",
         implementation,
@@ -107,12 +107,12 @@ fn layout_offer(contract: StandardKindContract) -> CapabilityOffer {
 fn presentation_composition_offer(contract: StandardKindContract) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
     let implementation = match kind.as_str() {
-        conduit_std_catalog::PRESENTATION_ICON_KIND => PRESENTATION_ICON_IMPLEMENTATION,
-        conduit_std_catalog::PRESENTATION_FRAME_KIND => PRESENTATION_FRAME_IMPLEMENTATION,
-        conduit_std_catalog::PRESENTATION_BADGE_KIND => PRESENTATION_BADGE_IMPLEMENTATION,
+        conduit_semantic_catalog::PRESENTATION_ICON_KIND => PRESENTATION_ICON_IMPLEMENTATION,
+        conduit_semantic_catalog::PRESENTATION_FRAME_KIND => PRESENTATION_FRAME_IMPLEMENTATION,
+        conduit_semantic_catalog::PRESENTATION_BADGE_KIND => PRESENTATION_BADGE_IMPLEMENTATION,
         _ => unreachable!("presentation contract mapper admits only composition Kinds"),
     };
-    let operations = if kind == conduit_std_catalog::PRESENTATION_ICON_KIND {
+    let operations = if kind == conduit_semantic_catalog::PRESENTATION_ICON_KIND {
         Vec::new()
     } else {
         vec![operation(
@@ -124,7 +124,7 @@ fn presentation_composition_offer(contract: StandardKindContract) -> CapabilityO
     };
     offer(
         contract,
-        conduit_std_catalog::PRESENTATION_COMPOSITION_CONTRACT_REVISION,
+        conduit_semantic_catalog::PRESENTATION_COMPOSITION_CONTRACT_REVISION,
         &format!("std/{kind}-capability@1"),
         "conduit.std/presentation-composition-kernel@1",
         implementation,
@@ -136,9 +136,9 @@ fn presentation_composition_offer(contract: StandardKindContract) -> CapabilityO
 fn graphics_offer(contract: StandardKindContract) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
     let implementation = match kind.as_str() {
-        conduit_std_catalog::GRAPHICS_RECT_KIND => GRAPHICS_RECT_IMPLEMENTATION,
-        conduit_std_catalog::GRAPHICS_TEXT_KIND => GRAPHICS_TEXT_IMPLEMENTATION,
-        conduit_std_catalog::GRAPHICS_ICON_KIND => GRAPHICS_ICON_IMPLEMENTATION,
+        conduit_semantic_catalog::GRAPHICS_RECT_KIND => GRAPHICS_RECT_IMPLEMENTATION,
+        conduit_semantic_catalog::GRAPHICS_TEXT_KIND => GRAPHICS_TEXT_IMPLEMENTATION,
+        conduit_semantic_catalog::GRAPHICS_ICON_KIND => GRAPHICS_ICON_IMPLEMENTATION,
         _ => unreachable!("graphics contract mapper admits only graphics Kinds"),
     };
     let operations = vec![operation(
@@ -149,7 +149,7 @@ fn graphics_offer(contract: StandardKindContract) -> CapabilityOffer {
     )];
     offer(
         contract,
-        conduit_std_catalog::GRAPHICS_SCENE_CONTRACT_REVISION,
+        conduit_semantic_catalog::GRAPHICS_SCENE_CONTRACT_REVISION,
         &format!("std/{kind}-capability@1"),
         "conduit.std/graphics-scene-kernel@1",
         implementation,

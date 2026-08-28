@@ -115,7 +115,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 pending: false,
                 emitted: false,
             },
-            conduit_std_catalog::TEXT_PRESENTATION_KIND => NucleusOperation::Sink {
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND => NucleusOperation::Sink {
                 maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
@@ -158,7 +158,8 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                     )
                     .map_err(|_| "uppercase output exceeded its planned bound")?,
                 )
-            } else if placement.kind_id.as_str() == conduit_std_catalog::TEXT_PRESENTATION_KIND {
+            } else if placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            {
                 if manifested.replace(input).is_some() {
                     return Err("browser text manifested more than once".into());
                 }

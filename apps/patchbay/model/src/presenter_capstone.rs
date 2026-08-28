@@ -9,7 +9,7 @@ use conduit_form::{
     parse_syntax_document, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
 
-pub use conduit_std_catalog::PATCHBAY_PRESENTATION_KIND;
+pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
 
 const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject > canvas.subject\n}\n";
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,13 +90,16 @@ fn plan(
 fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_presentation_composition_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_presentation_composition_catalogs(
+        &mut startup,
+        &mut profile,
+    )?;
+    conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_std_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }
 
@@ -105,7 +108,7 @@ fn backs(
     profile: &ProfileCatalog,
 ) -> Result<CanonicalBackCatalog, String> {
     let mut backs = CanonicalBackCatalog::new();
-    conduit_std_catalog::install_patchbay_presentation_backs(startup, profile, &mut backs)?;
+    conduit_semantic_catalog::install_patchbay_presentation_backs(startup, profile, &mut backs)?;
     Ok(backs)
 }
 

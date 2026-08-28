@@ -88,7 +88,7 @@ pub fn text_lab_split_snapshot(base: &str) -> Result<RendererSnapshot, String> {
 
 pub fn text_lab_split_loss_snapshot(
     base: &str,
-    receipt: &conduit_std_catalog::TextLabLineLossReceipt,
+    receipt: &conduit_semantic_catalog::TextLabLineLossReceipt,
 ) -> Result<RendererSnapshot, String> {
     text_lab_snapshot(patchbay_model::text_lab_split_loss_explanation(
         base, receipt,

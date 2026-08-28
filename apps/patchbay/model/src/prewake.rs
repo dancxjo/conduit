@@ -329,7 +329,7 @@ impl PrewakeController {
         let plan = if expanded
             .gears
             .iter()
-            .any(|gear| gear.kind_id.as_str() == conduit_std_catalog::KEYBOARD_KIND)
+            .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
         {
             plan_expanded_canonical_with_options(
                 &expanded,
@@ -340,7 +340,7 @@ impl PrewakeController {
                     connection_bases: &BTreeMap::new(),
                     line_candidates: &BTreeMap::new(),
                     connection_item_capacity: 1,
-                    connection_byte_capacity: conduit_std_catalog::KEYBOARD_MAX_QUEUE_BYTES,
+                    connection_byte_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES,
                     authority_grants: &[],
                     protected_resource_grants: &[],
                     line_offers: &[],
@@ -446,13 +446,13 @@ pub fn simulated_advertisements(
 }
 
 fn simulated_keyboard_offer() -> conduit_core::CapabilityOffer {
-    let contract = conduit_std_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_contract();
     conduit_core::CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: "prewake/simulated-keyboard@1".into(),
         kind_id: contract.kind_id,
-        kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: "prewake/simulation@1".into(),
             implementation_id: "prewake/simulated-keyboard@1".into(),

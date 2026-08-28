@@ -32,7 +32,7 @@ fn transform_vectors_match_the_portable_no_std_semantics() {
             gain: Scalar::from_raw_microunits(2_000_000),
         }
         .apply(Scalar::MAX),
-        Err(conduit_std_catalog::MathScalarError::Overflow)
+        Err(conduit_semantic_catalog::MathScalarError::Overflow)
     );
     assert_eq!(
         MathTransform::Deadband {

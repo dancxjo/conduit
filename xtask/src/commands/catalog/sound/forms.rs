@@ -91,12 +91,14 @@ fn checked(
 fn catalog() -> Result<ProfileCatalog, CatalogError> {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_sound_catalogs(&mut startup, &mut catalog).map_err(|error| {
-        CatalogError::new(
-            "sound-catalog-invalid",
-            format!("standard sound catalog failed: {error:?}"),
-        )
-    })?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog).map_err(
+        |error| {
+            CatalogError::new(
+                "sound-catalog-invalid",
+                format!("standard sound catalog failed: {error:?}"),
+            )
+        },
+    )?;
     for (kind, port, info) in [
         (TONE_SOURCE, "tone", conduit_audio::SOUND_TONE_INFO_ID),
         (NOTE_SOURCE, "notes", conduit_audio::MUSIC_NOTE_INFO_ID),

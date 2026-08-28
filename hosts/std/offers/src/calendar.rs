@@ -13,14 +13,14 @@ pub const CALENDAR_PROPOSAL_STD_IMPLEMENTATION: &str = "std/kernel-calendar-prop
 pub const CALENDAR_PROPOSAL_STD_ARTIFACT: &str = "conduit-std-host/calendar-proposal@1";
 
 pub fn recurrence_std_offer() -> CapabilityOffer {
-    let result = conduit_std_catalog::recurrence_result_type();
+    let result = conduit_semantic_catalog::recurrence_result_type();
     offer(
         "time-expand-recurrence",
-        conduit_std_catalog::RECURRENCE_KIND,
-        conduit_std_catalog::RECURRENCE_REVISION,
+        conduit_semantic_catalog::RECURRENCE_KIND,
+        conduit_semantic_catalog::RECURRENCE_REVISION,
         vec![FaceStartupParameter {
             name: "request".into(),
-            value_type: conduit_std_catalog::RECURRENCE_REQUEST_TYPE.into(),
+            value_type: conduit_semantic_catalog::RECURRENCE_REQUEST_TYPE.into(),
             has_default: false,
         }],
         vec![PortDescriptor {
@@ -29,7 +29,7 @@ pub fn recurrence_std_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        conduit_std_catalog::RECURRENCE_MAXIMUM_RESULTS,
+        conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS,
         RECURRENCE_STD_PROFILE,
         RECURRENCE_STD_IMPLEMENTATION,
         RECURRENCE_STD_ARTIFACT,
@@ -37,14 +37,14 @@ pub fn recurrence_std_offer() -> CapabilityOffer {
 }
 
 pub fn calendar_proposal_std_offer() -> CapabilityOffer {
-    let result = conduit_std_catalog::calendar_proposal_result_type();
+    let result = conduit_semantic_catalog::calendar_proposal_result_type();
     offer(
         "calendar-propose-meeting",
-        conduit_std_catalog::CALENDAR_PROPOSAL_KIND,
-        conduit_std_catalog::CALENDAR_PROPOSAL_REVISION,
+        conduit_semantic_catalog::CALENDAR_PROPOSAL_KIND,
+        conduit_semantic_catalog::CALENDAR_PROPOSAL_REVISION,
         vec![FaceStartupParameter {
             name: "request".into(),
-            value_type: conduit_std_catalog::CALENDAR_PROPOSAL_REQUEST_TYPE.into(),
+            value_type: conduit_semantic_catalog::CALENDAR_PROPOSAL_REQUEST_TYPE.into(),
             has_default: false,
         }],
         vec![PortDescriptor {
@@ -53,7 +53,7 @@ pub fn calendar_proposal_std_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        conduit_std_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
+        conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
         CALENDAR_PROPOSAL_STD_PROFILE,
         CALENDAR_PROPOSAL_STD_IMPLEMENTATION,
         CALENDAR_PROPOSAL_STD_ARTIFACT,

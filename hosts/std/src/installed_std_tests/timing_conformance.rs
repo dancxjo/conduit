@@ -44,9 +44,9 @@ fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup_profile = conduit_form::ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut startup_profile)
         .expect("tick startup signature installs");
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut startup_profile)
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut startup_profile)
         .expect("tick presentation signature installs");
-    conduit_std_catalog::install_timing_catalogs(&mut startup, &mut startup_profile)
+    conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut startup_profile)
         .expect("timing startup signatures install");
     startup
         .insert(conduit_form::KindSignature {
@@ -113,22 +113,22 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
         (
             DEBOUNCE_FORM,
             "robot-debounce",
-            conduit_std_catalog::TIME_DEBOUNCE_KIND,
+            conduit_semantic_catalog::TIME_DEBOUNCE_KIND,
         ),
         (
             TIMEOUT_FORM,
             "robot-timeout",
-            conduit_std_catalog::TIME_TIMEOUT_KIND,
+            conduit_semantic_catalog::TIME_TIMEOUT_KIND,
         ),
         (
             DELAY_FORM,
             "ordinary-delay",
-            conduit_std_catalog::TIME_DELAY_KIND,
+            conduit_semantic_catalog::TIME_DELAY_KIND,
         ),
         (
             THROTTLE_FORM,
             "patchbay-refresh-throttle",
-            conduit_std_catalog::TIME_THROTTLE_KIND,
+            conduit_semantic_catalog::TIME_THROTTLE_KIND,
         ),
     ] {
         let mut planned_host = host(id);
@@ -161,7 +161,7 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
             kernel.value_allocation_capacity_before,
             kernel.value_allocation_capacity_after
         );
-        if kind == conduit_std_catalog::TIME_THROTTLE_KIND {
+        if kind == conduit_semantic_catalog::TIME_THROTTLE_KIND {
             assert!(kernel.kernel_sign.iter().any(|event| event.kind
                 == conduit_kernel::KernelEventKind::HostOperationCancellationRequested));
         } else {
@@ -273,7 +273,7 @@ fn simultaneous_input_deadline_order_is_deterministic_and_late_wakes_remain_corr
 
 #[test]
 fn zero_and_maximum_duration_schedules_are_deterministic() {
-    let maximum = conduit_std_catalog::TIME_MAXIMUM_DURATION_MS;
+    let maximum = conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS;
     let zero = TIMEOUT_FORM
         .replace("period-ms = 10", "period-ms = 0")
         .replace("7ms", "0ms");
@@ -297,7 +297,7 @@ fn zero_and_maximum_duration_schedules_are_deterministic() {
 
 #[test]
 fn delay_zero_maximum_and_late_wakes_preserve_exact_ordered_schedule() {
-    let maximum = conduit_std_catalog::TIME_MAXIMUM_DURATION_MS;
+    let maximum = conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS;
     for (source, id, late_by_ms) in [
         (DELAY_FORM.replace("5ms", "0ms"), "zero-duration-delay", 0),
         (

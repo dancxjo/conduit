@@ -169,14 +169,14 @@ fn validate_state_latest(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         InstalledIdentity {
-            kind: conduit_std_catalog::LATEST_KIND,
-            revision: conduit_std_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
+            kind: conduit_semantic_catalog::LATEST_KIND,
+            revision: conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
             profile: conduit_std_offers::STATE_LATEST_SCALAR_EXECUTION_PROFILE,
             implementation: conduit_std_offers::STATE_LATEST_SCALAR_IMPLEMENTATION,
             artifact: conduit_std_offers::STATE_LATEST_SCALAR_ARTIFACT,
         },
-        &conduit_std_catalog::state_latest_scalar_contract().inputs,
-        &conduit_std_catalog::state_latest_scalar_contract().outputs,
+        &conduit_semantic_catalog::state_latest_scalar_contract().inputs,
+        &conduit_semantic_catalog::state_latest_scalar_contract().outputs,
     )
 }
 
@@ -184,14 +184,14 @@ fn validate_flow_tee(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
         InstalledIdentity {
-            kind: conduit_std_catalog::TEE_KIND,
-            revision: conduit_std_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
+            kind: conduit_semantic_catalog::TEE_KIND,
+            revision: conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
             profile: conduit_std_offers::FLOW_TEE_SCALAR_EXECUTION_PROFILE,
             implementation: conduit_std_offers::FLOW_TEE_SCALAR_IMPLEMENTATION,
             artifact: conduit_std_offers::FLOW_TEE_SCALAR_ARTIFACT,
         },
-        &conduit_std_catalog::flow_tee_scalar_contract().inputs,
-        &conduit_std_catalog::flow_tee_scalar_contract().outputs,
+        &conduit_semantic_catalog::flow_tee_scalar_contract().inputs,
+        &conduit_semantic_catalog::flow_tee_scalar_contract().outputs,
     )
 }
 

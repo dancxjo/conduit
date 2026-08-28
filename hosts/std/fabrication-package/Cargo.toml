@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 conduit-host-fabrication = { path = "../../../crates/conduit-host-fabrication" }
-conduit-std-catalog = { path = "../../../crates/conduit-std-catalog" }
+conduit-semantic-catalog = { path = "../../../crates/conduit-semantic-catalog" }
 conduit-std-offers = { path = "../offers" }

@@ -20,48 +20,48 @@ pub const REMINDER_DELIVER_OPERATION: &str = "conduit.host/reminder-delivery@1";
 pub fn job_std_offers() -> Vec<CapabilityOffer> {
     vec![
         workflow_offer(
-            conduit_std_catalog::JOB_FIXTURE_KIND,
-            conduit_std_catalog::JOB_REVISION,
+            conduit_semantic_catalog::JOB_FIXTURE_KIND,
+            conduit_semantic_catalog::JOB_REVISION,
             JOB_PROFILE,
             JOB_ARTIFACT,
             JOB_FIXTURE_OPERATION,
             vec![],
             vec![typed_port(
                 "request",
-                &conduit_std_catalog::job_request_type(),
+                &conduit_semantic_catalog::job_request_type(),
                 PortDirection::Output,
             )],
             None,
             None,
         ),
         workflow_offer(
-            conduit_std_catalog::JOB_RUN_KIND,
-            conduit_std_catalog::JOB_REVISION,
+            conduit_semantic_catalog::JOB_RUN_KIND,
+            conduit_semantic_catalog::JOB_REVISION,
             JOB_PROFILE,
             JOB_ARTIFACT,
             JOB_RUN_OPERATION,
             vec![typed_port(
                 "request",
-                &conduit_std_catalog::job_request_type(),
+                &conduit_semantic_catalog::job_request_type(),
                 PortDirection::Input,
             )],
             vec![typed_port(
                 "lifecycle",
-                &conduit_std_catalog::job_lifecycle_type(),
+                &conduit_semantic_catalog::job_lifecycle_type(),
                 PortDirection::Output,
             )],
             Some(JOB_EXECUTABLE_RESOURCE_CLASS),
-            Some(conduit_std_catalog::JOB_EXECUTABLE_AUTHORITY),
+            Some(conduit_semantic_catalog::JOB_EXECUTABLE_AUTHORITY),
         ),
     ]
 }
 
 pub fn reminder_std_offers() -> Vec<CapabilityOffer> {
-    let reminder = conduit_std_catalog::reminder_occurrence_type();
+    let reminder = conduit_semantic_catalog::reminder_occurrence_type();
     vec![
         workflow_offer(
-            conduit_std_catalog::REMINDER_FIXTURE_KIND,
-            conduit_std_catalog::REMINDER_REVISION,
+            conduit_semantic_catalog::REMINDER_FIXTURE_KIND,
+            conduit_semantic_catalog::REMINDER_REVISION,
             REMINDER_PROFILE,
             REMINDER_ARTIFACT,
             REMINDER_FIXTURE_OPERATION,
@@ -71,15 +71,15 @@ pub fn reminder_std_offers() -> Vec<CapabilityOffer> {
             None,
         ),
         workflow_offer(
-            conduit_std_catalog::REMINDER_DELIVER_KIND,
-            conduit_std_catalog::REMINDER_REVISION,
+            conduit_semantic_catalog::REMINDER_DELIVER_KIND,
+            conduit_semantic_catalog::REMINDER_REVISION,
             REMINDER_PROFILE,
             REMINDER_ARTIFACT,
             REMINDER_DELIVER_OPERATION,
             vec![typed_port("reminder", &reminder, PortDirection::Input)],
             vec![],
             None,
-            Some(conduit_std_catalog::REMINDER_DELIVERY_AUTHORITY),
+            Some(conduit_semantic_catalog::REMINDER_DELIVERY_AUTHORITY),
         ),
     ]
 }

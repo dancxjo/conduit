@@ -59,7 +59,8 @@ fn planned_copy(
         offer_generation: OfferGeneration(1),
     });
     let mut catalog = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_copy_file_catalog(&mut catalog).expect("install copy catalog");
+    conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)
+        .expect("install copy catalog");
     let form = conduit_form::parse(
         "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n",
         &catalog,
@@ -75,7 +76,7 @@ fn planned_copy(
             source_handle.clone(),
             source,
             GearId::from("copy-task/task"),
-            ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
+            ResourceBindingRoleId::from(conduit_semantic_catalog::COPY_SOURCE_ROLE),
             host.advertisement().host_id.clone(),
             host.advertisement().boot_id.clone(),
             CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY),
@@ -90,7 +91,7 @@ fn planned_copy(
             destination_handle.clone(),
             destination,
             GearId::from("copy-task/task"),
-            ResourceBindingRoleId::from(conduit_std_catalog::COPY_DESTINATION_ROLE),
+            ResourceBindingRoleId::from(conduit_semantic_catalog::COPY_DESTINATION_ROLE),
             host.advertisement().host_id.clone(),
             host.advertisement().boot_id.clone(),
             CapabilityId::from(conduit_std_offers::COPY_FILE_CAPABILITY),
@@ -133,7 +134,7 @@ fn create_and_replace_copy_through_bounded_kernel_steps_with_exact_receipt() {
     let directory = TestDirectory::new();
     let source = directory.path("source.bin");
     let destination = directory.path("destination.bin");
-    let bytes = vec![0x5a; conduit_std_catalog::COPY_CHUNK_BYTES as usize + 17];
+    let bytes = vec![0x5a; conduit_semantic_catalog::COPY_CHUNK_BYTES as usize + 17];
     std::fs::write(&source, &bytes).expect("write source fixture");
     let mut copy = planned_copy(
         &source,
@@ -201,7 +202,7 @@ fn assert_success_presentation(receipt: &super::CopyRunReceipt, expected_bytes: 
         .expect("successful copy reaches the planned presentation Gear");
     assert_eq!(
         presented.value_type(),
-        &conduit_std_catalog::copy_result_type()
+        &conduit_semantic_catalog::copy_result_type()
     );
     let StructuredInfoValueShape::Record(fields) = presented.shape() else {
         panic!("copy result is a record");
@@ -354,7 +355,7 @@ fn revoked_handle_identity_cannot_be_reissued_to_revive_an_old_plan() {
         copy.source_handle.clone(),
         &source,
         placement.gear_id.clone(),
-        ResourceBindingRoleId::from(conduit_std_catalog::COPY_SOURCE_ROLE),
+        ResourceBindingRoleId::from(conduit_semantic_catalog::COPY_SOURCE_ROLE),
         placement.host_id.clone(),
         placement.boot_id.clone(),
         placement.capability_id.clone(),
@@ -374,39 +375,39 @@ fn revoked_handle_identity_cannot_be_reissued_to_revive_an_old_plan() {
 fn partial_cancellation_and_cleanup_failure_are_distinct_and_never_commit() {
     let directory = TestDirectory::new();
     let source = directory.path("source.bin");
-    let bytes = vec![9_u8; conduit_std_catalog::COPY_CHUNK_BYTES as usize * 2];
+    let bytes = vec![9_u8; conduit_semantic_catalog::COPY_CHUNK_BYTES as usize * 2];
     std::fs::write(&source, &bytes).unwrap();
 
     for (name, faults, expected) in [
         (
             "partial.bin",
             ExecutionFaults {
-                fail_after_bytes: Some(u64::from(conduit_std_catalog::COPY_CHUNK_BYTES)),
+                fail_after_bytes: Some(u64::from(conduit_semantic_catalog::COPY_CHUNK_BYTES)),
                 ..ExecutionFaults::default()
             },
             CopyResult::Partial {
-                bytes_copied: u64::from(conduit_std_catalog::COPY_CHUNK_BYTES),
+                bytes_copied: u64::from(conduit_semantic_catalog::COPY_CHUNK_BYTES),
             },
         ),
         (
             "cancelled.bin",
             ExecutionFaults {
-                stop_after_bytes: Some(u64::from(conduit_std_catalog::COPY_CHUNK_BYTES)),
+                stop_after_bytes: Some(u64::from(conduit_semantic_catalog::COPY_CHUNK_BYTES)),
                 ..ExecutionFaults::default()
             },
             CopyResult::Cancelled {
-                bytes_copied: u64::from(conduit_std_catalog::COPY_CHUNK_BYTES),
+                bytes_copied: u64::from(conduit_semantic_catalog::COPY_CHUNK_BYTES),
             },
         ),
         (
             "cleanup.bin",
             ExecutionFaults {
-                stop_after_bytes: Some(u64::from(conduit_std_catalog::COPY_CHUNK_BYTES)),
+                stop_after_bytes: Some(u64::from(conduit_semantic_catalog::COPY_CHUNK_BYTES)),
                 cleanup_failure: true,
                 ..ExecutionFaults::default()
             },
             CopyResult::CleanupFailed {
-                bytes_copied: u64::from(conduit_std_catalog::COPY_CHUNK_BYTES),
+                bytes_copied: u64::from(conduit_semantic_catalog::COPY_CHUNK_BYTES),
             },
         ),
     ] {

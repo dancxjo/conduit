@@ -123,7 +123,7 @@ The `check` workflow requires:
   from current supported-nucleus contract and offer truth, with a semantic
   content digest, exact Host build/profile basis, and complete implemented or
   missing classification without capability promotion;
-- no-std checks for the salvage kernel, semantic, wire, and std-catalog contracts;
+- no-std checks for the salvage kernel, semantic, wire, and semantic-catalog contracts;
 - hosted/fixed salvage-kernel protocol, storage, scheduler, pressure, atomic
   join, retained-state/latest, host lifecycle, closure, exact dispatched-request
   cancellation/replacement, completion-before-cancel, and cancellation vectors;

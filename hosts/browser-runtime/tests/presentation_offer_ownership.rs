@@ -3,13 +3,13 @@ use std::{fs, path::Path};
 #[test]
 fn browser_presentation_offer_construction_stays_with_the_browser_host() {
     let former_owner =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/conduit-std-catalog/src");
-    for entry in fs::read_dir(former_owner).expect("read std catalog sources") {
-        let entry = entry.expect("read std catalog entry");
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/conduit-semantic-catalog/src");
+    for entry in fs::read_dir(former_owner).expect("read semantic catalog sources") {
+        let entry = entry.expect("read semantic catalog entry");
         if entry.path().extension().and_then(|value| value.to_str()) != Some("rs") {
             continue;
         }
-        let source = fs::read_to_string(entry.path()).expect("read std catalog source");
+        let source = fs::read_to_string(entry.path()).expect("read semantic catalog source");
         for forbidden in [
             "browser_presentation_nucleus_offers",
             "browser_human_io_offers",
@@ -22,7 +22,7 @@ fn browser_presentation_offer_construction_stays_with_the_browser_host() {
         ] {
             assert!(
                 !source.contains(forbidden),
-                "browser offer ownership returned to std catalog: {forbidden}"
+                "browser offer ownership entered the semantic catalog: {forbidden}"
             );
         }
     }

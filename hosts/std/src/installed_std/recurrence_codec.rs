@@ -20,7 +20,7 @@ pub(super) struct DecodedRecurrence {
 }
 
 pub(super) fn decode(value: &StructuredInfoValue) -> Result<DecodedRecurrence, String> {
-    if value.value_type() != &conduit_std_catalog::recurrence_request_type() {
+    if value.value_type() != &conduit_semantic_catalog::recurrence_request_type() {
         return Err("recurrence request type differs from the installed contract".into());
     }
     let fields = record(value)?;
@@ -225,7 +225,7 @@ fn monotonic(value: &StructuredInfoValue) -> Result<MonotonicInstant, String> {
 }
 
 pub(super) fn occurrence_instant(value: &OccurrenceInstant) -> Result<StructuredInfoValue, String> {
-    let value_type = conduit_std_catalog::recurrence_occurrence_instant_type();
+    let value_type = conduit_semantic_catalog::recurrence_occurrence_instant_type();
     let (tag, payload) = match value {
         OccurrenceInstant::Wall(value) => ("wall", instant_value(value)?),
         OccurrenceInstant::Monotonic(value) => ("monotonic", monotonic_value(value)?),
@@ -276,7 +276,7 @@ pub(super) fn occurrence_instant(value: &OccurrenceInstant) -> Result<Structured
 
 fn instant_value(value: &TemporalInstant) -> Result<StructuredInfoValue, String> {
     StructuredInfoValue::record(
-        conduit_std_catalog::recurrence_instant_type(),
+        conduit_semantic_catalog::recurrence_instant_type(),
         vec![
             value_field("basis", leaf("value/text@1", &value.clock_basis)?),
             value_field("resolution_ticks", count(value.resolution_ticks)?),
@@ -290,7 +290,7 @@ fn instant_value(value: &TemporalInstant) -> Result<StructuredInfoValue, String>
 fn monotonic_value(value: &MonotonicInstant) -> Result<StructuredInfoValue, String> {
     let clock = value.clock();
     StructuredInfoValue::record(
-        conduit_std_catalog::recurrence_monotonic_type(),
+        conduit_semantic_catalog::recurrence_monotonic_type(),
         vec![
             value_field("basis", leaf("value/text@1", clock.basis_id())?),
             value_field("boot", leaf("value/text@1", clock.boot_id().as_str())?),

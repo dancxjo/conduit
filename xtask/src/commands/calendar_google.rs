@@ -163,10 +163,10 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         serde_json::json!({"event_identity": event_identity, "notify_participants": false});
 
     let forms = [
-        single_form("read", conduit_std_catalog::CALENDAR_READ_KIND, &read),
+        single_form("read", conduit_semantic_catalog::CALENDAR_READ_KIND, &read),
         single_form(
             "free_busy",
-            conduit_std_catalog::CALENDAR_FREE_BUSY_KIND,
+            conduit_semantic_catalog::CALENDAR_FREE_BUSY_KIND,
             &free_busy,
         ),
         write_form(&create, &update, &cancel),
@@ -248,7 +248,7 @@ fn plan(
 ) -> Result<conduit_core::PlanFragment, StepError> {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
-    conduit_std_catalog::install_calendar_provider_catalogs(&mut startup, &mut profiles)
+    conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profiles)
         .map_err(|error| StepError::prereq(PROOF_ID, error))?;
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup)
@@ -276,7 +276,7 @@ fn plan(
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+            connection_byte_capacity: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
             authority_grants: &grants,
             protected_resource_grants: &[],
             line_offers: &[],

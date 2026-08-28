@@ -1,5 +1,5 @@
 #[test]
-fn portable_text_owner_has_no_upward_host_or_std_catalog_dependency() {
+fn portable_text_owner_has_no_upward_host_or_semantic_catalog_dependency() {
     let manifest = include_str!("../Cargo.toml");
     let dependencies = manifest
         .split_once("[dependencies]")
@@ -8,7 +8,7 @@ fn portable_text_owner_has_no_upward_host_or_std_catalog_dependency() {
         .split_once("[features]")
         .expect("text owner declares features")
         .0;
-    for forbidden in ["conduit-std-catalog", "conduit-std-host", "hosts/"] {
+    for forbidden in ["conduit-semantic-catalog", "conduit-std-host", "hosts/"] {
         assert!(!dependencies.contains(forbidden));
     }
 }

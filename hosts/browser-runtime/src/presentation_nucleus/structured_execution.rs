@@ -41,12 +41,12 @@ type StructuredScheduler = FixedScheduler<
 >;
 
 pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
-    let value_type = conduit_std_catalog::education_feedback_type();
-    let default = conduit_std_catalog::education_feedback_example();
+    let value_type = conduit_semantic_catalog::education_feedback_type();
+    let default = conduit_semantic_catalog::education_feedback_example();
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_structured_value_catalogs(
-        conduit_std_catalog::EDUCATION_FEEDBACK_TYPE,
+    conduit_semantic_catalog::install_structured_value_catalogs(
+        conduit_semantic_catalog::EDUCATION_FEEDBACK_TYPE,
         &value_type,
         &default,
         &mut startup,
@@ -62,7 +62,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
         .map_err(|error| format!("expand browser education Form: {error:?}"))?;
 
     let literal = crate::structured_offers::structured_literal_offer(
-        conduit_std_catalog::EDUCATION_FEEDBACK_TYPE,
+        conduit_semantic_catalog::EDUCATION_FEEDBACK_TYPE,
         &value_type,
         crate::structured_offers::BrowserOfferIdentity {
             capability: "browser-structured-info/literal@1",
@@ -72,7 +72,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
         },
     );
     let presenter = crate::structured_offers::structured_presentation_offer(
-        conduit_std_catalog::EDUCATION_FEEDBACK_TYPE,
+        conduit_semantic_catalog::EDUCATION_FEEDBACK_TYPE,
         &value_type,
         crate::structured_offers::BrowserOfferIdentity {
             capability: "browser-presentation/structured-info@1",
@@ -158,7 +158,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
     let mut drivers = Vec::with_capacity(NODES);
     for placement in &fragment.placements {
         let operation = match placement.kind_id.as_str() {
-            conduit_std_catalog::STRUCTURED_LITERAL_KIND => {
+            conduit_semantic_catalog::STRUCTURED_LITERAL_KIND => {
                 let encoded = placement
                     .configuration
                     .iter()
@@ -174,7 +174,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
                     emitted: false,
                 }
             }
-            conduit_std_catalog::STRUCTURED_PRESENTATION_KIND => NucleusOperation::Sink {
+            conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND => NucleusOperation::Sink {
                 maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
                 pending: false,
                 complete: false,

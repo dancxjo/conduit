@@ -76,9 +76,10 @@ impl StdHost {
             faults,
         } = context;
         let placement = exact_copy_placement(&fragment)?;
-        let source_binding = protected_binding(placement, conduit_std_catalog::COPY_SOURCE_ROLE)?;
+        let source_binding =
+            protected_binding(placement, conduit_semantic_catalog::COPY_SOURCE_ROLE)?;
         let destination_binding =
-            protected_binding(placement, conduit_std_catalog::COPY_DESTINATION_ROLE)?;
+            protected_binding(placement, conduit_semantic_catalog::COPY_DESTINATION_ROLE)?;
         let source_id = source_binding.handle_id.clone();
         let destination_id = destination_binding.handle_id.clone();
 
@@ -191,11 +192,11 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
     let placement = fragment
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::COPY_FILE_KIND)
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::COPY_FILE_KIND)
         .ok_or_else(|| "copy Plan has no copy placement".to_string())?;
-    if placement.kind_id.as_str() != conduit_std_catalog::COPY_FILE_KIND
+    if placement.kind_id.as_str() != conduit_semantic_catalog::COPY_FILE_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::COPY_FILE_CONTRACT_REVISION
+            != conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::COPY_FILE_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_std_offers::COPY_FILE_IMPLEMENTATION
@@ -282,7 +283,7 @@ fn resolve_entry<'a>(
         || grant.host_id != placement.host_id
         || grant.boot_id != placement.boot_id
         || grant.capability_id != placement.capability_id
-        || grant.class_id.as_str() != conduit_std_catalog::PROTECTED_FILE_RESOURCE_CLASS
+        || grant.class_id.as_str() != conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS
         || grant.access != binding.access
         || grant.maximum_bytes != binding.maximum_bytes
         || grant.commit_policy != binding.commit_policy
@@ -290,9 +291,9 @@ fn resolve_entry<'a>(
         return Err(CopyResult::StaleHandle);
     }
     if entry.availability == ProtectedFileAvailability::Denied
-        || (binding.role_id.as_str() == conduit_std_catalog::COPY_SOURCE_ROLE
+        || (binding.role_id.as_str() == conduit_semantic_catalog::COPY_SOURCE_ROLE
             && binding.access != ProtectedResourceAccess::ReadExisting)
-        || (binding.role_id.as_str() == conduit_std_catalog::COPY_DESTINATION_ROLE
+        || (binding.role_id.as_str() == conduit_semantic_catalog::COPY_DESTINATION_ROLE
             && !matches!(
                 binding.access,
                 ProtectedResourceAccess::Create | ProtectedResourceAccess::Replace
@@ -453,7 +454,7 @@ fn execute_copy(
     } else {
         let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&presented_encoded)
             .map_err(|error| format!("decode copy presentation: {error:?}"))?;
-        if value.value_type() != &conduit_std_catalog::copy_result_type() {
+        if value.value_type() != &conduit_semantic_catalog::copy_result_type() {
             return Err("copy presentation has the wrong exact type".into());
         }
         Some(value)

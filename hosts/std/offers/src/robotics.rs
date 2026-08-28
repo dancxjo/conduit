@@ -1,5 +1,5 @@
 use conduit_core::CapabilityOffer;
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
 
 pub const ROBOTICS_EXECUTION_PROFILE: &str = "conduit.std/robotics-prewake-sim-kernel@1";
 pub const ROBOTICS_ARTIFACT: &str = "conduit-std-host/robotics-prewake-sim@1";
@@ -18,8 +18,8 @@ pub const ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION: &str =
 
 pub fn robotics_observe_bump_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_observe_bump_contract(),
-        conduit_std_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+        conduit_semantic_catalog::robotics_observe_bump_contract(),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
         "observe-bump",
         ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION,
     )
@@ -27,8 +27,8 @@ pub fn robotics_observe_bump_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_imu_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_observe_imu_contract(),
-        conduit_std_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
+        conduit_semantic_catalog::robotics_observe_imu_contract(),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
         "observe-imu",
         ROBOTICS_OBSERVE_IMU_IMPLEMENTATION,
     )
@@ -36,8 +36,8 @@ pub fn robotics_observe_imu_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_range_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_observe_range_contract(),
-        conduit_std_catalog::ROBOTICS_OBSERVE_RANGE_REVISION,
+        conduit_semantic_catalog::robotics_observe_range_contract(),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_REVISION,
         "observe-range",
         ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION,
     )
@@ -45,8 +45,8 @@ pub fn robotics_observe_range_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_odometry_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_observe_odometry_contract(),
-        conduit_std_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
+        conduit_semantic_catalog::robotics_observe_odometry_contract(),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
         "observe-odometry",
         ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION,
     )
@@ -54,8 +54,8 @@ pub fn robotics_observe_odometry_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_battery_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_observe_battery_contract(),
-        conduit_std_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
+        conduit_semantic_catalog::robotics_observe_battery_contract(),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
         "observe-battery",
         ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION,
     )
@@ -63,8 +63,8 @@ pub fn robotics_observe_battery_offer() -> CapabilityOffer {
 
 pub fn robotics_velocity_intent_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_velocity_intent_contract(),
-        conduit_std_catalog::ROBOTICS_VELOCITY_INTENT_REVISION,
+        conduit_semantic_catalog::robotics_velocity_intent_contract(),
+        conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_REVISION,
         "velocity-intent",
         ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION,
     )
@@ -72,8 +72,8 @@ pub fn robotics_velocity_intent_offer() -> CapabilityOffer {
 
 pub fn robotics_drive_differential_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::robotics_drive_differential_contract(),
-        conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
+        conduit_semantic_catalog::robotics_drive_differential_contract(),
+        conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
         "drive-differential",
         ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION,
     )

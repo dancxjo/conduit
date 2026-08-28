@@ -9,7 +9,7 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     install_education_catalogs, install_structured_music_form_catalogs, instrument_mapping_type,
     EDUCATION_RHYTHM_FEEDBACK_KIND, INSTRUMENT_MAP_KIND,
 };
@@ -41,7 +41,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
         .expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_id.as_str() == conduit_std_catalog::RHYTHM_COMPARE_KIND));
+        .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::RHYTHM_COMPARE_KIND));
     assert!(authored
         .expanded
         .gears
@@ -70,7 +70,9 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
     let comparison = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_std_catalog::RHYTHM_COMPARE_KIND)
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::RHYTHM_COMPARE_KIND
+        })
         .unwrap();
     assert_eq!(
         comparison.implementation_id.as_str(),
@@ -116,7 +118,7 @@ fn lesson_types_and_configuration_refuse_before_any_runtime_exists() {
         expand_canonical_form_for_authoring(&checked, "rhythm-lesson", &profile).unwrap_err();
     assert!(error.to_string().contains("tolerance-micros"));
 
-    let feedback = conduit_std_catalog::timing_feedback_type();
+    let feedback = conduit_semantic_catalog::timing_feedback_type();
     let conduit_core::StructuredInfoTypeShape::Record { fields, .. } = feedback.shape() else {
         panic!("timing feedback must remain a record")
     };
@@ -236,7 +238,7 @@ fn host() -> HostAdvertisement {
             INSTRUMENT_MAP_PROOF_IMPLEMENTATION,
             vec![FaceStartupParameter {
                 name: "mapping".into(),
-                value_type: conduit_std_catalog::INSTRUMENT_MAPPING_TYPE.into(),
+                value_type: conduit_semantic_catalog::INSTRUMENT_MAPPING_TYPE.into(),
                 has_default: false,
             }],
         )],
@@ -278,7 +280,7 @@ fn proof_offer(
 fn proof_rhythm_offer(profile: &ProfileCatalog) -> CapabilityOffer {
     let mut offer = proof_offer(
         profile,
-        conduit_std_catalog::RHYTHM_COMPARE_KIND,
+        conduit_semantic_catalog::RHYTHM_COMPARE_KIND,
         RHYTHM_COMPARE_PROOF_IMPLEMENTATION,
         vec![
             FaceStartupParameter {

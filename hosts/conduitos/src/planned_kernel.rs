@@ -368,8 +368,9 @@ fn validate_shape(
         || lowered.host_operations.len() != 2
         || lowered.cord_value_slots != 1
         || lowered.cord_value_bytes != 8
-        || fragment.placements[0].kind_id.as_str() != conduit_std_catalog::TICK_KIND
-        || fragment.placements[1].kind_id.as_str() != conduit_std_catalog::TICK_PRESENTATION_KIND
+        || fragment.placements[0].kind_id.as_str() != conduit_semantic_catalog::TICK_KIND
+        || fragment.placements[1].kind_id.as_str()
+            != conduit_semantic_catalog::TICK_PRESENTATION_KIND
         || fragment.placements[0].implementation_id.as_str()
             != crate::offer::TIME_TICK_IMPLEMENTATION
         || fragment.placements[1].implementation_id.as_str()

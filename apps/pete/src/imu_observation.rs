@@ -256,7 +256,7 @@ pub fn validate_mpu6050_plan(
 }
 
 fn mpu6050_offer() -> CapabilityOffer {
-    let contract = conduit_std_catalog::robotics_observe_imu_contract();
+    let contract = conduit_semantic_catalog::robotics_observe_imu_contract();
     CapabilityOffer {
         startup_parameters: contract
             .configuration
@@ -276,7 +276,7 @@ fn mpu6050_offer() -> CapabilityOffer {
         capability_id: CapabilityId::from(MPU6050_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(MPU6050_PROFILE),

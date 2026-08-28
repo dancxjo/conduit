@@ -119,7 +119,7 @@ pub(super) fn transform_bytes(
 ) -> Result<([u8; MAX_LAYOUT_FRAME_BYTES], usize), String> {
     let frame =
         LayoutFrame::decode(input).map_err(|error| format!("decode layout frame: {error:?}"))?;
-    let output = conduit_std_catalog::execute_layout_transform(placement, frame)?;
+    let output = conduit_semantic_catalog::execute_layout_transform(placement, frame)?;
     Ok((output.encode(), output.encoded_len()))
 }
 
@@ -129,7 +129,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_items: 1,
         value_bytes: MAX_LAYOUT_FRAME_BYTES as u32,
         host_requests: usize::from(
-            placement.kind_id.as_str() != conduit_std_catalog::LAYOUT_VIEWPORT_KIND,
+            placement.kind_id.as_str() != conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND,
         ),
         sign_items: 64,
         maximum_value_bytes: MAX_LAYOUT_FRAME_BYTES as u32,
@@ -140,8 +140,8 @@ fn prepare(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
-    let source = if placement.kind_id.as_str() == conduit_std_catalog::LAYOUT_VIEWPORT_KIND {
-        let frame = conduit_std_catalog::execute_layout_source(placement)?;
+    let source = if placement.kind_id.as_str() == conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND {
+        let frame = conduit_semantic_catalog::execute_layout_source(placement)?;
         let encoded = frame.encode();
         Some(
             values

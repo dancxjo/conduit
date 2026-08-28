@@ -136,11 +136,11 @@ fn checked_expanded_form() -> Result<conduit_form::ExpandedCanonicalForm, Prepar
     stage(b"syntax");
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
-    conduit_std_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::FormRejected)?;
     stage(b"catalogs");
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
@@ -173,13 +173,13 @@ fn advertisement(
     let mut capabilities = vec![
         crate::functional_offers::tick_offer(),
         crate::presentation_offers::presentation_offer_for(
-            conduit_std_catalog::TICK_PRESENTATION_KIND,
+            conduit_semantic_catalog::TICK_PRESENTATION_KIND,
         )
         .expect("ConduitOS owns tick presentation"),
         crate::functional_offers::text_literal_offer(),
         crate::functional_offers::text_upper_offer(),
         crate::presentation_offers::presentation_offer_for(
-            conduit_std_catalog::TEXT_PRESENTATION_KIND,
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
         )
         .expect("ConduitOS owns text presentation"),
     ];

@@ -42,11 +42,11 @@ pub fn prepare_portable_state_input(
 ) -> Result<PreparedPortableStateInput, PortableStateInputError> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_count_pipeline_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut catalog)
         .map_err(|_| PortableStateInputError::Catalog)?;
-    conduit_std_catalog::install_state_toggle_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_state_toggle_catalogs(&mut startup, &mut catalog)
         .map_err(|_| PortableStateInputError::Catalog)?;
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)
         .map_err(|_| PortableStateInputError::Catalog)?;
     let fixtures = fixture_offers();
     for offer in &fixtures {
@@ -78,7 +78,7 @@ pub fn prepare_portable_state_input(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_std_catalog::COUNT_ENCODED_LEN,
+            connection_byte_capacity: conduit_semantic_catalog::COUNT_ENCODED_LEN,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -133,9 +133,9 @@ fn fixture_offers() -> Vec<CapabilityOffer> {
         ),
         sink_offer(
             COUNT_SINK_KIND,
-            conduit_std_catalog::STATE_COUNT_VALUE_KIND,
+            conduit_semantic_catalog::STATE_COUNT_VALUE_KIND,
             "value",
-            conduit_std_catalog::COUNT_ENCODED_LEN,
+            conduit_semantic_catalog::COUNT_ENCODED_LEN,
             PortTemporal::Current,
         ),
         sink_offer(

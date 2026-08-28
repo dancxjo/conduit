@@ -26,20 +26,20 @@ pub(super) fn parse(
             _ => return Err("timing operation has an invalid configuration field".to_string()),
         }
     }
-    if debounce && policy != Some(conduit_std_catalog::TIME_POLICY_TRAILING) {
+    if debounce && policy != Some(conduit_semantic_catalog::TIME_POLICY_TRAILING) {
         return Err("time/debounce supports only exact trailing policy".to_string());
     }
     let duration_ms = duration_ms.ok_or_else(|| "timing duration is missing".to_string())?;
-    if duration_ms > conduit_std_catalog::TIME_MAXIMUM_DURATION_MS {
+    if duration_ms > conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS {
         return Err("timing duration exceeds the reviewed maximum".to_string());
     }
     let maximum_values = maximum_values
         .and_then(|value| usize::try_from(value).ok())
         .filter(|value| {
             let maximum = if debounce {
-                conduit_std_catalog::TIME_MAXIMUM_VALUES
+                conduit_semantic_catalog::TIME_MAXIMUM_VALUES
             } else {
-                conduit_std_catalog::TIME_TIMEOUT_MAXIMUM_VALUES
+                conduit_semantic_catalog::TIME_TIMEOUT_MAXIMUM_VALUES
             } as usize;
             *value > 0 && *value <= maximum
         })
@@ -73,12 +73,14 @@ pub(super) fn parse_pacing(
         return Err("pacing operation has an unsupported policy".to_string());
     }
     let duration_ms = duration_ms.ok_or_else(|| "pacing duration is missing".to_string())?;
-    if duration_ms > conduit_std_catalog::TIME_MAXIMUM_DURATION_MS {
+    if duration_ms > conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS {
         return Err("pacing duration exceeds the reviewed maximum".to_string());
     }
     let maximum_values = maximum_values
         .and_then(|value| usize::try_from(value).ok())
-        .filter(|value| *value > 0 && *value <= conduit_std_catalog::TIME_MAXIMUM_VALUES as usize)
+        .filter(|value| {
+            *value > 0 && *value <= conduit_semantic_catalog::TIME_MAXIMUM_VALUES as usize
+        })
         .ok_or_else(|| "pacing maximum-values is invalid".to_string())?;
     Ok(TimingConfiguration {
         duration_ms,

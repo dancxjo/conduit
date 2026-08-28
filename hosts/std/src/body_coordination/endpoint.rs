@@ -10,7 +10,7 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_std_catalog::{BodyCoordinationPlan, TEXT_PRESENTATION_KIND};
+use conduit_semantic_catalog::{BodyCoordinationPlan, TEXT_PRESENTATION_KIND};
 use conduit_text::{MAX_TEXT_BYTES, TEXT_LITERAL_KIND};
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 

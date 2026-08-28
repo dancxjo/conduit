@@ -112,7 +112,7 @@ fn live_offer_has_exact_capacity_one_resources_and_motion_authority() {
     assert_eq!(offer.authority_requirements.len(), 1);
     assert_eq!(
         offer.kind_contract_revision.as_str(),
-        conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION
+        conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION
     );
 }
 

@@ -148,9 +148,9 @@ impl HostedRawMidiSelection {
         if self.observation.direct_device_path().is_none() {
             return Err("raw MIDI subdevice has no exact direct device node");
         }
-        let profile = conduit_std_catalog::SoundCompatibilityProfile {
+        let profile = conduit_semantic_catalog::SoundCompatibilityProfile {
             profile_id: conduit_std_offers::MUSIC_INPUT_MIDI_PROFILE.into(),
-            seam: conduit_std_catalog::SoundSeam::MusicalEvents,
+            seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
             minimum_pitch_millihertz: conduit_audio::MINIMUM_PITCH_MILLIHERTZ,
             maximum_pitch_millihertz: conduit_audio::MAXIMUM_PITCH_MILLIHERTZ,
             maximum_polyphony: 128,
@@ -164,7 +164,7 @@ impl HostedRawMidiSelection {
             supports_subtractive_filter: false,
             pcm: None,
         };
-        let mut characteristics = conduit_std_catalog::sound_profile_characteristics(&profile);
+        let mut characteristics = conduit_semantic_catalog::sound_profile_characteristics(&profile);
         characteristics.extend([
             label(MIDI_DIRECTION_CHARACTERISTIC, "readable-source"),
             label(
@@ -233,9 +233,9 @@ impl HostedRawMidiSelection {
         let maximum_pitch =
             conduit_audio::MusicalPitch::from_equal_tempered(58, A4_REFERENCE_MILLIHERTZ, 0)
                 .map_err(|_| "MIDI maximum pitch profile is invalid")?;
-        let profile = conduit_std_catalog::SoundCompatibilityProfile {
+        let profile = conduit_semantic_catalog::SoundCompatibilityProfile {
             profile_id: conduit_std_offers::MUSIC_PLAY_MIDI_PROFILE.into(),
-            seam: conduit_std_catalog::SoundSeam::MusicalEvents,
+            seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
             minimum_pitch_millihertz: minimum_pitch.frequency_millihertz,
             maximum_pitch_millihertz: maximum_pitch.frequency_millihertz,
             maximum_polyphony: 128,
@@ -249,7 +249,7 @@ impl HostedRawMidiSelection {
             supports_subtractive_filter: false,
             pcm: None,
         };
-        let mut characteristics = conduit_std_catalog::sound_profile_characteristics(&profile);
+        let mut characteristics = conduit_semantic_catalog::sound_profile_characteristics(&profile);
         characteristics.extend([
             label(MIDI_DIRECTION_CHARACTERISTIC, "writable-destination"),
             label(
@@ -369,7 +369,7 @@ mod tests {
                     && characteristic.value
                         == conduit_core::CharacteristicValue::UnsignedQuantity {
                             value: 0,
-                            unit: conduit_std_catalog::sound_characteristic_unit(id),
+                            unit: conduit_semantic_catalog::sound_characteristic_unit(id),
                         }
             }));
         }

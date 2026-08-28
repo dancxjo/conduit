@@ -2,7 +2,7 @@ use super::endpoint::CoordinationEndpoint;
 use super::receipt::CoordinationFailure;
 use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_std_catalog::BODY_COORDINATION_MAXIMUM_FRAME_BYTES;
+use conduit_semantic_catalog::BODY_COORDINATION_MAXIMUM_FRAME_BYTES;
 use conduit_text::MAX_TEXT_BYTES;
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionMessage, SessionTerminalDisposition,

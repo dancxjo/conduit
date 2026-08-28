@@ -177,12 +177,12 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(i64, u64), String> {
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
-        value_items: conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS * 3 + 1,
+        value_items: conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS * 3 + 1,
         value_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            * usize::from(conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
+            * usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
             * 3) as u32,
         host_requests: 3,
-        sign_items: conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS.saturating_mul(8),
+        sign_items: conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS.saturating_mul(8),
         maximum_value_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     })
 }

@@ -8,7 +8,7 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::{install_geometry_catalogs, point2_type, rect2_type};
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     deterministic_detect_image, deterministic_vision_fixture, image_resource_type,
     install_vision_catalogs, validate_confidence, vision_detection_type, vision_detections_type,
     vision_keypoint_type, VisionRefusal, MAXIMUM_VISION_DETECTIONS, MAXIMUM_VISION_LANDMARKS,

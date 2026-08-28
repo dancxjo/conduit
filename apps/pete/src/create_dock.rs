@@ -102,7 +102,7 @@ pub fn live_create_dock_advertisement(
             ),
         }
     };
-    let contract = conduit_std_catalog::robotics_dock_contract();
+    let contract = conduit_semantic_catalog::robotics_dock_contract();
     let mut resources = vec![
         resource_offer(&observation.serial_base_id, CREATE_UART_BASE_RESOURCE, 1),
         resource_offer(&observation.robot_identity, CREATE_DEVICE_RESOURCE, 1),
@@ -132,7 +132,7 @@ pub fn live_create_dock_advertisement(
         capability_id: CapabilityId::from(CREATE_DOCK_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::ROBOTICS_DOCK_REVISION,
+            conduit_semantic_catalog::ROBOTICS_DOCK_REVISION,
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(profile),

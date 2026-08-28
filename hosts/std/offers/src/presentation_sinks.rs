@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
     PRESENTATION_RESOURCE_CLASS,
 };
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
 
 pub const TICK_PRESENTATION_EXECUTION_PROFILE: &str =
     "conduit.std/presentation-tick-kernel-hosted@1";
@@ -42,8 +42,8 @@ pub const BITMAP_PRESENTATION_TARGET: &str = "presentation/bitmap-gray8";
 
 pub fn tick_presentation_offer() -> CapabilityOffer {
     presentation_offer(
-        conduit_std_catalog::tick_presentation_contract(),
-        conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::tick_presentation_contract(),
+        conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
         "presentation-tick-v1",
         TICK_PRESENTATION_EXECUTION_PROFILE,
         TICK_PRESENTATION_IMPLEMENTATION,
@@ -55,8 +55,8 @@ pub fn tick_presentation_offer() -> CapabilityOffer {
 
 pub fn bool_presentation_offer() -> CapabilityOffer {
     presentation_offer(
-        conduit_std_catalog::bool_presentation_contract(),
-        conduit_std_catalog::BOOL_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::bool_presentation_contract(),
+        conduit_semantic_catalog::BOOL_PRESENTATION_CONTRACT_REVISION,
         "std-bool-presentation-v1",
         BOOL_PRESENTATION_EXECUTION_PROFILE,
         BOOL_PRESENTATION_IMPLEMENTATION,
@@ -68,8 +68,8 @@ pub fn bool_presentation_offer() -> CapabilityOffer {
 
 pub fn text_presentation_offer() -> CapabilityOffer {
     presentation_offer(
-        conduit_std_catalog::text_presentation_contract(),
-        conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::text_presentation_contract(),
+        conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
         "presentation-text-v1",
         TEXT_PRESENTATION_EXECUTION_PROFILE,
         TEXT_PRESENTATION_IMPLEMENTATION,
@@ -81,21 +81,21 @@ pub fn text_presentation_offer() -> CapabilityOffer {
 
 pub fn count_presentation_offer() -> CapabilityOffer {
     presentation_offer(
-        conduit_std_catalog::count_presentation_contract(),
-        conduit_std_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::count_presentation_contract(),
+        conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
         "presentation-count-v1",
         COUNT_PRESENTATION_EXECUTION_PROFILE,
         COUNT_PRESENTATION_IMPLEMENTATION,
         COUNT_PRESENTATION_ARTIFACT,
         COUNT_PRESENTATION_TARGET,
-        conduit_std_catalog::COUNT_ENCODED_LEN,
+        conduit_semantic_catalog::COUNT_ENCODED_LEN,
     )
 }
 
 pub fn graphics_presentation_offer() -> CapabilityOffer {
     presentation_offer(
-        conduit_std_catalog::graphics_presentation_contract(),
-        conduit_std_catalog::GRAPHICS_PRESENTATION_REVISION,
+        conduit_semantic_catalog::graphics_presentation_contract(),
+        conduit_semantic_catalog::GRAPHICS_PRESENTATION_REVISION,
         "presentation-graphics-v1",
         GRAPHICS_PRESENTATION_EXECUTION_PROFILE,
         GRAPHICS_PRESENTATION_IMPLEMENTATION,
@@ -107,7 +107,7 @@ pub fn graphics_presentation_offer() -> CapabilityOffer {
 
 pub fn bitmap_presentation_offer() -> CapabilityOffer {
     presentation_offer(
-        conduit_std_catalog::bitmap_presentation_contract(),
+        conduit_semantic_catalog::bitmap_presentation_contract(),
         conduit_presentation::BITMAP_PRESENTATION_REVISION,
         "presentation-bitmap-gray8-v1",
         BITMAP_PRESENTATION_EXECUTION_PROFILE,
@@ -156,27 +156,27 @@ mod tests {
         for (offer, contract) in [
             (
                 tick_presentation_offer(),
-                conduit_std_catalog::tick_presentation_contract(),
+                conduit_semantic_catalog::tick_presentation_contract(),
             ),
             (
                 bool_presentation_offer(),
-                conduit_std_catalog::bool_presentation_contract(),
+                conduit_semantic_catalog::bool_presentation_contract(),
             ),
             (
                 text_presentation_offer(),
-                conduit_std_catalog::text_presentation_contract(),
+                conduit_semantic_catalog::text_presentation_contract(),
             ),
             (
                 count_presentation_offer(),
-                conduit_std_catalog::count_presentation_contract(),
+                conduit_semantic_catalog::count_presentation_contract(),
             ),
             (
                 graphics_presentation_offer(),
-                conduit_std_catalog::graphics_presentation_contract(),
+                conduit_semantic_catalog::graphics_presentation_contract(),
             ),
             (
                 bitmap_presentation_offer(),
-                conduit_std_catalog::bitmap_presentation_contract(),
+                conduit_semantic_catalog::bitmap_presentation_contract(),
             ),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);

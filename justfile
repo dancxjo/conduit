@@ -52,10 +52,10 @@ system-continuity:
 system-continuity-thumb-check:
     cargo xtask check workspace-pico
 
-std-catalog:
-    cargo xtask check std-catalog
+semantic-catalog:
+    cargo xtask check semantic-catalog
 
-std-catalog-thumb-check:
+semantic-catalog-thumb-check:
     cargo xtask check workspace-pico
 
 check suite="workspace" *args:
@@ -132,8 +132,8 @@ check-body-readiness:
 check-observatory-readiness:
     cargo xtask check observatory
 
-check-std-catalog-readiness:
-    cargo xtask check std-catalog
+check-semantic-catalog-readiness:
+    cargo xtask check semantic-catalog
 
 check-sim-readiness:
     cargo xtask check sim

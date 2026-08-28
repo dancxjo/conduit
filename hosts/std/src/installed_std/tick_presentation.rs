@@ -79,9 +79,9 @@ fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    if placement.kind_id.as_str() != conduit_std_catalog::TICK_PRESENTATION_KIND
+    if placement.kind_id.as_str() != conduit_semantic_catalog::TICK_PRESENTATION_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::TICK_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::TICK_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()

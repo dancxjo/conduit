@@ -104,8 +104,8 @@ pub(super) fn offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: conduit_std_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
-            max_queue_bytes: conduit_std_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
+            max_queue_items: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
+            max_queue_bytes: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
         },
     }
 }
@@ -153,11 +153,11 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     Ok(OperationBudget {
         value_items: BLOCKS + YIELDS as u16,
-        value_bytes: BLOCKS as u32 * conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
+        value_bytes: BLOCKS as u32 * conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
             + YIELDS as u32,
         host_requests: BLOCKS as usize - 1,
         sign_items: 1_024,
-        maximum_value_bytes: conduit_std_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+        maximum_value_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
     })
 }
 
@@ -167,7 +167,7 @@ fn prepare(
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
     let stored: [Result<ValueRef, String>; BLOCKS as usize] = core::array::from_fn(|index| {
-        let frame_count = conduit_std_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
+        let frame_count = conduit_semantic_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
         let start_frame = index as u64 * u64::from(frame_count);
         let header = PcmFrameHeader::new(
             PcmSampleRepresentation::Signed16LittleEndian,

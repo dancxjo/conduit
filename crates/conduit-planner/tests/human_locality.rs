@@ -24,9 +24,9 @@ const CPU: &str = conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS;
 fn form() -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_std_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_form::parse(
         "form text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key > keymap.key\n keymap.text > uppercase.text\n uppercase.text > presentation.text\n}\n",
         &profile,

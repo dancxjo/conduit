@@ -196,7 +196,7 @@ pub(super) fn transform_bytes(
 ) -> Result<([u8; MAX_PRESENTATION_COMPOSITION_BYTES], usize), String> {
     let value = PresentationComposition::decode(input)
         .map_err(|error| format!("decode presentation composition: {error:?}"))?;
-    let output = conduit_std_catalog::execute_presentation_transform(placement, value)?;
+    let output = conduit_semantic_catalog::execute_presentation_transform(placement, value)?;
     Ok((output.encode(), output.encoded_len()))
 }
 
@@ -205,7 +205,7 @@ pub(super) fn transform_graphics_bytes(
     input: &[u8],
 ) -> Result<([u8; MAX_GRAPHICS_SCENE_BYTES], usize), String> {
     let (composition, scene) =
-        if placement.kind_id.as_str() == conduit_std_catalog::GRAPHICS_RECT_KIND {
+        if placement.kind_id.as_str() == conduit_semantic_catalog::GRAPHICS_RECT_KIND {
             let composition = PresentationComposition::decode(input)
                 .map_err(|error| format!("decode presentation composition: {error:?}"))?;
             (Some(composition), None)
@@ -218,7 +218,8 @@ pub(super) fn transform_graphics_bytes(
                 ),
             )
         };
-    let scene = conduit_std_catalog::execute_graphics_transform(placement, composition, scene)?;
+    let scene =
+        conduit_semantic_catalog::execute_graphics_transform(placement, composition, scene)?;
     Ok((scene.encode(), scene.encoded_len()))
 }
 
@@ -228,7 +229,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_items: 1,
         value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES) as u32,
         host_requests: usize::from(
-            placement.kind_id.as_str() != conduit_std_catalog::PRESENTATION_ICON_KIND,
+            placement.kind_id.as_str() != conduit_semantic_catalog::PRESENTATION_ICON_KIND,
         ),
         sign_items: 32,
         maximum_value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES)
@@ -241,8 +242,8 @@ fn prepare(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement)?;
-    let source = if placement.kind_id.as_str() == conduit_std_catalog::PRESENTATION_ICON_KIND {
-        let value = conduit_std_catalog::execute_presentation_source(placement)?;
+    let source = if placement.kind_id.as_str() == conduit_semantic_catalog::PRESENTATION_ICON_KIND {
+        let value = conduit_semantic_catalog::execute_presentation_source(placement)?;
         let bytes = value.encode();
         Some(
             values

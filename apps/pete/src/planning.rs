@@ -228,7 +228,7 @@ mod tests {
         let placement = &plan.fragments[0].placements[0];
         assert_eq!(
             placement.kind_id.as_str(),
-            conduit_std_catalog::MUSIC_PLAY_KIND
+            conduit_semantic_catalog::MUSIC_PLAY_KIND
         );
         assert_eq!(placement.authority.len(), 1);
         assert_eq!(placement.host_operations.len(), 1);
@@ -237,6 +237,6 @@ mod tests {
             .contains(SPEAKER_CAPABILITY));
         assert!(!serde_json::to_string(&plan)
             .unwrap()
-            .contains(conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND));
+            .contains(conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND));
     }
 }

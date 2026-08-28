@@ -82,7 +82,7 @@ pub fn prepare_bool(
     value: InfoBool,
 ) -> Result<PreparedBoolPresentation, BoolPresentationError> {
     let mut catalog = ProfileCatalog::new();
-    conduit_std_catalog::install_bool_presentation_catalog(&mut catalog)
+    conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)
         .map_err(|_| BoolPresentationError::Catalog)?;
     catalog
         .insert(conduit_form::KindDefinition {
@@ -237,7 +237,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
 fn bool_offer() -> CapabilityOffer {
     super::presentation_nucleus_offers()
         .into_iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND)
         .expect("ConduitOS Boolean presenter is installed")
 }
 
@@ -290,7 +290,8 @@ fn scheduler(
                         .map_err(|_| BoolPresentationError::Value)?,
                     emitted: false,
                 }
-            } else if placement.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND {
+            } else if placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
+            {
                 PresentationOperation::Sink {
                     maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
                     pending: false,
@@ -409,7 +410,7 @@ mod tests {
                 .placements
                 .iter()
                 .find(|placement| {
-                    placement.kind_id.as_str() == conduit_std_catalog::BOOL_PRESENTATION_KIND
+                    placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
                 })
                 .unwrap();
             assert_eq!(

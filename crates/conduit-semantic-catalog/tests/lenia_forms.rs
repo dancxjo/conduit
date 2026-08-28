@@ -10,7 +10,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     install_tick_presentation_catalog, realization_offer, RealizationOfferIdentity,
 };
 use std::collections::BTreeMap;
@@ -34,7 +34,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
 
     let mut capabilities = vec![
         realization_offer(
-            conduit_std_catalog::orbium_seed_contract(),
+            conduit_semantic_catalog::orbium_seed_contract(),
             conduit_alife::ORBIUM_SEED_REVISION,
             RealizationOfferIdentity {
                 capability: "lenia-proof-orbium-seed",
@@ -47,7 +47,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
             Vec::new(),
         ),
         realization_offer(
-            conduit_std_catalog::lenia_step_contract(),
+            conduit_semantic_catalog::lenia_step_contract(),
             conduit_alife::LENIA_STEP_REVISION,
             RealizationOfferIdentity {
                 capability: "lenia-proof-step",
@@ -60,7 +60,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
             Vec::new(),
         ),
         realization_offer(
-            conduit_std_catalog::scalar_field_presentation_contract(),
+            conduit_semantic_catalog::scalar_field_presentation_contract(),
             conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION,
             RealizationOfferIdentity {
                 capability: "lenia-proof-presentation",
@@ -76,10 +76,10 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
             Vec::new(),
         ),
     ];
-    let mut every = conduit_std_catalog::realization_offer(
-        conduit_std_catalog::time_every_contract(),
+    let mut every = conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::time_every_contract(),
         conduit_time::TIME_EVERY_CONTRACT_REVISION,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: "lenia-proof-time-every",
             execution_profile: "proof/lenia-time-every@1",
             implementation: "proof/lenia-time-every@1",

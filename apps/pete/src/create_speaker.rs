@@ -174,7 +174,7 @@ pub fn live_speaker_advertisement(
     if !matches!(observation.mode, OiMode::Safe | OiMode::Full) {
         return Err(SpeakerRefusal::UnsupportedMode);
     }
-    let contract = conduit_std_catalog::music_play_contract();
+    let contract = conduit_semantic_catalog::music_play_contract();
     let mut resources = vec![
         resource_offer(&observation.speaker_resource_id, SPEAKER_RESOURCE, 1),
         resource_offer(
@@ -202,7 +202,7 @@ pub fn live_speaker_advertisement(
             capability_id: CapabilityId::from(SPEAKER_CAPABILITY),
             kind_id: contract.kind_id,
             kind_contract_revision: KindContractRevision::from(
-                conduit_std_catalog::MUSIC_PLAY_REVISION,
+                conduit_semantic_catalog::MUSIC_PLAY_REVISION,
             ),
             implementation: ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from(SPEAKER_PROFILE),
@@ -234,14 +234,14 @@ pub fn live_speaker_advertisement(
     })
 }
 
-pub fn compatibility_profile() -> conduit_std_catalog::SoundCompatibilityProfile {
+pub fn compatibility_profile() -> conduit_semantic_catalog::SoundCompatibilityProfile {
     let minimum = conduit_audio::MusicalPitch::from_equal_tempered(-38, 440_000, 0)
         .expect("Create note 31 is representable");
     let maximum = conduit_audio::MusicalPitch::from_equal_tempered(58, 440_000, 0)
         .expect("Create note 127 is representable");
-    conduit_std_catalog::SoundCompatibilityProfile {
+    conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: SPEAKER_PROFILE.into(),
-        seam: conduit_std_catalog::SoundSeam::MusicalEvents,
+        seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
         minimum_pitch_millihertz: minimum.frequency_millihertz,
         maximum_pitch_millihertz: maximum.frequency_millihertz,
         maximum_polyphony: 1,
@@ -266,7 +266,7 @@ pub fn live_speaker_realization(
         boot_id: host.boot_id,
         offer_generation: host.offer_generation,
         capability_id: CapabilityId::from(SPEAKER_CAPABILITY),
-        characteristics: conduit_std_catalog::sound_profile_characteristics(
+        characteristics: conduit_semantic_catalog::sound_profile_characteristics(
             &compatibility_profile(),
         ),
     })
@@ -376,7 +376,10 @@ mod tests {
             let host = live_speaker_advertisement(&observation(mode)).unwrap();
             assert_eq!(host.capabilities.len(), 1);
             let offer = &host.capabilities[0];
-            assert_eq!(offer.kind_id.as_str(), conduit_std_catalog::MUSIC_PLAY_KIND);
+            assert_eq!(
+                offer.kind_id.as_str(),
+                conduit_semantic_catalog::MUSIC_PLAY_KIND
+            );
             assert_eq!(offer.authority_requirements.len(), 1);
             assert!(offer
                 .resource_requirements
@@ -409,32 +412,32 @@ mod tests {
         let mut required = offered.clone();
         required.maximum_polyphony = 2;
         assert_eq!(
-            conduit_std_catalog::compatibility(&required, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::PolyphonyExceedsOffer)
+            conduit_semantic_catalog::compatibility(&required, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::PolyphonyExceedsOffer)
         );
         required = offered.clone();
         required.preserves_velocity = true;
         assert_eq!(
-            conduit_std_catalog::compatibility(&required, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::VelocityUnsupported)
+            conduit_semantic_catalog::compatibility(&required, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::VelocityUnsupported)
         );
         required = offered.clone();
         required.supports_subtractive_filter = true;
         assert_eq!(
-            conduit_std_catalog::compatibility(&required, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::SubtractiveFilterUnsupported)
+            conduit_semantic_catalog::compatibility(&required, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::SubtractiveFilterUnsupported)
         );
         required = offered.clone();
         required.accepts_microtonal_pitch = true;
         assert_eq!(
-            conduit_std_catalog::compatibility(&required, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::MicrotonalPitchUnsupported)
+            conduit_semantic_catalog::compatibility(&required, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::MicrotonalPitchUnsupported)
         );
         required = offered.clone();
-        required.seam = conduit_std_catalog::SoundSeam::PcmPlayback;
+        required.seam = conduit_semantic_catalog::SoundSeam::PcmPlayback;
         assert_eq!(
-            conduit_std_catalog::compatibility(&required, &offered),
-            Err(conduit_std_catalog::IncompatibilityReason::WrongSemanticSeam)
+            conduit_semantic_catalog::compatibility(&required, &offered),
+            Err(conduit_semantic_catalog::IncompatibilityReason::WrongSemanticSeam)
         );
     }
 }

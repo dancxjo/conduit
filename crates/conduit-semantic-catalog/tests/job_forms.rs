@@ -7,7 +7,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     install_job_catalogs, job_lifecycle_type, job_request_type, JOB_ARGUMENT_SLOTS,
     JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_RUN_KIND,
 };

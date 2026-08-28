@@ -26,9 +26,9 @@ pub struct Inventory {
     pub digest: String,
 }
 
-pub fn catalog_contracts() -> Vec<conduit_std_catalog::StandardKindContract> {
-    let mut contracts = conduit_std_catalog::supported_nucleus_contracts();
-    contracts.extend(conduit_std_catalog::patchbay_presentation_contracts());
+pub fn catalog_contracts() -> Vec<conduit_semantic_catalog::StandardKindContract> {
+    let mut contracts = conduit_semantic_catalog::supported_nucleus_contracts();
+    contracts.extend(conduit_semantic_catalog::patchbay_presentation_contracts());
     contracts
 }
 
@@ -43,7 +43,7 @@ pub fn derive() -> Result<Inventory, CatalogError> {
     let offers = catalog_offers();
     if contracts.len() != offers.len() || contracts.len() > MAXIMUM_ENTRIES {
         return Err(CatalogError::new(
-            "std-catalog-inventory-out-of-bounds",
+            "semantic-catalog-inventory-out-of-bounds",
             format!(
                 "contracts={}, offers={}, maximum={MAXIMUM_ENTRIES}",
                 contracts.len(),
@@ -60,7 +60,7 @@ pub fn derive() -> Result<Inventory, CatalogError> {
             || contract.limits != offer.limits
         {
             return Err(CatalogError::new(
-                "std-catalog-contract-offer-mismatch",
+                "semantic-catalog-contract-offer-mismatch",
                 offer.kind_id.as_str(),
             ));
         }

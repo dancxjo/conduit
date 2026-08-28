@@ -4,7 +4,7 @@ use conduit_core::{
     HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
     PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_std_catalog::{
+use conduit_semantic_catalog::{
     CAMERA_ACQUIRE_KIND, CAMERA_FRAME_KIND, CAMERA_FRAME_SINK_KIND, CAMERA_REQUEST_KIND,
     CAMERA_RESOURCE_CLASS, CAMERA_SOURCE_KIND, MAXIMUM_MEDIA_QUEUE_BYTES,
     MAXIMUM_MEDIA_QUEUE_ITEMS, MAXIMUM_MEDIA_REQUEST_BYTES, MAXIMUM_MEDIA_RESULT_BYTES,

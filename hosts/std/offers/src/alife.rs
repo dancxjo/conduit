@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
     HostOperationContractId, HostOperationRequirement, PRESENTATION_RESOURCE_CLASS,
 };
-use conduit_std_catalog::{realization_offer, RealizationOfferIdentity};
+use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const ORBIUM_SEED_EXECUTION_PROFILE: &str = "conduit.std/orbium-seed-fixed-q16.16@1";
 pub const LENIA_STEP_EXECUTION_PROFILE: &str = "conduit.std/lenia-spatial-fixed-q16.16@1";
@@ -34,7 +34,7 @@ pub fn alife_offers() -> Vec<CapabilityOffer> {
 
 pub fn orbium_seed_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::orbium_seed_contract(),
+        conduit_semantic_catalog::orbium_seed_contract(),
         ORBIUM_SEED_REVISION,
         "std-orbium-seed-v1",
         ORBIUM_SEED_EXECUTION_PROFILE,
@@ -47,7 +47,7 @@ pub fn orbium_seed_offer() -> CapabilityOffer {
 
 pub fn lenia_step_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::lenia_step_contract(),
+        conduit_semantic_catalog::lenia_step_contract(),
         LENIA_STEP_REVISION,
         "std-lenia-step-v1",
         LENIA_STEP_EXECUTION_PROFILE,
@@ -75,7 +75,7 @@ pub fn lenia_step_offer() -> CapabilityOffer {
 
 pub fn scalar_field_presentation_offer() -> CapabilityOffer {
     offer(
-        conduit_std_catalog::scalar_field_presentation_contract(),
+        conduit_semantic_catalog::scalar_field_presentation_contract(),
         SCALAR_FIELD_PRESENTATION_REVISION,
         "std-scalar-field-presentation-v1",
         SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE,
@@ -91,7 +91,7 @@ pub fn scalar_field_presentation_offer() -> CapabilityOffer {
 
 #[allow(clippy::too_many_arguments)]
 fn offer(
-    contract: conduit_std_catalog::StandardKindContract,
+    contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     execution_profile: &str,
@@ -124,15 +124,15 @@ mod tests {
         for (offer, contract) in [
             (
                 orbium_seed_offer(),
-                conduit_std_catalog::orbium_seed_contract(),
+                conduit_semantic_catalog::orbium_seed_contract(),
             ),
             (
                 lenia_step_offer(),
-                conduit_std_catalog::lenia_step_contract(),
+                conduit_semantic_catalog::lenia_step_contract(),
             ),
             (
                 scalar_field_presentation_offer(),
-                conduit_std_catalog::scalar_field_presentation_contract(),
+                conduit_semantic_catalog::scalar_field_presentation_contract(),
             ),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);

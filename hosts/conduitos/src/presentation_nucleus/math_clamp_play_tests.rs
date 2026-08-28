@@ -26,7 +26,7 @@ fn ordinary_clamp_form_handles_below_inside_and_above_boundaries() {
         let placement = prepared.plan.fragments[0]
             .placements
             .iter()
-            .find(|p| p.kind_id.as_str() == conduit_std_catalog::MATH_CLAMP_KIND)
+            .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::MATH_CLAMP_KIND)
             .unwrap();
         assert_eq!(
             placement.implementation_id.as_str(),
@@ -42,16 +42,16 @@ fn invalid_configuration_and_mutated_plan_identity_are_refused() {
     let transform = prepared.plan.fragments[0]
         .placements
         .iter_mut()
-        .find(|p| p.kind_id.as_str() == conduit_std_catalog::MATH_CLAMP_KIND)
+        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::MATH_CLAMP_KIND)
         .unwrap();
     transform.artifact_id = ArtifactId::from("mutated/clamp");
     assert!(!conduit_core::verify_plan(&prepared.plan));
     assert_eq!(
-        conduit_std_catalog::clamp_scalar(
+        conduit_semantic_catalog::clamp_scalar(
             Scalar::ZERO,
             Scalar::from_raw_microunits(1),
             Scalar::from_raw_microunits(-1),
         ),
-        Err(conduit_std_catalog::MathScalarError::InvalidConfiguration)
+        Err(conduit_semantic_catalog::MathScalarError::InvalidConfiguration)
     );
 }

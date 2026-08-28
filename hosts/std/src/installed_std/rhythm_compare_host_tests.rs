@@ -9,10 +9,10 @@ fn host(target: i64, tolerance: u64) -> RhythmCompareHost {
         performance: VecDeque::new(),
         performance_closed: false,
         previous_absolute_delta: None,
-        beat_type_prefix: conduit_std_catalog::beat_reference_type()
+        beat_type_prefix: conduit_semantic_catalog::beat_reference_type()
             .canonical_bytes()
             .unwrap(),
-        feedback_type_prefix: conduit_std_catalog::timing_feedback_type()
+        feedback_type_prefix: conduit_semantic_catalog::timing_feedback_type()
             .canonical_bytes()
             .unwrap(),
         output: Vec::new(),
@@ -35,7 +35,7 @@ fn note(time: u64, gate: Gate) -> Vec<u8> {
 
 fn beat(index: u64, expected: u64) -> Vec<u8> {
     StructuredInfoValue::record(
-        conduit_std_catalog::beat_reference_type(),
+        conduit_semantic_catalog::beat_reference_type(),
         vec![
             value_field("beat", count_leaf(index)),
             value_field("expected_time_micros", count_leaf(expected)),
@@ -191,7 +191,7 @@ fn malformed_identity_and_finite_capacity_refuse_without_output() {
         comparison.execute("conduit.host/wrong@1", &beat(1, 1)),
         Err(RhythmCompareRefusal::WrongOperation)
     );
-    for index in 0..conduit_std_catalog::RHYTHM_MAXIMUM_PENDING_BEATS {
+    for index in 0..conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS {
         assert!(comparison
             .execute(
                 conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,

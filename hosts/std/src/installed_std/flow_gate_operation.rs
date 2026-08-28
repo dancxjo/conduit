@@ -123,7 +123,7 @@ fn maximum_enable_updates(placement: &PlannedGear) -> Result<u32, String> {
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
             ("maximum-enable-updates", ConfigurationValue::U64(value))
-                if (1..=u64::from(conduit_std_catalog::FLOW_STATE_MAXIMUM_VALUES))
+                if (1..=u64::from(conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES))
                     .contains(value) =>
             {
                 u32::try_from(*value).ok()
@@ -163,9 +163,9 @@ fn prepare_flow_gate(
 
 fn validate_flow_gate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_offers::flow_gate_scalar_offer();
-    if placement.kind_id.as_str() != conduit_std_catalog::GATE_KIND
+    if placement.kind_id.as_str() != conduit_semantic_catalog::GATE_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION
+            != conduit_semantic_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::FLOW_GATE_SCALAR_EXECUTION_PROFILE
         || placement.implementation_id.as_str()

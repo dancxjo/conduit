@@ -3,8 +3,8 @@ use crate::{
 };
 use conduit_core::{BootId, HostId, SignId};
 use conduit_presentation::{PresentationDepth, PresentationPlace, PresentationRole};
-use conduit_std_catalog::TextLabLineLossReceipt;
-use conduit_std_catalog::{
+use conduit_semantic_catalog::TextLabLineLossReceipt;
+use conduit_semantic_catalog::{
     exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, TEXT_LAB_RETURN_LINE,
 };
 
@@ -78,7 +78,7 @@ fn unchanged_text_lab_explains_split_program_and_body_without_mixing_domains() {
     assert_eq!(
         explanation.presentation.basis.source_document_id,
         Some(
-            conduit_std_catalog::exact_text_lab_split_plan(
+            conduit_semantic_catalog::exact_text_lab_split_plan(
                 "ws://127.0.0.1:1/conduit",
                 &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
             )

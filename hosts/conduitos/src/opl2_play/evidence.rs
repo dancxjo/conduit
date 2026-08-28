@@ -1,7 +1,7 @@
 //! Bounded normalized evidence derived from the actual OPL provider boundary.
 
 use conduit_core::{CancellationReason, TerminalDisposition};
-use conduit_std_catalog::{NormalizedSoundTrace, RealizedSoundEvidence, SoundEvidenceError};
+use conduit_semantic_catalog::{NormalizedSoundTrace, RealizedSoundEvidence, SoundEvidenceError};
 
 use super::{
     Opl2Base, Opl2PlayReport, PreparationError, PreparedOpl2Execution, PreparedOpl2Play, cancel,

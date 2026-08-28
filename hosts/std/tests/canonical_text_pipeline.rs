@@ -10,7 +10,7 @@ const HELLO_PROGRAM: &str = include_str!("../../../examples/hello.conduit");
 fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .expect("the typed text pipeline catalogs are disjoint");
     let syntax = parse_syntax_document(HELLO_PROGRAM);
     assert_eq!(syntax.round_trip(), HELLO_PROGRAM);
@@ -77,7 +77,7 @@ fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign() {
 fn text_literals_reject_invalid_escape_and_the_exact_byte_bound() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_std_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     let invalid = parse_syntax_document(
         r#"form bad {
     upper: text/upper

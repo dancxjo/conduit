@@ -171,12 +171,12 @@ fn scheduler(
             ) {
                 PresentationOperation::RoboticsDiscard(RoboticsDiscardOperation::new())
             } else if placement.kind_id.as_str()
-                == conduit_std_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
+                == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
             {
                 drive = Some(NodeId(index as u16));
                 PresentationOperation::RoboticsDrive(RoboticsDriveOperation::new())
             } else {
-                let encoded = conduit_std_catalog::robotics_simulation_values(
+                let encoded = conduit_semantic_catalog::robotics_simulation_values(
                     placement.kind_id.as_str(),
                     &placement.configuration,
                 )
@@ -188,7 +188,7 @@ fn scheduler(
                     }
                 }
                 PresentationOperation::RoboticsSource(RoboticsSourceOperation {
-                    availability: conduit_std_catalog::robotics_simulation_availability(
+                    availability: conduit_semantic_catalog::robotics_simulation_availability(
                         &placement.configuration,
                     )
                     .map_err(|_| RoboticsError::Configuration)?,

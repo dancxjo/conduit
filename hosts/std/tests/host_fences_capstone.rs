@@ -468,7 +468,7 @@ fn protected_use_revalidates_the_exact_current_grant() {
     let source_grant = register(
         &mut registry,
         "handle/source",
-        conduit_std_catalog::COPY_SOURCE_ROLE,
+        conduit_semantic_catalog::COPY_SOURCE_ROLE,
         &source,
         ProtectedResourceAccess::ReadExisting,
         ProtectedResourceCommitPolicy::NotApplicable,
@@ -476,7 +476,7 @@ fn protected_use_revalidates_the_exact_current_grant() {
     let destination_grant = register(
         &mut registry,
         "handle/destination",
-        conduit_std_catalog::COPY_DESTINATION_ROLE,
+        conduit_semantic_catalog::COPY_DESTINATION_ROLE,
         &destination,
         ProtectedResourceAccess::Create,
         ProtectedResourceCommitPolicy::CreateOnly,

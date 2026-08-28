@@ -111,8 +111,11 @@ pub fn run_logic_multi(prepared: &PreparedLogicMulti) -> Result<LogicMultiProof,
     }
     let decision = state.decision.ok_or(LogicMultiError::Shape)?;
     let output = state.captured.ok_or(LogicMultiError::Shape)?;
-    let expected =
-        conduit_std_catalog::select_scalar(decision.get(), prepared.when_false, prepared.when_true);
+    let expected = conduit_semantic_catalog::select_scalar(
+        decision.get(),
+        prepared.when_false,
+        prepared.when_true,
+    );
     if output != expected {
         return Err(LogicMultiError::Shape);
     }
@@ -127,7 +130,7 @@ fn service(
     scheduler: &mut Scheduler,
     request: HostOperationRequest,
     state: &mut HostState,
-    comparison: conduit_std_catalog::ScalarComparison,
+    comparison: conduit_semantic_catalog::ScalarComparison,
 ) -> Result<(), LogicMultiError> {
     let bytes = scheduler
         .kernel
@@ -161,7 +164,8 @@ fn service(
         }
         let output = match (state.selector, state.candidates) {
             (Some(selector), [Some(when_false), Some(when_true)]) => Some(
-                conduit_std_catalog::select_scalar(selector.get(), when_false, when_true).encode(),
+                conduit_semantic_catalog::select_scalar(selector.get(), when_false, when_true)
+                    .encode(),
             ),
             _ => None,
         };
@@ -255,7 +259,7 @@ fn scheduler(
                 RIGHT_KIND => source(&mut values, prepared.right)?,
                 FALSE_KIND => source(&mut values, prepared.when_false)?,
                 TRUE_KIND => source(&mut values, prepared.when_true)?,
-                conduit_std_catalog::LOGIC_COMPARE_KIND => {
+                conduit_semantic_catalog::LOGIC_COMPARE_KIND => {
                     compare = Some(NodeId(index as u16));
                     PresentationOperation::LogicInputs {
                         input_count: 2,
@@ -265,7 +269,7 @@ fn scheduler(
                         emitted: false,
                     }
                 }
-                conduit_std_catalog::LOGIC_SELECT_KIND => {
+                conduit_semantic_catalog::LOGIC_SELECT_KIND => {
                     select = Some(NodeId(index as u16));
                     PresentationOperation::LogicInputs {
                         input_count: 3,

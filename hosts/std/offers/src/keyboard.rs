@@ -21,13 +21,13 @@ pub fn next_key_event_host_operation_requirement() -> HostOperationRequirement {
 }
 
 pub fn hosted_keyboard_offer(capability: &str, artifact: &str) -> CapabilityOffer {
-    let contract = conduit_std_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_contract();
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(capability),
         kind_id: contract.kind_id,
-        kind_contract_revision: conduit_std_catalog::keyboard_contract_revision(),
+        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(HOSTED_KEYBOARD_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(HOSTED_KEYBOARD_IMPLEMENTATION),
@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn offer_preserves_portable_face_and_bounded_effect() {
-        let contract = conduit_std_catalog::keyboard_contract();
+        let contract = conduit_semantic_catalog::keyboard_contract();
         let offer = hosted_keyboard_offer("proof-keyboard", "proof/keyboard@1");
         assert_eq!(offer.kind_id, contract.kind_id);
         assert_eq!(offer.outputs, contract.outputs);

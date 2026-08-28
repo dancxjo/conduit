@@ -20,7 +20,7 @@ pub const PC_SPEAKER_PIT_INPUT_HZ: u64 = 1_193_182;
 
 pub fn compatibility_profile(
     realization: PcSpeakerRealization,
-) -> Result<conduit_std_catalog::SoundCompatibilityProfile, PcSpeakerOfferError> {
+) -> Result<conduit_semantic_catalog::SoundCompatibilityProfile, PcSpeakerOfferError> {
     realization.validate()?;
     let clock_millihertz = realization
         .pit_input_hz
@@ -31,9 +31,9 @@ pub fn compatibility_profile(
         .max(conduit_audio::MINIMUM_PITCH_MILLIHERTZ);
     let maximum_pitch_millihertz = (clock_millihertz / u64::from(realization.minimum_divisor))
         .min(conduit_audio::MAXIMUM_PITCH_MILLIHERTZ);
-    Ok(conduit_std_catalog::SoundCompatibilityProfile {
+    Ok(conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: PC_SPEAKER_EXECUTION_PROFILE.into(),
-        seam: conduit_std_catalog::SoundSeam::Tone,
+        seam: conduit_semantic_catalog::SoundSeam::Tone,
         minimum_pitch_millihertz,
         maximum_pitch_millihertz,
         maximum_polyphony: 1,
@@ -135,14 +135,14 @@ pub(crate) fn append_to_advertisement(
     advertisement
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    let contract = conduit_std_catalog::sound_tone_play_contract();
+    let contract = conduit_semantic_catalog::sound_tone_play_contract();
     advertisement.capabilities.push(CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(PC_SPEAKER_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindContractRevision::from(
-            conduit_std_catalog::SOUND_TONE_PLAY_REVISION,
+            conduit_semantic_catalog::SOUND_TONE_PLAY_REVISION,
         ),
         inputs: contract.inputs,
         outputs: contract.outputs,
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn tone_profile_is_derived_from_the_validated_exact_divisor_envelope() {
         let profile = compatibility_profile(realization()).unwrap();
-        assert_eq!(profile.seam, conduit_std_catalog::SoundSeam::Tone);
+        assert_eq!(profile.seam, conduit_semantic_catalog::SoundSeam::Tone);
         assert_eq!(profile.minimum_pitch_millihertz, 18_207);
         assert_eq!(
             profile.maximum_pitch_millihertz,

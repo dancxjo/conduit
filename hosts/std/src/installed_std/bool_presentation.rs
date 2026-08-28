@@ -27,7 +27,7 @@ impl BoolPresentationOperation {
                 port: PortId(0),
                 value,
             } if self.pending.is_none()
-                && u64::from(self.next) < conduit_std_catalog::MAX_TOGGLE_VALUES =>
+                && u64::from(self.next) < conduit_semantic_catalog::MAX_TOGGLE_VALUES =>
             {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
@@ -64,9 +64,9 @@ impl BoolPresentationOperation {
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_offers::bool_presentation_offer();
-    if placement.kind_id.as_str() != conduit_std_catalog::BOOL_PRESENTATION_KIND
+    if placement.kind_id.as_str() != conduit_semantic_catalog::BOOL_PRESENTATION_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::BOOL_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::BOOL_PRESENTATION_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::BOOL_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
@@ -90,7 +90,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
-        host_requests: conduit_std_catalog::MAX_TOGGLE_VALUES as usize,
+        host_requests: conduit_semantic_catalog::MAX_TOGGLE_VALUES as usize,
         sign_items: 64,
         maximum_value_bytes: BOOL_ENCODED_LEN as u32,
     })

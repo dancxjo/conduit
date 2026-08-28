@@ -12,24 +12,24 @@ pub const BROWSER_PRESENTATION_ARTIFACT: &str = "conduit-browser-runtime/present
 
 pub fn offers() -> Vec<CapabilityOffer> {
     [
-        conduit_std_catalog::LAYOUT_VIEWPORT_KIND,
-        conduit_std_catalog::LAYOUT_INSET_KIND,
-        conduit_std_catalog::LAYOUT_ROW_KIND,
-        conduit_std_catalog::LAYOUT_COLUMN_KIND,
-        conduit_std_catalog::LAYOUT_STACK_KIND,
-        conduit_std_catalog::LAYOUT_ALIGN_KIND,
-        conduit_std_catalog::PRESENTATION_ICON_KIND,
-        conduit_std_catalog::PRESENTATION_FRAME_KIND,
-        conduit_std_catalog::PRESENTATION_BADGE_KIND,
-        conduit_std_catalog::TEXT_PRESENTATION_KIND,
-        conduit_std_catalog::GRAPHICS_RECT_KIND,
-        conduit_std_catalog::GRAPHICS_TEXT_KIND,
-        conduit_std_catalog::GRAPHICS_ICON_KIND,
+        conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND,
+        conduit_semantic_catalog::LAYOUT_INSET_KIND,
+        conduit_semantic_catalog::LAYOUT_ROW_KIND,
+        conduit_semantic_catalog::LAYOUT_COLUMN_KIND,
+        conduit_semantic_catalog::LAYOUT_STACK_KIND,
+        conduit_semantic_catalog::LAYOUT_ALIGN_KIND,
+        conduit_semantic_catalog::PRESENTATION_ICON_KIND,
+        conduit_semantic_catalog::PRESENTATION_FRAME_KIND,
+        conduit_semantic_catalog::PRESENTATION_BADGE_KIND,
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::GRAPHICS_RECT_KIND,
+        conduit_semantic_catalog::GRAPHICS_TEXT_KIND,
+        conduit_semantic_catalog::GRAPHICS_ICON_KIND,
     ]
     .into_iter()
     .map(|kind| {
         let mut offer = portable_offer(kind)
-            .or_else(|| (kind == conduit_std_catalog::TEXT_PRESENTATION_KIND).then(text_offer))
+            .or_else(|| (kind == conduit_semantic_catalog::TEXT_PRESENTATION_KIND).then(text_offer))
             .expect("accepted browser presentation Kind has one canonical offer");
         offer.capability_id =
             conduit_core::CapabilityId::from(format!("browser/{kind}-capability@1").as_str());
@@ -44,10 +44,10 @@ pub fn offers() -> Vec<CapabilityOffer> {
 }
 
 pub(super) fn text_offer() -> CapabilityOffer {
-    conduit_std_catalog::realization_offer(
-        conduit_std_catalog::text_presentation_contract(),
-        conduit_std_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
-        conduit_std_catalog::RealizationOfferIdentity {
+    conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::text_presentation_contract(),
+        conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: "browser-text-presentation-v1",
             execution_profile: BROWSER_PRESENTATION_PROFILE,
             implementation: "browser/presentation-text-implementation@1",
@@ -63,43 +63,43 @@ pub(super) fn text_offer() -> CapabilityOffer {
 }
 
 pub(super) fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
-    let (contract, revision, operation) = if let Some(contract) =
-        conduit_std_catalog::layout_contract_for(kind)
-    {
-        let operation = (kind != conduit_std_catalog::LAYOUT_VIEWPORT_KIND).then_some((
-            "conduit.host/layout-frame-transform@1",
-            MAX_LAYOUT_FRAME_BYTES as u32,
-            MAX_LAYOUT_FRAME_BYTES as u32,
-        ));
-        (
-            contract,
-            conduit_std_catalog::LAYOUT_CONTRACT_REVISION,
-            operation,
-        )
-    } else if let Some(contract) = conduit_std_catalog::presentation_composition_contract_for(kind)
-    {
-        let operation = (kind != conduit_std_catalog::PRESENTATION_ICON_KIND).then_some((
-            "conduit.host/presentation-composition-transform@1",
-            MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-            MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-        ));
-        (
-            contract,
-            conduit_std_catalog::PRESENTATION_COMPOSITION_CONTRACT_REVISION,
-            operation,
-        )
-    } else {
-        let contract = conduit_std_catalog::graphics_contract_for(kind)?;
-        (
-            contract,
-            conduit_std_catalog::GRAPHICS_SCENE_CONTRACT_REVISION,
-            Some((
-                "conduit.host/graphics-scene-transform@1",
+    let (contract, revision, operation) =
+        if let Some(contract) = conduit_semantic_catalog::layout_contract_for(kind) {
+            let operation = (kind != conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND).then_some((
+                "conduit.host/layout-frame-transform@1",
+                MAX_LAYOUT_FRAME_BYTES as u32,
+                MAX_LAYOUT_FRAME_BYTES as u32,
+            ));
+            (
+                contract,
+                conduit_semantic_catalog::LAYOUT_CONTRACT_REVISION,
+                operation,
+            )
+        } else if let Some(contract) =
+            conduit_semantic_catalog::presentation_composition_contract_for(kind)
+        {
+            let operation = (kind != conduit_semantic_catalog::PRESENTATION_ICON_KIND).then_some((
+                "conduit.host/presentation-composition-transform@1",
                 MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-                MAX_GRAPHICS_SCENE_BYTES as u32,
-            )),
-        )
-    };
+                MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+            ));
+            (
+                contract,
+                conduit_semantic_catalog::PRESENTATION_COMPOSITION_CONTRACT_REVISION,
+                operation,
+            )
+        } else {
+            let contract = conduit_semantic_catalog::graphics_contract_for(kind)?;
+            (
+                contract,
+                conduit_semantic_catalog::GRAPHICS_SCENE_CONTRACT_REVISION,
+                Some((
+                    "conduit.host/graphics-scene-transform@1",
+                    MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+                    MAX_GRAPHICS_SCENE_BYTES as u32,
+                )),
+            )
+        };
     let host_operations = operation
         .map(|(id, input, output)| HostOperationRequirement {
             contract_id: HostOperationContractId::from(id),
@@ -110,10 +110,10 @@ pub(super) fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
         })
         .into_iter()
         .collect();
-    Some(conduit_std_catalog::realization_offer(
+    Some(conduit_semantic_catalog::realization_offer(
         contract,
         revision,
-        conduit_std_catalog::RealizationOfferIdentity {
+        conduit_semantic_catalog::RealizationOfferIdentity {
             capability: "browser/portable-presentation-face",
             execution_profile: BROWSER_PRESENTATION_PROFILE,
             implementation: "browser/portable-presentation-face@1",

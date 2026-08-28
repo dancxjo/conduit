@@ -446,9 +446,9 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-time",
@@ -468,9 +468,9 @@ dependencies = [
  "conduit-kernel",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-time",
  "conduit-web",
  "libm",
@@ -552,9 +552,9 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-text",
  "conduit-wire",
  "ed25519-dalek",
@@ -582,8 +582,8 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
+ "conduit-semantic-catalog",
  "conduit-signal",
- "conduit-std-catalog",
 ]
 
 [[package]]
@@ -664,7 +664,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-std-offers",
  "serde",
  "serde_json",
@@ -677,7 +677,7 @@ name = "conduit-host-hosted"
 version = "0.1.0"
 dependencies = [
  "conduit-host-fabrication",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-std-offers",
 ]
 
@@ -766,10 +766,10 @@ dependencies = [
  "conduit-observatory",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-ssd1306",
- "conduit-std-catalog",
  "conduit-std-offers",
  "patchbay-model",
  "serde",
@@ -797,9 +797,9 @@ dependencies = [
  "conduit-host-fabrication",
  "conduit-kernel",
  "conduit-plan-lowering",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-std-offers",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -850,36 +850,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-signal"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-form",
- "conduit-std-catalog",
- "conduit-time",
- "serde",
-]
-
-[[package]]
-name = "conduit-signal-conformance"
-version = "0.1.0"
-dependencies = [
- "conduit-bluetooth",
- "conduit-core",
- "conduit-form",
- "conduit-planner",
- "conduit-signal",
- "conduit-std-catalog",
- "conduit-std-offers",
- "conduit-wire",
-]
-
-[[package]]
-name = "conduit-ssd1306"
-version = "0.1.0"
-
-[[package]]
-name = "conduit-std-catalog"
+name = "conduit-semantic-catalog"
 version = "0.1.0"
 dependencies = [
  "conduit-alife",
@@ -894,6 +865,35 @@ dependencies = [
  "conduit-web",
  "serde",
 ]
+
+[[package]]
+name = "conduit-signal"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "serde",
+]
+
+[[package]]
+name = "conduit-signal-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-bluetooth",
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "conduit-semantic-catalog",
+ "conduit-signal",
+ "conduit-std-offers",
+ "conduit-wire",
+]
+
+[[package]]
+name = "conduit-ssd1306"
+version = "0.1.0"
 
 [[package]]
 name = "conduit-std-host"
@@ -921,9 +921,9 @@ dependencies = [
  "conduit-presentation",
  "conduit-r1-network-conformance",
  "conduit-rp2040-network-realization",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-std-offers",
  "conduit-synth",
  "conduit-system-continuity",
@@ -954,7 +954,7 @@ dependencies = [
  "conduit-core",
  "conduit-midi",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-text",
  "conduit-time",
  "conduit-web",
@@ -1012,7 +1012,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-text",
  "serde",
  "serde_json",
@@ -1072,7 +1072,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-synth",
  "conduit-text",
@@ -2581,7 +2581,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-presentation",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-wire",
  "patchbay-hosted",
@@ -2605,9 +2605,9 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-text",
@@ -2631,7 +2631,7 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-r1-network-conformance",
- "conduit-std-catalog",
+ "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-system-continuity",
@@ -4489,9 +4489,9 @@ dependencies = [
  "conduit-presentation",
  "conduit-r1-network-conformance",
  "conduit-rp2040-network-realization",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
- "conduit-std-catalog",
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-synth",

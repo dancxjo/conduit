@@ -106,7 +106,7 @@ impl BoundedHostOperations {
         gain: Scalar,
     ) -> Result<BoundedOutput, BoundedHostOperationError> {
         self.math(input, |value| {
-            conduit_std_catalog::scale_scalar(value, gain)
+            conduit_semantic_catalog::scale_scalar(value, gain)
         })
     }
 
@@ -116,7 +116,7 @@ impl BoundedHostOperations {
         radius: Scalar,
     ) -> Result<BoundedOutput, BoundedHostOperationError> {
         self.math(input, |value| {
-            conduit_std_catalog::deadband_scalar(value, radius)
+            conduit_semantic_catalog::deadband_scalar(value, radius)
         })
     }
 
@@ -149,14 +149,16 @@ impl BoundedHostOperations {
     fn math(
         &self,
         input: &[u8],
-        transform: impl FnOnce(Scalar) -> Result<Scalar, conduit_std_catalog::MathScalarError>,
+        transform: impl FnOnce(Scalar) -> Result<Scalar, conduit_semantic_catalog::MathScalarError>,
     ) -> Result<BoundedOutput, BoundedHostOperationError> {
         let value = Scalar::decode(input).map_err(|_| BoundedHostOperationError::InvalidInput)?;
         let output = transform(value).map_err(|error| match error {
-            conduit_std_catalog::MathScalarError::InvalidConfiguration => {
+            conduit_semantic_catalog::MathScalarError::InvalidConfiguration => {
                 BoundedHostOperationError::InvalidConfiguration
             }
-            conduit_std_catalog::MathScalarError::Overflow => BoundedHostOperationError::Overflow,
+            conduit_semantic_catalog::MathScalarError::Overflow => {
+                BoundedHostOperationError::Overflow
+            }
         })?;
         BoundedOutput::from_slice(&output.encode())
     }

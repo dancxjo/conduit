@@ -6,8 +6,8 @@ use conduit_time::{
 };
 
 pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
-    let value_type = conduit_std_catalog::calendar_proposal_result_type();
-    let value = conduit_std_catalog::record_value(
+    let value_type = conduit_semantic_catalog::calendar_proposal_result_type();
+    let value = conduit_semantic_catalog::record_value(
         value_type.clone(),
         vec![
             (
@@ -34,7 +34,7 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
             ),
             (
                 "identity",
-                conduit_std_catalog::leaf_value("value/text@1", &proposal.identity)?,
+                conduit_semantic_catalog::leaf_value("value/text@1", &proposal.identity)?,
             ),
             ("reference_at", instant(&proposal.reference_at)?),
             (
@@ -47,7 +47,8 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                         .rejected
                         .iter()
                         .map(|rejected| {
-                            let rejected_type = conduit_std_catalog::calendar_rejected_slot_type();
+                            let rejected_type =
+                                conduit_semantic_catalog::calendar_rejected_slot_type();
                             let conflicts = rejected
                                 .conflicts
                                 .iter()
@@ -56,19 +57,19 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                                         record_field_type(&rejected_type, "conflicts")?;
                                     let conflict_type =
                                         collection_payload_type(&conflict_collection, "conflict")?;
-                                    conduit_std_catalog::record_value(
+                                    conduit_semantic_catalog::record_value(
                                         conflict_type,
                                         vec![
                                             (
                                                 "participant_identity",
-                                                conduit_std_catalog::leaf_value(
+                                                conduit_semantic_catalog::leaf_value(
                                                     "value/text@1",
                                                     &conflict.participant_identity,
                                                 )?,
                                             ),
                                             (
                                                 "state",
-                                                conduit_std_catalog::leaf_value(
+                                                conduit_semantic_catalog::leaf_value(
                                                     "calendar/availability-state@1",
                                                     state_name(conflict.state),
                                                 )?,
@@ -77,12 +78,12 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                                     )
                                 })
                                 .collect::<Result<Vec<_>, String>>()?;
-                            conduit_std_catalog::record_value(
+                            conduit_semantic_catalog::record_value(
                                 rejected_type.clone(),
                                 vec![
                                     (
                                         "candidate_identity",
-                                        conduit_std_catalog::leaf_value(
+                                        conduit_semantic_catalog::leaf_value(
                                             "value/text@1",
                                             &rejected.candidate_identity,
                                         )?,
@@ -110,18 +111,18 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
 }
 
 fn proposed_slot(value: &conduit_time::ProposedMeetingSlot) -> Result<StructuredInfoValue, String> {
-    let value_type = conduit_std_catalog::calendar_proposed_slot_type();
-    conduit_std_catalog::record_value(
+    let value_type = conduit_semantic_catalog::calendar_proposed_slot_type();
+    conduit_semantic_catalog::record_value(
         value_type.clone(),
         vec![
             (
                 "candidate_identity",
-                conduit_std_catalog::leaf_value("value/text@1", &value.candidate_identity)?,
+                conduit_semantic_catalog::leaf_value("value/text@1", &value.candidate_identity)?,
             ),
             ("interval", window(&value.interval)?),
             (
                 "rationale",
-                conduit_std_catalog::leaf_value("value/text@1", &value.rationale)?,
+                conduit_semantic_catalog::leaf_value("value/text@1", &value.rationale)?,
             ),
             (
                 "tentative_participants",
@@ -137,8 +138,8 @@ fn proposed_slot(value: &conduit_time::ProposedMeetingSlot) -> Result<Structured
 }
 
 fn window(value: &TemporalWindow) -> Result<StructuredInfoValue, String> {
-    conduit_std_catalog::record_value(
-        conduit_std_catalog::calendar_window_type(),
+    conduit_semantic_catalog::record_value(
+        conduit_semantic_catalog::calendar_window_type(),
         vec![
             ("end", instant(value.end())?),
             ("start", instant(value.start())?),
@@ -147,31 +148,31 @@ fn window(value: &TemporalWindow) -> Result<StructuredInfoValue, String> {
 }
 
 fn instant(value: &TemporalInstant) -> Result<StructuredInfoValue, String> {
-    conduit_std_catalog::record_value(
-        conduit_std_catalog::calendar_instant_type(),
+    conduit_semantic_catalog::record_value(
+        conduit_semantic_catalog::calendar_instant_type(),
         vec![
             (
                 "basis",
-                conduit_std_catalog::leaf_value("value/text@1", &value.clock_basis)?,
+                conduit_semantic_catalog::leaf_value("value/text@1", &value.clock_basis)?,
             ),
             (
                 "resolution_ticks",
-                conduit_std_catalog::leaf_value(
+                conduit_semantic_catalog::leaf_value(
                     "value/count@1",
                     &value.resolution_ticks.to_string(),
                 )?,
             ),
             (
                 "scale",
-                conduit_std_catalog::leaf_value("time/scale@1", scale_name(value.scale))?,
+                conduit_semantic_catalog::leaf_value("time/scale@1", scale_name(value.scale))?,
             ),
             (
                 "ticks",
-                conduit_std_catalog::leaf_value("value/count@1", &value.ticks.to_string())?,
+                conduit_semantic_catalog::leaf_value("value/count@1", &value.ticks.to_string())?,
             ),
             (
                 "uncertainty_ticks",
-                conduit_std_catalog::leaf_value(
+                conduit_semantic_catalog::leaf_value(
                     "value/count@1",
                     &value.uncertainty_ticks.to_string(),
                 )?,
@@ -192,7 +193,7 @@ fn string_slots(
         tag,
         values
             .iter()
-            .map(|value| conduit_std_catalog::leaf_value("value/text@1", value))
+            .map(|value| conduit_semantic_catalog::leaf_value("value/text@1", value))
             .collect::<Result<Vec<_>, _>>()?,
     )
 }
@@ -222,7 +223,7 @@ fn value_slots(
             StructuredInfoValue::variant(
                 element.clone(),
                 "unused",
-                conduit_std_catalog::leaf_value("value/unit@1", "")?,
+                conduit_semantic_catalog::leaf_value("value/unit@1", "")?,
             )
             .map_err(|error| format!("calendar unused slot refusal: {error:?}"))?,
         );

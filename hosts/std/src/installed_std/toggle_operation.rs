@@ -55,8 +55,8 @@ impl StateToggleOperation {
 fn state_toggle_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_toggle(placement)?;
     Ok(OperationBudget {
-        value_items: conduit_std_catalog::MAX_TOGGLE_VALUES as u16,
-        value_bytes: (BOOL_ENCODED_LEN as u64 * conduit_std_catalog::MAX_TOGGLE_VALUES) as u32,
+        value_items: conduit_semantic_catalog::MAX_TOGGLE_VALUES as u16,
+        value_bytes: (BOOL_ENCODED_LEN as u64 * conduit_semantic_catalog::MAX_TOGGLE_VALUES) as u32,
         host_requests: 0,
         sign_items: 96,
         maximum_value_bytes: BOOL_ENCODED_LEN as u32,
@@ -76,9 +76,9 @@ fn prepare_state_toggle(
             _ => None,
         })
         .ok_or_else(|| "state/toggle configuration 'initial' is missing or invalid".to_string())?;
-    let mut admitted = Vec::with_capacity(conduit_std_catalog::MAX_TOGGLE_VALUES as usize);
-    for index in 0..conduit_std_catalog::MAX_TOGGLE_VALUES {
-        let current = conduit_std_catalog::bounded_toggle_value(initial, index)
+    let mut admitted = Vec::with_capacity(conduit_semantic_catalog::MAX_TOGGLE_VALUES as usize);
+    for index in 0..conduit_semantic_catalog::MAX_TOGGLE_VALUES {
+        let current = conduit_semantic_catalog::bounded_toggle_value(initial, index)
             .ok_or_else(|| "state/toggle exceeds its admitted value bound".to_string())?;
         admitted.push(
             values
@@ -102,9 +102,9 @@ fn validate_state_toggle(placement: &PlannedGear) -> Result<(), String> {
             placement.configuration[0].value,
             ConfigurationValue::Bool(_)
         );
-    if placement.kind_id.as_str() != conduit_std_catalog::STATE_TOGGLE_KIND
+    if placement.kind_id.as_str() != conduit_semantic_catalog::STATE_TOGGLE_KIND
         || placement.kind_contract_revision.as_str()
-            != conduit_std_catalog::STATE_TOGGLE_CONTRACT_REVISION
+            != conduit_semantic_catalog::STATE_TOGGLE_CONTRACT_REVISION
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::STATE_TOGGLE_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_std_offers::STATE_TOGGLE_IMPLEMENTATION

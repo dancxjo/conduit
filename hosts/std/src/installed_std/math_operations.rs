@@ -32,13 +32,13 @@ impl MathTransform {
     pub(super) fn apply(
         self,
         input: Scalar,
-    ) -> Result<Scalar, conduit_std_catalog::MathScalarError> {
+    ) -> Result<Scalar, conduit_semantic_catalog::MathScalarError> {
         match self {
             Self::Clamp { minimum, maximum } => {
-                conduit_std_catalog::clamp_scalar(input, minimum, maximum)
+                conduit_semantic_catalog::clamp_scalar(input, minimum, maximum)
             }
-            Self::Scale { gain } => conduit_std_catalog::scale_scalar(input, gain),
-            Self::Deadband { radius } => conduit_std_catalog::deadband_scalar(input, radius),
+            Self::Scale { gain } => conduit_semantic_catalog::scale_scalar(input, gain),
+            Self::Deadband { radius } => conduit_semantic_catalog::deadband_scalar(input, radius),
         }
     }
 }
@@ -109,19 +109,22 @@ impl MathScalarOperation {
 
 pub(super) fn transform_for(placement: &PlannedGear) -> Result<MathTransform, String> {
     match placement.kind_id.as_str() {
-        conduit_std_catalog::MATH_CLAMP_KIND => {
-            let minimum = scalar_configuration(placement, conduit_std_catalog::CLAMP_MINIMUM_KEY)?;
-            let maximum = scalar_configuration(placement, conduit_std_catalog::CLAMP_MAXIMUM_KEY)?;
-            conduit_std_catalog::clamp_scalar(Scalar::ZERO, minimum, maximum)
+        conduit_semantic_catalog::MATH_CLAMP_KIND => {
+            let minimum =
+                scalar_configuration(placement, conduit_semantic_catalog::CLAMP_MINIMUM_KEY)?;
+            let maximum =
+                scalar_configuration(placement, conduit_semantic_catalog::CLAMP_MAXIMUM_KEY)?;
+            conduit_semantic_catalog::clamp_scalar(Scalar::ZERO, minimum, maximum)
                 .map_err(|_| "math/clamp minimum exceeds maximum".to_string())?;
             Ok(MathTransform::Clamp { minimum, maximum })
         }
-        conduit_std_catalog::MATH_SCALE_KIND => Ok(MathTransform::Scale {
-            gain: scalar_configuration(placement, conduit_std_catalog::SCALE_GAIN_KEY)?,
+        conduit_semantic_catalog::MATH_SCALE_KIND => Ok(MathTransform::Scale {
+            gain: scalar_configuration(placement, conduit_semantic_catalog::SCALE_GAIN_KEY)?,
         }),
-        conduit_std_catalog::MATH_DEADBAND_KIND => {
-            let radius = scalar_configuration(placement, conduit_std_catalog::DEADBAND_RADIUS_KEY)?;
-            conduit_std_catalog::deadband_scalar(Scalar::ZERO, radius)
+        conduit_semantic_catalog::MATH_DEADBAND_KIND => {
+            let radius =
+                scalar_configuration(placement, conduit_semantic_catalog::DEADBAND_RADIUS_KEY)?;
+            conduit_semantic_catalog::deadband_scalar(Scalar::ZERO, radius)
                 .map_err(|_| "math/deadband radius must be nonnegative".to_string())?;
             Ok(MathTransform::Deadband { radius })
         }

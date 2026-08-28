@@ -23,36 +23,36 @@ fn specimens() -> [Specimen; 5] {
     [
         Specimen {
             form_name: "geometry-region",
-            type_name: conduit_std_catalog::GEOMETRY_REGION_TYPE,
-            value_type: conduit_std_catalog::geometry_region_type(),
-            default_value: conduit_std_catalog::geometry_region_example(),
+            type_name: conduit_semantic_catalog::GEOMETRY_REGION_TYPE,
+            value_type: conduit_semantic_catalog::geometry_region_type(),
+            default_value: conduit_semantic_catalog::geometry_region_example(),
             literal: "{frame: \"image/content\", height: 480mm, width: 640mm, x: 12mm, y: 24mm}",
             field: "width",
             selected_type: leaf(conduit_core::QUANTITY_INFO_ID),
         },
         Specimen {
             form_name: "robotics-range",
-            type_name: conduit_std_catalog::ROBOTICS_RANGE_TYPE,
-            value_type: conduit_std_catalog::robotics_range_sample_type(),
-            default_value: conduit_std_catalog::robotics_range_sample_example(),
+            type_name: conduit_semantic_catalog::ROBOTICS_RANGE_TYPE,
+            value_type: conduit_semantic_catalog::robotics_range_sample_type(),
+            default_value: conduit_semantic_catalog::robotics_range_sample_example(),
             literal: "{distance: 850mm, frame: \"sensor/forward\", uncertainty: 5mm}",
             field: "distance",
             selected_type: leaf(conduit_core::QUANTITY_INFO_ID),
         },
         Specimen {
             form_name: "language-annotation",
-            type_name: conduit_std_catalog::LANGUAGE_ANNOTATION_TYPE,
-            value_type: conduit_std_catalog::language_annotation_type(),
-            default_value: conduit_std_catalog::language_annotation_example(),
+            type_name: conduit_semantic_catalog::LANGUAGE_ANNOTATION_TYPE,
+            value_type: conduit_semantic_catalog::language_annotation_type(),
+            default_value: conduit_semantic_catalog::language_annotation_example(),
             literal: "{end: 11, label: \"noun-phrase\", start: 0, tokens: [\"bright\", \"star\"]}",
             field: "label",
             selected_type: leaf("value/text@1"),
         },
         Specimen {
             form_name: "message-envelope",
-            type_name: conduit_std_catalog::MESSAGE_ENVELOPE_TYPE,
-            value_type: conduit_std_catalog::message_envelope_type(),
-            default_value: conduit_std_catalog::message_envelope_example(),
+            type_name: conduit_semantic_catalog::MESSAGE_ENVELOPE_TYPE,
+            value_type: conduit_semantic_catalog::message_envelope_type(),
+            default_value: conduit_semantic_catalog::message_envelope_example(),
             literal:
                 "{message_id: \"message/7\", state: delivered(true), subject: \"lesson/feedback\"}",
             field: "subject",
@@ -60,9 +60,9 @@ fn specimens() -> [Specimen; 5] {
         },
         Specimen {
             form_name: "education-feedback",
-            type_name: conduit_std_catalog::EDUCATION_FEEDBACK_TYPE,
-            value_type: conduit_std_catalog::education_feedback_type(),
-            default_value: conduit_std_catalog::education_feedback_example(),
+            type_name: conduit_semantic_catalog::EDUCATION_FEEDBACK_TYPE,
+            value_type: conduit_semantic_catalog::education_feedback_type(),
+            default_value: conduit_semantic_catalog::education_feedback_example(),
             literal: "{outcome: passed(true), prompt_id: \"question/3\", score: 88%}",
             field: "score",
             selected_type: leaf(conduit_core::QUANTITY_INFO_ID),
@@ -76,7 +76,7 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
     for specimen in specimens() {
         let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
-        conduit_std_catalog::install_structured_value_catalogs(
+        conduit_semantic_catalog::install_structured_value_catalogs(
             specimen.type_name,
             &specimen.value_type,
             &specimen.default_value,
@@ -149,7 +149,7 @@ fn structured_literal_proof_offer(
     type_name: &str,
     value_type: &StructuredInfoType,
 ) -> CapabilityOffer {
-    let contract = conduit_std_catalog::structured_literal_contract(type_name, value_type);
+    let contract = conduit_semantic_catalog::structured_literal_contract(type_name, value_type);
     CapabilityOffer {
         startup_parameters: contract.startup_parameters,
         shorthand: None,
@@ -174,7 +174,7 @@ fn structured_selector_proof_offer(
     selector: &conduit_core::StructuredSelector,
     temporal: PortTemporal,
 ) -> CapabilityOffer {
-    let contract = conduit_std_catalog::structured_selector_contract(selector, temporal);
+    let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
     CapabilityOffer {
         startup_parameters: contract.startup_parameters,
         shorthand: contract.shorthand,
