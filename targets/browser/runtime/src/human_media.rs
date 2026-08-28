@@ -2,11 +2,11 @@
 
 use conduit_core::{AuthorityGrantId, HostOperationId, PlanId};
 use conduit_human::{
-    AcquiredMediaResource, MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionPlan,
+    plan_media_acquisition, select_acquired_media, AcquiredMediaResource,
+    MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionPlan,
     MediaAcquisitionRequest, MediaAcquisitionResult, MediaPlanningRefusal, MediaUseRequirement,
     SelectedMediaResource,
 };
-use conduit_planner::{plan_media_acquisition, select_acquired_media};
 
 mod abi;
 mod offers;
