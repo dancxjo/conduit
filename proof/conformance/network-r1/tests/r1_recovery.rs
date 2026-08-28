@@ -6,7 +6,7 @@ use conduit_core::{
     BootId, ControlLoopEvent, GearId, HostId, LineAvailability, LineAvailabilitySign,
     LinkBindingId, OfferGeneration, PlanningRefusalReason, PlayUnsatisfiedReason, SignId,
 };
-use conduit_system_continuity::{
+use conduit_r1_network_conformance::{
     exact_r1_signal_plan, R1LedResultObservation, R1NewPlanRecovery, R1RecoveryError,
     R1RecoveryStartSigns, R1ReplacementSigns, R1SignalRouteSet, MAX_R1_RECOVERY_EVENTS,
 };

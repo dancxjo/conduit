@@ -132,9 +132,9 @@ fn verify_membership_receipt(
         .ok_or("membership receipt has no physical Pico Boot")?;
     // Production R1 seals the Plan against its planned Pico slot, then binds the
     // authenticated physical Boot at session start without mutating that Plan.
-    let exact_plan = conduit_system_continuity::exact_r1_control_plan(
+    let exact_plan = conduit_r1_network_conformance::exact_r1_control_plan(
         conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-        conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+        conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
     )?;
     let body_id = field("body_id")?;
     let active_plan_id = field("active_plan_id")?;
@@ -174,9 +174,9 @@ mod tests {
     use super::*;
 
     fn receipt(runtime_boot: &str) -> serde_json::Value {
-        let plan = conduit_system_continuity::exact_r1_control_plan(
+        let plan = conduit_r1_network_conformance::exact_r1_control_plan(
             conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
         )
         .unwrap()
         .plan;

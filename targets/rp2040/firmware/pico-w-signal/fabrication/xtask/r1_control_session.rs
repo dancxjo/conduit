@@ -242,9 +242,9 @@ mod tests {
 
     #[test]
     fn transport_neutral_driver_delivers_exact_inputs_with_pressure_and_terminal() {
-        let exact = conduit_system_continuity::exact_r1_control_plan(
+        let exact = conduit_r1_network_conformance::exact_r1_control_plan(
             BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         )
         .unwrap();
         let mut source = PicoControlSource::prepare_plan(

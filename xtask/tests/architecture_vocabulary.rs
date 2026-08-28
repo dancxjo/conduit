@@ -19,6 +19,11 @@ const ALLOWLIST: &[(&str, &str, &str)] = &[
         "accepted Body Plan and Play identities are preserved without migration",
     ),
     (
+        "apps/patchbay/native/src/bin/browser_parts_capstone/physical_body.rs",
+        "r1_",
+        "physical proof composition consumes the explicitly proof-owned R1 contract",
+    ),
+    (
         "semantics/audio/src/sound_info.rs",
         "a4_",
         "A4 is the musical tuning reference, not a proof rung",
@@ -32,26 +37,6 @@ const ALLOWLIST: &[(&str, &str, &str)] = &[
         "semantics/catalog/src/music_input.rs",
         "a4_",
         "A4 is the musical tuning reference, not a proof rung",
-    ),
-    (
-        "semantics/system-continuity/src/r1_control_planning.rs",
-        "r1_",
-        "feature-gated R1 recovery conformance retained by issue 1798",
-    ),
-    (
-        "semantics/system-continuity/src/r1_planning.rs",
-        "r1_",
-        "feature-gated R1 recovery conformance retained by issue 1798",
-    ),
-    (
-        "semantics/system-continuity/src/r1_recovery.rs",
-        "r1_",
-        "feature-gated R1 recovery conformance retained by issue 1798",
-    ),
-    (
-        "semantics/system-continuity/src/lib.rs",
-        "r1_",
-        "feature-gated R1 recovery conformance exports retained by issue 1798",
     ),
     (
         "targets/rp2040/firmware/pico-w-signal/build.rs",

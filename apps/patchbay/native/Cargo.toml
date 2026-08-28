@@ -20,7 +20,6 @@ conduit-semantic-catalog = { path = "../../../semantics/catalog", features = ["f
 conduit-text = { path = "../../../semantics/text", default-features = false }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-std-offers = { path = "../../../targets/std/offers" }
-conduit-system-continuity = { path = "../../../semantics/system-continuity" }
 conduit-wire = { path = "../../../architecture/wire" }
 embedded-graphics = "=0.8.1"
 patchbay-model = { path = "../model" }

@@ -36,21 +36,21 @@ pub(super) fn generate(out: &Path, activate: bool) {
     for (stem, routes, identity_env) in [
         (
             "r1_control_plan_a_signal",
-            conduit_system_continuity::R1SignalRouteSet::WebSocketOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,
             PLAN_A_IDENTITY_ENV,
         ),
         (
             "r1_control_plan_b_signal",
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
             PLAN_B_IDENTITY_ENV,
         ),
         (
             "r1_control_plan_c_signal",
-            conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb,
+            conduit_r1_network_conformance::R1SignalRouteSet::WebSocketThenUsb,
             PLAN_C_IDENTITY_ENV,
         ),
     ] {
-        let exact = conduit_system_continuity::exact_r1_control_plan(
+        let exact = conduit_r1_network_conformance::exact_r1_control_plan(
             BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
             routes,
         )
@@ -74,11 +74,11 @@ pub(super) fn generate(out: &Path, activate: bool) {
         write_explicit_identity(identity_env, &sidecar);
         if activate {
             let active_stem = match routes {
-                conduit_system_continuity::R1SignalRouteSet::WebSocketOnly => {
+                conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly => {
                     "pico_signal_image.rs"
                 }
-                conduit_system_continuity::R1SignalRouteSet::UsbOnly => "r1_plan_b_signal_image.rs",
-                conduit_system_continuity::R1SignalRouteSet::WebSocketThenUsb => {
+                conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly => "r1_plan_b_signal_image.rs",
+                conduit_r1_network_conformance::R1SignalRouteSet::WebSocketThenUsb => {
                     "r1_plan_c_signal_image.rs"
                 }
             };

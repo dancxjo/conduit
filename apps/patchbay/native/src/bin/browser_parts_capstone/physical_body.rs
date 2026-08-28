@@ -2,7 +2,7 @@
 
 use conduit_body::Body;
 use conduit_core::{BootId, HostId, SignId};
-use conduit_system_continuity::{ExactR1ControlPlan, R1SignalRouteSet};
+use conduit_r1_network_conformance::{ExactR1ControlPlan, R1SignalRouteSet};
 
 use super::physical_pico::{self, PendingPhysicalPico};
 
@@ -23,7 +23,7 @@ impl PhysicalBody {
         let exact = pending
             .as_ref()
             .map(|_| {
-                conduit_system_continuity::exact_r1_control_plan(
+                conduit_r1_network_conformance::exact_r1_control_plan(
                     BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
                     R1SignalRouteSet::WebSocketOnly,
                 )

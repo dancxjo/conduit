@@ -136,9 +136,9 @@ fn main() -> Result<(), String> {
         return Err("joining a third Part mutated the active Plan".into());
     }
     let replacement = if let Some(exact) = physical.plan() {
-        conduit_system_continuity::exact_r1_control_plan(
+        conduit_r1_network_conformance::exact_r1_control_plan(
             exact.pico_advertisement.boot_id.clone(),
-            conduit_system_continuity::R1SignalRouteSet::UsbOnly,
+            conduit_r1_network_conformance::R1SignalRouteSet::UsbOnly,
         )?
         .plan
     } else {

@@ -1,4 +1,4 @@
-use conduit_system_continuity::R1SignalRouteSet;
+use conduit_r1_network_conformance::R1SignalRouteSet;
 
 use super::appliance_identity::{
     ApplianceFirmwareIdentity, ApplianceGeneratedImageIdentity, ApplianceHilClientFirmwareIdentity,
@@ -8,7 +8,7 @@ use super::doctor::{CYW43_ASSETS, CYW43_COMMIT};
 use super::firmware::{AssetEntry, FirmwareIdentity, GeneratedImageIdentity, R1ControlImageFamily};
 
 fn control_image(routes: R1SignalRouteSet) -> GeneratedImageIdentity {
-    let exact = conduit_system_continuity::exact_r1_control_plan(
+    let exact = conduit_r1_network_conformance::exact_r1_control_plan(
         conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         routes,
     )
@@ -96,7 +96,7 @@ fn composite_identity() -> FirmwareIdentity {
 fn composite_manifest_requires_the_exact_ordered_control_family() {
     let identity = composite_identity();
     assert!(identity.verified_r1_control_images().is_ok());
-    let plan_b = conduit_system_continuity::exact_r1_control_plan(
+    let plan_b = conduit_r1_network_conformance::exact_r1_control_plan(
         conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         R1SignalRouteSet::UsbOnly,
     )

@@ -43,8 +43,8 @@ pub struct ExactR1SignalPlan {
 pub fn r1_signal_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: conduit_core::HostId::from(conduit_r1_network_conformance::R1_STD_HOST_ID),
-        boot_id: BootId::from(conduit_r1_network_conformance::R1_STD_BOOT_ID),
+        host_id: conduit_core::HostId::from(crate::R1_STD_HOST_ID),
+        boot_id: BootId::from(crate::R1_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-control"),
         resources: signal_resource_offers("r1/std-timer", "r1/std-unused-presentation", 1)
@@ -80,7 +80,7 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
 pub fn r1_signal_pico_advertisement(boot_id: BootId) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
-        host_id: conduit_core::HostId::from(conduit_r1_network_conformance::R1_PICO_HOST_ID),
+        host_id: conduit_core::HostId::from(crate::R1_PICO_HOST_ID),
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rp2040-r1-kernel"),
@@ -122,9 +122,9 @@ pub fn exact_r1_signal_plan(
 ) -> Result<ExactR1SignalPlan, String> {
     let source_advertisement = r1_signal_source_advertisement();
     let pico_advertisement = r1_signal_pico_advertisement(pico_boot_id.clone());
-    let observed_lines = conduit_r1_network_conformance::r1_line_basis(pico_boot_id);
+    let observed_lines = crate::r1_line_basis(pico_boot_id);
     let form = conduit_form::parse_with_startup(
-        include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+        include_str!("../../../fixtures/forms/signal-demo.conduit"),
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
@@ -262,7 +262,7 @@ mod tests {
         let mut stale = exact.observed_lines[1].clone();
         stale.binding.sink.boot_id = BootId::from("r1/stale-boot");
         let form = conduit_form::parse_with_startup(
-            include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
+            include_str!("../../../fixtures/forms/signal-demo.conduit"),
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )
