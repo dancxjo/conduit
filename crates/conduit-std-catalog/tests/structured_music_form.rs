@@ -10,8 +10,8 @@ use conduit_form::{
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_catalog::{
-    education_std_offers, install_education_catalogs, install_structured_music_form_catalogs,
-    instrument_mapping_type, EDUCATION_RHYTHM_FEEDBACK_KIND, INSTRUMENT_MAP_KIND,
+    install_education_catalogs, install_structured_music_form_catalogs, instrument_mapping_type,
+    EDUCATION_RHYTHM_FEEDBACK_KIND, INSTRUMENT_MAP_KIND,
 };
 
 const INSTRUMENT_MAP_PROOF_IMPLEMENTATION: &str = "proof/music-instrument-map@1";
@@ -53,7 +53,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
     let mut host = host();
     host.capabilities = vec![
         proof_rhythm_offer(&profile),
-        education_std_offers()
+        education_proof_offers()
             .into_iter()
             .find(|offer| offer.kind_id.as_str() == EDUCATION_RHYTHM_FEEDBACK_KIND)
             .unwrap(),
@@ -307,3 +307,6 @@ fn proof_rhythm_offer(profile: &ProfileCatalog) -> CapabilityOffer {
         .collect();
     offer
 }
+mod common;
+
+use common::education_proof_offers;

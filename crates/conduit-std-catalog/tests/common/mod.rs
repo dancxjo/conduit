@@ -12,6 +12,111 @@ use conduit_core::{
 pub const JOB_PROOF_RUN_OPERATION: &str = "proof.host/process-job-run@1";
 pub const JOB_PROOF_RESOURCE_CLASS: &str = "proof.resource/executable@1";
 pub const REMINDER_PROOF_DELIVER_OPERATION: &str = "proof.host/reminder-delivery@1";
+pub const DOMAIN_PROOF_OPERATION: &str = "proof.host/deterministic-domain@1";
+pub const MOTION_PROOF_OPERATION: &str = "proof.host/robotics-motion@1";
+pub const MOTION_PROOF_AUTHORITY: &str = "proof.authority/robotics-motion@1";
+
+pub fn education_proof_offers() -> Vec<CapabilityOffer> {
+    proof_domain_offers(
+        conduit_std_catalog::education_kind_contracts(),
+        conduit_std_catalog::EDUCATION_REVISION,
+    )
+}
+
+pub fn vision_proof_offers() -> Vec<CapabilityOffer> {
+    proof_domain_offers(
+        conduit_std_catalog::vision_kind_contracts(),
+        conduit_std_catalog::VISION_REVISION,
+    )
+}
+
+pub fn robotics_structured_proof_offers() -> Vec<CapabilityOffer> {
+    proof_domain_offers(
+        conduit_std_catalog::robotics_structured_kind_contracts()
+            .into_iter()
+            .filter(|(kind, _, _)| {
+                kind.as_str() != conduit_std_catalog::ROBOTICS_EXECUTE_MOTION_KIND
+            })
+            .collect(),
+        conduit_std_catalog::ROBOTICS_STRUCTURED_REVISION,
+    )
+}
+
+pub fn robotics_motion_proof_offer() -> CapabilityOffer {
+    let (kind, inputs, outputs) = conduit_std_catalog::robotics_structured_kind_contracts()
+        .into_iter()
+        .find(|(kind, _, _)| kind.as_str() == conduit_std_catalog::ROBOTICS_EXECUTE_MOTION_KIND)
+        .expect("portable motion contract");
+    let mut offer = proof_domain_offer(
+        kind.clone(),
+        inputs,
+        outputs,
+        conduit_std_catalog::ROBOTICS_STRUCTURED_REVISION,
+        MOTION_PROOF_OPERATION,
+    );
+    offer.authority_requirements.push(AuthorityRequirement {
+        contract_id: AuthorityContractId::from(MOTION_PROOF_AUTHORITY),
+        host_operation_contract_id: HostOperationContractId::from(MOTION_PROOF_OPERATION),
+        subject_kind: kind,
+    });
+    offer.limits.max_active_instances = 1;
+    offer.limits.max_queue_items = 1;
+    offer.limits.max_queue_bytes = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
+    offer
+}
+
+fn proof_domain_offers(
+    contracts: Vec<(
+        conduit_core::KindId,
+        Vec<PortDescriptor>,
+        Vec<PortDescriptor>,
+    )>,
+    revision: &str,
+) -> Vec<CapabilityOffer> {
+    contracts
+        .into_iter()
+        .map(|(kind, inputs, outputs)| {
+            proof_domain_offer(kind, inputs, outputs, revision, DOMAIN_PROOF_OPERATION)
+        })
+        .collect()
+}
+
+fn proof_domain_offer(
+    kind: conduit_core::KindId,
+    inputs: Vec<PortDescriptor>,
+    outputs: Vec<PortDescriptor>,
+    revision: &str,
+    operation: &str,
+) -> CapabilityOffer {
+    CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id: CapabilityId::from(format!("proof/{}@1", kind.as_str())),
+        kind_id: kind.clone(),
+        kind_contract_revision: KindContractRevision::from(revision),
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("proof/deterministic-domain@1"),
+            implementation_id: ImplementationId::from(format!("proof/{}@1", kind.as_str())),
+            artifact_id: ArtifactId::from("proof/deterministic-domain@1"),
+        },
+        inputs,
+        outputs,
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(operation),
+            target_kind: Some(kind),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        }],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 4,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
+}
 
 pub fn recurrence_proof_offer() -> CapabilityOffer {
     let result = conduit_std_catalog::recurrence_result_type();

@@ -10,11 +10,9 @@ use conduit_form::{
 use conduit_presentation::{install_geometry_catalogs, robotics_pose2_type};
 use conduit_std_catalog::{
     deterministic_robotics_structured_fixture, install_robotics_structured_catalogs,
-    pose_sample_value, range_sample_value, robotics_motion_request_type,
-    robotics_physical_motion_offer, robotics_pose_sample_type, robotics_range_observation_type,
-    robotics_structured_deterministic_offers, robotics_twist_interval_type, twist_interval_value,
-    RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME, ROBOTICS_PHYSICAL_MOTION_AUTHORITY,
-    ROBOTICS_PHYSICAL_MOTION_HOST_OPERATION,
+    pose_sample_value, range_sample_value, robotics_motion_request_type, robotics_pose_sample_type,
+    robotics_range_observation_type, robotics_twist_interval_type, twist_interval_value,
+    RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME,
 };
 
 const SOURCE: &str = include_str!("../../../examples/robotics-diversity.conduit");
@@ -169,11 +167,11 @@ fn unsupported_dimensions_precision_and_frames_refuse_explicitly() {
 
 #[test]
 fn physical_motion_authority_is_narrower_than_observation_capability() {
-    let observations = robotics_structured_deterministic_offers();
+    let observations = robotics_structured_proof_offers();
     assert!(observations
         .iter()
         .all(|offer| offer.authority_requirements.is_empty()));
-    let motion = robotics_physical_motion_offer();
+    let motion = robotics_motion_proof_offer();
     assert_eq!(
         motion.inputs[0].value_kind,
         robotics_motion_request_type()
@@ -185,13 +183,13 @@ fn physical_motion_authority_is_narrower_than_observation_capability() {
     assert_eq!(motion.authority_requirements.len(), 1);
     assert_eq!(
         motion.authority_requirements[0].contract_id.as_str(),
-        ROBOTICS_PHYSICAL_MOTION_AUTHORITY
+        MOTION_PROOF_AUTHORITY
     );
     assert_eq!(
         motion.authority_requirements[0]
             .host_operation_contract_id
             .as_str(),
-        ROBOTICS_PHYSICAL_MOTION_HOST_OPERATION
+        MOTION_PROOF_OPERATION
     );
     assert_eq!(motion.limits.max_active_instances, 1);
     assert_eq!(motion.limits.max_queue_items, 1);
@@ -223,7 +221,7 @@ fn host() -> HostAdvertisement {
         profile: HostProfileId::from("std/robotics-structured-proof@1"),
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: robotics_structured_deterministic_offers(),
+        capabilities: robotics_structured_proof_offers(),
     }
 }
 
@@ -258,3 +256,9 @@ fn leaf_text(value: &StructuredInfoValue) -> &str {
     };
     core::str::from_utf8(bytes).unwrap()
 }
+mod common;
+
+use common::{
+    robotics_motion_proof_offer, robotics_structured_proof_offers, MOTION_PROOF_AUTHORITY,
+    MOTION_PROOF_OPERATION,
+};

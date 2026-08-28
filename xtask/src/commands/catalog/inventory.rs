@@ -34,7 +34,7 @@ pub fn catalog_contracts() -> Vec<conduit_std_catalog::StandardKindContract> {
 
 pub fn catalog_offers() -> Vec<conduit_core::CapabilityOffer> {
     let mut offers = conduit_std_host::supported_nucleus_offers();
-    offers.extend(conduit_std_catalog::patchbay_presentation_offers());
+    offers.extend(conduit_std_offers::patchbay_presentation_offers());
     offers
 }
 

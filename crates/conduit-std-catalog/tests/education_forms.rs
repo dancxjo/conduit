@@ -11,9 +11,9 @@ use conduit_std_catalog::{
     adapt_rhythm_feedback, deterministic_arithmetic_fixture, deterministic_hint_request,
     deterministic_refused_response, deterministic_timeout, education_assessment_outcome_type,
     education_progress_type, education_question_type, education_rhythm_feedback_type,
-    education_std_offers, evaluate_arithmetic_response, install_education_catalogs,
-    install_structured_music_form_catalogs, timing_feedback_type, EDUCATION_HOST_OPERATION,
-    EDUCATION_RHYTHM_FEEDBACK_KIND, MAXIMUM_EDUCATION_HINTS,
+    evaluate_arithmetic_response, install_education_catalogs,
+    install_structured_music_form_catalogs, timing_feedback_type, EDUCATION_RHYTHM_FEEDBACK_KIND,
+    MAXIMUM_EDUCATION_HINTS,
 };
 
 const ARITHMETIC_SOURCE: &str = include_str!("../../../examples/arithmetic-lesson.conduit");
@@ -38,7 +38,7 @@ fn unrelated_arithmetic_lesson_is_one_ordinary_plannable_form() {
     assert_eq!(authored.expanded.gears.len(), 2);
     assert_eq!(authored.output_bindings.len(), 4);
 
-    let host = host(education_std_offers());
+    let host = host(education_proof_offers());
     let placements = conduit_planner::default_expanded_placements(
         &authored.expanded,
         core::slice::from_ref(&host),
@@ -55,7 +55,7 @@ fn unrelated_arithmetic_lesson_is_one_ordinary_plannable_form() {
     for placement in &plan.fragments[0].placements {
         assert_eq!(
             placement.host_operations[0].contract_id.as_str(),
-            EDUCATION_HOST_OPERATION
+            DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());
         assert!(placement.authority.is_empty());
@@ -298,3 +298,6 @@ fn leaf_text(value: &StructuredInfoValue) -> &str {
     };
     core::str::from_utf8(bytes).unwrap()
 }
+mod common;
+
+use common::{education_proof_offers, DOMAIN_PROOF_OPERATION};

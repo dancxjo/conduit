@@ -34,6 +34,10 @@ mod calendar;
 pub use calendar::*;
 mod workflows;
 pub use workflows::*;
+mod domain_specimens;
+pub use domain_specimens::*;
+mod patchbay;
+pub use patchbay::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -314,6 +318,12 @@ mod tests {
             include_str!("../../../../crates/conduit-std-catalog/src/calendar_proposal_catalog.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/job_catalog.rs"),
             include_str!("../../../../crates/conduit-std-catalog/src/reminder_catalog.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/education_catalog.rs"),
+            include_str!("../../../../crates/conduit-std-catalog/src/vision_catalog.rs"),
+            include_str!(
+                "../../../../crates/conduit-std-catalog/src/robotics_structured_catalog.rs"
+            ),
+            include_str!("../../../../crates/conduit-std-catalog/src/patchbay_presentation.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -392,6 +402,15 @@ mod tests {
                 "pub fn calendar_proposal_std_offer",
                 "pub fn job_std_offers",
                 "pub fn reminder_std_offers",
+                "pub fn education_std_offers",
+                "pub fn vision_std_offers",
+                "pub fn robotics_structured_deterministic_offers",
+                "pub fn robotics_physical_motion_offer",
+                "pub fn patchbay_presentation_offers",
+                "std/education-assessment-hosted@1",
+                "std/vision-metadata-hosted@1",
+                "std/robotics-structured-deterministic@1",
+                "patchbay/presenter-kernel-hosted@1",
             ] {
                 assert!(
                     !source.contains(forbidden),

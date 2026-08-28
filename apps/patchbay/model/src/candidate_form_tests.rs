@@ -10,7 +10,7 @@ use conduit_core::{
 };
 use conduit_form::{ProfileCatalog, StartupCatalog};
 use conduit_presentation::install_geometry_catalogs;
-use conduit_std_catalog::{install_vision_catalogs, vision_std_offers};
+use conduit_std_catalog::install_vision_catalogs;
 
 const INTENT: &str =
     "Watch this camera, recognize birds, count them by species, and show a dashboard.";
@@ -153,7 +153,7 @@ fn generated_source_grants_no_authority_and_planning_tracks_current_offers() {
         profile: HostProfileId::from("profile/vision"),
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: vision_std_offers(),
+        capabilities: conduit_std_offers::vision_std_offers(),
     };
     let placements = conduit_planner::default_expanded_placements(
         &admitted.expanded,

@@ -3,9 +3,8 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_requirement, ArtifactId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, PRESENTATION_RESOURCE_CLASS,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const PATCHBAY_PRESENTATION_KIND: &str = "presentation/patchbay";
@@ -46,10 +45,6 @@ pub fn patchbay_presentation_contracts() -> [StandardKindContract; 4] {
     ]
 }
 
-pub fn patchbay_presentation_offers() -> [CapabilityOffer; 4] {
-    patchbay_presentation_contracts().map(offer)
-}
-
 fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(kind),
@@ -73,34 +68,6 @@ fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
         browser_manifestation_honest: kind == PATCHBAY_PRESENTATION_KIND,
         pico_manifestation_honest: false,
         example: alloc::format!("subject: text/literal(\"bounded normalized subject\") > {kind}"),
-    }
-}
-
-fn offer(contract: StandardKindContract) -> CapabilityOffer {
-    let kind = contract.kind_id.as_str();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(alloc::format!("patchbay/{kind}-direct@1")),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(PATCHBAY_PRESENTATION_REVISION),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("patchbay/presenter-kernel-hosted@1"),
-            implementation_id: ImplementationId::from(alloc::format!(
-                "patchbay/direct/{}@1",
-                kind.replace('/', "-")
-            )),
-            artifact_id: ArtifactId::from("patchbay-model/direct-presentation@1"),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![present_host_operation_requirement(
-            kind_id("presentation/patchbay-surface@1"),
-            MAX_PATCHBAY_PRESENTATION_BYTES,
-        )],
-        resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
     }
 }
 
@@ -162,13 +129,7 @@ mod tests {
 
     #[test]
     fn one_canonical_family_carries_subject_text_not_widget_or_renderer_types() {
-        for (contract, offer) in patchbay_presentation_contracts()
-            .into_iter()
-            .zip(patchbay_presentation_offers())
-        {
-            assert_eq!(contract.kind_id, offer.kind_id);
-            assert_eq!(contract.inputs, offer.inputs);
-            assert_eq!(contract.outputs, offer.outputs);
+        for contract in patchbay_presentation_contracts() {
             assert_eq!(contract.inputs[0].value_kind.as_str(), "value/text@1");
             let rendered = alloc::format!("{contract:?}").to_ascii_lowercase();
             for forbidden in ["widget", "dom", "css", "framebuffer", "socket"] {
