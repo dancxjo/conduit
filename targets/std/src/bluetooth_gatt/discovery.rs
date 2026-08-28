@@ -117,7 +117,6 @@ pub async fn discover_one_ble_gatt_candidate(
     for address in initially_known
         .iter()
         .copied()
-        .into_iter()
         .take(MAXIMUM_CACHED_DEVICES_INSPECTED)
     {
         let device = adapter
