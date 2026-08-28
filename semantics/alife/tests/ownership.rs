@@ -62,3 +62,11 @@ fn distributed_lenia_probe_uses_the_portable_alife_owner() {
         );
     }
 }
+
+#[test]
+fn alife_catalog_owns_the_authored_scalar_field_spelling() {
+    let source = include_str!("../src/lenia_catalog.rs");
+    assert!(source.contains("insert_value_kind_alias"));
+    assert!(source.contains("ScalarField2"));
+    assert!(source.contains("SCALAR_FIELD2_INFO_ID"));
+}

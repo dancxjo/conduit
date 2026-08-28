@@ -38,6 +38,7 @@ pub fn install_lenia_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    startup.insert_value_kind_alias("ScalarField2", kind_id(crate::SCALAR_FIELD2_INFO_ID))?;
     for definition in lenia_definitions() {
         startup.insert(KindSignature {
             kind: definition.kind_id.as_str().to_string(),
