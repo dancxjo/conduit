@@ -1,4 +1,4 @@
-#include "protocol.h"
+#include "../firmware/promicro_brainstem/protocol.h"
 
 #include <assert.h>
 
