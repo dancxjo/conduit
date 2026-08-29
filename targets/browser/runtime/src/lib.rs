@@ -33,6 +33,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 mod book_runner;
 pub mod browser_pointer;
+mod device_base;
 mod distributed;
 mod distributed_toggle;
 pub mod human_media;
