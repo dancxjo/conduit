@@ -8,6 +8,10 @@ let host;
 let generation = 0;
 let running = false;
 let runnerCount = 0;
+let activeRunner = null;
+let currentStep = 0;
+let steps = [];
+const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
@@ -21,10 +25,8 @@ try {
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
-  renderMarkdown(chapters[0]);
-  renderInventory(readInventory(host.runtime));
-  renderMarkdown(chapters[1]);
-  renderMarkdown(chapters[2]);
+  steps = parseTourSteps(chapters);
+  renderStep(0);
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
 } catch (error) {
@@ -41,6 +43,74 @@ function requireBookAbi(api) {
     "conduit_book_inventory", "conduit_book_admit_source_interaction",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
+}
+
+function parseTourSteps(chapters) {
+  const parsed = [];
+  let current = [];
+  for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
+    if (line.startsWith("# Step ") && current.length > 0) {
+      parsed.push(current.join("\n"));
+      current = [];
+    }
+    if (line.startsWith("# Step ") || current.length > 0) current.push(line);
+  }
+  if (current.length > 0) parsed.push(current.join("\n"));
+  if (parsed.length !== 7) {
+    throw new Error("the first Tour slice must contain exactly seven steps, received " + parsed.length);
+  }
+  return parsed;
+}
+
+function renderStep(index) {
+  if (running) return;
+  currentStep = index;
+  runnerCount = 0;
+  chapter.replaceChildren();
+  renderMarkdown(steps[index]);
+  chapter.append(createNavigation());
+  document.title = (chapter.querySelector("h1")?.textContent ?? "Conduit Tour") + " · The Conduit Tour";
+}
+
+function createNavigation() {
+  const navigation = document.createElement("nav");
+  navigation.className = "tour-navigation";
+  navigation.setAttribute("aria-label", "Tour steps");
+  const progress = document.createElement("span");
+  progress.className = "tour-progress";
+  progress.textContent = "Step " + (currentStep + 1) + " of " + steps.length;
+  const previous = navigationButton("Previous", currentStep === 0, () => renderStep(currentStep - 1));
+  const reset = navigationButton("Reset this step", false, () => {
+    for (const key of sourceDrafts.keys()) {
+      if (key.startsWith(currentStep + ":")) sourceDrafts.delete(key);
+    }
+    renderStep(currentStep);
+  });
+  const restart = navigationButton("Restart Tour", false, () => {
+    sourceDrafts.clear();
+    renderStep(0);
+  });
+  const next = navigationButton("Next", currentStep === steps.length - 1, () => renderStep(currentStep + 1));
+  navigation.append(progress, previous, reset, restart, next);
+  return navigation;
+}
+
+function navigationButton(label, disabled, action) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.disabled = disabled;
+  button.addEventListener("click", action);
+  return button;
+}
+
+function setNavigationDisabled(disabled) {
+  for (const button of chapter.querySelectorAll(".tour-navigation button")) {
+    button.disabled = disabled || (
+      (button.textContent === "Previous" && currentStep === 0)
+      || (button.textContent === "Next" && currentStep === steps.length - 1)
+    );
+  }
 }
 
 function renderMarkdown(markdown) {
@@ -120,17 +190,27 @@ function createRealizationComparison(source) {
   });
   const directSource = direct.querySelector("textarea");
   const recursiveSource = recursive.querySelector("textarea");
-  directSource.addEventListener("input", () => { recursiveSource.value = directSource.value; });
-  recursiveSource.addEventListener("input", () => { directSource.value = recursiveSource.value; });
+  recursiveSource.value = directSource.value;
+  sourceDrafts.set(recursive.dataset.sourceKey, directSource.value);
+  directSource.addEventListener("input", () => {
+    recursiveSource.value = directSource.value;
+    sourceDrafts.set(recursive.dataset.sourceKey, directSource.value);
+  });
+  recursiveSource.addEventListener("input", () => {
+    directSource.value = recursiveSource.value;
+    sourceDrafts.set(direct.dataset.sourceKey, recursiveSource.value);
+  });
   comparison.append(direct, recursive);
   return comparison;
 }
 
 function createRunner(source, recursive = false, presentation = {}) {
   runnerCount += 1;
+  const sourceKey = currentStep + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const runner = document.createElement("section");
   runner.className = "runner";
+  runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
     ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3></header>` : ""}
     <div class="editor">
@@ -145,19 +225,20 @@ function createRunner(source, recursive = false, presentation = {}) {
       <h2>Planned result</h2>
       <output class="morse" aria-label="Planned result">ready</output>
       <p class="play-status" role="status">Edit the message or timing, then run it.</p>
-      <details><summary>How Conduit ran this</summary><dl></dl><div class="expansion"></div></details>
+      <details><summary>What happened?</summary><dl></dl><div class="expansion"></div></details>
     </div>`;
   const textarea = runner.querySelector("textarea");
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
-  textarea.value = source;
+  textarea.value = sourceDrafts.get(sourceKey) ?? source;
+  textarea.addEventListener("input", () => sourceDrafts.set(sourceKey, textarea.value));
   run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
   stop.addEventListener("click", () => stopListing(runner));
   return runner;
 }
 
 async function runListing(runner, source, recursive) {
-  if (running) stopListing(runner);
+  if (running && activeRunner) stopListing(activeRunner);
   const current = ++generation;
   const api = host.runtime;
   const sourceBytes = encoder.encode(source);
@@ -204,6 +285,8 @@ async function runListing(runner, source, recursive) {
   }
   const effect = readOutput(api);
   running = true;
+  activeRunner = runner;
+  setNavigationDisabled(true);
   status.classList.remove("error");
   status.textContent = "Playing through this browser Host…";
   runner.querySelector(".run").disabled = true;
@@ -224,12 +307,16 @@ async function runListing(runner, source, recursive) {
     status.textContent = "Completed — one bounded Play, one planned manifestation.";
     status.dataset.receipt = receipt.terminal_sign_id;
     running = false;
+    activeRunner = null;
+    setNavigationDisabled(false);
     runner.querySelector(".run").disabled = false;
     runner.querySelector(".stop").disabled = true;
   } catch (error) {
     status.textContent = error instanceof Error ? error.message : String(error);
     status.classList.add("error");
     running = false;
+    activeRunner = null;
+    setNavigationDisabled(false);
     runner.querySelector(".run").disabled = false;
     runner.querySelector(".stop").disabled = true;
   }
@@ -239,6 +326,8 @@ function stopListing(runner) {
   generation += 1;
   if (running) host.runtime.conduit_book_cancel();
   running = false;
+  activeRunner = null;
+  setNavigationDisabled(false);
   setIndicator(runner, false);
   runner.querySelector(".run").disabled = false;
   runner.querySelector(".stop").disabled = true;

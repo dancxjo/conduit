@@ -1,94 +1,58 @@
-# Gear Lab
+# Step 3 — Use a generic verb
 
-The same Run button accepts other small, finite Forms. These examples are ordinary Conduit source; the palette and execution choices come from this browser Host's real offers.
-
-## One Face, Many Realizations
-
-The caller below says only `text/morse`. Its Face fixes the meaning and typed ports that the rest of the Form can rely on; it does not fix how a Host must accomplish that meaning.
-
-```text
-             text/morse
-                 │
-        same Face, same meaning
-          ┌──────┴──────┐
-          │             │
-      Host leaf      open Back
-          │             │
-       [morse]      characters
-                    lookup
-                    gaps
-                    flatten
-                    timing
-```
-
-A Host leaf is an implementation the selected Host can perform directly. An open Back is a reviewed Form implementing the same Face: planning expands it into smaller meanings, then continues recursively until every remaining leaf has a truthful Host offer.
-
-These are not execution modes for the author to choose. Conduit may select either realization from the Hosts and finite resources available now. The comparison deliberately holds them beside each other so you can inspect the substitution: the source and checked Form stay the same, both Plays produce the same timed pattern, and the expanded Form and Plan identities differ because the realization really differs.
-
-```conduit compare
-form recursive-morse {
-    message: text/literal("HELLO")
-    morse: text/morse(80)
-    light: presentation/indicator
-    message > morse > light
-}
-```
-
-## Exact scalar math
-
-Scalar values carry six exact decimal places. Scaling is checked and the result is manifested only by the planned presenter.
+A small generic verb such as exact scalar scaling composes without inventing a new domain-specific Gear.
 
 ```conduit run
-form math-lab {
+form generic-scale {
     source: scalar/literal(1.5)
     scale: math/scale(2.0)
     result: presentation/scalar
+
     source > scale > result
 }
 ```
 
-## Typed logic
+The planned result retains six exact decimal places; there is no page-local arithmetic shortcut.
 
-Boolean logic has no truthiness coercion: one canonical Boolean goes in and one canonical Boolean comes out.
+# Step 4 — A Gear can have a Back
 
-```conduit run
-form logic-lab {
-    source: boolean/literal(true)
-    invert: logic/not
-    result: presentation/bool-value
-    source > invert > result
+A high-level Gear keeps one public Face while a reviewed Form can provide its hidden realization.
+
+```text
+             text/morse
+                 |
+          one checked Face
+                 |
+       reviewed Form Back
+                 |
+ characters -> lookup -> gaps -> flatten -> timing
+```
+
+```conduit run recursive
+form gear-with-a-back {
+    message: text/literal("E")
+    morse: text/morse(40)
+    light: presentation/indicator
+
+    message > morse > light
 }
 ```
 
-## Fan out, then decide
+Run the listing, then open What happened? to see the exact Back and planned leaves without putting them in the caller.
 
-One scalar fans out atomically to two transforms and reconverges at an exact two-input comparison. There is no topology rule in the book.
+# Step 5 — Morse opens up
 
-```conduit run
-form fanout-lab {
-    source: scalar/literal(0.5)
-    scaled: math/scale(2.0)
-    quiet: math/deadband(0.6)
-    compare: logic/compare("gt")
-    result: presentation/bool-value
+The authored Morse Gear can expand through reusable character, lookup, gap, flatten, and timing Gears while its meaning stays unchanged.
 
-    source > scaled > compare.left
-    source > quiet > compare.right
-    compare.out > result
+```conduit run recursive
+form morse-opens-up {
+    message: text/literal("SOS 2")
+    encode: text/morse(unit-ms = 40)
+    decode: morse/text
+    result: presentation/text
+
+    message > encode > decode > result
 }
 ```
 
-## Structured language
-
-The tokenizer and annotator exchange bounded canonical structured Info, not JSON-shaped convenience data in the page.
-
-```conduit run
-form language-lab {
-    tokens: language/tokenize-four("Bright stars shine.")
-    annotate: language/annotate-four
-    result: presentation/structured-info
-    tokens > annotate > result
-}
-```
-
-Try changing a Kind to one marked unavailable in the palette. The checker or planner will refuse before Play and report which boundary was missing.
+The decisive distinction is simple: a Kind is not its implementation.
