@@ -1,10 +1,8 @@
 //! Canonical bounded International Morse representation and text transforms.
 
-use alloc::{
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
     PortDirection, PortTemporal,

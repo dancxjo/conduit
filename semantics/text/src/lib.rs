@@ -10,6 +10,7 @@
 extern crate alloc;
 
 mod morse;
+#[cfg(feature = "form-catalog")]
 mod morse_backs;
 mod morse_catalog;
 mod morse_table;
