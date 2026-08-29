@@ -46,7 +46,9 @@ pub fn init_composite_usb(
 
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
-    let (product, serial_number) = if cfg!(feature = "bluetooth-line") {
+    let (product, serial_number) = if cfg!(feature = "light-switch") {
+        ("Pico W Light Switch", "conduit-pico-w-light-switch")
+    } else if cfg!(feature = "bluetooth-line") {
         ("Pico W Bluetooth Line", "conduit-pico-w-bluetooth-line")
     } else if cfg!(feature = "appliance-hil-client") {
         ("Pico W Appliance HIL Client", "conduit-pico-hil-client")

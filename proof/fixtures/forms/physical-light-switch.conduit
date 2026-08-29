@@ -1,0 +1,9 @@
+form physical-light-switch (
+    press: Tick...|
+    every_light: $Boolean >
+) {
+    switch: state/toggle(false)
+
+    press > switch
+    switch > every_light
+}

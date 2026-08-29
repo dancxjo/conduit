@@ -339,10 +339,37 @@ pub enum DemoCommand {
     TextLab,
     /// Run the S4 distributed toggle proof interactively.
     Toggle,
+    /// Run the attached C3-button/Pico synchronized physical light switch.
+    LightSwitch(LightSwitchDemoArgs),
     /// Run the Conduit-driven project homepage interactively.
     Site,
     /// Run the pinned Tongues text-to-speech starter through an ordinary Conduit Play.
     Tongues,
+}
+
+#[derive(Args, Debug)]
+pub struct LightSwitchDemoArgs {
+    /// Stable USB-UART path for the inspected ESP32-C3 DevKitM-1.
+    #[arg(
+        long,
+        default_value = "/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_dcf8355da19ded11a7205f84e259fb3e-if00-port0"
+    )]
+    pub c3_port: std::path::PathBuf,
+    /// Stable CDC 0 command path for the light-switch Pico W image.
+    #[arg(
+        long,
+        default_value = "/dev/serial/by-id/usb-Conduit_Pico_W_Light_Switch_conduit-pico-w-light-switch-if00"
+    )]
+    pub pico_link_port: std::path::PathBuf,
+    /// Stable CDC 1 receipt path for the light-switch Pico W image.
+    #[arg(
+        long,
+        default_value = "/dev/serial/by-id/usb-Conduit_Pico_W_Light_Switch_conduit-pico-w-light-switch-if02"
+    )]
+    pub pico_sign_port: std::path::PathBuf,
+    /// Number of physical presses required before the bounded demo terminates.
+    #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=16))]
+    pub presses: u8,
 }
 
 #[derive(Args, Debug, Default)]

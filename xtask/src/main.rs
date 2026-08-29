@@ -64,6 +64,7 @@ fn main() {
             DemoCommand::Prewake => commands::demo::run_prewake(&opts),
             DemoCommand::TextLab => commands::demo::run_text_lab(&opts),
             DemoCommand::Toggle => commands::toggle::run(),
+            DemoCommand::LightSwitch(args) => commands::light_switch::run(args),
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),
         },

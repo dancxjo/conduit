@@ -20,32 +20,54 @@ pub struct DistributedTogglePlan {
 }
 
 pub fn exact_distributed_toggle_plan() -> Result<DistributedTogglePlan, String> {
+    exact_distributed_toggle_plan_for(include_str!(
+        "../../../../proof/fixtures/forms/remote-toggle.conduit"
+    ))
+}
+
+pub(super) fn exact_distributed_toggle_plan_for(
+    form_source: &str,
+) -> Result<DistributedTogglePlan, String> {
     let source_advertisement = distributed_toggle_std_source_advertisement();
     let sink_advertisement = distributed_toggle_browser_sink_advertisement();
     let form = conduit_form::parse_with_startup(
-        include_str!("../../../../proof/fixtures/forms/remote-toggle.conduit"),
+        form_source,
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     )
     .map_err(|error| error.to_string())?;
+    let form_id = if form_source.contains("form physical-light-switch-runtime") {
+        "physical-light-switch-runtime"
+    } else {
+        "remote-toggle"
+    };
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([
             (
-                GearId::from("remote-toggle/trigger"),
+                GearId::from(
+                    format!("{form_id}/press")
+                        .replace("remote-toggle/press", "remote-toggle/trigger"),
+                ),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("trigger-1"),
                 },
             ),
             (
-                GearId::from("remote-toggle/toggle"),
+                GearId::from(
+                    format!("{form_id}/switch")
+                        .replace("remote-toggle/switch", "remote-toggle/toggle"),
+                ),
                 PlacementChoice {
                     host_id: source_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-1"),
                 },
             ),
             (
-                GearId::from("remote-toggle/show"),
+                GearId::from(
+                    format!("{form_id}/every_light")
+                        .replace("remote-toggle/every_light", "remote-toggle/show"),
+                ),
                 PlacementChoice {
                     host_id: sink_advertisement.host_id.clone(),
                     capability_id: CapabilityId::from("toggle-dom-show-1"),

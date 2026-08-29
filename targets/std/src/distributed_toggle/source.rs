@@ -66,7 +66,14 @@ pub struct DistributedToggleSource {
 
 impl DistributedToggleSource {
     pub fn prepare() -> Result<Self, String> {
-        let exact = exact_distributed_toggle_plan()?;
+        Self::prepare_exact(exact_distributed_toggle_plan()?)
+    }
+
+    pub(super) fn prepare_form(form_source: &str) -> Result<Self, String> {
+        Self::prepare_exact(super::plan::exact_distributed_toggle_plan_for(form_source)?)
+    }
+
+    fn prepare_exact(exact: super::plan::DistributedTogglePlan) -> Result<Self, String> {
         let fragment = exact
             .plan
             .fragments
@@ -426,6 +433,65 @@ impl DistributedToggleSource {
 
     pub fn binding(&self) -> &SessionBinding {
         &self.binding
+    }
+
+    pub(super) fn next_manifestation(
+        &mut self,
+        press: bool,
+    ) -> Result<Option<(u64, bool)>, String> {
+        let mut input: &[u8] = if press { b"\n" } else { b"" };
+        let mut report = Vec::new();
+        let mut completed_press = false;
+        let (endpoint, cord) = self.remote();
+        let (sequence, payload) = loop {
+            if let Some(offer) = self
+                .scheduler
+                .remote_egress_offer(endpoint, cord)
+                .map_err(|error| format!("{error:?}"))?
+            {
+                let payload: [u8; conduit_core::BOOL_ENCODED_LEN] = self
+                    .scheduler
+                    .host_value(offer.value)
+                    .map_err(|error| format!("{error:?}"))?
+                    .try_into()
+                    .map_err(|_| "planned Boolean payload width mismatch".to_owned())?;
+                break (offer.sequence, payload);
+            }
+            if press && !completed_press {
+                if let Some(request) = self.scheduler.next_host_request() {
+                    self.complete_trigger_wait(request, &mut report, &mut input, 0)?;
+                    completed_press = true;
+                    continue;
+                }
+            }
+            match self
+                .scheduler
+                .step()
+                .map_err(|error| format!("{error:?}"))?
+            {
+                SchedulerStatus::Progress { .. } => {}
+                SchedulerStatus::Complete => return Ok(None),
+                SchedulerStatus::Idle if !press && self.scheduler.next_host_request().is_some() => {
+                    return Err("planned light switch awaits a physical press".to_owned())
+                }
+                SchedulerStatus::Idle => {
+                    return Err("planned light switch became idle before output".to_owned())
+                }
+                SchedulerStatus::Cancelled => {
+                    return Err("planned light switch was cancelled".to_owned())
+                }
+            }
+        };
+        let level = conduit_core::InfoBool::decode(&payload)
+            .map_err(|error| format!("decode planned toggle output: {error:?}"))?
+            .get();
+        self.scheduler
+            .remote_egress_accept(endpoint, cord, sequence)
+            .map_err(|error| format!("{error:?}"))?;
+        self.scheduler
+            .remote_egress_delivered(endpoint, cord, sequence)
+            .map_err(|error| format!("{error:?}"))?;
+        Ok(Some((sequence, level)))
     }
 }
 

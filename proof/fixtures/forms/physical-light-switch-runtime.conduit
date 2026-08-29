@@ -1,0 +1,8 @@
+form physical-light-switch-runtime {
+    press: interaction/trigger(count = 15)
+    switch: state/toggle(initial = false)
+    every_light: presentation/bool
+
+    press > switch
+    switch > every_light
+}
