@@ -23,6 +23,7 @@ fn main() {
     ));
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
+        Command::Avr(args) => commands::avr::run(args, &opts),
         Command::Browser => commands::browser::run(&opts),
         Command::Body(args) => commands::body::run(args, &opts),
         Command::BodyCoordination(args) => commands::body_coordination::run(args, &opts),

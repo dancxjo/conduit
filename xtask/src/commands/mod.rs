@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod avr;
 pub mod bluetooth;
 pub mod body;
 pub mod body_coordination;
