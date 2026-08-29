@@ -9,13 +9,14 @@ let generation = 0;
 let running = false;
 let runnerCount = 0;
 let activeRunner = null;
+let activeDelay = null;
 let currentStep = 0;
 let steps = [];
 const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -56,8 +57,8 @@ function parseTourSteps(chapters) {
     if (line.startsWith("# Step ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length !== 7) {
-    throw new Error("the first Tour slice must contain exactly seven steps, received " + parsed.length);
+  if (parsed.length !== 9) {
+    throw new Error("this Tour slice must contain exactly nine steps, received " + parsed.length);
   }
   return parsed;
 }
@@ -148,6 +149,10 @@ function renderMarkdown(markdown) {
       code.textContent = source.join("\n");
       diagram.append(code);
       copy.append(diagram);
+      copy = appendCopy();
+    } else if (line === "<!-- conduit-host-inventory -->") {
+      flush();
+      renderInventory(readInventory(host.runtime));
       copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();
@@ -283,7 +288,7 @@ async function runListing(runner, source, recursive) {
     status.classList.add("error");
     return;
   }
-  const effect = readOutput(api);
+  let progress = readOutput(api);
   running = true;
   activeRunner = runner;
   setNavigationDisabled(true);
@@ -291,21 +296,36 @@ async function runListing(runner, source, recursive) {
   status.textContent = "Playing through this browser Host…";
   runner.querySelector(".run").disabled = true;
   runner.querySelector(".stop").disabled = false;
-  runner.querySelector(".morse").textContent = effect.text ?? renderMorse(effect.segments);
-  renderIdentities(runner, effect);
   try {
-    for (const segment of effect.segments) {
+    while (progress.effect_kind) {
+      if (progress.effect_kind === "timer") {
+        status.textContent = `Waiting for planned tick · ${progress.duration_millis} ms`;
+        if (!await delay(progress.duration_millis, current)) return;
+      } else if (progress.effect_kind === "manifestation") {
+        runner.querySelector(".morse").textContent =
+          progress.text ?? renderMorse(progress.segments);
+        renderIdentities(runner, progress);
+        for (const segment of progress.segments) {
+          if (current !== generation) return;
+          setIndicator(runner, segment.level);
+          if (!await delay(segment.units * progress.unit_millis, current)) return;
+        }
+        setIndicator(runner, false);
+        status.textContent = "Observed planned presentation; continuing the same Play…";
+      } else {
+        throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
+      }
       if (current !== generation) return;
-      setIndicator(runner, segment.level);
-      await delay(segment.units * effect.unit_millis);
+      const completion = api.conduit_book_complete();
+      if (completion < 0) throw new Error(`completion refused (${completion})`);
+      progress = readOutput(api);
     }
-    if (current !== generation) return;
-    setIndicator(runner, false);
-    const completion = api.conduit_book_complete();
-    if (completion < 0) throw new Error(`completion refused (${completion})`);
-    const receipt = readOutput(api);
-    status.textContent = "Completed — one bounded Play, one planned manifestation.";
-    status.dataset.receipt = receipt.terminal_sign_id;
+    status.textContent = progress.timer_completions > 0
+      ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
+      : "Completed — one bounded Play, one planned manifestation.";
+    status.dataset.receipt = progress.terminal_sign_id;
+    status.dataset.timerCompletions = String(progress.timer_completions);
+    status.dataset.manifestationCompletions = String(progress.manifestation_completions);
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
@@ -324,6 +344,7 @@ async function runListing(runner, source, recursive) {
 
 function stopListing(runner) {
   generation += 1;
+  cancelDelay();
   if (running) host.runtime.conduit_book_cancel();
   running = false;
   activeRunner = null;
@@ -439,6 +460,23 @@ function renderIdentities(runner, effect) {
   expansion.append(heading, gears);
 }
 
-function delay(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+function delay(milliseconds, expectedGeneration) {
+  return new Promise((resolve) => {
+    const pending = {
+      resolve,
+      timeout: setTimeout(() => {
+        if (activeDelay === pending) activeDelay = null;
+        resolve(expectedGeneration === generation);
+      }, milliseconds),
+    };
+    activeDelay = pending;
+  });
+}
+
+function cancelDelay() {
+  if (!activeDelay) return;
+  clearTimeout(activeDelay.timeout);
+  const { resolve } = activeDelay;
+  activeDelay = null;
+  resolve(false);
 }

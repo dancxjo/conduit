@@ -568,6 +568,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "conduit-text",
+ "conduit-time",
  "conduit-wire",
  "ed25519-dalek",
  "serde",

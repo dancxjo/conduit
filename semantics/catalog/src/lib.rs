@@ -369,7 +369,10 @@ mod supported_nucleus_tests {
                 contract.browser_manifestation_honest,
                 matches!(
                     contract.kind_id.as_str(),
-                    BOOL_PRESENTATION_KIND
+                    conduit_time::TIME_EVERY_KIND
+                        | STATE_COUNT_KIND
+                        | COUNT_PRESENTATION_KIND
+                        | BOOL_PRESENTATION_KIND
                         | GRAPHICS_PRESENTATION_KIND
                         | PATCHBAY_PRESENTATION_KIND
                         | TEXT_PRESENTATION_KIND

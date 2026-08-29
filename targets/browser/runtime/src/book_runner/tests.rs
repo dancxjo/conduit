@@ -9,6 +9,13 @@ const HELLO_LIGHT: &str = r#"form hello-light {
 }
 "#;
 
+fn manifestation(effect: BookHostEffect) -> BookEffect {
+    match effect {
+        BookHostEffect::Manifestation(effect) => *effect,
+        BookHostEffect::Timer(_) => panic!("the fixture must manifest before requesting a timer"),
+    }
+}
+
 #[test]
 fn chapter_one_runs_inside_the_generic_browser_envelope() {
     let (session, effect) = BookSession::prepare(
@@ -18,6 +25,7 @@ fn chapter_one_runs_inside_the_generic_browser_envelope() {
         1,
     )
     .unwrap();
+    let effect = manifestation(effect);
     assert_eq!(effect.unit_millis, 120);
     assert_eq!(effect.segments.len(), 17);
     assert_eq!(effect.host_id, "browser/book-test");
@@ -37,6 +45,7 @@ fn four_gear_text_form_runs_without_a_topology_special_case() {
 "#;
     let (session, effect) =
         BookSession::prepare("browser/book-test", "browser-boot/book-test", source, 2).unwrap();
+    let effect = manifestation(effect);
     assert_eq!(effect.text.as_deref(), Some("SAY: HELLO"));
     assert_eq!(session.complete().unwrap().disposition, "completed");
 }
@@ -53,6 +62,7 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
 "#;
     let (session, effect) =
         BookSession::prepare("browser/book-test", "browser-boot/book-test", source, 4).unwrap();
+    let effect = manifestation(effect);
     assert!(effect
         .text
         .as_deref()
@@ -75,6 +85,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 "#;
     let (math_session, math_effect) =
         BookSession::prepare("browser/book-test", "browser-boot/book-test", math, 5).unwrap();
+    let math_effect = manifestation(math_effect);
     assert_eq!(math_effect.text.as_deref(), Some("3.000000"));
     assert_eq!(math_session.complete().unwrap().disposition, "completed");
 
@@ -87,6 +98,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 "#;
     let (logic_session, logic_effect) =
         BookSession::prepare("browser/book-test", "browser-boot/book-test", logic, 6).unwrap();
+    let logic_effect = manifestation(logic_effect);
     assert_eq!(logic_effect.text.as_deref(), Some("false"));
     assert_eq!(logic_session.complete().unwrap().disposition, "completed");
 }
@@ -107,9 +119,125 @@ fn typed_fanout_reconverges_without_book_topology_code() {
 "#;
     let (session, effect) =
         BookSession::prepare("browser/book-test", "browser-boot/book-test", source, 7).unwrap();
+    let effect = manifestation(effect);
     assert_eq!(effect.text.as_deref(), Some("true"));
     assert_eq!(effect.expanded_gears.len(), 5);
     assert_eq!(session.complete().unwrap().disposition, "completed");
+}
+
+#[test]
+fn finite_browser_timer_drives_current_count_through_one_kernel_play() {
+    let source = r#"form count-over-time {
+    count: state/count(start = 0)
+    show: presentation/count(maximum-values = 5)
+    clock: time/every(freq = 100ms)
+
+    clock.tick > count.bump
+    count.value > show.value
+}
+"#;
+    let first = state_time_trace(source);
+    let second = state_time_trace(source);
+    assert_eq!(first, second);
+    assert_eq!(
+        first
+            .0
+            .iter()
+            .filter(|event| event.starts_with("manifestation:"))
+            .collect::<Vec<_>>(),
+        vec![
+            "manifestation:0:0",
+            "manifestation:1:1",
+            "manifestation:2:2",
+            "manifestation:3:3",
+            "manifestation:4:4",
+        ]
+    );
+    assert_eq!(
+        first
+            .0
+            .iter()
+            .filter(|event| event.starts_with("timer:"))
+            .count(),
+        conduit_time::TIME_EVERY_COUNT as usize
+    );
+    assert!(first
+        .0
+        .iter()
+        .filter(|event| event.starts_with("timer:"))
+        .all(|event| event.split(':').nth(1) == Some("100")));
+    assert_eq!(first.1, (4, 5));
+
+    let too_long = source.replace("100ms", "10001ms");
+    let refusal = BookSession::prepare(
+        "browser/book-state-time",
+        "browser-boot/book-state-time",
+        &too_long,
+        20,
+    )
+    .err()
+    .map(|error| refusal(error).category)
+    .expect("an unadmitted browser timer duration refuses before Play");
+    assert_eq!(refusal, "browser-bound");
+}
+
+fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
+    let (mut session, mut effect) = BookSession::prepare(
+        "browser/book-state-time",
+        "browser-boot/book-state-time",
+        source,
+        19,
+    )
+    .unwrap();
+    let mut trace = Vec::new();
+    loop {
+        match effect {
+            BookHostEffect::Manifestation(ref manifestation) => trace.push(format!(
+                "manifestation:{}:{}",
+                manifestation.text.as_deref().unwrap_or("missing"),
+                manifestation.observation_sequence
+            )),
+            BookHostEffect::Timer(ref timer) => trace.push(format!(
+                "timer:{}:{}",
+                timer.duration_millis, timer.request_sequence
+            )),
+        }
+        match session.advance().unwrap() {
+            BookProgress::Effect(next) => effect = *next,
+            BookProgress::Receipt(receipt) => {
+                assert_eq!(receipt.disposition, "completed");
+                return (
+                    trace,
+                    (receipt.timer_completions, receipt.manifestation_completions),
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn pending_browser_timer_cancels_without_becoming_a_completed_tick() {
+    let source = r#"form count-over-time {
+    count: state/count(start = 0)
+    show: presentation/count(maximum-values = 5)
+    clock: time/every(freq = 100ms)
+
+    clock.tick > count.bump
+    count.value > show.value
+}
+"#;
+    let (session, initial) = BookSession::prepare(
+        "browser/book-state-time-cancel",
+        "browser-boot/book-state-time-cancel",
+        source,
+        21,
+    )
+    .unwrap();
+    assert!(matches!(initial, BookHostEffect::Timer(_)));
+    let receipt = session.cancel().unwrap();
+    assert_eq!(receipt.disposition, "cancelled");
+    assert_eq!(receipt.timer_completions, 0);
+    assert_eq!(receipt.manifestation_completions, 0);
 }
 
 #[test]
@@ -121,6 +249,7 @@ fn unchanged_morse_caller_substitutes_direct_and_nested_recursive_realizations()
         10,
     )
     .unwrap();
+    let direct = manifestation(direct);
     let (recursive_session, recursive) = BookSession::prepare_recursive(
         "browser/book-test",
         "browser-boot/book-test",
@@ -128,6 +257,7 @@ fn unchanged_morse_caller_substitutes_direct_and_nested_recursive_realizations()
         11,
     )
     .unwrap();
+    let recursive = manifestation(recursive);
 
     assert_eq!(direct.source_document_id, recursive.source_document_id);
     assert_eq!(direct.checked_form_id, recursive.checked_form_id);

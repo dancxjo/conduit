@@ -32,25 +32,40 @@ pub(super) type BookScheduler = FixedScheduler<
     BROWSER_PENDING_REQUESTS,
 >;
 
-pub(super) struct PendingManifestation {
+pub(super) struct PendingHostEffect {
     pub request: HostOperationRequest,
-    pub manifestation: BrowserManifestation,
+    pub effect: BrowserHostEffect,
+}
+
+pub(super) enum BrowserHostEffect {
+    Timer { duration_millis: u64 },
+    Manifestation(BrowserManifestation),
+}
+
+pub(super) enum DriveStatus {
+    Effect(PendingHostEffect),
+    Complete,
 }
 
 pub(super) fn prepare(
     fragment: &PlanFragment,
-) -> Result<(BookScheduler, PendingManifestation), String> {
+) -> Result<(BookScheduler, PendingHostEffect), String> {
     let lowered = lower_plan_fragment(fragment)
         .map_err(|error| format!("lower executable-book Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered)?;
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
-    let pending = drive_to_manifestation(&mut scheduler, fragment)?;
+    let pending = match drive(&mut scheduler, fragment)? {
+        DriveStatus::Effect(pending) => pending,
+        DriveStatus::Complete => {
+            return Err("book Play completed without a planned Host effect".into())
+        }
+    };
     Ok((scheduler, pending))
 }
 
-pub(super) fn complete_manifestation(
+pub(super) fn complete_host_effect(
     scheduler: &mut BookScheduler,
-    pending: &PendingManifestation,
+    pending: &PendingHostEffect,
 ) -> Result<(), String> {
     scheduler
         .complete_host_operation(
@@ -65,14 +80,70 @@ pub(super) fn complete_manifestation(
         .map_err(debug_error)
 }
 
-pub(super) fn drive_to_completion(scheduler: &mut BookScheduler) -> Result<(), String> {
+pub(super) fn drive(
+    scheduler: &mut BookScheduler,
+    fragment: &PlanFragment,
+) -> Result<DriveStatus, String> {
     loop {
-        if scheduler.next_host_request().is_some() {
-            return Err("book Play requested an unhandled second manifestation".into());
+        if let Some(request) = scheduler.next_host_request() {
+            let placement = fragment
+                .placements
+                .get(usize::from(request.node.0))
+                .ok_or_else(|| "browser request has no planned placement".to_string())?;
+            let operation = placement
+                .host_operations
+                .get(usize::from(request.operation.0))
+                .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+            let input = scheduler
+                .host_value(request.input.value)
+                .map_err(debug_error)?
+                .to_vec();
+            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT {
+                let duration_millis = decode_timer_duration(operation, &input)?;
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::Timer { duration_millis },
+                }));
+            }
+            let installation = factory(&placement.implementation_id)
+                .ok_or_else(|| "browser request implementation is not installed".to_string())?;
+            let perform = installation.perform.ok_or_else(|| {
+                "local browser implementation requested an unknown Host operation".to_string()
+            })?;
+            let result = perform(placement, &input)?;
+            match (result.output, result.manifestation) {
+                (Some(output), None) => {
+                    let output = scheduler.store_host_value(&output).map_err(debug_error)?;
+                    scheduler
+                        .complete_host_operation(
+                            request.node,
+                            request.request,
+                            HostOperationOutcome {
+                                disposition: HostOperationDisposition::Completed,
+                                output: Some(
+                                    BoundedValueRef::new(output, operation.maximum_output_bytes)
+                                        .map_err(|_| {
+                                            "browser Host output exceeded its planned bound"
+                                        })?,
+                                ),
+                                failure: None,
+                            },
+                        )
+                        .map_err(debug_error)?;
+                }
+                (None, Some(manifestation)) => {
+                    return Ok(DriveStatus::Effect(PendingHostEffect {
+                        request,
+                        effect: BrowserHostEffect::Manifestation(manifestation),
+                    }));
+                }
+                _ => return Err("browser Host result has an invalid output shape".into()),
+            }
+            continue;
         }
         match scheduler.step().map_err(debug_error)? {
             SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => return Ok(()),
+            SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
             SchedulerStatus::Idle => return Err("book Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("book Play was cancelled".into()),
         }
@@ -198,68 +269,23 @@ fn prepare_scheduler(
     .map_err(debug_error)
 }
 
-fn drive_to_manifestation(
-    scheduler: &mut BookScheduler,
-    fragment: &PlanFragment,
-) -> Result<PendingManifestation, String> {
-    loop {
-        if let Some(request) = scheduler.next_host_request() {
-            let placement = fragment
-                .placements
-                .get(usize::from(request.node.0))
-                .ok_or_else(|| "browser request has no planned placement".to_string())?;
-            let installation = factory(&placement.implementation_id)
-                .ok_or_else(|| "browser request implementation is not installed".to_string())?;
-            let perform = installation.perform.ok_or_else(|| {
-                "local browser implementation requested a Host operation".to_string()
-            })?;
-            let input = scheduler
-                .host_value(request.input.value)
-                .map_err(debug_error)?
-                .to_vec();
-            let result = perform(placement, &input)?;
-            match (result.output, result.manifestation) {
-                (Some(output), None) => {
-                    let output = scheduler.store_host_value(&output).map_err(debug_error)?;
-                    scheduler
-                        .complete_host_operation(
-                            request.node,
-                            request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
-                                output: Some(
-                                    BoundedValueRef::new(
-                                        output,
-                                        placement.host_operations[0].maximum_output_bytes,
-                                    )
-                                    .map_err(|_| {
-                                        "browser Host output exceeded its planned bound"
-                                    })?,
-                                ),
-                                failure: None,
-                            },
-                        )
-                        .map_err(debug_error)?;
-                }
-                (None, Some(manifestation)) => {
-                    return Ok(PendingManifestation {
-                        request,
-                        manifestation,
-                    });
-                }
-                _ => return Err("browser Host result has an invalid output shape".into()),
-            }
-            continue;
-        }
-        match scheduler.step().map_err(debug_error)? {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => {
-                return Err("book Play completed without a planned manifestation".into())
-            }
-            SchedulerStatus::Idle => return Err("book Play became idle".into()),
-            SchedulerStatus::Cancelled => return Err("book Play was cancelled".into()),
-        }
+fn decode_timer_duration(
+    operation: &conduit_core::HostOperationRequirement,
+    input: &[u8],
+) -> Result<u64, String> {
+    if operation.target_kind.is_some()
+        || operation.maximum_in_flight != 1
+        || operation.maximum_input_bytes != conduit_time::TICK_ENCODED_LEN
+        || operation.maximum_output_bytes != 0
+    {
+        return Err("planned browser timer operation has the wrong exact contract".into());
     }
+    let duration_millis = conduit_core::decode_monotonic_duration(input)
+        .map_err(|error| format!("decode browser timer duration: {error:?}"))?;
+    if duration_millis > crate::installed_browser::BROWSER_TIMER_MAXIMUM_MILLIS {
+        return Err("browser timer duration exceeds its admitted implementation bound".into());
+    }
+    Ok(duration_millis)
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {

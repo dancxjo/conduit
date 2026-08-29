@@ -3,128 +3,45 @@
 mod abi;
 mod engine;
 mod interaction;
+mod protocol;
 
 use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
-    SignIdentity,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
-use serde::Serialize;
+pub(super) use protocol::refusal;
+use protocol::{
+    decode_manifestation, receipt, BookBackEvidence, BookEffect, BookGearEvidence, BookHostEffect,
+    BookProgress, BookReceipt, BookTimerEffect,
+};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub(super) struct IndicatorSegment {
-    level: bool,
-    units: u8,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct BookEffect {
-    schema: &'static str,
-    source_document_id: String,
-    checked_form_id: String,
-    expanded_form_id: String,
-    plan_id: String,
-    fragment_id: String,
-    active_play_id: String,
-    presentation_id: String,
-    placement_id: String,
-    host_id: String,
-    boot_id: String,
-    presentation_kind: String,
-    realization: &'static str,
-    expanded_gears: Vec<BookGearEvidence>,
-    realization_backs: Vec<BookBackEvidence>,
-    unit_millis: u16,
-    segments: Vec<IndicatorSegment>,
-    text: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    source_interaction: Option<interaction::SourceInteractionEvidence>,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct BookGearEvidence {
-    gear_id: String,
-    kind_id: String,
-    implementation_id: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct BookBackEvidence {
-    invocation_path: String,
-    kind_id: String,
-    checked_form_id: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct BookReceipt {
-    schema: &'static str,
-    disposition: &'static str,
-    active_play_id: String,
-    presentation_id: String,
-    terminal_sign_id: String,
-}
-
-#[derive(Debug, Serialize)]
-pub(super) struct BookRefusal {
-    schema: &'static str,
-    disposition: &'static str,
-    category: &'static str,
-    message: String,
-}
-
-pub(super) fn refusal(message: String) -> BookRefusal {
-    let category = if message.contains("finite browser execution envelope")
-        || message.contains("limit")
-        || message.contains("Limit")
-        || message.contains("bound")
-        || message.contains("exceed")
-        || message.contains("maximum")
-        || message.contains("capacity")
-    {
-        "browser-bound"
-    } else if message.starts_with("parse ") || message.starts_with("check ") {
-        "type-or-source"
-    } else if message.starts_with("expand recursive ") {
-        "recursive-expansion"
-    } else if message.starts_with("expand ") {
-        "type-or-source"
-    } else if message.starts_with("place ") {
-        "missing-implementation-or-placement"
-    } else if message.contains("authority") || message.contains("Authority") {
-        "authority"
-    } else if message.contains("resource") || message.contains("Resource") {
-        "resource"
-    } else {
-        "planning-or-preparation"
-    };
-    BookRefusal {
-        schema: "conduit.book/refusal@1",
-        disposition: "refused-before-play",
-        category,
-        message,
-    }
-}
-
-pub(super) struct BookSession {
+struct BookSession {
     scheduler: engine::BookScheduler,
-    pending: engine::PendingManifestation,
+    pending: engine::PendingHostEffect,
+    fragment: PlanFragment,
     active_play_id: conduit_core::ActivePlayId,
-    presentation: PresentationIdentity,
+    latest_presentation: Option<PresentationIdentity>,
     host_id: conduit_core::HostId,
     boot_id: conduit_core::BootId,
+    realization: MorseRealization,
+    expanded_gears: Vec<BookGearEvidence>,
+    realization_backs: Vec<BookBackEvidence>,
+    source_interaction: Option<interaction::SourceInteractionEvidence>,
+    timer_completions: u32,
+    manifestation_completions: u32,
 }
 
 impl BookSession {
-    pub(super) fn prepare(
+    fn prepare(
         host_id: &str,
         boot_id: &str,
         source: &str,
         play_sequence: u64,
-    ) -> Result<(Self, BookEffect), String> {
+    ) -> Result<(Self, BookHostEffect), String> {
         Self::prepare_with_realization(
             host_id,
             boot_id,
@@ -134,12 +51,12 @@ impl BookSession {
         )
     }
 
-    pub(super) fn prepare_recursive(
+    fn prepare_recursive(
         host_id: &str,
         boot_id: &str,
         source: &str,
         play_sequence: u64,
-    ) -> Result<(Self, BookEffect), String> {
+    ) -> Result<(Self, BookHostEffect), String> {
         Self::prepare_with_realization(
             host_id,
             boot_id,
@@ -155,7 +72,7 @@ impl BookSession {
         source: &str,
         play_sequence: u64,
         realization: MorseRealization,
-    ) -> Result<(Self, BookEffect), String> {
+    ) -> Result<(Self, BookHostEffect), String> {
         let (startup, catalog) = catalogs()?;
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
@@ -233,59 +150,67 @@ impl BookSession {
             &fragment.boot_id,
             play_sequence,
         );
-        let placement = fragment
-            .placements
-            .get(usize::from(pending.request.node.0))
-            .ok_or_else(|| "manifestation has no planned placement".to_string())?;
-        let presentation = bind_presentation(&active.active_play_id, &placement.placement_id, 0);
-        let manifestation = decode_manifestation(&pending.manifestation)?;
-        let effect = BookEffect {
-            schema: "conduit.book/manifestation-effect@2",
-            source_document_id: fragment.source_document_id.as_str().into(),
-            checked_form_id: fragment.checked_form_id.as_str().into(),
-            expanded_form_id: fragment.expanded_form_id.as_str().into(),
-            plan_id: fragment.plan_id.as_str().into(),
-            fragment_id: fragment.fragment_id.as_str().into(),
-            active_play_id: active.active_play_id.as_str().into(),
-            presentation_id: presentation.presentation_id.as_str().into(),
-            placement_id: placement.placement_id.as_str().into(),
-            host_id: fragment.host_id.as_str().into(),
-            boot_id: fragment.boot_id.as_str().into(),
-            presentation_kind: pending.manifestation.kind_id.into(),
-            realization: realization.as_str(),
+        let mut session = Self {
+            scheduler,
+            pending,
+            fragment: fragment.clone(),
+            active_play_id: active.active_play_id,
+            latest_presentation: None,
+            host_id: fragment.host_id.clone(),
+            boot_id: fragment.boot_id.clone(),
+            realization,
             expanded_gears,
             realization_backs,
-            unit_millis: manifestation.unit_millis,
-            segments: manifestation.segments,
-            text: manifestation.text,
             source_interaction: None,
+            timer_completions: 0,
+            manifestation_completions: 0,
         };
-        Ok((
-            Self {
-                scheduler,
-                pending,
-                active_play_id: active.active_play_id,
-                presentation,
-                host_id: fragment.host_id.clone(),
-                boot_id: fragment.boot_id.clone(),
-            },
-            effect,
-        ))
+        let effect = session.project_pending_effect()?;
+        Ok((session, effect))
     }
 
-    pub(super) fn complete(mut self) -> Result<BookReceipt, String> {
-        engine::complete_manifestation(&mut self.scheduler, &self.pending)?;
-        engine::drive_to_completion(&mut self.scheduler)?;
-        let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
-        Ok(receipt(
-            "completed",
-            &self.active_play_id,
-            &self.presentation,
-            &sign,
-        ))
+    fn attach_source_interaction(
+        &mut self,
+        effect: &mut BookHostEffect,
+        source_interaction: interaction::SourceInteractionEvidence,
+    ) {
+        self.source_interaction = Some(source_interaction.clone());
+        effect.attach_source_interaction(source_interaction);
     }
 
-    pub(super) fn cancel(mut self) -> Result<BookReceipt, String> {
+    fn advance(&mut self) -> Result<BookProgress, String> {
+        let completed_timer =
+            matches!(self.pending.effect, engine::BrowserHostEffect::Timer { .. });
+        engine::complete_host_effect(&mut self.scheduler, &self.pending)?;
+        if completed_timer {
+            self.timer_completions = self.timer_completions.saturating_add(1);
+        } else {
+            self.manifestation_completions = self.manifestation_completions.saturating_add(1);
+        }
+        match engine::drive(&mut self.scheduler, &self.fragment)? {
+            engine::DriveStatus::Effect(pending) => {
+                self.pending = pending;
+                Ok(BookProgress::Effect(Box::new(
+                    self.project_pending_effect()?,
+                )))
+            }
+            engine::DriveStatus::Complete => {
+                Ok(BookProgress::Receipt(Box::new(self.completed_receipt())))
+            }
+        }
+    }
+
+    #[cfg(test)]
+    fn complete(mut self) -> Result<BookReceipt, String> {
+        match self.advance()? {
+            BookProgress::Receipt(receipt) => Ok(*receipt),
+            BookProgress::Effect(_) => {
+                Err("book Play requested another Host effect before completion".into())
+            }
+        }
+    }
+
+    fn cancel(mut self) -> Result<BookReceipt, String> {
         self.scheduler
             .cancel()
             .map_err(|error| format!("{error:?}"))?;
@@ -293,9 +218,80 @@ impl BookSession {
         Ok(receipt(
             "cancelled",
             &self.active_play_id,
-            &self.presentation,
+            self.latest_presentation.as_ref(),
             &sign,
+            self.timer_completions,
+            self.manifestation_completions,
         ))
+    }
+
+    fn project_pending_effect(&mut self) -> Result<BookHostEffect, String> {
+        let placement = self
+            .fragment
+            .placements
+            .get(usize::from(self.pending.request.node.0))
+            .ok_or_else(|| "Host effect has no planned placement".to_string())?;
+        match &self.pending.effect {
+            engine::BrowserHostEffect::Timer { duration_millis } => {
+                Ok(BookHostEffect::Timer(Box::new(BookTimerEffect {
+                    schema: "conduit.book/timer-effect@1",
+                    effect_kind: "timer",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: self.pending.request.request.0,
+                    duration_millis: *duration_millis,
+                    source_interaction: self.source_interaction.clone(),
+                })))
+            }
+            engine::BrowserHostEffect::Manifestation(manifestation) => {
+                let observation_sequence = self.pending.request.request.0;
+                let presentation = bind_presentation(
+                    &self.active_play_id,
+                    &placement.placement_id,
+                    u64::from(observation_sequence),
+                );
+                let (unit_millis, segments, text) = decode_manifestation(manifestation)?;
+                let effect = BookEffect {
+                    schema: "conduit.book/manifestation-effect@3",
+                    effect_kind: "manifestation",
+                    source_document_id: self.fragment.source_document_id.as_str().into(),
+                    checked_form_id: self.fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: self.fragment.expanded_form_id.as_str().into(),
+                    plan_id: self.fragment.plan_id.as_str().into(),
+                    fragment_id: self.fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    presentation_id: presentation.presentation_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    presentation_kind: manifestation.kind_id.into(),
+                    observation_sequence,
+                    realization: self.realization.as_str(),
+                    expanded_gears: self.expanded_gears.clone(),
+                    realization_backs: self.realization_backs.clone(),
+                    unit_millis,
+                    segments,
+                    text,
+                    source_interaction: self.source_interaction.clone(),
+                };
+                self.latest_presentation = Some(presentation);
+                Ok(BookHostEffect::Manifestation(Box::new(effect)))
+            }
+        }
+    }
+
+    fn completed_receipt(&self) -> BookReceipt {
+        let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
+        receipt(
+            "completed",
+            &self.active_play_id,
+            self.latest_presentation.as_ref(),
+            &sign,
+            self.timer_completions,
+            self.manifestation_completions,
+        )
     }
 }
 
@@ -311,106 +307,6 @@ impl MorseRealization {
             Self::Direct => "direct",
             Self::Recursive => "recursive",
         }
-    }
-}
-
-struct DecodedManifestation {
-    unit_millis: u16,
-    segments: Vec<IndicatorSegment>,
-    text: Option<String>,
-}
-
-fn decode_manifestation(
-    manifestation: &crate::installed_browser::BrowserManifestation,
-) -> Result<DecodedManifestation, String> {
-    match manifestation.kind_id {
-        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => {
-            let pattern = conduit_text::MorsePattern::decode(&manifestation.canonical_value)
-                .map_err(|error| format!("decode planned indicator effect: {error:?}"))?;
-            Ok(DecodedManifestation {
-                unit_millis: pattern.unit_millis,
-                segments: pattern
-                    .segments
-                    .into_iter()
-                    .map(|segment| IndicatorSegment {
-                        level: segment.level,
-                        units: segment.units,
-                    })
-                    .collect(),
-                text: None,
-            })
-        }
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND => {
-            let text = String::from_utf8(manifestation.canonical_value.clone())
-                .map_err(|_| "planned text manifestation is not UTF-8")?;
-            Ok(DecodedManifestation {
-                unit_millis: 0,
-                segments: Vec::new(),
-                text: Some(text),
-            })
-        }
-        conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND => {
-            let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
-                &manifestation.canonical_value,
-            )
-            .map_err(|error| format!("decode structured manifestation: {error:?}"))?;
-            if value.value_type() != &conduit_language::annotation_bundle_four_type() {
-                return Err("structured manifestation has the wrong exact type".into());
-            }
-            Ok(DecodedManifestation {
-                unit_millis: 0,
-                segments: Vec::new(),
-                text: Some(format!(
-                    "4 linguistic annotations · {} canonical bytes",
-                    manifestation.canonical_value.len()
-                )),
-            })
-        }
-        conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND => {
-            let scalar = conduit_core::Scalar::decode(&manifestation.canonical_value)
-                .map_err(|error| format!("decode scalar manifestation: {error:?}"))?;
-            Ok(DecodedManifestation {
-                unit_millis: 0,
-                segments: Vec::new(),
-                text: Some(format_scalar(scalar)),
-            })
-        }
-        conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND => {
-            let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
-                .map_err(|error| format!("decode Boolean manifestation: {error:?}"))?;
-            Ok(DecodedManifestation {
-                unit_millis: 0,
-                segments: Vec::new(),
-                text: Some(value.get().to_string()),
-            })
-        }
-        _ => Err("browser manifestation Kind is not installed in the book surface".into()),
-    }
-}
-
-fn format_scalar(value: conduit_core::Scalar) -> String {
-    let raw = i128::from(value.raw_microunits());
-    let magnitude = raw.abs();
-    format!(
-        "{}{}.{:06}",
-        if raw < 0 { "-" } else { "" },
-        magnitude / i128::from(conduit_core::Scalar::SCALE),
-        magnitude % i128::from(conduit_core::Scalar::SCALE)
-    )
-}
-
-fn receipt(
-    disposition: &'static str,
-    active_play_id: &conduit_core::ActivePlayId,
-    presentation: &PresentationIdentity,
-    sign: &SignIdentity,
-) -> BookReceipt {
-    BookReceipt {
-        schema: "conduit.book/manifestation-receipt@2",
-        disposition,
-        active_play_id: active_play_id.as_str().into(),
-        presentation_id: presentation.presentation_id.as_str().into(),
-        terminal_sign_id: sign.sign_id.as_str().into(),
     }
 }
 
