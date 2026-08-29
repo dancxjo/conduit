@@ -12,6 +12,7 @@ let running = false;
 let runnerCount = 0;
 let activeRunner = null;
 let activeDelay = null;
+let cancelActiveKeyEvent = null;
 let currentStep = 0;
 let steps = [];
 const sourceDrafts = new Map();
@@ -42,7 +43,7 @@ function requireBookAbi(api) {
   const required = [
     "memory", "conduit_book_input_ptr", "conduit_book_input_capacity",
     "conduit_book_output_ptr", "conduit_book_output_len", "conduit_book_start",
-    "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_cancel",
+    "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_complete_with_output", "conduit_book_cancel",
     "conduit_book_inventory", "conduit_book_admit_source_interaction",
     "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
     "conduit_book_multi_output_ptr", "conduit_book_multi_output_len",
@@ -567,6 +568,38 @@ function nextPaint(expectedGeneration) {
   return new Promise((resolve) => requestAnimationFrame(() => resolve(expectedGeneration === generation)));
 }
 
+function nextKeyEvent(expectedGeneration) {
+  return new Promise((resolve) => {
+    cancelActiveKeyEvent?.();
+    const onKeyDown = (event) => {
+      const usage = browserKeyboardUsage(event.code);
+      if (usage === null) return;
+      event.preventDefault();
+      globalThis.removeEventListener("keydown", onKeyDown, true);
+      cancelActiveKeyEvent = null;
+      if (expectedGeneration !== generation) return resolve(null);
+      const modifiers = (event.ctrlKey ? 1 : 0)
+        | (event.shiftKey ? 2 : 0)
+        | (event.altKey ? 4 : 0)
+        | (event.metaKey ? 8 : 0);
+      resolve(Uint8Array.of(usage, 0, modifiers));
+    };
+    cancelActiveKeyEvent = () => {
+      globalThis.removeEventListener("keydown", onKeyDown, true);
+      cancelActiveKeyEvent = null;
+      resolve(null);
+    };
+    globalThis.addEventListener("keydown", onKeyDown, { capture: true, once: false });
+  });
+}
+
+function browserKeyboardUsage(code) {
+  if (/^Key[A-Z]$/.test(code)) return 0x04 + code.charCodeAt(3) - 65;
+  if (/^Digit[1-9]$/.test(code)) return 0x1e + Number(code.slice(5)) - 1;
+  if (code === "Digit0") return 0x27;
+  return ({ Enter: 0x28, Escape: 0x29, Backspace: 0x2a, Tab: 0x2b, Space: 0x2c })[code] ?? null;
+}
+
 function finishRun(runner) {
   activeMemoryLine = null;
   running = false;
@@ -635,6 +668,15 @@ async function runListing(runner, source, recursive) {
       if (progress.effect_kind === "timer") {
         status.textContent = `Waiting for planned tick · ${progress.duration_millis} ms`;
         if (!await delay(progress.duration_millis, current)) return;
+      } else if (progress.effect_kind === "key-event") {
+        status.textContent = "Waiting for one admitted keyboard transition…";
+        const encoded = await nextKeyEvent(current);
+        if (!encoded) return;
+        new Uint8Array(api.memory.buffer, api.conduit_book_input_ptr(), encoded.length).set(encoded);
+        const completion = api.conduit_book_complete_with_output(encoded.length);
+        if (completion < 0) throw new Error(`keyboard completion refused (${completion})`);
+        progress = readOutput(api);
+        continue;
       } else if (progress.effect_kind === "manifestation") {
         runner.querySelector(".morse").textContent =
           progress.text ?? renderMorse(progress.segments);
@@ -679,6 +721,7 @@ async function runListing(runner, source, recursive) {
 function stopListing(runner) {
   generation += 1;
   cancelDelay();
+  cancelActiveKeyEvent?.();
   if (running && runner.dataset.mode === "multi") cancelMultiSessions();
   else if (running) host.runtime.conduit_book_cancel();
   running = false;

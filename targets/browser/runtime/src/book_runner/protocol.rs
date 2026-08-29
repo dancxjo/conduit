@@ -51,10 +51,25 @@ pub(super) struct BookTimerEffect {
 }
 
 #[derive(Debug, Serialize)]
+pub(super) struct BookKeyEventEffect {
+    pub(super) schema: &'static str,
+    pub(super) effect_kind: &'static str,
+    pub(super) active_play_id: String,
+    pub(super) placement_id: String,
+    pub(super) host_id: String,
+    pub(super) boot_id: String,
+    pub(super) request_sequence: u32,
+    pub(super) maximum_output_bytes: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) source_interaction: Option<SourceInteractionEvidence>,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(super) enum BookHostEffect {
     Manifestation(Box<BookEffect>),
     Timer(Box<BookTimerEffect>),
+    KeyEvent(Box<BookKeyEventEffect>),
 }
 
 impl BookHostEffect {
@@ -65,6 +80,7 @@ impl BookHostEffect {
         match self {
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Timer(effect) => effect.source_interaction = Some(source_interaction),
+            Self::KeyEvent(effect) => effect.source_interaction = Some(source_interaction),
         }
     }
 }
@@ -193,6 +209,11 @@ pub(super) fn decode_manifestation(
         conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND => {
             let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode Boolean manifestation: {error:?}"))?;
+            Ok((0, Vec::new(), Some(value.get().to_string())))
+        }
+        conduit_semantic_catalog::BOOL_PRESENTATION_KIND => {
+            let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
+                .map_err(|error| format!("decode current Boolean manifestation: {error:?}"))?;
             Ok((0, Vec::new(), Some(value.get().to_string())))
         }
         conduit_semantic_catalog::COUNT_PRESENTATION_KIND => {

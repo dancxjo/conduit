@@ -38,58 +38,11 @@ pub(crate) fn inventory() -> InventoryDocument {
             reason: "advertised by the same finite browser Host profile used for planning",
         })
         .collect::<Vec<_>>();
-    entries.extend([
-        unsupported(
-            conduit_semantic_catalog::LOGIC_SELECT_KIND,
-            "logic",
-            "semantic-contract-browser-implementation-missing",
-            "the checked scalar selector exists, but this browser installation has no kernel adapter",
-        ),
-        unsupported(
-            conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND,
-            "layout",
-            "semantic-contract-browser-implementation-missing",
-            "layout meaning exists, but the book Host does not yet install a LayoutFrame realization",
-        ),
-        unsupported(
-            conduit_semantic_catalog::TIME_DELAY_KIND,
-            "time",
-            "browser-resource-or-authority-pending",
-            "truthful deadlines require an admitted browser timer operation rather than synchronous emulation",
-        ),
-        unsupported(
-            conduit_semantic_catalog::KEYBOARD_KIND,
-            "interaction",
-            "browser-resource-or-authority-pending",
-            "keyboard acquisition and use authority remain distinct from catalog presence",
-        ),
-        unsupported(
-            conduit_semantic_catalog::BOOL_PRESENTATION_KIND,
-            "presentation",
-            "semantic-contract-browser-implementation-missing",
-            "the current-state Boolean presenter has different temporal meaning from the installed one-value presenter",
-        ),
-    ]);
     entries.sort_by(|left, right| left.kind_id.cmp(&right.kind_id));
     InventoryDocument {
         schema: "conduit.browser/installed-gear-inventory@1",
         limits: super::envelope_limits(),
         entries,
-    }
-}
-
-fn unsupported(
-    kind_id: &str,
-    family: &'static str,
-    classification: &'static str,
-    reason: &'static str,
-) -> InventoryEntry {
-    InventoryEntry {
-        kind_id: kind_id.into(),
-        family,
-        classification,
-        implementation_id: None,
-        reason,
     }
 }
 
@@ -112,19 +65,22 @@ fn family(kind: &str) -> &'static str {
         conduit_semantic_catalog::MATH_CLAMP_KIND
         | conduit_semantic_catalog::MATH_SCALE_KIND
         | conduit_semantic_catalog::MATH_DEADBAND_KIND => "math",
-        conduit_semantic_catalog::LOGIC_COMPARE_KIND | conduit_semantic_catalog::LOGIC_NOT_KIND => {
-            "logic"
-        }
+        conduit_semantic_catalog::LOGIC_COMPARE_KIND
+        | conduit_semantic_catalog::LOGIC_NOT_KIND
+        | conduit_semantic_catalog::LOGIC_SELECT_KIND => "logic",
         conduit_semantic_catalog::SCALAR_LITERAL_KIND
         | conduit_semantic_catalog::BOOL_LITERAL_KIND => "typed-values",
-        conduit_time::TIME_EVERY_KIND => "time",
+        conduit_time::TIME_EVERY_KIND | conduit_semantic_catalog::TIME_DELAY_KIND => "time",
+        conduit_semantic_catalog::KEYBOARD_KIND => "interaction",
+        conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => "layout",
         conduit_semantic_catalog::STATE_COUNT_KIND => "state",
         conduit_semantic_catalog::TEXT_PRESENTATION_KIND
         | conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
         | conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
         | conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND
         | conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND
-        | conduit_semantic_catalog::COUNT_PRESENTATION_KIND => "presentation",
+        | conduit_semantic_catalog::COUNT_PRESENTATION_KIND
+        | conduit_semantic_catalog::BOOL_PRESENTATION_KIND => "presentation",
         _ => "other-installed",
     }
 }
@@ -155,6 +111,11 @@ mod tests {
             "browser/kernel-time-every@1",
             "browser/kernel-state-count@1",
             "browser/presentation-count@1",
+            "browser/kernel-logic-select-scalar@1",
+            "browser/kernel-layout-viewport@1",
+            "browser/kernel-time-delay-bool@1",
+            "browser/window-keyboard@1",
+            "browser/presentation-bool@1",
         ] {
             assert!(installed.contains(implementation));
         }
@@ -173,15 +134,10 @@ mod tests {
                 .len()
                 >= 6
         );
-        for entry in inventory.entries.iter().filter(|entry| {
-            entry.classification == "semantic-contract-browser-implementation-missing"
-        }) {
-            let (_, profile) = super::super::catalogs().unwrap();
-            assert!(profile
-                .get(&conduit_core::kind_id(&entry.kind_id))
-                .is_some());
-            assert!(entry.implementation_id.is_none());
-        }
+        assert!(inventory
+            .entries
+            .iter()
+            .all(|entry| entry.implementation_id.is_some()));
         assert_eq!(inventory.limits.maximum_gears, 16);
         assert_eq!(inventory.limits.maximum_cords, 24);
         assert_eq!(inventory.limits.maximum_value_bytes, 4_096);
