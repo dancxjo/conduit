@@ -70,7 +70,7 @@ jobs:
       - name: Build the exact browser Host and runtime
         run: |
           cargo build --locked -p conduit-browser-host
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
       - name: Prove only the executable book in pinned Chromium
         run: >-
           npx playwright test
