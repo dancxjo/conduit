@@ -138,7 +138,7 @@ test("Tour navigation preserves drafts but reset and restart change presentation
   await page.getByRole("button", { name: "Previous" }).click();
   await expect(page.locator("textarea")).toHaveValue(edited);
   await page.getByRole("button", { name: "Reset this step" }).click();
-  await expect(page.locator("textarea")).toContainText('"hello"');
+  await expect(page.locator("textarea")).toHaveValue(/"hello"/);
   await page.getByRole("button", { name: "Restart Tour" }).click();
   await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 7");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
