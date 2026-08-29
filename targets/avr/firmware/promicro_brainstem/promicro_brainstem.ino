@@ -46,6 +46,7 @@ CreateSerial create_serial;
 conduit::promicro::ObligationSlot create_obligation;
 conduit::promicro::CreateGroupZeroExecutor<CreateSerial> create_executor;
 bool terminal_reported = false;
+uint8_t create_tx_bytes = 0;
 #endif
 
 void write_hex(uint32_t value, uint8_t digits) {
@@ -99,7 +100,13 @@ const char* activation_result(conduit::promicro::ActivationResult result) {
 void respond_status() {
   WRITE_TEXT(
       "STATUS schema=conduit.pete/promicro-brainstem@1 create_uart=isolated "
-      "create_tx_bytes=0 boot_binding=");
+      "create_tx_bytes=");
+#if defined(CONDUIT_CREATE_HIL)
+  Serial.print(create_tx_bytes);
+#else
+  Serial.print(0);
+#endif
+  WRITE_TEXT(" boot_binding=");
   Serial.write(lifecycle.boot_bound() ? "bound" : "absent");
   WRITE_TEXT(" activation=");
   Serial.write(lifecycle.activation_admitted() ? "admitted" : "absent");
@@ -177,6 +184,11 @@ void respond_execution() {
       lifecycle, create_obligation, execution.plan_fragment_id,
       execution.operation_id, execution.deadline_ms, millis(), create_serial);
   terminal_reported = result != conduit::promicro::HilStartResult::kStarted;
+  if (result == conduit::promicro::HilStartResult::kStarted) {
+    create_tx_bytes = static_cast<uint8_t>(
+        create_tx_bytes + conduit::promicro::kCreateSetupByteCount +
+        conduit::promicro::kCreateRequestByteCount);
+  }
   WRITE_TEXT("EXECUTION schema=conduit.pete/create-group-zero@1 outcome=");
   Serial.write(hil_start_result(result));
   WRITE_TEXT(" plan_fragment=");
@@ -226,6 +238,40 @@ void report_terminal_execution() {
   write_hex(evidence.response_bytes, 2);
   if (evidence.payload_valid) {
     WRITE_TEXT(" payload=valid");
+    const conduit::promicro::GroupZeroSample& sample =
+        create_executor.sample();
+    WRITE_TEXT(" bump_drop=");
+    write_hex(sample.bump_and_wheel_drop, 2);
+    WRITE_TEXT(" wall=");
+    Serial.print(sample.wall ? 1 : 0);
+    WRITE_TEXT(" cliffs=");
+    write_hex(sample.cliff_bits, 2);
+    WRITE_TEXT(" virtual_wall=");
+    Serial.print(sample.virtual_wall ? 1 : 0);
+    WRITE_TEXT(" wheel_overcurrents=");
+    write_hex(sample.wheel_overcurrents, 2);
+    WRITE_TEXT(" dirt=");
+    write_hex(sample.dirt_detect, 4);
+    WRITE_TEXT(" infrared=");
+    write_hex(sample.infrared, 2);
+    WRITE_TEXT(" buttons=");
+    write_hex(sample.buttons, 2);
+    WRITE_TEXT(" distance_mm=");
+    write_hex(static_cast<uint16_t>(sample.distance_delta_mm), 4);
+    WRITE_TEXT(" angle_degrees=");
+    write_hex(static_cast<uint16_t>(sample.angle_delta_degrees), 4);
+    WRITE_TEXT(" charging_state=");
+    write_hex(sample.charging_state, 2);
+    WRITE_TEXT(" millivolts=");
+    write_hex(sample.millivolts, 4);
+    WRITE_TEXT(" milliamps=");
+    write_hex(static_cast<uint16_t>(sample.milliamps), 4);
+    WRITE_TEXT(" temperature_c=");
+    write_hex(static_cast<uint8_t>(sample.temperature_celsius), 2);
+    WRITE_TEXT(" charge_mah=");
+    write_hex(sample.charge_mah, 4);
+    WRITE_TEXT(" capacity_mah=");
+    write_hex(sample.capacity_mah, 4);
   } else {
     WRITE_TEXT(" payload=absent");
   }
