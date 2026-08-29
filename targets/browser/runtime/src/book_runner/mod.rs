@@ -1,6 +1,7 @@
 //! Inline Forms executed by the ordinary finite browser Host installation.
 
 mod abi;
+mod body_lifecycle;
 mod engine;
 mod interaction;
 mod multihost;
