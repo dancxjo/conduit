@@ -118,8 +118,9 @@ jobs:
           cp targets/browser/host/assets/book.mjs "$site/book/"
           cp tour/book/chapter-1.md "$site/book/"
           cp tour/book/chapter-2.md "$site/book/"
+          cp tour/book/chapter-3.md "$site/book/"
           touch "$site/.nojekyll"
-          test "$(find "$site" -type f | wc -l)" = 8
+          test "$(find "$site" -type f | wc -l)" = 9
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
