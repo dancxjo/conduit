@@ -21,4 +21,4 @@ A Host is the running environment whose current truthful offers let the planner 
 
 <!-- conduit-host-inventory -->
 
-Available entries come from the same browser Host advertisement used to plan every listing above. Catalog meaning can exist without an installed implementation; editing a Form to require one still refuses before Play.
+Available entries come from the same browser Host advertisement used to plan every listing above. Catalog meaning can still exist without an installed implementation; editing a Form to require an unoffered Kind still refuses before Play.

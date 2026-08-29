@@ -17,7 +17,7 @@ use conduit_planner::{
 pub(super) use protocol::refusal;
 use protocol::{
     decode_manifestation, receipt, BookBackEvidence, BookEffect, BookGearEvidence, BookHostEffect,
-    BookProgress, BookReceipt, BookTimerEffect,
+    BookKeyEventEffect, BookProgress, BookReceipt, BookTimerEffect,
 };
 use std::collections::BTreeMap;
 
@@ -202,6 +202,21 @@ impl BookSession {
         }
     }
 
+    fn advance_with_output(&mut self, output: &[u8]) -> Result<BookProgress, String> {
+        engine::complete_host_effect_with_output(&mut self.scheduler, &self.pending, output)?;
+        match engine::drive(&mut self.scheduler, &self.fragment)? {
+            engine::DriveStatus::Effect(pending) => {
+                self.pending = pending;
+                Ok(BookProgress::Effect(Box::new(
+                    self.project_pending_effect()?,
+                )))
+            }
+            engine::DriveStatus::Complete => {
+                Ok(BookProgress::Receipt(Box::new(self.completed_receipt())))
+            }
+        }
+    }
+
     #[cfg(test)]
     fn complete(mut self) -> Result<BookReceipt, String> {
         match self.advance()? {
@@ -244,6 +259,19 @@ impl BookSession {
                     boot_id: self.boot_id.as_str().into(),
                     request_sequence: self.pending.request.request.0,
                     duration_millis: *duration_millis,
+                    source_interaction: self.source_interaction.clone(),
+                })))
+            }
+            engine::BrowserHostEffect::KeyEvent => {
+                Ok(BookHostEffect::KeyEvent(Box::new(BookKeyEventEffect {
+                    schema: "conduit.book/key-event-effect@1",
+                    effect_kind: "key-event",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: self.pending.request.request.0,
+                    maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
                     source_interaction: self.source_interaction.clone(),
                 })))
             }

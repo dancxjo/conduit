@@ -151,7 +151,7 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
   await listing.fill(`form unavailable {
     source: text/literal("still planned")
     result: presentation/text
-    missing: presentation/bool
+    missing: layout/inset
     source > result
   }`);
   await runner.getByRole("button", { name: "Run" }).click();
@@ -218,9 +218,9 @@ test("Step 8 shows the exact installed offers from the planning advertisement", 
   });
   expect(visibleInstalled).toEqual(advertisedInstalled);
   expect(visibleInstalled).toEqual(expect.arrayContaining([
-    "time/every", "state/count", "presentation/count",
+    "time/every", "state/count", "presentation/count", "logic/select",
+    "layout/viewport", "time/delay", "input/keyboard", "presentation/bool",
   ]));
-  await expect(inventory.locator("li.unavailable", { hasText: "input/keyboard" })).toHaveCount(1);
 });
 
 test("Step 9 executes one unchanged Form across two independent browser Hosts", async ({ page }) => {

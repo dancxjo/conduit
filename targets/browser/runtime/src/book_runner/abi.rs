@@ -192,6 +192,37 @@ pub extern "C" fn conduit_book_complete() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_book_complete_with_output(output_length: usize) -> i32 {
+    clear_output();
+    if output_length == 0 || output_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    SESSION.with(|slot| {
+        let Some(mut session) = slot.borrow_mut().take() else {
+            return ERROR_NOT_RUNNING;
+        };
+        INPUT.with(|input| {
+            let mut input = input.borrow_mut();
+            let progress = session
+                .advance_with_output(&input[..output_length])
+                .map_err(|_| ERROR_COMPLETE);
+            input[..output_length].fill(0);
+            match progress.and_then(|progress| {
+                let pending = matches!(progress, super::BookProgress::Effect(_));
+                write_output(&progress).map_err(|_| ERROR_OUTPUT)?;
+                if pending {
+                    *slot.borrow_mut() = Some(session);
+                }
+                Ok(())
+            }) {
+                Ok(()) => STATUS_READY,
+                Err(error) => error,
+            }
+        })
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_book_cancel() -> i32 {
     finish(true)
 }
