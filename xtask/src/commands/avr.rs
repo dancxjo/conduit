@@ -36,6 +36,9 @@ enum AvrCommand {
     Check,
     /// Build the exact fail-closed Pro Micro image and write a receipt.
     Build {
+        /// Compile the guarded Create HIL executor; it still boots isolated.
+        #[arg(long)]
+        create_hil: bool,
         #[arg(long, default_value = "target/avr-promicro/build-receipt.json")]
         receipt: PathBuf,
     },
@@ -51,6 +54,9 @@ enum AvrCommand {
         attended: bool,
         #[arg(long)]
         wheels_clear: bool,
+        /// Flash the guarded HIL artifact rather than the transmitter-free image.
+        #[arg(long)]
+        create_hil: bool,
         #[arg(long, default_value = "target/avr-promicro/flash-receipt.json")]
         receipt: PathBuf,
     },
@@ -63,6 +69,7 @@ struct BuildReceipt {
     schema: &'static str,
     outcome: &'static str,
     proof_class: &'static str,
+    profile: &'static str,
     source_sha: String,
     target: &'static str,
     board_variant: &'static str,
@@ -83,6 +90,7 @@ struct FlashReceipt {
     schema: &'static str,
     outcome: &'static str,
     proof_class: &'static str,
+    profile: &'static str,
     source_sha: String,
     target: &'static str,
     port: String,
@@ -98,13 +106,17 @@ struct FlashReceipt {
 pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         AvrCommand::Check => run_check(opts),
-        AvrCommand::Build { receipt } => run_build(&receipt, opts).map(|_| ()),
+        AvrCommand::Build {
+            create_hil,
+            receipt,
+        } => run_build(&receipt, create_hil, opts).map(|_| ()),
         AvrCommand::Flash {
             port,
             artifact_sha256,
             create_stopped,
             attended,
             wheels_clear,
+            create_hil,
             receipt,
         } => run_flash(
             &port,
@@ -114,6 +126,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
                 attended,
                 wheels_clear,
             },
+            create_hil,
             &receipt,
             opts,
         ),
@@ -139,14 +152,23 @@ fn run_check(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_build(
     receipt: &Path,
+    create_hil: bool,
     opts: &GlobalOpts,
 ) -> Result<(PathBuf, String), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let output_dir = root.join("target/avr-promicro/build");
+    let output_dir = root.join(if create_hil {
+        "target/avr-promicro/build-hil"
+    } else {
+        "target/avr-promicro/build"
+    });
     let artifact = output_dir.join("promicro_brainstem.ino.hex");
     if opts.dry_run {
         if !opts.quiet {
-            println!("would build {FQBN} from {}", root.join(SKETCH).display());
+            println!(
+                "would build {FQBN} profile={} from {}",
+                if create_hil { "create-hil" } else { "isolated" },
+                root.join(SKETCH).display()
+            );
         }
         return Ok((artifact, String::new()));
     }
@@ -154,7 +176,8 @@ fn run_build(
     let cli = provision(&root)?;
     verify_cores(&cli, &root)?;
     fs::create_dir_all(&output_dir)?;
-    let output = Command::new(&cli)
+    let mut command = Command::new(&cli);
+    command
         .args([
             "compile",
             "--fqbn",
@@ -164,7 +187,14 @@ fn run_build(
             "--build-path",
         ])
         .arg(&output_dir)
-        .arg(root.join(SKETCH))
+        .arg(root.join(SKETCH));
+    if create_hil {
+        command.args([
+            "--build-property",
+            "compiler.cpp.extra_flags=-DCONDUIT_CREATE_HIL=1",
+        ]);
+    }
+    let output = command
         .args(["--config-file"])
         .arg(config_path(&root))
         .output()?;
@@ -185,6 +215,7 @@ fn run_build(
         schema: "conduit.avr-promicro/build@1",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
+        profile: if create_hil { "create-hil" } else { "isolated" },
         source_sha: git_head(&root)?,
         target: FQBN,
         board_variant: "atmega32u4-5v-16mhz-usb-pid-9206",
@@ -197,7 +228,11 @@ fn run_build(
         flash_limit: MAX_FLASH_BYTES,
         sram_bytes,
         sram_limit: MAX_SRAM_BYTES,
-        create_uart: "isolated-no-transmitter",
+        create_uart: if create_hil {
+            "isolated-until-exact-execution"
+        } else {
+            "isolated-no-transmitter"
+        },
     };
     write_receipt(&root.join(receipt), &record, opts)?;
     Ok((artifact, digest))
@@ -226,18 +261,30 @@ fn run_flash(
     port: &Path,
     expected_digest: &str,
     gate: PhysicalGate,
+    create_hil: bool,
     receipt: &Path,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     validate_flash_request(port, expected_digest, gate)?;
     if opts.dry_run {
         if !opts.quiet {
-            println!("would verify {EXPECTED_BY_ID}, rebuild, verify its digest, and flash the fail-closed image");
+            println!(
+                "would verify {EXPECTED_BY_ID}, rebuild profile={}, verify its digest, and flash the boot-isolated image",
+                if create_hil { "create-hil" } else { "isolated" }
+            );
         }
         return Ok(());
     }
     verify_device(port)?;
-    let (artifact, digest) = run_build(Path::new("target/avr-promicro/build-receipt.json"), opts)?;
+    let (artifact, digest) = run_build(
+        Path::new(if create_hil {
+            "target/avr-promicro/build-hil-receipt.json"
+        } else {
+            "target/avr-promicro/build-receipt.json"
+        }),
+        create_hil,
+        opts,
+    )?;
     if digest != expected_digest {
         return Err(format!(
             "AVR artifact digest mismatch: expected {expected_digest}, built {digest}"
@@ -259,6 +306,7 @@ fn run_flash(
         schema: "conduit.avr-promicro/flash@1",
         outcome: "flashed",
         proof_class: "physical-flash-no-cdc-open",
+        profile: if create_hil { "create-hil" } else { "isolated" },
         source_sha: git_head(&root)?,
         target: FQBN,
         port: port.display().to_string(),
@@ -268,7 +316,11 @@ fn run_flash(
         create_stopped: gate.create_stopped,
         attended: gate.attended,
         wheels_clear: gate.wheels_clear,
-        create_uart: "isolated-no-transmitter",
+        create_uart: if create_hil {
+            "isolated-until-exact-execution"
+        } else {
+            "isolated-no-transmitter"
+        },
     };
     write_receipt(&root.join(receipt), &record, opts)
 }
@@ -401,69 +453,4 @@ fn write_receipt<T: Serialize>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn gate() -> PhysicalGate {
-        PhysicalGate {
-            create_stopped: true,
-            attended: true,
-            wheels_clear: true,
-        }
-    }
-
-    #[test]
-    fn flash_refuses_before_any_device_work_without_all_physical_gates() {
-        let mut missing = gate();
-        missing.wheels_clear = false;
-        let error = validate_flash_request(
-            Path::new("/dev/serial/by-id/usb-SparkFun_SparkFun_Pro_Micro-if00"),
-            &"a".repeat(64),
-            missing,
-        )
-        .unwrap_err();
-        assert!(error.to_string().contains("--wheels-clear"));
-    }
-
-    #[test]
-    fn flash_refuses_alias_or_wrong_device_and_malformed_digest() {
-        assert!(
-            validate_flash_request(Path::new("/dev/ttyACM0"), &"a".repeat(64), gate()).is_err()
-        );
-        assert!(validate_flash_request(
-            Path::new("/dev/serial/by-id/usb-other"),
-            &"a".repeat(64),
-            gate()
-        )
-        .is_err());
-        assert!(validate_flash_request(
-            Path::new("/dev/serial/by-id/usb-SparkFun_SparkFun_Pro_Micro-if00"),
-            "not-a-digest",
-            gate()
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn parses_exact_build_metrics_and_enforces_both_capacities() {
-        let report = "Sketch uses 4,508 bytes (15%).\nGlobal variables use 376 bytes (14%).";
-        assert_eq!(metric(report, "Sketch uses ", " bytes").unwrap(), 4508);
-        assert_eq!(
-            metric(report, "Global variables use ", " bytes").unwrap(),
-            376
-        );
-        assert!(validate_sizes(MAX_FLASH_BYTES + 1, 1).is_err());
-        assert!(validate_sizes(1, MAX_SRAM_BYTES + 1).is_err());
-        validate_sizes(MAX_FLASH_BYTES, MAX_SRAM_BYTES).unwrap();
-    }
-
-    #[test]
-    fn standalone_sources_are_refused_inside_the_arduino_sketch() {
-        for source in ["test.c", "test.cc", "test.cpp", "test.cxx"] {
-            assert!(source_replaces_arduino_entry(Path::new(source)));
-        }
-        for allowed in ["promicro_brainstem.ino", "protocol.h", "README.md"] {
-            assert!(!source_replaces_arduino_entry(Path::new(allowed)));
-        }
-    }
-}
+mod tests;

@@ -45,3 +45,23 @@ fragment (`F`), operation (`O`), active Play (`P`), and authority grant (`A`).
 Replies echo every identity for exact post-flash verification. Even an admitted
 activation reports `execution=disabled create_uart=isolated`; this seam does
 not authorize or perform Create I/O.
+
+`cargo xtask avr build` produces the transmitter-free `isolated` profile.
+`cargo xtask avr build --create-hil --receipt
+target/avr-promicro/build-hil-receipt.json` separately compiles the bounded
+`create-hil` executor. Both profiles boot with `Serial1` ended and pins 0/1 as
+high-impedance inputs. Boot binding and activation do not enable the UART.
+
+The HIL-only execution frame is:
+
+```text
+O FFFFFFFF:OOOO:DDDD
+```
+
+It repeats the exact admitted Plan fragment (`F`) and operation (`O`) and gives
+one finite deadline in milliseconds (`D`, at most 2000). Only the matching HIL
+profile can then initialize `57600 8N1`, emit the pinned Netherwick cold
+observation bytes `128,132,142,0`, consume at most 26 group-zero response bytes,
+and restore high impedance on every terminal path. There are no retries, baud
+scans, motion commands, or automatic executions. Compiling this path is not an
+electrical qualification or permission to flash/run it against the Create.
