@@ -108,6 +108,9 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
     maximum_writes: 8,
     maximum_in_flight: 1,
   });
+  await expect(page.locator("#serial-close")).toBeEnabled();
+  await expect(page.locator("#serial-evidence-details")).toHaveAttribute("open", "");
+  expect(JSON.parse(await page.locator("#device-evidence").textContent())).toEqual(truth);
 
   const beforeDuplicate = JSON.stringify(truth);
   const duplicate = await page.evaluate(async () => {
@@ -127,12 +130,10 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
     const started = resource.startUse("browser/serial-use-plan/one");
     const written = await resource.write(new Uint8Array([1, 2, 3, 4]));
     const read = await resource.read();
-    const closed = await resource.close();
     return {
       started,
       written: Array.from(written.bytes),
       read: Array.from(read.bytes),
-      closed,
       openOptions: __fakeSerialPort.opened,
       writes: __fakeSerialPort.writes,
     };
@@ -149,11 +150,16 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
     flowControl: "none",
   });
   expect(transfer.writes).toEqual([[1, 2, 3, 4]]);
-  expect(transfer.closed.phase).toBe("terminal");
-  expect(transfer.closed.terminal).toBe("Closed");
-  expect(transfer.closed.admitted_reads).toBe(1);
-  expect(transfer.closed.admitted_writes).toBe(1);
-  expect(transfer.closed.retained_bytes).toBe(0);
+  await page.locator("#serial-close").click();
+  await expect(page.locator("#device-status")).toHaveText("terminal: Closed");
+  await expect(page.locator("#serial-close")).toBeDisabled();
+  expect(JSON.parse(await page.locator("#device-evidence").textContent())).toMatchObject({
+    phase: "terminal",
+    terminal: "Closed",
+    admitted_reads: 1,
+    admitted_writes: 1,
+    retained_bytes: 0,
+  });
 });
 
 test("permission, selection, API, and open failures remain distinct", async ({ page }) => {
@@ -168,6 +174,7 @@ test("permission, selection, API, and open failures remain distinct", async ({ p
     await isolated.goto(await startEntrance());
     await isolated.locator("#serial").click();
     await expect(isolated.locator("#device-status")).toHaveText(`terminal: ${terminal}`);
+    await expect(isolated.locator("#serial-close")).toBeDisabled();
     expect(await isolated.evaluate(() => __conduitBrowserHost.devices.evidence()))
       .toMatchObject({ phase: "terminal", terminal, resource_handle: null });
     await isolated.close();
@@ -180,6 +187,7 @@ test("permission, selection, API, and open failures remain distinct", async ({ p
   await unsupported.goto(await startEntrance());
   await unsupported.locator("#serial").click();
   await expect(unsupported.locator("#device-status")).toHaveText("terminal: Unsupported");
+  await expect(unsupported.locator("#serial-close")).toBeDisabled();
 });
 
 test("disconnect and page cancellation terminate without retry or replacement", async ({ page }) => {

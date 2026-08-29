@@ -17,18 +17,46 @@ const devices = createBrowserDeviceBase({ api, hostId, bootId });
 const { createBrowserUsbDeviceBase } = await import("/usb-device-base.mjs");
 const usbDevices = createBrowserUsbDeviceBase({ api, hostId, bootId });
 document.querySelector("#devices").hidden = false;
+const serialClose = document.querySelector("#serial-close");
+const usbClose = document.querySelector("#usb-close");
+let serialResource = null;
+let usbResource = null;
 document.querySelector("#serial").addEventListener("click", async () => {
   try {
-    globalThis.__conduitSerialResource = await devices.acquireSerial();
+    serialResource = await devices.acquireSerial();
+    globalThis.__conduitSerialResource = serialResource;
+    serialClose.disabled = false;
   } catch {
     // The adapter has already retained and published the exact refusal.
   }
 });
+serialClose.addEventListener("click", async () => {
+  if (!serialResource) return;
+  try {
+    await serialResource.close();
+  } catch {
+    // The adapter has already retained and published the exact close failure.
+  } finally {
+    serialClose.disabled = true;
+  }
+});
 document.querySelector("#usb").addEventListener("click", async () => {
   try {
-    globalThis.__conduitUsbResource = await usbDevices.acquireUsb();
+    usbResource = await usbDevices.acquireUsb();
+    globalThis.__conduitUsbResource = usbResource;
+    usbClose.disabled = false;
   } catch {
     // The adapter has already retained and published the exact refusal.
+  }
+});
+usbClose.addEventListener("click", async () => {
+  if (!usbResource) return;
+  try {
+    await usbResource.close();
+  } catch {
+    // The adapter has already retained and published the exact close failure.
+  } finally {
+    usbClose.disabled = true;
   }
 });
 globalThis.__conduitBrowserHost = Object.freeze({
