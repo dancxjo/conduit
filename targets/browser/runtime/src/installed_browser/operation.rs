@@ -55,6 +55,17 @@ impl BrowserOperation {
     pub(crate) fn inactive() -> Self {
         Self(Box::new(InactiveOperation))
     }
+
+    pub(crate) fn select_scalar() -> Self {
+        Self(Box::new(SelectScalarOperation {
+            selector: None,
+            selector_closed: false,
+            candidates: [None; 2],
+            seen: [false; 2],
+            released: [None; 2],
+            retain_resumed: false,
+        }))
+    }
 }
 
 impl Operation for BrowserOperation {
@@ -239,6 +250,115 @@ impl Operation for PresentationOperation {
 }
 
 struct InactiveOperation;
+
+struct SelectScalarOperation {
+    selector: Option<bool>,
+    selector_closed: bool,
+    candidates: [Option<ValueRef>; 2],
+    seen: [bool; 2],
+    released: [Option<ValueRef>; 2],
+    retain_resumed: bool,
+}
+
+impl SelectScalarOperation {
+    fn decide(&mut self) -> OperationAction {
+        if !self.seen.into_iter().all(|seen| seen) {
+            return OperationAction::Await;
+        }
+        let Some(selector) = self.selector else {
+            return if self.selector_closed {
+                self.finish()
+            } else {
+                OperationAction::Await
+            };
+        };
+        let selected = usize::from(selector);
+        let other = usize::from(!selector);
+        let Some(value) = self.candidates[selected].take() else {
+            return self.finish();
+        };
+        self.released[0] = self.candidates[other].take();
+        self.retain_resumed = false;
+        OperationAction::Emit {
+            port: PortId(0),
+            value,
+        }
+    }
+
+    fn finish(&mut self) -> OperationAction {
+        self.released = [self.candidates[0].take(), self.candidates[1].take()];
+        OperationAction::Complete
+    }
+}
+
+impl Operation for SelectScalarOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        self.retain_resumed = false;
+        match input {
+            OperationInput::Closed { port: PortId(0) } if self.selector.is_none() => {
+                self.selector_closed = true;
+                self.decide()
+            }
+            OperationInput::Closed {
+                port: PortId(1) | PortId(2),
+            } => {
+                let OperationInput::Closed { port } = input else {
+                    unreachable!()
+                };
+                let index = usize::from(port.0 - 1);
+                if self.seen[index] {
+                    return fail(30);
+                }
+                self.seen[index] = true;
+                self.decide()
+            }
+            _ => fail(30),
+        }
+    }
+
+    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
+        self.retain_resumed = false;
+        match port {
+            PortId(0)
+                if self.selector.is_none()
+                    && value.byte_len == conduit_core::BOOL_ENCODED_LEN as u32 =>
+            {
+                let Ok(selector) = conduit_core::InfoBool::decode(canonical) else {
+                    return fail(30);
+                };
+                self.selector = Some(selector.get());
+            }
+            PortId(1) | PortId(2) if value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 => {
+                let index = usize::from(port.0 - 1);
+                if self.seen[index] || conduit_core::Scalar::decode(canonical).is_err() {
+                    return fail(30);
+                }
+                self.seen[index] = true;
+                self.candidates[index] = Some(value);
+                self.retain_resumed = true;
+            }
+            _ => return fail(30),
+        }
+        self.decide()
+    }
+
+    fn retains_resumed_value(&self) -> bool {
+        self.retain_resumed
+    }
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Complete
+    }
+    fn take_released_value(&mut self) -> Option<ValueRef> {
+        self.released.iter_mut().find_map(Option::take)
+    }
+    fn cancel(&mut self) {
+        let _ = self.finish();
+    }
+}
 
 struct CompareScalarOperation {
     operator: conduit_semantic_catalog::ScalarComparison,
