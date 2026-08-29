@@ -286,9 +286,12 @@ fn conduitos_paths_select_exact_proof_obligations() {
 }
 
 #[test]
-fn workflow_uses_the_plan_selectively_only_for_pull_requests() {
+fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     let root = crate::workspace::workspace_root().unwrap();
     let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+
+    assert!(workflow.contains("on:\n  pull_request:\n  merge_group:\n"));
+    assert!(!workflow.contains("\n  push:"));
 
     for output in ["esp32_required", "browser_required", "conduitos_required"] {
         assert!(workflow.contains(&format!(
