@@ -4,8 +4,6 @@ mod abi;
 mod offers;
 mod operation;
 
-pub use abi::*;
-
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, BaseImplementationId, ConfigurationValue,
     Plan, PlanFragment, PresentationIdentity, SignIdentity,
@@ -392,7 +390,7 @@ fn literal_configuration(placement: &conduit_core::PlannedGear) -> Result<&str, 
     placement
         .configuration
         .iter()
-        .find_map(|(key, value)| match (key.as_str(), value) {
+        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
             ("value", ConfigurationValue::Text(value))
                 if !value.is_empty()
                     && value.len() <= conduit_text::MAXIMUM_MORSE_INPUT_BYTES =>
@@ -408,7 +406,7 @@ fn morse_unit_configuration(placement: &conduit_core::PlannedGear) -> Result<u16
     placement
         .configuration
         .iter()
-        .find_map(|(key, value)| match (key.as_str(), value) {
+        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
             (conduit_text::MORSE_UNIT_MILLIS_KEY, ConfigurationValue::U64(value)) => {
                 u16::try_from(*value).ok()
             }
