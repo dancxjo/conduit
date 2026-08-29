@@ -10,6 +10,10 @@ operation, automatic retry, or UART discovery. USB enumeration alone does not
 establish a Host/Boot, Create attachment, authority, or physical communication
 claim.
 
+Host tests live outside this sketch directory. Arduino compiles every `.cpp`
+beside an `.ino`; placing a test `main()` here would replace the Arduino core
+entry and would produce a test executable rather than the claimed firmware.
+
 Do not flash or open CDC while the Create is attached until the operator has
 confirmed it is stopped, attended, and physically unable to propel itself. A
 later physical slice must separately qualify the exact electrical attachment,
