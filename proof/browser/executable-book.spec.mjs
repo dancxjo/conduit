@@ -38,7 +38,7 @@ async function openStep(page, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 7`);
+  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 9`);
 }
 
 test.beforeEach(async () => {
@@ -140,7 +140,7 @@ test("Tour navigation preserves drafts but reset and restart change presentation
   await page.getByRole("button", { name: "Reset this step" }).click();
   await expect(page.locator("textarea")).toHaveValue(/"hello"/);
   await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 7");
+  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 9");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
@@ -169,4 +169,56 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
     "refused before Play · type-or-source",
   );
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
+});
+
+test("Step 7 presents startup and current count through four admitted browser ticks", async ({ page }) => {
+  await openStep(page, 7);
+  await expect(page.getByRole("heading", { name: "Step 7 — State over time" })).toBeVisible();
+  const runner = page.locator(".runner");
+  await runner.getByRole("button", { name: "Run" }).click();
+  await expect(runner.locator(".morse")).toHaveText("0");
+  await expect(runner.locator(".morse")).toHaveText("4");
+  await expect(runner.locator(".play-status")).toContainText(
+    "4 planned ticks, 5 presentations",
+  );
+  await expect(runner.locator(".play-status")).toHaveAttribute("data-timer-completions", "4");
+  await expect(runner.locator(".play-status")).toHaveAttribute(
+    "data-manifestation-completions",
+    "5",
+  );
+  await expect(runner.locator("details dd")).toHaveCount(12);
+});
+
+test("stopping Step 7 cancels the pending timer without a late completion", async ({ page }) => {
+  await openStep(page, 7);
+  const runner = page.locator(".runner");
+  await runner.getByRole("button", { name: "Run" }).click();
+  await expect(runner.locator(".morse")).toHaveText("0");
+  await runner.getByRole("button", { name: "Stop" }).click();
+  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await page.waitForTimeout(650);
+  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator(".play-status")).not.toHaveAttribute("data-receipt", /.+/);
+  await expect(runner.locator(".morse")).toHaveText("0");
+});
+
+test("Step 8 shows the exact installed offers from the planning advertisement", async ({ page }) => {
+  await openStep(page, 8);
+  await expect(page.getByRole("heading", { name: "Step 8 — Meet the Host" })).toBeVisible();
+  const inventory = page.locator(".gear-inventory");
+  await expect(inventory).toHaveCount(1);
+  const visibleInstalled = await inventory.locator("li.available code").allTextContents();
+  const advertisedInstalled = await page.evaluate(() => {
+    const api = globalThis.__conduitBookHost.runtime;
+    api.conduit_book_inventory();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_output_ptr(), api.conduit_book_output_len());
+    return JSON.parse(new TextDecoder().decode(bytes)).entries
+      .filter((entry) => entry.implementation_id !== null)
+      .map((entry) => entry.kind_id);
+  });
+  expect(visibleInstalled).toEqual(advertisedInstalled);
+  expect(visibleInstalled).toEqual(expect.arrayContaining([
+    "time/every", "state/count", "presentation/count",
+  ]));
+  await expect(inventory.locator("li.unavailable", { hasText: "input/keyboard" })).toHaveCount(1);
 });

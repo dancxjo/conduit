@@ -117,11 +117,14 @@ fn family(kind: &str) -> &'static str {
         }
         conduit_semantic_catalog::SCALAR_LITERAL_KIND
         | conduit_semantic_catalog::BOOL_LITERAL_KIND => "typed-values",
+        conduit_time::TIME_EVERY_KIND => "time",
+        conduit_semantic_catalog::STATE_COUNT_KIND => "state",
         conduit_semantic_catalog::TEXT_PRESENTATION_KIND
         | conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
         | conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
         | conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND
-        | conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND => "presentation",
+        | conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND
+        | conduit_semantic_catalog::COUNT_PRESENTATION_KIND => "presentation",
         _ => "other-installed",
     }
 }
@@ -148,6 +151,18 @@ mod tests {
             .map(|offer| offer.implementation.implementation_id.as_str())
             .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(installed, advertised);
+        for implementation in [
+            "browser/kernel-time-every@1",
+            "browser/kernel-state-count@1",
+            "browser/presentation-count@1",
+        ] {
+            assert!(installed.contains(implementation));
+        }
+        assert!(advertisement.resources.iter().any(|resource| {
+            resource.pool_id.as_str() == "browser/timer"
+                && resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS
+                && resource.capacity_units == 1
+        }));
         assert!(
             inventory
                 .entries

@@ -1,10 +1,12 @@
 //! Browser-owned offer, factory, and host-operation installation catalog.
 
-use super::{linguistics, logic, math, morse, morse_composition, presentation, text, values};
+use super::{
+    linguistics, logic, math, morse, morse_composition, presentation, state_time, text, values,
+};
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, OfferGeneration, PlannerCapabilityOffer, PlannerLimits,
-    PlannerProfileId, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    PlannerProfileId, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_planner::BROWSER_PLANNER_PROFILE;
 
@@ -57,6 +59,9 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &morse_composition::SYMBOLS_TO_PATTERN,
     &morse_composition::PATTERN_TO_SYMBOLS,
     &morse_composition::SYMBOLS_TO_TEXT,
+    &state_time::TIME_EVERY,
+    &state_time::STATE_COUNT,
+    &state_time::COUNT_PRESENTATION,
     &presentation::INDICATOR,
 ];
 
@@ -72,6 +77,8 @@ pub(crate) fn catalogs(
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     startup.insert(conduit_form::KindSignature {
@@ -107,11 +114,14 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/installed-local@1"),
-        resources: vec![resource_offer(
-            "browser/presentation",
-            PRESENTATION_RESOURCE_CLASS,
-            super::MAXIMUM_BROWSER_GEARS as u32,
-        )],
+        resources: vec![
+            resource_offer(
+                "browser/presentation",
+                PRESENTATION_RESOURCE_CLASS,
+                super::MAXIMUM_BROWSER_GEARS as u32,
+            ),
+            resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1),
+        ],
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             limits: PlannerLimits {

@@ -9,6 +9,10 @@ use conduit_kernel::{
 pub(crate) struct BrowserOperation(Box<dyn Operation>);
 
 impl BrowserOperation {
+    pub(crate) fn installed(operation: impl Operation + 'static) -> Self {
+        Self(Box::new(operation))
+    }
+
     pub(crate) fn source(value: ValueRef) -> Self {
         Self(Box::new(SourceOperation {
             value,

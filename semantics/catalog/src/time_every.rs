@@ -30,7 +30,7 @@ pub fn time_every_contract() -> StandardKindContract {
             count: conduit_time::TIME_EVERY_COUNT,
         },
         hosted_implementation_required: true,
-        browser_manifestation_honest: false,
+        browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "clock: time/every(1s)".to_string(),
     }
@@ -51,6 +51,7 @@ mod tests {
                 count: conduit_time::TIME_EVERY_COUNT
             }
         );
-        assert!(!contract.browser_manifestation_honest && !contract.pico_manifestation_honest);
+        assert!(contract.browser_manifestation_honest);
+        assert!(!contract.pico_manifestation_honest);
     }
 }

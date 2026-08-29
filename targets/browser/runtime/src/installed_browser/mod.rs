@@ -10,6 +10,7 @@ mod morse;
 mod morse_composition;
 mod operation;
 mod presentation;
+mod state_time;
 mod text;
 mod values;
 
@@ -24,3 +25,4 @@ pub(crate) use limits::{
     MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
 };
 pub(crate) use operation::BrowserOperation;
+pub(crate) use state_time::BROWSER_TIMER_MAXIMUM_MILLIS;

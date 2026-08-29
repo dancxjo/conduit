@@ -169,14 +169,14 @@ fn start(
             } else {
                 BookSession::prepare(host, boot, source, play_sequence)
             };
-            let (session, mut effect) = match prepared {
+            let (mut session, mut effect) = match prepared {
                 Ok(prepared) => prepared,
                 Err(message) => {
                     write_output(&super::refusal(message)).map_err(|_| ERROR_OUTPUT)?;
                     return Err(ERROR_PREPARE);
                 }
             };
-            effect.source_interaction = Some(source_interaction);
+            session.attach_source_interaction(&mut effect, source_interaction);
             write_output(&effect).map_err(|_| ERROR_OUTPUT)?;
             SESSION.with(|slot| *slot.borrow_mut() = Some(session));
             Ok(STATUS_READY)
@@ -199,15 +199,29 @@ pub extern "C" fn conduit_book_cancel() -> i32 {
 fn finish(cancel: bool) -> i32 {
     clear_output();
     SESSION.with(|slot| {
-        let Some(session) = slot.borrow_mut().take() else {
+        let Some(mut session) = slot.borrow_mut().take() else {
             return ERROR_NOT_RUNNING;
         };
-        let receipt = if cancel {
-            session.cancel().map_err(|_| ERROR_CANCEL)
-        } else {
-            session.complete().map_err(|_| ERROR_COMPLETE)
-        };
-        match receipt.and_then(|receipt| write_output(&receipt).map_err(|_| ERROR_OUTPUT)) {
+        if cancel {
+            return match session
+                .cancel()
+                .map(|receipt| super::BookProgress::Receipt(Box::new(receipt)))
+                .map_err(|_| ERROR_CANCEL)
+                .and_then(|progress| write_output(&progress).map_err(|_| ERROR_OUTPUT))
+            {
+                Ok(()) => STATUS_READY,
+                Err(error) => error,
+            };
+        }
+        let progress = session.advance().map_err(|_| ERROR_COMPLETE);
+        match progress.and_then(|progress| {
+            let pending = matches!(progress, super::BookProgress::Effect(_));
+            write_output(&progress).map_err(|_| ERROR_OUTPUT)?;
+            if pending {
+                *slot.borrow_mut() = Some(session);
+            }
+            Ok(())
+        }) {
             Ok(()) => STATUS_READY,
             Err(error) => error,
         }

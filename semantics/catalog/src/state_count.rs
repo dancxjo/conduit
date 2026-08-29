@@ -63,7 +63,7 @@ pub fn state_count_contract() -> StandardKindContract {
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
-        browser_manifestation_honest: false,
+        browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "count: state/count(0)".to_string(),
     }
@@ -96,7 +96,7 @@ pub fn count_presentation_contract() -> StandardKindContract {
         },
         terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
-        browser_manifestation_honest: false,
+        browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "show: presentation/count".to_string(),
     }
@@ -173,6 +173,8 @@ mod tests {
         let presentation = count_presentation_contract();
         assert_eq!(presentation.inputs[0].temporal, PortTemporal::Current);
         assert_ne!(state.kind_id, presentation.kind_id);
+        assert!(state.browser_manifestation_honest);
+        assert!(presentation.browser_manifestation_honest);
     }
 
     #[cfg(feature = "form-catalog")]
