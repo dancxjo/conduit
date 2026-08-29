@@ -38,6 +38,29 @@ int main() {
   assert(request(buffer, "STATUS\n") == Request::kStatus);
   assert(request(buffer, "hello\n") == Request::kUnsupported);
   assert(request(buffer, "STATUS trailing\n") == Request::kUnsupported);
+  assert(request(buffer, "B 0000000B:00000016:00000001\n") ==
+         Request::kBindBoot);
+  assert(buffer.boot_binding().host_id.value == 11);
+  assert(buffer.boot_binding().boot_id.value == 22);
+  assert(buffer.boot_binding().offer_generation == 1);
+  assert(request(buffer,
+                 "A 0000000B:00000016:00000001:00000021:002C:00000037:"
+                 "00000042\n") == Request::kActivateObservation);
+  assert(buffer.activation().host_id.value == 11);
+  assert(buffer.activation().boot_id.value == 22);
+  assert(buffer.activation().offer_generation == 1);
+  assert(buffer.activation().plan_fragment_id.value == 33);
+  assert(buffer.activation().operation_id.value == 44);
+  assert(buffer.activation().active_play_id.value == 55);
+  assert(buffer.activation().authority_grant_id.value == 66);
+  assert(request(buffer, "B 0000000b:00000016:00000001\n") ==
+         Request::kMalformed);
+  assert(request(buffer, "B 0000000B-00000016:00000001\n") ==
+         Request::kMalformed);
+  assert(request(buffer, "B 0000000B:00000016:00000001\r\n") ==
+         Request::kMalformed);
+  assert(request(buffer, "BIND 0000000B:00000016:00000001\n") ==
+         Request::kUnsupported);
 
   for (size_t i = 0; i < conduit::promicro::kCommandCapacity + 1; ++i) {
     buffer.push('x');
