@@ -320,7 +320,9 @@ jobs:
 
   browser-tools:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true')
+    # Paused with the repository-wide visual-evidence producer. The executable
+    # book owns a focused browser proof in executable-book-pages.yml.
+    if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
@@ -387,7 +389,9 @@ jobs:
 
   browser-host:
     needs: [classify, browser-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true')
+    # Retain the broad proof definition for an explicit future decision, but do
+    # not generate or upload repository-wide visual evidence automatically.
+    if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     # One-job cold compilation plus evidence upload and cache post-processing
     # exceeded the old ceiling after the semantic proof had already passed.

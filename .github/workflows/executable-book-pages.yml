@@ -2,6 +2,23 @@ name: executable-book-pages
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/executable-book-pages.yml
+      - tour/book/**
+      - targets/browser/host/assets/book.html
+      - targets/browser/host/assets/book.css
+      - targets/browser/host/assets/book.mjs
+      - targets/browser/host/assets/browser-host-bootstrap.mjs
+      - targets/browser/host/src/**
+      - targets/browser/host/Cargo.toml
+      - targets/browser/runtime/Cargo.toml
+      - targets/browser/runtime/src/book_runner/**
+      - targets/browser/runtime/src/lib.rs
+      - proof/browser/executable-book.spec.mjs
+      - proof/browser/playwright.config.mjs
+      - package.json
+      - package-lock.json
   push:
     branches:
       - main
@@ -12,16 +29,60 @@ on:
       - targets/browser/host/assets/book.css
       - targets/browser/host/assets/book.mjs
       - targets/browser/host/assets/browser-host-bootstrap.mjs
+      - targets/browser/host/src/**
+      - targets/browser/host/Cargo.toml
       - targets/browser/runtime/Cargo.toml
       - targets/browser/runtime/src/book_runner/**
       - targets/browser/runtime/src/lib.rs
+      - proof/browser/executable-book.spec.mjs
+      - proof/browser/playwright.config.mjs
+      - package.json
+      - package-lock.json
 
 concurrency:
   group: executable-book-pages
   cancel-in-progress: false
 
 jobs:
+  book:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the native Rust linker
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install the pinned browser proof dependency
+        run: npm ci --ignore-scripts --prefer-offline
+      - name: Build the exact browser Host and runtime
+        run: |
+          cargo build --locked -p conduit-browser-host
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+      - name: Prove only the executable book in pinned Chromium
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/executable-book.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+
   build:
+    needs: book
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -55,6 +116,7 @@ jobs:
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment:
