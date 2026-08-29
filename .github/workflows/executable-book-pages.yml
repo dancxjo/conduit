@@ -116,11 +116,17 @@ jobs:
           cp targets/browser/host/assets/book.html "$site/book/index.html"
           cp targets/browser/host/assets/book.css "$site/book/"
           cp targets/browser/host/assets/book.mjs "$site/book/"
-          cp tour/book/chapter-1.md "$site/book/"
-          cp tour/book/chapter-2.md "$site/book/"
-          cp tour/book/chapter-3.md "$site/book/"
+          chapters=(chapter-{1..5}.md)
+          expected_chapters="$(printf '%s\n' "${chapters[@]}")"
+          source_chapters="$(find tour/book -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
+          test "$source_chapters" = "$expected_chapters"
+          for chapter in "${chapters[@]}"; do
+            cp "tour/book/$chapter" "$site/book/"
+          done
           touch "$site/.nojekyll"
-          test "$(find "$site" -type f | wc -l)" = 9
+          staged_chapters="$(find "$site/book" -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
+          test "$staged_chapters" = "$expected_chapters"
+          test "$(find "$site" -type f | wc -l)" = 11
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
