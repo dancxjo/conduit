@@ -105,6 +105,7 @@ class CreateGroupZeroExecutor {
     return decoder_.outcome() != DecodeOutcome::kNeedMore;
   }
   const TerminalEvidence& evidence() const { return evidence_; }
+  const GroupZeroSample& sample() const { return decoder_.sample(); }
   EvidenceFailure evidence_failure() const { return evidence_failure_; }
 
  private:
