@@ -251,7 +251,7 @@ impl MorsePattern {
             return Err(MorseError::MalformedEncoding);
         }
         let mut segments = Vec::with_capacity(count);
-        for pair in encoded[5..].chunks_exact(2) {
+        for pair in encoded[5..].as_chunks::<2>().0 {
             let level = match pair[0] {
                 0 => false,
                 1 => true,
