@@ -23,8 +23,10 @@ bluetooth = [
 ]
 distributed-lenia = ["bluetooth"]
 light-switch = [
+	"dep:conduit-text",
 	"dep:embassy-futures",
 	"dep:embassy-time",
+	"dep:heapless",
 ]
 
 [[bin]]
@@ -41,6 +43,7 @@ conduit-bluetooth = { path = "../../../../mechanisms/protocols/bluetooth", optio
 conduit-core = { path = "../../../../architecture/core" }
 conduit-kernel = { path = "../../../../architecture/kernel" }
 conduit-signal = { path = "../../../../semantics/signal", default-features = false }
+conduit-text = { path = "../../../../semantics/text", default-features = false, optional = true }
 conduit-wire = { path = "../../../../architecture/wire", default-features = false }
 critical-section = "1.2.0"
 embassy-executor = "0.10.0"
