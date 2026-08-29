@@ -204,6 +204,7 @@ mod tests {
         assert!(manifest.contains("pico-local-minimal = []"));
         assert!(manifest.contains("usb-remote = [\"session-control\"]"));
         assert!(manifest.contains("triple-remote = [\"session-control\"]"));
+        assert!(manifest.contains("light-switch = [\"session-control\"]"));
         assert!(manifest.contains(
             "wifi-bootstrap = [\"session-control\", \"dep:conduit-net\", \"dep:conduit-rp2040-network-realization\", \"dep:conduit-r1-network-conformance\", \"dep:embassy-net\"]"
         ));
@@ -224,7 +225,9 @@ mod tests {
         assert!(manifest.contains(
             "conduit-wire = { path = \"../../../../architecture/wire\", default-features = false, optional = true }"
         ));
-        assert!(firmware.contains("#[cfg(feature = \"session-control\")]\nmod usb_link;"));
+        assert!(firmware.contains(
+            "#[cfg(all(feature = \"session-control\", not(feature = \"light-switch\")))]\nmod usb_link;"
+        ));
         assert!(firmware.contains("#[cfg(feature = \"pico-local-minimal\")]"));
         assert!(manifest.contains("usb-midi-fixture = [\"dep:embassy-futures\"]"));
         assert_eq!(PICO_COMPOSITION_STEPS.len(), 10);
