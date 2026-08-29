@@ -88,7 +88,10 @@ export function createBrowserUsbDeviceBase({
   let terminal = false;
   const publish = () => {
     const value = evidence(api);
-    if (output) output.textContent = JSON.stringify(value);
+    if (output) {
+      output.textContent = JSON.stringify(value, null, 2);
+      output.closest("details")?.setAttribute("open", "");
+    }
     if (status) status.textContent = `${value.phase}${value.terminal ? `: ${value.terminal}` : ""}`;
     return value;
   };

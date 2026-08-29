@@ -126,6 +126,9 @@ test("explicit WebUSB acquisition creates one exact finite Base then bounded use
   });
   expect(truth.resource_handle).toMatch(/^usb\//);
   expect(truth.base_instance_id).toMatch(/^usb-base\//);
+  await expect(page.locator("#usb-close")).toBeEnabled();
+  await expect(page.locator("#usb-evidence-details")).toHaveAttribute("open", "");
+  expect(JSON.parse(await page.locator("#usb-device-evidence").textContent())).toEqual(truth);
 
   const beforeDuplicate = JSON.stringify(truth);
   const duplicate = await page.evaluate(async () => {
@@ -140,15 +143,12 @@ test("explicit WebUSB acquisition creates one exact finite Base then bounded use
     const started = resource.startUse("browser/usb-use-plan/one");
     const written = await resource.transferOut(new Uint8Array([1, 2, 3, 4]));
     const read = await resource.transferIn(8);
-    const closed = await resource.close();
     return {
       started,
       written: Array.from(written.bytes),
       read: Array.from(read.bytes),
-      closed,
       selected: __fakeUsbDevice.configuration.configurationValue,
       claimed: __fakeUsbDevice.claimed,
-      released: __fakeUsbDevice.released,
       outTransfers: __fakeUsbDevice.outTransfers,
       requests: __fakeUsb.requests,
     };
@@ -158,10 +158,14 @@ test("explicit WebUSB acquisition creates one exact finite Base then bounded use
   expect(transfer.read).toEqual([9, 8, 7]);
   expect(transfer.selected).toBe(1);
   expect(transfer.claimed).toEqual([0]);
-  expect(transfer.released).toEqual([0]);
   expect(transfer.outTransfers).toEqual([[1, [1, 2, 3, 4]]]);
   expect(transfer.requests).toEqual([{ filters: [] }]);
-  expect(transfer.closed).toMatchObject({
+  await page.locator("#usb-close").click();
+  await expect(page.locator("#usb-device-status")).toHaveText("terminal: Closed");
+  await expect(page.locator("#usb-close")).toBeDisabled();
+  expect(await page.evaluate(() => __fakeUsbDevice.released)).toEqual([0]);
+  expect(await page.evaluate(() => __fakeUsbDevice.closed)).toBe(true);
+  expect(JSON.parse(await page.locator("#usb-device-evidence").textContent())).toMatchObject({
     phase: "terminal",
     terminal: "Closed",
     admitted_in_transfers: 1,
@@ -188,6 +192,7 @@ test("selection, API, open, configuration, interface, and alternate failures rem
       try { await __conduitBrowserHost.usbDevices.acquireUsb(options); } catch {}
     }, options);
     await expect(isolated.locator("#usb-device-status")).toHaveText(`terminal: ${terminal}`);
+    await expect(isolated.locator("#usb-close")).toBeDisabled();
     expect(await isolated.evaluate(() => __conduitBrowserHost.usbDevices.evidence()))
       .toMatchObject({ phase: "terminal", terminal, resource_handle: null });
     await isolated.close();
@@ -200,6 +205,7 @@ test("selection, API, open, configuration, interface, and alternate failures rem
   await unsupported.goto(await startEntrance());
   await unsupported.locator("#usb").click();
   await expect(unsupported.locator("#usb-device-status")).toHaveText("terminal: Unsupported");
+  await expect(unsupported.locator("#usb-close")).toBeDisabled();
 
   const invalid = await page.context().newPage();
   await installSuccessfulUsb(invalid);
