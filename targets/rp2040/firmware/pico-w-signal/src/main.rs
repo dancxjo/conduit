@@ -48,6 +48,15 @@
     all(feature = "distributed-lenia", feature = "appliance-hello"),
     all(feature = "distributed-lenia", feature = "appliance-hil-client"),
     all(feature = "distributed-lenia", feature = "bluetooth-line")
+    , all(feature = "light-switch", feature = "pico-local")
+    , all(feature = "light-switch", feature = "pico-local-minimal")
+    , all(feature = "light-switch", feature = "usb-remote")
+    , all(feature = "light-switch", feature = "triple-remote")
+    , all(feature = "light-switch", feature = "wifi-bootstrap")
+    , all(feature = "light-switch", feature = "appliance-hello")
+    , all(feature = "light-switch", feature = "appliance-hil-client")
+    , all(feature = "light-switch", feature = "bluetooth-line")
+    , all(feature = "light-switch", feature = "distributed-lenia")
 ))]
 compile_error!("select exactly one Pico firmware mode");
 #[cfg(not(any(
@@ -60,6 +69,7 @@ compile_error!("select exactly one Pico firmware mode");
     feature = "appliance-hil-client",
     feature = "bluetooth-line",
     feature = "distributed-lenia"
+    , feature = "light-switch"
 )))]
 compile_error!("select exactly one Pico firmware mode");
 
@@ -71,7 +81,7 @@ mod appliance_hil_client;
 mod bluetooth_line;
 #[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
 mod body_admission;
-#[cfg(feature = "session-control")]
+#[cfg(all(feature = "session-control", not(feature = "light-switch")))]
 mod bootsel;
 #[cfg(feature = "wifi-bootstrap")]
 mod continuable_signal;
@@ -81,11 +91,14 @@ mod distributed_lenia;
     feature = "appliance-hello",
     feature = "appliance-hil-client",
     feature = "bluetooth-line",
-    feature = "distributed-lenia"
+    feature = "distributed-lenia",
+    feature = "light-switch"
 )))]
 mod kernel;
 #[cfg(feature = "distributed-lenia")]
 mod lenia_image;
+#[cfg(feature = "light-switch")]
+mod light_switch;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_image;
 #[cfg(feature = "wifi-bootstrap")]
@@ -98,9 +111,14 @@ mod panic_recovery;
 mod plan_b_signal_image;
 #[cfg(feature = "wifi-bootstrap")]
 mod plan_c_signal_image;
+#[cfg_attr(feature = "light-switch", allow(unused_imports))]
 mod radio;
+#[cfg_attr(feature = "light-switch", allow(dead_code))]
 mod receipts;
-#[cfg(any(feature = "session-control", feature = "bluetooth-line"))]
+#[cfg(all(
+    any(feature = "session-control", feature = "bluetooth-line"),
+    not(feature = "light-switch")
+))]
 mod remote_error;
 #[cfg(any(
     feature = "usb-remote",
@@ -125,7 +143,8 @@ mod signal_execution_identity;
 #[cfg(not(any(
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "distributed-lenia"
+    feature = "distributed-lenia",
+    feature = "light-switch"
 )))]
 mod signal_image;
 #[cfg(feature = "wifi-bootstrap")]
@@ -138,7 +157,7 @@ mod signal_recovery;
 ))]
 mod startup_arena;
 mod usb;
-#[cfg(feature = "session-control")]
+#[cfg(all(feature = "session-control", not(feature = "light-switch")))]
 mod usb_link;
 #[cfg(feature = "wifi-bootstrap")]
 mod websocket_route;
@@ -184,7 +203,8 @@ static ALLOCATOR: startup_arena::StartupArena = startup_arena::StartupArena::new
     feature = "pico-local-minimal",
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "distributed-lenia"
+    feature = "distributed-lenia",
+    feature = "light-switch"
 ))]
 struct NoAllocator;
 
@@ -193,7 +213,8 @@ struct NoAllocator;
     feature = "pico-local-minimal",
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "distributed-lenia"
+    feature = "distributed-lenia",
+    feature = "light-switch"
 ))]
 unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     unsafe fn alloc(&self, _layout: core::alloc::Layout) -> *mut u8 {
@@ -208,7 +229,8 @@ unsafe impl core::alloc::GlobalAlloc for NoAllocator {
     feature = "pico-local-minimal",
     feature = "appliance-hello",
     feature = "appliance-hil-client",
-    feature = "distributed-lenia"
+    feature = "distributed-lenia",
+    feature = "light-switch"
 ))]
 #[global_allocator]
 static ALLOCATOR: NoAllocator = NoAllocator;
@@ -259,6 +281,7 @@ async fn main(spawner: Spawner) {
         not(feature = "appliance-hello"),
         not(feature = "appliance-hil-client"),
         not(feature = "distributed-lenia")
+        , not(feature = "light-switch")
     ))]
     let runtime =
         receipts::RuntimeTranscriptIdentity::new(signal_image::PLAN_ID, signal_image::HOST_ID);
@@ -269,6 +292,24 @@ async fn main(spawner: Spawner) {
     let runtime =
         receipts::RuntimeTranscriptIdentity::new(network_image::PLAN_ID, network_image::HOST_ID);
     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
+
+    #[cfg(feature = "light-switch")]
+    {
+        let (mut control, _) = radio::init_cyw43(
+            &spawner,
+            p.PIO0,
+            p.DMA_CH0,
+            p.DMA_CH1,
+            p.PIN_23,
+            p.PIN_24,
+            p.PIN_25,
+            p.PIN_29,
+            &CYW43_FW,
+            &CYW43_NVRAM,
+        )
+        .await;
+        light_switch::run(session_line, &mut cdc, &mut control).await;
+    }
 
     #[cfg(feature = "pico-local")]
     {

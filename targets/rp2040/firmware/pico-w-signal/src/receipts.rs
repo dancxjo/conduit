@@ -64,7 +64,8 @@ impl UsbCdc {
         feature = "usb-remote",
         feature = "triple-remote",
         feature = "bluetooth-line",
-        feature = "distributed-lenia"
+        feature = "distributed-lenia",
+        feature = "light-switch"
     ))]
     pub async fn write_marker(&mut self, msg: &str) -> Result<(), UsbSignError> {
         self.write_all_mandatory(msg.as_bytes()).await?;

@@ -22,10 +22,19 @@ bluetooth = [
 	"dep:trouble-host",
 ]
 distributed-lenia = ["bluetooth"]
+light-switch = [
+	"dep:embassy-futures",
+	"dep:embassy-time",
+]
 
 [[bin]]
 name = "conduit-esp32-c3-signal"
 path = "../wroom-signal/src/main.rs"
+
+[[bin]]
+name = "conduit-esp32-c3-light-switch"
+path = "src/light_switch.rs"
+required-features = ["light-switch"]
 
 [dependencies]
 conduit-bluetooth = { path = "../../../../mechanisms/protocols/bluetooth", optional = true }

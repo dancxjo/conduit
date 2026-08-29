@@ -18,6 +18,7 @@ distributed-lenia = ["session-control", "dep:conduit-alife", "dep:conduit-blueto
 usb-midi-fixture = ["dep:embassy-futures"]
 pete-capstone = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
+light-switch = ["session-control"]
 
 [dependencies]
 cortex-m = "0.7.7"
