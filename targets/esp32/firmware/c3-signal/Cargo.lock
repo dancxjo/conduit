@@ -241,6 +241,7 @@ dependencies = [
  "conduit-planner",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-text",
  "conduit-wire",
  "critical-section",
  "embassy-executor",

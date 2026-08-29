@@ -12,6 +12,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
+mod morse_key;
+
 const FABRICATION_RUNNER_MANIFEST: &str =
     "targets/esp32/firmware/wroom-signal/fabrication-package-runner/Cargo.toml";
 const ESPFLASH_VERSION: &str = "4.5.0";
@@ -62,6 +64,8 @@ enum Esp32FirmwareCommand {
         #[arg(long, default_value = "target/esp32-firmware/flash-receipt.json")]
         receipt: PathBuf,
     },
+    /// Flash and physically prove the attached C3 BOOT button as a Morse key.
+    MorseKey(morse_key::MorseKeyArgs),
 }
 
 fn artifact(target: Esp32FamilyTarget, root: &Path) -> PathBuf {
@@ -121,6 +125,7 @@ pub fn run(args: Esp32FirmwareArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
             receipt,
             opts,
         ),
+        Esp32FirmwareCommand::MorseKey(args) => morse_key::run(args, opts),
     }
 }
 

@@ -13,12 +13,14 @@ mod morse;
 #[cfg(feature = "form-catalog")]
 mod morse_backs;
 mod morse_catalog;
+mod morse_key;
 mod morse_table;
 mod morse_values;
 pub use morse::*;
 #[cfg(feature = "form-catalog")]
 pub use morse_backs::*;
 pub use morse_catalog::*;
+pub use morse_key::*;
 pub use morse_values::*;
 
 use alloc::{string::String, vec, vec::Vec};
