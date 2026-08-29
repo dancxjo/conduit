@@ -1,3 +1,5 @@
+#include "assigned_obligations.h"
+#include "create_oi.h"
 #include "protocol.h"
 
 using conduit::promicro::CommandBuffer;
@@ -16,7 +18,8 @@ constexpr char kHello[] =
     "target=atmega32u4-5v-16mhz line=usb-cdc@1\n";
 constexpr char kStatus[] =
     "STATUS schema=conduit.pete/promicro-brainstem@1 create_uart=isolated "
-    "create_tx_bytes=0 motion_authority=absent command_capacity=64\n";
+    "create_tx_bytes=0 motion_authority=absent command_capacity=64 "
+    "assigned_obligation_capacity=1 create_codec=compiled-disabled\n";
 constexpr char kRefused[] =
     "REFUSED schema=conduit.host/request-refusal@1 reason=unsupported "
     "create_uart=isolated\n";

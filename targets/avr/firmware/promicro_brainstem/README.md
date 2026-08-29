@@ -18,3 +18,13 @@ Do not flash or open CDC while the Create is attached until the operator has
 confirmed it is stopped, attended, and physically unable to propel itself. A
 later physical slice must separately qualify the exact electrical attachment,
 legacy bytes, finite authority, cleanup, and HIL proof.
+
+The compiled-disabled codec is checked against `conduit-create-oi` and the
+pinned Netherwick Brainstem revision
+`f43ff13846b47b05e133d0321bdbaafffd1bcdbe`. The valid legacy vectors retain
+Create 1 ordering and masks; broader historical LED input bits are deliberately
+masked to the Create 1 PLAY/ADVANCE contract already established by Conduit.
+
+The assigned-obligation slot stores only one exact plan-fragment/operation
+identity and its finite group-0 request, response, deadline, and disposition.
+It is not a Body graph, planner, scheduler, UART authority, or retry policy.
