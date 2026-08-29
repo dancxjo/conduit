@@ -8,15 +8,15 @@ use conduit_core::{
 };
 
 pub const INDICATOR_PRESENTATION_KIND: &str = "presentation/indicator";
-pub const INDICATOR_PRESENTATION_CONTRACT_REVISION: &str =
-    "conduit.presentation/indicator@1";
+pub const INDICATOR_PRESENTATION_CONTRACT_REVISION: &str = "conduit.presentation/indicator@1";
 
 pub fn indicator_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(INDICATOR_PRESENTATION_KIND),
         plain_name: "Indicator pattern".to_string(),
-        summary: "Manifest one finite timed indication pattern through an admitted presenter effect."
-            .to_string(),
+        summary:
+            "Manifest one finite timed indication pattern through an admitted presenter effect."
+                .to_string(),
         inputs: indicator_presentation_inputs(),
         outputs: Vec::new(),
         configuration: Vec::new(),

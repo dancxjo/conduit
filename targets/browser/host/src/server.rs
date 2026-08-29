@@ -117,7 +117,9 @@ impl BrowserHostServer {
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
-            Some("GET /book/book.css HTTP/1.1") => ("200 OK", "text/css; charset=utf-8", BOOK_STYLE),
+            Some("GET /book/book.css HTTP/1.1") => {
+                ("200 OK", "text/css; charset=utf-8", BOOK_STYLE)
+            }
             Some("GET /book/chapter-1.md HTTP/1.1") => {
                 ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER)
             }

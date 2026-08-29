@@ -56,11 +56,7 @@ pub extern "C" fn conduit_book_start(
     let Some(total_length) = identity_length.checked_add(source_length) else {
         return ERROR_INPUT;
     };
-    if host_length == 0
-        || boot_length == 0
-        || source_length == 0
-        || total_length > INPUT_BYTES
-    {
+    if host_length == 0 || boot_length == 0 || source_length == 0 || total_length > INPUT_BYTES {
         return ERROR_INPUT;
     }
     SESSION.with(|slot| {

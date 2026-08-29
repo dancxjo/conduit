@@ -5,10 +5,12 @@ mod offers;
 mod operation;
 
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, ConfigurationValue,
-    Plan, PlanFragment, PresentationIdentity, SignIdentity,
+    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, ConfigurationValue, Plan,
+    PlanFragment, PresentationIdentity, SignIdentity,
 };
-use conduit_kernel::scheduler::{FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+};
 use conduit_kernel::{
     BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostOperationDisposition, HostOperationOutcome, ValueStorage,
@@ -124,8 +126,7 @@ impl BookSession {
             .placements
             .iter()
             .find(|placement| {
-                placement.kind_id.as_str()
-                    == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+                placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
             })
             .ok_or_else(|| "executable-book Plan has no indicator placement".to_string())?;
         let presentation = bind_presentation(&active.active_play_id, &indicator.placement_id, 0);
@@ -196,24 +197,24 @@ impl BookSession {
                 SchedulerStatus::Cancelled => return Err("indicator Play was cancelled".into()),
             }
         }
-        let sign = bind_sign(
-            &self.host_id,
-            &self.boot_id,
-            Some(&self.active_play_id),
-            0,
-        );
-        Ok(receipt("completed", &self.active_play_id, &self.presentation, &sign))
+        let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
+        Ok(receipt(
+            "completed",
+            &self.active_play_id,
+            &self.presentation,
+            &sign,
+        ))
     }
 
     pub(super) fn cancel(mut self) -> Result<BookReceipt, String> {
         self.scheduler.cancel().map_err(debug_error)?;
-        let sign = bind_sign(
-            &self.host_id,
-            &self.boot_id,
-            Some(&self.active_play_id),
-            0,
-        );
-        Ok(receipt("cancelled", &self.active_play_id, &self.presentation, &sign))
+        let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
+        Ok(receipt(
+            "cancelled",
+            &self.active_play_id,
+            &self.presentation,
+            &sign,
+        ))
     }
 }
 
@@ -242,20 +243,24 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
 }
 
 fn validate_shape(fragment: &PlanFragment) -> Result<(), String> {
-    let kinds = fragment
-        .placements
-        .iter()
-        .map(|placement| placement.kind_id.as_str())
-        .collect::<Vec<_>>();
-    if kinds
-        != [
-            conduit_text::TEXT_LITERAL_KIND,
-            conduit_text::TEXT_MORSE_KIND,
-            conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
-        ]
+    let has_exactly_one = |kind: &str| {
+        fragment
+            .placements
+            .iter()
+            .filter(|placement| placement.kind_id.as_str() == kind)
+            .count()
+            == 1
+    };
+    if fragment.placements.len() != NODES
+        || !has_exactly_one(conduit_text::TEXT_LITERAL_KIND)
+        || !has_exactly_one(conduit_text::TEXT_MORSE_KIND)
+        || !has_exactly_one(conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND)
         || fragment.connections.len() != CORDS
     {
-        return Err("book runner admits exactly text/literal -> text/morse -> presentation/indicator".into());
+        return Err(
+            "book runner admits exactly text/literal -> text/morse -> presentation/indicator"
+                .into(),
+        );
     }
     Ok(())
 }
@@ -279,7 +284,12 @@ fn prepare_scheduler(
     let mut routes = FixedRoutes::<ROUTES, CORDS>::new(PORTS as u16);
     for route in &lowered.routes {
         routes
-            .install(route.source_node, route.source_port, route.range, &route.targets)
+            .install(
+                route.source_node,
+                route.source_port,
+                route.range,
+                &route.targets,
+            )
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
@@ -292,7 +302,12 @@ fn prepare_scheduler(
     bindings.seal().map_err(debug_error)?;
     let mut values = FixedValueStore::<VALUES, VALUE_BYTES>::new((VALUES * VALUE_BYTES) as u32)
         .map_err(debug_error)?;
-    let literal = literal_configuration(&fragment.placements[0])?;
+    let literal_placement = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
+        .ok_or_else(|| "book Plan has no text literal placement".to_string())?;
+    let literal = literal_configuration(literal_placement)?;
     let literal_value = values.store(literal.as_bytes()).map_err(debug_error)?;
     let mut drivers = Vec::with_capacity(NODES);
     for placement in &fragment.placements {
@@ -324,10 +339,8 @@ fn prepare_scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(debug_error)?;
-    BookScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(debug_error)
+    BookScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+        .map_err(debug_error)
 }
 
 fn drive_to_indicator(
@@ -337,9 +350,7 @@ fn drive_to_indicator(
     loop {
         if let Some(request) = scheduler.next_host_request() {
             let placement = &fragment.placements[usize::from(request.node.0)];
-            if placement.kind_id.as_str()
-                == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
-            {
+            if placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND {
                 return Ok(request);
             }
             if placement.kind_id.as_str() != conduit_text::TEXT_MORSE_KIND {
@@ -392,8 +403,7 @@ fn literal_configuration(placement: &conduit_core::PlannedGear) -> Result<&str, 
         .iter()
         .find_map(|entry| match (entry.key.as_str(), &entry.value) {
             ("value", ConfigurationValue::Text(value))
-                if !value.is_empty()
-                    && value.len() <= conduit_text::MAXIMUM_MORSE_INPUT_BYTES =>
+                if !value.is_empty() && value.len() <= conduit_text::MAXIMUM_MORSE_INPUT_BYTES =>
             {
                 Some(value.as_str())
             }
@@ -413,8 +423,7 @@ fn morse_unit_configuration(placement: &conduit_core::PlannedGear) -> Result<u16
             _ => None,
         })
         .filter(|value| {
-            (conduit_text::MINIMUM_MORSE_UNIT_MILLIS
-                ..=conduit_text::MAXIMUM_MORSE_UNIT_MILLIS)
+            (conduit_text::MINIMUM_MORSE_UNIT_MILLIS..=conduit_text::MAXIMUM_MORSE_UNIT_MILLIS)
                 .contains(value)
         })
         .ok_or_else(|| "book Morse unit duration is missing or invalid".into())
@@ -455,12 +464,9 @@ mod tests {
     #[test]
     fn unrelated_forms_are_refused_by_the_book_boundary() {
         let wrong = HELLO_LIGHT.replace("presentation/indicator", "text/upper");
-        assert!(BookSession::prepare(
-            "browser/book-test",
-            "browser-boot/book-test",
-            &wrong,
-            2,
-        )
-        .is_err());
+        assert!(
+            BookSession::prepare("browser/book-test", "browser-boot/book-test", &wrong, 2,)
+                .is_err()
+        );
     }
 }

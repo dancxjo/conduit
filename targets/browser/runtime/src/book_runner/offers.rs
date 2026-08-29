@@ -11,8 +11,8 @@ pub(super) const BOOK_LOCAL_BASE: &str = "conduit.base/local@1";
 pub(super) const MORSE_HOST_OPERATION: &str = "conduit.host/text-to-morse@1";
 pub(super) const INDICATOR_HOST_OPERATION: &str = "conduit.host/present-indicator@1";
 
-pub(super) fn catalog() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String>
-{
+pub(super) fn catalog(
+) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profile)?;
@@ -50,7 +50,7 @@ pub(super) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
 
 fn literal_offer() -> CapabilityOffer {
     let contract = conduit_text::text_literal_semantics();
-    CapabilityOffer {
+    let mut offer = CapabilityOffer {
         startup_parameters: vec![FaceStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
@@ -71,7 +71,12 @@ fn literal_offer() -> CapabilityOffer {
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,
-    }
+    };
+    // This local Plan uses one exact queue budget for both Cords. The literal
+    // value remains bounded by its semantic contract, while its admitted queue
+    // can carry the larger downstream Morse pattern budget.
+    offer.limits.max_queue_bytes = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32;
+    offer
 }
 
 fn morse_offer() -> CapabilityOffer {

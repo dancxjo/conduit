@@ -216,7 +216,12 @@ impl MorsePattern {
     pub fn encode(&self) -> Result<Vec<u8>, MorseError> {
         self.validate()?;
         let length = 5_usize
-            .checked_add(self.segments.len().checked_mul(2).ok_or(MorseError::OutputCapacity)?)
+            .checked_add(
+                self.segments
+                    .len()
+                    .checked_mul(2)
+                    .ok_or(MorseError::OutputCapacity)?,
+            )
             .ok_or(MorseError::OutputCapacity)?;
         if length > MAXIMUM_MORSE_PATTERN_BYTES {
             return Err(MorseError::OutputCapacity);
@@ -327,15 +332,42 @@ fn decode_symbols(value: &[u8]) -> Result<char, MorseError> {
 
 fn symbols(value: u8) -> Option<&'static [u8]> {
     Some(match value.to_ascii_uppercase() {
-        b'A' => b".-", b'B' => b"-...", b'C' => b"-.-.", b'D' => b"-..",
-        b'E' => b".", b'F' => b"..-.", b'G' => b"--.", b'H' => b"....",
-        b'I' => b"..", b'J' => b".---", b'K' => b"-.-", b'L' => b".-..",
-        b'M' => b"--", b'N' => b"-.", b'O' => b"---", b'P' => b".--.",
-        b'Q' => b"--.-", b'R' => b".-.", b'S' => b"...", b'T' => b"-",
-        b'U' => b"..-", b'V' => b"...-", b'W' => b".--", b'X' => b"-..-",
-        b'Y' => b"-.--", b'Z' => b"--..", b'0' => b"-----", b'1' => b".----",
-        b'2' => b"..---", b'3' => b"...--", b'4' => b"....-", b'5' => b".....",
-        b'6' => b"-....", b'7' => b"--...", b'8' => b"---..", b'9' => b"----.",
+        b'A' => b".-",
+        b'B' => b"-...",
+        b'C' => b"-.-.",
+        b'D' => b"-..",
+        b'E' => b".",
+        b'F' => b"..-.",
+        b'G' => b"--.",
+        b'H' => b"....",
+        b'I' => b"..",
+        b'J' => b".---",
+        b'K' => b"-.-",
+        b'L' => b".-..",
+        b'M' => b"--",
+        b'N' => b"-.",
+        b'O' => b"---",
+        b'P' => b".--.",
+        b'Q' => b"--.-",
+        b'R' => b".-.",
+        b'S' => b"...",
+        b'T' => b"-",
+        b'U' => b"..-",
+        b'V' => b"...-",
+        b'W' => b".--",
+        b'X' => b"-..-",
+        b'Y' => b"-.--",
+        b'Z' => b"--..",
+        b'0' => b"-----",
+        b'1' => b".----",
+        b'2' => b"..---",
+        b'3' => b"...--",
+        b'4' => b"....-",
+        b'5' => b".....",
+        b'6' => b"-....",
+        b'7' => b"--...",
+        b'8' => b"---..",
+        b'9' => b"----.",
         _ => return None,
     })
 }
@@ -374,16 +406,36 @@ mod tests {
     fn sos_has_exact_units_and_round_trips() {
         let pattern = MorsePattern::from_text("SOS", 120).unwrap();
         assert_eq!(
-            pattern.segments.iter().map(|value| (value.level, value.units)).collect::<Vec<_>>(),
+            pattern
+                .segments
+                .iter()
+                .map(|value| (value.level, value.units))
+                .collect::<Vec<_>>(),
             vec![
-                (true, 1), (false, 1), (true, 1), (false, 1), (true, 1),
-                (false, 3), (true, 3), (false, 1), (true, 3), (false, 1),
-                (true, 3), (false, 3), (true, 1), (false, 1), (true, 1),
-                (false, 1), (true, 1),
+                (true, 1),
+                (false, 1),
+                (true, 1),
+                (false, 1),
+                (true, 1),
+                (false, 3),
+                (true, 3),
+                (false, 1),
+                (true, 3),
+                (false, 1),
+                (true, 3),
+                (false, 3),
+                (true, 1),
+                (false, 1),
+                (true, 1),
+                (false, 1),
+                (true, 1),
             ]
         );
         assert_eq!(pattern.to_text().unwrap(), "SOS");
-        assert_eq!(MorsePattern::decode(&pattern.encode().unwrap()).unwrap(), pattern);
+        assert_eq!(
+            MorsePattern::decode(&pattern.encode().unwrap()).unwrap(),
+            pattern
+        );
     }
 
     #[test]
@@ -400,11 +452,29 @@ mod tests {
     #[test]
     fn invalid_text_units_and_encodings_fail_closed() {
         assert_eq!(MorsePattern::from_text("", 120), Err(MorseError::Empty));
-        assert_eq!(MorsePattern::from_text(" SOS", 120), Err(MorseError::InvalidWordGap));
-        assert_eq!(MorsePattern::from_text("SOS ", 120), Err(MorseError::InvalidWordGap));
-        assert_eq!(MorsePattern::from_text("S  O", 120), Err(MorseError::InvalidWordGap));
-        assert_eq!(MorsePattern::from_text("?", 120), Err(MorseError::UnsupportedCharacter));
-        assert_eq!(MorsePattern::from_text("SOS", 39), Err(MorseError::InvalidUnitMillis));
-        assert_eq!(MorsePattern::decode(&[1, 120, 0, 1, 0, 2, 1]), Err(MorseError::MalformedEncoding));
+        assert_eq!(
+            MorsePattern::from_text(" SOS", 120),
+            Err(MorseError::InvalidWordGap)
+        );
+        assert_eq!(
+            MorsePattern::from_text("SOS ", 120),
+            Err(MorseError::InvalidWordGap)
+        );
+        assert_eq!(
+            MorsePattern::from_text("S  O", 120),
+            Err(MorseError::InvalidWordGap)
+        );
+        assert_eq!(
+            MorsePattern::from_text("?", 120),
+            Err(MorseError::UnsupportedCharacter)
+        );
+        assert_eq!(
+            MorsePattern::from_text("SOS", 39),
+            Err(MorseError::InvalidUnitMillis)
+        );
+        assert_eq!(
+            MorsePattern::decode(&[1, 120, 0, 1, 0, 2, 1]),
+            Err(MorseError::MalformedEncoding)
+        );
     }
 }
