@@ -63,14 +63,14 @@ struct VerifyReceipt {
 }
 
 #[derive(Clone, Copy)]
-struct Identities {
-    host: u32,
-    boot: u32,
-    offer: u32,
-    fragment: u32,
-    operation: u16,
-    play: u32,
-    grant: u32,
+pub(super) struct Identities {
+    pub(super) host: u32,
+    pub(super) boot: u32,
+    pub(super) offer: u32,
+    pub(super) fragment: u32,
+    pub(super) operation: u16,
+    pub(super) play: u32,
+    pub(super) grant: u32,
 }
 
 pub(super) fn run(args: VerifyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
@@ -168,7 +168,7 @@ fn validate_request(
     Ok(())
 }
 
-fn configure_serial(port: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn configure_serial(port: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let output = Command::new("stty")
         .args(["-F"])
         .arg(port)
@@ -177,7 +177,7 @@ fn configure_serial(port: &Path) -> Result<(), Box<dyn std::error::Error>> {
     require_success(&output, "Pro Micro CDC configuration")
 }
 
-fn fresh_boot_id() -> Result<u32, Box<dyn std::error::Error>> {
+pub(super) fn fresh_boot_id() -> Result<u32, Box<dyn std::error::Error>> {
     let mut bytes = [0_u8; 4];
     OpenOptions::new()
         .read(true)
@@ -190,7 +190,7 @@ fn fresh_boot_id() -> Result<u32, Box<dyn std::error::Error>> {
     Ok(value)
 }
 
-fn exchange(
+pub(super) fn exchange(
     device: &mut impl ReadWrite,
     request: &str,
     expected: &str,
@@ -206,10 +206,10 @@ fn exchange(
     Ok(())
 }
 
-trait ReadWrite: Read + Write {}
+pub(super) trait ReadWrite: Read + Write {}
 impl<T: Read + Write> ReadWrite for T {}
 
-fn read_line(device: &mut impl Read) -> Result<String, Box<dyn std::error::Error>> {
+pub(super) fn read_line(device: &mut impl Read) -> Result<String, Box<dyn std::error::Error>> {
     let start = Instant::now();
     let mut bytes = Vec::with_capacity(128);
     let mut byte = [0_u8; 1];
@@ -229,7 +229,7 @@ fn read_line(device: &mut impl Read) -> Result<String, Box<dyn std::error::Error
     Err("AVR CDC reply deadline expired".into())
 }
 
-fn boot_frame(ids: Identities) -> String {
+pub(super) fn boot_frame(ids: Identities) -> String {
     format!(
         "B {}:{}:{}\n",
         hex32(ids.host),
@@ -238,7 +238,7 @@ fn boot_frame(ids: Identities) -> String {
     )
 }
 
-fn activation_frame(ids: Identities) -> String {
+pub(super) fn activation_frame(ids: Identities) -> String {
     format!(
         "A {}:{}:{}:{}:{}:{}:{}\n",
         hex32(ids.host),
@@ -251,18 +251,18 @@ fn activation_frame(ids: Identities) -> String {
     )
 }
 
-fn expected_hello() -> &'static str {
+pub(super) fn expected_hello() -> &'static str {
     "TARGET schema=conduit.target/availability@1 target_id=avr/promicro/pete-brainstem target=atmega32u4-5v-16mhz line=usb-cdc@1"
 }
 
-fn expected_boot(ids: Identities) -> String {
+pub(super) fn expected_boot(ids: Identities) -> String {
     format!(
         "BOOT_BIND schema=conduit.host/boot-binding@1 outcome=bound host={} boot={} offer_generation={} create_uart=isolated",
         hex32(ids.host), hex32(ids.boot), hex32(ids.offer)
     )
 }
 
-fn expected_activation(ids: Identities) -> String {
+pub(super) fn expected_activation(ids: Identities) -> String {
     format!(
         "ACTIVATION schema=conduit.host/observation-activation@1 outcome=admitted host={} boot={} offer_generation={} plan_fragment={} operation={} active_play={} authority_grant={} execution=disabled create_uart=isolated",
         hex32(ids.host),
@@ -279,11 +279,11 @@ fn expected_status() -> &'static str {
     "STATUS schema=conduit.pete/promicro-brainstem@1 create_uart=isolated create_tx_bytes=0 boot_binding=bound activation=admitted motion_authority=absent command_capacity=64 assigned_obligation_capacity=1 group_zero_bytes=26 create_codec=compiled-disabled"
 }
 
-fn hex32(value: u32) -> String {
+pub(super) fn hex32(value: u32) -> String {
     format!("{value:08X}")
 }
 
-fn hex16(value: u16) -> String {
+pub(super) fn hex16(value: u16) -> String {
     format!("{value:04X}")
 }
 

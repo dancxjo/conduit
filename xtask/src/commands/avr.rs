@@ -12,6 +12,7 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 mod avr_toolchain;
 mod cdc_verify;
+mod hil_observe;
 
 use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
@@ -62,6 +63,8 @@ enum AvrCommand {
     },
     /// Bind and verify one exact fail-closed Boot over guarded USB CDC.
     Verify(cdc_verify::VerifyArgs),
+    /// Execute and verify one exact attended Create group-zero observation.
+    Observe(hil_observe::ObserveArgs),
 }
 
 #[derive(Debug, Serialize)]
@@ -131,6 +134,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
             opts,
         ),
         AvrCommand::Verify(args) => cdc_verify::run(args, opts),
+        AvrCommand::Observe(args) => hil_observe::run(args, opts),
     }
 }
 
