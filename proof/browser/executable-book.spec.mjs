@@ -50,9 +50,10 @@ test("an edited inline Form plans and manifests through the browser Host", async
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("·");
   await expect(runner.locator(".play-status")).toContainText("Completed");
-  await expect(runner.locator("details dd")).toHaveCount(10);
+  await expect(runner.locator("details dd")).toHaveCount(12);
   const identities = await runner.locator("details dd").allTextContents();
   expect(identities.every((identity) => identity.length > 8)).toBe(true);
+  await expect(runner.locator("details")).not.toContainText("do not retain");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toMatch(/^browser\//);
 });
 
@@ -74,16 +75,32 @@ test("an out-of-scope Form is refused before Play", async ({ page }) => {
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
 });
 
-test("the truthful palette and six inline runners come from one browser Host", async ({ page }) => {
+test("the truthful palette and seven inline runners come from one browser Host", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.locator(".runner")).toHaveCount(6);
+  await expect(page.locator(".runner")).toHaveCount(7);
   await expect(page.locator(".gear-inventory summary")).toContainText("exact browser implementations");
   await expect(page.locator(".gear-inventory summary")).toContainText("16 Gear / 24 Cord bound");
   await expect(page.locator(".gear-inventory li.available")).toHaveCount(25);
   await expect(page.locator(".gear-inventory li.unavailable")).toHaveCount(5);
   await expect(page.locator(".gear-inventory")).toContainText("time/delay");
   await expect(page.locator(".gear-inventory")).toContainText("browser-resource-or-authority-pending");
+});
+
+test("typed text makes an exact Morse round trip through the same browser Host", async ({ page }) => {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  const runner = page.locator(".runner").nth(6);
+  const listing = runner.locator("textarea");
+  await listing.fill((await listing.inputValue()).replace('"HELLO 2"', '"SOS 2"'));
+  await runner.getByRole("button", { name: "Run" }).click();
+  await expect(runner.locator(".morse")).toHaveText("SOS 2");
+  await expect(runner.locator(".play-status")).toContainText("Completed");
+  await expect(runner.locator("details")).toContainText("Source interaction proposal");
+  await expect(runner.locator("details")).toContainText("Source interaction result");
+  await expect(runner.locator("details")).not.toContainText("SOS 2");
+  await expect(runner.locator(".expansion")).toContainText("text/morse");
+  await expect(runner.locator(".expansion")).toContainText("morse/text");
 });
 
 test("unchanged Morse source reveals direct and nested recursive substitution", async ({ page }) => {

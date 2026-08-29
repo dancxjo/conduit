@@ -2,6 +2,7 @@
 
 mod abi;
 mod engine;
+mod interaction;
 
 use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
 use conduit_core::{
@@ -40,6 +41,8 @@ pub(super) struct BookEffect {
     unit_millis: u16,
     segments: Vec<IndicatorSegment>,
     text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_interaction: Option<interaction::SourceInteractionEvidence>,
 }
 
 #[derive(Debug, Serialize)]
@@ -255,6 +258,7 @@ impl BookSession {
             unit_millis: manifestation.unit_millis,
             segments: manifestation.segments,
             text: manifestation.text,
+            source_interaction: None,
         };
         Ok((
             Self {

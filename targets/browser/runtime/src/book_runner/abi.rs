@@ -12,12 +12,14 @@ const ERROR_NOT_RUNNING: i32 = -403;
 const ERROR_OUTPUT: i32 = -404;
 const ERROR_COMPLETE: i32 = -405;
 const ERROR_CANCEL: i32 = -406;
+const ERROR_INTERACTION: i32 = -407;
 
 thread_local! {
     static SESSION: RefCell<Option<BookSession>> = const { RefCell::new(None) };
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
+    static SOURCE_INTERACTION: RefCell<Option<super::interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
 }
 
 #[no_mangle]
@@ -48,6 +50,39 @@ pub extern "C" fn conduit_book_inventory() -> i32 {
     write_output(&crate::installed_browser::inventory())
         .map(|()| STATUS_READY)
         .unwrap_or(ERROR_OUTPUT)
+}
+
+/// Admits the exact editable source through the portable typed human-interaction
+/// flow before parsing. The retained evidence contains byte count and exact
+/// identities, never the submitted source text.
+#[no_mangle]
+pub extern "C" fn conduit_book_admit_source_interaction(
+    source_length: usize,
+    sequence: u64,
+) -> i32 {
+    clear_output();
+    SOURCE_INTERACTION.with(|slot| *slot.borrow_mut() = None);
+    if source_length == 0 || source_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = super::interaction::admit_source(&input[..source_length], sequence);
+        input[..source_length].fill(0);
+        match result {
+            Ok(evidence) => {
+                if write_output(&evidence).is_err() {
+                    return ERROR_OUTPUT;
+                }
+                SOURCE_INTERACTION.with(|slot| *slot.borrow_mut() = Some(evidence));
+                STATUS_READY
+            }
+            Err(message) => {
+                let _ = write_output(&super::refusal(message));
+                ERROR_INTERACTION
+            }
+        }
+    })
 }
 
 /// Starts one exact Play from adjacent UTF-8 Host, Boot, and Form source bytes.
@@ -87,6 +122,7 @@ fn start(
     recursive: bool,
 ) -> i32 {
     clear_output();
+    let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
     let Some(identity_length) = host_length.checked_add(boot_length) else {
         return ERROR_INPUT;
     };
@@ -96,6 +132,12 @@ fn start(
     if host_length == 0 || boot_length == 0 || source_length == 0 || total_length > INPUT_BYTES {
         return ERROR_INPUT;
     }
+    let Some(source_interaction) = source_interaction else {
+        let _ = write_output(&super::refusal(
+            "source interaction was not admitted before parsing".into(),
+        ));
+        return ERROR_INTERACTION;
+    };
     SESSION.with(|slot| {
         if let Some(previous) = slot.borrow_mut().take() {
             let _ = previous.cancel();
@@ -109,18 +151,32 @@ fn start(
                 .map_err(|_| ERROR_INPUT)?;
             let source = core::str::from_utf8(&input[identity_length..total_length])
                 .map_err(|_| ERROR_INPUT)?;
+            let verified_interaction =
+                super::interaction::admit_source(source.as_bytes(), source_interaction.sequence)
+                    .map_err(|message| {
+                        let _ = write_output(&super::refusal(message));
+                        ERROR_INTERACTION
+                    })?;
+            if verified_interaction.proposal_identity != source_interaction.proposal_identity {
+                write_output(&super::refusal(
+                    "source changed after typed interaction admission".into(),
+                ))
+                .map_err(|_| ERROR_OUTPUT)?;
+                return Err(ERROR_INTERACTION);
+            }
             let prepared = if recursive {
                 BookSession::prepare_recursive(host, boot, source, play_sequence)
             } else {
                 BookSession::prepare(host, boot, source, play_sequence)
             };
-            let (session, effect) = match prepared {
+            let (session, mut effect) = match prepared {
                 Ok(prepared) => prepared,
                 Err(message) => {
                     write_output(&super::refusal(message)).map_err(|_| ERROR_OUTPUT)?;
                     return Err(ERROR_PREPARE);
                 }
             };
+            effect.source_interaction = Some(source_interaction);
             write_output(&effect).map_err(|_| ERROR_OUTPUT)?;
             SESSION.with(|slot| *slot.borrow_mut() = Some(session));
             Ok(STATUS_READY)
@@ -182,6 +238,20 @@ mod tests {
     fn empty_book_start_is_refused_without_a_session() {
         assert_eq!(conduit_book_start(0, 0, 0, 0), ERROR_INPUT);
         assert_eq!(conduit_book_complete(), ERROR_NOT_RUNNING);
+
+        INPUT.with(|input| input.borrow_mut()[..3].copy_from_slice(b"one"));
+        assert_eq!(conduit_book_admit_source_interaction(3, 1), STATUS_READY);
+        INPUT.with(|input| input.borrow_mut()[..5].copy_from_slice(b"hbTwo"));
+        assert_eq!(conduit_book_start(1, 1, 3, 1), ERROR_INTERACTION);
+        let refusal: serde_json::Value = OUTPUT.with(|output| {
+            serde_json::from_slice(&output.borrow()[..conduit_book_output_len()]).unwrap()
+        });
+        assert_eq!(
+            refusal["message"],
+            "source changed after typed interaction admission"
+        );
+        assert_eq!(conduit_book_complete(), ERROR_NOT_RUNNING);
+
         assert_eq!(conduit_book_inventory(), STATUS_READY);
         assert!(conduit_book_output_len() > 0);
     }

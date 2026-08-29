@@ -11,7 +11,7 @@ let runnerCount = 0;
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -24,6 +24,7 @@ try {
   renderMarkdown(chapters[0]);
   renderInventory(readInventory(host.runtime));
   renderMarkdown(chapters[1]);
+  renderMarkdown(chapters[2]);
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
 } catch (error) {
@@ -37,7 +38,7 @@ function requireBookAbi(api) {
     "memory", "conduit_book_input_ptr", "conduit_book_input_capacity",
     "conduit_book_output_ptr", "conduit_book_output_len", "conduit_book_start",
     "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_cancel",
-    "conduit_book_inventory",
+    "conduit_book_inventory", "conduit_book_admit_source_interaction",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
@@ -139,6 +140,24 @@ async function runListing(runner, source, recursive) {
     return;
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_book_input_ptr(), total);
+  const interactionInput = new Uint8Array(
+    api.memory.buffer,
+    api.conduit_book_input_ptr(),
+    sourceBytes.length,
+  );
+  interactionInput.set(sourceBytes);
+  const interaction = api.conduit_book_admit_source_interaction(
+    sourceBytes.length,
+    BigInt(current),
+  );
+  if (interaction < 0) {
+    const refusal = api.conduit_book_output_len() > 0 ? readOutput(api) : null;
+    status.textContent = refusal?.message
+      ? `The edit was refused · ${refusal.category}: ${refusal.message}`
+      : `The edit was refused (${interaction}).`;
+    status.classList.add("error");
+    return;
+  }
   input.set(hostBytes);
   input.set(bootBytes, hostBytes.length);
   input.set(sourceBytes, hostBytes.length + bootBytes.length);
@@ -258,6 +277,18 @@ function renderIdentities(runner, effect) {
     term.textContent = label;
     value.textContent = effect[key];
     list.append(term, value);
+  }
+  if (effect.source_interaction) {
+    for (const [label, value] of [
+      ["Source interaction proposal", effect.source_interaction.proposal_identity],
+      ["Source interaction result", effect.source_interaction.result_identity],
+    ]) {
+      const term = document.createElement("dt");
+      const identity = document.createElement("dd");
+      term.textContent = label;
+      identity.textContent = value;
+      list.append(term, identity);
+    }
   }
   const expansion = runner.querySelector(".expansion");
   expansion.replaceChildren();
