@@ -25,6 +25,18 @@ body { margin: 0; background: var(--paper); color: var(--ink); }
 h1 { margin: 0 0 .65rem; font: 750 clamp(2.35rem, 7vw, 5rem)/.95 Georgia, serif; letter-spacing: -.045em; }
 h2 { margin-top: 2rem; font-size: 1.2rem; }
 p { max-width: 43rem; color: #344139; line-height: 1.65; }
+.concept-diagram {
+  max-width: 43rem; margin: 1.5rem 0; padding: 1.25rem; overflow-x: auto;
+  border: 1px solid var(--line); border-radius: 10px; color: var(--green-dark); background: var(--panel);
+  font: 650 .86rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.realization-comparison {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.6rem;
+}
+.realization-comparison .runner { min-width: 0; margin-top: 0; grid-template-columns: 1fr; }
+.realization-heading { grid-column: 1 / -1; padding: 1rem 1.2rem; border-bottom: 1px solid var(--line); }
+.realization-heading span { color: var(--green); font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.realization-heading h3 { margin: .2rem 0 0; font: 750 1.15rem/1.2 Georgia, serif; }
 .runner {
   margin-top: 1.6rem; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(18rem, .85fr);
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
@@ -41,8 +53,6 @@ textarea {
 button { border: 0; border-radius: 999px; padding: .7rem 1.15rem; font: inherit; font-weight: 700; cursor: pointer; }
 .run { background: #77daa8; color: #10271c; }
 .stop { background: #31443a; color: white; }
-.realization-control { margin-left: auto; display: grid; gap: .2rem; color: #9fb0a6; font-size: .68rem; text-align: left; }
-.realization-control select { max-width: 12rem; border: 1px solid #52685c; border-radius: 5px; padding: .3rem .45rem; color: #e9f1ec; background: #26382f; font: inherit; }
 button:disabled { cursor: default; opacity: .45; }
 .result { padding: clamp(1.5rem, 3vw, 2.5rem); display: flex; flex-direction: column; justify-content: center; text-align: center; }
 .indicator {
@@ -68,11 +78,11 @@ details dt { color: var(--ink); font-weight: 700; }
 .gear-inventory span { color: var(--muted); font-size: .72rem; }
 .error { color: #a02828; }
 @media (max-width: 760px) {
+  .realization-comparison { grid-template-columns: 1fr; }
   .runner { grid-template-columns: 1fr; }
   .editor { min-height: 20rem; }
   textarea { min-height: 20rem; }
   .result { min-height: 19rem; }
   .actions { flex-wrap: wrap; }
-  .realization-control { width: 100%; margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }

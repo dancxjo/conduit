@@ -51,6 +51,7 @@ test("an edited inline Form plans and manifests through the browser Host", async
   await expect(runner.locator(".morse")).toHaveText("·");
   await expect(runner.locator(".play-status")).toContainText("Completed");
   await expect(runner.locator("details dd")).toHaveCount(12);
+  await expect(runner.locator("details")).not.toHaveAttribute("open", "");
   const identities = await runner.locator("details dd").allTextContents();
   expect(identities.every((identity) => identity.length > 8)).toBe(true);
   await expect(runner.locator("details")).not.toContainText("do not retain");
@@ -75,10 +76,11 @@ test("an out-of-scope Form is refused before Play", async ({ page }) => {
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
 });
 
-test("the truthful palette and seven inline runners come from one browser Host", async ({ page }) => {
+test("the truthful palette and eight inline runners come from one browser Host", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.locator(".runner")).toHaveCount(7);
+  await expect(page.locator(".runner")).toHaveCount(8);
+  await expect(page.getByLabel("Morse realization")).toHaveCount(0);
   await expect(page.locator(".gear-inventory summary")).toContainText("exact browser implementations");
   await expect(page.locator(".gear-inventory summary")).toContainText("16 Gear / 24 Cord bound");
   await expect(page.locator(".gear-inventory li.available")).toHaveCount(25);
@@ -90,7 +92,7 @@ test("the truthful palette and seven inline runners come from one browser Host",
 test("typed text makes an exact Morse round trip through the same browser Host", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  const runner = page.locator(".runner").nth(6);
+  const runner = page.locator(".runner").nth(7);
   const listing = runner.locator("textarea");
   await listing.fill((await listing.inputValue()).replace('"HELLO 2"', '"SOS 2"'));
   await runner.getByRole("button", { name: "Run" }).click();
@@ -103,20 +105,32 @@ test("typed text makes an exact Morse round trip through the same browser Host",
   await expect(runner.locator(".expansion")).toContainText("morse/text");
 });
 
-test("unchanged Morse source reveals direct and nested recursive substitution", async ({ page }) => {
+test("one deliberate comparison reveals direct and recursive substitution", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  const runner = page.locator(".runner").nth(1);
-  const listing = runner.locator("textarea");
+  const comparison = page.locator(".realization-comparison");
+  const direct = comparison.locator(".runner").nth(0);
+  const recursive = comparison.locator(".runner").nth(1);
+  const listing = direct.locator("textarea");
   await listing.fill((await listing.inputValue()).replace('"HELLO"', '"E"').replace("(80)", "(40)"));
-  await expect(runner.getByLabel("Morse realization")).toHaveValue("recursive");
-  await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".morse")).toHaveText("·");
-  await expect(runner.locator(".play-status")).toContainText("Completed");
-  await expect(runner.locator(".expansion")).toContainText("Selected realization: recursive");
-  await expect(runner.locator(".expansion")).toContainText("text/morse-symbols");
-  await expect(runner.locator(".expansion")).toContainText("morse/lookup");
-  await expect(runner.locator(".expansion")).toContainText("morse/symbols-to-pattern");
+  await expect(recursive.locator("textarea")).toHaveValue(await listing.inputValue());
+  await direct.getByRole("button", { name: "Run Host leaf" }).click();
+  await expect(direct.locator(".morse")).toHaveText("·");
+  await expect(direct.locator(".play-status")).toContainText("Completed");
+  await recursive.getByRole("button", { name: "Run open Back" }).click();
+  await expect(recursive.locator(".morse")).toHaveText("·");
+  await expect(recursive.locator(".play-status")).toContainText("Completed");
+  await expect(direct.locator(".expansion")).toContainText("Selected realization: direct");
+  await expect(recursive.locator(".expansion")).toContainText("Selected realization: recursive");
+  await expect(recursive.locator(".expansion")).toContainText("text/morse-symbols");
+  await expect(recursive.locator(".expansion")).toContainText("morse/lookup");
+  await expect(recursive.locator(".expansion")).toContainText("morse/symbols-to-pattern");
+  const directIdentities = await direct.locator("details dd").allTextContents();
+  const recursiveIdentities = await recursive.locator("details dd").allTextContents();
+  expect(directIdentities[0]).toBe(recursiveIdentities[0]);
+  expect(directIdentities[1]).toBe(recursiveIdentities[1]);
+  expect(directIdentities[2]).not.toBe(recursiveIdentities[2]);
+  expect(directIdentities[3]).not.toBe(recursiveIdentities[3]);
 });
 
 test("math logic fanout and structured language edit and run without reloading", async ({ page }) => {
@@ -124,10 +138,10 @@ test("math logic fanout and structured language edit and run without reloading",
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   const cases = [
-    { index: 2, result: "3.000000" },
-    { index: 3, result: "false" },
-    { index: 4, result: "true" },
-    { index: 5, result: /4 linguistic annotations/ },
+    { index: 3, result: "3.000000" },
+    { index: 4, result: "false" },
+    { index: 5, result: "true" },
+    { index: 6, result: /4 linguistic annotations/ },
   ];
   for (const specimen of cases) {
     const runner = page.locator(".runner").nth(specimen.index);

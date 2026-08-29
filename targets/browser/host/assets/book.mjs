@@ -56,13 +56,28 @@ function renderMarkdown(markdown) {
   };
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (line === "```conduit run" || line === "```conduit run recursive") {
+    if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
       flush();
       const recursive = line.endsWith(" recursive");
+      const comparison = line.endsWith(" compare");
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      chapter.append(createRunner(source.join("\n"), recursive));
+      chapter.append(comparison
+        ? createRealizationComparison(source.join("\n"))
+        : createRunner(source.join("\n"), recursive));
+      copy = appendCopy();
+    } else if (line === "```text") {
+      flush();
+      const source = [];
+      index += 1;
+      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
+      const diagram = document.createElement("pre");
+      diagram.className = "concept-diagram";
+      const code = document.createElement("code");
+      code.textContent = source.join("\n");
+      diagram.append(code);
+      copy.append(diagram);
       copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();
@@ -90,18 +105,39 @@ function appendCopy() {
   return copy;
 }
 
-function createRunner(source, recursive = false) {
+function createRealizationComparison(source) {
+  const comparison = document.createElement("div");
+  comparison.className = "realization-comparison";
+  const direct = createRunner(source, false, {
+    eyebrow: "Realization A",
+    title: "Host leaf",
+    runLabel: "Run Host leaf",
+  });
+  const recursive = createRunner(source, true, {
+    eyebrow: "Realization B",
+    title: "Open reviewed Back",
+    runLabel: "Run open Back",
+  });
+  const directSource = direct.querySelector("textarea");
+  const recursiveSource = recursive.querySelector("textarea");
+  directSource.addEventListener("input", () => { recursiveSource.value = directSource.value; });
+  recursiveSource.addEventListener("input", () => { directSource.value = recursiveSource.value; });
+  comparison.append(direct, recursive);
+  return comparison;
+}
+
+function createRunner(source, recursive = false, presentation = {}) {
   runnerCount += 1;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const runner = document.createElement("section");
   runner.className = "runner";
   runner.innerHTML = `
+    ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3></header>` : ""}
     <div class="editor">
       <label class="editor-label" for="${listingId}">Conduit · editable</label>
       <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
       <div class="actions">
-        <button class="run" type="button">Run</button><button class="stop" type="button" disabled>Stop</button>
-        <label class="realization-control">Realization <select aria-label="Morse realization"><option value="direct">direct leaf</option><option value="recursive">recursive Form Back</option></select></label>
+        <button class="run" type="button">${presentation.runLabel ?? "Run"}</button><button class="stop" type="button" disabled>Stop</button>
       </div>
     </div>
     <div class="result">
@@ -109,18 +145,13 @@ function createRunner(source, recursive = false) {
       <h2>Planned result</h2>
       <output class="morse" aria-label="Planned result">ready</output>
       <p class="play-status" role="status">Edit the message or timing, then run it.</p>
-      <details><summary>Execution identities</summary><dl></dl><div class="expansion"></div></details>
+      <details><summary>How Conduit ran this</summary><dl></dl><div class="expansion"></div></details>
     </div>`;
   const textarea = runner.querySelector("textarea");
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
-  runner.querySelector("select").value = recursive ? "recursive" : "direct";
   textarea.value = source;
-  run.addEventListener("click", () => runListing(
-    runner,
-    textarea.value,
-    runner.querySelector("select").value === "recursive",
-  ));
+  run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
   stop.addEventListener("click", () => stopListing(runner));
   return runner;
 }
