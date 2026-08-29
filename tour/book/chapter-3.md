@@ -1,16 +1,15 @@
-# Say it, then get it back
+# Step 6 — Same Face, different implementation
 
-Morse is one meaning with two exact directions. Edit the quoted message, press Run, and the same ordinary Form encodes it into canonical timed Morse before decoding it back to text.
+The exact same caller can use either the optimized Host leaf or the reviewed Form Back and produce the same canonical result.
 
-```conduit run recursive
-form morse-round-trip {
-    message: text/literal("HELLO 2")
-    encode: text/morse(unit-ms = 80)
-    decode: morse/text
-    result: presentation/text
+```conduit compare
+form same-morse-caller {
+    message: text/literal("HELLO")
+    morse: text/morse(40)
+    light: presentation/indicator
 
-    message > encode > decode > result
+    message > morse > light
 }
 ```
 
-The browser editor admits your source through Conduit's bounded typed text-interaction contract before parsing it. Its evidence retains the exact proposal and result identities plus the byte count, but not a second copy of what you typed.
+This side-by-side comparison is a teaching aid, not an author-facing execution preference. Source and checked Form identities agree; expanded Form, Plan, and implementation identities remain honestly different.
