@@ -1,5 +1,6 @@
 #include "../firmware/promicro_brainstem/assigned_obligations.h"
 #include "../firmware/promicro_brainstem/create_oi.h"
+#include "../firmware/promicro_brainstem/group_zero.h"
 #include "../firmware/promicro_brainstem/protocol.h"
 
 #include <assert.h>
@@ -87,4 +88,94 @@ int main() {
   invalid = observation;
   invalid.kind = static_cast<ObligationKind>(99);
   assert(invalid_slot.admit(invalid) == AdmissionFailure::kUnsupportedKind);
+
+  uint8_t group_zero[kGroupZeroBytes]{};
+  group_zero[0] = 0b00011011;
+  group_zero[1] = 1;
+  group_zero[2] = 1;
+  group_zero[4] = 1;
+  group_zero[6] = 1;
+  group_zero[7] = 3;
+  group_zero[8] = 0x12;
+  group_zero[9] = 0x34;
+  group_zero[10] = 137;
+  group_zero[11] = 0b0101;
+  group_zero[12] = 0xff;
+  group_zero[13] = 0x88;
+  group_zero[14] = 0x00;
+  group_zero[15] = 0x1e;
+  group_zero[16] = 3;
+  group_zero[17] = 0x37;
+  group_zero[18] = 0x78;
+  group_zero[19] = 0xff;
+  group_zero[20] = 0x10;
+  group_zero[21] = 31;
+  group_zero[22] = 0x04;
+  group_zero[23] = 0xb0;
+  group_zero[24] = 0x09;
+  group_zero[25] = 0x60;
+
+  GroupZeroDecoder decoder;
+  for (uint8_t index = 0; index < kGroupZeroBytes - 1; ++index) {
+    assert(decoder.push(group_zero[index]) == DecodeOutcome::kNeedMore);
+  }
+  assert(decoder.push(group_zero[25]) == DecodeOutcome::kValid);
+  assert(decoder.push(0) == DecodeOutcome::kClosed);
+  const GroupZeroSample& sample = decoder.sample();
+  assert(sample.bump_and_wheel_drop == 0b00011011);
+  assert(sample.wall);
+  assert(sample.cliff_bits == 0b0101);
+  assert(sample.virtual_wall);
+  assert(sample.wheel_overcurrents == 3);
+  assert(sample.dirt_detect == 0x1234);
+  assert(sample.infrared == 137);
+  assert(sample.buttons == 0b0101);
+  assert(sample.distance_delta_mm == -120);
+  assert(sample.angle_delta_degrees == 30);
+  assert(sample.charging_state == 3);
+  assert(sample.millivolts == 14200);
+  assert(sample.milliamps == -240);
+  assert(sample.temperature_celsius == 31);
+  assert(sample.charge_mah == 1200);
+  assert(sample.capacity_mah == 2400);
+
+  ObligationSlot evidence_slot;
+  assert(evidence_slot.admit(observation) == AdmissionFailure::kNone);
+  TerminalEvidence evidence{};
+  assert(finish_obligation(evidence_slot, 0x10203041, 7, decoder, evidence) ==
+         EvidenceFailure::kStaleIdentity);
+  assert(finish_obligation(evidence_slot, 0x10203040, 7, decoder, evidence) ==
+         EvidenceFailure::kNone);
+  assert(evidence.disposition == TerminalDisposition::kCompleted);
+  assert(evidence.response_bytes == 26);
+  assert(evidence.payload_valid);
+
+  GroupZeroDecoder absent;
+  assert(absent.no_more_bytes() == DecodeOutcome::kDeviceNoResponse);
+  assert(absent.no_more_bytes() == DecodeOutcome::kClosed);
+  GroupZeroDecoder truncated;
+  assert(truncated.push(0) == DecodeOutcome::kNeedMore);
+  assert(truncated.no_more_bytes() == DecodeOutcome::kTruncated);
+  GroupZeroDecoder cancelled;
+  assert(cancelled.cancel() == DecodeOutcome::kCancelled);
+  GroupZeroDecoder expired;
+  assert(expired.deadline_expired() == DecodeOutcome::kDeadlineExpired);
+  GroupZeroDecoder unavailable;
+  assert(unavailable.provider_unavailable() ==
+         DecodeOutcome::kProviderUnavailable);
+
+  const uint8_t malformed_indices[] = {0, 1, 11, 16};
+  for (uint8_t malformed_index : malformed_indices) {
+    uint8_t malformed[kGroupZeroBytes];
+    for (uint8_t index = 0; index < kGroupZeroBytes; ++index) {
+      malformed[index] = group_zero[index];
+    }
+    malformed[malformed_index] =
+        malformed_index == 0 ? 0x20 : malformed_index == 11 ? 0x02 : 6;
+    GroupZeroDecoder malformed_decoder;
+    for (uint8_t byte : malformed) {
+      malformed_decoder.push(byte);
+    }
+    assert(malformed_decoder.outcome() == DecodeOutcome::kMalformed);
+  }
 }
