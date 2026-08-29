@@ -146,6 +146,7 @@ fn run_build(
         }
         return Ok((artifact, String::new()));
     }
+    validate_sketch_layout(&root.join(SKETCH))?;
     let cli = provision(&root)?;
     verify_cores(&cli, &root)?;
     fs::create_dir_all(&output_dir)?;
@@ -318,6 +319,27 @@ fn validate_sizes(flash: u64, sram: u64) -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
+fn validate_sketch_layout(sketch: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    for entry in fs::read_dir(sketch)? {
+        let path = entry?.path();
+        if path.is_file() && source_replaces_arduino_entry(&path) {
+            return Err(format!(
+                "AVR sketch contains standalone source {}: host tests must remain outside the sketch so their main() cannot replace Arduino setup()/loop()",
+                path.display()
+            )
+            .into());
+        }
+    }
+    Ok(())
+}
+
+fn source_replaces_arduino_entry(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some("c" | "cc" | "cpp" | "cxx")
+    )
+}
+
 fn require_success(output: &Output, action: &str) -> Result<(), Box<dyn std::error::Error>> {
     if output.status.success() {
         return Ok(());
@@ -419,5 +441,15 @@ mod tests {
         assert!(validate_sizes(MAX_FLASH_BYTES + 1, 1).is_err());
         assert!(validate_sizes(1, MAX_SRAM_BYTES + 1).is_err());
         validate_sizes(MAX_FLASH_BYTES, MAX_SRAM_BYTES).unwrap();
+    }
+
+    #[test]
+    fn standalone_sources_are_refused_inside_the_arduino_sketch() {
+        for source in ["test.c", "test.cc", "test.cpp", "test.cxx"] {
+            assert!(source_replaces_arduino_entry(Path::new(source)));
+        }
+        for allowed in ["promicro_brainstem.ino", "protocol.h", "README.md"] {
+            assert!(!source_replaces_arduino_entry(Path::new(allowed)));
+        }
     }
 }
