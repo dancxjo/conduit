@@ -74,6 +74,8 @@ mod tick_presentation;
 pub use tick_presentation::*;
 mod presentation_bool;
 pub use presentation_bool::*;
+mod presentation_indicator;
+pub use presentation_indicator::*;
 mod presentation_composition;
 pub use presentation_composition::*;
 mod presentation_execution;

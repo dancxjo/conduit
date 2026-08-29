@@ -32,6 +32,7 @@ use conduit_signal::{
 use std::{cell::RefCell, collections::BTreeMap};
 
 pub mod browser_pointer;
+mod book_runner;
 mod distributed;
 mod distributed_toggle;
 pub mod human_media;

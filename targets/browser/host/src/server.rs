@@ -6,7 +6,12 @@ use std::path::Path;
 
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
+const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.mjs");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
+const BOOK: &[u8] = include_bytes!("../assets/book.html");
+const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
+const BOOK_STYLE: &[u8] = include_bytes!("../assets/book.css");
+const BOOK_CHAPTER: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
 const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
@@ -43,6 +48,13 @@ impl BrowserHostServer {
             .local_addr()
             .map(|address| format!("http://{address}/"))
             .map_err(|error| format!("cannot resolve browser Host entrance: {error}"))
+    }
+
+    pub fn book_url(&self) -> Result<String, String> {
+        self.listener
+            .local_addr()
+            .map(|address| format!("http://{address}/book/"))
+            .map_err(|error| format!("cannot resolve executable-book entrance: {error}"))
     }
 
     #[cfg(test)]
@@ -92,11 +104,22 @@ impl BrowserHostServer {
             Some("GET /host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOTSTRAP)
             }
+            Some("GET /browser-host-bootstrap.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", HOST_BOOTSTRAP)
+            }
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }
             Some("GET /runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())
+            }
+            Some("GET /book/ HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", BOOK),
+            Some("GET /book/book.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
+            }
+            Some("GET /book/book.css HTTP/1.1") => ("200 OK", "text/css; charset=utf-8", BOOK_STYLE),
+            Some("GET /book/chapter-1.md HTTP/1.1") => {
+                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER)
             }
             _ => ("404 Not Found", "text/plain; charset=utf-8", b"not found"),
         };
