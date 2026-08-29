@@ -40,6 +40,16 @@ pub extern "C" fn conduit_book_output_len() -> usize {
     OUTPUT_LEN.with(|length| *length.borrow())
 }
 
+/// Writes the machine-readable browser Gear inventory derived from the same
+/// Host advertisement used by planning.
+#[no_mangle]
+pub extern "C" fn conduit_book_inventory() -> i32 {
+    clear_output();
+    write_output(&crate::installed_browser::inventory())
+        .map(|()| STATUS_READY)
+        .unwrap_or(ERROR_OUTPUT)
+}
+
 /// Starts one exact Play from adjacent UTF-8 Host, Boot, and Form source bytes.
 /// Replacing an unfinished session explicitly cancels its kernel scheduler.
 #[no_mangle]
@@ -48,6 +58,33 @@ pub extern "C" fn conduit_book_start(
     boot_length: usize,
     source_length: usize,
     play_sequence: u64,
+) -> i32 {
+    start(
+        host_length,
+        boot_length,
+        source_length,
+        play_sequence,
+        false,
+    )
+}
+
+/// Starts the same authored Form while selecting reviewed reusable Backs.
+#[no_mangle]
+pub extern "C" fn conduit_book_start_recursive(
+    host_length: usize,
+    boot_length: usize,
+    source_length: usize,
+    play_sequence: u64,
+) -> i32 {
+    start(host_length, boot_length, source_length, play_sequence, true)
+}
+
+fn start(
+    host_length: usize,
+    boot_length: usize,
+    source_length: usize,
+    play_sequence: u64,
+    recursive: bool,
 ) -> i32 {
     clear_output();
     let Some(identity_length) = host_length.checked_add(boot_length) else {
@@ -72,8 +109,18 @@ pub extern "C" fn conduit_book_start(
                 .map_err(|_| ERROR_INPUT)?;
             let source = core::str::from_utf8(&input[identity_length..total_length])
                 .map_err(|_| ERROR_INPUT)?;
-            let (session, effect) = BookSession::prepare(host, boot, source, play_sequence)
-                .map_err(|_| ERROR_PREPARE)?;
+            let prepared = if recursive {
+                BookSession::prepare_recursive(host, boot, source, play_sequence)
+            } else {
+                BookSession::prepare(host, boot, source, play_sequence)
+            };
+            let (session, effect) = match prepared {
+                Ok(prepared) => prepared,
+                Err(message) => {
+                    write_output(&super::refusal(message)).map_err(|_| ERROR_OUTPUT)?;
+                    return Err(ERROR_PREPARE);
+                }
+            };
             write_output(&effect).map_err(|_| ERROR_OUTPUT)?;
             SESSION.with(|slot| *slot.borrow_mut() = Some(session));
             Ok(STATUS_READY)
@@ -135,5 +182,7 @@ mod tests {
     fn empty_book_start_is_refused_without_a_session() {
         assert_eq!(conduit_book_start(0, 0, 0, 0), ERROR_INPUT);
         assert_eq!(conduit_book_complete(), ERROR_NOT_RUNNING);
+        assert_eq!(conduit_book_inventory(), STATUS_READY);
+        assert!(conduit_book_output_len() > 0);
     }
 }

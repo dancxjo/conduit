@@ -1,5 +1,7 @@
 use crate::prelude::*;
-use crate::{CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition};
+use crate::{
+    CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition, StartupParameterSignature,
+};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFace, KindId, RealizationBack};
 
@@ -35,6 +37,28 @@ impl CanonicalBackCatalog {
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
+        self.insert_checked(kind, &[], document, form_name)
+    }
+
+    /// Installs a Back only when the whole checked Face is equal, including
+    /// exact startup parameter names, types, and default presence.
+    pub fn insert_with_startup(
+        &mut self,
+        kind: &KindDefinition,
+        startup: &[StartupParameterSignature],
+        document: &CheckedSyntaxDocument,
+        form_name: &str,
+    ) -> Result<(), CanonicalBackError> {
+        self.insert_checked(kind, startup, document, form_name)
+    }
+
+    fn insert_checked(
+        &mut self,
+        kind: &KindDefinition,
+        startup: &[StartupParameterSignature],
+        document: &CheckedSyntaxDocument,
+        form_name: &str,
+    ) -> Result<(), CanonicalBackError> {
         if self.backs.len() >= MAXIMUM_CANONICAL_BACKS {
             return Err(CanonicalBackError::LimitExceeded);
         }
@@ -44,7 +68,7 @@ impl CanonicalBackCatalog {
             .find(|form| form.name == form_name)
             .cloned()
             .ok_or_else(|| CanonicalBackError::MissingForm(form_name.into()))?;
-        if form.checked_face() != definition_face(kind) {
+        if form.checked_face() != definition_face(kind, startup) {
             return Err(CanonicalBackError::FaceMismatch(
                 kind.kind_id.as_str().into(),
             ));
@@ -76,9 +100,16 @@ impl CanonicalBackCatalog {
     }
 }
 
-fn definition_face(kind: &KindDefinition) -> CheckedFace {
+fn definition_face(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFace {
     CheckedFace::new(
-        Vec::new(),
+        startup
+            .iter()
+            .map(|parameter| conduit_core::FaceStartupParameter {
+                name: parameter.name.clone(),
+                value_type: parameter.value_type.clone(),
+                has_default: parameter.default.is_some(),
+            })
+            .collect(),
         kind.inputs.clone(),
         kind.outputs.clone(),
         match (kind.inputs.as_slice(), kind.outputs.as_slice()) {

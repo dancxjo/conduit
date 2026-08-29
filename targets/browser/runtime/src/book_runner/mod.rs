@@ -1,49 +1,20 @@
-//! One finite executable-book Form running through the ordinary browser Host stack.
+//! Inline Forms executed by the ordinary finite browser Host installation.
 
 mod abi;
-mod offers;
-mod operation;
+mod engine;
 
+use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, ConfigurationValue, Plan,
-    PlanFragment, PresentationIdentity, SignIdentity,
+    bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
+    SignIdentity,
 };
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+use conduit_planner::{
+    default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
-use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
-};
-use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
-use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
-use operation::BookOperation;
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const NODES: usize = 3;
-const CORDS: usize = 2;
-const ROUTES: usize = NODES * PORTS;
-const VALUES: usize = 6;
-const VALUE_BYTES: usize = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES;
-const SIGNS: usize = 64;
-
-type BookScheduler = FixedScheduler<
-    OperationDriver<BookOperation, PORTS>,
-    FixedValueStore<VALUES, VALUE_BYTES>,
-    FixedSignLog<SIGNS>,
-    NODES,
-    CORDS,
-    PORTS,
-    CORDS,
-    ROUTES,
-    CORDS,
-    4,
-    NODES,
->;
-
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub(super) struct IndicatorSegment {
     level: bool,
     units: u8,
@@ -62,8 +33,27 @@ pub(super) struct BookEffect {
     placement_id: String,
     host_id: String,
     boot_id: String,
+    presentation_kind: String,
+    realization: &'static str,
+    expanded_gears: Vec<BookGearEvidence>,
+    realization_backs: Vec<BookBackEvidence>,
     unit_millis: u16,
     segments: Vec<IndicatorSegment>,
+    text: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct BookGearEvidence {
+    gear_id: String,
+    kind_id: String,
+    implementation_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct BookBackEvidence {
+    invocation_path: String,
+    kind_id: String,
+    checked_form_id: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -75,9 +65,50 @@ pub(super) struct BookReceipt {
     terminal_sign_id: String,
 }
 
+#[derive(Debug, Serialize)]
+pub(super) struct BookRefusal {
+    schema: &'static str,
+    disposition: &'static str,
+    category: &'static str,
+    message: String,
+}
+
+pub(super) fn refusal(message: String) -> BookRefusal {
+    let category = if message.contains("finite browser execution envelope")
+        || message.contains("limit")
+        || message.contains("Limit")
+        || message.contains("bound")
+        || message.contains("exceed")
+        || message.contains("maximum")
+        || message.contains("capacity")
+    {
+        "browser-bound"
+    } else if message.starts_with("parse ") || message.starts_with("check ") {
+        "type-or-source"
+    } else if message.starts_with("expand recursive ") {
+        "recursive-expansion"
+    } else if message.starts_with("expand ") {
+        "type-or-source"
+    } else if message.starts_with("place ") {
+        "missing-implementation-or-placement"
+    } else if message.contains("authority") || message.contains("Authority") {
+        "authority"
+    } else if message.contains("resource") || message.contains("Resource") {
+        "resource"
+    } else {
+        "planning-or-preparation"
+    };
+    BookRefusal {
+        schema: "conduit.book/refusal@1",
+        disposition: "refused-before-play",
+        category,
+        message,
+    }
+}
+
 pub(super) struct BookSession {
-    scheduler: BookScheduler,
-    pending: HostOperationRequest,
+    scheduler: engine::BookScheduler,
+    pending: engine::PendingManifestation,
     active_play_id: conduit_core::ActivePlayId,
     presentation: PresentationIdentity,
     host_id: conduit_core::HostId,
@@ -91,56 +122,122 @@ impl BookSession {
         source: &str,
         play_sequence: u64,
     ) -> Result<(Self, BookEffect), String> {
-        let (startup, catalog) = offers::catalog()?;
-        let form = conduit_form::parse_with_startup(source, &startup, &catalog)
+        Self::prepare_with_realization(
+            host_id,
+            boot_id,
+            source,
+            play_sequence,
+            MorseRealization::Direct,
+        )
+    }
+
+    pub(super) fn prepare_recursive(
+        host_id: &str,
+        boot_id: &str,
+        source: &str,
+        play_sequence: u64,
+    ) -> Result<(Self, BookEffect), String> {
+        Self::prepare_with_realization(
+            host_id,
+            boot_id,
+            source,
+            play_sequence,
+            MorseRealization::Recursive,
+        )
+    }
+
+    fn prepare_with_realization(
+        host_id: &str,
+        boot_id: &str,
+        source: &str,
+        play_sequence: u64,
+        realization: MorseRealization,
+    ) -> Result<(Self, BookEffect), String> {
+        let (startup, catalog) = catalogs()?;
+        let syntax = conduit_form::parse_syntax_document(source);
+        if let Some(diagnostic) = syntax.diagnostics.first() {
+            return Err(format!(
+                "parse executable-book Form: {}",
+                diagnostic.message
+            ));
+        }
+        let checked = conduit_form::check_syntax_document(&syntax, &startup)
             .map_err(|error| format!("check executable-book Form: {error:?}"))?;
-        let advertisement = offers::advertisement(host_id.into(), boot_id.into());
-        let hosts = [advertisement];
-        let placements = default_placements(&form, &hosts)
+        let entry = checked
+            .forms
+            .last()
+            .ok_or_else(|| "executable-book source has no Form".to_string())?
+            .name
+            .clone();
+        let form = match realization {
+            MorseRealization::Direct => {
+                conduit_form::expand_canonical_form(&checked, &entry, &catalog)
+                    .map_err(|error| format!("expand executable-book Form: {error:?}"))?
+            }
+            MorseRealization::Recursive => conduit_form::expand_canonical_form_with_backs(
+                &checked,
+                &entry,
+                &catalog,
+                &backs(&startup, &catalog)?,
+            )
+            .map_err(|error| format!("expand recursive executable-book Form: {error:?}"))?,
+        };
+        let host = advertisement(host_id.into(), boot_id.into());
+        let hosts = [host];
+        let placements = default_expanded_placements(&form, &hosts)
             .map_err(|error| format!("place executable-book Form: {error:?}"))?;
-        let plan = plan_with_options(
+        let bases = local_bases();
+        let plan = plan_expanded_canonical_with_options(
             &form,
             &hosts,
             &placements,
-            &[BaseImplementationId::from(offers::BOOK_LOCAL_BASE)],
+            &bases,
             PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: 1,
-                connection_byte_capacity: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+                connection_byte_capacity: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
+                    as u32,
                 authority_grants: &[],
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
         )
         .map_err(|error| format!("plan executable-book Form: {error:?}"))?;
+        let realization_backs = plan
+            .realization_backs
+            .iter()
+            .map(|back| BookBackEvidence {
+                invocation_path: back.invocation_path.clone(),
+                kind_id: back.kind_id.as_str().into(),
+                checked_form_id: back.checked_form_id.as_str().into(),
+            })
+            .collect();
         let fragment = exact_fragment(&plan)?;
-        validate_shape(fragment)?;
+        let expanded_gears = fragment
+            .placements
+            .iter()
+            .map(|placement| BookGearEvidence {
+                gear_id: placement.gear_id.as_str().into(),
+                kind_id: placement.kind_id.as_str().into(),
+                implementation_id: placement.implementation_id.as_str().into(),
+            })
+            .collect();
+        let (scheduler, pending) = engine::prepare(fragment)?;
         let active = bind_active_play(
             &plan.plan_id,
             &fragment.host_id,
             &fragment.boot_id,
             play_sequence,
         );
-        let indicator = fragment
+        let placement = fragment
             .placements
-            .iter()
-            .find(|placement| {
-                placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
-            })
-            .ok_or_else(|| "executable-book Plan has no indicator placement".to_string())?;
-        let presentation = bind_presentation(&active.active_play_id, &indicator.placement_id, 0);
-        let lowered = lower_plan_fragment(fragment)
-            .map_err(|error| format!("lower executable-book Plan: {error:?}"))?;
-        let mut scheduler = prepare_scheduler(fragment, &lowered)?;
-        let pending = drive_to_indicator(&mut scheduler, fragment)?;
-        let encoded = scheduler
-            .host_value(pending.input.value)
-            .map_err(debug_error)?;
-        let pattern = conduit_text::MorsePattern::decode(encoded)
-            .map_err(|error| format!("decode planned indicator effect: {error:?}"))?;
+            .get(usize::from(pending.request.node.0))
+            .ok_or_else(|| "manifestation has no planned placement".to_string())?;
+        let presentation = bind_presentation(&active.active_play_id, &placement.placement_id, 0);
+        let manifestation = decode_manifestation(&pending.manifestation)?;
         let effect = BookEffect {
-            schema: "conduit.book/indicator-effect@1",
+            schema: "conduit.book/manifestation-effect@2",
             source_document_id: fragment.source_document_id.as_str().into(),
             checked_form_id: fragment.checked_form_id.as_str().into(),
             expanded_form_id: fragment.expanded_form_id.as_str().into(),
@@ -148,18 +245,16 @@ impl BookSession {
             fragment_id: fragment.fragment_id.as_str().into(),
             active_play_id: active.active_play_id.as_str().into(),
             presentation_id: presentation.presentation_id.as_str().into(),
-            placement_id: indicator.placement_id.as_str().into(),
+            placement_id: placement.placement_id.as_str().into(),
             host_id: fragment.host_id.as_str().into(),
             boot_id: fragment.boot_id.as_str().into(),
-            unit_millis: pattern.unit_millis,
-            segments: pattern
-                .segments
-                .into_iter()
-                .map(|segment| IndicatorSegment {
-                    level: segment.level,
-                    units: segment.units,
-                })
-                .collect(),
+            presentation_kind: pending.manifestation.kind_id.into(),
+            realization: realization.as_str(),
+            expanded_gears,
+            realization_backs,
+            unit_millis: manifestation.unit_millis,
+            segments: manifestation.segments,
+            text: manifestation.text,
         };
         Ok((
             Self {
@@ -175,28 +270,8 @@ impl BookSession {
     }
 
     pub(super) fn complete(mut self) -> Result<BookReceipt, String> {
-        self.scheduler
-            .complete_host_operation(
-                self.pending.node,
-                self.pending.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
-                    output: None,
-                    failure: None,
-                },
-            )
-            .map_err(debug_error)?;
-        loop {
-            if self.scheduler.next_host_request().is_some() {
-                return Err("indicator Play requested an unplanned second effect".into());
-            }
-            match self.scheduler.step().map_err(debug_error)? {
-                SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Complete => break,
-                SchedulerStatus::Idle => return Err("indicator Play became idle".into()),
-                SchedulerStatus::Cancelled => return Err("indicator Play was cancelled".into()),
-            }
-        }
+        engine::complete_manifestation(&mut self.scheduler, &self.pending)?;
+        engine::drive_to_completion(&mut self.scheduler)?;
         let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
         Ok(receipt(
             "completed",
@@ -207,7 +282,9 @@ impl BookSession {
     }
 
     pub(super) fn cancel(mut self) -> Result<BookReceipt, String> {
-        self.scheduler.cancel().map_err(debug_error)?;
+        self.scheduler
+            .cancel()
+            .map_err(|error| format!("{error:?}"))?;
         let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
         Ok(receipt(
             "cancelled",
@@ -218,6 +295,106 @@ impl BookSession {
     }
 }
 
+#[derive(Clone, Copy)]
+enum MorseRealization {
+    Direct,
+    Recursive,
+}
+
+impl MorseRealization {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Direct => "direct",
+            Self::Recursive => "recursive",
+        }
+    }
+}
+
+struct DecodedManifestation {
+    unit_millis: u16,
+    segments: Vec<IndicatorSegment>,
+    text: Option<String>,
+}
+
+fn decode_manifestation(
+    manifestation: &crate::installed_browser::BrowserManifestation,
+) -> Result<DecodedManifestation, String> {
+    match manifestation.kind_id {
+        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => {
+            let pattern = conduit_text::MorsePattern::decode(&manifestation.canonical_value)
+                .map_err(|error| format!("decode planned indicator effect: {error:?}"))?;
+            Ok(DecodedManifestation {
+                unit_millis: pattern.unit_millis,
+                segments: pattern
+                    .segments
+                    .into_iter()
+                    .map(|segment| IndicatorSegment {
+                        level: segment.level,
+                        units: segment.units,
+                    })
+                    .collect(),
+                text: None,
+            })
+        }
+        conduit_semantic_catalog::TEXT_PRESENTATION_KIND => {
+            let text = String::from_utf8(manifestation.canonical_value.clone())
+                .map_err(|_| "planned text manifestation is not UTF-8")?;
+            Ok(DecodedManifestation {
+                unit_millis: 0,
+                segments: Vec::new(),
+                text: Some(text),
+            })
+        }
+        conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND => {
+            let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
+                &manifestation.canonical_value,
+            )
+            .map_err(|error| format!("decode structured manifestation: {error:?}"))?;
+            if value.value_type() != &conduit_language::annotation_bundle_four_type() {
+                return Err("structured manifestation has the wrong exact type".into());
+            }
+            Ok(DecodedManifestation {
+                unit_millis: 0,
+                segments: Vec::new(),
+                text: Some(format!(
+                    "4 linguistic annotations · {} canonical bytes",
+                    manifestation.canonical_value.len()
+                )),
+            })
+        }
+        conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND => {
+            let scalar = conduit_core::Scalar::decode(&manifestation.canonical_value)
+                .map_err(|error| format!("decode scalar manifestation: {error:?}"))?;
+            Ok(DecodedManifestation {
+                unit_millis: 0,
+                segments: Vec::new(),
+                text: Some(format_scalar(scalar)),
+            })
+        }
+        conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND => {
+            let value = conduit_core::InfoBool::decode(&manifestation.canonical_value)
+                .map_err(|error| format!("decode Boolean manifestation: {error:?}"))?;
+            Ok(DecodedManifestation {
+                unit_millis: 0,
+                segments: Vec::new(),
+                text: Some(value.get().to_string()),
+            })
+        }
+        _ => Err("browser manifestation Kind is not installed in the book surface".into()),
+    }
+}
+
+fn format_scalar(value: conduit_core::Scalar) -> String {
+    let raw = i128::from(value.raw_microunits());
+    let magnitude = raw.abs();
+    format!(
+        "{}{}.{:06}",
+        if raw < 0 { "-" } else { "" },
+        magnitude / i128::from(conduit_core::Scalar::SCALE),
+        magnitude % i128::from(conduit_core::Scalar::SCALE)
+    )
+}
+
 fn receipt(
     disposition: &'static str,
     active_play_id: &conduit_core::ActivePlayId,
@@ -225,7 +402,7 @@ fn receipt(
     sign: &SignIdentity,
 ) -> BookReceipt {
     BookReceipt {
-        schema: "conduit.book/indicator-receipt@1",
+        schema: "conduit.book/manifestation-receipt@2",
         disposition,
         active_play_id: active_play_id.as_str().into(),
         presentation_id: presentation.presentation_id.as_str().into(),
@@ -242,231 +419,5 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
         .ok_or_else(|| "executable-book Plan has no fragment".into())
 }
 
-fn validate_shape(fragment: &PlanFragment) -> Result<(), String> {
-    let has_exactly_one = |kind: &str| {
-        fragment
-            .placements
-            .iter()
-            .filter(|placement| placement.kind_id.as_str() == kind)
-            .count()
-            == 1
-    };
-    if fragment.placements.len() != NODES
-        || !has_exactly_one(conduit_text::TEXT_LITERAL_KIND)
-        || !has_exactly_one(conduit_text::TEXT_MORSE_KIND)
-        || !has_exactly_one(conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND)
-        || fragment.connections.len() != CORDS
-    {
-        return Err(
-            "book runner admits exactly text/literal -> text/morse -> presentation/indicator"
-                .into(),
-        );
-    }
-    Ok(())
-}
-
-fn prepare_scheduler(
-    fragment: &PlanFragment,
-    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
-) -> Result<BookScheduler, String> {
-    if lowered.nodes.len() != NODES
-        || lowered.cords.len() != CORDS
-        || !lowered.remote_endpoints.is_empty()
-    {
-        return Err("lowered executable-book Plan has an unexpected finite shape".into());
-    }
-    let nodes = lowered
-        .node_specs
-        .as_slice()
-        .try_into()
-        .map_err(|_| "book node table has the wrong size")?;
-    let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
-    let mut routes = FixedRoutes::<ROUTES, CORDS>::new(PORTS as u16);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .map_err(debug_error)?;
-    }
-    routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<4>::new(1);
-    for operation in &lowered.host_operations {
-        bindings
-            .install(operation.node, operation.binding)
-            .map_err(debug_error)?;
-    }
-    bindings.seal().map_err(debug_error)?;
-    let mut values = FixedValueStore::<VALUES, VALUE_BYTES>::new((VALUES * VALUE_BYTES) as u32)
-        .map_err(debug_error)?;
-    let literal_placement = fragment
-        .placements
-        .iter()
-        .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
-        .ok_or_else(|| "book Plan has no text literal placement".to_string())?;
-    let literal = literal_configuration(literal_placement)?;
-    let literal_value = values.store(literal.as_bytes()).map_err(debug_error)?;
-    let mut drivers = Vec::with_capacity(NODES);
-    for placement in &fragment.placements {
-        let operation = match placement.kind_id.as_str() {
-            conduit_text::TEXT_LITERAL_KIND => BookOperation::Literal {
-                value: literal_value,
-                emitted: false,
-            },
-            conduit_text::TEXT_MORSE_KIND => BookOperation::Morse {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
-                pending: false,
-                emitted: false,
-            },
-            conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => BookOperation::Indicator {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
-                pending: false,
-                complete: false,
-            },
-            _ => return Err("book Plan selected an unsupported Kind".into()),
-        };
-        drivers.push(OperationDriver::new(operation).map_err(debug_error)?);
-    }
-    let drivers = drivers
-        .try_into()
-        .map_err(|_| "book driver table is incomplete")?;
-    let signs = FixedSignLog::<SIGNS>::new(
-        lowered
-            .sign_bytes
-            .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
-    )
-    .map_err(debug_error)?;
-    BookScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
-        .map_err(debug_error)
-}
-
-fn drive_to_indicator(
-    scheduler: &mut BookScheduler,
-    fragment: &PlanFragment,
-) -> Result<HostOperationRequest, String> {
-    loop {
-        if let Some(request) = scheduler.next_host_request() {
-            let placement = &fragment.placements[usize::from(request.node.0)];
-            if placement.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND {
-                return Ok(request);
-            }
-            if placement.kind_id.as_str() != conduit_text::TEXT_MORSE_KIND {
-                return Err("book Play requested an unsupported host operation".into());
-            }
-            let input = scheduler
-                .host_value(request.input.value)
-                .map_err(debug_error)?
-                .to_vec();
-            let text = core::str::from_utf8(&input)
-                .map_err(|_| "book Morse input is not UTF-8".to_string())?;
-            let unit_millis = morse_unit_configuration(placement)?;
-            let encoded = conduit_text::MorsePattern::from_text(text, unit_millis)
-                .and_then(|pattern| pattern.encode())
-                .map_err(|error| format!("encode Morse pattern: {error:?}"))?;
-            let output = scheduler.store_host_value(&encoded).map_err(debug_error)?;
-            scheduler
-                .complete_host_operation(
-                    request.node,
-                    request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
-                        output: Some(
-                            BoundedValueRef::new(
-                                output,
-                                placement.host_operations[0].maximum_output_bytes,
-                            )
-                            .map_err(|_| "Morse output exceeded its planned bound")?,
-                        ),
-                        failure: None,
-                    },
-                )
-                .map_err(debug_error)?;
-            continue;
-        }
-        match scheduler.step().map_err(debug_error)? {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Complete => {
-                return Err("book Play completed without an indicator effect".into())
-            }
-            SchedulerStatus::Idle => return Err("book Play became idle".into()),
-            SchedulerStatus::Cancelled => return Err("book Play was cancelled".into()),
-        }
-    }
-}
-
-fn literal_configuration(placement: &conduit_core::PlannedGear) -> Result<&str, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            ("value", ConfigurationValue::Text(value))
-                if !value.is_empty() && value.len() <= conduit_text::MAXIMUM_MORSE_INPUT_BYTES =>
-            {
-                Some(value.as_str())
-            }
-            _ => None,
-        })
-        .ok_or_else(|| "book text literal is missing, empty, or oversized".into())
-}
-
-fn morse_unit_configuration(placement: &conduit_core::PlannedGear) -> Result<u16, String> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            (conduit_text::MORSE_UNIT_MILLIS_KEY, ConfigurationValue::U64(value)) => {
-                u16::try_from(*value).ok()
-            }
-            _ => None,
-        })
-        .filter(|value| {
-            (conduit_text::MINIMUM_MORSE_UNIT_MILLIS..=conduit_text::MAXIMUM_MORSE_UNIT_MILLIS)
-                .contains(value)
-        })
-        .ok_or_else(|| "book Morse unit duration is missing or invalid".into())
-}
-
-fn debug_error(error: impl core::fmt::Debug) -> String {
-    format!("{error:?}")
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const HELLO_LIGHT: &str = r#"form hello-light {
-    message: text/literal("SOS")
-    morse: text/morse(120)
-    light: presentation/indicator
-
-    message > morse > light
-}
-"#;
-
-    #[test]
-    fn one_exact_form_reaches_a_browser_indicator_effect_and_can_cancel() {
-        let (session, effect) = BookSession::prepare(
-            "browser/book-test",
-            "browser-boot/book-test",
-            HELLO_LIGHT,
-            1,
-        )
-        .unwrap();
-        assert_eq!(effect.unit_millis, 120);
-        assert_eq!(effect.segments.len(), 17);
-        assert_eq!(effect.host_id, "browser/book-test");
-        assert_eq!(session.cancel().unwrap().disposition, "cancelled");
-    }
-
-    #[test]
-    fn unrelated_forms_are_refused_by_the_book_boundary() {
-        let wrong = HELLO_LIGHT.replace("presentation/indicator", "text/upper");
-        assert!(
-            BookSession::prepare("browser/book-test", "browser-boot/book-test", &wrong, 2,)
-                .is_err()
-        );
-    }
-}
+mod tests;

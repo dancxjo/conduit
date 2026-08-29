@@ -11,7 +11,8 @@ const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_STYLE: &[u8] = include_bytes!("../assets/book.css");
-const BOOK_CHAPTER: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
+const BOOK_CHAPTER_ONE: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
+const BOOK_CHAPTER_TWO: &[u8] = include_bytes!("../../../../tour/book/chapter-2.md");
 const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
@@ -121,7 +122,10 @@ impl BrowserHostServer {
                 ("200 OK", "text/css; charset=utf-8", BOOK_STYLE)
             }
             Some("GET /book/chapter-1.md HTTP/1.1") => {
-                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER)
+                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_ONE)
+            }
+            Some("GET /book/chapter-2.md HTTP/1.1") => {
+                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_TWO)
             }
             _ => ("404 Not Found", "text/plain; charset=utf-8", b"not found"),
         };
