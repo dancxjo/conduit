@@ -1,6 +1,10 @@
 # Step 3 — Use a generic verb
 
-A small generic verb such as exact scalar scaling composes without inventing a new domain-specific Gear.
+If every application and machine needs its own special operation — robot-scale-number, web-scale-number, sensor-scale-number — the vocabulary fragments and Forms stop being portable.
+
+## Conduit idea
+
+Prefer small generic semantic verbs whose typed meaning is useful across many domains. Exact scalar scaling is the same idea whether a later Form uses it for a robot, a visualization, or a sensor.
 
 ```conduit run
 form generic-scale {
@@ -12,9 +16,19 @@ form generic-scale {
 }
 ```
 
-The planned result retains six exact decimal places; there is no page-local arithmetic shortcut.
+## What the run proves
+
+The planned operation produces 3.000000 through the ordinary browser Host path. The exact six-place result comes from the selected implementation; there is no page-local arithmetic shortcut.
+
+## Payoff
+
+A compact reusable vocabulary can travel across unlike applications and Hosts. Conduit does not need a new platform-flavored Gear each time the same meaning appears somewhere else.
 
 # Step 4 — A Gear can have a Back
+
+Callers need useful high-level meaning, but they should not have to copy its internal machinery into every Form. Otherwise sophisticated operations make every caller larger and more dependent on how one Host implements them.
+
+## Conduit idea
 
 A high-level Gear keeps one public Face while a reviewed Form Back can describe the same meaning with smaller Gears.
 
@@ -38,11 +52,21 @@ form gear-with-a-back {
 }
 ```
 
-Run the listing normally. The caller asks for the Face while implementation knowledge remains hidden behind it.
+## What the run proves
+
+Run the listing normally. The caller asks only for the text/morse Face, and this capable browser Host satisfies it with its available direct leaf. The reviewed Back remains implementation knowledge rather than source the caller must own.
+
+## Payoff
+
+Rich meaning can be assembled from simpler capabilities without exposing that assembly to every caller. The Face stays stable while Conduit gains another honest way to realize it.
 
 # Step 5 — Morse opens up
 
-The reviewed Back for Morse expresses `text/morse` through reusable character, lookup, gap, flatten, and timing Gears while its meaning stays unchanged.
+A current Host may know a high-level operation directly, while a smaller Host knows only the pieces from which that operation can be built. Requiring every Host to implement the whole vocabulary natively would make constrained systems unnecessarily large.
+
+## Conduit idea
+
+The reviewed Back for Morse expresses text/morse through character decomposition, lookup, gaps, flattening, and timing. A planner may keep opening reviewed Backs until the remaining leaves are operations the available machinery actually offers.
 
 ```conduit run
 form morse-opens-up {
@@ -54,4 +78,10 @@ form morse-opens-up {
 }
 ```
 
-This still runs through ordinary planning. The Back is implementation knowledge, not a different operation for the caller to request. The decisive distinction is simple: a Kind is not its implementation.
+## What the run proves
+
+This ordinary run still chooses the browser's direct text/morse leaf. The caller does not request a recursive mode, and the Tour does not silently force one. The important distinction is now visible: a Kind and its Face fix the meaning; a particular implementation does not.
+
+## Payoff
+
+The same high-level request can fit both rich and constrained Hosts. Step 6 will place the direct leaf and recursive Back side by side so you can inspect why those two realization shapes exist.

@@ -67,6 +67,34 @@ test("Step 0 edits and runs one ordinary Form before introducing architecture", 
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toMatch(/^browser\//);
 });
 
+test("Steps 0 through 11 lead with human motivation and return to the Conduit payoff", async ({
+  page,
+}) => {
+  const anchors = [
+    "survive the device that first demonstrates it",
+    "Useful programs evolve",
+    "different finite machines",
+    "vocabulary fragments",
+    "should not have to copy its internal machinery",
+    "constrained systems unnecessarily large",
+    "minimal viable Conduit Host",
+    "bounded and portable",
+    "Machine-specific truth stays with the machine",
+    "Look what just happened",
+    "replaceable answer to current circumstances",
+    "durable computer Conduit is maintaining",
+  ];
+  await openStep(page, 0);
+  for (let step = 0; step < anchors.length; step += 1) {
+    await expect(page.locator("#chapter")).toContainText(anchors[step]);
+    await expect(page.getByRole("heading", { name: "Conduit idea" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Payoff" })).toBeVisible();
+    const firstParagraph = page.locator(".chapter-copy").first().locator("p").first();
+    await expect(firstParagraph).toBeVisible();
+    if (step < anchors.length - 1) await page.getByRole("button", { name: "Next" }).click();
+  }
+});
+
 test("Steps 1 through 3 add substitution, explicit fan-out, and one generic verb", async ({ page }) => {
   await openStep(page, 1);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);

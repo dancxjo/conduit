@@ -1,6 +1,10 @@
 # Step 6 — Same Face, different implementation
 
-A Gear's Face fixes its meaning; a Host may satisfy that Face directly or the planner may recursively open its reviewed Form Back.
+A large Host may already have an efficient native implementation of text/morse. A minimal Host should not need to grow an operating-system primitive for every useful high-level Gear merely to understand the same Form.
+
+## Conduit idea
+
+A Gear's Face fixes its meaning. One Host may satisfy that Face with a direct leaf; another realization may recursively open its reviewed Form Back until every remaining Gear has a leaf implementation the available Host actually offers.
 
 ```conduit compare
 form same-morse-caller {
@@ -12,10 +16,12 @@ form same-morse-caller {
 }
 ```
 
-The direct leaf uses the browser Host's native `text/morse` implementation. A Host without that direct offer can instead open the `text/morse` Back into character decomposition, Morse lookup, interspersed gaps, flattening, and timing, then continue opening reviewed Backs until every remaining Gear has a leaf implementation it actually offers.
+## What the run proves
 
-Both realizations begin with the same `text/morse` Face and produce the same canonical Morse pattern. The caller does not change, and it does not need to know which implementation was selected. Source and checked Form identities agree; expanded Form, Plan, and implementation identities remain honestly different.
+Realization A uses the browser Host's native text/morse leaf. Realization B opens text/morse into character decomposition, Morse lookup, interspersed gaps, flattening, and timing, then plans the primitive leaves. Both begin with the same requested Face and produce the same canonical Morse pattern.
 
-This compositional implementation of the useful vocabulary is what lets Conduitos remain a minimal viable Conduit Host. It can begin with a small set of primitive leaf capabilities and still support much richer behavior by recursively composing reviewed Forms instead of implementing every useful Gear as an operating-system primitive.
+The caller is unchanged because the meaning is unchanged. Source and checked Form identities agree; expanded Form, Plan, and implementation identities remain honestly different. The side-by-side controls expose those identities as a teaching aid, not as author-facing execution preferences.
 
-The side-by-side controls deliberately expose the architecture for this lesson. They are a teaching aid, not ordinary execution modes that authors choose throughout the Tour.
+## Payoff
+
+This is how ConduitOS can remain a minimal viable Conduit Host. It can offer a small reviewed set of primitive leaves while richer vocabulary recursively composes above them. A more capable Host can take an optimized direct leaf. The caller sees the same Face either way and does not need to become a ConduitOS program or a browser program.
