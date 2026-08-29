@@ -52,7 +52,7 @@ pub(super) fn prepare(
 ) -> Result<(BookScheduler, PendingHostEffect), String> {
     let lowered = lower_plan_fragment(fragment)
         .map_err(|error| format!("lower executable-book Plan: {error:?}"))?;
-    validate_envelope(fragment, &lowered)?;
+    validate_envelope(fragment, &lowered, false)?;
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
     let pending = match drive(&mut scheduler, fragment)? {
         DriveStatus::Effect(pending) => pending,
@@ -61,6 +61,16 @@ pub(super) fn prepare(
         }
     };
     Ok((scheduler, pending))
+}
+
+pub(super) fn prepare_remote_fragment(
+    fragment: &PlanFragment,
+) -> Result<(BookScheduler, LoweredPlanFragment), String> {
+    let lowered = lower_plan_fragment(fragment)
+        .map_err(|error| format!("lower multi-Host executable-book Plan: {error:?}"))?;
+    validate_envelope(fragment, &lowered, true)?;
+    let scheduler = prepare_scheduler(fragment, &lowered)?;
+    Ok((scheduler, lowered))
 }
 
 pub(super) fn complete_host_effect(
@@ -150,7 +160,11 @@ pub(super) fn drive(
     }
 }
 
-fn validate_envelope(fragment: &PlanFragment, lowered: &LoweredPlanFragment) -> Result<(), String> {
+fn validate_envelope(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    allow_one_remote_endpoint: bool,
+) -> Result<(), String> {
     let route_targets = lowered
         .routes
         .iter()
@@ -163,7 +177,11 @@ fn validate_envelope(fragment: &PlanFragment, lowered: &LoweredPlanFragment) -> 
         || lowered.cord_value_slots as usize > BROWSER_QUEUE_SLOTS
         || lowered.routes.len() > BROWSER_ROUTE_SLOTS
         || route_targets > BROWSER_ROUTE_TARGETS
-        || !lowered.remote_endpoints.is_empty()
+        || if allow_one_remote_endpoint {
+            lowered.remote_endpoints.len() != 1
+        } else {
+            !lowered.remote_endpoints.is_empty()
+        }
         || lowered.host_operations.len() > BROWSER_HOST_OPERATION_BINDINGS
         || fragment
             .placements
@@ -254,7 +272,15 @@ fn prepare_scheduler(
                 .map_err(|_| "browser Sign size overflow")?,
         )
         .ok_or("browser Sign budget overflow")?;
-    let signs = HostedSignLog::new(BROWSER_SIGN_ITEMS, sign_bytes).map_err(debug_error)?;
+    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(BROWSER_SIGN_ITEMS)
+        .ok_or("browser remote Sign budget overflow")?;
+    let signs = HostedSignLog::new_with_remote_storage(
+        BROWSER_SIGN_ITEMS,
+        sign_bytes,
+        BROWSER_SIGN_ITEMS,
+        remote_sign_bytes,
+    )
+    .map_err(debug_error)?;
     BookScheduler::new_with_active_counts_and_host_operations(
         active_nodes,
         active_cords,
