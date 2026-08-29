@@ -76,6 +76,15 @@ details dt { color: var(--ink); font-weight: 700; }
 .gear-inventory li.unavailable { border-left-color: #bba66e; background: #faf7ee; }
 .gear-inventory code { color: var(--ink); font-weight: 700; }
 .gear-inventory span { color: var(--muted); font-size: .72rem; }
+.tour-navigation {
+  position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: .55rem;
+  margin-top: 2rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 12px 12px 0 0;
+  background: rgb(255 253 247 / 96%); box-shadow: 0 -10px 30px rgb(43 54 47 / 8%);
+  backdrop-filter: blur(8px);
+}
+.tour-progress { margin-right: auto; color: var(--green-dark); font-size: .78rem; font-weight: 750; }
+.tour-navigation button { border: 1px solid var(--line); padding: .55rem .85rem; background: white; color: var(--ink); }
+.tour-navigation button:last-child { border-color: var(--green); background: var(--green); color: white; }
 .error { color: #a02828; }
 @media (max-width: 760px) {
   .realization-comparison { grid-template-columns: 1fr; }
@@ -84,5 +93,7 @@ details dt { color: var(--ink); font-weight: 700; }
   textarea { min-height: 20rem; }
   .result { min-height: 19rem; }
   .actions { flex-wrap: wrap; }
+  .tour-navigation { flex-wrap: wrap; }
+  .tour-progress { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }
