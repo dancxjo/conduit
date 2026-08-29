@@ -39,6 +39,7 @@ pub(super) struct PendingHostEffect {
 
 pub(super) enum BrowserHostEffect {
     Timer { duration_millis: u64 },
+    KeyEvent,
     Manifestation(BrowserManifestation),
 }
 
@@ -90,6 +91,34 @@ pub(super) fn complete_host_effect(
         .map_err(debug_error)
 }
 
+pub(super) fn complete_host_effect_with_output(
+    scheduler: &mut BookScheduler,
+    pending: &PendingHostEffect,
+    output: &[u8],
+) -> Result<(), String> {
+    match &pending.effect {
+        BrowserHostEffect::KeyEvent => conduit_human::KeyEvent::decode(output)
+            .map(|_| ())
+            .map_err(|error| format!("decode browser key event: {error:?}")),
+        _ => Err("browser Host effect does not accept completion output".into()),
+    }?;
+    let value = scheduler.store_host_value(output).map_err(debug_error)?;
+    scheduler
+        .complete_host_operation(
+            pending.request.node,
+            pending.request.request,
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(value, conduit_human::KEY_EVENT_ENCODED_LEN as u32)
+                        .map_err(|_| "browser key event exceeded its planned bound")?,
+                ),
+                failure: None,
+            },
+        )
+        .map_err(debug_error)
+}
+
 pub(super) fn drive(
     scheduler: &mut BookScheduler,
     fragment: &PlanFragment,
@@ -113,6 +142,12 @@ pub(super) fn drive(
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
                     effect: BrowserHostEffect::Timer { duration_millis },
+                }));
+            }
+            if operation.contract_id.as_str() == crate::installed_browser::KEY_EVENT_OPERATION {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::KeyEvent,
                 }));
             }
             let installation = factory(&placement.implementation_id)

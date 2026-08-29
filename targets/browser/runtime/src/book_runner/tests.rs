@@ -13,6 +13,7 @@ fn manifestation(effect: BookHostEffect) -> BookEffect {
     match effect {
         BookHostEffect::Manifestation(effect) => *effect,
         BookHostEffect::Timer(_) => panic!("the fixture must manifest before requesting a timer"),
+        BookHostEffect::KeyEvent(_) => panic!("the fixture must manifest before requesting input"),
     }
 }
 
@@ -201,6 +202,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 "timer:{}:{}",
                 timer.duration_millis, timer.request_sequence
             )),
+            BookHostEffect::KeyEvent(_) => panic!("timer fixture requested keyboard input"),
         }
         match session.advance().unwrap() {
             BookProgress::Effect(next) => effect = *next,
@@ -297,7 +299,7 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
     let source = r#"form missing-installation {
     source: text/literal("hello")
     result: presentation/text
-    unavailable: presentation/bool
+    unavailable: layout/inset
     source > result
 }
 "#;
@@ -307,6 +309,26 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
     let refusal = refusal(message);
     assert_eq!(refusal.disposition, "refused-before-play");
     assert_eq!(refusal.category, "missing-implementation-or-placement");
+}
+
+#[test]
+fn newly_installed_logic_select_executes_through_the_generic_host() {
+    let select = r#"form browser-select {
+    selector: boolean/literal(true)
+    when_false: scalar/literal(1.0)
+    when_true: scalar/literal(2.0)
+    choose: logic/select
+    show: presentation/scalar
+    selector.value > choose.selector
+    when_false.value > choose.when-false
+    when_true.value > choose.when-true
+    choose.out > show.value
+}
+"#;
+    let (session, effect) =
+        BookSession::prepare("browser/select", "browser/select-boot", select, 31).unwrap();
+    assert_eq!(manifestation(effect).text.as_deref(), Some("2.000000"));
+    assert_eq!(session.complete().unwrap().disposition, "completed");
 }
 
 #[test]

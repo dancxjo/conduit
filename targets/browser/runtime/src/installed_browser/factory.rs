@@ -1,7 +1,8 @@
 //! Browser-owned offer, factory, and host-operation installation catalog.
 
 use super::{
-    linguistics, logic, math, morse, morse_composition, presentation, state_time, text, values,
+    delay, input, layout, linguistics, logic, math, morse, morse_composition, presentation,
+    state_time, text, values,
 };
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
@@ -51,6 +52,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &math::DEADBAND,
     &logic::COMPARE,
     &logic::NOT,
+    &logic::SELECT,
     &morse::DIRECT,
     &morse_composition::TEXT_CHARACTERS,
     &morse_composition::LOOKUP,
@@ -60,9 +62,13 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &morse_composition::PATTERN_TO_SYMBOLS,
     &morse_composition::SYMBOLS_TO_TEXT,
     &state_time::TIME_EVERY,
+    &delay::TIME_DELAY,
     &state_time::STATE_COUNT,
     &state_time::COUNT_PRESENTATION,
     &presentation::INDICATOR,
+    &presentation::BOOL,
+    &layout::VIEWPORT,
+    &input::KEYBOARD,
 ];
 
 pub(crate) fn catalogs(
@@ -121,6 +127,11 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
                 super::MAXIMUM_BROWSER_GEARS as u32,
             ),
             resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1),
+            resource_offer(
+                "browser/window-input",
+                input::WINDOW_INPUT_RESOURCE_CLASS,
+                1,
+            ),
         ],
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),

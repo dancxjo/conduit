@@ -11,6 +11,7 @@ use conduit_kernel::{HostedValueStore, ValueStorage};
 const ARTIFACT: &str = "conduit-browser-runtime/installed-logic@1";
 const COMPARE_IMPLEMENTATION: &str = "browser/kernel-logic-compare@1";
 const NOT_IMPLEMENTATION: &str = "browser/kernel-logic-not@1";
+const SELECT_IMPLEMENTATION: &str = "browser/kernel-logic-select-scalar@1";
 
 pub(super) static COMPARE: BrowserInstallation = BrowserInstallation {
     implementation_id: COMPARE_IMPLEMENTATION,
@@ -23,6 +24,12 @@ pub(super) static NOT: BrowserInstallation = BrowserInstallation {
     offer: not_offer,
     prepare: prepare_not,
     perform: Some(perform_not),
+};
+pub(super) static SELECT: BrowserInstallation = BrowserInstallation {
+    implementation_id: SELECT_IMPLEMENTATION,
+    offer: select_offer,
+    prepare: prepare_select,
+    perform: None,
 };
 
 fn compare_offer() -> conduit_core::CapabilityOffer {
@@ -46,6 +53,15 @@ fn not_offer() -> conduit_core::CapabilityOffer {
             maximum_input_bytes: BOOL_ENCODED_LEN as u32,
             maximum_output_bytes: BOOL_ENCODED_LEN as u32,
         }],
+    )
+}
+
+fn select_offer() -> conduit_core::CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::logic_select_scalar_contract(),
+        conduit_semantic_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+        SELECT_IMPLEMENTATION,
+        Vec::new(),
     )
 }
 
@@ -95,6 +111,14 @@ fn prepare_not(
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &not_offer())?;
     Ok(BrowserOperation::unary(BOOL_ENCODED_LEN as u32, 1))
+}
+
+fn prepare_select(
+    placement: &PlannedGear,
+    _values: &mut HostedValueStore,
+) -> Result<BrowserOperation, String> {
+    validate_placement(placement, &select_offer())?;
+    Ok(BrowserOperation::select_scalar())
 }
 
 fn perform_not(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
