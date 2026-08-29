@@ -108,6 +108,12 @@ class BrainstemLifecycle {
 
   bool boot_bound() const { return boot_bound_; }
   bool activation_admitted() const { return activation_admitted_; }
+  bool matches_activation(uint32_t plan_fragment_id,
+                          uint16_t operation_id) const {
+    return activation_admitted_ &&
+           activation_.plan_fragment_id.value == plan_fragment_id &&
+           activation_.operation_id.value == operation_id;
+  }
 
  private:
   static bool valid(const BootBinding& binding) {

@@ -1,5 +1,6 @@
 #include "../firmware/promicro_brainstem/assigned_obligations.h"
 #include "../firmware/promicro_brainstem/create_oi.h"
+#include "../firmware/promicro_brainstem/create_hil.h"
 #include "../firmware/promicro_brainstem/group_zero.h"
 #include "../firmware/promicro_brainstem/lifecycle.h"
 #include "../firmware/promicro_brainstem/protocol.h"
@@ -13,6 +14,40 @@ using conduit::promicro::BootBinding;
 using conduit::promicro::BootBindResult;
 using conduit::promicro::BrainstemLifecycle;
 using conduit::promicro::ObservationActivation;
+
+class FakeUart {
+ public:
+  bool begin(uint32_t baud) {
+    began = true;
+    observed_baud = baud;
+    return provider_available;
+  }
+  bool write(const uint8_t* bytes, size_t length) {
+    if (!provider_available || transmitted_length + length > sizeof(transmitted)) {
+      return false;
+    }
+    for (size_t index = 0; index < length; ++index) {
+      transmitted[transmitted_length++] = bytes[index];
+    }
+    return true;
+  }
+  bool available() const { return received_index < received_length; }
+  uint8_t read() { return received[received_index++]; }
+  void end() {
+    ended = true;
+    began = false;
+  }
+
+  uint8_t transmitted[8]{};
+  uint8_t received[conduit::promicro::kGroupZeroBytes]{};
+  size_t transmitted_length = 0;
+  size_t received_length = 0;
+  size_t received_index = 0;
+  uint32_t observed_baud = 0;
+  bool provider_available = true;
+  bool began = false;
+  bool ended = false;
+};
 
 static void assert_command(
     const conduit::promicro::create_oi::EncodedCommand& command,
@@ -53,6 +88,16 @@ int main() {
   assert(buffer.activation().operation_id.value == 44);
   assert(buffer.activation().active_play_id.value == 55);
   assert(buffer.activation().authority_grant_id.value == 66);
+  assert(request(buffer, "O 00000021:002C:01F4\n") ==
+         Request::kExecuteObservation);
+  assert(buffer.execution().plan_fragment_id == 33);
+  assert(buffer.execution().operation_id == 44);
+  assert(buffer.execution().deadline_ms == 500);
+  assert(buffer.execution().request_bytes ==
+         conduit::promicro::kGroupZeroRequestBytes);
+  assert(buffer.execution().response_bytes ==
+         conduit::promicro::kGroupZeroResponseBytes);
+  assert(request(buffer, "O 00000021:002C:01f4\n") == Request::kMalformed);
   assert(request(buffer, "B 0000000b:00000016:00000001\n") ==
          Request::kMalformed);
   assert(request(buffer, "B 0000000B-00000016:00000001\n") ==
@@ -246,4 +291,60 @@ int main() {
     }
     assert(malformed_decoder.outcome() == DecodeOutcome::kMalformed);
   }
+
+  ObligationSlot hil_slot;
+  FakeUart hil_uart;
+  for (uint8_t index = 0; index < kGroupZeroBytes; ++index) {
+    hil_uart.received[index] = group_zero[index];
+  }
+  hil_uart.received_length = kGroupZeroBytes;
+  CreateGroupZeroExecutor<FakeUart> executor;
+  assert(executor.start(lifecycle, hil_slot, 33, 44, 500, 100, hil_uart) ==
+         HilStartResult::kStarted);
+  assert(hil_uart.observed_baud == kCreateBaud);
+  const uint8_t exact_hil_tx[] = {128, 132, 142, 0};
+  assert(hil_uart.transmitted_length == sizeof(exact_hil_tx));
+  for (size_t index = 0; index < sizeof(exact_hil_tx); ++index) {
+    assert(hil_uart.transmitted[index] == exact_hil_tx[index]);
+  }
+  executor.tick(101, hil_uart);
+  assert(!executor.running());
+  assert(hil_uart.ended);
+  assert(executor.evidence_failure() == EvidenceFailure::kNone);
+  assert(executor.evidence().disposition == TerminalDisposition::kCompleted);
+  assert(executor.evidence().response_bytes == kGroupZeroBytes);
+  assert(executor.start(lifecycle, hil_slot, 33, 44, 500, 102, hil_uart) ==
+         HilStartResult::kAlreadyTerminal);
+
+  ObligationSlot stale_hil_slot;
+  FakeUart stale_hil_uart;
+  CreateGroupZeroExecutor<FakeUart> stale_executor;
+  assert(stale_executor.start(lifecycle, stale_hil_slot, 34, 44, 500, 0,
+                              stale_hil_uart) ==
+         HilStartResult::kStaleActivation);
+  assert(!stale_hil_uart.began);
+
+  ObligationSlot deadline_slot;
+  FakeUart deadline_uart;
+  CreateGroupZeroExecutor<FakeUart> deadline_executor;
+  assert(deadline_executor.start(lifecycle, deadline_slot, 33, 44, 20, 1000,
+                                 deadline_uart) == HilStartResult::kStarted);
+  deadline_executor.tick(1019, deadline_uart);
+  assert(deadline_executor.running());
+  deadline_executor.tick(1020, deadline_uart);
+  assert(!deadline_executor.running());
+  assert(deadline_uart.ended);
+  assert(deadline_executor.evidence().disposition ==
+         TerminalDisposition::kDeadlineExpired);
+
+  ObligationSlot unavailable_slot;
+  FakeUart unavailable_uart;
+  unavailable_uart.provider_available = false;
+  CreateGroupZeroExecutor<FakeUart> unavailable_executor;
+  assert(unavailable_executor.start(lifecycle, unavailable_slot, 33, 44, 20,
+                                    0, unavailable_uart) ==
+         HilStartResult::kProviderUnavailable);
+  assert(unavailable_uart.ended);
+  assert(unavailable_executor.evidence().disposition ==
+         TerminalDisposition::kProviderUnavailable);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "assigned_obligations.h"
 #include "lifecycle.h"
 
 #include <stddef.h>
@@ -15,6 +16,7 @@ enum class Request : uint8_t {
   kStatus,
   kBindBoot,
   kActivateObservation,
+  kExecuteObservation,
   kMalformed,
   kUnsupported,
   kOverflow,
@@ -53,6 +55,9 @@ class CommandBuffer {
     } else if (starts_with("A ")) {
       request = parse_activation() ? Request::kActivateObservation
                                    : Request::kMalformed;
+    } else if (starts_with("O ")) {
+      request = parse_execution() ? Request::kExecuteObservation
+                                  : Request::kMalformed;
     }
     reset();
     return request;
@@ -60,6 +65,7 @@ class CommandBuffer {
 
   const BootBinding& boot_binding() const { return boot_binding_; }
   const ObservationActivation& activation() const { return activation_; }
+  const AssignedObligation& execution() const { return execution_; }
 
  private:
   static bool hex_nibble(char byte, uint8_t& value) {
@@ -114,6 +120,23 @@ class CommandBuffer {
     return parsed;
   }
 
+  bool parse_execution() {
+    if (length_ != 20 || bytes_[10] != ':' || bytes_[15] != ':') {
+      return false;
+    }
+    uint32_t operation_id = 0;
+    uint32_t deadline_ms = 0;
+    const bool parsed =
+        parse_hex(2, 8, execution_.plan_fragment_id) &&
+        parse_hex(11, 4, operation_id) && parse_hex(16, 4, deadline_ms);
+    execution_.operation_id = static_cast<uint16_t>(operation_id);
+    execution_.kind = ObligationKind::kObserveCreateGroupZero;
+    execution_.request_bytes = kGroupZeroRequestBytes;
+    execution_.response_bytes = kGroupZeroResponseBytes;
+    execution_.deadline_ms = static_cast<uint16_t>(deadline_ms);
+    return parsed;
+  }
+
   bool exact(const char* expected) const {
     const size_t expected_length = strlen(expected);
     return length_ == expected_length &&
@@ -136,6 +159,7 @@ class CommandBuffer {
   size_t length_ = 0;
   BootBinding boot_binding_{};
   ObservationActivation activation_{};
+  AssignedObligation execution_{};
   bool malformed_ = false;
   bool overflowed_ = false;
 };
