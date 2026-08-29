@@ -14,6 +14,11 @@ on:
       - targets/browser/host/Cargo.toml
       - targets/browser/runtime/Cargo.toml
       - targets/browser/runtime/src/book_runner/**
+      - targets/browser/runtime/src/installed_browser/**
+      - semantics/text/src/**
+      - semantics/catalog/src/value_primitives.rs
+      - architecture/form/src/back_catalog.rs
+      - architecture/form/src/checked_syntax.rs
       - targets/browser/runtime/src/lib.rs
       - proof/browser/executable-book.spec.mjs
       - proof/browser/playwright.config.mjs
@@ -33,6 +38,11 @@ on:
       - targets/browser/host/Cargo.toml
       - targets/browser/runtime/Cargo.toml
       - targets/browser/runtime/src/book_runner/**
+      - targets/browser/runtime/src/installed_browser/**
+      - semantics/text/src/**
+      - semantics/catalog/src/value_primitives.rs
+      - architecture/form/src/back_catalog.rs
+      - architecture/form/src/checked_syntax.rs
       - targets/browser/runtime/src/lib.rs
       - proof/browser/executable-book.spec.mjs
       - proof/browser/playwright.config.mjs
@@ -107,8 +117,9 @@ jobs:
           cp targets/browser/host/assets/book.css "$site/book/"
           cp targets/browser/host/assets/book.mjs "$site/book/"
           cp tour/book/chapter-1.md "$site/book/"
+          cp tour/book/chapter-2.md "$site/book/"
           touch "$site/.nojekyll"
-          test "$(find "$site" -type f | wc -l)" = 7
+          test "$(find "$site" -type f | wc -l)" = 8
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:

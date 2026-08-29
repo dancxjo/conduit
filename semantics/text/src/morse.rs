@@ -132,85 +132,19 @@ pub fn install_morse_catalogs(
             outputs: decoder.outputs,
             configuration: Vec::new(),
         })
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    crate::morse_catalog::install_morse_composition_catalogs(startup, profile)
 }
 
 impl MorsePattern {
     pub fn from_text(text: &str, unit_millis: u16) -> Result<Self, MorseError> {
-        if text.is_empty() {
-            return Err(MorseError::Empty);
-        }
-        if text.len() > MAXIMUM_MORSE_INPUT_BYTES {
-            return Err(MorseError::TextTooLong);
-        }
-        valid_unit_millis(unit_millis)?;
-        let mut segments = Vec::with_capacity(MAXIMUM_MORSE_SEGMENTS);
-        let mut pending_gap = 0;
-        let mut saw_letter = false;
-        for byte in text.bytes() {
-            if byte == b' ' {
-                if !saw_letter || pending_gap == 7 {
-                    return Err(MorseError::InvalidWordGap);
-                }
-                pending_gap = 7;
-                continue;
-            }
-            let symbols = symbols(byte).ok_or(MorseError::UnsupportedCharacter)?;
-            if saw_letter {
-                push_segment(&mut segments, false, pending_gap.max(3))?;
-            }
-            for (index, symbol) in symbols.iter().enumerate() {
-                push_segment(&mut segments, true, if *symbol == b'.' { 1 } else { 3 })?;
-                if index + 1 < symbols.len() {
-                    push_segment(&mut segments, false, 1)?;
-                }
-            }
-            saw_letter = true;
-            pending_gap = 0;
-        }
-        if pending_gap == 7 {
-            return Err(MorseError::InvalidWordGap);
-        }
-        Ok(Self {
-            unit_millis,
-            segments,
-        })
+        crate::composed_morse_from_text(text, unit_millis)
     }
 
     pub fn to_text(&self) -> Result<String, MorseError> {
-        self.validate()?;
-        let mut result = String::new();
-        let mut symbols_buffer = [0_u8; 5];
-        let mut symbols_len = 0;
-        for segment in &self.segments {
-            if segment.level {
-                if symbols_len == symbols_buffer.len() || !matches!(segment.units, 1 | 3) {
-                    return Err(MorseError::InvalidPattern);
-                }
-                symbols_buffer[symbols_len] = if segment.units == 1 { b'.' } else { b'-' };
-                symbols_len += 1;
-                continue;
-            }
-            match segment.units {
-                1 if symbols_len > 0 => {}
-                3 | 7 if symbols_len > 0 => {
-                    result.push(decode_symbols(&symbols_buffer[..symbols_len])?);
-                    symbols_len = 0;
-                    if segment.units == 7 {
-                        result.push(' ');
-                    }
-                }
-                _ => return Err(MorseError::InvalidPattern),
-            }
-        }
-        if symbols_len == 0 {
-            return Err(MorseError::InvalidPattern);
-        }
-        result.push(decode_symbols(&symbols_buffer[..symbols_len])?);
-        if result.len() > MAXIMUM_MORSE_INPUT_BYTES {
-            return Err(MorseError::OutputCapacity);
-        }
-        Ok(result)
+        let symbols = crate::morse_pattern_to_symbols(&self.encode()?)?;
+        String::from_utf8(crate::morse_symbols_to_text(&symbols)?)
+            .map_err(|_| MorseError::InvalidPattern)
     }
 
     pub fn encode(&self) -> Result<Vec<u8>, MorseError> {
@@ -302,74 +236,6 @@ fn valid_unit_millis(value: u16) -> Result<(), MorseError> {
         .contains(&value)
         .then_some(())
         .ok_or(MorseError::InvalidUnitMillis)
-}
-
-fn push_segment(
-    segments: &mut Vec<MorseSegment>,
-    level: bool,
-    units: u8,
-) -> Result<(), MorseError> {
-    if segments.len() == MAXIMUM_MORSE_SEGMENTS {
-        return Err(MorseError::SegmentCapacity);
-    }
-    segments.push(MorseSegment { level, units });
-    Ok(())
-}
-
-fn decode_symbols(value: &[u8]) -> Result<char, MorseError> {
-    for byte in b'A'..=b'Z' {
-        if symbols(byte) == Some(value) {
-            return Ok(char::from(byte));
-        }
-    }
-    for byte in b'0'..=b'9' {
-        if symbols(byte) == Some(value) {
-            return Ok(char::from(byte));
-        }
-    }
-    Err(MorseError::InvalidPattern)
-}
-
-fn symbols(value: u8) -> Option<&'static [u8]> {
-    Some(match value.to_ascii_uppercase() {
-        b'A' => b".-",
-        b'B' => b"-...",
-        b'C' => b"-.-.",
-        b'D' => b"-..",
-        b'E' => b".",
-        b'F' => b"..-.",
-        b'G' => b"--.",
-        b'H' => b"....",
-        b'I' => b"..",
-        b'J' => b".---",
-        b'K' => b"-.-",
-        b'L' => b".-..",
-        b'M' => b"--",
-        b'N' => b"-.",
-        b'O' => b"---",
-        b'P' => b".--.",
-        b'Q' => b"--.-",
-        b'R' => b".-.",
-        b'S' => b"...",
-        b'T' => b"-",
-        b'U' => b"..-",
-        b'V' => b"...-",
-        b'W' => b".--",
-        b'X' => b"-..-",
-        b'Y' => b"-.--",
-        b'Z' => b"--..",
-        b'0' => b"-----",
-        b'1' => b".----",
-        b'2' => b"..---",
-        b'3' => b"...--",
-        b'4' => b"....-",
-        b'5' => b".....",
-        b'6' => b"-....",
-        b'7' => b"--...",
-        b'8' => b"---..",
-        b'9' => b"----.",
-        _ => return None,
-    })
 }
 
 fn text_port(direction: PortDirection) -> PortDescriptor {

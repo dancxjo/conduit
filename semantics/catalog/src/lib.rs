@@ -126,6 +126,8 @@ mod text_presentation;
 pub use text_presentation::*;
 mod text_transform;
 pub use text_transform::*;
+mod value_primitives;
+pub use value_primitives::*;
 #[cfg(feature = "text-lab-plan")]
 mod text_lab_plan;
 #[cfg(feature = "text-lab-plan")]

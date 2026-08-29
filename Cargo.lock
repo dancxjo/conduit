@@ -559,6 +559,7 @@ dependencies = [
  "conduit-form",
  "conduit-human",
  "conduit-kernel",
+ "conduit-language",
  "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",

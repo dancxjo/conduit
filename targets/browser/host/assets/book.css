@@ -37,10 +37,12 @@ textarea {
   padding: 3rem 1.25rem 5.5rem; color: #e9f1ec; background: transparent;
   font: 500 .91rem/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
-.actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; display: flex; gap: .55rem; }
+.actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; display: flex; gap: .55rem; align-items: center; }
 button { border: 0; border-radius: 999px; padding: .7rem 1.15rem; font: inherit; font-weight: 700; cursor: pointer; }
 .run { background: #77daa8; color: #10271c; }
 .stop { background: #31443a; color: white; }
+.realization-control { margin-left: auto; display: grid; gap: .2rem; color: #9fb0a6; font-size: .68rem; text-align: left; }
+.realization-control select { max-width: 12rem; border: 1px solid #52685c; border-radius: 5px; padding: .3rem .45rem; color: #e9f1ec; background: #26382f; font: inherit; }
 button:disabled { cursor: default; opacity: .45; }
 .result { padding: clamp(1.5rem, 3vw, 2.5rem); display: flex; flex-direction: column; justify-content: center; text-align: center; }
 .indicator {
@@ -50,16 +52,27 @@ button:disabled { cursor: default; opacity: .45; }
 }
 .indicator.on { background: var(--amber); box-shadow: 0 0 2.8rem #ffba34, inset 0 0 0 1px #e29300; }
 .result h2 { margin: 0; }
-.morse { min-height: 2rem; margin: .6rem 0 0; color: var(--green); font: 750 1.45rem/1.4 ui-monospace, monospace; letter-spacing: .12em; }
+.morse { min-height: 2rem; margin: .6rem 0 0; color: var(--green); font: 750 1.25rem/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
 .play-status { min-height: 1.4rem; margin: .7rem auto 0; color: var(--muted); font-size: .88rem; }
 details { margin-top: 1rem; text-align: left; color: var(--muted); font-size: .78rem; }
 details dd { margin: .15rem 0 .65rem; overflow-wrap: anywhere; }
 details dt { color: var(--ink); font-weight: 700; }
+.expansion { border-top: 1px solid var(--line); padding-top: .7rem; }
+.expansion p { margin: 0 0 .6rem; font-size: inherit; }
+.expansion ul { margin: .35rem 0 .8rem; padding-left: 1.15rem; }
+.gear-inventory { margin: 2.5rem 0 .5rem; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.gear-inventory ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .45rem 1rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.gear-inventory li { display: grid; gap: .15rem; padding: .5rem .6rem; border-left: 3px solid #68ae8d; background: #f3f8f4; }
+.gear-inventory li.unavailable { border-left-color: #bba66e; background: #faf7ee; }
+.gear-inventory code { color: var(--ink); font-weight: 700; }
+.gear-inventory span { color: var(--muted); font-size: .72rem; }
 .error { color: #a02828; }
 @media (max-width: 760px) {
   .runner { grid-template-columns: 1fr; }
   .editor { min-height: 20rem; }
   textarea { min-height: 20rem; }
   .result { min-height: 19rem; }
+  .actions { flex-wrap: wrap; }
+  .realization-control { width: 100%; margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }

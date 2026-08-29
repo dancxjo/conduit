@@ -52,6 +52,14 @@ impl StartupCatalog {
         self.kinds.get(kind)
     }
 
+    /// Returns the exact startup Face installed for one semantic Kind.
+    ///
+    /// Reusable Back installers use this together with the profile contract so
+    /// substitution checks the complete Face, including startup parameters.
+    pub fn signature(&self, kind: &str) -> Option<&KindSignature> {
+        self.kinds.get(kind)
+    }
+
     pub fn insert_structured_type(
         &mut self,
         name: impl Into<String>,

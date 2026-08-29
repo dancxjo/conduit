@@ -13,6 +13,7 @@ conduit-body = { path = "../../../architecture/body" }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-language = { path = "../../../semantics/language" }
 conduit-net = { path = "../../../semantics/net", features = ["form-catalog"] }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
