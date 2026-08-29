@@ -21,6 +21,7 @@ export default defineConfig({
     "executable-book.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-device-base.spec.mjs",
+    "browser-usb-device-base.spec.mjs",
     "browser-body-camera-realization.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",

@@ -14,6 +14,8 @@ document.querySelector("#camera").addEventListener("click", () => media.acquire(
 document.querySelector("#microphone").addEventListener("click", () => media.acquire("microphone"));
 const { createBrowserDeviceBase } = await import("/device-base.mjs");
 const devices = createBrowserDeviceBase({ api, hostId, bootId });
+const { createBrowserUsbDeviceBase } = await import("/usb-device-base.mjs");
+const usbDevices = createBrowserUsbDeviceBase({ api, hostId, bootId });
 document.querySelector("#devices").hidden = false;
 document.querySelector("#serial").addEventListener("click", async () => {
   try {
@@ -22,4 +24,18 @@ document.querySelector("#serial").addEventListener("click", async () => {
     // The adapter has already retained and published the exact refusal.
   }
 });
-globalThis.__conduitBrowserHost = Object.freeze({ hostId, bootId, runtime: api, media, devices });
+document.querySelector("#usb").addEventListener("click", async () => {
+  try {
+    globalThis.__conduitUsbResource = await usbDevices.acquireUsb();
+  } catch {
+    // The adapter has already retained and published the exact refusal.
+  }
+});
+globalThis.__conduitBrowserHost = Object.freeze({
+  hostId,
+  bootId,
+  runtime: api,
+  media,
+  devices,
+  usbDevices,
+});

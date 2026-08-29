@@ -9,6 +9,7 @@ const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
 const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.mjs");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
+const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/book-lifecycle.mjs");
@@ -119,6 +120,9 @@ impl BrowserHostServer {
             }
             Some("GET /device-base.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", DEVICE_BASE)
+            }
+            Some("GET /usb-device-base.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", USB_DEVICE_BASE)
             }
             Some("GET /runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())

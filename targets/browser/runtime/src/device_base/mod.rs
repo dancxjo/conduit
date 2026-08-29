@@ -9,6 +9,7 @@ use conduit_core::{
 mod abi;
 mod evidence;
 mod transfer;
+mod web_usb;
 
 pub(crate) const SERIAL_ACQUIRE_OPERATION: &str = "conduit.host/acquire-web-serial@1";
 pub(crate) const SERIAL_REQUEST_AUTHORITY: &str = "conduit.authority/request-web-serial@1";
