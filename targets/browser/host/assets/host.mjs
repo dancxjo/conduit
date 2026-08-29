@@ -12,4 +12,14 @@ const media = createBrowserMediaHost({ api, hostId, bootId });
 document.querySelector("#media").hidden = false;
 document.querySelector("#camera").addEventListener("click", () => media.acquire("camera"));
 document.querySelector("#microphone").addEventListener("click", () => media.acquire("microphone"));
-globalThis.__conduitBrowserHost = Object.freeze({ hostId, bootId, runtime: api, media });
+const { createBrowserDeviceBase } = await import("/device-base.mjs");
+const devices = createBrowserDeviceBase({ api, hostId, bootId });
+document.querySelector("#devices").hidden = false;
+document.querySelector("#serial").addEventListener("click", async () => {
+  try {
+    globalThis.__conduitSerialResource = await devices.acquireSerial();
+  } catch {
+    // The adapter has already retained and published the exact refusal.
+  }
+});
+globalThis.__conduitBrowserHost = Object.freeze({ hostId, bootId, runtime: api, media, devices });
