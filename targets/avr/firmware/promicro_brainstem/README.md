@@ -28,3 +28,20 @@ masked to the Create 1 PLAY/ADVANCE contract already established by Conduit.
 The assigned-obligation slot stores only one exact plan-fragment/operation
 identity and its finite group-0 request, response, deadline, and disposition.
 It is not a Body graph, planner, scheduler, UART authority, or retry policy.
+
+The USB CDC command grammar is newline-terminated, uppercase, and bounded to 64
+bytes. Numeric fields are fixed-width canonical hexadecimal; lowercase, missing
+fields, extra fields, carriage returns, and noncanonical separators are
+malformed rather than normalized:
+
+```text
+B HHHHHHHH:BBBBBBBB:GGGGGGGG
+A HHHHHHHH:BBBBBBBB:GGGGGGGG:FFFFFFFF:OOOO:PPPPPPPP:AAAAAAAA
+```
+
+`B` binds the Host (`H`), current Boot (`B`), and offer generation (`G`) in
+RAM. `A` admits an observation activation for that same placement plus Plan
+fragment (`F`), operation (`O`), active Play (`P`), and authority grant (`A`).
+Replies echo every identity for exact post-flash verification. Even an admitted
+activation reports `execution=disabled create_uart=isolated`; this seam does
+not authorize or perform Create I/O.

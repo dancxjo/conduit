@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 mod avr_toolchain;
+mod cdc_verify;
 
 use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
@@ -53,6 +54,8 @@ enum AvrCommand {
         #[arg(long, default_value = "target/avr-promicro/flash-receipt.json")]
         receipt: PathBuf,
     },
+    /// Bind and verify one exact fail-closed Boot over guarded USB CDC.
+    Verify(cdc_verify::VerifyArgs),
 }
 
 #[derive(Debug, Serialize)]
@@ -114,6 +117,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
             &receipt,
             opts,
         ),
+        AvrCommand::Verify(args) => cdc_verify::run(args, opts),
     }
 }
 
@@ -206,6 +210,18 @@ struct PhysicalGate {
     wheels_clear: bool,
 }
 
+impl PhysicalGate {
+    fn validate(self, action: &str) -> Result<(), Box<dyn std::error::Error>> {
+        if !self.create_stopped || !self.attended || !self.wheels_clear {
+            return Err(format!(
+                "AVR {action} requires --create-stopped --attended --wheels-clear"
+            )
+            .into());
+        }
+        Ok(())
+    }
+}
+
 fn run_flash(
     port: &Path,
     expected_digest: &str,
@@ -262,9 +278,7 @@ fn validate_flash_request(
     digest: &str,
     gate: PhysicalGate,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if !gate.create_stopped || !gate.attended || !gate.wheels_clear {
-        return Err("AVR flash requires --create-stopped --attended --wheels-clear".into());
-    }
+    gate.validate("flash")?;
     if port.file_name().and_then(|name| name.to_str()) != Some(EXPECTED_BY_ID)
         || port.parent() != Some(Path::new("/dev/serial/by-id"))
     {
