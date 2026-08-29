@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+use crate::commands::avr::AvrArgs;
 use crate::commands::body::BodyArgs;
 use crate::commands::body_coordination::BodyCoordinationArgs;
 use crate::commands::catalog::CatalogArgs;
@@ -43,6 +44,8 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
+    /// Build or guardedly flash the Pete Pro Micro Brainstem.
+    Avr(AvrArgs),
     /// Build and launch one independent browser page/WASM Host.
     Browser,
     /// Create, inspect, build, or deploy one whole Body description.
