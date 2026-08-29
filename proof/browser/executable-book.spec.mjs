@@ -38,7 +38,7 @@ async function openStep(page, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 11`);
+  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 12`);
 }
 
 test.beforeEach(async () => {
@@ -140,7 +140,7 @@ test("Tour navigation preserves drafts but reset and restart change presentation
   await page.getByRole("button", { name: "Reset this step" }).click();
   await expect(page.locator("textarea")).toHaveValue(/"hello"/);
   await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 11");
+  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 12");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
@@ -263,6 +263,57 @@ test("Step 10 compact and raw views project the same exact immutable Plan", asyn
   await expect(runner.locator(".projected-hosts article")).toHaveCount(2);
   await expect(runner.locator(".projected-hosts")).toContainText("text/literal");
   await expect(runner.locator(".projected-hosts")).toContainText("presentation/text");
+});
+
+test("Step 11 explicitly births one LULLED Body that Tour controls cannot replace", async ({ page }) => {
+  await openStep(page, 11);
+  await expect(page.getByRole("heading", { name: "Step 11 — Birth a Body" })).toBeVisible();
+  let runner = page.locator(".body-birth-runner");
+  const source = await runner.locator("textarea").inputValue();
+  expect(source).not.toMatch(/HostId|BootId|browser\/|DOM|socket|address|Wake|Plan|Play/);
+  await runner.getByRole("button", { name: "Birth Body" }).click();
+  await expect(runner.locator(".birth-status")).toContainText(
+    "one checked Seed now has one LULLED Body; no Wake, Plan, or Play exists",
+  );
+  await expect(runner.locator(".body-state")).toHaveText("LULLED");
+  await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
+  await expect(runner.locator(".body-identities dd").nth(9)).toHaveText("none");
+  await expect(runner.locator(".body-identities dd").nth(10)).toHaveText("none");
+  await expect(runner.locator(".body-identities dd").nth(11)).toHaveText("none");
+  const identity = await runner.evaluate((element) => ({
+    bodyId: element.dataset.bodyId,
+    birthSignId: element.dataset.birthSignId,
+  }));
+  expect(identity.bodyId).toHaveLength(64);
+  expect(identity.birthSignId).toHaveLength(64);
+  const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
+  expect(raw.body.state).toBe("Lulled");
+  expect(raw.body.events).toEqual([{ Born: { sign_id: identity.birthSignId } }]);
+  expect(raw.membership.parts).toHaveLength(1);
+  expect(raw.membership.parts[0].state).toBe("Admitted");
+  expect(raw.membership.parts[0].current.host_id).toBe(
+    await page.evaluate(() => globalThis.__conduitBookHost.hostId),
+  );
+  expect(raw.membership.events).toHaveLength(2);
+
+  const expectSameBody = async () => {
+    runner = page.locator(".body-birth-runner");
+    await expect(runner).toHaveAttribute("data-body-id", identity.bodyId);
+    await expect(runner).toHaveAttribute("data-birth-sign-id", identity.birthSignId);
+    await expect(runner.locator(".birth-status")).toContainText("Same LULLED Body retained");
+    await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
+  };
+  await page.getByRole("button", { name: "Previous" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await expectSameBody();
+  await page.getByRole("button", { name: "Reset this step" }).click();
+  await expectSameBody();
+  await page.getByRole("button", { name: "Restart Tour" }).click();
+  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 12");
+  for (let step = 0; step < 11; step += 1) {
+    await page.getByRole("button", { name: "Next" }).click();
+  }
+  await expectSameBody();
 });
 
 test("stopping the two-Host lesson cancels without a late manifestation", async ({ page }) => {

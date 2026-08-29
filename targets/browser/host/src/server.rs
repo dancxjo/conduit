@@ -10,12 +10,14 @@ const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.m
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
+const BOOK_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/book-lifecycle.mjs");
 const BOOK_STYLE: &[u8] = include_bytes!("../assets/book.css");
 const BOOK_CHAPTER_ONE: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
 const BOOK_CHAPTER_TWO: &[u8] = include_bytes!("../../../../tour/book/chapter-2.md");
 const BOOK_CHAPTER_THREE: &[u8] = include_bytes!("../../../../tour/book/chapter-3.md");
 const BOOK_CHAPTER_FOUR: &[u8] = include_bytes!("../../../../tour/book/chapter-4.md");
 const BOOK_CHAPTER_FIVE: &[u8] = include_bytes!("../../../../tour/book/chapter-5.md");
+const BOOK_CHAPTER_SIX: &[u8] = include_bytes!("../../../../tour/book/chapter-6.md");
 const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
@@ -121,6 +123,11 @@ impl BrowserHostServer {
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
+            Some("GET /book/book-lifecycle.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BOOK_LIFECYCLE_SCRIPT,
+            ),
             Some("GET /book/book.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", BOOK_STYLE)
             }
@@ -138,6 +145,9 @@ impl BrowserHostServer {
             }
             Some("GET /book/chapter-5.md HTTP/1.1") => {
                 ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_FIVE)
+            }
+            Some("GET /book/chapter-6.md HTTP/1.1") => {
+                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_SIX)
             }
             _ => ("404 Not Found", "text/plain; charset=utf-8", b"not found"),
         };

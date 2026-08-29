@@ -102,6 +102,14 @@ details dt { color: var(--ink); font-weight: 700; }
   backdrop-filter: blur(8px);
 }
 .tour-progress { margin-right: auto; color: var(--green-dark); font-size: .78rem; font-weight: 750; }
+
+.body-chain { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .8rem; align-items: center; }
+.body-chain article { display: grid; gap: .35rem; padding: .8rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--paper); }
+.body-chain span { color: var(--green-dark); font-size: .75rem; font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
+.body-chain code { overflow-wrap: anywhere; }
+.body-identities { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .35rem .8rem; }
+.body-identities dt { color: var(--green-dark); font-weight: 700; }
+.body-identities dd { margin: 0; overflow-wrap: anywhere; }
 .tour-navigation button { border: 1px solid var(--line); padding: .55rem .85rem; background: white; color: var(--ink); }
 .tour-navigation button:last-child { border-color: var(--green); background: var(--green); color: white; }
 .error { color: #a02828; }

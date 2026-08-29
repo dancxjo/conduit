@@ -1,4 +1,5 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
+import { createBodyBirthRunner } from "./book-lifecycle.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -17,7 +18,7 @@ const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -48,6 +49,10 @@ function requireBookAbi(api) {
     "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
     "conduit_book_multi_start_sink",
     "conduit_book_multi_ingest", "conduit_book_multi_complete", "conduit_book_multi_cancel",
+    "conduit_book_body_input_ptr", "conduit_book_body_input_capacity",
+    "conduit_book_body_output_ptr", "conduit_book_body_output_len",
+    "conduit_book_body_admit_source_interaction", "conduit_book_body_birth",
+    "conduit_book_body_current",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
@@ -63,8 +68,8 @@ function parseTourSteps(chapters) {
     if (line.startsWith("# Step ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length !== 11) {
-    throw new Error("this Tour slice must contain exactly eleven steps, received " + parsed.length);
+  if (parsed.length !== 12) {
+    throw new Error("this Tour slice must contain exactly twelve steps, received " + parsed.length);
   }
   return parsed;
 }
@@ -133,7 +138,24 @@ function renderMarkdown(markdown) {
   };
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
+    if (line === "```conduit birth") {
+      flush();
+      const source = [];
+      index += 1;
+      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
+      runnerCount += 1;
+      const sourceKey = currentStep + ":" + runnerCount;
+      chapter.append(createBodyBirthRunner({
+        source: source.join("\n"),
+        sourceKey,
+        listingId: runnerCount === 1 ? "listing" : `listing-${runnerCount}`,
+        host,
+        draft: sourceDrafts.get(sourceKey),
+        onDraft: (value) => sourceDrafts.set(sourceKey, value),
+        nextSequence: () => ++generation,
+      }));
+      copy = appendCopy();
+    } else if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
       flush();
       const showPlan = line.endsWith(" plan");
       const source = [];
