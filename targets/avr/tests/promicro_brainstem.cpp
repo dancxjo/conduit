@@ -1,12 +1,18 @@
 #include "../firmware/promicro_brainstem/assigned_obligations.h"
 #include "../firmware/promicro_brainstem/create_oi.h"
 #include "../firmware/promicro_brainstem/group_zero.h"
+#include "../firmware/promicro_brainstem/lifecycle.h"
 #include "../firmware/promicro_brainstem/protocol.h"
 
 #include <assert.h>
 
 using conduit::promicro::CommandBuffer;
 using conduit::promicro::Request;
+using conduit::promicro::ActivationResult;
+using conduit::promicro::BootBinding;
+using conduit::promicro::BootBindResult;
+using conduit::promicro::BrainstemLifecycle;
+using conduit::promicro::ObservationActivation;
 
 static void assert_command(
     const conduit::promicro::create_oi::EncodedCommand& command,
@@ -38,6 +44,45 @@ int main() {
   }
   assert(buffer.push('\n') == Request::kOverflow);
   assert(request(buffer, "HELLO\n") == Request::kHello);
+
+  BrainstemLifecycle lifecycle;
+  const BootBinding boot{{11}, {22}, 1};
+  assert(!lifecycle.boot_bound());
+  const ObservationActivation activation{
+      {11}, {22}, 1, {33}, {44}, {55}, {66}};
+  assert(lifecycle.admit(activation) == ActivationResult::kBootAbsent);
+  BootBinding invalid_boot = boot;
+  invalid_boot.boot_id.value = 0;
+  assert(lifecycle.bind_boot(invalid_boot) == BootBindResult::kInvalidIdentity);
+  assert(lifecycle.bind_boot(boot) == BootBindResult::kBound);
+  assert(lifecycle.boot_bound());
+  assert(lifecycle.bind_boot(boot) == BootBindResult::kAlreadyBound);
+  BootBinding conflicting_boot = boot;
+  conflicting_boot.boot_id.value = 23;
+  assert(lifecycle.bind_boot(conflicting_boot) ==
+         BootBindResult::kConflictingBinding);
+
+  ObservationActivation stale_host = activation;
+  stale_host.host_id.value = 12;
+  assert(lifecycle.admit(stale_host) == ActivationResult::kStaleHost);
+  ObservationActivation stale_boot = activation;
+  stale_boot.boot_id.value = 23;
+  assert(lifecycle.admit(stale_boot) == ActivationResult::kStaleBoot);
+  ObservationActivation stale_offer = activation;
+  stale_offer.offer_generation = 2;
+  assert(lifecycle.admit(stale_offer) ==
+         ActivationResult::kStaleOfferGeneration);
+  ObservationActivation invalid_activation = activation;
+  invalid_activation.authority_grant_id.value = 0;
+  assert(lifecycle.admit(invalid_activation) ==
+         ActivationResult::kInvalidIdentity);
+  assert(lifecycle.admit(activation) == ActivationResult::kAdmitted);
+  assert(lifecycle.activation_admitted());
+  assert(lifecycle.admit(activation) == ActivationResult::kAlreadyAdmitted);
+  ObservationActivation conflicting_activation = activation;
+  conflicting_activation.active_play_id.value = 56;
+  assert(lifecycle.admit(conflicting_activation) ==
+         ActivationResult::kConflictingActivation);
 
   using namespace conduit::promicro::create_oi;
   const uint8_t start_bytes[] = {128};

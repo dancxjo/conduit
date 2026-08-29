@@ -1,6 +1,7 @@
 #include "assigned_obligations.h"
 #include "create_oi.h"
 #include "group_zero.h"
+#include "lifecycle.h"
 #include "protocol.h"
 
 using conduit::promicro::CommandBuffer;
@@ -15,11 +16,13 @@ constexpr uint8_t kCreateRxPin = 0;
 constexpr uint8_t kCreateTxPin = 1;
 
 constexpr char kHello[] =
-    "HOST schema=conduit.host/boot@1 host=avr/promicro/pete-brainstem "
+    "TARGET schema=conduit.target/availability@1 "
+    "target_id=avr/promicro/pete-brainstem "
     "target=atmega32u4-5v-16mhz line=usb-cdc@1\n";
 constexpr char kStatus[] =
     "STATUS schema=conduit.pete/promicro-brainstem@1 create_uart=isolated "
-    "create_tx_bytes=0 motion_authority=absent command_capacity=64 "
+    "create_tx_bytes=0 boot_binding=absent activation=absent "
+    "motion_authority=absent command_capacity=64 "
     "assigned_obligation_capacity=1 group_zero_bytes=26 "
     "create_codec=compiled-disabled\n";
 constexpr char kRefused[] =
