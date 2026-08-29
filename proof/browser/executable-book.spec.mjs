@@ -98,29 +98,41 @@ test("Steps 4 through 6 reveal a Back and compare two realizations deliberately"
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("·");
   await expect(runner.locator(".play-status")).toContainText("Completed");
-  await expect(runner.locator(".expansion")).toContainText("Opened reusable Forms");
-  await expect(runner.locator(".expansion")).toContainText("morse/lookup");
+  await expect(runner.locator(".expansion")).toContainText("Selected realization: direct");
+  await expect(runner.locator(".expansion")).not.toContainText("Opened reusable Forms");
 
   await page.getByRole("button", { name: "Next" }).click();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".morse")).toHaveText("SOS 2");
-  await expect(runner.locator(".expansion")).toContainText("text/morse");
-  await expect(runner.locator(".expansion")).toContainText("morse/text");
+  await expect(runner.locator(".morse")).toHaveText("··· ——— ···");
+  await expect(runner.locator(".expansion")).toContainText("Selected realization: direct");
+  await expect(runner.locator(".expansion")).not.toContainText("Opened reusable Forms");
 
   await page.getByRole("button", { name: "Next" }).click();
   const comparison = page.locator(".realization-comparison");
+  await expect(comparison.locator(".shared-face span")).toHaveText("Same requested Face");
+  await expect(comparison.locator(".shared-face code")).toHaveText(
+    "text/morse · text: value/text@1 → pattern: value/morse-pattern@1",
+  );
+  await expect(page.getByText("minimal viable Conduit Host", { exact: false })).toBeVisible();
   const direct = comparison.locator(".runner").nth(0);
   const recursive = comparison.locator(".runner").nth(1);
+  await expect(direct.getByRole("heading", { name: "Direct leaf" })).toBeVisible();
+  await expect(recursive.getByRole("heading", { name: "Recursive Form Back" })).toBeVisible();
   const listing = direct.locator("textarea");
   await listing.fill((await listing.inputValue()).replace('"HELLO"', '"E"'));
   await expect(recursive.locator("textarea")).toHaveValue(await listing.inputValue());
-  await direct.getByRole("button", { name: "Run Host leaf" }).click();
+  await direct.getByRole("button", { name: "Run direct leaf" }).click();
   await expect(direct.locator(".play-status")).toContainText("Completed");
-  await recursive.getByRole("button", { name: "Run open Back" }).click();
+  await recursive.getByRole("button", { name: "Run recursive Back" }).click();
   await expect(recursive.locator(".play-status")).toContainText("Completed");
   await expect(direct.locator(".morse")).toHaveText("·");
   await expect(recursive.locator(".morse")).toHaveText("·");
+  await expect(direct.locator(".expansion")).toContainText("Selected realization: direct");
+  await expect(direct.locator(".expansion")).not.toContainText("Opened reusable Forms");
+  await expect(recursive.locator(".expansion")).toContainText("Selected realization: recursive");
+  await expect(recursive.locator(".expansion")).toContainText("Opened reusable Forms");
+  await expect(recursive.locator(".expansion")).toContainText("morse/lookup");
   const directIdentities = await direct.locator("details dd").allTextContents();
   const recursiveIdentities = await recursive.locator("details dd").allTextContents();
   expect(directIdentities[0]).toBe(recursiveIdentities[0]);

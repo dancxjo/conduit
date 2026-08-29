@@ -220,15 +220,22 @@ function appendCopy() {
 function createRealizationComparison(source) {
   const comparison = document.createElement("div");
   comparison.className = "realization-comparison";
+  const face = document.createElement("div");
+  face.className = "shared-face";
+  const faceLabel = document.createElement("span");
+  faceLabel.textContent = "Same requested Face";
+  const faceContract = document.createElement("code");
+  faceContract.textContent = "text/morse · text: value/text@1 → pattern: value/morse-pattern@1";
+  face.append(faceLabel, faceContract);
   const direct = createRunner(source, false, {
     eyebrow: "Realization A",
-    title: "Host leaf",
-    runLabel: "Run Host leaf",
+    title: "Direct leaf",
+    runLabel: "Run direct leaf",
   });
   const recursive = createRunner(source, true, {
     eyebrow: "Realization B",
-    title: "Open reviewed Back",
-    runLabel: "Run open Back",
+    title: "Recursive Form Back",
+    runLabel: "Run recursive Back",
   });
   const directSource = direct.querySelector("textarea");
   const recursiveSource = recursive.querySelector("textarea");
@@ -242,7 +249,7 @@ function createRealizationComparison(source) {
     directSource.value = recursiveSource.value;
     sourceDrafts.set(direct.dataset.sourceKey, recursiveSource.value);
   });
-  comparison.append(direct, recursive);
+  comparison.append(face, direct, recursive);
   return comparison;
 }
 

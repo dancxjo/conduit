@@ -16,7 +16,7 @@ The planned result retains six exact decimal places; there is no page-local arit
 
 # Step 4 — A Gear can have a Back
 
-A high-level Gear keeps one public Face while a reviewed Form can provide its hidden realization.
+A high-level Gear keeps one public Face while a reviewed Form Back can describe the same meaning with smaller Gears.
 
 ```text
              text/morse
@@ -28,7 +28,7 @@ A high-level Gear keeps one public Face while a reviewed Form can provide its hi
  characters -> lookup -> gaps -> flatten -> timing
 ```
 
-```conduit run recursive
+```conduit run
 form gear-with-a-back {
     message: text/literal("E")
     morse: text/morse(40)
@@ -38,21 +38,20 @@ form gear-with-a-back {
 }
 ```
 
-Run the listing, then open What happened? to see the exact Back and planned leaves without putting them in the caller.
+Run the listing normally. The caller asks for the Face while implementation knowledge remains hidden behind it.
 
 # Step 5 — Morse opens up
 
-The authored Morse Gear can expand through reusable character, lookup, gap, flatten, and timing Gears while its meaning stays unchanged.
+The reviewed Back for Morse expresses `text/morse` through reusable character, lookup, gap, flatten, and timing Gears while its meaning stays unchanged.
 
-```conduit run recursive
+```conduit run
 form morse-opens-up {
-    message: text/literal("SOS 2")
+    message: text/literal("SOS")
     encode: text/morse(unit-ms = 40)
-    decode: morse/text
-    result: presentation/text
+    result: presentation/indicator
 
-    message > encode > decode > result
+    message > encode > result
 }
 ```
 
-The decisive distinction is simple: a Kind is not its implementation.
+This still runs through ordinary planning. The Back is implementation knowledge, not a different operation for the caller to request. The decisive distinction is simple: a Kind is not its implementation.
