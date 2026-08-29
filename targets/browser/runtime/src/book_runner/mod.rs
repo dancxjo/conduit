@@ -3,6 +3,7 @@
 mod abi;
 mod engine;
 mod interaction;
+mod multihost;
 mod protocol;
 
 use crate::installed_browser::{advertisement, backs, catalogs, local_bases};

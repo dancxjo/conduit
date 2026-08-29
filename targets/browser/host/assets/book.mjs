@@ -5,6 +5,7 @@ const decoder = new TextDecoder();
 const chapter = document.querySelector("#chapter");
 const hostState = document.querySelector("#host-state");
 let host;
+let peerHost = null;
 let generation = 0;
 let running = false;
 let runnerCount = 0;
@@ -16,7 +17,7 @@ const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -42,6 +43,11 @@ function requireBookAbi(api) {
     "conduit_book_output_ptr", "conduit_book_output_len", "conduit_book_start",
     "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_cancel",
     "conduit_book_inventory", "conduit_book_admit_source_interaction",
+    "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
+    "conduit_book_multi_output_ptr", "conduit_book_multi_output_len",
+    "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
+    "conduit_book_multi_start_sink",
+    "conduit_book_multi_ingest", "conduit_book_multi_complete", "conduit_book_multi_cancel",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
@@ -57,8 +63,8 @@ function parseTourSteps(chapters) {
     if (line.startsWith("# Step ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length !== 9) {
-    throw new Error("this Tour slice must contain exactly nine steps, received " + parsed.length);
+  if (parsed.length !== 11) {
+    throw new Error("this Tour slice must contain exactly eleven steps, received " + parsed.length);
   }
   return parsed;
 }
@@ -127,7 +133,15 @@ function renderMarkdown(markdown) {
   };
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
+    if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
+      flush();
+      const showPlan = line.endsWith(" plan");
+      const source = [];
+      index += 1;
+      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
+      chapter.append(createMultiHostRunner(source.join("\n"), showPlan));
+      copy = appendCopy();
+    } else if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
       flush();
       const recursive = line.endsWith(" recursive");
       const comparison = line.endsWith(" compare");
@@ -242,6 +256,304 @@ function createRunner(source, recursive = false, presentation = {}) {
   return runner;
 }
 
+function createMultiHostRunner(source, showPlan) {
+  runnerCount += 1;
+  const sourceKey = currentStep + ":" + runnerCount;
+  const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
+  const runner = document.createElement("section");
+  runner.className = "runner multi-host-runner";
+  runner.dataset.sourceKey = sourceKey;
+  runner.dataset.mode = "multi";
+  runner.innerHTML = `
+    <div class="editor">
+      <label class="editor-label" for="${listingId}">Conduit · editable · unchanged across Hosts</label>
+      <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
+      <div class="actions">
+        <button class="run" type="button">Run across two Hosts</button><button class="stop" type="button" disabled>Stop</button>
+      </div>
+    </div>
+    <div class="result multi-host-result">
+      <div class="host-map" aria-label="Two independent browser Hosts">
+        <article class="host-card host-a"><span>Host A · source</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
+        <div class="planned-line" aria-label="One planned cross-Host Cord"><span>typed Cord</span><b>→</b><small>1 item · finite bytes</small></div>
+        <article class="host-card host-b"><span>Host B · presentation</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
+      </div>
+      <h2>Planned result on Host B</h2>
+      <output class="morse" aria-label="Planned result">ready</output>
+      <p class="play-status" role="status">Run the Form to start two independent browser Hosts.</p>
+      <details class="evidence"><summary>What happened?</summary><dl></dl><div class="expansion"></div></details>
+      <details class="plan-view-details"><summary>Exact Plan for this Play</summary><div class="plan-view"></div><details class="raw-plan"><summary>Raw Plan evidence</summary><pre><code></code></pre></details></details>
+    </div>`;
+  runner.querySelector(".plan-view-details").open = showPlan;
+  const textarea = runner.querySelector("textarea");
+  textarea.value = sourceDrafts.get(sourceKey) ?? source;
+  textarea.addEventListener("input", () => sourceDrafts.set(sourceKey, textarea.value));
+  runner.querySelector(".run").addEventListener("click", () => runMultiHostListing(runner, textarea.value));
+  runner.querySelector(".stop").addEventListener("click", () => stopListing(runner));
+  return runner;
+}
+
+class BrowserMemoryLine {
+  constructor(maximumFrameBytes, maximumPayloadBytes) {
+    this.maximumFrameBytes = maximumFrameBytes;
+    this.maximumPayloadBytes = maximumPayloadBytes;
+    this.pending = null;
+  }
+
+  transfer(frame, targetApi) {
+    if (this.pending !== null) throw new Error("browser-memory Line pressure: one item is already in flight");
+    if (!Array.isArray(frame.payload) || frame.payload.length > this.maximumPayloadBytes) {
+      throw new Error("browser-memory Line payload exceeds its exact Plan bound");
+    }
+    const encoded = encoder.encode(JSON.stringify(frame));
+    if (encoded.length > this.maximumFrameBytes || encoded.length > targetApi.conduit_book_multi_input_capacity()) {
+      throw new Error("browser-memory Line frame exceeds its exact admitted bound");
+    }
+    this.pending = encoded;
+    const input = new Uint8Array(
+      targetApi.memory.buffer,
+      targetApi.conduit_book_multi_input_ptr(),
+      encoded.length,
+    );
+    input.set(this.pending);
+    this.pending = null;
+    const code = targetApi.conduit_book_multi_ingest(encoded.length);
+    if (code < 0) throw new Error(`browser-memory Line ingest refused (${code})`);
+    return readMultiOutput(targetApi);
+  }
+
+  cancel() {
+    this.pending = null;
+  }
+}
+
+let activeMemoryLine = null;
+
+async function ensurePeerHost() {
+  if (peerHost !== null) return peerHost;
+  const initialized = await initializeBrowserHost();
+  requireBookAbi(initialized.runtime);
+  if (initialized.hostId === host.hostId || initialized.bootId === host.bootId) {
+    throw new Error("second browser Host did not receive independent Host and Boot identity");
+  }
+  peerHost = initialized;
+  globalThis.__conduitBookPeerHost = peerHost;
+  return peerHost;
+}
+
+async function runMultiHostListing(runner, source) {
+  if (running && activeRunner) stopListing(activeRunner);
+  const current = ++generation;
+  const status = runner.querySelector(".play-status");
+  running = true;
+  activeRunner = runner;
+  setNavigationDisabled(true);
+  runner.querySelector(".run").disabled = true;
+  runner.querySelector(".stop").disabled = false;
+  status.classList.remove("error");
+  status.textContent = "Starting an independent second browser Host…";
+  try {
+    const peer = await ensurePeerHost();
+    if (current !== generation) return;
+    renderHostCard(runner, "a", host, "planning source fragment");
+    renderHostCard(runner, "b", peer, "waiting for planned Cord");
+    const sourceBytes = encoder.encode(source);
+    admitMultiSource(host.runtime, sourceBytes, current);
+    admitMultiSource(peer.runtime, sourceBytes, current);
+    const sourceProgress = startMultiSource(host.runtime, host, peer, sourceBytes, current);
+    const sinkProgress = startMultiSink(
+      peer.runtime,
+      peer,
+      sourceProgress.plan_projection.raw_plan,
+      current,
+    );
+    if (sourceProgress.effect_kind !== "line" || sinkProgress.effect_kind !== "waiting") {
+      throw new Error("two-Host runner did not start at the exact planned Line boundary");
+    }
+    const plan = sourceProgress.plan_projection;
+    renderPlanProjection(runner, plan);
+    const line = new BrowserMemoryLine(
+      plan.raw_plan.fragments[0].connections[0].selected_line.binding.limits.maximum_frame_bytes,
+      plan.cord.maximum_payload_bytes,
+    );
+    activeMemoryLine = line;
+    renderHostCard(runner, "a", host, "offered one typed value");
+    status.textContent = "Host A offered one value on the exact planned Cord…";
+    if (!await nextPaint(current)) return;
+    const presentation = line.transfer(sourceProgress.frame, peer.runtime);
+    if (presentation.effect_kind !== "manifestation") {
+      throw new Error("Host B did not request its planned presentation");
+    }
+    const accepted = line.transfer(presentation.accepted_frame, host.runtime);
+    if (accepted.effect_kind !== "waiting") {
+      throw new Error("Host A did not retain exact remote acceptance");
+    }
+    renderHostCard(runner, "a", host, "accepted · awaiting delivery");
+    renderHostCard(runner, "b", peer, "presenting exact value");
+    runner.querySelector(".morse").textContent = presentation.manifestation.text;
+    renderIdentities(runner, presentation.manifestation);
+    renderPlanProjection(runner, presentation.plan_projection);
+    status.textContent = "Host B observed the planned presentation; acknowledging delivery…";
+    if (!await nextPaint(current)) return;
+    const completion = peer.runtime.conduit_book_multi_complete();
+    if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
+    const delivered = readMultiOutput(peer.runtime);
+    const close = line.transfer(delivered.frame, host.runtime);
+    const terminal = line.transfer(close.frame, peer.runtime);
+    const sourceReceipt = line.transfer(terminal.frame, host.runtime);
+    if (terminal.receipt?.disposition !== "completed" || sourceReceipt.receipt?.disposition !== "completed") {
+      throw new Error("two-Host Play did not retain reciprocal terminal receipts");
+    }
+    renderHostCard(runner, "a", host, "completed");
+    renderHostCard(runner, "b", peer, "completed");
+    status.textContent = "Completed — one immutable Plan, two independent Plays, one delivered cross-Host value.";
+    status.dataset.planId = plan.plan_id;
+    status.dataset.sourceReceipt = sourceReceipt.receipt.terminal_sign_id;
+    status.dataset.sinkReceipt = terminal.receipt.terminal_sign_id;
+    finishRun(runner);
+  } catch (error) {
+    cancelMultiSessions();
+    status.textContent = error instanceof Error ? error.message : String(error);
+    status.classList.add("error");
+    finishRun(runner);
+  }
+}
+
+function admitMultiSource(api, sourceBytes, sequence) {
+  if (sourceBytes.length > api.conduit_book_multi_input_capacity()) {
+    throw new Error("The listing exceeds the admitted multi-Host input bound.");
+  }
+  new Uint8Array(api.memory.buffer, api.conduit_book_multi_input_ptr(), sourceBytes.length).set(sourceBytes);
+  const code = api.conduit_book_multi_admit_source_interaction(sourceBytes.length, BigInt(sequence));
+  if (code < 0) {
+    const refusal = api.conduit_book_multi_output_len() > 0 ? readMultiOutput(api) : null;
+    throw new Error(refusal?.message ?? `multi-Host source interaction refused (${code})`);
+  }
+}
+
+function startMultiSource(api, sourceHost, sinkHost, sourceBytes, sequence) {
+  const fields = [sourceHost.hostId, sourceHost.bootId, sinkHost.hostId, sinkHost.bootId]
+    .map((value) => encoder.encode(value));
+  const total = fields.reduce((sum, field) => sum + field.length, sourceBytes.length);
+  if (total > api.conduit_book_multi_input_capacity()) {
+    throw new Error("multi-Host start frame exceeds its admitted input bound");
+  }
+  const input = new Uint8Array(api.memory.buffer, api.conduit_book_multi_input_ptr(), total);
+  let offset = 0;
+  for (const field of fields) {
+    input.set(field, offset);
+    offset += field.length;
+  }
+  input.set(sourceBytes, offset);
+  const code = api.conduit_book_multi_start_source(
+    fields[0].length,
+    fields[1].length,
+    fields[2].length,
+    fields[3].length,
+    sourceBytes.length,
+    BigInt(sequence),
+  );
+  if (code < 0) {
+    const refusal = api.conduit_book_multi_output_len() > 0 ? readMultiOutput(api) : null;
+    throw new Error(refusal?.message
+      ? `The Form was refused before multi-Host Play · ${refusal.category}: ${refusal.message}`
+      : `multi-Host Play start refused (${code})`);
+  }
+  return readMultiOutput(api);
+}
+
+function startMultiSink(api, sinkHost, plan, sequence) {
+  const fields = [sinkHost.hostId, sinkHost.bootId, JSON.stringify(plan)]
+    .map((value) => encoder.encode(value));
+  const total = fields.reduce((sum, field) => sum + field.length, 0);
+  if (total > api.conduit_book_multi_input_capacity()) {
+    throw new Error("exact multi-Host Plan exceeds its admitted sink input bound");
+  }
+  const input = new Uint8Array(api.memory.buffer, api.conduit_book_multi_input_ptr(), total);
+  let offset = 0;
+  for (const field of fields) {
+    input.set(field, offset);
+    offset += field.length;
+  }
+  const code = api.conduit_book_multi_start_sink(
+    fields[0].length,
+    fields[1].length,
+    fields[2].length,
+    BigInt(sequence),
+  );
+  if (code < 0) {
+    const refusal = api.conduit_book_multi_output_len() > 0 ? readMultiOutput(api) : null;
+    throw new Error(refusal?.message
+      ? `Host B refused the exact Plan before Play · ${refusal.message}`
+      : `multi-Host sink Plan admission refused (${code})`);
+  }
+  return readMultiOutput(api);
+}
+
+function readMultiOutput(api) {
+  const bytes = new Uint8Array(
+    api.memory.buffer,
+    api.conduit_book_multi_output_ptr(),
+    api.conduit_book_multi_output_len(),
+  );
+  return JSON.parse(decoder.decode(bytes));
+}
+
+function renderHostCard(runner, suffix, identity, state) {
+  const card = runner.querySelector(`.host-${suffix}`);
+  card.querySelector("strong").textContent = state;
+  card.querySelector(".host-id").textContent = identity.hostId;
+  card.querySelector(".boot-id").textContent = identity.bootId;
+  card.dataset.hostId = identity.hostId;
+  card.dataset.bootId = identity.bootId;
+}
+
+function renderPlanProjection(runner, plan) {
+  const view = runner.querySelector(".plan-view");
+  view.replaceChildren();
+  const explanation = document.createElement("p");
+  explanation.textContent = plan.explanation;
+  const planId = document.createElement("code");
+  planId.className = "projected-plan-id";
+  planId.textContent = plan.plan_id;
+  const hosts = document.createElement("div");
+  hosts.className = "projected-hosts";
+  for (const projected of plan.hosts) {
+    const card = document.createElement("article");
+    const title = document.createElement("strong");
+    title.textContent = `${projected.label} · one Play`;
+    const identity = document.createElement("code");
+    identity.textContent = projected.host_id;
+    const gears = document.createElement("ul");
+    for (const gear of projected.gears) {
+      const item = document.createElement("li");
+      item.textContent = `${gear.kind_id} → ${gear.implementation_id}`;
+      gears.append(item);
+    }
+    card.append(title, identity, gears);
+    hosts.append(card);
+  }
+  const cord = document.createElement("p");
+  cord.className = "projected-cord";
+  cord.textContent = `Cross-Host ${plan.cord.value_kind} Cord · ${plan.cord.line_id} · ${plan.cord.maximum_in_flight_items} item / ${plan.cord.maximum_payload_bytes} bytes`;
+  view.append(explanation, planId, hosts, cord);
+  runner.querySelector(".raw-plan code").textContent = JSON.stringify(plan.raw_plan, null, 2);
+  runner.querySelector(".plan-view-details").dataset.planId = plan.plan_id;
+}
+
+function nextPaint(expectedGeneration) {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve(expectedGeneration === generation)));
+}
+
+function finishRun(runner) {
+  activeMemoryLine = null;
+  running = false;
+  activeRunner = null;
+  setNavigationDisabled(false);
+  runner.querySelector(".run").disabled = false;
+  runner.querySelector(".stop").disabled = true;
+}
+
 async function runListing(runner, source, recursive) {
   if (running && activeRunner) stopListing(activeRunner);
   const current = ++generation;
@@ -345,7 +657,8 @@ async function runListing(runner, source, recursive) {
 function stopListing(runner) {
   generation += 1;
   cancelDelay();
-  if (running) host.runtime.conduit_book_cancel();
+  if (running && runner.dataset.mode === "multi") cancelMultiSessions();
+  else if (running) host.runtime.conduit_book_cancel();
   running = false;
   activeRunner = null;
   setNavigationDisabled(false);
@@ -353,6 +666,13 @@ function stopListing(runner) {
   runner.querySelector(".run").disabled = false;
   runner.querySelector(".stop").disabled = true;
   runner.querySelector(".play-status").textContent = "Stopped. The Play was cancelled.";
+}
+
+function cancelMultiSessions() {
+  activeMemoryLine?.cancel();
+  activeMemoryLine = null;
+  host?.runtime.conduit_book_multi_cancel();
+  peerHost?.runtime.conduit_book_multi_cancel();
 }
 
 function readOutput(api) {
@@ -392,6 +712,7 @@ function renderInventory(inventory) {
 
 function setIndicator(runner, level) {
   const indicator = runner.querySelector(".indicator");
+  if (!indicator) return;
   indicator.classList.toggle("on", level);
   indicator.setAttribute("aria-label", level ? "Indicator on" : "Indicator off");
 }
@@ -410,7 +731,7 @@ function renderIdentities(runner, effect) {
     active_play_id: "Active Play", presentation_id: "Presentation",
     placement_id: "Placement", host_id: "Host", boot_id: "Boot",
   };
-  const list = runner.querySelector("details dl");
+  const list = runner.querySelector("details.evidence dl, details:not(.plan-view-details) dl");
   list.replaceChildren();
   for (const [key, label] of Object.entries(labels)) {
     const term = document.createElement("dt");
@@ -431,7 +752,7 @@ function renderIdentities(runner, effect) {
       list.append(term, identity);
     }
   }
-  const expansion = runner.querySelector(".expansion");
+  const expansion = runner.querySelector("details.evidence .expansion, details:not(.plan-view-details) .expansion");
   expansion.replaceChildren();
   const mode = document.createElement("p");
   mode.textContent = `Selected realization: ${effect.realization}`;

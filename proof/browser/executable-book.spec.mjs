@@ -38,7 +38,7 @@ async function openStep(page, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 9`);
+  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 11`);
 }
 
 test.beforeEach(async () => {
@@ -140,7 +140,7 @@ test("Tour navigation preserves drafts but reset and restart change presentation
   await page.getByRole("button", { name: "Reset this step" }).click();
   await expect(page.locator("textarea")).toHaveValue(/"hello"/);
   await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 9");
+  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 11");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
@@ -221,4 +221,69 @@ test("Step 8 shows the exact installed offers from the planning advertisement", 
     "time/every", "state/count", "presentation/count",
   ]));
   await expect(inventory.locator("li.unavailable", { hasText: "input/keyboard" })).toHaveCount(1);
+});
+
+test("Step 9 executes one unchanged Form across two independent browser Hosts", async ({ page }) => {
+  await openStep(page, 9);
+  await expect(page.getByRole("heading", { name: "Step 9 — Two browser Hosts" })).toBeVisible();
+  const runner = page.locator(".multi-host-runner");
+  const source = await runner.locator("textarea").inputValue();
+  expect(source).not.toMatch(/HostId|BootId|browser\/|iframe|DOM|socket|address/);
+  await runner.getByRole("button", { name: "Run across two Hosts" }).click();
+  await expect(runner.locator(".play-status")).toContainText(
+    "one immutable Plan, two independent Plays, one delivered cross-Host value",
+  );
+  await expect(runner.locator(".morse")).toHaveText("hello across one planned Cord");
+  await expect(runner.locator(".host-a strong")).toHaveText("completed");
+  await expect(runner.locator(".host-b strong")).toHaveText("completed");
+  const identities = await page.evaluate(() => ({
+    a: globalThis.__conduitBookHost,
+    b: globalThis.__conduitBookPeerHost,
+  }));
+  expect(identities.a.hostId).not.toBe(identities.b.hostId);
+  expect(identities.a.bootId).not.toBe(identities.b.bootId);
+  await expect(page.locator("iframe")).toHaveCount(0);
+  await expect(runner.locator(".projected-cord")).toContainText("1 item");
+  await expect(runner.locator(".play-status")).toHaveAttribute("data-source-receipt", /.+/);
+  await expect(runner.locator(".play-status")).toHaveAttribute("data-sink-receipt", /.+/);
+});
+
+test("Step 10 compact and raw views project the same exact immutable Plan", async ({ page }) => {
+  await openStep(page, 10);
+  await expect(page.getByRole("heading", { name: "Step 10 — Plans and Plays" })).toBeVisible();
+  const runner = page.locator(".multi-host-runner");
+  await expect(runner.locator(".plan-view-details")).toHaveAttribute("open", "");
+  await runner.getByRole("button", { name: "Run across two Hosts" }).click();
+  await expect(runner.locator(".play-status")).toContainText("Completed");
+  const projectedPlanId = await runner.locator(".projected-plan-id").textContent();
+  const rawPlan = JSON.parse(await runner.locator(".raw-plan code").textContent());
+  expect(rawPlan.plan_id).toBe(projectedPlanId);
+  expect(rawPlan.fragments).toHaveLength(2);
+  expect(new Set(rawPlan.fragments.map((fragment) => fragment.host_id)).size).toBe(2);
+  await expect(runner.locator(".projected-hosts article")).toHaveCount(2);
+  await expect(runner.locator(".projected-hosts")).toContainText("text/literal");
+  await expect(runner.locator(".projected-hosts")).toContainText("presentation/text");
+});
+
+test("stopping the two-Host lesson cancels without a late manifestation", async ({ page }) => {
+  await page.addInitScript(() => {
+    const callbacks = [];
+    globalThis.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+    globalThis.__releaseBookAnimationFrame = () => {
+      for (const callback of callbacks.splice(0)) callback(performance.now());
+    };
+  });
+  await openStep(page, 9);
+  const runner = page.locator(".multi-host-runner");
+  await runner.getByRole("button", { name: "Run across two Hosts" }).click();
+  await expect(runner.locator(".play-status")).toContainText("Host A offered one value");
+  await runner.getByRole("button", { name: "Stop" }).click();
+  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await page.evaluate(() => globalThis.__releaseBookAnimationFrame());
+  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator(".morse")).toHaveText("ready");
+  await expect(runner.locator(".play-status")).not.toHaveAttribute("data-source-receipt", /.+/);
 });

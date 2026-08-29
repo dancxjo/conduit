@@ -64,6 +64,25 @@ button:disabled { cursor: default; opacity: .45; }
 .result h2 { margin: 0; }
 .morse { min-height: 2rem; margin: .6rem 0 0; color: var(--green); font: 750 1.25rem/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
 .play-status { min-height: 1.4rem; margin: .7rem auto 0; color: var(--muted); font-size: .88rem; }
+.multi-host-result { justify-content: flex-start; }
+.host-map { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .65rem; align-items: center; margin-bottom: 1.5rem; }
+.host-card { min-width: 0; padding: .8rem; border: 1px solid var(--line); border-radius: 10px; text-align: left; background: #f3f8f4; }
+.host-card span { display: block; color: var(--green); font-size: .68rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.host-card strong { display: block; margin: .3rem 0 .55rem; font-size: .82rem; }
+.host-card code { display: block; overflow: hidden; color: var(--muted); font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
+.planned-line { display: grid; justify-items: center; color: var(--green); font-size: .68rem; }
+.planned-line b { font-size: 1.5rem; line-height: 1; }
+.planned-line small { max-width: 5.5rem; color: var(--muted); }
+.plan-view-details { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+.plan-view { margin-top: .8rem; }
+.plan-view > p { font-size: .78rem; }
+.projected-plan-id { display: block; padding: .55rem; overflow-wrap: anywhere; border-radius: 6px; color: var(--green-dark); background: #f3f8f4; }
+.projected-hosts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin-top: .7rem; }
+.projected-hosts article { min-width: 0; padding: .65rem; border: 1px solid var(--line); border-radius: 8px; }
+.projected-hosts strong, .projected-hosts code { display: block; overflow-wrap: anywhere; }
+.projected-hosts ul { margin: .5rem 0 0; padding-left: 1rem; }
+.projected-cord { padding-left: .65rem; border-left: 3px solid var(--green); }
+.raw-plan pre { max-height: 22rem; overflow: auto; padding: .75rem; border-radius: 8px; color: #e9f1ec; background: #17221d; font-size: .68rem; }
 details { margin-top: 1rem; text-align: left; color: var(--muted); font-size: .78rem; }
 details dd { margin: .15rem 0 .65rem; overflow-wrap: anywhere; }
 details dt { color: var(--ink); font-weight: 700; }
@@ -89,6 +108,9 @@ details dt { color: var(--ink); font-weight: 700; }
 @media (max-width: 760px) {
   .realization-comparison { grid-template-columns: 1fr; }
   .runner { grid-template-columns: 1fr; }
+  .host-map { grid-template-columns: 1fr; }
+  .planned-line b { transform: rotate(90deg); }
+  .projected-hosts { grid-template-columns: 1fr; }
   .editor { min-height: 20rem; }
   textarea { min-height: 20rem; }
   .result { min-height: 19rem; }
