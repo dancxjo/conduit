@@ -1,4 +1,4 @@
-import { initializeBrowserHost } from "/browser-host-bootstrap.mjs";
+import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -10,7 +10,7 @@ let running = false;
 
 try {
   const [markdown, initialized] = await Promise.all([
-    fetch("/book/chapter-1.md").then((response) => {
+    fetch("./chapter-1.md").then((response) => {
       if (!response.ok) throw new Error("chapter source is unavailable");
       return response.text();
     }),

@@ -14,6 +14,8 @@ Conduit then finds a finite realization of the form that fits that body now. It 
 
 ## Try the smallest thing
 
+[Open the executable Conduit book](https://dancxjo.github.io/conduit/book/) to edit a short ordinary Form, press **Run**, and watch its Morse pattern on a browser indicator.
+
 A Conduit program is a graph of semantic operations, not a script that names the machine that will run it.
 
 ```conduit

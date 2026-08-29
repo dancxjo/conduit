@@ -1,0 +1,73 @@
+name: executable-book-pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/executable-book-pages.yml
+      - tour/book/**
+      - targets/browser/host/assets/book.html
+      - targets/browser/host/assets/book.css
+      - targets/browser/host/assets/book.mjs
+      - targets/browser/host/assets/browser-host-bootstrap.mjs
+      - targets/browser/runtime/Cargo.toml
+      - targets/browser/runtime/src/book_runner/**
+      - targets/browser/runtime/src/lib.rs
+
+concurrency:
+  group: executable-book-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the exact browser Host runtime
+        run: >-
+          cargo build --locked -p conduit-browser-runtime
+          --target wasm32-unknown-unknown --release
+      - name: Stage only the executable book
+        run: |
+          site=target/executable-book-pages
+          mkdir -p "$site/book"
+          cp targets/browser/host/assets/browser-host-bootstrap.mjs "$site/"
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm "$site/runtime.wasm"
+          cp targets/browser/host/assets/book.html "$site/book/index.html"
+          cp targets/browser/host/assets/book.css "$site/book/"
+          cp targets/browser/host/assets/book.mjs "$site/book/"
+          cp tour/book/chapter-1.md "$site/book/"
+          touch "$site/.nojekyll"
+          test "$(find "$site" -type f | wc -l)" = 7
+      - name: Upload the exact book Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/executable-book-pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}book/
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy executable book
+        id: deployment
+        uses: actions/deploy-pages@v5
