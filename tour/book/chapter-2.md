@@ -2,11 +2,30 @@
 
 The same Run button accepts other small, finite Forms. These examples are ordinary Conduit source; the palette and execution choices come from this browser Host's real offers.
 
-## One meaning, two realizations
+## One Face, Many Realizations
 
-This listing still says only `text/morse`. Use the realization control to run the same checked Face as one optimized leaf or open its reviewed Back into characters, lookup, gaps, flattening, and timing.
+The caller below says only `text/morse`. Its Face fixes the meaning and typed ports that the rest of the Form can rely on; it does not fix how a Host must accomplish that meaning.
 
-```conduit run recursive
+```text
+             text/morse
+                 │
+        same Face, same meaning
+          ┌──────┴──────┐
+          │             │
+      Host leaf      open Back
+          │             │
+       [morse]      characters
+                    lookup
+                    gaps
+                    flatten
+                    timing
+```
+
+A Host leaf is an implementation the selected Host can perform directly. An open Back is a reviewed Form implementing the same Face: planning expands it into smaller meanings, then continues recursively until every remaining leaf has a truthful Host offer.
+
+These are not execution modes for the author to choose. Conduit may select either realization from the Hosts and finite resources available now. The comparison deliberately holds them beside each other so you can inspect the substitution: the source and checked Form stay the same, both Plays produce the same timed pattern, and the expanded Form and Plan identities differ because the realization really differs.
+
+```conduit compare
 form recursive-morse {
     message: text/literal("HELLO")
     morse: text/morse(80)

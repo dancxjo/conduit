@@ -2,7 +2,7 @@
 
 Morse is one meaning with two exact directions. Edit the quoted message, press Run, and the same ordinary Form encodes it into canonical timed Morse before decoding it back to text.
 
-```conduit run recursive
+```conduit run
 form morse-round-trip {
     message: text/literal("HELLO 2")
     encode: text/morse(unit-ms = 80)
