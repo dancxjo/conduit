@@ -9,6 +9,9 @@
 
 extern crate alloc;
 
+mod morse;
+pub use morse::*;
+
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,

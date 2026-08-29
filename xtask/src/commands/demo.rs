@@ -4,6 +4,38 @@ use crate::cli::{GlobalOpts, PatchbayDemoArgs, PatchbayHost};
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
 
+pub fn run_book(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    run_step(
+        &Step::new(
+            "demo.book.runtime",
+            "Build the ordinary bounded browser Host runtime",
+            "cargo",
+            &[
+                "build",
+                "-p",
+                "conduit-browser-runtime",
+                "--target",
+                "wasm32-unknown-unknown",
+                "--release",
+            ],
+        ),
+        &root,
+        opts,
+    )?;
+    run_step(
+        &Step::new(
+            "demo.book.host",
+            "Open the inline executable Conduit book",
+            "cargo",
+            &["run", "-p", "conduit-browser-host", "--", "--book"],
+        ),
+        &root,
+        opts,
+    )?;
+    Ok(())
+}
+
 pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run(
         "demo.std",

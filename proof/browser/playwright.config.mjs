@@ -18,6 +18,7 @@ export default defineConfig({
     "presentation-nucleus.spec.mjs",
     "browser-pointer.spec.mjs",
     "browser-host-entrance.spec.mjs",
+    "executable-book.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-body-camera-realization.spec.mjs",
     "browser-presence.spec.mjs",
