@@ -127,7 +127,7 @@ jobs:
           cp targets/browser/host/assets/usb-device-base.mjs "$site/"
           mkdir -p "$site/targets/rp2040/browser-deployment"
           cp targets/rp2040/browser-deployment/*.mjs "$site/targets/rp2040/browser-deployment/"
-          chapters=(chapter-{1..8}.md)
+          chapters=(chapter-{1..6}.md chapter-8.md)
           expected_chapters="$(printf '%s\n' "${chapters[@]}")"
           source_chapters="$(find tour/book -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
           test "$source_chapters" = "$expected_chapters"
@@ -137,7 +137,7 @@ jobs:
           touch "$site/.nojekyll"
           staged_chapters="$(find "$site/book" -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
           test "$staged_chapters" = "$expected_chapters"
-          test "$(find "$site" -type f | wc -l)" = 25
+          test "$(find "$site" -type f | wc -l)" = 24
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
