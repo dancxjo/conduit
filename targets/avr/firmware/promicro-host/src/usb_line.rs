@@ -20,6 +20,19 @@ impl UsbLine {
     /// The single static allocator is initialized exactly once after ownership
     /// of the USB peripheral and PLL has been acquired.
     pub fn new(usb: pac::USB_DEVICE, pll: pac::PLL, boot_serial: &'static str) -> Self {
+        Self::new_inner(usb, pll, Some(boot_serial))
+    }
+
+    /// Initialize the stable descriptor used only by the receive-only proof.
+    pub fn new_receive_only(usb: pac::USB_DEVICE, pll: pac::PLL) -> Self {
+        Self::new_inner(usb, pll, None)
+    }
+
+    fn new_inner(
+        usb: pac::USB_DEVICE,
+        pll: pac::PLL,
+        boot_serial: Option<&'static str>,
+    ) -> Self {
         configure_pll(&pll);
         static mut BUS: MaybeUninit<UsbBusAllocator<Bus>> = MaybeUninit::uninit();
         // SAFETY: `main` calls this once after taking the unique peripherals,
@@ -32,12 +45,17 @@ impl UsbLine {
         // The Host protocol is already finitely framed, so use the lower-level
         // packet CDC class instead of adding another pair of stream buffers.
         let serial = CdcAcmClass::new(bus, 64);
-        let strings = StringDescriptors::new(LangID::EN).serial_number(boot_serial);
-        let device = UsbDeviceBuilder::new(bus, UsbVidPid(0x1b4f, 0x9206))
-            .strings(&[strings])
-            .unwrap()
-            .device_class(USB_CLASS_CDC)
-            .build();
+        let builder = UsbDeviceBuilder::new(bus, UsbVidPid(0x1b4f, 0x9206));
+        let device = if let Some(boot_serial) = boot_serial {
+            let strings = StringDescriptors::new(LangID::EN).serial_number(boot_serial);
+            builder
+                .strings(&[strings])
+                .unwrap()
+                .device_class(USB_CLASS_CDC)
+                .build()
+        } else {
+            builder.device_class(USB_CLASS_CDC).build()
+        };
         Self { device, serial }
     }
 

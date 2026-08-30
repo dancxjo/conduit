@@ -89,13 +89,9 @@ mod tests {
 
     #[test]
     fn build_identity_is_exact_and_profile_specific() {
-        let isolated =
-            EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), "receive-only");
-        let hil = EmbeddedBuildIdentity::new(
-            "a".repeat(40),
-            "b".repeat(64),
-            "assigned-create-host",
-        );
+        let isolated = EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), "receive-only");
+        let hil =
+            EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), "assigned-create-host");
         assert_eq!(isolated.build_id.len(), 64);
         assert!(isolated
             .build_id

@@ -134,6 +134,12 @@ impl<const MAX_OUTPUT_BYTES: usize> SingleSourceValues<MAX_OUTPUT_BYTES> {
     }
 }
 
+impl<const MAX_OUTPUT_BYTES: usize> Default for SingleSourceValues<MAX_OUTPUT_BYTES> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SingleSourceOutput {
     pub port: PortId,

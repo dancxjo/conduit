@@ -14,6 +14,7 @@ pub(super) const AVR_HAL_REVISION: &str = "0be252f2a899dbd687a26f8561048ce61854e
 pub(super) const FIRMWARE: &str = "targets/avr/firmware/promicro-host";
 const ELF_NAME: &str = "conduit-avr-promicro-host.elf";
 const HEX_NAME: &str = "conduit-avr-promicro-host.hex";
+const RECEIVE_ONLY_BIN: &str = "conduit-avr-receive-only";
 
 pub(super) struct RustFirmwareArtifact {
     pub(super) hex: PathBuf,
@@ -37,6 +38,26 @@ pub(super) fn provision_rust() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub(super) fn build(root: &Path) -> Result<RustFirmwareArtifact, Box<dyn std::error::Error>> {
+    build_binary(root, "conduit-avr-promicro-host", ELF_NAME, HEX_NAME)
+}
+
+pub(super) fn build_receive_only(
+    root: &Path,
+) -> Result<RustFirmwareArtifact, Box<dyn std::error::Error>> {
+    build_binary(
+        root,
+        RECEIVE_ONLY_BIN,
+        "conduit-avr-receive-only.elf",
+        "conduit-avr-receive-only.hex",
+    )
+}
+
+fn build_binary(
+    root: &Path,
+    binary: &str,
+    elf_name: &str,
+    hex_name: &str,
+) -> Result<RustFirmwareArtifact, Box<dyn std::error::Error>> {
     provision_rust()?;
     let cli = provision(root)?;
     verify_cores(&cli, root)?;
@@ -54,6 +75,8 @@ pub(super) fn build(root: &Path) -> Result<RustFirmwareArtifact, Box<dyn std::er
             "build",
             "--release",
             "--locked",
+            "--bin",
+            binary,
         ])
         .arg("--manifest-path")
         .arg(&manifest)
@@ -63,13 +86,13 @@ pub(super) fn build(root: &Path) -> Result<RustFirmwareArtifact, Box<dyn std::er
     require_success(&output, "Rust AVR firmware build")?;
 
     let firmware_target = root.join(FIRMWARE).join("target/avr-atmega32u4/release");
-    let elf = firmware_target.join(ELF_NAME);
+    let elf = firmware_target.join(elf_name);
     if !elf.is_file() {
         return Err(format!("Rust AVR build omitted {}", elf.display()).into());
     }
     let output_dir = root.join("target/avr-promicro/build");
     fs::create_dir_all(&output_dir)?;
-    let hex = output_dir.join(HEX_NAME);
+    let hex = output_dir.join(hex_name);
     let objcopy = gcc_bin.join("avr-objcopy");
     let output = Command::new(objcopy)
         .args(["-O", "ihex", "-R", ".eeprom"])
