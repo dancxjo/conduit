@@ -8,10 +8,12 @@ use usb_device::{
 use usbd_serial::{CdcAcmClass, USB_CLASS_CDC};
 
 type Bus = AvrGenericUsbBus<pac::PLL>;
+type Device = UsbDevice<'static, Bus>;
+type Serial = CdcAcmClass<'static, Bus>;
 
 pub struct UsbLine {
-    device: UsbDevice<'static, Bus>,
-    serial: CdcAcmClass<'static, Bus>,
+    device: &'static mut Device,
+    serial: &'static mut Serial,
 }
 
 impl UsbLine {
@@ -28,6 +30,7 @@ impl UsbLine {
         Self::new_inner(usb, pll, None)
     }
 
+    #[inline(never)]
     fn new_inner(
         usb: pac::USB_DEVICE,
         pll: pac::PLL,
@@ -35,6 +38,8 @@ impl UsbLine {
     ) -> Self {
         configure_pll(&pll);
         static mut BUS: MaybeUninit<UsbBusAllocator<Bus>> = MaybeUninit::uninit();
+        static mut DEVICE: MaybeUninit<Device> = MaybeUninit::uninit();
+        static mut SERIAL: MaybeUninit<Serial> = MaybeUninit::uninit();
         // SAFETY: `main` calls this once after taking the unique peripherals,
         // before interrupts are enabled. `BUS` then remains initialized for
         // the entire program and is only exposed through this owned Line.
@@ -44,7 +49,10 @@ impl UsbLine {
         };
         // The Host protocol is already finitely framed, so use the lower-level
         // packet CDC class instead of adding another pair of stream buffers.
-        let serial = CdcAcmClass::new(bus, 64);
+        let serial = unsafe {
+            SERIAL.write(CdcAcmClass::new(bus, 64));
+            &mut *SERIAL.as_mut_ptr()
+        };
         let builder = UsbDeviceBuilder::new(bus, UsbVidPid(0x1b4f, 0x9206));
         let strings = StringDescriptors::new(LangID::EN)
             .manufacturer("SparkFun")
@@ -54,16 +62,21 @@ impl UsbLine {
         } else {
             strings
         };
-        let device = builder
-            .strings(&[strings])
-            .unwrap()
-            .device_class(USB_CLASS_CDC)
-            .build();
+        let device = unsafe {
+            DEVICE.write(
+                builder
+                    .strings(&[strings])
+                    .unwrap()
+                    .device_class(USB_CLASS_CDC)
+                    .build(),
+            );
+            &mut *DEVICE.as_mut_ptr()
+        };
         Self { device, serial }
     }
 
     pub fn poll(&mut self) -> bool {
-        self.device.poll(&mut [&mut self.serial])
+        self.device.poll(&mut [&mut *self.serial])
     }
 
     pub fn read(&mut self, bytes: &mut [u8]) -> usb_device::Result<usize> {

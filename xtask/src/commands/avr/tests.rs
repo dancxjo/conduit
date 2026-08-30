@@ -47,8 +47,8 @@ fn parses_exact_build_metrics_and_enforces_both_capacities() {
         376
     );
     assert!(validate_sizes(MAX_FLASH_BYTES + 1, 1).is_err());
-    assert!(validate_sizes(1, MAX_SRAM_BYTES + 1).is_err());
-    validate_sizes(MAX_FLASH_BYTES, MAX_SRAM_BYTES).unwrap();
+    assert!(validate_sizes(1, MAX_STATIC_SRAM_BYTES + 1).is_err());
+    validate_sizes(MAX_FLASH_BYTES, MAX_STATIC_SRAM_BYTES).unwrap();
     assert_eq!(
         metric("Program:     304 bytes", "Program:", "bytes").unwrap(),
         304

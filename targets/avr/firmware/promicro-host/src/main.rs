@@ -6,13 +6,48 @@ use conduit_assigned_plan::{
 };
 use conduit_avr_promicro_host::{
     activation_receiver::ActivationReceiver,
-    assigned_receiver::{AssignedReceiver, HOST_IDENTITY},
+    assigned_receiver::{AssignedReceiver, HOST_IDENTITY, MAX_ENCODED_BYTES},
     boot::BootIdentity,
     executor::execute_contact,
     provider,
     usb_line::UsbLine,
 };
 use panic_halt as _;
+
+type ContactPlan = conduit_avr_promicro_host::assigned_receiver::ValidatedContactPlan;
+const OUTPUT_BYTES: usize = ASSIGNED_EXECUTION_RECEIPT_HEADER_BYTES + 1;
+
+struct RuntimeState {
+    exchange: [u8; MAX_ENCODED_BYTES],
+    assigned: AssignedReceiver,
+    activation: ActivationReceiver,
+    plan: Option<ContactPlan>,
+    output_len: usize,
+    output_offset: usize,
+}
+
+impl RuntimeState {
+    const fn new() -> Self {
+        Self {
+            exchange: [0; MAX_ENCODED_BYTES],
+            assigned: AssignedReceiver::new(),
+            activation: ActivationReceiver::new(),
+            plan: None,
+            output_len: 0,
+            output_offset: 0,
+        }
+    }
+
+    fn reset_exchange(&mut self) {
+        self.output_len = 0;
+        self.output_offset = 0;
+        self.plan = None;
+        self.assigned.reset();
+        self.activation.reset();
+    }
+}
+
+static mut RUNTIME: RuntimeState = RuntimeState::new();
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -33,25 +68,20 @@ fn main() -> ! {
     let mut create = provider::AvrCreateUart::new(create_uart);
     let mut host_line = UsbLine::new(peripherals.USB_DEVICE, peripherals.PLL, boot.usb_serial);
     let host = HOST_IDENTITY;
-    let mut assigned = AssignedReceiver::new();
-    let mut activation = ActivationReceiver::new();
-    let mut plan = None;
-    let mut output = [0_u8; ASSIGNED_EXECUTION_RECEIPT_HEADER_BYTES + 1];
-    let mut output_len = 0_usize;
-    let mut output_offset = 0_usize;
+    // SAFETY: `main` is the sole execution context, interrupts are disabled,
+    // and this unique reference lives for the remainder of the program.
+    let runtime = unsafe { &mut *core::ptr::addr_of_mut!(RUNTIME) };
 
     loop {
         host_line.poll();
-        if output_offset < output_len {
-            let end = (output_offset + 32).min(output_len);
-            if let Ok(written) = host_line.write(&output[output_offset..end]) {
-                output_offset += written;
-                if output_offset == output_len {
-                    output_len = 0;
-                    output_offset = 0;
-                    plan = None;
-                    assigned.reset();
-                    activation.reset();
+        if runtime.output_offset < runtime.output_len {
+            let end = (runtime.output_offset + 32).min(runtime.output_len);
+            if let Ok(written) =
+                host_line.write(&runtime.exchange[runtime.output_offset..end])
+            {
+                runtime.output_offset += written;
+                if runtime.output_offset == runtime.output_len {
+                    runtime.reset_exchange();
                 }
             }
             continue;
@@ -59,20 +89,30 @@ fn main() -> ! {
         let mut incoming = [0_u8; 32];
         if let Ok(length) = host_line.read(&mut incoming) {
             if length != 0 {
-                if plan.is_none() {
-                    match assigned.push(&incoming[..length]) {
-                        Ok(Some(_)) => match assigned.validate(host, boot.assigned) {
-                            Ok(validated) => plan = Some(validated),
-                            Err(_) => assigned.reset(),
+                if runtime.plan.is_none() {
+                    match runtime
+                        .assigned
+                        .push(&mut runtime.exchange, &incoming[..length])
+                    {
+                        Ok(Some(_)) => match runtime.assigned.validate(
+                            &runtime.exchange,
+                            host,
+                            boot.assigned,
+                        ) {
+                            Ok(validated) => runtime.plan = Some(validated),
+                            Err(_) => runtime.assigned.reset(),
                         },
                         Ok(None) => {}
-                        Err(_) => assigned.reset(),
+                        Err(_) => runtime.assigned.reset(),
                     }
                 } else {
-                    match activation.push(&incoming[..length]) {
+                    match runtime
+                        .activation
+                        .push(&mut runtime.exchange, &incoming[..length])
+                    {
                         Ok(Some(active)) => {
                             let mut value = [0_u8; 1];
-                            let receipt = match plan {
+                            let receipt = match runtime.plan {
                                 Some(validated) => execute_contact(
                                     validated,
                                     active,
@@ -81,27 +121,23 @@ fn main() -> ! {
                                     &mut value,
                                 ),
                                 None => {
-                                    plan = None;
-                                    assigned.reset();
-                                    activation.reset();
+                                    runtime.reset_exchange();
                                     continue;
                                 }
                             };
-                            if let Ok(length) =
-                                encode_assigned_execution_receipt(receipt, &mut output)
+                            if let Ok(length) = encode_assigned_execution_receipt(
+                                receipt,
+                                &mut runtime.exchange[..OUTPUT_BYTES],
+                            )
                             {
-                                output_len = length;
+                                runtime.output_len = length;
                             } else {
-                                plan = None;
-                                assigned.reset();
-                                activation.reset();
+                                runtime.reset_exchange();
                             }
                         }
                         Ok(None) => {}
                         Err(_) => {
-                            plan = None;
-                            assigned.reset();
-                            activation.reset();
+                            runtime.reset_exchange();
                         }
                     }
                 }
