@@ -4,8 +4,8 @@
 use conduit_avr_promicro_host::{boot::BootIdentity, provider::AvrCreateUart, usb_line::UsbLine};
 use conduit_create_oi::{
     encode_query_sensor, query_create1_group_zero, read_query_sensor_packet, write_command,
-    CreateOiFailure, PRESENTATION_DEFINE_SONG, PRESENTATION_FULL, PRESENTATION_PLAY_SONG,
-    PRESENTATION_START,
+    CreateOiFailure, UartProfile, PRESENTATION_DEFINE_SONG, PRESENTATION_FULL,
+    PRESENTATION_PLAY_SONG, PRESENTATION_START,
 };
 use panic_halt as _;
 
@@ -19,20 +19,26 @@ fn main() -> ! {
     let boot = BootIdentity::acquire(arduino_hal::Eeprom::new(peripherals.EEPROM));
     let _power_toggle = pins.d4.into_floating_input();
     let _charging = pins.d5.into_floating_input();
-    let uart = arduino_hal::default_serial!(peripherals, pins, 57_600);
-    let mut create = AvrCreateUart::new(uart);
+    let uart = arduino_hal::default_serial!(peripherals, pins, 19_200);
+    let mut create = AvrCreateUart::with_profile(uart, UartProfile::CREATE_OI_19200);
 
     // Deliberately finite HIL diagnostic: every transmitted byte comes from
     // the shared motion-free Create 1 presentation program. It establishes
     // Full, sounds one song, then performs two bounded reads and stops.
     let report = probe(&mut create);
     let mut usb = UsbLine::new(peripherals.USB_DEVICE, peripherals.PLL, boot.usb_serial);
-    let mut written = false;
+    let mut requested = false;
+    let mut written = 0;
     loop {
         usb.poll();
-        if !written {
-            if let Ok(length) = usb.write(&report) {
-                written = length == report.len();
+        if !requested {
+            let mut trigger = [0_u8; 1];
+            if usb.read(&mut trigger).is_ok_and(|length| length == 1) {
+                requested = true;
+            }
+        } else if written < report.len() {
+            if let Ok(length) = usb.write(&report[written..]) {
+                written += length;
             }
         }
         core::hint::spin_loop();

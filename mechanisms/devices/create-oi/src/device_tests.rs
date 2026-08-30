@@ -53,6 +53,8 @@ fn exact_profile_and_wheel_order_are_enforced() {
     let mut provider = provider();
     write_command(&mut provider, &encode_drive_direct(-100, 250).unwrap()).unwrap();
     assert_eq!(provider.written, [145, 0, 250, 255, 156]);
+    provider.profile = UartProfile::CREATE_OI_19200;
+    write_command(&mut provider, &encode_stop()).unwrap();
     provider.profile.baud = 115_200;
     assert!(matches!(
         write_command(&mut provider, &encode_stop()),
@@ -64,6 +66,9 @@ fn exact_profile_and_wheel_order_are_enforced() {
 fn create_1_v2_profile_and_led_bits_are_exact() {
     assert_eq!(CREATE_1_OI_PROTOCOL_VERSION, 2);
     assert_eq!(CREATE_OI_BAUD, 57_600);
+    assert_eq!(CREATE_OI_ALTERNATE_BAUD, 19_200);
+    assert!(UartProfile::CREATE_OI.is_create_oi());
+    assert!(UartProfile::CREATE_OI_19200.is_create_oi());
     assert_eq!(CREATE_1_PLAY_LED_MASK, 0x02);
     assert_eq!(CREATE_1_ADVANCE_LED_MASK, 0x08);
     assert_eq!(CREATE_1_LED_MASK, 0x0a);

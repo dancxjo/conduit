@@ -27,6 +27,7 @@ pub const CREATE_1_ADVANCE_LED_MASK: u8 = 1 << 3;
 pub const CREATE_1_LED_MASK: u8 = CREATE_1_PLAY_LED_MASK | CREATE_1_ADVANCE_LED_MASK;
 
 pub const CREATE_OI_BAUD: u32 = 57_600;
+pub const CREATE_OI_ALTERNATE_BAUD: u32 = 19_200;
 pub const CREATE_OI_MAX_PACKET_BYTES: usize = 26;
 pub const CREATE_OI_MAX_FRAME_BYTES: usize = CREATE_OI_MAX_PACKET_BYTES + 4;
 pub const CREATE_OI_MAX_COMMAND_BYTES: usize = 5;
@@ -47,6 +48,20 @@ impl UartProfile {
         stop_bits: 1,
         parity: UartParity::None,
     };
+
+    pub const CREATE_OI_19200: Self = Self {
+        baud: CREATE_OI_ALTERNATE_BAUD,
+        data_bits: 8,
+        stop_bits: 1,
+        parity: UartParity::None,
+    };
+
+    pub const fn is_create_oi(self) -> bool {
+        (self.baud == CREATE_OI_BAUD || self.baud == CREATE_OI_ALTERNATE_BAUD)
+            && self.data_bits == 8
+            && self.stop_bits == 1
+            && matches!(self.parity, UartParity::None)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -240,7 +255,7 @@ pub fn require_provider<P: CreateUartProvider>(provider: &P) -> Result<(), Creat
         return Err(CreateOiFailure::ProviderUnavailable);
     }
     let observed = provider.profile();
-    if observed != UartProfile::CREATE_OI {
+    if !observed.is_create_oi() {
         return Err(CreateOiFailure::WrongUartProfile { observed });
     }
     Ok(())
