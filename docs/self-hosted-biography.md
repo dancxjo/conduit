@@ -1,4 +1,4 @@
-# Self-hosted Body biography
+# Body biography: Crèche to Patchbay
 
 Conduit’s interactive book is not a disposable tour. It is the beginning of a Body’s own biography.
 
@@ -8,11 +8,13 @@ A new Body is created through the book. The first page births the Body, gives it
 
 The temporary environment that performs this guided birth is the **Crèche**. The Crèche helps create, provision, explain, and observe a new Body, but it is not part of the Body's identity and is never authoritative lifecycle state.
 
-The book therefore has three phases that share one implementation:
+The Crèche is temporary by design. Its normal successor is **Patchbay**.
 
-1. **Guided birth** — early pages in the Crèche explain each action while the Body acquires its first Hosts, capabilities, Plans, and Plays.
-2. **Independence** — once the Body can continue without the Crèche, the reader chooses whether the Body adopts the biography surface or leaves the Crèche behind.
-3. **Ongoing history** — whenever the biography is opened later, it renders a readable history of meaningful lifecycle events from durable Body evidence rather than depending on the original birth session.
+The product journey therefore has three phases:
+
+1. **Guided birth in the Crèche** — early pages explain each action while the Body acquires its first Hosts, capabilities, Plans, and Plays.
+2. **Graduation to Patchbay** — once the Body is independently viable, the Crèche offers to place Patchbay on the Body or finish without keeping a hosted management surface.
+3. **Ongoing biography** — Patchbay, or another compatible reader later, projects readable Body history from durable evidence. The original Crèche session is no longer required.
 
 ## Narrative rule
 
@@ -56,35 +58,40 @@ Examples of meaningful biographical events include:
 - addition of a first physical Host;
 - migration of work from one Host to another;
 - program/version changes;
-- adoption or release of the Crèche.
+- graduation from the Crèche;
+- Patchbay placement, movement, or removal.
 
-## The Crèche and independence
+## Graduation from the Crèche
 
 The Crèche is a bootstrap environment, not a permanent organ. Its job is to get the Body born, intelligible, and independently viable.
 
-The decisive transition in the early biography is therefore **independence**, not mandatory self-hosting. Once the Body has durable identity, durable evidence, and enough admitted capability to continue its intended work without the bootstrap environment, offer two explicit choices:
+The decisive transition in the early biography is **graduation**. Once the Body has durable identity, durable evidence, and enough admitted capability to continue its intended work without the bootstrap environment, the Crèche offers two explicit endings.
 
-### Adopt the Crèche
+### Host Patchbay on this Body
 
-The Body keeps the biography/management surface as one of its own services. From then on, the readable biography may be served by the Body whose life it describes.
+Place the ordinary Patchbay application using the Body's normal planning and hosting machinery. Patchbay becomes the enduring management and explanatory surface, including the Body's biography/history projection.
 
-This is useful for Bodies with enough capacity, for long-running systems, and when an always-available management surface is desirable.
+Patchbay is not a privileged control plane and does not become authoritative lifecycle state. It remains what its application contract already says it is: a projection over authoritative Form, Plan, Play, Body, Host, Boot, Sign, and Observatory truth.
 
-### Leave the Crèche
+The Crèche can then be deleted.
 
-Finalize durable Body state and tear the bootstrap environment down. The Crèche may be deleted completely without deleting the Body, changing its identity, or losing authoritative history.
+### Finish without hosted Patchbay
 
-This is useful for small or purpose-built Bodies where permanently hosting a documentation/management surface would waste resources or distort their intended shape.
+Finalize durable Body state and tear the Crèche down without placing Patchbay on the Body.
 
-Leaving the Crèche does **not** mean losing the biography. A later compatible Host or Conduit tool can reopen the Body and project its biography again from durable evidence. That later reader is a view onto the same Body, not a continuation of the original birth shell and not a new Body.
+This is useful for small or purpose-built Bodies where permanently hosting a management application would waste resources or distort their intended shape.
 
-The choice to adopt or leave the Crèche is itself a meaningful biographical event.
+The Crèche can be deleted completely without deleting the Body, changing its identity, or losing authoritative history. A later external Patchbay or another compatible Conduit tool can attach to the same Body and project its biography from durable evidence.
+
+In both cases, **the Crèche ends**. The choice is whether Patchbay remains available from within the Body, not whether the birth shell is preserved.
+
+Graduation and the Patchbay placement choice are themselves meaningful biographical events.
 
 ## Authority rule
 
-Neither the Crèche nor a self-hosted biography is authoritative state. The Body remains authoritative. The book is its readable projection.
+Neither the Crèche nor Patchbay is authoritative lifecycle state. The Body remains authoritative. The biography is a readable projection.
 
-Destroying a current biography renderer must therefore be semantically closer to closing a window than destroying the computer it described.
+Destroying the Crèche, closing Patchbay, or moving the Host currently realizing Patchbay must not destroy the Body or rewrite its history.
 
 ## UX direction
 
@@ -92,11 +99,11 @@ The book should gradually change voice:
 
 - early: **“Next, give your Body somewhere to run.”**
 - middle: **“The Pico joined and offered a physical indicator.”**
-- independence: **“Your Body can now continue without the Crèche. Keep this surface with the Body, or let it go.”**
-- later: **“On August 29, this Body replanned after the browser Host departed.”**
+- graduation: **“Your Body can now continue without the Crèche. Would you like it to host Patchbay?”**
+- later in Patchbay: **“On August 29, this Body replanned after the browser Host departed.”**
 
-There is no hard boundary between tutorial and history. The instructional voice simply recedes as the Body becomes established.
+There is no hard boundary between tutorial and history. The instructional voice recedes as the Body becomes established, and Patchbay inherits the continuing biography projection after graduation.
 
 ## Migration principle
 
-Do not preserve `tour` as the conceptual owner and merely rename headings. Move ownership toward a Body-scoped biography surface. Existing executable-book machinery can be reused, but its state model and routing should assume one durable Body whose biography can be rendered independently of the temporary Crèche that birthed it.
+Do not preserve `tour` as the conceptual owner and merely rename headings. Move ownership toward a Body-scoped biography projection. Existing executable-book machinery can be reused inside the temporary Crèche, but durable management belongs in Patchbay and durable lifecycle truth belongs to the Body.
