@@ -1,4 +1,4 @@
-use super::session;
+use super::{session, spore};
 use crate::book_runner::interaction::SourceInteractionEvidence;
 use std::cell::RefCell;
 
@@ -10,6 +10,8 @@ const ERROR_BIRTH: i32 = -452;
 const ERROR_OUTPUT: i32 = -453;
 const ERROR_INTERACTION: i32 = -454;
 const STATUS_ABSENT: i32 = 1;
+const ERROR_SPORE: i32 = -455;
+const ERROR_ADMISSION: i32 = -456;
 
 thread_local! {
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
@@ -120,6 +122,49 @@ pub extern "C" fn conduit_book_body_current() -> i32 {
             .unwrap_or(ERROR_OUTPUT),
         None => STATUS_ABSENT,
     }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_book_body_prepare_physical_spore(now_millis: u64) -> i32 {
+    clear_output();
+    let entropy = INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let mut entropy = [0u8; 32];
+        entropy.copy_from_slice(&input[..32]);
+        input[..32].fill(0);
+        entropy
+    });
+    match spore::prepare(entropy, now_millis) {
+        Ok(receipt) => write_output(&receipt)
+            .map(|()| STATUS_READY)
+            .unwrap_or(ERROR_OUTPUT),
+        Err(message) => refuse(message, ERROR_SPORE),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_book_body_admit_physical_spore(length: usize) -> i32 {
+    clear_output();
+    if length == 0 || length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let observation = serde_json::from_slice::<spore::JoinObservation>(&input[..length]);
+        input[..length].fill(0);
+        match observation {
+            Ok(observation) => match spore::admit(observation) {
+                Ok(receipt) => write_output(&receipt)
+                    .map(|()| STATUS_READY)
+                    .unwrap_or(ERROR_OUTPUT),
+                Err(message) => refuse(message, ERROR_ADMISSION),
+            },
+            Err(error) => refuse(
+                format!("decode physical join request: {error}"),
+                ERROR_INPUT,
+            ),
+        }
+    })
 }
 
 fn refuse(message: String, code: i32) -> i32 {

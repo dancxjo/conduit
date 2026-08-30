@@ -114,6 +114,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     deployment_plan_id: null,
     deployment_operation_id: null,
     target_id: null,
+    spore_id: null,
     image_id: null,
     image_content_id: null,
     host_id: null,
@@ -138,6 +139,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     deploymentPlanId,
     deploymentOperationId,
     targetId,
+    sporeId,
     imageId,
     imageContentId,
     imageBytes,
@@ -147,6 +149,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     if (explicitAction !== true) refuse("ExplicitAction", "deployment requires an explicit operator action");
     requireIdentity(deploymentPlanId, "deployment Plan identity");
     requireIdentity(deploymentOperationId, "deployment operation identity");
+    requireIdentity(sporeId, "spore identity");
     requireIdentity(imageId, "IMAGE identity");
     requireIdentity(imageContentId, "IMAGE content identity");
     if (targetId !== TARGET_ID) refuse("WrongTarget", "IMAGE target is not the selected Pico W target");
@@ -173,6 +176,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
       deploymentPlanId,
       deploymentOperationId,
       targetId,
+      sporeId,
       imageId,
       imageContentId,
       hostId: identity.hostId,
@@ -190,6 +194,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
       deployment_plan_id: deploymentPlanId,
       deployment_operation_id: deploymentOperationId,
       target_id: targetId,
+      spore_id: sporeId,
       image_id: imageId,
       image_content_id: imageContentId,
       host_id: identity.hostId,

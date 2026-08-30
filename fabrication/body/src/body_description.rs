@@ -158,7 +158,7 @@ pub fn check_body_description(
     }
     if description.body.id.trim().is_empty() {
         diagnostics.push(BodyDescriptionDiagnostic::MissingBody);
-    } else if !description.body.id.starts_with("body:") {
+    } else if !valid_body_binding_id(&description.body.id) {
         diagnostics.push(BodyDescriptionDiagnostic::InvalidBodyId);
     }
     if description.hosts.is_empty() {
@@ -276,4 +276,9 @@ pub fn check_body_description(
         description_id,
         hosts: checked_hosts,
     })
+}
+
+fn valid_body_binding_id(value: &str) -> bool {
+    value.starts_with("body:")
+        || (value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()))
 }

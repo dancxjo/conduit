@@ -73,7 +73,8 @@ impl PicoSpawnSocket {
             expires_at_millis: invitation.expires_at_millis,
             secret: &secret,
         };
-        let encoded = serde_json::to_vec(&provision).map_err(|_| PicoSpawnTransportError::Malformed)?;
+        let encoded =
+            serde_json::to_vec(&provision).map_err(|_| PicoSpawnTransportError::Malformed)?;
         if encoded.len() > MAX_PICO_ADMISSION_FRAME_BYTES {
             secret.fill(0);
             return Err(PicoSpawnTransportError::Oversized);
@@ -83,13 +84,10 @@ impl PicoSpawnSocket {
         sent?;
 
         let mut bytes = [0u8; MAX_PICO_ADMISSION_FRAME_BYTES];
-        let advertisement = decode_advertisement(
-            self.line.receive_raw_stream_frame(&mut bytes, timeout)?,
-        )?
-        .advertisement;
-        let join = decode_join_request(
-            self.line.receive_raw_stream_frame(&mut bytes, timeout)?,
-        )?;
+        let advertisement =
+            decode_advertisement(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)?
+                .advertisement;
+        let join = decode_join_request(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)?;
         if join.spore_id != spore_id {
             return Err(PicoSpawnTransportError::WrongSpore);
         }
