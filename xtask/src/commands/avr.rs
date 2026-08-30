@@ -108,6 +108,7 @@ struct FlashReceipt {
     source_sha: String,
     target: &'static str,
     port: String,
+    upload_port: String,
     usb_vid: &'static str,
     usb_pid: &'static str,
     artifact_sha256: String,
@@ -349,11 +350,12 @@ fn run_flash(
         None
     };
     verify_device(port)?;
+    let upload_port = resolve_upload_port(port)?;
     let root = workspace_root()?;
     let cli = provision(&root)?;
     let output = Command::new(cli)
         .args(["upload", "--fqbn", FQBN, "--port"])
-        .arg(port)
+        .arg(&upload_port)
         .args(["--input-dir"])
         .arg(built.path.parent().ok_or("AVR artifact has no parent")?)
         .args(["--config-file"])
@@ -369,6 +371,7 @@ fn run_flash(
         source_sha: git_head(&root)?,
         target: FQBN,
         port: port.display().to_string(),
+        upload_port: upload_port.display().to_string(),
         usb_vid: EXPECTED_VID,
         usb_pid: EXPECTED_PID,
         artifact_sha256: built.artifact_sha256,
@@ -391,6 +394,29 @@ fn validate_attachment_requirement(
 ) -> Result<(), Box<dyn std::error::Error>> {
     if create_hil && qualification.is_none() {
         return Err("AVR Create HIL flash requires --attachment-qualification".into());
+    }
+    Ok(())
+}
+
+fn resolve_upload_port(port: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let resolved = fs::canonicalize(port)
+        .map_err(|error| format!("AVR upload port resolution failed: {error}"))?;
+    validate_upload_port(&resolved)?;
+    Ok(resolved)
+}
+
+fn validate_upload_port(port: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let Some(name) = port.file_name().and_then(|name| name.to_str()) else {
+        return Err("AVR upload port has no exact device name".into());
+    };
+    let Some(index) = name.strip_prefix("ttyACM") else {
+        return Err("AVR upload port must resolve to /dev/ttyACM<index>".into());
+    };
+    if port.parent() != Some(Path::new("/dev"))
+        || index.is_empty()
+        || !index.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err("AVR upload port must resolve to /dev/ttyACM<index>".into());
     }
     Ok(())
 }

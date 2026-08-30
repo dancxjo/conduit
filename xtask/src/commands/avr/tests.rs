@@ -46,6 +46,21 @@ fn transmitter_bearing_flash_requires_attachment_qualification() {
 }
 
 #[test]
+fn upload_port_is_one_exact_kernel_acm_endpoint() {
+    validate_upload_port(Path::new("/dev/ttyACM0")).unwrap();
+    validate_upload_port(Path::new("/dev/ttyACM17")).unwrap();
+    for refused in [
+        "/dev/serial/by-id/device",
+        "/dev/ttyUSB0",
+        "/dev/ttyACM",
+        "/tmp/ttyACM0",
+        "/dev/ttyACMzero",
+    ] {
+        assert!(validate_upload_port(Path::new(refused)).is_err());
+    }
+}
+
+#[test]
 fn parses_exact_build_metrics_and_enforces_both_capacities() {
     let report = "Sketch uses 4,508 bytes (15%).\nGlobal variables use 376 bytes (14%).";
     assert_eq!(metric(report, "Sketch uses ", " bytes").unwrap(), 4508);
