@@ -10,11 +10,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
-mod attachment;
 mod avr_toolchain;
 mod build_identity;
-mod cdc_verify;
-mod hil_observe;
 
 use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
@@ -40,9 +37,6 @@ enum AvrCommand {
     Check,
     /// Build the exact fail-closed Pro Micro image and write a receipt.
     Build {
-        /// Compile the guarded Create HIL executor; it still boots isolated.
-        #[arg(long)]
-        create_hil: bool,
         #[arg(long, default_value = "target/avr-promicro/build-receipt.json")]
         receipt: PathBuf,
     },
@@ -58,19 +52,9 @@ enum AvrCommand {
         attended: bool,
         #[arg(long)]
         wheels_clear: bool,
-        /// Flash the guarded HIL artifact rather than the transmitter-free image.
-        #[arg(long)]
-        create_hil: bool,
-        /// Exact electrical qualification required for a transmitter-bearing image.
-        #[arg(long, requires = "create_hil")]
-        attachment_qualification: Option<PathBuf>,
         #[arg(long, default_value = "target/avr-promicro/flash-receipt.json")]
         receipt: PathBuf,
     },
-    /// Bind and verify one exact fail-closed Boot over guarded USB CDC.
-    Verify(cdc_verify::VerifyArgs),
-    /// Execute and verify one exact attended Create group-zero observation.
-    Observe(hil_observe::ObserveArgs),
 }
 
 #[derive(Debug, Serialize)]
@@ -83,7 +67,6 @@ struct BuildReceipt {
     build_id: String,
     source_sha: String,
     source_digest_sha256: String,
-    attachment_contract: &'static str,
     target: &'static str,
     board_variant: &'static str,
     arduino_cli: &'static str,
@@ -112,7 +95,6 @@ struct FlashReceipt {
     usb_vid: &'static str,
     usb_pid: &'static str,
     artifact_sha256: String,
-    attachment_qualification: Option<attachment::AttachmentQualification>,
     create_stopped: bool,
     attended: bool,
     wheels_clear: bool,
@@ -128,18 +110,13 @@ struct BuiltArtifact {
 pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         AvrCommand::Check => run_check(opts),
-        AvrCommand::Build {
-            create_hil,
-            receipt,
-        } => run_build(&receipt, create_hil, opts).map(|_| ()),
+        AvrCommand::Build { receipt } => run_build(&receipt, opts).map(|_| ()),
         AvrCommand::Flash {
             port,
             artifact_sha256,
             create_stopped,
             attended,
             wheels_clear,
-            create_hil,
-            attachment_qualification,
             receipt,
         } => run_flash(
             &port,
@@ -149,13 +126,9 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
                 attended,
                 wheels_clear,
             },
-            create_hil,
-            attachment_qualification.as_deref(),
             &receipt,
             opts,
         ),
-        AvrCommand::Verify(args) => cdc_verify::run(args, opts),
-        AvrCommand::Observe(args) => hil_observe::run(args, opts),
     }
 }
 
@@ -177,26 +150,20 @@ fn run_check(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_build(
     receipt: &Path,
-    create_hil: bool,
     opts: &GlobalOpts,
 ) -> Result<BuiltArtifact, Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let output_dir = root.join(if create_hil {
-        "target/avr-promicro/build-hil"
-    } else {
-        "target/avr-promicro/build"
-    });
+    let output_dir = root.join("target/avr-promicro/build");
     let artifact = output_dir.join("promicro_brainstem.ino.hex");
     let identity = EmbeddedBuildIdentity::new(
         git_head(&root)?,
         digest_compiled_sources(&root.join(SKETCH))?,
-        create_hil,
+        false,
     );
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would build {FQBN} profile={} from {}",
-                if create_hil { "create-hil" } else { "isolated" },
+                "would build {FQBN} profile=isolated from {}",
                 root.join(SKETCH).display()
             );
         }
@@ -230,7 +197,7 @@ fn run_build(
         .arg(root.join(SKETCH));
     command.arg("--build-property").arg(format!(
         "compiler.cpp.extra_flags={}",
-        identity.compiler_flags(&identity_header, create_hil)
+        identity.compiler_flags(&identity_header, false)
     ));
     let output = command
         .args(["--config-file"])
@@ -253,12 +220,11 @@ fn run_build(
         schema: "conduit.avr-promicro/build@2",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
-        profile: if create_hil { "create-hil" } else { "isolated" },
+        profile: "isolated",
         build_id_schema: BUILD_ID_SCHEMA,
         build_id: identity.build_id.clone(),
         source_sha: identity.source_sha.clone(),
         source_digest_sha256: identity.source_digest_sha256.clone(),
-        attachment_contract: attachment::CONTRACT_ID,
         target: FQBN,
         board_variant: "atmega32u4-5v-16mhz-usb-pid-9206",
         arduino_cli: CLI_VERSION,
@@ -270,11 +236,7 @@ fn run_build(
         flash_limit: MAX_FLASH_BYTES,
         sram_bytes,
         sram_limit: MAX_SRAM_BYTES,
-        create_uart: if create_hil {
-            "isolated-until-exact-execution"
-        } else {
-            "isolated-no-transmitter"
-        },
+        create_uart: "isolated-no-transmitter",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
     Ok(BuiltArtifact {
@@ -307,31 +269,19 @@ fn run_flash(
     port: &Path,
     expected_digest: &str,
     gate: PhysicalGate,
-    create_hil: bool,
-    attachment_qualification: Option<&Path>,
     receipt: &Path,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     validate_flash_request(port, expected_digest, gate)?;
-    validate_attachment_requirement(create_hil, attachment_qualification)?;
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would verify {EXPECTED_BY_ID}, rebuild profile={}, verify its digest, and flash the boot-isolated image",
-                if create_hil { "create-hil" } else { "isolated" }
+                "would verify {EXPECTED_BY_ID}, rebuild the isolated profile, verify its digest, and flash the transmitter-disabled image"
             );
         }
         return Ok(());
     }
-    let built = run_build(
-        Path::new(if create_hil {
-            "target/avr-promicro/build-hil-receipt.json"
-        } else {
-            "target/avr-promicro/build-receipt.json"
-        }),
-        create_hil,
-        opts,
-    )?;
+    let built = run_build(Path::new("target/avr-promicro/build-receipt.json"), opts)?;
     if built.artifact_sha256 != expected_digest {
         return Err(format!(
             "AVR artifact digest mismatch: expected {expected_digest}, built {}",
@@ -339,16 +289,6 @@ fn run_flash(
         )
         .into());
     }
-    let attachment_qualification = if create_hil {
-        let qualification = attachment_qualification
-            .ok_or("AVR Create HIL flash requires --attachment-qualification")?;
-        Some(attachment::load_and_validate(
-            qualification,
-            &built.identity.source_sha,
-        )?)
-    } else {
-        None
-    };
     verify_device(port)?;
     let upload_port = resolve_upload_port(port)?;
     let root = workspace_root()?;
@@ -366,7 +306,7 @@ fn run_flash(
         schema: "conduit.avr-promicro/flash@2",
         outcome: "flashed",
         proof_class: "physical-flash-no-cdc-open",
-        profile: if create_hil { "create-hil" } else { "isolated" },
+        profile: "isolated",
         build_id: built.identity.build_id,
         source_sha: git_head(&root)?,
         target: FQBN,
@@ -375,27 +315,12 @@ fn run_flash(
         usb_vid: EXPECTED_VID,
         usb_pid: EXPECTED_PID,
         artifact_sha256: built.artifact_sha256,
-        attachment_qualification,
         create_stopped: gate.create_stopped,
         attended: gate.attended,
         wheels_clear: gate.wheels_clear,
-        create_uart: if create_hil {
-            "isolated-until-exact-execution"
-        } else {
-            "isolated-no-transmitter"
-        },
+        create_uart: "isolated-no-transmitter",
     };
     write_receipt(&root.join(receipt), &record, opts)
-}
-
-fn validate_attachment_requirement(
-    create_hil: bool,
-    qualification: Option<&Path>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if create_hil && qualification.is_none() {
-        return Err("AVR Create HIL flash requires --attachment-qualification".into());
-    }
-    Ok(())
 }
 
 fn resolve_upload_port(port: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {
