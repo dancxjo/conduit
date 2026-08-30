@@ -21,7 +21,7 @@ const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-7.md", "chapter-8.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-8.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -67,11 +67,11 @@ function parseCrechePages(chapters) {
   const parsed = [];
   let current = [];
   for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
-    if (line.startsWith("# Step ") && current.length > 0) {
+    if (line.startsWith("# ") && current.length > 0) {
       parsed.push(current.join("\n"));
       current = [];
     }
-    if (line.startsWith("# Step ") || current.length > 0) current.push(line);
+    if (line.startsWith("# ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
   if (parsed.length === 0) throw new Error("the Crèche has no guided pages");

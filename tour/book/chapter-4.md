@@ -1,4 +1,4 @@
-# Step 7 — State over time
+# State over time
 
 Real programs remember things and react over time. If state and timers become special escape hatches, the program stops being bounded and portable precisely when it becomes useful.
 
@@ -25,7 +25,7 @@ The browser first presents the startup count, then four planned ticks advance th
 
 Stateful, time-aware behavior can participate in the same finite portable model as the earlier stateless examples. Moving that behavior to different suitable machinery does not require inventing a second runtime law.
 
-# Step 8 — Meet the Host
+# Meet the Host
 
 The Form cannot survive different machines if it has to guess what each machine can do. A browser, laptop, ConduitOS system, and microcontroller may offer very different capabilities and have different resources available now.
 

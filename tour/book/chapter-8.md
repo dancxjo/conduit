@@ -1,4 +1,4 @@
-# Step 13 — Graduate from the Crèche
+# Graduate from the Crèche
 
 You have described enduring meaning, admitted truthful machinery, and seen one Body extend across unlike Hosts. The guided Crèche should not become a permanent server or a hidden control plane merely because it helped this Body begin.
 

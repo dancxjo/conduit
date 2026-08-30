@@ -1,4 +1,4 @@
-# Step 9 — Two browser Hosts
+# Two browser Hosts
 
 Suppose one small computation wants to use two machines: one has the source and another can present the result. The usual response is to split the idea into a client program, a server program, and networking knowledge that both sides must carry.
 
@@ -24,7 +24,7 @@ Look what just happened. The Form did not become a client program and a server p
 
 This is the central Conduit proposition in miniature: one computer can be assembled from multiple computers without rewriting the program as separate platform-specific applications. This demonstration proves two browser Hosts and a browser-memory Line; it does not claim an external network or physical machine that was not observed.
 
-# Step 10 — Plans and Plays
+# Plans and Plays
 
 Even when meaning remains stable, today's answer may not. A Host can be busy, a Line can disappear, or a different collection of machinery can become available. Baking today's placement into the program makes every such change a rewrite.
 
