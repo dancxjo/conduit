@@ -276,19 +276,17 @@ fn write_chunks(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let deadline = Instant::now() + timeout;
     let mut offset = 0;
-    while offset < bytes.len() && Instant::now() < deadline {
+    while offset < bytes.len() {
+        if !super::rx_check::wait_ready(device, libc::POLLOUT, deadline)? {
+            return Err("timed out writing assigned AVR Host frame".into());
+        }
         let end = (offset + 32).min(bytes.len());
         match device.write(&bytes[offset..end]) {
-            Ok(0) => thread::sleep(Duration::from_millis(5)),
+            Ok(0) => {}
             Ok(written) => offset += written,
-            Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
-            }
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
             Err(error) => return Err(error.into()),
         }
-    }
-    if offset != bytes.len() {
-        return Err("timed out writing assigned AVR Host frame".into());
     }
     Ok(())
 }
@@ -301,10 +299,13 @@ fn read_receipt(
     let mut bytes = vec![0_u8; MAX_RECEIPT_BYTES];
     let mut offset = 0;
     let mut expected = None;
-    while Instant::now() < deadline {
+    loop {
+        if !super::rx_check::wait_ready(device, libc::POLLIN, deadline)? {
+            return Err("timed out reading AVR Host terminal receipt".into());
+        }
         let end = expected.unwrap_or(bytes.len());
         match device.read(&mut bytes[offset..end]) {
-            Ok(0) => thread::sleep(Duration::from_millis(5)),
+            Ok(0) => {}
             Ok(read) => {
                 offset += read;
                 if expected.is_none() && offset >= 12 {
@@ -321,13 +322,10 @@ fn read_receipt(
                     return Ok(bytes);
                 }
             }
-            Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
-            }
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
             Err(error) => return Err(error.into()),
         }
     }
-    Err("timed out reading AVR Host terminal receipt".into())
 }
 
 fn identity_hex(identity: AssignedIdentity) -> String {
