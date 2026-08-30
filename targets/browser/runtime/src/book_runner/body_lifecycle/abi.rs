@@ -186,6 +186,17 @@ pub extern "C" fn conduit_book_body_current() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_book_body_biography() -> i32 {
+    clear_output();
+    match session::biography() {
+        Some(evidence) => write_output(&evidence)
+            .map(|()| STATUS_READY)
+            .unwrap_or(ERROR_OUTPUT),
+        None => STATUS_ABSENT,
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_book_body_graduation_readiness() -> i32 {
     clear_output();
     match super::graduation::readiness() {

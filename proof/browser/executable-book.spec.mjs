@@ -510,9 +510,15 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
   await expect(runner.locator(".graduation-evidence")).toContainText("browser/patchbay-surface@1");
   await expect(runner.locator(".graduation-evidence")).toContainText("Crèche requiredfalse");
+  const biography = runner.locator(".body-biography");
+  await expect(biography).toHaveAttribute("data-body-id", bodyId);
+  await expect(biography.locator("li")).toHaveCount(4);
+  await expect(biography.locator("strong")).toHaveText(["Born", "Part admitted", "Host joined", "Graduated from the Crèche"]);
+  await expect(biography).toContainText("browser/patchbay-surface@1");
   await runner.getByRole("button", { name: "End the Crèche" }).click();
   await expect(page.locator(".creche-complete")).toContainText(bodyId);
   await expect(page.locator(".creche-navigation")).toHaveCount(0);
+  await expect(page.locator(".compatible-reader li")).toHaveCount(4);
   const retained = await page.evaluate(() => {
     const api = globalThis.__conduitBookHost.runtime;
     api.conduit_book_body_current();
@@ -522,6 +528,14 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   expect(retained.body_id).toBe(bodyId);
   expect(retained.graduation.choice).toBe("host-patchbay");
   expect(retained.graduation.patchbay_plan_id).toMatch(/^[0-9a-f]{64}$/);
+  const durable = await page.evaluate(() => {
+    const api = globalThis.__conduitBookHost.runtime;
+    api.conduit_book_body_biography();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+    return JSON.parse(new TextDecoder().decode(bytes));
+  });
+  expect(durable.body_id).toBe(bodyId);
+  expect(durable.records).toHaveLength(4);
 });
 
 test("graduation can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {
@@ -541,6 +555,8 @@ test("graduation can finish without hosting Patchbay and still retain the same B
   expect(evidence.choice).toBe("external-reader");
   expect(evidence.patchbay_plan_id).toBeNull();
   expect(evidence.creche_required).toBe(false);
+  await expect(runner.locator(".body-biography li")).toHaveCount(4);
+  await expect(runner.locator(".body-biography")).toContainText("compatible reader can project this same evidence later");
 });
 
 test("stopping the two-Host lesson cancels without a late manifestation", async ({ page }) => {

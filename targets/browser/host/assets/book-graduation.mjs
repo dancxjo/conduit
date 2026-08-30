@@ -16,6 +16,10 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
       <button type="button" class="end-creche" hidden>End the Crèche</button>
     </div>
     <dl class="graduation-evidence"></dl>
+    <section class="body-biography" aria-label="Body biography" hidden>
+      <h3>Body biography · durable evidence</h3>
+      <ol></ol>
+    </section>
     <details><summary>Raw graduation evidence</summary><pre><code></code></pre></details>`;
   let readiness;
   try {
@@ -33,17 +37,20 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
     button.disabled = !readiness?.ready;
     button.addEventListener("click", () => {
       const receipt = call(host.runtime, "conduit_book_body_graduate", Number(button.dataset.choice), BigInt(nextSequence()));
-      renderGraduation(runner, receipt);
+      renderGraduation(runner, receipt, host.runtime);
       onBodyChanged?.();
     });
   }
-  runner.querySelector(".end-creche").addEventListener("click", () => onEnd(call(host.runtime, "conduit_book_body_current")));
+  runner.querySelector(".end-creche").addEventListener("click", () => onEnd(
+    call(host.runtime, "conduit_book_body_current"),
+    call(host.runtime, "conduit_book_body_biography"),
+  ));
   const current = currentBody(host.runtime);
-  if (current?.graduation) renderGraduation(runner, current);
+  if (current?.graduation) renderGraduation(runner, current, host.runtime);
   return runner;
 }
 
-function renderGraduation(runner, receipt) {
+function renderGraduation(runner, receipt, api) {
   for (const button of runner.querySelectorAll("[data-choice]")) button.disabled = true;
   const evidence = receipt.graduation;
   runner.dataset.bodyId = receipt.body_id;
@@ -64,7 +71,40 @@ function renderGraduation(runner, receipt) {
     list.append(dt, dd);
   }
   runner.querySelector("details code").textContent = JSON.stringify(evidence, null, 2);
+  renderBiography(runner.querySelector(".body-biography"), call(api, "conduit_book_body_biography"));
   runner.querySelector(".end-creche").hidden = false;
+}
+
+export function renderBiography(container, biography) {
+  if (!biography) return;
+  const list = container.querySelector("ol");
+  list.replaceChildren();
+  for (const record of biography.records) {
+    const [kind, facts] = Object.entries(record.kind)[0];
+    const item = document.createElement("li");
+    const heading = document.createElement("strong");
+    heading.textContent = biographyHeading(kind);
+    const explanation = document.createElement("p");
+    explanation.textContent = biographyExplanation(kind, facts, biography);
+    const proof = document.createElement("code");
+    proof.textContent = `sequence ${record.sequence} · Sign ${record.sign_id}`;
+    item.append(heading, explanation, proof);
+    list.append(item);
+  }
+  container.dataset.bodyId = biography.body_id;
+  container.hidden = false;
+}
+
+function biographyHeading(kind) {
+  return ({ Born: "Born", PartAdmitted: "Part admitted", HostJoined: "Host joined", Graduated: "Graduated from the Crèche" })[kind] ?? kind;
+}
+
+function biographyExplanation(kind, facts, biography) {
+  if (kind === "Born") return `${biography.friendly_name} began as Body ${biography.body_id} with ${biography.initial_program}.`;
+  if (kind === "PartAdmitted") return `Part ${facts.part_id} entered this Body's admitted membership.`;
+  if (kind === "HostJoined") return `Part ${facts.part_id} was observed on Host ${facts.host_id}, Boot ${facts.boot_id}.`;
+  if (facts.choice === "HostedPatchbay") return `Patchbay was placed by Plan ${facts.patchbay_plan_id} using ${facts.patchbay_implementation_id}.`;
+  return "No Patchbay was hosted. A compatible reader can project this same evidence later.";
 }
 
 function currentBody(api) {

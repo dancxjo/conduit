@@ -10,6 +10,7 @@ extern crate alloc;
 
 #[cfg(feature = "authenticated-admission")]
 mod admission;
+mod biography;
 mod candidate;
 mod events;
 mod hold;
@@ -27,6 +28,7 @@ mod validation;
 
 #[cfg(feature = "authenticated-admission")]
 pub use admission::*;
+pub use biography::*;
 pub use candidate::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 pub use hold::*;

@@ -128,6 +128,12 @@ details dt { color: var(--ink); font-weight: 700; }
 .graduation-actions button { border: 1px solid var(--green); background: white; color: var(--green-dark); }
 .graduation-evidence { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .35rem .8rem; }
 .graduation-evidence dd { margin: 0; overflow-wrap: anywhere; }
+.body-biography { margin-top: 1.25rem; }
+.body-biography ol { display: grid; gap: .7rem; margin: 0; padding-left: 1.5rem; }
+.body-biography li { padding: .7rem .85rem; border-left: 3px solid #68ae8d; background: var(--paper); }
+.body-biography strong, .body-biography p, .body-biography code { display: block; }
+.body-biography p { margin: .25rem 0; }
+.body-biography code { overflow-wrap: anywhere; color: var(--muted); font-size: .68rem; }
 .creche-complete { max-width: 46rem; margin: 4rem auto; padding: 2rem; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 
 .body-chain { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .8rem; align-items: center; }

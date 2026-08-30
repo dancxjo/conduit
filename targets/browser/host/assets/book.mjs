@@ -1,7 +1,7 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./book-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./book-physical.mjs";
-import { createGraduationRunner } from "./book-graduation.mjs";
+import { createGraduationRunner, renderBiography } from "./book-graduation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -55,7 +55,7 @@ function requireBookAbi(api) {
     "conduit_book_body_input_ptr", "conduit_book_body_input_capacity",
     "conduit_book_body_output_ptr", "conduit_book_body_output_len",
     "conduit_book_body_admit_source_interaction", "conduit_book_body_birth",
-    "conduit_book_body_current", "conduit_book_body_attach_here",
+    "conduit_book_body_current", "conduit_book_body_biography", "conduit_book_body_attach_here",
     "conduit_book_body_graduation_readiness", "conduit_book_body_graduate",
     "conduit_book_body_prepare_selected_physical_spore",
     "conduit_book_body_admit_physical_spore",
@@ -223,7 +223,11 @@ function renderMarkdown(markdown) {
       flush();
       chapter.append(createFirstHostRunner({
         host,
-        nextSequence: () => ++generation,
+        nextSequence: () => {
+          const admissionSequence = ++generation;
+          generation += 1;
+          return admissionSequence;
+        },
         onBodyChanged: refreshCrecheBodyContext,
       }));
       copy = appendCopy();
@@ -266,7 +270,7 @@ function refreshCrecheBodyContext() {
   chapter.querySelector(".creche-body-context")?.replaceWith(createCrecheBodyContext());
 }
 
-function renderCrecheComplete(receipt) {
+function renderCrecheComplete(receipt, biography) {
   chapter.replaceChildren();
   const complete = document.createElement("section");
   complete.className = "creche-complete";
@@ -276,7 +280,12 @@ function renderCrecheComplete(receipt) {
   copy.textContent = "The Crèche has ended. Its presentation is gone; the same Body and its graduation evidence remain in the runtime.";
   const identity = document.createElement("code");
   identity.textContent = receipt.body_id;
-  complete.append(heading, copy, identity);
+  const durable = document.createElement("section");
+  durable.className = "body-biography compatible-reader";
+  durable.setAttribute("aria-label", "Body biography");
+  durable.innerHTML = "<h2>Body biography · compatible reader</h2><ol></ol>";
+  renderBiography(durable, biography);
+  complete.append(heading, copy, identity, durable);
   chapter.append(complete);
 }
 
