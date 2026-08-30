@@ -33,6 +33,26 @@ async function startBook() {
   return { child, url };
 }
 
+async function startCreche() {
+  const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const url = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
+      if (match) { clearTimeout(timeout); resolve(match[1]); }
+    };
+    child.stdout.on("data", inspect);
+    child.stderr.on("data", inspect);
+    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
+  });
+  return { child, url };
+}
+
 async function openStep(page, index) {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
@@ -66,6 +86,36 @@ test("the first page births one named Morse Network Body before introducing mach
   const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
   expect(raw.membership.parts).toHaveLength(0);
   expect(raw.body.events).toHaveLength(1);
+});
+
+test("the standalone Crèche runs the same durable birth and graduation path without Book assets", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startCreche();
+  const responses = [];
+  page.on("response", (response) => responses.push(new URL(response.url()).pathname));
+  await page.goto(entrance.url);
+  await expect(page).toHaveTitle("Conduit Crèche");
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByLabel("Friendly Body name").fill("standalone firefly");
+  await birth.getByRole("button", { name: "Birth Body" }).click();
+  const bodyId = await birth.getAttribute("data-body-id");
+  expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
+  await page.getByRole("button", { name: "2. First Host" }).click();
+  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  await page.getByRole("button", { name: "4. Graduate" }).click();
+  await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
+  await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
+  await expect(page.locator(".body-biography li")).toHaveCount(4);
+  const durable = await page.evaluate(() => {
+    const api = globalThis.__conduitCrecheHost.runtime;
+    api.conduit_book_body_biography();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+    return JSON.parse(new TextDecoder().decode(bytes));
+  });
+  expect(durable.body_id).toBe(bodyId);
+  expect(durable.schema).toBe("conduit.body/biography-evidence@1");
+  expect(responses.some((path) => path.startsWith("/book/") || path.includes("chapter-"))).toBe(false);
 });
 
 test("birth keeps its controls and source disclosure in one contained column", async ({ page }) => {

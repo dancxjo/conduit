@@ -27,9 +27,12 @@ const ESP32_ROM_LOADER: &[u8] = include_bytes!("../../../esp32/browser-deploymen
 const ESP32_SLIP: &[u8] = include_bytes!("../../../esp32/browser-deployment/slip.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
-const BOOK_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/book-lifecycle.mjs");
-const BOOK_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/book-physical.mjs");
-const BOOK_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/book-graduation.mjs");
+const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
+const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
+const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
+const CRECHE_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/creche-physical.mjs");
+const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
+const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
 const BOOK_STYLE: &[u8] = include_bytes!("../assets/book.css");
 const BOOK_CHAPTER_ONE: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
 const BOOK_CHAPTER_TWO: &[u8] = include_bytes!("../../../../tour/book/chapter-2.md");
@@ -81,6 +84,13 @@ impl BrowserHostServer {
             .local_addr()
             .map(|address| format!("http://{address}/book/"))
             .map_err(|error| format!("cannot resolve executable-book entrance: {error}"))
+    }
+
+    pub fn creche_url(&self) -> Result<String, String> {
+        self.listener
+            .local_addr()
+            .map(|address| format!("http://{address}/creche/"))
+            .map_err(|error| format!("cannot resolve Crèche entrance: {error}"))
     }
 
     #[cfg(test)]
@@ -194,21 +204,31 @@ impl BrowserHostServer {
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
-            Some("GET /book/book-lifecycle.mjs HTTP/1.1") => (
+            Some("GET /book/creche-lifecycle.mjs HTTP/1.1")
+            | Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
-                BOOK_LIFECYCLE_SCRIPT,
+                CRECHE_LIFECYCLE_SCRIPT,
             ),
-            Some("GET /book/book-physical.mjs HTTP/1.1") => (
+            Some("GET /book/creche-physical.mjs HTTP/1.1")
+            | Some("GET /creche/creche-physical.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
-                BOOK_PHYSICAL_SCRIPT,
+                CRECHE_PHYSICAL_SCRIPT,
             ),
-            Some("GET /book/book-graduation.mjs HTTP/1.1") => (
+            Some("GET /book/creche-graduation.mjs HTTP/1.1")
+            | Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
-                BOOK_GRADUATION_SCRIPT,
+                CRECHE_GRADUATION_SCRIPT,
             ),
+            Some("GET /creche/ HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", CRECHE),
+            Some("GET /creche/creche.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", CRECHE_SCRIPT)
+            }
+            Some("GET /creche/creche.css HTTP/1.1") => {
+                ("200 OK", "text/css; charset=utf-8", CRECHE_STYLE)
+            }
             Some("GET /book/book.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", BOOK_STYLE)
             }

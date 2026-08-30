@@ -114,15 +114,21 @@ jobs:
       - name: Stage only the executable book
         run: |
           site=target/executable-book-pages
-          mkdir -p "$site/book"
+          mkdir -p "$site/book" "$site/creche"
           cp targets/browser/host/assets/browser-host-bootstrap.mjs "$site/"
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm "$site/runtime.wasm"
           cp targets/browser/host/assets/book.html "$site/book/index.html"
           cp targets/browser/host/assets/book.css "$site/book/"
           cp targets/browser/host/assets/book.mjs "$site/book/"
-          cp targets/browser/host/assets/book-lifecycle.mjs "$site/book/"
-          cp targets/browser/host/assets/book-physical.mjs "$site/book/"
-          cp targets/browser/host/assets/book-graduation.mjs "$site/book/"
+          cp targets/browser/host/assets/creche-lifecycle.mjs "$site/book/"
+          cp targets/browser/host/assets/creche-physical.mjs "$site/book/"
+          cp targets/browser/host/assets/creche-graduation.mjs "$site/book/"
+          cp targets/browser/host/assets/creche.html "$site/creche/index.html"
+          cp targets/browser/host/assets/creche.css "$site/creche/"
+          cp targets/browser/host/assets/creche.mjs "$site/creche/"
+          cp targets/browser/host/assets/creche-lifecycle.mjs "$site/creche/"
+          cp targets/browser/host/assets/creche-physical.mjs "$site/creche/"
+          cp targets/browser/host/assets/creche-graduation.mjs "$site/creche/"
           cp targets/browser/host/assets/device-base.mjs "$site/"
           cp targets/browser/host/assets/usb-device-base.mjs "$site/"
           mkdir -p "$site/targets/rp2040/browser-deployment"
@@ -137,7 +143,7 @@ jobs:
           touch "$site/.nojekyll"
           staged_chapters="$(find "$site/book" -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
           test "$staged_chapters" = "$expected_chapters"
-          test "$(find "$site" -type f | wc -l)" = 24
+          test "$(find "$site" -type f | wc -l)" = 30
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
