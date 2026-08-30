@@ -61,7 +61,10 @@ struct ContactObservationReceipt {
     fragment_identity: String,
     active_play_identity: String,
     output_port: u16,
-    contact_body_sectors: u8,
+    terminal_disposition: &'static str,
+    terminal_detail: u16,
+    value_bytes: usize,
+    contact_body_sectors: Option<u8>,
     create_stopped: bool,
     attended: bool,
     wheels_clear: bool,
@@ -106,17 +109,19 @@ pub(super) fn run(
         || decoded.activation.host != planned.host
         || decoded.activation.boot != planned.boot
         || decoded.activation.active_play != planned.active_play
-        || decoded.output_port != planned.expected_output_port
-        || decoded.disposition != AssignedTerminalDisposition::Completed
-        || decoded.detail != 0
-        || decoded.value.len() != planned.expected_value_bytes
     {
-        return Err("AVR terminal receipt did not match the planned execution".into());
+        return Err("AVR terminal receipt identities did not match the planned execution".into());
     }
 
+    let completed = decoded.output_port == planned.expected_output_port
+        && decoded.disposition == AssignedTerminalDisposition::Completed
+        && decoded.detail == 0
+        && decoded.value.len() == planned.expected_value_bytes;
+    let terminal_disposition = disposition_name(decoded.disposition);
+
     let record = ContactObservationReceipt {
-        schema: "conduit.avr-promicro/contact-observation@1",
-        outcome: "completed",
+        schema: "conduit.avr-promicro/contact-observation@2",
+        outcome: if completed { "completed" } else { "terminal" },
         proof_class: "physical-create-oi-assigned-plan",
         artifact_sha256: built.artifact_sha256,
         rx_proof: args.rx_proof.display().to_string(),
@@ -125,14 +130,38 @@ pub(super) fn run(
         fragment_identity: identity_hex(planned.fragment),
         active_play_identity: identity_hex(planned.active_play),
         output_port: decoded.output_port,
-        contact_body_sectors: decoded.value[0],
+        terminal_disposition,
+        terminal_detail: decoded.detail,
+        value_bytes: decoded.value.len(),
+        contact_body_sectors: decoded.value.first().copied(),
         create_stopped: args.create_stopped,
         attended: args.attended,
         wheels_clear: args.wheels_clear,
         common_ground_verified: args.common_ground_verified,
         rx_voltage_compatible: args.rx_voltage_compatible,
     };
-    write_receipt(&root.join(args.receipt), &record, opts)
+    let receipt_path = root.join(args.receipt);
+    write_receipt(&receipt_path, &record, opts)?;
+    if !completed {
+        return Err(format!(
+            "AVR Host returned terminal disposition={terminal_disposition} detail={} output_port={} value_bytes={}; wrote {}",
+            decoded.detail,
+            decoded.output_port,
+            decoded.value.len(),
+            receipt_path.display()
+        )
+        .into());
+    }
+    Ok(())
+}
+
+fn disposition_name(disposition: AssignedTerminalDisposition) -> &'static str {
+    match disposition {
+        AssignedTerminalDisposition::Completed => "completed",
+        AssignedTerminalDisposition::Refused => "refused",
+        AssignedTerminalDisposition::Failed => "failed",
+        AssignedTerminalDisposition::Cancelled => "cancelled",
+    }
 }
 
 fn validate_request(args: &ObserveContactArgs) -> Result<(), Box<dyn std::error::Error>> {
@@ -347,6 +376,26 @@ mod tests {
         for invalid in ["avr-1", "AVR-00000001", "avr-0000000g", "pico-00000001"] {
             assert!(!valid_boot_id(invalid));
         }
+    }
+
+    #[test]
+    fn every_generic_terminal_disposition_has_an_exact_receipt_name() {
+        assert_eq!(
+            disposition_name(AssignedTerminalDisposition::Completed),
+            "completed"
+        );
+        assert_eq!(
+            disposition_name(AssignedTerminalDisposition::Refused),
+            "refused"
+        );
+        assert_eq!(
+            disposition_name(AssignedTerminalDisposition::Failed),
+            "failed"
+        );
+        assert_eq!(
+            disposition_name(AssignedTerminalDisposition::Cancelled),
+            "cancelled"
+        );
     }
 
     #[test]
