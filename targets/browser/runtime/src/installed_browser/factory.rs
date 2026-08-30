@@ -67,6 +67,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &state_time::COUNT_PRESENTATION,
     &presentation::INDICATOR,
     &presentation::BOOL,
+    &presentation::PATCHBAY,
     &layout::VIEWPORT,
     &input::KEYBOARD,
 ];
@@ -87,6 +88,7 @@ pub(crate) fn catalogs(
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     startup.insert(conduit_form::KindSignature {
         kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),

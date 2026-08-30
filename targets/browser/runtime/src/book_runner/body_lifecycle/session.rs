@@ -94,6 +94,7 @@ pub(super) fn birth(
         plan_id: None,
         active_play_id: None,
         source_interaction: admitted_interaction,
+        graduation: None,
         raw_body: body,
         raw_membership: membership,
     };

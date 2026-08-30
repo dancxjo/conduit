@@ -153,3 +153,34 @@ fn friendly_name_is_metadata_and_cannot_change_durable_body_identity() {
     .unwrap_err()
     .contains("reviewed Morse Network"));
 }
+
+#[test]
+fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choices() {
+    session::clear_for_test();
+    let born = birth(51);
+    assert!(!super::graduation::readiness().unwrap().ready);
+    session::attach_here("browser/creche", "browser-boot/creche", 52).unwrap();
+    assert!(super::graduation::readiness().unwrap().ready);
+    let hosted = super::graduation::graduate(1, 54).unwrap();
+    assert_eq!(hosted.body_id, born.body_id);
+    let evidence = hosted.graduation.unwrap();
+    assert_eq!(evidence.choice, "host-patchbay");
+    assert!(evidence.patchbay_plan_id.is_some());
+    assert_eq!(
+        evidence.patchbay_implementation_id.as_deref(),
+        Some("browser/patchbay-surface@1")
+    );
+    assert!(!evidence.creche_required);
+    assert!(super::graduation::graduate(2, 55)
+        .unwrap_err()
+        .contains("already graduated"));
+
+    session::clear_for_test();
+    let born = birth(61);
+    session::attach_here("browser/creche", "browser-boot/creche", 62).unwrap();
+    let external = super::graduation::graduate(2, 64).unwrap();
+    assert_eq!(external.body_id, born.body_id);
+    let evidence = external.graduation.unwrap();
+    assert_eq!(evidence.choice, "external-reader");
+    assert!(evidence.patchbay_plan_id.is_none());
+}
