@@ -100,10 +100,11 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
   }
 
   const usePlanId = `pico-spawn/${prepared.spore_id}`;
+  let provision = null;
   try {
     base.startUse(usePlanId);
     await base.setSignals({ dataTerminalReady: true });
-    const provision = encoder.encode(JSON.stringify({
+    provision = encoder.encode(JSON.stringify({
       protocol: PROTOCOL,
       spore_id: prepared.spore_id,
       image_id: prepared.image_id,
@@ -115,6 +116,7 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
     }));
     await base.write(frame(provision));
   } finally {
+    provision?.fill(0);
     prepared.invitation_secret.fill(0);
   }
 

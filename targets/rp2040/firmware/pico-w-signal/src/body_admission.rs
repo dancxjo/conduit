@@ -56,16 +56,20 @@ impl PicoBodyAdmission {
         line: &mut UsbLinkSession,
     ) -> Result<(), UsbLinkError> {
         let mut input = [0u8; 1024];
-        line.wait_connection().await;
-        let request = line.receive_raw_stream_frame(&mut input).await?;
-        if crate::bootsel::handle_request(line, request).await? {
-            return Ok(());
+        let result = async {
+            line.wait_connection().await;
+            let request = line.receive_raw_stream_frame(&mut input).await?;
+            if crate::bootsel::handle_request(line, request).await? {
+                return Ok(());
+            }
+            if self.serve_spawn_request(line, request).await? {
+                return Ok(());
+            }
+            self.serve_request(line, request).await.map(|_| ())
         }
-        if self.serve_spawn_request(line, request).await? {
-            return Ok(());
-        }
-        self.serve_request(line, request).await?;
-        Ok(())
+        .await;
+        input.fill(0);
+        result
     }
 
     pub(crate) async fn serve_request(
@@ -129,11 +133,8 @@ impl PicoBodyAdmission {
         if !validate_pico_spawn_provision(&provision) {
             return Err(UsbLinkError::InvalidGeneratedEndpoint);
         }
-        let mut secret_bytes = [0u8; 32];
-        secret_bytes.copy_from_slice(provision.secret);
-        let secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+        let secret = SpawnInvitationSecret::from_csprng_bytes(provision.secret)
             .map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
-        secret_bytes.fill(0);
         let transcript = ambient_admission_transcript(
             "spawn-invitation-v1",
             provision.body_id,
