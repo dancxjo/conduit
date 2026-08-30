@@ -7,6 +7,7 @@ use clap::Args;
 use serde::Serialize;
 
 use super::{
+    attachment,
     cdc_verify::{
         activation_frame, boot_frame, configure_serial, exchange, expected_activation,
         expected_attestation, expected_boot, expected_hello, expected_hil_offer, fresh_boot_id,
@@ -44,6 +45,9 @@ pub(super) struct ObserveArgs {
     attended: bool,
     #[arg(long)]
     wheels_clear: bool,
+    /// Exact electrical qualification checked before any device access.
+    #[arg(long)]
+    attachment_qualification: PathBuf,
     #[arg(long, default_value = "target/avr-promicro/hil-observe-receipt.json")]
     receipt: PathBuf,
 }
@@ -77,6 +81,7 @@ struct ObserveReceipt {
     source_digest_sha256: String,
     build_id: String,
     artifact_sha256: String,
+    attachment_qualification: attachment::AttachmentQualification,
     port: String,
     host_id: String,
     boot_id: String,
@@ -128,6 +133,9 @@ pub(super) fn run(args: ObserveArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         )
         .into());
     }
+
+    let attachment_qualification =
+        attachment::load_and_validate(&args.attachment_qualification, &built.identity.source_sha)?;
 
     verify_device(&args.port)?;
     configure_serial(&args.port)?;
@@ -181,6 +189,7 @@ pub(super) fn run(args: ObserveArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         source_digest_sha256: built.identity.source_digest_sha256,
         build_id: built.identity.build_id,
         artifact_sha256: built.artifact_sha256,
+        attachment_qualification,
         port: args.port.display().to_string(),
         host_id: hex32(identities.host),
         boot_id: hex32(identities.boot),
@@ -397,6 +406,7 @@ mod tests {
             create_stopped: true,
             attended: true,
             wheels_clear: true,
+            attachment_qualification: PathBuf::from("qualification.json"),
             receipt: PathBuf::from("unused.json"),
         }
     }

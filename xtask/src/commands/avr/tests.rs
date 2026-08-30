@@ -39,6 +39,13 @@ fn flash_refuses_alias_or_wrong_device_and_malformed_digest() {
 }
 
 #[test]
+fn transmitter_bearing_flash_requires_attachment_qualification() {
+    assert!(validate_attachment_requirement(true, None).is_err());
+    assert!(validate_attachment_requirement(true, Some(Path::new("qualification.json"))).is_ok());
+    assert!(validate_attachment_requirement(false, None).is_ok());
+}
+
+#[test]
 fn parses_exact_build_metrics_and_enforces_both_capacities() {
     let report = "Sketch uses 4,508 bytes (15%).\nGlobal variables use 376 bytes (14%).";
     assert_eq!(metric(report, "Sketch uses ", " bytes").unwrap(), 4508);
