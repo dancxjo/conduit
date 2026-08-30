@@ -18,8 +18,11 @@ pub(super) struct EmbeddedBuildIdentity {
 }
 
 impl EmbeddedBuildIdentity {
-    pub(super) fn new(source_sha: String, source_digest_sha256: String, create_hil: bool) -> Self {
-        let profile = if create_hil { "create-hil" } else { "isolated" };
+    pub(super) fn new(
+        source_sha: String,
+        source_digest_sha256: String,
+        profile: &'static str,
+    ) -> Self {
         let canonical = format!(
             "schema={BUILD_ID_SCHEMA}\nsource_sha={source_sha}\nsource_digest_sha256={source_digest_sha256}\nprofile={profile}\ntarget={FQBN}\nrust_toolchain={RUST_TOOLCHAIN}\navr_hal={AVR_HAL_REVISION}\narduino_cli={CLI_VERSION}\narduino_avr={ARDUINO_AVR_VERSION}\nsparkfun_avr={SPARKFUN_AVR_VERSION}\n"
         );
@@ -86,8 +89,13 @@ mod tests {
 
     #[test]
     fn build_identity_is_exact_and_profile_specific() {
-        let isolated = EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), false);
-        let hil = EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), true);
+        let isolated =
+            EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), "receive-only");
+        let hil = EmbeddedBuildIdentity::new(
+            "a".repeat(40),
+            "b".repeat(64),
+            "assigned-create-host",
+        );
         assert_eq!(isolated.build_id.len(), 64);
         assert!(isolated
             .build_id

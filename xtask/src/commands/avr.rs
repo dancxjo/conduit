@@ -37,7 +37,7 @@ pub struct AvrArgs {
 enum AvrCommand {
     /// Provision and verify the pinned AVR build boundary without hardware access.
     Check,
-    /// Build the exact fail-closed Pro Micro image and write a receipt.
+    /// Build the exact assigned-Plan Pro Micro Host image and write a receipt.
     Build {
         #[arg(long, default_value = "target/avr-promicro/build-receipt.json")]
         receipt: PathBuf,
@@ -169,12 +169,12 @@ fn run_build(
     let identity = EmbeddedBuildIdentity::new(
         git_head(&root)?,
         digest_compiled_sources(&root.join(FIRMWARE))?,
-        false,
+        "assigned-create-host",
     );
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would build {FQBN} profile=isolated from {}",
+                "would build {FQBN} profile=assigned-create-host from {}",
                 root.join(FIRMWARE).display()
             );
         }
@@ -197,7 +197,7 @@ fn run_build(
         schema: "conduit.avr-promicro/build@3",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
-        profile: "isolated",
+        profile: "assigned-create-host",
         build_id_schema: BUILD_ID_SCHEMA,
         build_id: identity.build_id.clone(),
         source_sha: identity.source_sha.clone(),
@@ -215,7 +215,7 @@ fn run_build(
         flash_limit: MAX_FLASH_BYTES,
         sram_bytes,
         sram_limit: MAX_SRAM_BYTES,
-        create_uart: "rust-shared-provider-no-dispatch",
+        create_uart: "rust-shared-provider-assigned-plan-dispatch-only",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
     Ok(BuiltArtifact {
@@ -256,7 +256,7 @@ fn run_flash(
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would verify {EXPECTED_BY_ID}, rebuild the isolated profile, verify its digest, and flash the transmitter-disabled image"
+                "would verify {EXPECTED_BY_ID}, rebuild the assigned-create-host profile, verify its digest, and flash the transmit-capable image after the physical gates"
             );
         }
         return Ok(());
@@ -286,7 +286,7 @@ fn run_flash(
         schema: "conduit.avr-promicro/flash@3",
         outcome: "flashed",
         proof_class: "physical-flash-no-cdc-open",
-        profile: "isolated",
+        profile: "assigned-create-host",
         build_id: built.identity.build_id,
         source_sha: git_head(&root)?,
         target: FQBN,
@@ -298,7 +298,7 @@ fn run_flash(
         create_stopped: gate.create_stopped,
         attended: gate.attended,
         wheels_clear: gate.wheels_clear,
-        create_uart: "rust-shared-provider-no-dispatch",
+        create_uart: "rust-shared-provider-assigned-plan-dispatch-only",
     };
     write_receipt(&root.join(receipt), &record, opts)
 }
