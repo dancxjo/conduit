@@ -84,7 +84,7 @@ pub(super) fn run(
     validate_rx_proof(&root.join(&args.rx_proof))?;
 
     let built = run_build(Path::new("target/avr-promicro/build-receipt.json"), opts)?;
-    let upload_port = super::rx_check::discover_bootloader_port()?;
+    let upload_port = super::rx_check::wait_for_bootloader_port(Duration::from_secs(60))?;
     let cli = provision(&root)?;
     let output = Command::new(cli)
         .args(["upload", "--fqbn", FQBN, "--port"])

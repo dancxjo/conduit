@@ -12,8 +12,8 @@ use clap::Args;
 use serde::Serialize;
 
 use super::{
-    config_path, provision, require_success, resolve_upload_port, run_build_receive_only,
-    verify_device, write_receipt, PhysicalGate, EXPECTED_BY_ID, FQBN,
+    config_path, provision, require_success, run_build_receive_only, verify_device, write_receipt,
+    PhysicalGate, EXPECTED_BY_ID, FQBN,
 };
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
@@ -101,12 +101,7 @@ pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         )
         .into());
     }
-    let upload_port = if args.port.exists() {
-        verify_device(&args.port)?;
-        resolve_upload_port(&args.port)?
-    } else {
-        discover_bootloader_port()?
-    };
+    let upload_port = wait_for_bootloader_port(Duration::from_secs(60))?;
     let root = workspace_root()?;
     let cli = provision(&root)?;
     let output = Command::new(cli)
@@ -159,7 +154,22 @@ pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
     Ok(())
 }
 
-pub(super) fn discover_bootloader_port() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub(super) fn wait_for_bootloader_port(
+    timeout: Duration,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        let matches = bootloader_ports()?;
+        match matches.as_slice() {
+            [path] => return Ok(path.clone()),
+            [] => thread::sleep(Duration::from_millis(50)),
+            _ => return Err("multiple 2341:0036 Caterina bootloaders are present; cannot choose an upload target".into()),
+        }
+    }
+    Err("timed out waiting for the exact 2341:0036 Caterina bootloader; double-tap RST to GND while this command is waiting".into())
+}
+
+fn bootloader_ports() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let mut matches = Vec::new();
     for entry in fs::read_dir("/dev")? {
         let path = entry?.path();
@@ -183,11 +193,7 @@ pub(super) fn discover_bootloader_port() -> Result<PathBuf, Box<dyn std::error::
             matches.push(path);
         }
     }
-    match matches.as_slice() {
-        [path] => Ok(path.clone()),
-        [] => Err("the exact Pro Micro application identity is absent and no 2341:0036 Caterina bootloader is present; double-tap reset and retry while the bootloader is visible".into()),
-        _ => Err("multiple 2341:0036 Caterina bootloaders are present; cannot choose an upload target".into()),
-    }
+    Ok(matches)
 }
 
 fn has_usb_identity(properties: &str, vid: &str, pid: &str) -> bool {
