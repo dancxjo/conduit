@@ -15,6 +15,7 @@ fn bounds() -> SerialTransferBounds {
         maximum_transfer_bytes: 4_096,
         maximum_reads: 2,
         maximum_writes: 2,
+        maximum_signal_operations: 2,
         maximum_in_flight: 1,
     }
 }
@@ -147,6 +148,14 @@ fn explicit_acquisition_yields_exact_resource_then_bounded_use() {
     session.release_transfer().unwrap();
     assert_eq!(session.admitted_reads(), 1);
     assert_eq!(session.admitted_writes(), 1);
+    session
+        .begin_transfer(SerialTransferDirection::Signals)
+        .unwrap();
+    session
+        .complete_transfer(SerialTransferDirection::Signals, 0)
+        .unwrap();
+    session.release_transfer().unwrap();
+    assert_eq!(session.admitted_signal_operations(), 1);
     session.close().unwrap();
     assert_eq!(
         session.phase(),

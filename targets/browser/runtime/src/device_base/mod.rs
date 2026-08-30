@@ -18,7 +18,7 @@ pub(crate) const SERIAL_RESOURCE_CLASS: &str = "conduit.resource/web-serial-port
 pub(crate) const SERIAL_BASE_IMPLEMENTATION: &str = "browser/web-serial@1";
 pub(crate) const MAXIMUM_SERIAL_RESULT_BYTES: usize = 2_048;
 pub(crate) const MAXIMUM_SERIAL_TRANSFER_BYTES: usize = 4_096;
-pub(crate) const MAXIMUM_SERIAL_TRANSFERS: u16 = 8;
+pub(crate) const MAXIMUM_SERIAL_TRANSFERS: u16 = 40_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SerialParity {
@@ -50,6 +50,7 @@ pub(crate) struct SerialTransferBounds {
     pub(crate) maximum_transfer_bytes: u32,
     pub(crate) maximum_reads: u16,
     pub(crate) maximum_writes: u16,
+    pub(crate) maximum_signal_operations: u16,
     pub(crate) maximum_in_flight: u8,
 }
 
@@ -61,6 +62,7 @@ impl SerialTransferBounds {
             && self.maximum_reads <= MAXIMUM_SERIAL_TRANSFERS
             && self.maximum_writes > 0
             && self.maximum_writes <= MAXIMUM_SERIAL_TRANSFERS
+            && self.maximum_signal_operations <= MAXIMUM_SERIAL_TRANSFERS
             && self.maximum_in_flight == 1
     }
 }
@@ -132,6 +134,7 @@ pub(crate) struct SerialUseRequirement {
 pub(crate) enum SerialTransferDirection {
     Read,
     Write,
+    Signals,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -202,6 +205,7 @@ pub(crate) struct BrowserSerialSession {
     retained_transfer: Option<(SerialTransferDirection, usize)>,
     admitted_reads: u16,
     admitted_writes: u16,
+    admitted_signal_operations: u16,
 }
 
 impl BrowserSerialSession {
@@ -214,6 +218,7 @@ impl BrowserSerialSession {
             retained_transfer: None,
             admitted_reads: 0,
             admitted_writes: 0,
+            admitted_signal_operations: 0,
         }
     }
 
@@ -234,6 +239,10 @@ impl BrowserSerialSession {
 
     pub(crate) const fn admitted_writes(&self) -> u16 {
         self.admitted_writes
+    }
+
+    pub(crate) const fn admitted_signal_operations(&self) -> u16 {
+        self.admitted_signal_operations
     }
 
     pub(crate) fn seal_acquisition(

@@ -23,6 +23,7 @@ export default defineConfig({
     "browser-device-base.spec.mjs",
     "browser-usb-device-base.spec.mjs",
     "rp2040-browser-deployment.spec.mjs",
+    "esp32-browser-deployment.spec.mjs",
     "browser-body-camera-realization.spec.mjs",
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",

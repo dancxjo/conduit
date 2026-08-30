@@ -14,10 +14,12 @@ impl BrowserSerialSession {
         let admitted = match direction {
             SerialTransferDirection::Read => self.admitted_reads,
             SerialTransferDirection::Write => self.admitted_writes,
+            SerialTransferDirection::Signals => self.admitted_signal_operations,
         };
         let maximum = match direction {
             SerialTransferDirection::Read => resource.transfer_bounds.maximum_reads,
             SerialTransferDirection::Write => resource.transfer_bounds.maximum_writes,
+            SerialTransferDirection::Signals => resource.transfer_bounds.maximum_signal_operations,
         };
         if admitted >= maximum {
             return Err(BrowserSerialRefusal::TransferLimit);
@@ -26,6 +28,7 @@ impl BrowserSerialSession {
         match direction {
             SerialTransferDirection::Read => self.admitted_reads += 1,
             SerialTransferDirection::Write => self.admitted_writes += 1,
+            SerialTransferDirection::Signals => self.admitted_signal_operations += 1,
         }
         Ok(())
     }
@@ -41,7 +44,9 @@ impl BrowserSerialSession {
         if self.retained_transfer != Some((direction, 0)) {
             return Err(BrowserSerialRefusal::WrongPhase);
         }
-        if bytes == 0 || bytes > resource.transfer_bounds.maximum_transfer_bytes as usize {
+        if (direction != SerialTransferDirection::Signals && bytes == 0)
+            || bytes > resource.transfer_bounds.maximum_transfer_bytes as usize
+        {
             return Err(BrowserSerialRefusal::TransferTooLarge);
         }
         self.retained_transfer = Some((direction, bytes));
