@@ -30,11 +30,22 @@ pub struct AssignedSingleSourceView {
     pub output_port: u16,
 }
 
+#[inline(never)]
 pub fn decode_assigned_single_source(
     bytes: &[u8],
     maxima: AssignedPlanMaxima,
     required: AssignedSingleSourceRequirements<'_>,
 ) -> Result<AssignedSingleSourceView, AssignedPlanRefusal> {
+    validate_envelope(bytes, maxima, required)?;
+    decode_records(bytes, required)
+}
+
+#[inline(never)]
+fn validate_envelope(
+    bytes: &[u8],
+    maxima: AssignedPlanMaxima,
+    required: AssignedSingleSourceRequirements<'_>,
+) -> Result<(), AssignedPlanRefusal> {
     if bytes.len() < ASSIGNED_PLAN_HEADER_BYTES {
         return Err(AssignedPlanRefusal::WrongLength);
     }
@@ -55,8 +66,6 @@ pub fn decode_assigned_single_source(
     if runtime_state_bytes > maxima.runtime_state_bytes {
         return Err(AssignedPlanRefusal::RuntimeCapacityExceeded);
     }
-    let plan = identity_at(bytes, 16)?;
-    let fragment = identity_at(bytes, 32)?;
     let host = identity_at(bytes, 48)?;
     let boot = identity_at(bytes, 64)?;
     if host != required.host {
@@ -80,7 +89,22 @@ pub fn decode_assigned_single_source(
     if sha256::digest(&bytes[ASSIGNED_PLAN_HEADER_BYTES..]) != bytes[92..124] {
         return Err(AssignedPlanRefusal::DigestMismatch);
     }
+    Ok(())
+}
 
+#[inline(never)]
+fn decode_records(
+    bytes: &[u8],
+    required: AssignedSingleSourceRequirements<'_>,
+) -> Result<AssignedSingleSourceView, AssignedPlanRefusal> {
+    let encoded_bytes = u16_at(bytes, 10)?;
+    let runtime_state_bytes = u16_at(bytes, 12)?;
+    let plan = identity_at(bytes, 16)?;
+    let fragment = identity_at(bytes, 32)?;
+    let host = identity_at(bytes, 48)?;
+    let boot = identity_at(bytes, 64)?;
+    let mut counts = [0; ASSIGNED_PLAN_COUNT_KINDS];
+    counts.copy_from_slice(&bytes[80..92]);
     let mut seen = [0_u8; ASSIGNED_PLAN_COUNT_KINDS];
     let mut resources = [false; 8];
     if required.resources.len() > resources.len() {

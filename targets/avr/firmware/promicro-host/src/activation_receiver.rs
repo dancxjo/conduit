@@ -4,32 +4,29 @@ use conduit_assigned_plan::{
 };
 
 pub struct ActivationReceiver {
-    bytes: [u8; ASSIGNED_ACTIVATION_BYTES],
     len: usize,
 }
 
 impl ActivationReceiver {
     pub const fn new() -> Self {
-        Self {
-            bytes: [0; ASSIGNED_ACTIVATION_BYTES],
-            len: 0,
-        }
+        Self { len: 0 }
     }
 
     #[inline(never)]
     pub fn push(
         &mut self,
+        bytes: &mut [u8],
         input: &[u8],
     ) -> Result<Option<AssignedActivation>, AssignedExecutionRefusal> {
         let end = self
             .len
             .checked_add(input.len())
-            .filter(|end| *end <= self.bytes.len())
+            .filter(|end| *end <= ASSIGNED_ACTIVATION_BYTES)
             .ok_or(AssignedExecutionRefusal::WrongLength)?;
-        self.bytes[self.len..end].copy_from_slice(input);
+        bytes[self.len..end].copy_from_slice(input);
         self.len = end;
-        if self.len == self.bytes.len() {
-            decode_assigned_activation(&self.bytes).map(Some)
+        if self.len == ASSIGNED_ACTIVATION_BYTES {
+            decode_assigned_activation(&bytes[..ASSIGNED_ACTIVATION_BYTES]).map(Some)
         } else {
             Ok(None)
         }

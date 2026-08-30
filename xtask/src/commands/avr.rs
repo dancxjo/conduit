@@ -30,6 +30,8 @@ const EXPECTED_VID: &str = "1b4f";
 const EXPECTED_PID: &str = "9206";
 const MAX_FLASH_BYTES: u64 = 28_672;
 const MAX_SRAM_BYTES: u64 = 2_560;
+const STACK_RESERVE_BYTES: u64 = 1_100;
+const MAX_STATIC_SRAM_BYTES: u64 = MAX_SRAM_BYTES - STACK_RESERVE_BYTES;
 const AVRDUDE_DEADLINE: Duration = Duration::from_secs(15);
 
 #[derive(Args, Debug)]
@@ -99,6 +101,8 @@ struct BuildReceipt {
     flash_limit: u64,
     sram_bytes: u64,
     sram_limit: u64,
+    static_sram_limit: u64,
+    stack_reserve_bytes: u64,
     create_uart: &'static str,
 }
 
@@ -171,7 +175,7 @@ fn run_build_receive_only(
     validate_sizes(built.flash_bytes, built.sram_bytes)?;
     let digest = sha256_file(&artifact)?;
     let record = BuildReceipt {
-        schema: "conduit.avr-promicro/build@3",
+        schema: "conduit.avr-promicro/build@4",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
         profile: "receive-only",
@@ -192,6 +196,8 @@ fn run_build_receive_only(
         flash_limit: MAX_FLASH_BYTES,
         sram_bytes: built.sram_bytes,
         sram_limit: MAX_SRAM_BYTES,
+        static_sram_limit: MAX_STATIC_SRAM_BYTES,
+        stack_reserve_bytes: STACK_RESERVE_BYTES,
         create_uart: "isolated-no-transmitter",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
@@ -252,7 +258,7 @@ fn run_build(
     validate_sizes(flash_bytes, sram_bytes)?;
     let digest = sha256_file(&artifact)?;
     let record = BuildReceipt {
-        schema: "conduit.avr-promicro/build@3",
+        schema: "conduit.avr-promicro/build@4",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
         profile: "assigned-create-host",
@@ -273,6 +279,8 @@ fn run_build(
         flash_limit: MAX_FLASH_BYTES,
         sram_bytes,
         sram_limit: MAX_SRAM_BYTES,
+        static_sram_limit: MAX_STATIC_SRAM_BYTES,
+        stack_reserve_bytes: STACK_RESERVE_BYTES,
         create_uart: "rust-shared-provider-assigned-plan-dispatch-only",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
@@ -367,8 +375,11 @@ fn validate_sizes(flash: u64, sram: u64) -> Result<(), Box<dyn std::error::Error
     if flash > MAX_FLASH_BYTES {
         return Err(format!("AVR flash capacity exceeded: {flash} > {MAX_FLASH_BYTES}").into());
     }
-    if sram > MAX_SRAM_BYTES {
-        return Err(format!("AVR SRAM capacity exceeded: {sram} > {MAX_SRAM_BYTES}").into());
+    if sram > MAX_STATIC_SRAM_BYTES {
+        return Err(format!(
+            "AVR static SRAM capacity exceeded after reserving {STACK_RESERVE_BYTES} bytes for stack: {sram} > {MAX_STATIC_SRAM_BYTES}"
+        )
+        .into());
     }
     Ok(())
 }
