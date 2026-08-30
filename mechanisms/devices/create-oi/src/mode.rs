@@ -39,16 +39,30 @@ pub fn transition_oi_mode<P: CreateUartProvider>(
         stage: CreateOiModeTransitionStage::MandatoryStop,
         failure,
     })?;
-    let transition = match target {
-        CreateOiModeRequest::Passive => encode_start(),
-        CreateOiModeRequest::Safe | CreateOiModeRequest::Full => {
-            encode_mode(target).expect("Safe and Full have exact mode commands")
-        }
-    };
-    write_command(provider, &transition).map_err(|failure| CreateOiModeTransitionFailure {
+    // Create ignores every OI command other than Start while its OI is Off.
+    // The leading stop is therefore effective when an earlier controller left
+    // the OI controllable, while Start is always required before selecting the
+    // requested mode on a newly powered Create.
+    write_command(provider, &encode_start()).map_err(|failure| CreateOiModeTransitionFailure {
         stage: CreateOiModeTransitionStage::ModeTransition,
         failure,
     })?;
+    if target != CreateOiModeRequest::Passive {
+        let transition = encode_mode(target).expect("Safe and Full have exact mode commands");
+        write_command(provider, &transition).map_err(|failure| CreateOiModeTransitionFailure {
+            stage: CreateOiModeTransitionStage::ModeTransition,
+            failure,
+        })?;
+        // Start deliberately passes through Passive, where Drive is ignored.
+        // Repeat the stop after Safe or Full becomes active so the transition
+        // has an effective zero-motion disposition in both starting states.
+        write_command(provider, &encode_stop()).map_err(|failure| {
+            CreateOiModeTransitionFailure {
+                stage: CreateOiModeTransitionStage::MandatoryStop,
+                failure,
+            }
+        })?;
+    }
     let query = encode_query_sensor(CREATE_OI_MODE_PACKET_ID)
         .expect("Create OI mode packet is allow-listed");
     write_command(provider, &query).map_err(|failure| CreateOiModeTransitionFailure {
@@ -102,22 +116,34 @@ mod tests {
     }
 
     #[test]
-    fn all_modes_use_one_exact_stop_first_transaction() {
-        for (target, observed, command) in [
+    fn all_modes_start_oi_and_use_one_exact_stop_first_transaction() {
+        for (target, observed, expected) in [
             (
                 CreateOiModeRequest::Passive,
                 CreateOiModeObservation::Passive,
-                128,
+                vec![vec![145, 0, 0, 0, 0], vec![128], vec![142, 35]],
             ),
             (
                 CreateOiModeRequest::Safe,
                 CreateOiModeObservation::Safe,
-                131,
+                vec![
+                    vec![145, 0, 0, 0, 0],
+                    vec![128],
+                    vec![131],
+                    vec![145, 0, 0, 0, 0],
+                    vec![142, 35],
+                ],
             ),
             (
                 CreateOiModeRequest::Full,
                 CreateOiModeObservation::Full,
-                132,
+                vec![
+                    vec![145, 0, 0, 0, 0],
+                    vec![128],
+                    vec![132],
+                    vec![145, 0, 0, 0, 0],
+                    vec![142, 35],
+                ],
             ),
         ] {
             let mut provider = Provider {
@@ -125,10 +151,7 @@ mod tests {
                 read: VecDeque::from([observed as u8]),
             };
             assert_eq!(transition_oi_mode(&mut provider, target, 100), Ok(observed));
-            assert_eq!(
-                provider.writes,
-                [vec![145, 0, 0, 0, 0], vec![command], vec![142, 35]]
-            );
+            assert_eq!(provider.writes, expected);
         }
     }
 }
