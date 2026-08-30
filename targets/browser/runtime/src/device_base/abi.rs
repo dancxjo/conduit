@@ -18,6 +18,7 @@ const INPUT_BYTES: usize = MAXIMUM_SERIAL_TRANSFER_BYTES;
 const EVIDENCE_BYTES: usize = 4_096;
 const READ: i32 = 1;
 const WRITE: i32 = 2;
+const SIGNALS: i32 = 3;
 
 pub(super) struct AbiState {
     pub(super) host_id: HostId,
@@ -102,6 +103,7 @@ pub extern "C" fn conduit_browser_serial_start_acquisition(
     maximum_transfer_bytes: u32,
     maximum_reads: u16,
     maximum_writes: u16,
+    maximum_signal_operations: u16,
 ) -> i32 {
     if explicit_action != 1 {
         return -2;
@@ -129,6 +131,7 @@ pub extern "C" fn conduit_browser_serial_start_acquisition(
         maximum_transfer_bytes,
         maximum_reads,
         maximum_writes,
+        maximum_signal_operations,
         maximum_in_flight: 1,
     };
     let operation_id =
@@ -335,6 +338,7 @@ pub extern "C" fn conduit_browser_serial_begin_transfer(direction_code: i32) -> 
     let direction = match direction_code {
         READ => SerialTransferDirection::Read,
         WRITE => SerialTransferDirection::Write,
+        SIGNALS => SerialTransferDirection::Signals,
         _ => return -3,
     };
     STATE.with(|slot| {
@@ -355,12 +359,13 @@ pub extern "C" fn conduit_browser_serial_complete_transfer(
     direction_code: i32,
     transfer_len: usize,
 ) -> i32 {
-    if transfer_len == 0 || transfer_len > INPUT_BYTES {
+    if transfer_len > INPUT_BYTES {
         return -2;
     }
     let direction = match direction_code {
         READ => SerialTransferDirection::Read,
         WRITE => SerialTransferDirection::Write,
+        SIGNALS => SerialTransferDirection::Signals,
         _ => return -3,
     };
     STATE.with(|slot| {

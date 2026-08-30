@@ -3,6 +3,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const READ = 1;
 const WRITE = 2;
+const SIGNALS = 3;
 
 function requireStatus(status, operation) {
   if (status < 0) throw new Error(`browser serial ${operation} refused ${status}`);
@@ -105,6 +106,7 @@ export function createBrowserDeviceBase({
     maximumTransferBytes = 4096,
     maximumReads = 8,
     maximumWrites = 8,
+    maximumSignalOperations = 0,
   } = {}) {
     if (port || terminal) throw new Error("one bounded browser device Base session is already owned");
     const identity = encoder.encode(hostId + bootId);
@@ -123,6 +125,7 @@ export function createBrowserDeviceBase({
         maximumTransferBytes,
         maximumReads,
         maximumWrites,
+        maximumSignalOperations,
       ),
       "acquisition admission",
     );
@@ -258,6 +261,39 @@ export function createBrowserDeviceBase({
         });
       }
 
+      async function setSignals({ dataTerminalReady, requestToSend, break: breakSignal } = {}) {
+        if (!useStarted || terminal || port !== acquiredPort) {
+          throw new Error("browser serial use Plan is not active");
+        }
+        const values = [dataTerminalReady, requestToSend, breakSignal].filter((value) => value !== undefined);
+        if (values.length === 0 || values.some((value) => typeof value !== "boolean")) {
+          throw new TypeError("serial modem-control operation requires one or more exact boolean signals");
+        }
+        requireStatus(api.conduit_browser_serial_begin_transfer(SIGNALS), "signal admission");
+        try {
+          if (!acquiredPort.setSignals) {
+            throw new DOMException("serial modem-control signals are unavailable", "NotSupportedError");
+          }
+          const signals = {};
+          if (dataTerminalReady !== undefined) signals.dataTerminalReady = dataTerminalReady;
+          if (requestToSend !== undefined) signals.requestToSend = requestToSend;
+          if (breakSignal !== undefined) signals.break = breakSignal;
+          await acquiredPort.setSignals(signals);
+          requireStatus(api.conduit_browser_serial_complete_transfer(SIGNALS, 0), "signal completion");
+          const receipt = publish();
+          requireStatus(api.conduit_browser_serial_release_transfer(), "signal release");
+          publish();
+          return { signals: Object.freeze({ ...signals }), receipt };
+        } catch (error) {
+          terminal = true;
+          requireStatus(api.conduit_browser_serial_transfer_failed(2), "signal failure");
+          await acquiredPort.close?.().catch(() => {});
+          port = null;
+          publish();
+          throw error;
+        }
+      }
+
       async function close() {
         if (terminal || port !== acquiredPort) return publish();
         await acquiredPort.close();
@@ -273,6 +309,7 @@ export function createBrowserDeviceBase({
         startUse,
         write,
         read,
+        setSignals,
         close,
       });
     } catch (error) {

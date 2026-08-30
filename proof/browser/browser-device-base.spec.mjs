@@ -40,6 +40,7 @@ async function installSuccessfulSerial(page) {
         this.opened = null;
         this.closed = false;
         this.writes = [];
+        this.signals = [];
         this.readable = {
           getReader: () => ({
             read: async () => ({ value: new Uint8Array([9, 8, 7]), done: false }),
@@ -55,6 +56,7 @@ async function installSuccessfulSerial(page) {
       }
       async open(options) { this.opened = options; }
       getInfo() { return { usbVendorId: 0x2e8a, usbProductId: 0x000a }; }
+      async setSignals(signals) { this.signals.push(signals); }
       async close() { this.closed = true; }
     }
     const port = new FakeSerialPort();
@@ -106,6 +108,7 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
     maximum_transfer_bytes: 4096,
     maximum_reads: 8,
     maximum_writes: 8,
+    maximum_signal_operations: 0,
     maximum_in_flight: 1,
   });
   await expect(page.locator("#serial-close")).toBeEnabled();

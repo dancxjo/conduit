@@ -16,6 +16,14 @@ const RP2040_DEPLOYMENT_ORCHESTRATOR: &[u8] =
 const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../rp2040/browser-deployment/picoboot.mjs");
 const RP2040_UF2: &[u8] = include_bytes!("../../../rp2040/browser-deployment/uf2.mjs");
 const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../rp2040/browser-deployment/bootsel.mjs");
+const ESP32_DEPLOYMENT: &[u8] = include_bytes!("../../../esp32/browser-deployment/index.mjs");
+const ESP32_DEPLOYMENT_ORCHESTRATOR: &[u8] =
+    include_bytes!("../../../esp32/browser-deployment/deployment.mjs");
+const ESP32_IMAGE: &[u8] = include_bytes!("../../../esp32/browser-deployment/image.mjs");
+const ESP32_MD5: &[u8] = include_bytes!("../../../esp32/browser-deployment/md5.mjs");
+const ESP32_RESET: &[u8] = include_bytes!("../../../esp32/browser-deployment/reset.mjs");
+const ESP32_ROM_LOADER: &[u8] = include_bytes!("../../../esp32/browser-deployment/rom-loader.mjs");
+const ESP32_SLIP: &[u8] = include_bytes!("../../../esp32/browser-deployment/slip.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/book-lifecycle.mjs");
@@ -148,6 +156,29 @@ impl BrowserHostServer {
             }
             Some("GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_BOOTSEL)
+            }
+            Some("GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", ESP32_DEPLOYMENT)
+            }
+            Some("GET /targets/esp32/browser-deployment/deployment.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                ESP32_DEPLOYMENT_ORCHESTRATOR,
+            ),
+            Some("GET /targets/esp32/browser-deployment/image.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", ESP32_IMAGE)
+            }
+            Some("GET /targets/esp32/browser-deployment/md5.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", ESP32_MD5)
+            }
+            Some("GET /targets/esp32/browser-deployment/reset.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", ESP32_RESET)
+            }
+            Some("GET /targets/esp32/browser-deployment/rom-loader.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", ESP32_ROM_LOADER)
+            }
+            Some("GET /targets/esp32/browser-deployment/slip.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", ESP32_SLIP)
             }
             Some("GET /runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())
