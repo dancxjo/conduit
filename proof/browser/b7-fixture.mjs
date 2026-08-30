@@ -1,5 +1,5 @@
-export async function installB7Devices(page) {
-  await page.addInitScript(() => {
+export async function installB7Devices(page, { staleStatus = false } = {}) {
+  await page.addInitScript(({ staleStatus }) => {
     const framed = (value) => {
       const payload = new TextEncoder().encode(JSON.stringify(value));
       const bytes = new Uint8Array(payload.length + 2);
@@ -60,7 +60,7 @@ export async function installB7Devices(page) {
       async controlTransferIn() {
         const bytes = new Uint8Array(16);
         const view = new DataView(bytes.buffer);
-        view.setUint32(0, this.pending.token, true);
+        view.setUint32(0, this.pending.token + (staleStatus ? 1 : 0), true);
         view.setUint32(4, 0, true);
         view.setUint8(8, this.pending.command);
         return { status: "ok", data: new DataView(bytes.buffer) };
@@ -110,7 +110,7 @@ export async function installB7Devices(page) {
     }) };
     port.readable = { getReader: () => ({ read: async () => ({ value: port.responses.shift(), done: false }), releaseLock() {} }) };
     Object.defineProperty(navigator, "serial", { configurable: true, value: { requestPort: async () => port } });
-  });
+  }, { staleStatus });
 }
 
 export function picoUf2() {

@@ -104,6 +104,7 @@ function prepare(runner, host, state) {
 async function deploy(runner, host, state) {
   const button = runner.querySelector(".deploy");
   button.disabled = true;
+  let adapter = null;
   try {
     const usb = createBrowserUsbDeviceBase({
       api: host.runtime,
@@ -122,7 +123,7 @@ async function deploy(runner, host, state) {
       maximumInTransfers: 2048,
       maximumOutTransfers: 2048,
     });
-    const adapter = createRp2040BrowserDeploymentAdapter({ base });
+    adapter = createRp2040BrowserDeploymentAdapter({ base });
     const plan = await adapter.sealDeployment({
       deploymentPlanId: `deployment-plan/${state.prepared.spore_id}`,
       deploymentOperationId: `deployment/${state.prepared.spore_id}`,
@@ -139,11 +140,18 @@ async function deploy(runner, host, state) {
     status(runner, "Deployment requested reboot. That proves no Boot, join, membership, offers, readiness, Plan, or Play.");
     renderEvidence(runner, state);
   } catch (error) {
+    if (adapter) {
+      state.deployment = {
+        ...adapter.evidence(),
+        failure_chain: errorChain(error),
+      };
+      renderEvidence(runner, state);
+    }
     const permissionHint = /access denied/i.test(error?.message ?? "")
       ? " On Linux, run `sudo scripts/install-pico-headless-flash.sh` and reconnect the Pico in BOOTSEL mode."
       : "";
     const freshHostHint = " This USB acquisition is terminal; reload the Tour to create a fresh browser Host before trying again.";
-    refuse(runner, "deployment", new Error(`${error.message}${permissionHint}${freshHostHint}`));
+    refuse(runner, "deployment", new Error(`${errorChain(error).join(" <- ")}${permissionHint}${freshHostHint}`));
   }
 }
 
@@ -245,6 +253,15 @@ function refuse(runner, operation, error) {
   const element = runner.querySelector(".physical-status");
   element.classList.add("error");
   element.textContent = `${operation} refused: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+function errorChain(error) {
+  const messages = [];
+  for (let current = error; current && messages.length < 4; current = current.cause) {
+    const code = typeof current.code === "string" ? `${current.code}: ` : "";
+    messages.push(`${code}${current instanceof Error ? current.message : String(current)}`);
+  }
+  return messages;
 }
 
 function short(value) {
