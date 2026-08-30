@@ -19,7 +19,7 @@ mod rust_firmware;
 mod rx_check;
 
 use avr_toolchain::{
-    config_path, provision, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
+    avrdude_bin, avrdude_config, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
 };
 use build_identity::{digest_compiled_sources, EmbeddedBuildIdentity, BUILD_ID_SCHEMA};
 use conduit_host_avr_fabrication::{FQBN, SPORE_REGION_START, SRAM_BYTES};
@@ -389,6 +389,21 @@ fn require_success(output: &Output, action: &str) -> Result<(), Box<dyn std::err
         String::from_utf8_lossy(&output.stderr).trim()
     )
     .into())
+}
+
+fn upload_artifact(
+    root: &Path,
+    port: &Path,
+    artifact: &Path,
+    action: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let output = Command::new(avrdude_bin(root))
+        .arg(format!("-C{}", avrdude_config(root).display()))
+        .args(["-q", "-q", "-patmega32u4", "-cavr109", "-b57600", "-D"])
+        .arg(format!("-P{}", port.display()))
+        .arg(format!("-Uflash:w:{}:i", artifact.display()))
+        .output()?;
+    require_success(&output, action)
 }
 
 fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {

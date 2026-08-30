@@ -12,14 +12,15 @@ use clap::Args;
 use serde::Serialize;
 
 use super::{
-    config_path, provision, require_success, run_build_receive_only, verify_device, write_receipt,
-    PhysicalGate, EXPECTED_BY_ID, FQBN,
+    require_success, run_build_receive_only, upload_artifact, verify_device, write_receipt,
+    PhysicalGate, EXPECTED_BY_ID,
 };
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 const REQUEST: &[u8; 8] = b"RXDIAG01";
 const RECEIPT_BYTES: usize = 28;
 const SAMPLE_COUNT: u16 = 2_048;
+const BOOTLOADER_WAIT: Duration = Duration::from_secs(300);
 const BOOTLOADER_VID: &str = "2341";
 const BOOTLOADER_PID: &str = "0036";
 
@@ -101,18 +102,14 @@ pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         )
         .into());
     }
-    let upload_port = wait_for_bootloader_port(Duration::from_secs(60))?;
+    let upload_port = wait_for_bootloader_port(BOOTLOADER_WAIT)?;
     let root = workspace_root()?;
-    let cli = provision(&root)?;
-    let output = Command::new(cli)
-        .args(["upload", "--fqbn", FQBN, "--port"])
-        .arg(&upload_port)
-        .args(["--input-file"])
-        .arg(&built.path)
-        .args(["--config-file"])
-        .arg(config_path(&root))
-        .output()?;
-    require_success(&output, "guarded receive-only AVR flash")?;
+    upload_artifact(
+        &root,
+        &upload_port,
+        &built.path,
+        "guarded receive-only AVR flash",
+    )?;
     wait_for_exact_device(&args.port, Duration::from_secs(15))?;
     configure_serial(&args.port)?;
     let mut device = open_nonblocking(&args.port)?;
