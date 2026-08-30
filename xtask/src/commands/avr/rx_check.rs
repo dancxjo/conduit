@@ -1,5 +1,5 @@
 use std::{
-    fs::{File, OpenOptions},
+    fs::{self, File, OpenOptions},
     io::{ErrorKind, Read, Write},
     os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
@@ -20,6 +20,8 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 const REQUEST: &[u8; 8] = b"RXDIAG01";
 const RECEIPT_BYTES: usize = 28;
 const SAMPLE_COUNT: u16 = 2_048;
+const BOOTLOADER_VID: &str = "2341";
+const BOOTLOADER_PID: &str = "0036";
 
 #[derive(Args, Debug)]
 pub(super) struct RxCheckArgs {
@@ -99,8 +101,12 @@ pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         )
         .into());
     }
-    verify_device(&args.port)?;
-    let upload_port = resolve_upload_port(&args.port)?;
+    let upload_port = if args.port.exists() {
+        verify_device(&args.port)?;
+        resolve_upload_port(&args.port)?
+    } else {
+        discover_bootloader_port()?
+    };
     let root = workspace_root()?;
     let cli = provision(&root)?;
     let output = Command::new(cli)
@@ -151,6 +157,46 @@ pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         .into());
     }
     Ok(())
+}
+
+fn discover_bootloader_port() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let mut matches = Vec::new();
+    for entry in fs::read_dir("/dev")? {
+        let path = entry?.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if !name.strip_prefix("ttyACM").is_some_and(|index| {
+            !index.is_empty() && index.bytes().all(|byte| byte.is_ascii_digit())
+        }) {
+            continue;
+        }
+        let output = Command::new("udevadm")
+            .args(["info", "--query=property", "--name"])
+            .arg(&path)
+            .output()?;
+        if !output.status.success() {
+            continue;
+        }
+        let properties = String::from_utf8(output.stdout)?;
+        if has_usb_identity(&properties, BOOTLOADER_VID, BOOTLOADER_PID) {
+            matches.push(path);
+        }
+    }
+    match matches.as_slice() {
+        [path] => Ok(path.clone()),
+        [] => Err("the exact Pro Micro application identity is absent and no 2341:0036 Caterina bootloader is present; double-tap reset and retry while the bootloader is visible".into()),
+        _ => Err("multiple 2341:0036 Caterina bootloaders are present; cannot choose an upload target".into()),
+    }
+}
+
+fn has_usb_identity(properties: &str, vid: &str, pid: &str) -> bool {
+    properties
+        .lines()
+        .any(|line| line == format!("ID_VENDOR_ID={vid}"))
+        && properties
+            .lines()
+            .any(|line| line == format!("ID_MODEL_ID={pid}"))
 }
 
 fn classify(evidence: Evidence) -> &'static str {
@@ -309,6 +355,22 @@ fn u32_at(bytes: &[u8], offset: usize) -> Result<u32, Box<dyn std::error::Error>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn caterina_discovery_requires_the_exact_usb_identity() {
+        let exact = "ID_VENDOR_ID=2341\nID_MODEL_ID=0036\n";
+        assert!(has_usb_identity(exact, BOOTLOADER_VID, BOOTLOADER_PID));
+        assert!(!has_usb_identity(
+            "ID_VENDOR_ID=1b4f\nID_MODEL_ID=9206\n",
+            BOOTLOADER_VID,
+            BOOTLOADER_PID
+        ));
+        assert!(!has_usb_identity(
+            "ID_VENDOR_ID=2341\nID_MODEL_ID=8036\n",
+            BOOTLOADER_VID,
+            BOOTLOADER_PID
+        ));
+    }
 
     #[test]
     fn exact_receipt_parses_and_isolation_or_accounting_drift_refuses() {
