@@ -2,6 +2,7 @@
 members = [
 	# Universal architectural substrate.
 	"architecture/body",
+	"architecture/assigned-plan",
 	"architecture/composite",
 	"architecture/core",
 	"architecture/form",
@@ -79,6 +80,7 @@ members = [
 	"xtask",
 ]
 exclude = [
+	"targets/avr/firmware/promicro-host",
 	"targets/esp32/firmware/c3-signal",
 	"targets/esp32/firmware/s3-signal",
 	"targets/esp32/firmware/wroom-signal",
