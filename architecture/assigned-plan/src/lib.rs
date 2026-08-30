@@ -57,6 +57,13 @@ pub struct AssignedPlanMaxima {
 }
 
 impl AssignedPlanMaxima {
+    /// Exact storage ceiling for the generic one-source tiny-Host profile.
+    pub const SINGLE_SOURCE: Self = Self {
+        encoded_bytes: 544,
+        runtime_state_bytes: 192,
+        counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2],
+    };
+
     pub const TINY_HOST: Self = Self {
         encoded_bytes: 1_536,
         runtime_state_bytes: 1_024,

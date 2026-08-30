@@ -4578,6 +4578,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
+ "conduit-embedded-build",
  "conduit-form",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",

@@ -13,6 +13,8 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 mod avr_toolchain;
 mod build_identity;
 mod release;
+mod observe;
+mod plan;
 mod rust_firmware;
 mod rx_check;
 
@@ -58,6 +60,8 @@ enum AvrCommand {
     },
     /// Flash and execute one attended receive-only Create RX diagnostic.
     ReceiveOnly(rx_check::RxCheckArgs),
+    /// Plan and execute one attended Create contact observation on the AVR Host.
+    ObserveContact(observe::ObserveContactArgs),
     /// Flash only after exact artifact, device, and physical gates are supplied.
     Flash {
         #[arg(long)]
@@ -117,6 +121,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
             run_build_receive_only(&receipt, opts).map(|_| ())
         }
         AvrCommand::ReceiveOnly(args) => rx_check::run(args, opts),
+        AvrCommand::ObserveContact(args) => observe::run(args, opts),
         AvrCommand::Flash {
             port,
             artifact_sha256,

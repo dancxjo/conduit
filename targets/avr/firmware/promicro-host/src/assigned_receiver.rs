@@ -14,11 +14,7 @@ const CONTACT_OPERATION_IDENTITY: AssignedIdentity = AssignedIdentity([
 ]);
 const MAX_ENCODED_BYTES: usize = 544;
 const RESOURCE_IDS: [u16; 3] = [0, 1, 2];
-const MAXIMA: AssignedPlanMaxima = AssignedPlanMaxima {
-    encoded_bytes: MAX_ENCODED_BYTES as u16,
-    runtime_state_bytes: 192,
-    counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2],
-};
+const MAXIMA: AssignedPlanMaxima = AssignedPlanMaxima::SINGLE_SOURCE;
 const EXACT_COUNTS: [u8; 12] = [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2];
 
 pub type ValidatedContactPlan = AssignedSingleSourceView;
