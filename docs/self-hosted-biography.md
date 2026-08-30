@@ -1,28 +1,29 @@
 # Body biography: Crèche to Patchbay
 
-Conduit’s interactive book is not a disposable tour. It is the beginning of a Body’s own biography.
+Conduit’s Book explains how meaning can outlive and span the machines realizing it. A separate Crèche births and provisions Bodies. A Body's biography begins with durable Body evidence, not with opening documentation.
 
 ## Product rule
 
-A new Body is created through the book. The first page births the Body, gives it a durable identity, chooses its initial program, and assigns a human-friendly mutable name. Every page after that teaches Conduit by changing that same Body.
+A new Body is created through the independently invokable **Crèche**. The Book's opening explains the Body and birth ideas and links into that same Crèche, but the Book remains readable without creating, attaching to, or mutating a Body.
 
-The temporary environment that performs this guided birth is the **Crèche**. The Crèche helps create, provision, explain, and observe a new Body, but it is not part of the Body's identity and is never authoritative lifecycle state.
+The Crèche helps create, provision, explain, and observe a new Body, but it is not part of the Body's identity and is never authoritative lifecycle state. Book launch and direct launch enter the same Crèche workflow.
 
 The Crèche is temporary by design. Its normal successor is **Patchbay**.
 
-The product journey therefore has three phases:
+The product journey therefore has four phases:
 
-1. **Guided birth in the Crèche** — early pages explain each action while the Body acquires its first Hosts, capabilities, Plans, and Plays.
-2. **Graduation to Patchbay** — once the Body is independently viable, the Crèche offers to place Patchbay on the Body or finish without keeping a hosted management surface.
-3. **Ongoing biography** — Patchbay, or another compatible reader later, projects readable Body history from durable evidence. The original Crèche session is no longer required.
+1. **Read the Book, optionally** — understand why Conduit exists and follow an explicit handoff when ready to create a Body.
+2. **Guided birth in the Crèche** — the transient wizard explains each action while the Body acquires its first Hosts and capabilities.
+3. **Graduation from the Crèche** — once the Body is independently viable, the Crèche may place Patchbay on the Body or finish without a hosted management surface.
+4. **Ongoing biography** — Patchbay, or another compatible reader, projects readable Body history from durable evidence. Neither the Book nor original Crèche session is required.
 
 ## Narrative rule
 
-The book should introduce terminology only when the Body encounters the problem that terminology solves. The birth page needs only Conduit, program, Body, name, and birth. Hosts, Boots, capabilities, implementations, Plans, Plays, Signs, wake/lull, and other concepts are introduced as the Body acquires them.
+The Book should introduce terminology only when the reader encounters the problem that terminology solves. Its opening needs only Conduit, Body, and birth. The Crèche introduces program, name, and lifecycle actions when the reader chooses to create a Body.
 
 The reader should always be able to answer two questions:
 
-- **What changed in this Body on this page?**
+- **What problem or Body transition is this page explaining?**
 - **Why did Conduit need this concept?**
 
 ## Birth a Body
@@ -31,19 +32,19 @@ Conduit lets you build one computer out of several devices. The devices can be v
 
 We call a collection of devices working together as one computer a **Body**.
 
-The birth page must:
+The Crèche birth step must:
 
-- choose an initial program, beginning with **Morse Network** for the book;
+- choose an initial program, beginning with **Morse Network** for the Crèche;
 - generate a friendly default name and allow editing before birth;
 - create a durable Body identity distinct from that mutable name;
 - birth the Body in its initial LULLED state;
-- carry that same Body through every subsequent page.
+- retain that same Body independently of Book navigation or closure.
 
 A friendly-name generator such as the Rust `petname` crate is a good fit. Generated names are labels, never Body identity.
 
 ## The biography is stateful
 
-Navigation changes presentation state. It does not recreate lifecycle truth. Returning to an earlier page must project the same Body and the same evidence that already exists.
+Crèche navigation changes transient wizard state. Book navigation changes documentation state. Neither recreates lifecycle truth. Returning to an earlier Crèche step must project the same Body and evidence that already exists; reopening the Book must not create or reset either.
 
 The biography should eventually be derivable from durable Body evidence. Guided prose may explain why an event matters, but lifecycle facts must come from the Body rather than from page-local fiction.
 
@@ -102,8 +103,8 @@ The book should gradually change voice:
 - graduation: **“Your Body can now continue without the Crèche. Would you like it to host Patchbay?”**
 - later in Patchbay: **“On August 29, this Body replanned after the browser Host departed.”**
 
-There is no hard boundary between tutorial and history. The instructional voice recedes as the Body becomes established, and Patchbay inherits the continuing biography projection after graduation.
+There is a deliberate ownership boundary between documentation and history. The Book teaches; the Crèche bootstraps; Patchbay or another compatible reader projects continuing biography after graduation.
 
 ## Migration principle
 
-Do not preserve `tour` as the conceptual owner and merely rename headings. Move ownership toward a Body-scoped biography projection. Existing executable-book machinery can be reused inside the temporary Crèche, but durable management belongs in Patchbay and durable lifecycle truth belongs to the Body.
+Do not preserve `tour` or the Book as lifecycle owner and merely rename headings. Stateful bootstrap machinery belongs to the Crèche, durable management belongs in Patchbay, and durable lifecycle truth belongs to the Body.

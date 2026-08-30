@@ -1,7 +1,4 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
-import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
-import { createPhysicalHostRunner } from "./creche-physical.mjs";
-import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -31,7 +28,7 @@ try {
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
-  guidedPages = parseCrechePages(chapters);
+  guidedPages = parseBookPages(chapters);
   renderPage(0);
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
@@ -52,18 +49,11 @@ function requireBookAbi(api) {
     "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
     "conduit_book_multi_start_sink",
     "conduit_book_multi_ingest", "conduit_book_multi_complete", "conduit_book_multi_cancel",
-    "conduit_creche_input_ptr", "conduit_creche_input_capacity",
-    "conduit_creche_output_ptr", "conduit_creche_output_len",
-    "conduit_creche_admit_source_interaction", "conduit_creche_birth",
-    "conduit_creche_current", "conduit_creche_biography", "conduit_creche_attach_here",
-    "conduit_creche_graduation_readiness", "conduit_creche_graduate",
-    "conduit_creche_prepare_selected_physical_spore",
-    "conduit_creche_admit_physical_spore",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
 
-function parseCrechePages(chapters) {
+function parseBookPages(chapters) {
   const parsed = [];
   let current = [];
   for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
@@ -74,7 +64,7 @@ function parseCrechePages(chapters) {
     if (line.startsWith("# ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length === 0) throw new Error("the Crèche has no guided pages");
+  if (parsed.length === 0) throw new Error("the Book has no pages");
   return parsed;
 }
 
@@ -83,51 +73,21 @@ function renderPage(index) {
   currentPage = index;
   runnerCount = 0;
   chapter.replaceChildren();
-  chapter.append(createCrecheBodyContext());
   renderMarkdown(guidedPages[index]);
   chapter.append(createNavigation());
-  document.title = (chapter.querySelector("h1")?.textContent ?? "The Crèche") + " · The Crèche";
-}
-
-function createCrecheBodyContext() {
-  const context = document.createElement("aside");
-  context.className = "creche-body-context";
-  context.setAttribute("aria-label", "Current Body in the Crèche");
-  const body = readBodyProjection(host.runtime);
-  if (!body) {
-    context.innerHTML = "<strong>Crèche</strong><span>No Body has been born yet.</span>";
-    return context;
-  }
-  const name = document.createElement("strong");
-  name.textContent = body.friendly_name;
-  const identity = document.createElement("code");
-  identity.textContent = body.body_id;
-  const state = document.createElement("span");
-  state.textContent = `${body.state} · ${body.raw_membership.parts.length} admitted Part${body.raw_membership.parts.length === 1 ? "" : "s"}`;
-  context.append(name, identity, state);
-  return context;
+  document.title = (chapter.querySelector("h1")?.textContent ?? "The Book") + " · The Book";
 }
 
 function createNavigation() {
   const navigation = document.createElement("nav");
-  navigation.className = "creche-navigation";
-  navigation.setAttribute("aria-label", "Guided Crèche pages");
+  navigation.className = "book-navigation";
+  navigation.setAttribute("aria-label", "Book pages");
   const progress = document.createElement("span");
-  progress.className = "creche-progress";
+  progress.className = "book-progress";
   progress.textContent = "Page " + (currentPage + 1) + " of " + guidedPages.length;
   const previous = navigationButton("Previous", currentPage === 0, () => renderPage(currentPage - 1));
-  const reset = navigationButton("Reset this page", false, () => {
-    for (const key of sourceDrafts.keys()) {
-      if (key.startsWith(currentPage + ":")) sourceDrafts.delete(key);
-    }
-    renderPage(currentPage);
-  });
-  const revisitBirth = navigationButton("Revisit birth page", false, () => {
-    sourceDrafts.clear();
-    renderPage(0);
-  });
   const next = navigationButton("Next", currentPage === guidedPages.length - 1, () => renderPage(currentPage + 1));
-  navigation.append(progress, previous, reset, revisitBirth, next);
+  navigation.append(progress, previous, next);
   return navigation;
 }
 
@@ -141,7 +101,7 @@ function navigationButton(label, disabled, action) {
 }
 
 function setNavigationDisabled(disabled) {
-  for (const button of chapter.querySelectorAll(".creche-navigation button")) {
+  for (const button of chapter.querySelectorAll(".book-navigation button")) {
     button.disabled = disabled || (
       (button.textContent === "Previous" && currentPage === 0)
       || (button.textContent === "Next" && currentPage === guidedPages.length - 1)
@@ -164,21 +124,9 @@ function renderMarkdown(markdown) {
     const line = lines[index];
     if (line === "```conduit birth") {
       flush();
-      const source = [];
       index += 1;
-      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      runnerCount += 1;
-      const sourceKey = currentPage + ":" + runnerCount;
-      chapter.append(createBodyBirthRunner({
-        source: source.join("\n"),
-        sourceKey,
-        listingId: runnerCount === 1 ? "listing" : `listing-${runnerCount}`,
-        host,
-        draft: sourceDrafts.get(sourceKey),
-        onDraft: (value) => sourceDrafts.set(sourceKey, value),
-        nextSequence: () => ++generation,
-        onBodyChanged: refreshCrecheBodyContext,
-      }));
+      while (index < lines.length && lines[index] !== "```") index += 1;
+      chapter.append(createCrecheCallToAction());
       copy = appendCopy();
     } else if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
       flush();
@@ -217,28 +165,15 @@ function renderMarkdown(markdown) {
       copy = appendCopy();
     } else if (line === "<!-- conduit-physical-host -->") {
       flush();
-      chapter.append(createPhysicalHostRunner({ host }));
+      chapter.append(createCrecheCallToAction("Add a physical Host in the Crèche"));
       copy = appendCopy();
     } else if (line === "<!-- conduit-first-host -->") {
       flush();
-      chapter.append(createFirstHostRunner({
-        host,
-        nextSequence: () => {
-          const admissionSequence = ++generation;
-          generation += 1;
-          return admissionSequence;
-        },
-        onBodyChanged: refreshCrecheBodyContext,
-      }));
+      chapter.append(createCrecheCallToAction("Admit a first Host in the Crèche"));
       copy = appendCopy();
     } else if (line === "<!-- conduit-graduation -->") {
       flush();
-      chapter.append(createGraduationRunner({
-        host,
-        nextSequence: () => ++generation,
-        onBodyChanged: refreshCrecheBodyContext,
-        onEnd: renderCrecheComplete,
-      }));
+      chapter.append(createCrecheCallToAction("Open graduation in the Crèche"));
       copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();
@@ -266,27 +201,16 @@ function appendCopy() {
   return copy;
 }
 
-function refreshCrecheBodyContext() {
-  chapter.querySelector(".creche-body-context")?.replaceWith(createCrecheBodyContext());
-}
-
-function renderCrecheComplete(receipt, biography) {
-  chapter.replaceChildren();
-  const complete = document.createElement("section");
-  complete.className = "creche-complete";
-  const heading = document.createElement("h1");
-  heading.textContent = "The Body continues";
-  const copy = document.createElement("p");
-  copy.textContent = "The Crèche has ended. Its presentation is gone; the same Body and its graduation evidence remain in the runtime.";
-  const identity = document.createElement("code");
-  identity.textContent = receipt.body_id;
-  const durable = document.createElement("section");
-  durable.className = "body-biography compatible-reader";
-  durable.setAttribute("aria-label", "Body biography");
-  durable.innerHTML = "<h2>Body biography · compatible reader</h2><ol></ol>";
-  renderBiography(durable, biography);
-  complete.append(heading, copy, identity, durable);
-  chapter.append(complete);
+function createCrecheCallToAction(label = "Birth a Body") {
+  const callout = document.createElement("aside");
+  callout.className = "creche-handoff";
+  const explanation = document.createElement("p");
+  explanation.textContent = "The Book explains the idea. The Crèche owns the stateful birth and provisioning workflow.";
+  const link = document.createElement("a");
+  link.href = "../creche/";
+  link.textContent = label;
+  callout.append(explanation, link);
+  return callout;
 }
 
 function createRealizationComparison(source) {
