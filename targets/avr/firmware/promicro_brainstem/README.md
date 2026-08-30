@@ -1,101 +1,27 @@
-# Pete Pro Micro Brainstem firmware
+# Pro Micro target adapter
 
-Issue #1926 owns this target. The exact initial board is a SparkFun Pro Micro,
-ATmega32U4 5 V / 16 MHz, identified by application USB PID `0x9206`.
+Issue #1926 owns this target. The board is a SparkFun Pro Micro,
+ATmega32U4 5 V / 16 MHz, with application USB PID `0x9206`.
 
-The initial image is intentionally non-actuating. It provides a bounded native
-USB CDC identity/status seam while keeping the hardware UART uninitialized and
-its RX/TX pins high impedance. It contains no Create OI command bytes, motion
-operation, automatic retry, or UART discovery. USB enumeration alone does not
-establish a Host/Boot, Create attachment, authority, or physical communication
-claim.
+This directory is not a second Brainstem runtime. The checked image is a
+transmitter-disabled target adapter awaiting installation of an ordinary
+Conduit `AssignedPlan`. It does not advertise offers, bind Boots, invent Play
+or authority identities, schedule obligations, or execute a private HIL model.
 
-Host tests live outside this sketch directory. Arduino compiles every `.cpp`
-beside an `.ino`; placing a test `main()` here would replace the Arduino core
-entry and would produce a test executable rather than the claimed firmware.
+Board facts are deliberately small:
 
-Do not flash or open CDC while the Create is attached until the operator has
-confirmed it is stopped, attended, and physically unable to propel itself. A
-later physical slice must separately qualify the exact electrical attachment,
-legacy bytes, finite authority, cleanup, and HIL proof.
+- D0/PD2/RX1 receives Create UART from cargo-bay pin 2.
+- D1/PD3/TX1 transmits Create UART to cargo-bay pin 1.
+- D4/PD4 reaches the Create power-toggle input on cargo-bay pin 3.
+- D5/PC6 observes the Create charging output on cargo-bay pin 13.
+- UART framing is Create 1 OI v2 at 57,600 baud, 8N1.
 
-The compiled-disabled codec is checked against `conduit-create-oi` and the
-pinned Netherwick Brainstem revision
-`f43ff13846b47b05e133d0321bdbaafffd1bcdbe`. The valid legacy vectors retain
-Create 1 ordering and masks; broader historical LED input bits are deliberately
-masked to the Create 1 PLAY/ADVANCE contract already established by Conduit.
+At boot and throughout the uninstalled maintenance loop, UART TX and the power
+toggle are inputs. `HELLO`, `STATUS`, and `ATTEST` inspect the target and build;
+they are not a Conduit Host lifecycle or execution protocol.
 
-The assigned-obligation slot stores only one exact plan-fragment/operation
-identity and its finite group-0 request, response, deadline, and disposition.
-It is not a Body graph, planner, scheduler, UART authority, or retry policy.
-
-The USB CDC command grammar is newline-terminated, uppercase, and bounded to 64
-bytes. Numeric fields are fixed-width canonical hexadecimal; lowercase, missing
-fields, extra fields, carriage returns, and noncanonical separators are
-malformed rather than normalized:
-
-```text
-B HHHHHHHH:BBBBBBBB:GGGGGGGG
-A HHHHHHHH:BBBBBBBB:GGGGGGGG:FFFFFFFF:OOOO:PPPPPPPP:AAAAAAAA
-```
-
-`B` binds the Host (`H`), current Boot (`B`), and offer generation (`G`) in
-RAM. `A` admits an observation activation for that same placement plus Plan
-fragment (`F`), operation (`O`), active Play (`P`), and authority grant (`A`).
-Replies echo every identity for exact post-flash verification. Even an admitted
-activation reports `execution=disabled create_uart=isolated`; this seam does
-not authorize or perform Create I/O.
-
-`cargo xtask avr build` produces the transmitter-free `isolated` profile.
-`cargo xtask avr build --create-hil --receipt
-target/avr-promicro/build-hil-receipt.json` separately compiles the bounded
-`create-hil` executor. Both profiles boot with `Serial1` ended and pins 0/1 as
-high-impedance inputs. Boot binding and activation do not enable the UART.
-
-`create_attachment.h` is the single compiled attachment contract. Pro Micro
-TXO (Arduino D1, ATmega32U4 PD3/TX1) crosses to Create 1 Mini-DIN RXD pin 3;
-Create Mini-DIN TXD pin 4 crosses to Pro Micro RXI (Arduino D0,
-ATmega32U4 PD2/RX1); Mini-DIN ground pin 6 or 7 joins Pro Micro ground. The
-link is 57,600 baud, 8 data bits, no parity, 1 stop bit, and no flow control.
-Mini-DIN Vpwr pins 1/2 and BRC pin 5 remain disconnected in this initial
-attachment.
-
-The named board and Create interface are both 5 V TTL, so an exact physically
-qualified direct interface is permitted; a qualified buffered 5 V TTL
-interface is also permitted. A vague level-shifter claim is not qualification.
-Before a transmitter-bearing flash or observation, `cargo xtask` requires a
-JSON `conduit.avr-promicro/create1-attachment-qualification@1` receipt bound to
-the current source and contract. It records the exact harness/interface and
-measurement-instrument identities, measured Pro Micro VCC and Create TX idle
-voltage, common-ground resistance, crossed pin continuity, disconnected Vpwr
-and BRC, and high-impedance boot/terminal disposition. Compilation does not
-create that physical receipt.
-
-The HIL-only execution frame is:
-
-```text
-O FFFFFFFF:OOOO:DDDD
-```
-
-It repeats the exact admitted Plan fragment (`F`) and operation (`O`) and gives
-one finite deadline in milliseconds (`D`, at most 2000). Only the matching HIL
-profile can then initialize `57600 8N1`, emit the pinned Netherwick cold
-observation bytes `128,132,142,0`, consume at most 26 group-zero response bytes,
-and restore high impedance on every terminal path. There are no retries, baud
-scans, motion commands, or automatic executions. Compiling this path is not an
-electrical qualification or permission to flash/run it against the Create.
-
-Every repository-owned build embeds a deterministic 64-digit build identity
-derived from the source commit, the SHA-256 of every compiled `.ino` and `.h`,
-image profile, target, and pinned Arduino toolchain identities. `ATTEST` returns
-that build identity, source commit, source digest, and profile. The build
-receipt binds those same facts to the final HEX SHA-256;
-firmware does not make the impossible claim that its bytes contain their own
-self-referential digest.
-
-`OFFER` refuses before exact Boot binding. The transmitter-free `isolated`
-image then truthfully returns an empty offer set. The `create-hil` image returns
-exactly one boot-scoped `robotics/create-group-zero-observation@1` offer bound
-to the embedded build identity, one operation slot, 26 response bytes, and a
-2,000 ms maximum deadline. An offer is not activation or authority and does not
-enable the isolated Create UART.
+The executable image must consume the generic compact `AssignedPlan` defined
+by `conduit-core`, derived by the ordinary checker/planner/lowering path. If
+AVR C++ cannot compile the shared Rust `conduit-create-oi` crate, board-local
+bytes must be generated or conformance-locked to that crate rather than
+defining another Create semantic API here.

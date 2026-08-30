@@ -39,13 +39,6 @@ fn flash_refuses_alias_or_wrong_device_and_malformed_digest() {
 }
 
 #[test]
-fn transmitter_bearing_flash_requires_attachment_qualification() {
-    assert!(validate_attachment_requirement(true, None).is_err());
-    assert!(validate_attachment_requirement(true, Some(Path::new("qualification.json"))).is_ok());
-    assert!(validate_attachment_requirement(false, None).is_ok());
-}
-
-#[test]
 fn upload_port_is_one_exact_kernel_acm_endpoint() {
     validate_upload_port(Path::new("/dev/ttyACM0")).unwrap();
     validate_upload_port(Path::new("/dev/ttyACM17")).unwrap();
