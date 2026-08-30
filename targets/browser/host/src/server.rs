@@ -10,6 +10,12 @@ const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.m
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
+const RP2040_DEPLOYMENT: &[u8] = include_bytes!("../../../rp2040/browser-deployment/index.mjs");
+const RP2040_DEPLOYMENT_ORCHESTRATOR: &[u8] =
+    include_bytes!("../../../rp2040/browser-deployment/deployment.mjs");
+const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../rp2040/browser-deployment/picoboot.mjs");
+const RP2040_UF2: &[u8] = include_bytes!("../../../rp2040/browser-deployment/uf2.mjs");
+const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../rp2040/browser-deployment/bootsel.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/book-lifecycle.mjs");
@@ -123,6 +129,25 @@ impl BrowserHostServer {
             }
             Some("GET /usb-device-base.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", USB_DEVICE_BASE)
+            }
+            Some("GET /targets/rp2040/browser-deployment/index.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                RP2040_DEPLOYMENT,
+            ),
+            Some("GET /targets/rp2040/browser-deployment/deployment.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                RP2040_DEPLOYMENT_ORCHESTRATOR,
+            ),
+            Some("GET /targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", RP2040_PICOBOOT)
+            }
+            Some("GET /targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", RP2040_UF2)
+            }
+            Some("GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", RP2040_BOOTSEL)
             }
             Some("GET /runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())

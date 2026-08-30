@@ -204,6 +204,12 @@ fn authority_configuration_and_bounds_refuse_without_mutation() {
         session.seal_acquisition(PlanId::from("p"), &offer(), Some(&authority()), invalid),
         Err(BrowserUsbRefusal::InvalidBounds)
     );
+    let mut invalid = request();
+    invalid.transfer_bounds.maximum_out_transfers = MAXIMUM_USB_TRANSFERS + 1;
+    assert_eq!(
+        session.seal_acquisition(PlanId::from("p"), &offer(), Some(&authority()), invalid),
+        Err(BrowserUsbRefusal::InvalidBounds)
+    );
     assert_eq!(session.phase(), &BrowserUsbPhase::OfferAvailable);
 }
 
