@@ -1,6 +1,14 @@
 [build]
 target = "avr-atmega32u4.json"
-rustflags = ["--cfg", "avr_hal_asm_macro", "-D", "warnings"]
+rustflags = [
+    "--cfg",
+    "avr_hal_asm_macro",
+    "-D",
+    "warnings",
+    "-C",
+    "link-arg=-Wl,--relax",
+]
 
 [unstable]
 build-std = ["core"]
+build-std-features = ["panic_immediate_abort"]

@@ -5,13 +5,13 @@ use usb_device::{
     descriptor::lang_id::LangID,
     device::{StringDescriptors, UsbDevice, UsbDeviceBuilder, UsbVidPid},
 };
-use usbd_serial::{SerialPort, USB_CLASS_CDC};
+use usbd_serial::{CdcAcmClass, USB_CLASS_CDC};
 
 type Bus = AvrGenericUsbBus<pac::PLL>;
 
 pub struct UsbLine {
     device: UsbDevice<'static, Bus>,
-    serial: SerialPort<'static, Bus>,
+    serial: CdcAcmClass<'static, Bus>,
 }
 
 impl UsbLine {
@@ -29,11 +29,10 @@ impl UsbLine {
             BUS.write(AvrGenericUsbBus::with_suspend_notifier(usb, pll));
             &*BUS.as_ptr()
         };
-        let serial = SerialPort::new(bus);
-        let strings = StringDescriptors::new(LangID::EN)
-            .manufacturer("SparkFun")
-            .product("SparkFun Pro Micro")
-            .serial_number(boot_serial);
+        // The Host protocol is already finitely framed, so use the lower-level
+        // packet CDC class instead of adding another pair of stream buffers.
+        let serial = CdcAcmClass::new(bus, 64);
+        let strings = StringDescriptors::new(LangID::EN).serial_number(boot_serial);
         let device = UsbDeviceBuilder::new(bus, UsbVidPid(0x1b4f, 0x9206))
             .strings(&[strings])
             .unwrap()
@@ -47,11 +46,11 @@ impl UsbLine {
     }
 
     pub fn read(&mut self, bytes: &mut [u8]) -> usb_device::Result<usize> {
-        self.serial.read(bytes)
+        self.serial.read_packet(bytes)
     }
 
     pub fn write(&mut self, bytes: &[u8]) -> usb_device::Result<usize> {
-        self.serial.write(bytes)
+        self.serial.write_packet(bytes)
     }
 }
 

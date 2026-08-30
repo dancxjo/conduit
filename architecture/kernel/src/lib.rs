@@ -20,7 +20,10 @@ pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
 pub mod state_delay;
+mod single_source;
 pub mod static_merge;
+
+pub use single_source::*;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]

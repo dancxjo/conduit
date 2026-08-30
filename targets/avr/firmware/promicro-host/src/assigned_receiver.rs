@@ -1,11 +1,17 @@
 use conduit_assigned_plan::{
-    decode_assigned_plan, AssignedIdentity, AssignedPlanMaxima, AssignedPlanRefusal,
-    AssignedPlanRequirements, AssignedPlanView, ASSIGNED_HOST_OPERATION, ASSIGNED_PLAN_HEADER_BYTES,
-    ASSIGNED_RESOURCE,
+    decode_assigned_single_source, AssignedIdentity, AssignedPlanMaxima, AssignedPlanRefusal,
+    AssignedSingleSourceRequirements, AssignedSingleSourceView, ASSIGNED_PLAN_HEADER_BYTES,
 };
 
-pub const HOST_ID: &str = "host/avr-promicro/create1";
 pub const CONTACT_OPERATION: &str = "pete.host/create1-observe-contact@1";
+pub const HOST_IDENTITY: AssignedIdentity = AssignedIdentity([
+    0xb8, 0xe0, 0x1c, 0x63, 0xb5, 0x99, 0x17, 0x31, 0x79, 0x49, 0xaf, 0x70, 0x80, 0xbd,
+    0xe0, 0x01,
+]);
+const CONTACT_OPERATION_IDENTITY: AssignedIdentity = AssignedIdentity([
+    0x1f, 0x0a, 0x63, 0xdc, 0x4d, 0x76, 0x71, 0x9c, 0x37, 0x09, 0x52, 0x83, 0xca, 0xad,
+    0xdc, 0x91,
+]);
 const MAX_ENCODED_BYTES: usize = 544;
 const RESOURCE_IDS: [u16; 3] = [0, 1, 2];
 const MAXIMA: AssignedPlanMaxima = AssignedPlanMaxima {
@@ -13,6 +19,9 @@ const MAXIMA: AssignedPlanMaxima = AssignedPlanMaxima {
     runtime_state_bytes: 192,
     counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2],
 };
+const EXACT_COUNTS: [u8; 12] = [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2];
+
+pub type ValidatedContactPlan = AssignedSingleSourceView;
 
 pub struct AssignedReceiver {
     bytes: [u8; MAX_ENCODED_BYTES],
@@ -37,6 +46,7 @@ impl AssignedReceiver {
         }
     }
 
+    #[inline(never)]
     pub fn push(&mut self, input: &[u8]) -> Result<Option<&[u8]>, ReceiveRefusal> {
         let new_len = self
             .len
@@ -59,25 +69,41 @@ impl AssignedReceiver {
         }
     }
 
+    #[inline(never)]
     pub fn validate(
         &self,
         host: AssignedIdentity,
         boot: AssignedIdentity,
-    ) -> Result<AssignedPlanView, ReceiveRefusal> {
+    ) -> Result<ValidatedContactPlan, ReceiveRefusal> {
         let bytes = self.complete_bytes()?;
-        let operation = exact_inventory(bytes)?;
-        decode_assigned_plan(
+        let plan = decode_assigned_single_source(
             bytes,
             MAXIMA,
-            AssignedPlanRequirements {
+            AssignedSingleSourceRequirements {
                 host,
                 boot,
-                operations: core::slice::from_ref(&operation),
+                counts: EXACT_COUNTS,
+                operation: CONTACT_OPERATION_IDENTITY,
                 resources: &RESOURCE_IDS,
-                remote_bindings: &[],
             },
         )
-        .map_err(ReceiveRefusal::Assigned)
+        .map_err(ReceiveRefusal::Assigned)?;
+        if plan.maximum_step_work < 3
+            || plan.maximum_output_bytes != 1
+            || plan.output_port != 0
+        {
+            return Err(ReceiveRefusal::UnsupportedInventory);
+        }
+        Ok(plan)
+    }
+
+    pub fn bytes(&self) -> Result<&[u8], ReceiveRefusal> {
+        self.complete_bytes()
+    }
+
+    pub fn reset(&mut self) {
+        self.len = 0;
+        self.expected = None;
     }
 
     fn complete_bytes(&self) -> Result<&[u8], ReceiveRefusal> {
@@ -86,52 +112,4 @@ impl AssignedReceiver {
             _ => Err(ReceiveRefusal::InvalidLength),
         }
     }
-}
-
-fn exact_inventory(bytes: &[u8]) -> Result<AssignedIdentity, ReceiveRefusal> {
-    let supported = AssignedIdentity::from_text(CONTACT_OPERATION);
-    let mut operation = None;
-    let mut resources = [false; RESOURCE_IDS.len()];
-    let mut cursor = ASSIGNED_PLAN_HEADER_BYTES;
-    while cursor < bytes.len() {
-        let tag = *bytes.get(cursor).ok_or(ReceiveRefusal::InvalidLength)?;
-        let length = usize::from(u16::from_le_bytes([
-            *bytes.get(cursor + 1).ok_or(ReceiveRefusal::InvalidLength)?,
-            *bytes.get(cursor + 2).ok_or(ReceiveRefusal::InvalidLength)?,
-        ]));
-        let start = cursor + 3;
-        let end = start
-            .checked_add(length)
-            .filter(|end| *end <= bytes.len())
-            .ok_or(ReceiveRefusal::InvalidLength)?;
-        if tag == ASSIGNED_HOST_OPERATION {
-            let identity: [u8; 16] = bytes
-                .get(start + 4..start + 20)
-                .ok_or(ReceiveRefusal::InvalidLength)?
-                .try_into()
-                .map_err(|_| ReceiveRefusal::InvalidLength)?;
-            let identity = AssignedIdentity(identity);
-            if operation.replace(identity).is_some() || identity != supported {
-                return Err(ReceiveRefusal::UnsupportedInventory);
-            }
-        } else if tag == ASSIGNED_RESOURCE {
-            let id = u16::from_le_bytes([
-                *bytes.get(start + 2).ok_or(ReceiveRefusal::InvalidLength)?,
-                *bytes.get(start + 3).ok_or(ReceiveRefusal::InvalidLength)?,
-            ]);
-            let index = RESOURCE_IDS
-                .iter()
-                .position(|expected| *expected == id)
-                .ok_or(ReceiveRefusal::UnsupportedInventory)?;
-            if resources[index] {
-                return Err(ReceiveRefusal::UnsupportedInventory);
-            }
-            resources[index] = true;
-        }
-        cursor = end;
-    }
-    if !resources.iter().all(|present| *present) {
-        return Err(ReceiveRefusal::UnsupportedInventory);
-    }
-    operation.ok_or(ReceiveRefusal::UnsupportedInventory)
 }
