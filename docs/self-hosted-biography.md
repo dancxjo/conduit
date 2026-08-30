@@ -18,14 +18,14 @@ The product journey therefore has three phases:
 
 ## Narrative rule
 
-The book should introduce terminology only when the Body encounters the problem that terminology solves. Step 0 needs only Conduit, program, Body, name, and birth. Hosts, Boots, capabilities, implementations, Plans, Plays, Signs, wake/lull, and other concepts are introduced as the Body acquires them.
+The book should introduce terminology only when the Body encounters the problem that terminology solves. The birth page needs only Conduit, program, Body, name, and birth. Hosts, Boots, capabilities, implementations, Plans, Plays, Signs, wake/lull, and other concepts are introduced as the Body acquires them.
 
 The reader should always be able to answer two questions:
 
 - **What changed in this Body on this page?**
 - **Why did Conduit need this concept?**
 
-## Step 0: Birth a Body
+## Birth a Body
 
 Conduit lets you build one computer out of several devices. The devices can be very different from one another: a browser, a laptop, a Raspberry Pi, a microcontroller, or anything, really.
 

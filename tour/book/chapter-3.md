@@ -1,4 +1,4 @@
-# Step 6 — Same Face, different implementation
+# Same Face, different implementation
 
 A large Host may already have an efficient native implementation of text/morse. A minimal Host should not need to grow an operating-system primitive for every useful high-level Gear merely to understand the same Form.
 
