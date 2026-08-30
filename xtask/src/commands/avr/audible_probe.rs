@@ -1,4 +1,4 @@
-//! One bounded motion-free audible TX then telemetry RX hardware diagnostic.
+//! One bounded motion-free Create battery telemetry hardware diagnostic.
 
 use std::{
     io::{ErrorKind, Read, Write},
@@ -50,8 +50,12 @@ struct AudibleProbeReceipt {
     boot_id: String,
     stage: u8,
     result: u8,
-    observed_oi_mode: Option<u8>,
-    contact_body_sectors: Option<u8>,
+    charging_state: Option<u8>,
+    millivolts: Option<u16>,
+    milliamps: Option<i16>,
+    temperature_celsius: Option<i8>,
+    charge_mah: Option<u16>,
+    capacity_mah: Option<u16>,
     uart_baud: u32,
     transmitted_program: &'static str,
     motion_opcode_admitted: bool,
@@ -94,20 +98,23 @@ pub(super) fn run(
     let mut device = open_nonblocking(&runtime.path)?;
     write_trigger(&mut device, Duration::from_secs(2))?;
     let report = read_report(&mut device, Duration::from_secs(5))?;
-    let completed = report[1] == 0 && report[2] == 3;
+    let completed = report[1] == 0;
     let receipt = AudibleProbeReceipt {
-        schema: "conduit.avr-promicro/audible-uart-probe@1",
+        schema: "conduit.avr-promicro/battery-uart-probe@1",
         outcome: if completed { "completed" } else { "failed" },
         proof_class: "physical-motion-free-create-uart-hil",
         artifact_sha256: built.artifact_sha256,
         boot_id: runtime.boot_id,
         stage: report[1],
         result: report[2],
-        observed_oi_mode: completed.then_some(report[2]),
-        contact_body_sectors: completed.then_some(report[3]),
-        uart_baud: 19_200,
-        transmitted_program:
-            "shared-create1-start-full-define-song-play-song-query-mode-query-group-zero",
+        charging_state: completed.then_some(report[2]),
+        millivolts: completed.then(|| u16::from_le_bytes([report[3], report[4]])),
+        milliamps: completed.then(|| i16::from_le_bytes([report[5], report[6]])),
+        temperature_celsius: completed.then_some(report[7] as i8),
+        charge_mah: completed.then(|| u16::from_le_bytes([report[8], report[9]])),
+        capacity_mah: completed.then(|| u16::from_le_bytes([report[10], report[11]])),
+        uart_baud: 57_600,
+        transmitted_program: "shared-create1-start-wait-query-group-zero",
         motion_opcode_admitted: false,
         create_stopped: args.create_stopped,
         attended: args.attended,
@@ -195,7 +202,7 @@ pub(super) fn build(
         sram_limit: MAX_SRAM_BYTES,
         static_sram_limit: MAX_STATIC_SRAM_BYTES,
         stack_reserve_bytes: STACK_RESERVE_BYTES,
-        create_uart: "bounded-motion-free-audible-tx-then-telemetry-rx-19200-8n1",
+        create_uart: "bounded-motion-free-start-then-group-zero-rx-57600-8n1",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
     Ok(BuiltArtifact {
@@ -208,9 +215,9 @@ pub(super) fn build(
 fn read_report(
     device: &mut std::fs::File,
     timeout: Duration,
-) -> Result<[u8; 4], Box<dyn std::error::Error>> {
+) -> Result<[u8; 12], Box<dyn std::error::Error>> {
     let deadline = Instant::now() + timeout;
-    let mut report = [0_u8; 4];
+    let mut report = [0_u8; 12];
     let mut offset = 0;
     while offset < report.len() {
         if !super::rx_check::wait_ready(device, libc::POLLIN, deadline)? {

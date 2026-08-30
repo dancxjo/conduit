@@ -76,7 +76,7 @@ enum AvrCommand {
     ReceiveOnly(rx_check::RxCheckArgs),
     /// Plan and execute one attended Create contact observation on the AVR Host.
     ObserveContact(observe::ObserveContactArgs),
-    /// Run one attended motion-free audible TX then telemetry RX diagnostic.
+    /// Run one attended motion-free Start then battery telemetry diagnostic.
     AudibleProbe(audible_probe::AudibleProbeArgs),
     /// Flash only after exact artifact, device, and physical gates are supplied.
     Flash {
