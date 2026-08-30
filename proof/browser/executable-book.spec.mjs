@@ -109,13 +109,41 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page.locator(".body-biography li")).toHaveCount(4);
   const durable = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
-    api.conduit_book_body_biography();
-    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+    api.conduit_creche_biography();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
     return JSON.parse(new TextDecoder().decode(bytes));
   });
   expect(durable.body_id).toBe(bodyId);
   expect(durable.schema).toBe("conduit.body/biography-evidence@1");
   expect(responses.some((path) => path.startsWith("/book/") || path.includes("chapter-"))).toBe(false);
+});
+
+test("the standalone Crèche birth controls remain separated at a narrow viewport", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startCreche();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  const runner = page.locator(".body-birth-runner");
+  const [program, name, source, editor] = await Promise.all([
+    runner.getByLabel("Initial program").boundingBox(),
+    runner.getByLabel("Friendly Body name").boundingBox(),
+    runner.locator(".seed-source").boundingBox(),
+    runner.locator(".birth-editor").boundingBox(),
+  ]);
+  for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
+  expect(program.y + program.height).toBeLessThanOrEqual(name.y);
+  expect(name.y + name.height).toBeLessThanOrEqual(source.y);
+  for (const control of [program, name, source]) {
+    expect(control.x).toBeGreaterThanOrEqual(editor.x);
+    expect(control.x + control.width).toBeLessThanOrEqual(editor.x + editor.width);
+  }
+  await runner.locator(".seed-source summary").click();
+  await expect(runner.locator(".seed-source textarea")).toBeVisible();
+  const selectAppearance = await runner.getByLabel("Initial program").evaluate(
+    (element) => getComputedStyle(element).appearance,
+  );
+  expect(selectAppearance).toBe("none");
 });
 
 test("birth keeps its controls and source disclosure in one contained column", async ({ page }) => {
@@ -571,8 +599,8 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   await expect(page.locator(".compatible-reader li")).toHaveCount(4);
   const retained = await page.evaluate(() => {
     const api = globalThis.__conduitBookHost.runtime;
-    api.conduit_book_body_current();
-    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+    api.conduit_creche_current();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
     return JSON.parse(new TextDecoder().decode(bytes));
   });
   expect(retained.body_id).toBe(bodyId);
@@ -580,8 +608,8 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   expect(retained.graduation.patchbay_plan_id).toMatch(/^[0-9a-f]{64}$/);
   const durable = await page.evaluate(() => {
     const api = globalThis.__conduitBookHost.runtime;
-    api.conduit_book_body_biography();
-    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+    api.conduit_creche_biography();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
     return JSON.parse(new TextDecoder().decode(bytes));
   });
   expect(durable.body_id).toBe(bodyId);

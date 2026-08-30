@@ -8,7 +8,7 @@ const SOURCE: &str = r#"form hello-across {
 }"#;
 
 fn prepare_pair() -> ((Session, Output), (Session, Output)) {
-    let interaction = crate::book_runner::interaction::admit_source(SOURCE.as_bytes(), 7).unwrap();
+    let interaction = crate::source_interaction::admit_source(SOURCE.as_bytes(), 7).unwrap();
     let source_plan =
         super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", SOURCE).unwrap();
     let sink_plan = super::plan::accept(source_plan.plan.clone(), "browser/b", "boot/b").unwrap();

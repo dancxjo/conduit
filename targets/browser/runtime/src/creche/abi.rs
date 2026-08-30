@@ -1,5 +1,5 @@
 use super::{session, spore};
-use crate::book_runner::interaction::SourceInteractionEvidence;
+use crate::source_interaction::SourceInteractionEvidence;
 use std::cell::RefCell;
 
 const INPUT_BYTES: usize = 8 * 1_024;
@@ -22,27 +22,27 @@ thread_local! {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_input_ptr() -> usize {
+pub extern "C" fn conduit_creche_input_ptr() -> usize {
     INPUT.with(|input| input.borrow_mut().as_mut_ptr() as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_input_capacity() -> usize {
+pub extern "C" fn conduit_creche_input_capacity() -> usize {
     INPUT_BYTES
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_output_ptr() -> usize {
+pub extern "C" fn conduit_creche_output_ptr() -> usize {
     OUTPUT.with(|output| output.borrow().as_ptr() as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_output_len() -> usize {
+pub extern "C" fn conduit_creche_output_len() -> usize {
     OUTPUT_LEN.with(|length| *length.borrow())
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_admit_source_interaction(
+pub extern "C" fn conduit_creche_admit_source_interaction(
     source_length: usize,
     sequence: u64,
 ) -> i32 {
@@ -53,8 +53,7 @@ pub extern "C" fn conduit_book_body_admit_source_interaction(
     }
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
-        let result =
-            crate::book_runner::interaction::admit_source(&input[..source_length], sequence);
+        let result = crate::source_interaction::admit_source(&input[..source_length], sequence);
         input[..source_length].fill(0);
         match result {
             Ok(evidence) => {
@@ -70,7 +69,7 @@ pub extern "C" fn conduit_book_body_admit_source_interaction(
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_birth(
+pub extern "C" fn conduit_creche_birth(
     host_length: usize,
     boot_length: usize,
     friendly_name_length: usize,
@@ -143,7 +142,7 @@ pub extern "C" fn conduit_book_body_birth(
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_attach_here(
+pub extern "C" fn conduit_creche_attach_here(
     host_length: usize,
     boot_length: usize,
     sequence: u64,
@@ -175,7 +174,7 @@ pub extern "C" fn conduit_book_body_attach_here(
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_current() -> i32 {
+pub extern "C" fn conduit_creche_current() -> i32 {
     clear_output();
     match session::current() {
         Some(receipt) => write_output(&receipt)
@@ -186,7 +185,7 @@ pub extern "C" fn conduit_book_body_current() -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_biography() -> i32 {
+pub extern "C" fn conduit_creche_biography() -> i32 {
     clear_output();
     match session::biography() {
         Some(evidence) => write_output(&evidence)
@@ -197,7 +196,7 @@ pub extern "C" fn conduit_book_body_biography() -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_graduation_readiness() -> i32 {
+pub extern "C" fn conduit_creche_graduation_readiness() -> i32 {
     clear_output();
     match super::graduation::readiness() {
         Ok(receipt) => write_output(&receipt)
@@ -208,7 +207,7 @@ pub extern "C" fn conduit_book_body_graduation_readiness() -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_graduate(choice: u32, sequence: u64) -> i32 {
+pub extern "C" fn conduit_creche_graduate(choice: u32, sequence: u64) -> i32 {
     clear_output();
     match super::graduation::graduate(choice, sequence) {
         Ok(receipt) => write_output(&receipt)
@@ -219,7 +218,7 @@ pub extern "C" fn conduit_book_body_graduate(choice: u32, sequence: u64) -> i32 
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_prepare_physical_spore(now_millis: u64) -> i32 {
+pub extern "C" fn conduit_creche_prepare_physical_spore(now_millis: u64) -> i32 {
     clear_output();
     let entropy = INPUT.with(|input| {
         let mut input = input.borrow_mut();
@@ -237,7 +236,7 @@ pub extern "C" fn conduit_book_body_prepare_physical_spore(now_millis: u64) -> i
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_prepare_selected_physical_spore(
+pub extern "C" fn conduit_creche_prepare_selected_physical_spore(
     digest_length: usize,
     now_millis: u64,
 ) -> i32 {
@@ -263,7 +262,7 @@ pub extern "C" fn conduit_book_body_prepare_selected_physical_spore(
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_body_admit_physical_spore(length: usize) -> i32 {
+pub extern "C" fn conduit_creche_admit_physical_spore(length: usize) -> i32 {
     clear_output();
     if length == 0 || length > INPUT_BYTES {
         return ERROR_INPUT;

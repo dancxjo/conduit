@@ -19,7 +19,7 @@ thread_local! {
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
-    static SOURCE_INTERACTION: RefCell<Option<super::interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
+    static SOURCE_INTERACTION: RefCell<Option<crate::source_interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
 }
 
 #[no_mangle]
@@ -67,7 +67,7 @@ pub extern "C" fn conduit_book_admit_source_interaction(
     }
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
-        let result = super::interaction::admit_source(&input[..source_length], sequence);
+        let result = crate::source_interaction::admit_source(&input[..source_length], sequence);
         input[..source_length].fill(0);
         match result {
             Ok(evidence) => {
@@ -151,12 +151,14 @@ fn start(
                 .map_err(|_| ERROR_INPUT)?;
             let source = core::str::from_utf8(&input[identity_length..total_length])
                 .map_err(|_| ERROR_INPUT)?;
-            let verified_interaction =
-                super::interaction::admit_source(source.as_bytes(), source_interaction.sequence)
-                    .map_err(|message| {
-                        let _ = write_output(&super::refusal(message));
-                        ERROR_INTERACTION
-                    })?;
+            let verified_interaction = crate::source_interaction::admit_source(
+                source.as_bytes(),
+                source_interaction.sequence,
+            )
+            .map_err(|message| {
+                let _ = write_output(&super::refusal(message));
+                ERROR_INTERACTION
+            })?;
             if verified_interaction.proposal_identity != source_interaction.proposal_identity {
                 write_output(&super::refusal(
                     "source changed after typed interaction admission".into(),

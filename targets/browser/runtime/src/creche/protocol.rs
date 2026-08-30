@@ -1,4 +1,4 @@
-use crate::book_runner::interaction::SourceInteractionEvidence;
+use crate::source_interaction::SourceInteractionEvidence;
 use conduit_body::{Body, BodyMembership};
 use serde::Serialize;
 

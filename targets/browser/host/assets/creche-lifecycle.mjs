@@ -7,10 +7,14 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
   runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
     <div class="editor birth-editor">
-      <label class="editor-label" for="body-program">Initial program</label>
-      <select id="body-program" aria-label="Initial program"><option value="morse-network@1">Morse Network</option></select>
-      <label class="editor-label" for="body-friendly-name">Friendly name · editable later</label>
-      <input id="body-friendly-name" maxlength="64" aria-label="Friendly Body name">
+      <div class="birth-field program-field">
+        <label class="editor-label" for="body-program">Initial program</label>
+        <div class="select-field"><select id="body-program" aria-label="Initial program"><option value="morse-network@1">Morse Network</option></select></div>
+      </div>
+      <div class="birth-field name-field">
+        <label class="editor-label" for="body-friendly-name">Friendly name · editable later</label>
+        <input id="body-friendly-name" maxlength="64" aria-label="Friendly Body name">
+      </div>
       <details class="seed-source"><summary>Reviewed program source</summary>
         <label class="editor-label" for="${listingId}">Conduit Seed</label>
         <textarea id="${listingId}" spellcheck="false" aria-label="Conduit Seed source"></textarea>
@@ -58,14 +62,14 @@ function birth(runner, host, friendlyName, initialProgram, source, sequence, onB
   const total = hostBytes.length + bootBytes.length + nameBytes.length + programBytes.length + sourceBytes.length;
   const status = runner.querySelector(".birth-status");
   status.classList.remove("error");
-  if (total > api.conduit_book_body_input_capacity()) {
+  if (total > api.conduit_creche_input_capacity()) {
     status.textContent = "The Seed and exact Host identities exceed the admitted BIRTH input bound.";
     status.classList.add("error");
     return;
   }
-  const input = new Uint8Array(api.memory.buffer, api.conduit_book_body_input_ptr(), total);
+  const input = new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), total);
   input.set(sourceBytes);
-  const admitted = api.conduit_book_body_admit_source_interaction(sourceBytes.length, BigInt(sequence));
+  const admitted = api.conduit_creche_admit_source_interaction(sourceBytes.length, BigInt(sequence));
   if (admitted < 0) {
     renderRefusal(runner, api, admitted);
     return;
@@ -75,7 +79,7 @@ function birth(runner, host, friendlyName, initialProgram, source, sequence, onB
   input.set(nameBytes, hostBytes.length + bootBytes.length);
   input.set(programBytes, hostBytes.length + bootBytes.length + nameBytes.length);
   input.set(sourceBytes, hostBytes.length + bootBytes.length + nameBytes.length + programBytes.length);
-  const code = api.conduit_book_body_birth(
+  const code = api.conduit_creche_birth(
     hostBytes.length,
     bootBytes.length,
     nameBytes.length,
@@ -92,7 +96,7 @@ function birth(runner, host, friendlyName, initialProgram, source, sequence, onB
 }
 
 function readCurrent(api) {
-  const code = api.conduit_book_body_current();
+  const code = api.conduit_creche_current();
   if (code === 1) return null;
   if (code < 0) throw new Error(`current Body projection refused (${code})`);
   return readOutput(api);
@@ -103,7 +107,7 @@ export function readBodyProjection(api) {
 }
 
 function renderRefusal(runner, api, code) {
-  const refusal = api.conduit_book_body_output_len() > 0 ? readOutput(api) : null;
+  const refusal = api.conduit_creche_output_len() > 0 ? readOutput(api) : null;
   const status = runner.querySelector(".birth-status");
   status.textContent = refusal?.message
     ? `BIRTH refused · ${refusal.category}: ${refusal.message}`
@@ -179,10 +183,10 @@ export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
     const api = host.runtime;
     const hostBytes = encoder.encode(host.hostId);
     const bootBytes = encoder.encode(host.bootId);
-    const input = new Uint8Array(api.memory.buffer, api.conduit_book_body_input_ptr(), hostBytes.length + bootBytes.length);
+    const input = new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), hostBytes.length + bootBytes.length);
     input.set(hostBytes);
     input.set(bootBytes, hostBytes.length);
-    const code = api.conduit_book_body_attach_here(hostBytes.length, bootBytes.length, BigInt(nextSequence()));
+    const code = api.conduit_creche_attach_here(hostBytes.length, bootBytes.length, BigInt(nextSequence()));
     if (code < 0) {
       const refusal = readOutput(api);
       const status = runner.querySelector(".host-admission-status");
@@ -222,8 +226,8 @@ function generatedFriendlyName() {
 function readOutput(api) {
   const bytes = new Uint8Array(
     api.memory.buffer,
-    api.conduit_book_body_output_ptr(),
-    api.conduit_book_body_output_len(),
+    api.conduit_creche_output_ptr(),
+    api.conduit_creche_output_len(),
   );
   return JSON.parse(decoder.decode(bytes));
 }

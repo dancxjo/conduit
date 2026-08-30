@@ -50,12 +50,15 @@ p { max-width: 43rem; color: #344139; line-height: 1.65; }
 }
 .editor { position: relative; min-height: 25rem; background: #17221d; }
 .editor-label { position: absolute; top: .8rem; left: 1rem; color: #9fb0a6; font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
-.birth-editor { display: flex; flex-direction: column; gap: .65rem; padding: 1.25rem; }
-.birth-editor .editor-label { position: static; margin-top: .25rem; }
+.birth-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-content: start; padding: 1.25rem; }
+.birth-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; position: relative; }
+.birth-editor .editor-label { position: static; margin: 0; }
 .birth-editor select,
 .birth-editor input { width: 100%; min-height: 2.8rem; border: 1px solid #52655b; border-radius: .55rem; padding: .65rem .75rem; color: #e9f1ec; background: #24342c; font: inherit; }
-.birth-editor select { appearance: auto; }
-.birth-editor .seed-source { margin: .35rem 0 0; border: 1px solid #52655b; border-radius: .65rem; overflow: hidden; color: #c9d7cf; }
+.birth-editor .select-field { position: relative; min-width: 0; }
+.birth-editor .select-field::after { content: ""; position: absolute; right: .9rem; top: 50%; width: .5rem; height: .5rem; border-right: 2px solid #c9d7cf; border-bottom: 2px solid #c9d7cf; transform: translateY(-65%) rotate(45deg); pointer-events: none; }
+.birth-editor .select-field select { appearance: none; padding-right: 2.6rem; }
+.birth-editor .seed-source { position: relative; clear: both; width: 100%; min-width: 0; margin: 0; border: 1px solid #52655b; border-radius: .65rem; overflow: hidden; color: #c9d7cf; }
 .birth-editor .seed-source summary { padding: .8rem; cursor: pointer; }
 .birth-editor .seed-source .editor-label { display: block; padding: 0 .8rem; }
 .birth-editor textarea { height: auto; min-height: 14rem; padding: .8rem; }

@@ -1,6 +1,6 @@
 //! Bounded book ABI effects, receipts, and manifestation decoding.
 
-use super::interaction::SourceInteractionEvidence;
+use crate::source_interaction::SourceInteractionEvidence;
 use conduit_core::{PresentationIdentity, SignIdentity};
 use serde::Serialize;
 
