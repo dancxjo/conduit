@@ -1,5 +1,5 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
-import { createBodyBirthRunner } from "./book-lifecycle.mjs";
+import { createBodyBirthRunner, createFirstHostRunner } from "./book-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./book-physical.mjs";
 
 const encoder = new TextEncoder();
@@ -54,7 +54,7 @@ function requireBookAbi(api) {
     "conduit_book_body_input_ptr", "conduit_book_body_input_capacity",
     "conduit_book_body_output_ptr", "conduit_book_body_output_len",
     "conduit_book_body_admit_source_interaction", "conduit_book_body_birth",
-    "conduit_book_body_current",
+    "conduit_book_body_current", "conduit_book_body_attach_here",
     "conduit_book_body_prepare_selected_physical_spore",
     "conduit_book_body_admit_physical_spore",
   ];
@@ -197,6 +197,10 @@ function renderMarkdown(markdown) {
     } else if (line === "<!-- conduit-physical-host -->") {
       flush();
       chapter.append(createPhysicalHostRunner({ host }));
+      copy = appendCopy();
+    } else if (line === "<!-- conduit-first-host -->") {
+      flush();
+      chapter.append(createFirstHostRunner({ host, nextSequence: () => ++generation }));
       copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();

@@ -1,32 +1,37 @@
-# Step 0 — Hello, light
+# Step 0 — Birth your Body
 
-Suppose you want one small intention — turn this message into a visible signal — to survive the device that first demonstrates it. Today a browser indicator can show it. Tomorrow another suitable Host might use a physical light. If the program names the browser, GPIO pin, LED, operating system, or machine, changing the realization means rewriting the program.
+Conduit lets you build one computer out of the computers you actually have. The devices can be unlike, constrained, replaced, or temporarily unavailable while the intended computer continues.
+
+We call that durable computer a **Body**. Start this one with Morse Network, give it a friendly name, and birth it. The friendly name is editable metadata; the durable identity created at birth is separate and does not change when the name does.
 
 ## Conduit idea
 
-A Form names the intended meaning and its composition, not the machinery that happens to realize it. Edit the message, press Run, and let this browser Host provide today's manifestation.
+Birth is an explicit beginning, not a page-navigation trick. The newborn Body begins **LULLED**: it exists and has durable identity, but it has not yet been given machinery or started work. The Crèche surrounding it is temporary bootstrap help, not part of the Body and not lifecycle authority.
 
-```conduit run
-form hello-light {
+```conduit birth
+form morse_network {
     message: text/literal("SOS")
     morse: text/morse(120)
     light: presentation/indicator
-
     message > morse > light
 }
 ```
 
-## What the run proves
+## What birth proves
 
-The Gears perform the semantic operations and each Cord carries one exact typed value. The checked Form asks for text, Morse timing, and an indication. It names neither a screen nor a physical light. This run proves the browser realization only; it does not pretend that another device ran.
+The receipt separates the mutable friendly name, selected program, durable Body identity, and BIRTH evidence. It also shows that no Host, Wake, Plan, or Play was silently created.
 
 ## Payoff
 
-Write the intention once. A different collection of capable machinery may realize that same meaning later without contaminating the Form with platform facts. That separation is the central promise the rest of the Tour makes precise.
+You now have the same Body every later guided page will discuss and change. Deleting the Crèche later must not delete this Body or rewrite its beginning.
 
 # Step 1 — Change one Gear
 
-Useful programs evolve. You should be able to replace one semantic piece without rewriting every neighbor or turning the whole program into platform-specific glue.
+Your new Body exists, but it has nowhere to run. The first practical problem is to admit a machine that can help realize its program. This Crèche can offer its browser as the first Host without making the browser part of Body identity.
+
+<!-- conduit-first-host -->
+
+Once the Body has a Host, useful programs will still evolve. You should be able to replace one semantic piece without rewriting every neighbor or turning the whole program into platform-specific glue.
 
 ## Conduit idea
 
