@@ -2,7 +2,12 @@
 
 #![no_std]
 
+mod execution;
 mod sha256;
+mod single_source;
+
+pub use execution::*;
+pub use single_source::*;
 
 pub const ASSIGNED_PLAN_SCHEMA: u16 = 2;
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 124;

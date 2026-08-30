@@ -15,7 +15,10 @@ use core::mem::size_of;
 pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
+mod single_source;
 pub mod static_merge;
+
+pub use single_source::*;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]

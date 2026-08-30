@@ -13,6 +13,7 @@ atmega-hal = { git = "https://github.com/Rahix/avr-hal.git", rev = "0be252f2a899
 avr-device = { version = "0.7", features = ["atmega32u4"] }
 conduit-assigned-plan = { path = "../../../../architecture/assigned-plan" }
 conduit-create-oi = { path = "../../../../mechanisms/devices/create-oi" }
+conduit-kernel = { path = "../../../../architecture/kernel" }
 embedded-hal-v0 = { package = "embedded-hal", version = "0.2.7" }
 nb = "1.1.0"
 panic-halt = "1.0.0"

@@ -62,9 +62,7 @@ pub(super) fn build(root: &Path) -> Result<RustFirmwareArtifact, Box<dyn std::er
         .output()?;
     require_success(&output, "Rust AVR firmware build")?;
 
-    let firmware_target = root
-        .join(FIRMWARE)
-        .join("target/avr-atmega32u4/release");
+    let firmware_target = root.join(FIRMWARE).join("target/avr-atmega32u4/release");
     let elf = firmware_target.join(ELF_NAME);
     if !elf.is_file() {
         return Err(format!("Rust AVR build omitted {}", elf.display()).into());

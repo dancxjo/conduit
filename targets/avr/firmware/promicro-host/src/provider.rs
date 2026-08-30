@@ -35,11 +35,17 @@ where
         nb::block!(self.uart.flush())
     }
 
-    fn read_byte(&mut self, _deadline_tick: u64) -> Result<Option<u8>, Self::Error> {
-        match self.uart.read() {
-            Ok(byte) => Ok(Some(byte)),
-            Err(nb::Error::WouldBlock) => Ok(None),
-            Err(nb::Error::Other(error)) => Err(error),
+    fn read_byte(&mut self, deadline_tick: u64) -> Result<Option<u8>, Self::Error> {
+        // One provider tick is 10 microseconds on this exact adapter. The
+        // shared transaction supplies the finite deadline; no retry policy or
+        // baud probing is introduced here.
+        for _ in 0..deadline_tick.min(2_000) {
+            match self.uart.read() {
+                Ok(byte) => return Ok(Some(byte)),
+                Err(nb::Error::WouldBlock) => arduino_hal::delay_us(10),
+                Err(nb::Error::Other(error)) => return Err(error),
+            }
         }
+        Ok(None)
     }
 }

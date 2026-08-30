@@ -1,10 +1,14 @@
 #![no_std]
 #![no_main]
 
-use conduit_assigned_plan::AssignedIdentity;
+use conduit_assigned_plan::{
+    encode_assigned_execution_receipt, ASSIGNED_EXECUTION_RECEIPT_HEADER_BYTES,
+};
 use conduit_avr_promicro_host::{
-    assigned_receiver::{AssignedReceiver, HOST_ID},
+    activation_receiver::ActivationReceiver,
+    assigned_receiver::{AssignedReceiver, HOST_IDENTITY},
     boot::BootIdentity,
+    executor::execute_contact,
     provider,
     usb_line::UsbLine,
 };
@@ -26,22 +30,80 @@ fn main() -> ! {
     // provider does not transmit merely because it exists; ordinary assigned
     // Host operation dispatch is the only future caller allowed to write.
     let create_uart = arduino_hal::default_serial!(peripherals, pins, 57_600);
-    let _create = provider::AvrCreateUart::new(create_uart);
+    let mut create = provider::AvrCreateUart::new(create_uart);
     let mut host_line = UsbLine::new(peripherals.USB_DEVICE, peripherals.PLL, boot.usb_serial);
-    let host = AssignedIdentity::from_text(HOST_ID);
+    let host = HOST_IDENTITY;
     let mut assigned = AssignedReceiver::new();
+    let mut activation = ActivationReceiver::new();
+    let mut plan = None;
+    let mut output = [0_u8; ASSIGNED_EXECUTION_RECEIPT_HEADER_BYTES + 1];
+    let mut output_len = 0_usize;
+    let mut output_offset = 0_usize;
 
     loop {
         if host_line.poll() {
+            if output_offset < output_len {
+                let end = (output_offset + 32).min(output_len);
+                if let Ok(written) = host_line.write(&output[output_offset..end]) {
+                    output_offset += written;
+                    if output_offset == output_len {
+                        output_len = 0;
+                        output_offset = 0;
+                        plan = None;
+                        assigned.reset();
+                        activation.reset();
+                    }
+                }
+                continue;
+            }
             let mut incoming = [0_u8; 32];
             if let Ok(length) = host_line.read(&mut incoming) {
                 if length != 0 {
-                    match assigned.push(&incoming[..length]) {
-                        Ok(Some(_)) => {
-                            let _validated = assigned.validate(host, boot.assigned);
+                    if plan.is_none() {
+                        match assigned.push(&incoming[..length]) {
+                            Ok(Some(_)) => match assigned.validate(host, boot.assigned) {
+                                Ok(validated) => plan = Some(validated),
+                                Err(_) => assigned.reset(),
+                            },
+                            Ok(None) => {}
+                            Err(_) => assigned.reset(),
                         }
-                        Ok(None) => {}
-                        Err(_refusal) => {}
+                    } else {
+                        match activation.push(&incoming[..length]) {
+                            Ok(Some(active)) => {
+                                let mut value = [0_u8; 1];
+                                let receipt = match plan {
+                                    Some(validated) => execute_contact(
+                                        validated,
+                                        active,
+                                        &mut create,
+                                        2_000,
+                                        &mut value,
+                                    ),
+                                    None => {
+                                        plan = None;
+                                        assigned.reset();
+                                        activation.reset();
+                                        continue;
+                                    }
+                                };
+                                if let Ok(length) =
+                                    encode_assigned_execution_receipt(receipt, &mut output)
+                                {
+                                    output_len = length;
+                                } else {
+                                    plan = None;
+                                    assigned.reset();
+                                    activation.reset();
+                                }
+                            }
+                            Ok(None) => {}
+                            Err(_) => {
+                                plan = None;
+                                assigned.reset();
+                                activation.reset();
+                            }
+                        }
                     }
                 }
             }
