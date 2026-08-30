@@ -314,6 +314,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
       resourceEvidence,
       commands: __fakePicoboot.commands,
       dataWrites: __fakePicoboot.dataWrites,
+      acknowledgementEndpoint: __fakePicoboot.ackEndpoint,
       controlIn: __fakePicoboot.controlIn,
       controlOut: __fakePicoboot.controlOut,
     };
@@ -338,8 +339,11 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
     runtime_truth_created: false,
   });
   expect(result.commands.map(({ command }) => command)).toEqual([1, 6, 3, 5, 7, 2]);
+  expect(result.commands.every(({ endpoint }) => endpoint === 3)).toBe(true);
   expect(result.dataWrites).toHaveLength(1);
+  expect(result.dataWrites[0].endpoint).toBe(3);
   expect(result.dataWrites[0].bytes).toHaveLength(512);
+  expect(result.acknowledgementEndpoint).toBe(4);
   expect(result.controlOut[0].setup).toMatchObject({ request: 0x41, recipient: "interface", index: 1 });
   expect(result.controlIn).toHaveLength(6);
   expect(result.activeBase).toMatchObject({
@@ -347,6 +351,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
     admitted_in_transfers: 12,
     admitted_out_transfers: 8,
     use_plan_id: "rp2040-deployment-plan/one",
+    configuration: { interface_number: 1, in_endpoint: 4, out_endpoint: 3 },
   });
   expect(result.terminalBase).toMatchObject({ phase: "terminal", terminal: "DeviceLost" });
   expect(result.resourceEvidence).toMatchObject({
