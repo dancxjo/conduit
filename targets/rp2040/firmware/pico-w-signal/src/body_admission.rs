@@ -3,9 +3,10 @@
 use core::fmt::{self, Write};
 
 use conduit_body::{
-    ambient_admission_transcript, validate_pico_challenge, PicoAdmissionChallenge,
-    PicoAdmissionProof, MAX_PICO_ADMISSION_FRAME_BYTES, PICO_ADMISSION_PROTOCOL,
-    PICO_ADMISSION_REQUEST,
+    ambient_admission_transcript, validate_pico_challenge, validate_pico_spawn_provision,
+    PicoAdmissionChallenge, PicoAdmissionProof, PicoSpawnJoinRequest, PicoSpawnProvision,
+    SpawnInvitationSecret, MAX_PICO_ADMISSION_FRAME_BYTES,
+    PICO_ADMISSION_PROTOCOL, PICO_ADMISSION_REQUEST, PICO_SPAWN_PROTOCOL,
 };
 use conduit_core::OfferGeneration;
 use ed25519_dalek::{Signer, SigningKey};
@@ -60,6 +61,9 @@ impl PicoBodyAdmission {
         if crate::bootsel::handle_request(line, request).await? {
             return Ok(());
         }
+        if self.serve_spawn_request(line, request).await? {
+            return Ok(());
+        }
         self.serve_request(line, request).await?;
         Ok(())
     }
@@ -110,6 +114,57 @@ impl PicoBodyAdmission {
         let proof_length = serde_json_core::to_slice(&proof, &mut output)
             .map_err(|_| UsbLinkError::BufferOverflow)?;
         line.send_raw_stream_frame(&output[..proof_length]).await?;
+        Ok(true)
+    }
+
+    pub(crate) async fn serve_spawn_request(
+        &mut self,
+        line: &mut UsbLinkSession,
+        request: &[u8],
+    ) -> Result<bool, UsbLinkError> {
+        let (provision, _) = match serde_json_core::from_slice::<PicoSpawnProvision<'_>>(request) {
+            Ok(value) => value,
+            Err(_) => return Ok(false),
+        };
+        if !validate_pico_spawn_provision(&provision) {
+            return Err(UsbLinkError::InvalidGeneratedEndpoint);
+        }
+        let mut secret_bytes = [0u8; 32];
+        secret_bytes.copy_from_slice(provision.secret);
+        let secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+            .map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
+        secret_bytes.fill(0);
+        let transcript = ambient_admission_transcript(
+            "spawn-invitation-v1",
+            provision.body_id,
+            provision.invitation_id,
+            HOST_ID,
+            self.boot_id.as_str(),
+            OfferGeneration(OFFER_GENERATION),
+            &provision.nonce,
+            provision.expires_at_millis,
+        );
+        let signature = secret.sign(&transcript);
+
+        self.freshness_sequence = self.freshness_sequence.saturating_add(1);
+        let mut output = [0u8; MAX_PICO_ADMISSION_FRAME_BYTES];
+        let advertisement_length = self.write_advertisement(&mut output)?;
+        line.send_raw_stream_frame(&output[..advertisement_length]).await?;
+        let join = PicoSpawnJoinRequest {
+            protocol: PICO_SPAWN_PROTOCOL,
+            spore_id: provision.spore_id,
+            image_id: provision.image_id,
+            invitation_id: provision.invitation_id,
+            body_id: provision.body_id,
+            host_id: HOST_ID,
+            boot_id: self.boot_id.as_str(),
+            offer_generation: OFFER_GENERATION,
+            nonce: provision.nonce,
+            signature: &signature,
+        };
+        let join_length = serde_json_core::to_slice(&join, &mut output)
+            .map_err(|_| UsbLinkError::BufferOverflow)?;
+        line.send_raw_stream_frame(&output[..join_length]).await?;
         Ok(true)
     }
 

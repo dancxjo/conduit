@@ -31,6 +31,15 @@ impl SpawnInvitationSecret {
         use ed25519_dalek::Signer;
         SigningKey::from_bytes(&self.0).sign(transcript).to_bytes()
     }
+
+    /// Copies the secret into an exact target-provisioning buffer.
+    ///
+    /// This is only for an admitted local deployment mechanism that must place
+    /// a self-joining invitation into a fresh spore. Callers must zero the
+    /// returned buffer immediately after transfer and must never log it.
+    pub fn copy_for_target_provisioning(&self) -> [u8; 32] {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
