@@ -1,6 +1,7 @@
 #pragma once
 
 #include "assigned_obligations.h"
+#include "create_attachment.h"
 #include "group_zero.h"
 #include "lifecycle.h"
 
@@ -9,7 +10,6 @@
 
 namespace conduit::promicro {
 
-constexpr uint32_t kCreateBaud = 57600;
 constexpr uint8_t kCreateSetupBytes[] = {128, 132};
 constexpr uint8_t kCreateGroupZeroRequest[] = {142, 0};
 constexpr uint8_t kCreateSetupByteCount = sizeof(kCreateSetupBytes);

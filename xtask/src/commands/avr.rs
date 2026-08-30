@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
+mod attachment;
 mod avr_toolchain;
 mod build_identity;
 mod cdc_verify;
@@ -60,6 +61,9 @@ enum AvrCommand {
         /// Flash the guarded HIL artifact rather than the transmitter-free image.
         #[arg(long)]
         create_hil: bool,
+        /// Exact electrical qualification required for a transmitter-bearing image.
+        #[arg(long, requires = "create_hil")]
+        attachment_qualification: Option<PathBuf>,
         #[arg(long, default_value = "target/avr-promicro/flash-receipt.json")]
         receipt: PathBuf,
     },
@@ -79,6 +83,7 @@ struct BuildReceipt {
     build_id: String,
     source_sha: String,
     source_digest_sha256: String,
+    attachment_contract: &'static str,
     target: &'static str,
     board_variant: &'static str,
     arduino_cli: &'static str,
@@ -106,6 +111,7 @@ struct FlashReceipt {
     usb_vid: &'static str,
     usb_pid: &'static str,
     artifact_sha256: String,
+    attachment_qualification: Option<attachment::AttachmentQualification>,
     create_stopped: bool,
     attended: bool,
     wheels_clear: bool,
@@ -132,6 +138,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
             attended,
             wheels_clear,
             create_hil,
+            attachment_qualification,
             receipt,
         } => run_flash(
             &port,
@@ -142,6 +149,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
                 wheels_clear,
             },
             create_hil,
+            attachment_qualification.as_deref(),
             &receipt,
             opts,
         ),
@@ -249,6 +257,7 @@ fn run_build(
         build_id: identity.build_id.clone(),
         source_sha: identity.source_sha.clone(),
         source_digest_sha256: identity.source_digest_sha256.clone(),
+        attachment_contract: attachment::CONTRACT_ID,
         target: FQBN,
         board_variant: "atmega32u4-5v-16mhz-usb-pid-9206",
         arduino_cli: CLI_VERSION,
@@ -298,10 +307,12 @@ fn run_flash(
     expected_digest: &str,
     gate: PhysicalGate,
     create_hil: bool,
+    attachment_qualification: Option<&Path>,
     receipt: &Path,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     validate_flash_request(port, expected_digest, gate)?;
+    validate_attachment_requirement(create_hil, attachment_qualification)?;
     if opts.dry_run {
         if !opts.quiet {
             println!(
@@ -311,7 +322,6 @@ fn run_flash(
         }
         return Ok(());
     }
-    verify_device(port)?;
     let built = run_build(
         Path::new(if create_hil {
             "target/avr-promicro/build-hil-receipt.json"
@@ -328,6 +338,17 @@ fn run_flash(
         )
         .into());
     }
+    let attachment_qualification = if create_hil {
+        let qualification = attachment_qualification
+            .ok_or("AVR Create HIL flash requires --attachment-qualification")?;
+        Some(attachment::load_and_validate(
+            qualification,
+            &built.identity.source_sha,
+        )?)
+    } else {
+        None
+    };
+    verify_device(port)?;
     let root = workspace_root()?;
     let cli = provision(&root)?;
     let output = Command::new(cli)
@@ -351,6 +372,7 @@ fn run_flash(
         usb_vid: EXPECTED_VID,
         usb_pid: EXPECTED_PID,
         artifact_sha256: built.artifact_sha256,
+        attachment_qualification,
         create_stopped: gate.create_stopped,
         attended: gate.attended,
         wheels_clear: gate.wheels_clear,
@@ -361,6 +383,16 @@ fn run_flash(
         },
     };
     write_receipt(&root.join(receipt), &record, opts)
+}
+
+fn validate_attachment_requirement(
+    create_hil: bool,
+    qualification: Option<&Path>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if create_hil && qualification.is_none() {
+        return Err("AVR Create HIL flash requires --attachment-qualification".into());
+    }
+    Ok(())
 }
 
 fn validate_flash_request(

@@ -74,6 +74,17 @@ static Request request(CommandBuffer& buffer, const char* bytes) {
 }
 
 int main() {
+  assert(conduit::promicro::kCreateRxPin == 0);
+  assert(conduit::promicro::kCreateTxPin == 1);
+  assert(conduit::promicro::kCreateRxMiniDinPin == 3);
+  assert(conduit::promicro::kCreateTxMiniDinPin == 4);
+  assert(conduit::promicro::kCreateGroundMiniDinPin == 6);
+  assert(conduit::promicro::kCreateAlternateGroundMiniDinPin == 7);
+  assert(conduit::promicro::kCreateBaud == 57600);
+  assert(!conduit::promicro::kCreateVpwrConnected);
+  assert(!conduit::promicro::kCreateBrcConnected);
+  assert(conduit::promicro::kBootAndTerminalHighImpedance);
+
   CommandBuffer buffer;
   assert(request(buffer, "HELLO\n") == Request::kHello);
   assert(request(buffer, "STATUS\n") == Request::kStatus);

@@ -52,6 +52,25 @@ target/avr-promicro/build-hil-receipt.json` separately compiles the bounded
 `create-hil` executor. Both profiles boot with `Serial1` ended and pins 0/1 as
 high-impedance inputs. Boot binding and activation do not enable the UART.
 
+`create_attachment.h` is the single compiled attachment contract. Pro Micro
+TXO (Arduino D1, ATmega32U4 PD3/TX1) crosses to Create 1 Mini-DIN RXD pin 3;
+Create Mini-DIN TXD pin 4 crosses to Pro Micro RXI (Arduino D0,
+ATmega32U4 PD2/RX1); Mini-DIN ground pin 6 or 7 joins Pro Micro ground. The
+link is 57,600 baud, 8 data bits, no parity, 1 stop bit, and no flow control.
+Mini-DIN Vpwr pins 1/2 and BRC pin 5 remain disconnected in this initial
+attachment.
+
+The named board and Create interface are both 5 V TTL, so an exact physically
+qualified direct interface is permitted; a qualified buffered 5 V TTL
+interface is also permitted. A vague level-shifter claim is not qualification.
+Before a transmitter-bearing flash or observation, `cargo xtask` requires a
+JSON `conduit.avr-promicro/create1-attachment-qualification@1` receipt bound to
+the current source and contract. It records the exact harness/interface and
+measurement-instrument identities, measured Pro Micro VCC and Create TX idle
+voltage, common-ground resistance, crossed pin continuity, disconnected Vpwr
+and BRC, and high-impedance boot/terminal disposition. Compilation does not
+create that physical receipt.
+
 The HIL-only execution frame is:
 
 ```text

@@ -1,4 +1,5 @@
 #include "assigned_obligations.h"
+#include "create_attachment.h"
 #include "create_oi.h"
 #include "create_hil.h"
 #include "group_zero.h"
@@ -18,12 +19,6 @@ using conduit::promicro::Request;
 
 namespace {
 
-// SparkFun Pro Micro hardware UART pins. The initial image never initializes
-// Serial1 and holds both pins as high-impedance inputs. In particular, TXO must
-// not emit a Create OI byte merely because the board boots or USB reconnects.
-constexpr uint8_t kCreateRxPin = 0;
-constexpr uint8_t kCreateTxPin = 1;
-
 CommandBuffer command;
 conduit::promicro::BrainstemLifecycle lifecycle;
 
@@ -41,8 +36,8 @@ const conduit::promicro::BuildAttestation kBuildAttestation{
 
 void isolate_create_uart() {
   Serial1.end();
-  pinMode(kCreateRxPin, INPUT);
-  pinMode(kCreateTxPin, INPUT);
+  pinMode(conduit::promicro::kCreateRxPin, INPUT);
+  pinMode(conduit::promicro::kCreateTxPin, INPUT);
 }
 
 #if defined(CONDUIT_CREATE_HIL)
