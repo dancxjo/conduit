@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
+mod audible_probe;
 mod avr_toolchain;
 mod build_identity;
 mod release;
@@ -63,10 +64,20 @@ enum AvrCommand {
         )]
         receipt: PathBuf,
     },
+    /// Build the bounded motion-free audible UART diagnostic image.
+    BuildAudibleProbe {
+        #[arg(
+            long,
+            default_value = "target/avr-promicro/audible-probe-build-receipt.json"
+        )]
+        receipt: PathBuf,
+    },
     /// Flash and execute one attended receive-only Create RX diagnostic.
     ReceiveOnly(rx_check::RxCheckArgs),
     /// Plan and execute one attended Create contact observation on the AVR Host.
     ObserveContact(observe::ObserveContactArgs),
+    /// Run one attended motion-free audible TX then telemetry RX diagnostic.
+    AudibleProbe(audible_probe::AudibleProbeArgs),
     /// Flash only after exact artifact, device, and physical gates are supplied.
     Flash {
         #[arg(long)]
@@ -127,8 +138,12 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
         AvrCommand::BuildReceiveOnly { receipt } => {
             run_build_receive_only(&receipt, opts).map(|_| ())
         }
+        AvrCommand::BuildAudibleProbe { receipt } => {
+            audible_probe::build(&receipt, opts).map(|_| ())
+        }
         AvrCommand::ReceiveOnly(args) => rx_check::run(args, opts),
         AvrCommand::ObserveContact(args) => observe::run(args, opts),
+        AvrCommand::AudibleProbe(args) => audible_probe::run(args, opts),
         AvrCommand::Flash {
             port,
             artifact_sha256,
