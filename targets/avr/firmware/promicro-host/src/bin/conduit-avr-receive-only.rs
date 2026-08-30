@@ -30,9 +30,7 @@ fn main() -> ! {
     let mut sampled = false;
 
     loop {
-        if !host_line.poll() {
-            continue;
-        }
+        host_line.poll();
         if output_offset < output_len {
             if let Ok(written) = host_line.write(&output[output_offset..output_len]) {
                 output_offset += written;

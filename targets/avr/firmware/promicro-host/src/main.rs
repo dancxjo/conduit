@@ -41,68 +41,67 @@ fn main() -> ! {
     let mut output_offset = 0_usize;
 
     loop {
-        if host_line.poll() {
-            if output_offset < output_len {
-                let end = (output_offset + 32).min(output_len);
-                if let Ok(written) = host_line.write(&output[output_offset..end]) {
-                    output_offset += written;
-                    if output_offset == output_len {
-                        output_len = 0;
-                        output_offset = 0;
-                        plan = None;
-                        assigned.reset();
-                        activation.reset();
-                    }
+        host_line.poll();
+        if output_offset < output_len {
+            let end = (output_offset + 32).min(output_len);
+            if let Ok(written) = host_line.write(&output[output_offset..end]) {
+                output_offset += written;
+                if output_offset == output_len {
+                    output_len = 0;
+                    output_offset = 0;
+                    plan = None;
+                    assigned.reset();
+                    activation.reset();
                 }
-                continue;
             }
-            let mut incoming = [0_u8; 32];
-            if let Ok(length) = host_line.read(&mut incoming) {
-                if length != 0 {
-                    if plan.is_none() {
-                        match assigned.push(&incoming[..length]) {
-                            Ok(Some(_)) => match assigned.validate(host, boot.assigned) {
-                                Ok(validated) => plan = Some(validated),
-                                Err(_) => assigned.reset(),
-                            },
-                            Ok(None) => {}
+            continue;
+        }
+        let mut incoming = [0_u8; 32];
+        if let Ok(length) = host_line.read(&mut incoming) {
+            if length != 0 {
+                if plan.is_none() {
+                    match assigned.push(&incoming[..length]) {
+                        Ok(Some(_)) => match assigned.validate(host, boot.assigned) {
+                            Ok(validated) => plan = Some(validated),
                             Err(_) => assigned.reset(),
-                        }
-                    } else {
-                        match activation.push(&incoming[..length]) {
-                            Ok(Some(active)) => {
-                                let mut value = [0_u8; 1];
-                                let receipt = match plan {
-                                    Some(validated) => execute_contact(
-                                        validated,
-                                        active,
-                                        &mut create,
-                                        2_000,
-                                        &mut value,
-                                    ),
-                                    None => {
-                                        plan = None;
-                                        assigned.reset();
-                                        activation.reset();
-                                        continue;
-                                    }
-                                };
-                                if let Ok(length) =
-                                    encode_assigned_execution_receipt(receipt, &mut output)
-                                {
-                                    output_len = length;
-                                } else {
+                        },
+                        Ok(None) => {}
+                        Err(_) => assigned.reset(),
+                    }
+                } else {
+                    match activation.push(&incoming[..length]) {
+                        Ok(Some(active)) => {
+                            let mut value = [0_u8; 1];
+                            let receipt = match plan {
+                                Some(validated) => execute_contact(
+                                    validated,
+                                    active,
+                                    &mut create,
+                                    2_000,
+                                    &mut value,
+                                ),
+                                None => {
                                     plan = None;
                                     assigned.reset();
                                     activation.reset();
+                                    continue;
                                 }
-                            }
-                            Ok(None) => {}
-                            Err(_) => {
+                            };
+                            if let Ok(length) =
+                                encode_assigned_execution_receipt(receipt, &mut output)
+                            {
+                                output_len = length;
+                            } else {
                                 plan = None;
                                 assigned.reset();
                                 activation.reset();
                             }
+                        }
+                        Ok(None) => {}
+                        Err(_) => {
+                            plan = None;
+                            assigned.reset();
+                            activation.reset();
                         }
                     }
                 }

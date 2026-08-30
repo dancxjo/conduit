@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File, OpenOptions},
     io::{ErrorKind, Read, Write},
-    os::unix::fs::OpenOptionsExt,
+    os::unix::{fs::OpenOptionsExt, io::AsRawFd},
     path::{Path, PathBuf},
     process::Command,
     thread,
@@ -287,18 +287,16 @@ fn write_bounded(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let deadline = Instant::now() + timeout;
     let mut offset = 0;
-    while offset < bytes.len() && Instant::now() < deadline {
+    while offset < bytes.len() {
+        if !wait_ready(device, libc::POLLOUT, deadline)? {
+            return Err("timed out writing receive-only diagnostic request".into());
+        }
         match device.write(&bytes[offset..]) {
-            Ok(0) => thread::sleep(Duration::from_millis(5)),
+            Ok(0) => {}
             Ok(written) => offset += written,
-            Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
-            }
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
             Err(error) => return Err(error.into()),
         }
-    }
-    if offset != bytes.len() {
-        return Err("timed out writing receive-only diagnostic request".into());
     }
     Ok(())
 }
@@ -310,20 +308,52 @@ fn read_bounded(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let deadline = Instant::now() + timeout;
     let mut offset = 0;
-    while offset < bytes.len() && Instant::now() < deadline {
+    while offset < bytes.len() {
+        if !wait_ready(device, libc::POLLIN, deadline)? {
+            return Err("timed out reading receive-only diagnostic receipt".into());
+        }
         match device.read(&mut bytes[offset..]) {
-            Ok(0) => thread::sleep(Duration::from_millis(5)),
+            Ok(0) => {}
             Ok(read) => offset += read,
-            Err(error) if error.kind() == ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(5));
-            }
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
             Err(error) => return Err(error.into()),
         }
     }
-    if offset != bytes.len() {
-        return Err("timed out reading receive-only diagnostic receipt".into());
-    }
     Ok(())
+}
+
+pub(super) fn wait_ready(
+    device: &File,
+    events: libc::c_short,
+    deadline: Instant,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Ok(false);
+    }
+    let timeout_ms = remaining.as_millis().clamp(1, i32::MAX as u128) as i32;
+    let mut descriptor = libc::pollfd {
+        fd: device.as_raw_fd(),
+        events,
+        revents: 0,
+    };
+    // SAFETY: `descriptor` points to one initialized pollfd for this call and
+    // the borrowed File keeps its descriptor alive for the entire operation.
+    let result = unsafe { libc::poll(&mut descriptor, 1, timeout_ms) };
+    if result < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    if result == 0 {
+        return Ok(false);
+    }
+    if descriptor.revents & (libc::POLLERR | libc::POLLHUP | libc::POLLNVAL) != 0 {
+        return Err(format!(
+            "receive-only CDC readiness failed with revents=0x{:x}",
+            descriptor.revents
+        )
+        .into());
+    }
+    Ok(descriptor.revents & events != 0)
 }
 
 fn wait_for_exact_device(path: &Path, timeout: Duration) -> Result<(), Box<dyn std::error::Error>> {
@@ -358,6 +388,33 @@ fn u32_at(bytes: &[u8], offset: usize) -> Result<u32, Box<dyn std::error::Error>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::fd::FromRawFd;
+
+    #[test]
+    fn kernel_poll_deadline_times_out_and_observes_readiness() {
+        let mut descriptors = [0; 2];
+        // SAFETY: the initialized pair is checked for success and each owned
+        // descriptor is immediately transferred into exactly one File.
+        assert_eq!(
+            unsafe { libc::pipe2(descriptors.as_mut_ptr(), libc::O_NONBLOCK) },
+            0
+        );
+        let reader = unsafe { File::from_raw_fd(descriptors[0]) };
+        let mut writer = unsafe { File::from_raw_fd(descriptors[1]) };
+        assert!(!wait_ready(
+            &reader,
+            libc::POLLIN,
+            Instant::now() + Duration::from_millis(5)
+        )
+        .unwrap());
+        writer.write_all(&[1]).unwrap();
+        assert!(wait_ready(
+            &reader,
+            libc::POLLIN,
+            Instant::now() + Duration::from_millis(50)
+        )
+        .unwrap());
+    }
 
     #[test]
     fn caterina_discovery_requires_the_exact_usb_identity() {
