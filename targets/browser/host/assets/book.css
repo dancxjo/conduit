@@ -50,6 +50,16 @@ p { max-width: 43rem; color: #344139; line-height: 1.65; }
 }
 .editor { position: relative; min-height: 25rem; background: #17221d; }
 .editor-label { position: absolute; top: .8rem; left: 1rem; color: #9fb0a6; font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
+.birth-editor { display: flex; flex-direction: column; gap: .65rem; padding: 1.25rem; }
+.birth-editor .editor-label { position: static; margin-top: .25rem; }
+.birth-editor select,
+.birth-editor input { width: 100%; min-height: 2.8rem; border: 1px solid #52655b; border-radius: .55rem; padding: .65rem .75rem; color: #e9f1ec; background: #24342c; font: inherit; }
+.birth-editor select { appearance: auto; }
+.birth-editor .seed-source { margin: .35rem 0 0; border: 1px solid #52655b; border-radius: .65rem; overflow: hidden; color: #c9d7cf; }
+.birth-editor .seed-source summary { padding: .8rem; cursor: pointer; }
+.birth-editor .seed-source .editor-label { display: block; padding: 0 .8rem; }
+.birth-editor textarea { height: auto; min-height: 14rem; padding: .8rem; }
+.birth-editor .actions { position: static; margin-top: auto; }
 textarea {
   width: 100%; height: 100%; min-height: 25rem; resize: vertical; border: 0; outline: 0;
   padding: 3rem 1.25rem 5.5rem; color: #e9f1ec; background: transparent;
@@ -110,6 +120,15 @@ details dt { color: var(--ink); font-weight: 700; }
 .creche-progress { margin-right: auto; color: var(--green-dark); font-size: .78rem; font-weight: 750; }
 .creche-body-context { display: grid; gap: .25rem; margin: 1rem 0; padding: .75rem 1rem; border-left: 4px solid var(--green); background: var(--panel); }
 .creche-body-context code { overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: .7rem; }
+.graduation-runner { margin-top: 1.6rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.graduation-criteria { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; padding: 0; list-style: none; }
+.graduation-criteria li { padding: .75rem; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+.graduation-criteria li.ready { border-color: #68ae8d; background: #f3f8f4; }
+.graduation-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1rem; }
+.graduation-actions button { border: 1px solid var(--green); background: white; color: var(--green-dark); }
+.graduation-evidence { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .35rem .8rem; }
+.graduation-evidence dd { margin: 0; overflow-wrap: anywhere; }
+.creche-complete { max-width: 46rem; margin: 4rem auto; padding: 2rem; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 
 .body-chain { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .8rem; align-items: center; }
 .body-chain article { display: grid; gap: .35rem; padding: .8rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--paper); }
@@ -148,5 +167,6 @@ details dt { color: var(--ink); font-weight: 700; }
   .creche-navigation { flex-wrap: wrap; }
   .creche-progress { width: 100%; }
   .physical-stages { grid-template-columns: 1fr; }
+  .graduation-criteria { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }

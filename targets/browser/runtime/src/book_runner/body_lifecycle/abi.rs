@@ -12,6 +12,7 @@ const ERROR_INTERACTION: i32 = -454;
 const STATUS_ABSENT: i32 = 1;
 const ERROR_SPORE: i32 = -455;
 const ERROR_ADMISSION: i32 = -456;
+const ERROR_GRADUATION: i32 = -457;
 
 thread_local! {
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
@@ -181,6 +182,28 @@ pub extern "C" fn conduit_book_body_current() -> i32 {
             .map(|()| STATUS_READY)
             .unwrap_or(ERROR_OUTPUT),
         None => STATUS_ABSENT,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_book_body_graduation_readiness() -> i32 {
+    clear_output();
+    match super::graduation::readiness() {
+        Ok(receipt) => write_output(&receipt)
+            .map(|()| STATUS_READY)
+            .unwrap_or(ERROR_OUTPUT),
+        Err(message) => refuse(message, ERROR_GRADUATION),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_book_body_graduate(choice: u32, sequence: u64) -> i32 {
+    clear_output();
+    match super::graduation::graduate(choice, sequence) {
+        Ok(receipt) => write_output(&receipt)
+            .map(|()| STATUS_READY)
+            .unwrap_or(ERROR_OUTPUT),
+        Err(message) => refuse(message, ERROR_GRADUATION),
     }
 }
 

@@ -1,6 +1,7 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./book-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./book-physical.mjs";
+import { createGraduationRunner } from "./book-graduation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -20,7 +21,7 @@ const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-7.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-7.md", "chapter-8.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -55,6 +56,7 @@ function requireBookAbi(api) {
     "conduit_book_body_output_ptr", "conduit_book_body_output_len",
     "conduit_book_body_admit_source_interaction", "conduit_book_body_birth",
     "conduit_book_body_current", "conduit_book_body_attach_here",
+    "conduit_book_body_graduation_readiness", "conduit_book_body_graduate",
     "conduit_book_body_prepare_selected_physical_spore",
     "conduit_book_body_admit_physical_spore",
   ];
@@ -225,6 +227,15 @@ function renderMarkdown(markdown) {
         onBodyChanged: refreshCrecheBodyContext,
       }));
       copy = appendCopy();
+    } else if (line === "<!-- conduit-graduation -->") {
+      flush();
+      chapter.append(createGraduationRunner({
+        host,
+        nextSequence: () => ++generation,
+        onBodyChanged: refreshCrecheBodyContext,
+        onEnd: renderCrecheComplete,
+      }));
+      copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();
       const heading = document.createElement("h1");
@@ -253,6 +264,20 @@ function appendCopy() {
 
 function refreshCrecheBodyContext() {
   chapter.querySelector(".creche-body-context")?.replaceWith(createCrecheBodyContext());
+}
+
+function renderCrecheComplete(receipt) {
+  chapter.replaceChildren();
+  const complete = document.createElement("section");
+  complete.className = "creche-complete";
+  const heading = document.createElement("h1");
+  heading.textContent = "The Body continues";
+  const copy = document.createElement("p");
+  copy.textContent = "The Crèche has ended. Its presentation is gone; the same Body and its graduation evidence remain in the runtime.";
+  const identity = document.createElement("code");
+  identity.textContent = receipt.body_id;
+  complete.append(heading, copy, identity);
+  chapter.append(complete);
 }
 
 function createRealizationComparison(source) {

@@ -68,6 +68,27 @@ test("Step 0 births one named Morse Network Body before introducing machinery", 
   expect(raw.body.events).toHaveLength(1);
 });
 
+test("Step 0 keeps the birth controls and source disclosure in one contained column", async ({ page }) => {
+  await openStep(page, 0);
+  const runner = page.locator(".body-birth-runner");
+  const boxes = await Promise.all([
+    runner.getByLabel("Initial program").boundingBox(),
+    runner.getByLabel("Friendly Body name").boundingBox(),
+    runner.locator(".seed-source").boundingBox(),
+    runner.getByRole("button", { name: "Birth Body" }).boundingBox(),
+  ]);
+  for (const box of boxes) expect(box).not.toBeNull();
+  const [program, name, source, action] = boxes;
+  expect(program.width).toBeGreaterThan(200);
+  expect(program.height).toBeGreaterThan(30);
+  expect(program.y + program.height).toBeLessThanOrEqual(name.y);
+  expect(name.y + name.height).toBeLessThanOrEqual(source.y);
+  expect(source.y + source.height).toBeLessThanOrEqual(action.y);
+  const editor = await runner.locator(".birth-editor").boundingBox();
+  expect(source.x).toBeGreaterThanOrEqual(editor.x);
+  expect(source.x + source.width).toBeLessThanOrEqual(editor.x + editor.width);
+});
+
 test("Steps 0 through 12 lead with human motivation and return to the Conduit payoff", async ({
   page,
 }) => {
@@ -466,6 +487,53 @@ test("Step 12 retains the exact Picoboot refusal chain", async ({ page }) => {
     "StaleStatus: PICOBOOT status belongs to a different command identity",
   ]);
   await expect(runner.locator(".physical-status")).toContainText("StaleStatus");
+});
+
+test("Step 13 graduates the same Body through an ordinary hosted Patchbay Plan", async ({ page }) => {
+  await openStep(page, 0);
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByRole("button", { name: "Birth Body" }).click();
+  const bodyId = await birth.getAttribute("data-body-id");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  for (let step = 1; step < 13; step += 1) await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "Step 13 — Graduate from the Crèche" })).toBeVisible();
+  const runner = page.locator(".graduation-runner");
+  await expect(runner.locator(".graduation-criteria li.ready")).toHaveCount(3);
+  await runner.getByRole("button", { name: "Host Patchbay on this Body" }).click();
+  await expect(runner).toHaveAttribute("data-body-id", bodyId);
+  await expect(runner.locator(".graduation-evidence")).toContainText("browser/patchbay-surface@1");
+  await expect(runner.locator(".graduation-evidence")).toContainText("Crèche requiredfalse");
+  await runner.getByRole("button", { name: "End the Crèche" }).click();
+  await expect(page.locator(".creche-complete")).toContainText(bodyId);
+  await expect(page.locator(".creche-navigation")).toHaveCount(0);
+  const retained = await page.evaluate(() => {
+    const api = globalThis.__conduitBookHost.runtime;
+    api.conduit_book_body_current();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+    return JSON.parse(new TextDecoder().decode(bytes));
+  });
+  expect(retained.body_id).toBe(bodyId);
+  expect(retained.graduation.choice).toBe("host-patchbay");
+  expect(retained.graduation.patchbay_plan_id).toMatch(/^[0-9a-f]{64}$/);
+});
+
+test("Step 13 can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {
+  await openStep(page, 0);
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByRole("button", { name: "Birth Body" }).click();
+  const bodyId = await birth.getAttribute("data-body-id");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  for (let step = 1; step < 13; step += 1) await page.getByRole("button", { name: "Next" }).click();
+  const runner = page.locator(".graduation-runner");
+  await runner.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
+  await expect(runner).toHaveAttribute("data-body-id", bodyId);
+  await expect(runner.locator(".graduation-evidence")).toContainText("Patchbay Plannot hosted");
+  const evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.choice).toBe("external-reader");
+  expect(evidence.patchbay_plan_id).toBeNull();
+  expect(evidence.creche_required).toBe(false);
 });
 
 test("stopping the two-Host lesson cancels without a late manifestation", async ({ page }) => {

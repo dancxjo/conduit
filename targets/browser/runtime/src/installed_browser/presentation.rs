@@ -16,6 +16,8 @@ const ARTIFACT: &str = "conduit-browser-runtime/installed-presentation@1";
 const HOST_OPERATION: &str = "conduit.host/browser-present-indicator@1";
 const BOOL_IMPLEMENTATION: &str = "browser/presentation-bool@1";
 const BOOL_HOST_OPERATION: &str = "conduit.host/browser-present-current-bool@1";
+const PATCHBAY_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
+const PATCHBAY_HOST_OPERATION: &str = "conduit.host/browser-present-patchbay@1";
 
 pub(super) static INDICATOR: BrowserInstallation = BrowserInstallation {
     implementation_id: INDICATOR_IMPLEMENTATION,
@@ -29,6 +31,62 @@ pub(super) static BOOL: BrowserInstallation = BrowserInstallation {
     prepare: prepare_bool,
     perform: Some(perform_bool),
 };
+pub(super) static PATCHBAY: BrowserInstallation = BrowserInstallation {
+    implementation_id: PATCHBAY_IMPLEMENTATION,
+    offer: patchbay_offer,
+    prepare: prepare_patchbay,
+    perform: Some(perform_patchbay),
+};
+
+fn patchbay_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::patchbay_presentation_contracts()[0].clone();
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::PATCHBAY_PRESENTATION_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: PATCHBAY_IMPLEMENTATION,
+            execution_profile: "browser/patchbay-kernel-hosted@1",
+            implementation: PATCHBAY_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(PATCHBAY_HOST_OPERATION),
+            target_kind: Some(kind_id("presentation/patchbay-surface")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
+            maximum_output_bytes: 0,
+        }],
+        vec![conduit_core::resource_requirement(
+            PRESENTATION_RESOURCE_CLASS,
+            1,
+        )],
+        Vec::new(),
+    )
+}
+
+fn prepare_patchbay(
+    placement: &PlannedGear,
+    _values: &mut HostedValueStore,
+) -> Result<BrowserOperation, String> {
+    validate_placement(placement, &patchbay_offer())?;
+    Ok(BrowserOperation::presentation(
+        conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
+        1,
+    ))
+}
+
+fn perform_patchbay(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    if input.len() > conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES as usize {
+        return Err("Patchbay presentation exceeds the admitted byte bound".into());
+    }
+    Ok(BrowserHostResult {
+        output: None,
+        manifestation: Some(BrowserManifestation {
+            kind_id: conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND,
+            canonical_value: input.to_vec(),
+        }),
+    })
+}
 
 fn bool_offer() -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
