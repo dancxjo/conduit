@@ -140,7 +140,10 @@ async function deploy(runner, host, state) {
     renderEvidence(runner, state);
   } catch (error) {
     button.disabled = false;
-    refuse(runner, "deployment", error);
+    const permissionHint = /access denied/i.test(error?.message ?? "")
+      ? " On Linux, run `sudo scripts/install-pico-headless-flash.sh`, reconnect the Pico in BOOTSEL mode, and retry."
+      : "";
+    refuse(runner, "deployment", new Error(`${error.message}${permissionHint}`));
   }
 }
 
