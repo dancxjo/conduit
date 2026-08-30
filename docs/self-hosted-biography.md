@@ -55,7 +55,8 @@ Examples of meaningful biographical events include:
 - Play start, completion, interruption, and recovery;
 - addition of a first physical Host;
 - migration of work from one Host to another;
-- program/version changes.
+- program/version changes;
+- adoption or release of the Crèche.
 
 ## The Crèche and independence
 
