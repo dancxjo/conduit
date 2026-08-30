@@ -2,12 +2,13 @@ import { createBrowserDeviceBase } from "../device-base.mjs";
 import { createBrowserUsbDeviceBase } from "../usb-device-base.mjs";
 import {
   createRp2040BrowserDeploymentAdapter,
+  createRp2040BrowserFabricationAdapter,
   requestRp2040SpawnJoin,
   RP2040_BROWSER_DEPLOYMENT,
 } from "../targets/rp2040/browser-deployment/index.mjs";
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const PACKAGED_MANIFEST_PATH = "./artifacts/pico-w-signal-pico-local.json";
+const BUILD_ID = "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -22,6 +23,12 @@ export function createPhysicalHostRunner({ host }) {
       <li data-stage="boot"><strong>4 · Observe Boot + join</strong><span>waiting</span></li>
       <li data-stage="admit"><strong>5 · Admit Part + offers</strong><span>waiting</span></li>
     </ol>
+    <label class="fabrication-field">Fabrication strategy
+      <select class="fabrication-strategy">
+        <option value="packaged-exact">Reviewed packaged IMAGE</option>
+        <option value="template-specialized">Reviewed template + bounded Body label</option>
+      </select>
+    </label>
     <div class="physical-actions">
       <button class="prepare" type="button" disabled>Prepare Body spore</button>
       <button class="deploy" type="button" disabled>Connect BOOTSEL and deploy</button>
@@ -35,6 +42,7 @@ export function createPhysicalHostRunner({ host }) {
     imageBytes: null,
     imageDigest: null,
     artifact: null,
+    fabrication: null,
     prepared: null,
     deployment: null,
     observation: null,
@@ -44,42 +52,36 @@ export function createPhysicalHostRunner({ host }) {
   runner.querySelector(".deploy").addEventListener("click", () => deploy(runner, host, state));
   runner.querySelector(".observe").addEventListener("click", () => observe(runner, host, state));
   runner.querySelector(".admit").addEventListener("click", () => admit(runner, host, state));
-  loadPackagedImage(runner, state);
+  runner.querySelector(".fabrication-strategy").addEventListener("change", () => loadFabricatedImage(runner, host, state));
+  loadFabricatedImage(runner, host, state);
   return runner;
 }
 
-async function loadPackagedImage(runner, state) {
+async function loadFabricatedImage(runner, host, state) {
   try {
-    const manifestResponse = await fetch(PACKAGED_MANIFEST_PATH, { cache: "no-store" });
-    if (!manifestResponse.ok) throw new Error(`packaged IMAGE manifest is unavailable (${manifestResponse.status})`);
-    const manifest = await manifestResponse.json();
-    if (manifest.schema !== "conduit.creche/packaged-firmware-artifact@1"
-      || manifest.target_id !== "conduit-target/rp2040-pico-w@1"
-      || !Number.isSafeInteger(manifest.bytes)
-      || manifest.bytes < 1
-      || manifest.bytes > MAX_IMAGE_BYTES
-      || manifest.maximum_bytes !== MAX_IMAGE_BYTES
-      || !/^sha256:[0-9a-f]{64}$/.test(manifest.content_digest)) {
-      throw new Error("packaged IMAGE manifest is malformed or exceeds its finite bound");
-    }
-    const imageResponse = await fetch(manifest.path, { cache: "no-store" });
-    if (!imageResponse.ok) throw new Error(`packaged IMAGE is unavailable (${imageResponse.status})`);
-    const bytes = new Uint8Array(await imageResponse.arrayBuffer());
-    if (bytes.length !== manifest.bytes || bytes.length > MAX_IMAGE_BYTES) {
-      throw new Error(`IMAGE must contain 1–${MAX_IMAGE_BYTES} bytes`);
-    }
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const contentDigest = `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-    if (contentDigest !== manifest.content_digest) throw new Error("packaged IMAGE content digest does not match its reviewed manifest");
-    state.imageBytes = bytes;
-    state.imageDigest = contentDigest;
-    state.artifact = manifest;
-    completeStage(runner, "image", `${manifest.artifact_id} · ${bytes.length} bytes`);
+    const body = currentBody(host.runtime);
+    const strategy = runner.querySelector(".fabrication-strategy").value;
+    const fabrication = await createRp2040BrowserFabricationAdapter().fabricate({
+      strategy,
+      selection: {
+        targetId: "conduit-target/rp2040-pico-w@1",
+        profileId: "pico-local",
+        buildId: BUILD_ID,
+        imageId: "conduit-image/pico-w-signal-b7@1",
+        manifestPath: PACKAGED_MANIFEST_PATH,
+      },
+      configuration: strategy === "template-specialized" ? { body_label: body?.friendly_name ?? "unborn" } : {},
+    });
+    state.imageBytes = fabrication.bytes;
+    state.imageDigest = fabrication.content_id;
+    state.fabrication = fabrication;
+    state.artifact = fabrication.provenance;
+    completeStage(runner, "image", `${strategy} · ${fabrication.bytes.length} bytes`);
     runner.querySelector(".prepare").disabled = false;
-    status(runner, "Packaged IMAGE verified. No spore, deployment, Boot, or membership exists.");
+    status(runner, "Exact IMAGE fabricated and cryptographically bound to its checked selection. No spore, deployment, Boot, or membership exists.");
     renderEvidence(runner, state);
   } catch (error) {
-    refuse(runner, "packaged IMAGE verification", error);
+    refuse(runner, "local IMAGE fabrication", error);
   }
 }
 
@@ -289,6 +291,7 @@ function renderEvidence(runner, state) {
   const prepared = state.prepared ? { ...state.prepared, invitation_secret: "redacted" } : null;
   runner.querySelector("details code").textContent = JSON.stringify({
     image: state.imageDigest ? { ...state.artifact, content_digest: state.imageDigest, bytes: state.imageBytes.length } : null,
+    fabrication: state.fabrication ? { ...state.fabrication, bytes: `${state.fabrication.bytes.length} bytes retained separately` } : null,
     prepared,
     deployment: state.deployment,
     observation: state.observation,

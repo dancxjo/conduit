@@ -17,6 +17,8 @@ const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../rp2040/browser-deploymen
 const RP2040_UF2: &[u8] = include_bytes!("../../../rp2040/browser-deployment/uf2.mjs");
 const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../rp2040/browser-deployment/bootsel.mjs");
 const RP2040_SPAWN: &[u8] = include_bytes!("../../../rp2040/browser-deployment/spawn.mjs");
+const RP2040_FABRICATION: &[u8] =
+    include_bytes!("../../../rp2040/browser-deployment/fabrication.mjs");
 const ESP32_DEPLOYMENT: &[u8] = include_bytes!("../../../esp32/browser-deployment/index.mjs");
 const ESP32_DEPLOYMENT_ORCHESTRATOR: &[u8] =
     include_bytes!("../../../esp32/browser-deployment/deployment.mjs");
@@ -178,6 +180,11 @@ impl BrowserHostServer {
             Some("GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_SPAWN)
             }
+            Some("GET /targets/rp2040/browser-deployment/fabrication.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                RP2040_FABRICATION,
+            ),
             Some("GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_DEPLOYMENT)
             }

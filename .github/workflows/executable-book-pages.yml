@@ -146,7 +146,7 @@ jobs:
           touch "$site/.nojekyll"
           staged_chapters="$(find "$site/book" -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
           test "$staged_chapters" = "$expected_chapters"
-          test "$(find "$site" -type f | wc -l)" = 32
+          test "$(find "$site" -type f | wc -l)" = 33
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
