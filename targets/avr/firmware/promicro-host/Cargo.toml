@@ -1,0 +1,23 @@
+[package]
+name = "conduit-avr-promicro-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+resolver = "2"
+
+[dependencies]
+arduino-hal = { git = "https://github.com/Rahix/avr-hal.git", rev = "e0b0105b11a7c4209fb1704276a7921c3139d5cb", features = ["sparkfun-promicro"] }
+conduit-assigned-plan = { path = "../../../../architecture/assigned-plan" }
+conduit-create-oi = { path = "../../../../mechanisms/devices/create-oi" }
+embedded-hal-v0 = { package = "embedded-hal", version = "0.2.7" }
+nb = "1.1.0"
+panic-halt = "1.0.0"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = "symbols"

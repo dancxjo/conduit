@@ -102,6 +102,10 @@ pub(super) fn config_path(root: &Path) -> PathBuf {
     root.join("target/avr-promicro/arduino-cli.yaml")
 }
 
+pub(super) fn avr_gcc_bin(root: &Path) -> PathBuf {
+    root.join("target/avr-promicro/arduino/data/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/bin")
+}
+
 fn write_config(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let base = root.join("target/avr-promicro/arduino");
     for directory in ["data", "downloads", "user"] {

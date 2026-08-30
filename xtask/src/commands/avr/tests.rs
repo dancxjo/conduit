@@ -64,14 +64,12 @@ fn parses_exact_build_metrics_and_enforces_both_capacities() {
     assert!(validate_sizes(MAX_FLASH_BYTES + 1, 1).is_err());
     assert!(validate_sizes(1, MAX_SRAM_BYTES + 1).is_err());
     validate_sizes(MAX_FLASH_BYTES, MAX_SRAM_BYTES).unwrap();
-}
-
-#[test]
-fn standalone_sources_are_refused_inside_the_arduino_sketch() {
-    for source in ["test.c", "test.cc", "test.cpp", "test.cxx"] {
-        assert!(source_replaces_arduino_entry(Path::new(source)));
-    }
-    for allowed in ["promicro_brainstem.ino", "protocol.h", "README.md"] {
-        assert!(!source_replaces_arduino_entry(Path::new(allowed)));
-    }
+    assert_eq!(
+        metric("Program:     304 bytes", "Program:", "bytes").unwrap(),
+        304
+    );
+    assert_eq!(
+        metric("Data:          1 bytes", "Data:", "bytes").unwrap(),
+        1
+    );
 }

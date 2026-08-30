@@ -13,13 +13,14 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 mod avr_toolchain;
 mod build_identity;
 mod release;
+mod rust_firmware;
 
 use avr_toolchain::{
-    config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
+    config_path, provision, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
 };
 use build_identity::{digest_compiled_sources, EmbeddedBuildIdentity, BUILD_ID_SCHEMA};
 use conduit_host_avr_fabrication::{FQBN, SPORE_REGION_START, SRAM_BYTES};
-const SKETCH: &str = "targets/avr/firmware/promicro_brainstem";
+use rust_firmware::{AVR_HAL_REVISION, FIRMWARE, RUST_TOOLCHAIN};
 const EXPECTED_BY_ID: &str = "usb-SparkFun_SparkFun_Pro_Micro-if00";
 const EXPECTED_VID: &str = "1b4f";
 const EXPECTED_PID: &str = "9206";
@@ -78,6 +79,8 @@ struct BuildReceipt {
     arduino_cli: &'static str,
     arduino_avr: &'static str,
     sparkfun_avr: &'static str,
+    rust_toolchain: &'static str,
+    avr_hal_revision: &'static str,
     artifact: String,
     artifact_sha256: String,
     flash_bytes: u64,
@@ -144,12 +147,11 @@ fn run_check(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     if opts.dry_run {
         if !opts.quiet {
-            println!("would provision and verify Arduino CLI {CLI_VERSION}, Arduino AVR {ARDUINO_AVR_VERSION}, and SparkFun AVR {SPARKFUN_AVR_VERSION}");
+            println!("would provision and verify Rust {RUST_TOOLCHAIN}, AVR HAL {AVR_HAL_REVISION}, Arduino CLI {CLI_VERSION}, and the pinned AVR GCC/upload tools");
         }
         return Ok(());
     }
-    let cli = provision(&root)?;
-    verify_cores(&cli, &root)?;
+    rust_firmware::check(&root)?;
     if !opts.quiet {
         println!("AVR boundary ready: {FQBN}");
     }
@@ -161,18 +163,19 @@ fn run_build(
     opts: &GlobalOpts,
 ) -> Result<BuiltArtifact, Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let output_dir = root.join("target/avr-promicro/build");
-    let artifact = output_dir.join("promicro_brainstem.ino.hex");
+    let artifact = root
+        .join("target/avr-promicro/build")
+        .join("conduit-avr-promicro-host.hex");
     let identity = EmbeddedBuildIdentity::new(
         git_head(&root)?,
-        digest_compiled_sources(&root.join(SKETCH))?,
+        digest_compiled_sources(&root.join(FIRMWARE))?,
         false,
     );
     if opts.dry_run {
         if !opts.quiet {
             println!(
                 "would build {FQBN} profile=isolated from {}",
-                root.join(SKETCH).display()
+                root.join(FIRMWARE).display()
             );
         }
         return Ok(BuiltArtifact {
@@ -182,51 +185,16 @@ fn run_build(
             identity,
         });
     }
-    validate_sketch_layout(&root.join(SKETCH))?;
-    let cli = provision(&root)?;
-    verify_cores(&cli, &root)?;
-    fs::create_dir_all(&output_dir)?;
-    let identity_dir = root
-        .join("target/avr-promicro/generated")
-        .join(identity.profile);
-    fs::create_dir_all(&identity_dir)?;
-    let identity_header = identity_dir.join("conduit_build_identity.h");
-    fs::write(&identity_header, identity.header())?;
-    let mut command = Command::new(&cli);
-    command
-        .args([
-            "compile",
-            "--fqbn",
-            FQBN,
-            "--warnings",
-            "all",
-            "--build-path",
-        ])
-        .arg(&output_dir)
-        .arg(root.join(SKETCH));
-    command.arg("--build-property").arg(format!(
-        "compiler.cpp.extra_flags={}",
-        identity.compiler_flags(&identity_header, false)
-    ));
-    let output = command
-        .args(["--config-file"])
-        .arg(config_path(&root))
-        .output()?;
-    require_success(&output, "AVR firmware build")?;
-    if !artifact.is_file() {
-        return Err(format!("AVR build omitted {}", artifact.display()).into());
+    let built = rust_firmware::build(&root)?;
+    if built.hex != artifact {
+        return Err("Rust AVR build returned an unexpected artifact path".into());
     }
-    let report = format!(
-        "{}\n{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let flash_bytes = metric(&report, "Sketch uses ", " bytes")?;
-    let sram_bytes = metric(&report, "Global variables use ", " bytes")?;
+    let flash_bytes = built.flash_bytes;
+    let sram_bytes = built.sram_bytes;
     validate_sizes(flash_bytes, sram_bytes)?;
     let digest = sha256_file(&artifact)?;
     let record = BuildReceipt {
-        schema: "conduit.avr-promicro/build@2",
+        schema: "conduit.avr-promicro/build@3",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
         profile: "isolated",
@@ -239,13 +207,15 @@ fn run_build(
         arduino_cli: CLI_VERSION,
         arduino_avr: ARDUINO_AVR_VERSION,
         sparkfun_avr: SPARKFUN_AVR_VERSION,
+        rust_toolchain: RUST_TOOLCHAIN,
+        avr_hal_revision: AVR_HAL_REVISION,
         artifact: relative(&root, &artifact)?,
         artifact_sha256: digest.clone(),
         flash_bytes,
         flash_limit: MAX_FLASH_BYTES,
         sram_bytes,
         sram_limit: MAX_SRAM_BYTES,
-        create_uart: "isolated-no-transmitter",
+        create_uart: "rust-shared-provider-no-dispatch",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
     Ok(BuiltArtifact {
@@ -306,14 +276,14 @@ fn run_flash(
     let output = Command::new(cli)
         .args(["upload", "--fqbn", FQBN, "--port"])
         .arg(&upload_port)
-        .args(["--input-dir"])
-        .arg(built.path.parent().ok_or("AVR artifact has no parent")?)
+        .args(["--input-file"])
+        .arg(&built.path)
         .args(["--config-file"])
         .arg(config_path(&root))
         .output()?;
     require_success(&output, "guarded AVR flash")?;
     let record = FlashReceipt {
-        schema: "conduit.avr-promicro/flash@2",
+        schema: "conduit.avr-promicro/flash@3",
         outcome: "flashed",
         proof_class: "physical-flash-no-cdc-open",
         profile: "isolated",
@@ -328,7 +298,7 @@ fn run_flash(
         create_stopped: gate.create_stopped,
         attended: gate.attended,
         wheels_clear: gate.wheels_clear,
-        create_uart: "isolated-no-transmitter",
+        create_uart: "rust-shared-provider-no-dispatch",
     };
     write_receipt(&root.join(receipt), &record, opts)
 }
@@ -403,7 +373,7 @@ fn metric(report: &str, prefix: &str, suffix: &str) -> Result<u64, Box<dyn std::
     let end = rest
         .find(suffix)
         .ok_or_else(|| format!("AVR build malformed metric {prefix:?}"))?;
-    Ok(rest[..end].replace(',', "").parse()?)
+    Ok(rest[..end].trim().replace(',', "").parse()?)
 }
 
 fn validate_sizes(flash: u64, sram: u64) -> Result<(), Box<dyn std::error::Error>> {
@@ -414,27 +384,6 @@ fn validate_sizes(flash: u64, sram: u64) -> Result<(), Box<dyn std::error::Error
         return Err(format!("AVR SRAM capacity exceeded: {sram} > {MAX_SRAM_BYTES}").into());
     }
     Ok(())
-}
-
-fn validate_sketch_layout(sketch: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    for entry in fs::read_dir(sketch)? {
-        let path = entry?.path();
-        if path.is_file() && source_replaces_arduino_entry(&path) {
-            return Err(format!(
-                "AVR sketch contains standalone source {}: host tests must remain outside the sketch so their main() cannot replace Arduino setup()/loop()",
-                path.display()
-            )
-            .into());
-        }
-    }
-    Ok(())
-}
-
-fn source_replaces_arduino_entry(path: &Path) -> bool {
-    matches!(
-        path.extension().and_then(|extension| extension.to_str()),
-        Some("c" | "cc" | "cpp" | "cxx")
-    )
 }
 
 fn require_success(output: &Output, action: &str) -> Result<(), Box<dyn std::error::Error>> {
