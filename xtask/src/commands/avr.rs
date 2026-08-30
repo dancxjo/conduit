@@ -14,6 +14,7 @@ mod avr_toolchain;
 mod build_identity;
 mod release;
 mod rust_firmware;
+mod rx_check;
 
 use avr_toolchain::{
     config_path, provision, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
@@ -47,6 +48,16 @@ enum AvrCommand {
         #[arg(long, default_value = "target/creche-avr-release")]
         output: PathBuf,
     },
+    /// Build the exact receive-only diagnostic image and write a receipt.
+    BuildReceiveOnly {
+        #[arg(
+            long,
+            default_value = "target/avr-promicro/receive-only-build-receipt.json"
+        )]
+        receipt: PathBuf,
+    },
+    /// Flash and execute one attended receive-only Create RX diagnostic.
+    ReceiveOnly(rx_check::RxCheckArgs),
     /// Flash only after exact artifact, device, and physical gates are supplied.
     Flash {
         #[arg(long)]
@@ -90,26 +101,6 @@ struct BuildReceipt {
     create_uart: &'static str,
 }
 
-#[derive(Debug, Serialize)]
-struct FlashReceipt {
-    schema: &'static str,
-    outcome: &'static str,
-    proof_class: &'static str,
-    profile: &'static str,
-    build_id: String,
-    source_sha: String,
-    target: &'static str,
-    port: String,
-    upload_port: String,
-    usb_vid: &'static str,
-    usb_pid: &'static str,
-    artifact_sha256: String,
-    create_stopped: bool,
-    attended: bool,
-    wheels_clear: bool,
-    create_uart: &'static str,
-}
-
 struct BuiltArtifact {
     pub(super) path: PathBuf,
     pub(super) artifact_sha256: String,
@@ -122,6 +113,10 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
         AvrCommand::Check => run_check(opts),
         AvrCommand::Build { receipt } => run_build(&receipt, opts).map(|_| ()),
         AvrCommand::Release { output } => release::run(&output, opts),
+        AvrCommand::BuildReceiveOnly { receipt } => {
+            run_build_receive_only(&receipt, opts).map(|_| ())
+        }
+        AvrCommand::ReceiveOnly(args) => rx_check::run(args, opts),
         AvrCommand::Flash {
             port,
             artifact_sha256,
@@ -141,6 +136,70 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
             opts,
         ),
     }
+}
+
+fn run_build_receive_only(
+    receipt: &Path,
+    opts: &GlobalOpts,
+) -> Result<BuiltArtifact, Box<dyn std::error::Error>> {
+    let root = workspace_root()?;
+    let artifact = root
+        .join("target/avr-promicro/build")
+        .join("conduit-avr-receive-only.hex");
+    let identity = EmbeddedBuildIdentity::new(
+        git_head(&root)?,
+        digest_compiled_sources(&root.join(FIRMWARE))?,
+        "receive-only",
+    );
+    if opts.dry_run {
+        if !opts.quiet {
+            println!(
+                "would build {FQBN} profile=receive-only from {}",
+                root.join(FIRMWARE).display()
+            );
+        }
+        return Ok(BuiltArtifact {
+            path: artifact,
+            artifact_sha256: String::new(),
+            identity,
+        });
+    }
+    let built = rust_firmware::build_receive_only(&root)?;
+    if built.hex != artifact {
+        return Err("Rust AVR receive-only build returned an unexpected artifact path".into());
+    }
+    validate_sizes(built.flash_bytes, built.sram_bytes)?;
+    let digest = sha256_file(&artifact)?;
+    let record = BuildReceipt {
+        schema: "conduit.avr-promicro/build@3",
+        outcome: "built",
+        proof_class: "machine-only-contract-compile",
+        profile: "receive-only",
+        build_id_schema: BUILD_ID_SCHEMA,
+        build_id: identity.build_id.clone(),
+        source_sha: identity.source_sha.clone(),
+        source_digest_sha256: identity.source_digest_sha256.clone(),
+        target: FQBN,
+        board_variant: "atmega32u4-5v-16mhz-usb-pid-9206",
+        arduino_cli: CLI_VERSION,
+        arduino_avr: ARDUINO_AVR_VERSION,
+        sparkfun_avr: SPARKFUN_AVR_VERSION,
+        rust_toolchain: RUST_TOOLCHAIN,
+        avr_hal_revision: AVR_HAL_REVISION,
+        artifact: relative(&root, &artifact)?,
+        artifact_sha256: digest.clone(),
+        flash_bytes: built.flash_bytes,
+        flash_limit: MAX_FLASH_BYTES,
+        sram_bytes: built.sram_bytes,
+        sram_limit: MAX_SRAM_BYTES,
+        create_uart: "isolated-no-transmitter",
+    };
+    write_receipt(&root.join(receipt), &record, opts)?;
+    Ok(BuiltArtifact {
+        path: artifact,
+        artifact_sha256: digest,
+        identity,
+    })
 }
 
 fn run_check(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
@@ -249,58 +308,11 @@ fn run_flash(
     port: &Path,
     expected_digest: &str,
     gate: PhysicalGate,
-    receipt: &Path,
-    opts: &GlobalOpts,
+    _receipt: &Path,
+    _opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     validate_flash_request(port, expected_digest, gate)?;
-    if opts.dry_run {
-        if !opts.quiet {
-            println!(
-                "would verify {EXPECTED_BY_ID}, rebuild the assigned-create-host profile, verify its digest, and flash the transmit-capable image after the physical gates"
-            );
-        }
-        return Ok(());
-    }
-    let built = run_build(Path::new("target/avr-promicro/build-receipt.json"), opts)?;
-    if built.artifact_sha256 != expected_digest {
-        return Err(format!(
-            "AVR artifact digest mismatch: expected {expected_digest}, built {}",
-            built.artifact_sha256
-        )
-        .into());
-    }
-    verify_device(port)?;
-    let upload_port = resolve_upload_port(port)?;
-    let root = workspace_root()?;
-    let cli = provision(&root)?;
-    let output = Command::new(cli)
-        .args(["upload", "--fqbn", FQBN, "--port"])
-        .arg(&upload_port)
-        .args(["--input-file"])
-        .arg(&built.path)
-        .args(["--config-file"])
-        .arg(config_path(&root))
-        .output()?;
-    require_success(&output, "guarded AVR flash")?;
-    let record = FlashReceipt {
-        schema: "conduit.avr-promicro/flash@3",
-        outcome: "flashed",
-        proof_class: "physical-flash-no-cdc-open",
-        profile: "assigned-create-host",
-        build_id: built.identity.build_id,
-        source_sha: git_head(&root)?,
-        target: FQBN,
-        port: port.display().to_string(),
-        upload_port: upload_port.display().to_string(),
-        usb_vid: EXPECTED_VID,
-        usb_pid: EXPECTED_PID,
-        artifact_sha256: built.artifact_sha256,
-        create_stopped: gate.create_stopped,
-        attended: gate.attended,
-        wheels_clear: gate.wheels_clear,
-        create_uart: "rust-shared-provider-assigned-plan-dispatch-only",
-    };
-    write_receipt(&root.join(receipt), &record, opts)
+    Err("transmit-capable AVR flash remains disabled until the accepted #1965 receive-only receipt is supplied to the deployment entrance".into())
 }
 
 fn resolve_upload_port(port: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {

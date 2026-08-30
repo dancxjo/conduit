@@ -78,7 +78,7 @@ pub fn decode_assigned_activation(
     if sha256::digest(&bytes[..92]) != bytes[92..] {
         return Err(AssignedExecutionRefusal::DigestMismatch);
     }
-    Ok(identities_from(&bytes[12..92])?)
+    identities_from(&bytes[12..92])
 }
 
 #[inline(never)]
