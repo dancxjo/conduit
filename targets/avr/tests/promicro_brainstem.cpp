@@ -3,6 +3,7 @@
 #include "../firmware/promicro_brainstem/create_hil.h"
 #include "../firmware/promicro_brainstem/group_zero.h"
 #include "../firmware/promicro_brainstem/lifecycle.h"
+#include "../firmware/promicro_brainstem/offer.h"
 #include "../firmware/promicro_brainstem/protocol.h"
 
 #include <assert.h>
@@ -13,7 +14,12 @@ using conduit::promicro::ActivationResult;
 using conduit::promicro::BootBinding;
 using conduit::promicro::BootBindResult;
 using conduit::promicro::BrainstemLifecycle;
+using conduit::promicro::BuildAttestation;
+using conduit::promicro::CreateObservationOffer;
+using conduit::promicro::ImageProfile;
+using conduit::promicro::OfferResult;
 using conduit::promicro::ObservationActivation;
+using conduit::promicro::current_offer;
 
 class FakeUart {
  public:
@@ -71,6 +77,8 @@ int main() {
   CommandBuffer buffer;
   assert(request(buffer, "HELLO\n") == Request::kHello);
   assert(request(buffer, "STATUS\n") == Request::kStatus);
+  assert(request(buffer, "ATTEST\n") == Request::kAttest);
+  assert(request(buffer, "OFFER\n") == Request::kOffer);
   assert(request(buffer, "hello\n") == Request::kUnsupported);
   assert(request(buffer, "STATUS trailing\n") == Request::kUnsupported);
   assert(request(buffer, "B 0000000B:00000016:00000001\n") ==
@@ -125,6 +133,8 @@ int main() {
   assert(lifecycle.bind_boot(boot) == BootBindResult::kBound);
   assert(lifecycle.boot_bound());
   assert(lifecycle.bind_boot(boot) == BootBindResult::kAlreadyBound);
+  assert(lifecycle.binding() != nullptr);
+  assert(lifecycle.binding()->boot_id.value == 22);
   BootBinding conflicting_boot = boot;
   conflicting_boot.boot_id.value = 23;
   assert(lifecycle.bind_boot(conflicting_boot) ==
@@ -151,6 +161,36 @@ int main() {
   conflicting_activation.active_play_id.value = 56;
   assert(lifecycle.admit(conflicting_activation) ==
          ActivationResult::kConflictingActivation);
+
+  const char build_id[] =
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  const char source_sha[] = "0123456789abcdef0123456789abcdef01234567";
+  const char source_digest[] =
+      "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+  const BuildAttestation isolated_attestation{
+      build_id, source_sha, source_digest, ImageProfile::kIsolated};
+  const BuildAttestation hil_attestation{
+      build_id, source_sha, source_digest, ImageProfile::kCreateHil};
+  BrainstemLifecycle unbound_lifecycle;
+  CreateObservationOffer offer{};
+  assert(current_offer(unbound_lifecycle, hil_attestation, offer) ==
+         OfferResult::kBootAbsent);
+  assert(current_offer(lifecycle, isolated_attestation, offer) ==
+         OfferResult::kNoExecutableImplementation);
+  assert(current_offer(lifecycle, hil_attestation, offer) ==
+         OfferResult::kOffered);
+  assert(offer.placement.host_id.value == 11);
+  assert(offer.placement.boot_id.value == 22);
+  assert(offer.placement.offer_generation == 1);
+  assert(offer.artifact_build == build_id);
+  assert(offer.operation_capacity == 1);
+  assert(offer.response_byte_capacity == 26);
+  assert(offer.maximum_deadline_ms == 2000);
+  const BuildAttestation malformed_attestation{
+      "uppercase-is-not-a-build-identity", source_sha, source_digest,
+      ImageProfile::kCreateHil};
+  assert(current_offer(lifecycle, malformed_attestation, offer) ==
+         OfferResult::kInvalidBuildIdentity);
 
   using namespace conduit::promicro::create_oi;
   const uint8_t start_bytes[] = {128};

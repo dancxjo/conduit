@@ -11,12 +11,14 @@ use sha2::{Digest, Sha256};
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 mod avr_toolchain;
+mod build_identity;
 mod cdc_verify;
 mod hil_observe;
 
 use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
 };
+use build_identity::{digest_compiled_sources, EmbeddedBuildIdentity, BUILD_ID_SCHEMA};
 const FQBN: &str = "SparkFun:avr:promicro:cpu=16MHzatmega32U4";
 const SKETCH: &str = "targets/avr/firmware/promicro_brainstem";
 const EXPECTED_BY_ID: &str = "usb-SparkFun_SparkFun_Pro_Micro-if00";
@@ -73,7 +75,10 @@ struct BuildReceipt {
     outcome: &'static str,
     proof_class: &'static str,
     profile: &'static str,
+    build_id_schema: &'static str,
+    build_id: String,
     source_sha: String,
+    source_digest_sha256: String,
     target: &'static str,
     board_variant: &'static str,
     arduino_cli: &'static str,
@@ -94,6 +99,7 @@ struct FlashReceipt {
     outcome: &'static str,
     proof_class: &'static str,
     profile: &'static str,
+    build_id: String,
     source_sha: String,
     target: &'static str,
     port: String,
@@ -104,6 +110,12 @@ struct FlashReceipt {
     attended: bool,
     wheels_clear: bool,
     create_uart: &'static str,
+}
+
+struct BuiltArtifact {
+    path: PathBuf,
+    artifact_sha256: String,
+    identity: EmbeddedBuildIdentity,
 }
 
 pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
@@ -158,7 +170,7 @@ fn run_build(
     receipt: &Path,
     create_hil: bool,
     opts: &GlobalOpts,
-) -> Result<(PathBuf, String), Box<dyn std::error::Error>> {
+) -> Result<BuiltArtifact, Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let output_dir = root.join(if create_hil {
         "target/avr-promicro/build-hil"
@@ -166,6 +178,11 @@ fn run_build(
         "target/avr-promicro/build"
     });
     let artifact = output_dir.join("promicro_brainstem.ino.hex");
+    let identity = EmbeddedBuildIdentity::new(
+        git_head(&root)?,
+        digest_compiled_sources(&root.join(SKETCH))?,
+        create_hil,
+    );
     if opts.dry_run {
         if !opts.quiet {
             println!(
@@ -174,12 +191,22 @@ fn run_build(
                 root.join(SKETCH).display()
             );
         }
-        return Ok((artifact, String::new()));
+        return Ok(BuiltArtifact {
+            path: artifact,
+            artifact_sha256: String::new(),
+            identity,
+        });
     }
     validate_sketch_layout(&root.join(SKETCH))?;
     let cli = provision(&root)?;
     verify_cores(&cli, &root)?;
     fs::create_dir_all(&output_dir)?;
+    let identity_dir = root
+        .join("target/avr-promicro/generated")
+        .join(identity.profile);
+    fs::create_dir_all(&identity_dir)?;
+    let identity_header = identity_dir.join("conduit_build_identity.h");
+    fs::write(&identity_header, identity.header())?;
     let mut command = Command::new(&cli);
     command
         .args([
@@ -192,12 +219,10 @@ fn run_build(
         ])
         .arg(&output_dir)
         .arg(root.join(SKETCH));
-    if create_hil {
-        command.args([
-            "--build-property",
-            "compiler.cpp.extra_flags=-DCONDUIT_CREATE_HIL=1",
-        ]);
-    }
+    command.arg("--build-property").arg(format!(
+        "compiler.cpp.extra_flags={}",
+        identity.compiler_flags(&identity_header, create_hil)
+    ));
     let output = command
         .args(["--config-file"])
         .arg(config_path(&root))
@@ -216,11 +241,14 @@ fn run_build(
     validate_sizes(flash_bytes, sram_bytes)?;
     let digest = sha256_file(&artifact)?;
     let record = BuildReceipt {
-        schema: "conduit.avr-promicro/build@1",
+        schema: "conduit.avr-promicro/build@2",
         outcome: "built",
         proof_class: "machine-only-contract-compile",
         profile: if create_hil { "create-hil" } else { "isolated" },
-        source_sha: git_head(&root)?,
+        build_id_schema: BUILD_ID_SCHEMA,
+        build_id: identity.build_id.clone(),
+        source_sha: identity.source_sha.clone(),
+        source_digest_sha256: identity.source_digest_sha256.clone(),
         target: FQBN,
         board_variant: "atmega32u4-5v-16mhz-usb-pid-9206",
         arduino_cli: CLI_VERSION,
@@ -239,7 +267,11 @@ fn run_build(
         },
     };
     write_receipt(&root.join(receipt), &record, opts)?;
-    Ok((artifact, digest))
+    Ok(BuiltArtifact {
+        path: artifact,
+        artifact_sha256: digest,
+        identity,
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -280,7 +312,7 @@ fn run_flash(
         return Ok(());
     }
     verify_device(port)?;
-    let (artifact, digest) = run_build(
+    let built = run_build(
         Path::new(if create_hil {
             "target/avr-promicro/build-hil-receipt.json"
         } else {
@@ -289,9 +321,10 @@ fn run_flash(
         create_hil,
         opts,
     )?;
-    if digest != expected_digest {
+    if built.artifact_sha256 != expected_digest {
         return Err(format!(
-            "AVR artifact digest mismatch: expected {expected_digest}, built {digest}"
+            "AVR artifact digest mismatch: expected {expected_digest}, built {}",
+            built.artifact_sha256
         )
         .into());
     }
@@ -301,22 +334,23 @@ fn run_flash(
         .args(["upload", "--fqbn", FQBN, "--port"])
         .arg(port)
         .args(["--input-dir"])
-        .arg(artifact.parent().ok_or("AVR artifact has no parent")?)
+        .arg(built.path.parent().ok_or("AVR artifact has no parent")?)
         .args(["--config-file"])
         .arg(config_path(&root))
         .output()?;
     require_success(&output, "guarded AVR flash")?;
     let record = FlashReceipt {
-        schema: "conduit.avr-promicro/flash@1",
+        schema: "conduit.avr-promicro/flash@2",
         outcome: "flashed",
         proof_class: "physical-flash-no-cdc-open",
         profile: if create_hil { "create-hil" } else { "isolated" },
+        build_id: built.identity.build_id,
         source_sha: git_head(&root)?,
         target: FQBN,
         port: port.display().to_string(),
         usb_vid: EXPECTED_VID,
         usb_pid: EXPECTED_PID,
-        artifact_sha256: digest,
+        artifact_sha256: built.artifact_sha256,
         create_stopped: gate.create_stopped,
         attended: gate.attended,
         wheels_clear: gate.wheels_clear,
