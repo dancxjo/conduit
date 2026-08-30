@@ -372,6 +372,8 @@ test("birth explicitly creates one LULLED Body and Change one Gear admits its fi
     await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
   };
   await page.getByRole("button", { name: "Previous" }).click();
+  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
+  await page.getByRole("button", { name: "Previous" }).click();
   await expectSameBody();
   await page.getByRole("button", { name: "Reset this page" }).click();
   await expectSameBody();
