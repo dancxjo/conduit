@@ -191,6 +191,28 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
   expect(first.evidence.prepared.image_content_digest).toBe(second.evidence.prepared.image_content_digest);
 });
 
+test("the same Crèche lifecycle consumes packaged and template-specialized fabrication", async ({ page }) => {
+  const prepare = async (variant, strategy) => {
+    await birthStandaloneBody(page, { sourceVariant: variant });
+    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    const runner = page.locator(".physical-host-runner");
+    await runner.locator(".fabrication-strategy").selectOption(strategy);
+    await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
+    await runner.getByRole("button", { name: "Prepare Body spore" }).click();
+    await expect(runner.locator('[data-stage="spore"]')).toHaveClass(/complete/);
+    return JSON.parse(await runner.locator("details code").textContent());
+  };
+  const packaged = await prepare("fabrication-packaged", "packaged-exact");
+  const specialized = await prepare("fabrication-specialized", "template-specialized");
+  expect(packaged.fabrication.strategy).toBe("packaged-exact");
+  expect(specialized.fabrication.strategy).toBe("template-specialized");
+  expect(packaged.image.content_digest).not.toBe(specialized.image.content_digest);
+  expect(packaged.prepared.schema).toBe(specialized.prepared.schema);
+  expect(Object.keys(packaged.prepared).sort()).toEqual(Object.keys(specialized.prepared).sort());
+  expect(packaged.prepared.spore_id).not.toBe(specialized.prepared.spore_id);
+  expect(packaged.prepared.body_id).not.toBe(specialized.prepared.body_id);
+});
+
 test("all guided pages lead with human motivation and return to the Conduit payoff", async ({
   page,
 }) => {

@@ -129,6 +129,66 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
+test("target-owned fabrication returns exact attributable bytes through two local strategies", async ({ page }) => {
+  await page.goto(`${await startEntrance()}creche/`);
+  const result = await page.evaluate(async () => {
+    const { createRp2040BrowserFabricationAdapter } = await import(
+      "/targets/rp2040/browser-deployment/index.mjs"
+    );
+    const adapter = createRp2040BrowserFabricationAdapter();
+    const selection = {
+      targetId: "conduit-target/rp2040-pico-w@1",
+      profileId: "pico-local",
+      buildId: "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local",
+      imageId: "conduit-image/pico-w-signal-b7@1",
+      manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
+    };
+    const packaged = await adapter.fabricate({ strategy: "packaged-exact", selection, configuration: {} });
+    const specialized = await adapter.fabricate({
+      strategy: "template-specialized",
+      selection,
+      configuration: { body_label: "field-kit" },
+    });
+    let unsupported;
+    try { await adapter.fabricate({ strategy: "browser-built", selection, configuration: {} }); }
+    catch (error) { unsupported = { code: error.code, message: error.message }; }
+    let oversized;
+    try {
+      await adapter.fabricate({
+        strategy: "template-specialized", selection,
+        configuration: { value: "x".repeat(193) },
+      });
+    } catch (error) { oversized = { code: error.code, message: error.message }; }
+    return {
+      packaged: { ...packaged, bytes: packaged.bytes.length },
+      specialized: { ...specialized, bytes: specialized.bytes.length },
+      unsupported,
+      oversized,
+    };
+  });
+  expect(result.packaged).toMatchObject({
+    schema: "conduit.rp2040/browser-fabrication-result@1",
+    strategy: "packaged-exact",
+    bytes: 773632,
+    content_id: "sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d",
+    maximum_artifact_bytes: 2097152,
+    provenance: {
+      mechanism: "packaged-exact",
+      artifact_id: "conduit-pico-w-signal/pico-local-b7@1",
+      remote_builder: null,
+      uploaded_artifact: null,
+      cache_fallback: null,
+    },
+  });
+  expect(result.specialized.strategy).toBe("template-specialized");
+  expect(result.specialized.bytes).toBe(result.packaged.bytes + 512);
+  expect(result.specialized.content_id).not.toBe(result.packaged.content_id);
+  expect(result.specialized.selection_binding).not.toBe(result.packaged.selection_binding);
+  expect(result.specialized.provenance.template_content_id).toBe(result.packaged.content_id);
+  expect(result.unsupported.code).toBe("UnsupportedStrategy");
+  expect(result.oversized.code).toBe("ConfigurationBound");
+});
+
 test("browser serial observes a distinct fresh Boot and invitation-bound Pico join", async ({ page }) => {
   await page.goto(await startEntrance());
   const result = await page.evaluate(async () => {
@@ -413,7 +473,11 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
       return bytes;
     };
     const base = await __conduitBrowserHost.usbDevices.acquireUsb({
-      interfaceNumber: 1,
+      configurationValue: RP2040_BROWSER_DEPLOYMENT.configurationValue,
+      interfaceNumber: RP2040_BROWSER_DEPLOYMENT.interfaceNumber,
+      alternateSetting: RP2040_BROWSER_DEPLOYMENT.alternateSetting,
+      inEndpoint: RP2040_BROWSER_DEPLOYMENT.inEndpoint,
+      outEndpoint: RP2040_BROWSER_DEPLOYMENT.outEndpoint,
       maximumInTransfers: 32,
       maximumOutTransfers: 32,
     });
