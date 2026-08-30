@@ -81,7 +81,7 @@ function parseObject(bytes, name) {
 }
 
 export async function requestRp2040SpawnJoin({ base, prepared }) {
-  if (!base || ["startUse", "write", "read", "evidence"].some((name) => typeof base[name] !== "function")) {
+  if (!base || ["startUse", "write", "read", "setSignals", "evidence"].some((name) => typeof base[name] !== "function")) {
     refuse("BaseContract", "Pico spawn observation requires one admitted browser serial Base");
   }
   requireIdentity(prepared?.spore_id, undefined, "spore identity");
@@ -100,20 +100,23 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
   }
 
   const usePlanId = `pico-spawn/${prepared.spore_id}`;
-  base.startUse(usePlanId);
-  const provision = encoder.encode(JSON.stringify({
-    protocol: PROTOCOL,
-    spore_id: prepared.spore_id,
-    image_id: prepared.image_id,
-    invitation_id: prepared.invitation_id,
-    body_id: prepared.body_id,
-    nonce: prepared.invitation_nonce,
-    expires_at_millis: prepared.invitation_expires_at_millis,
-    secret: prepared.invitation_secret,
-  }));
+  let provision = null;
   try {
+    base.startUse(usePlanId);
+    await base.setSignals({ dataTerminalReady: true });
+    provision = encoder.encode(JSON.stringify({
+      protocol: PROTOCOL,
+      spore_id: prepared.spore_id,
+      image_id: prepared.image_id,
+      invitation_id: prepared.invitation_id,
+      body_id: prepared.body_id,
+      nonce: prepared.invitation_nonce,
+      expires_at_millis: prepared.invitation_expires_at_millis,
+      secret: prepared.invitation_secret,
+    }));
     await base.write(frame(provision));
   } finally {
+    provision?.fill(0);
     prepared.invitation_secret.fill(0);
   }
 

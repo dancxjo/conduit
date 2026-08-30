@@ -415,6 +415,61 @@ test("Step 12 keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and 
   expect(birth.birthSignId).toHaveLength(64);
 });
 
+test("Step 12 retains a refused WebUSB acquisition as terminal", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "usb", {
+      configurable: true,
+      value: {
+        requestDevice: async () => {
+          throw new DOMException("operator selected no BOOTSEL device", "NotFoundError");
+        },
+        addEventListener() {},
+      },
+    });
+  });
+  await openStep(page, 11);
+  await page.getByRole("button", { name: "Birth Body" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator("input[type=file]").setInputFiles({
+    name: "reviewed-pico-local.uf2",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(picoUf2()),
+  });
+  await runner.getByRole("button", { name: "Prepare Body spore" }).click();
+  const deploy = runner.getByRole("button", { name: "Connect BOOTSEL and deploy" });
+  await deploy.click();
+  await expect(runner.locator(".physical-status")).toContainText("This USB acquisition is terminal");
+  await expect(runner.locator('[data-stage="deploy"] span')).toHaveText("waiting");
+  await expect(deploy).toBeDisabled();
+});
+
+test("Step 12 retains the exact Picoboot refusal chain", async ({ page }) => {
+  await installB7Devices(page, { staleStatus: true });
+  await openStep(page, 11);
+  await page.getByRole("button", { name: "Birth Body" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator("input[type=file]").setInputFiles({
+    name: "reviewed-pico-local.uf2",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(picoUf2()),
+  });
+  await runner.getByRole("button", { name: "Prepare Body spore" }).click();
+  await runner.getByRole("button", { name: "Connect BOOTSEL and deploy" }).click();
+  const evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.deployment).toMatchObject({
+    phase: "terminal",
+    terminal: "StaleStatus",
+    reboot_requested: false,
+  });
+  expect(evidence.deployment.failure_chain).toEqual([
+    "StaleStatus: RP2040 deployment terminated without success",
+    "StaleStatus: PICOBOOT status belongs to a different command identity",
+  ]);
+  await expect(runner.locator(".physical-status")).toContainText("StaleStatus");
+});
+
 test("stopping the two-Host lesson cancels without a late manifestation", async ({ page }) => {
   await page.addInitScript(() => {
     const callbacks = [];
