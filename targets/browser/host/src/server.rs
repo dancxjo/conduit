@@ -33,6 +33,10 @@ const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycl
 const CRECHE_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/creche-physical.mjs");
 const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
 const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
+const CRECHE_PICO_ARTIFACT: &[u8] =
+    include_bytes!("../assets/artifacts/pico-w-signal-pico-local.uf2");
+const CRECHE_PICO_ARTIFACT_MANIFEST: &[u8] =
+    include_bytes!("../assets/artifacts/pico-w-signal-pico-local.json");
 const BOOK_STYLE: &[u8] = include_bytes!("../assets/book.css");
 const BOOK_CHAPTER_ONE: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
 const BOOK_CHAPTER_TWO: &[u8] = include_bytes!("../../../../tour/book/chapter-2.md");
@@ -228,6 +232,14 @@ impl BrowserHostServer {
             }
             Some("GET /creche/creche.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", CRECHE_STYLE)
+            }
+            Some("GET /creche/artifacts/pico-w-signal-pico-local.json HTTP/1.1") => (
+                "200 OK",
+                "application/json; charset=utf-8",
+                CRECHE_PICO_ARTIFACT_MANIFEST,
+            ),
+            Some("GET /creche/artifacts/pico-w-signal-pico-local.uf2 HTTP/1.1") => {
+                ("200 OK", "application/octet-stream", CRECHE_PICO_ARTIFACT)
             }
             Some("GET /book/book.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", BOOK_STYLE)

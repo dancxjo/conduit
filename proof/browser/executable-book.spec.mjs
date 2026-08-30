@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
-import { installB7Devices, picoUf2 } from "./b7-fixture.mjs";
+import { installB7Devices } from "./b7-fixture.mjs";
 
 let entrance;
 
@@ -69,9 +69,14 @@ async function openStandaloneCreche(page) {
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
 }
 
-async function birthStandaloneBody(page, { attachFirstHost = false } = {}) {
+async function birthStandaloneBody(page, { attachFirstHost = false, sourceVariant = null } = {}) {
   await openStandaloneCreche(page);
   const birth = page.locator(".body-birth-runner");
+  if (sourceVariant) {
+    await birth.locator(".seed-source summary").click();
+    const source = birth.locator("textarea");
+    await source.fill((await source.inputValue()).replace('"SOS"', `"SOS ${sourceVariant}"`));
+  }
   await birth.getByRole("button", { name: "Birth Body" }).click();
   const identity = await birth.evaluate((element) => ({
     bodyId: element.dataset.bodyId,
@@ -162,6 +167,28 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
     (element) => getComputedStyle(element).appearance,
   );
   expect(selectAppearance).toBe("none");
+});
+
+test("two Bodies seal distinct spores against the same verified packaged Pico IMAGE", async ({ page }) => {
+  const prepareOne = async (variant) => {
+    const birth = await birthStandaloneBody(page, { sourceVariant: variant });
+    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    const runner = page.locator(".physical-host-runner");
+    await expect(runner.locator("input[type=file]")).toHaveCount(0);
+    await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
+    await runner.getByRole("button", { name: "Prepare Body spore" }).click();
+    await expect(runner.locator('[data-stage="spore"]')).toHaveClass(/complete/);
+    return { birth, evidence: JSON.parse(await runner.locator("details code").textContent()) };
+  };
+  const first = await prepareOne("A");
+  const second = await prepareOne("B");
+  expect(first.birth.bodyId).not.toBe(second.birth.bodyId);
+  expect(first.evidence.image.content_digest).toBe("sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d");
+  expect(first.evidence.image.content_digest).toBe(second.evidence.image.content_digest);
+  expect(first.evidence.image.artifact_id).toBe("conduit-pico-w-signal/pico-local-b7@1");
+  expect(first.evidence.prepared.spore_id).not.toBe(second.evidence.prepared.spore_id);
+  expect(first.evidence.prepared.invitation_id).not.toBe(second.evidence.prepared.invitation_id);
+  expect(first.evidence.prepared.image_content_digest).toBe(second.evidence.prepared.image_content_digest);
 });
 
 test("all guided pages lead with human motivation and return to the Conduit payoff", async ({
@@ -407,11 +434,6 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
   const birth = await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator("input[type=file]").setInputFiles({
-    name: "reviewed-pico-local.uf2",
-    mimeType: "application/octet-stream",
-    buffer: Buffer.from(picoUf2()),
-  });
   await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
   await expect(runner.locator(".physical-status")).toContainText("No spore, deployment, Boot, or membership exists");
 
@@ -468,11 +490,7 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator("input[type=file]").setInputFiles({
-    name: "reviewed-pico-local.uf2",
-    mimeType: "application/octet-stream",
-    buffer: Buffer.from(picoUf2()),
-  });
+  await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
   await runner.getByRole("button", { name: "Prepare Body spore" }).click();
   const deploy = runner.getByRole("button", { name: "Connect BOOTSEL and deploy" });
   await deploy.click();
@@ -486,11 +504,7 @@ test("Add a physical Host retains the exact Picoboot refusal chain", async ({ pa
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator("input[type=file]").setInputFiles({
-    name: "reviewed-pico-local.uf2",
-    mimeType: "application/octet-stream",
-    buffer: Buffer.from(picoUf2()),
-  });
+  await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
   await runner.getByRole("button", { name: "Prepare Body spore" }).click();
   await runner.getByRole("button", { name: "Connect BOOTSEL and deploy" }).click();
   const evidence = JSON.parse(await runner.locator("details code").textContent());

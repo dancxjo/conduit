@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.creche/packaged-firmware-artifact@1",
+  "artifact_id": "conduit-pico-w-signal/pico-local-b7@1",
+  "target_id": "conduit-target/rp2040-pico-w@1",
+  "build_identity": "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local",
+  "source_revision": "e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217",
+  "content_digest": "sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d",
+  "bytes": 773632,
+  "path": "./artifacts/pico-w-signal-pico-local.uf2",
+  "maximum_bytes": 2097152
+}
