@@ -129,6 +129,78 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
+test("browser serial observes a distinct fresh Boot and invitation-bound Pico join", async ({ page }) => {
+  await page.goto(await startEntrance());
+  const result = await page.evaluate(async () => {
+    const { requestRp2040SpawnJoin } = await import(
+      "/targets/rp2040/browser-deployment/index.mjs"
+    );
+    const encode = (value) => {
+      const payload = new TextEncoder().encode(JSON.stringify(value));
+      const bytes = new Uint8Array(payload.length + 2);
+      new DataView(bytes.buffer).setUint16(0, payload.length, false);
+      bytes.set(payload, 2);
+      return bytes;
+    };
+    const advertisement = {
+      host_id: "pico/tour",
+      boot_id: "pico-boot/fresh",
+      offer_generation: 4,
+      capabilities: [{ implementation_id: "pico/signal-source@1" }],
+    };
+    const nonce = Array(32).fill(7);
+    const responses = [
+      encode({ protocol: 1, advertisement, friendly_label: "Pico W", verifying_key: Array(32).fill(1), freshness_sequence: 1 }),
+      encode({
+        protocol: 2,
+        spore_id: "spore:one",
+        image_id: "image:one",
+        invitation_id: "invitation:one",
+        body_id: "body:one",
+        host_id: advertisement.host_id,
+        boot_id: advertisement.boot_id,
+        offer_generation: advertisement.offer_generation,
+        nonce,
+        signature: Array(64).fill(9),
+      }),
+    ];
+    const evidence = { schema: "conduit.browser/serial-base-evidence@1", phase: "resource-truth" };
+    const base = {
+      writes: [],
+      usePlanId: null,
+      evidence: () => evidence,
+      startUse(planId) { this.usePlanId = planId; },
+      async write(bytes) { this.writes.push(Array.from(bytes)); return { bytes }; },
+      async read() { return { bytes: responses.shift() }; },
+    };
+    const secret = Array(32).fill(8);
+    const observation = await requestRp2040SpawnJoin({
+      base,
+      prepared: {
+        spore_id: "spore:one",
+        image_id: "image:one",
+        invitation_id: "invitation:one",
+        body_id: "body:one",
+        invitation_nonce: nonce,
+        invitation_secret: secret,
+        invitation_expires_at_millis: Date.now() + 60_000,
+      },
+    });
+    return { observation, usePlanId: base.usePlanId, write: base.writes[0], secret };
+  });
+  expect(result.observation).toMatchObject({
+    schema: "conduit.rp2040/browser-spawn-observation@1",
+    spore_id: "spore:one",
+    image_id: "image:one",
+    host_id: "pico/tour",
+    boot_id: "pico-boot/fresh",
+  });
+  expect(result.observation.advertisement.capabilities).toHaveLength(1);
+  expect(result.usePlanId).toBe("pico-spawn/spore:one");
+  expect(result.write.length).toBeLessThanOrEqual(4098);
+  expect(result.secret).toEqual(Array(32).fill(0));
+});
+
 test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime promotion", async ({ page }) => {
   await installPicoboot(page);
   await page.goto(await startEntrance());
