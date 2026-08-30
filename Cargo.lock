@@ -554,9 +554,12 @@ name = "conduit-browser-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-body-fabrication",
  "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-host-fabrication",
+ "conduit-host-rp2040",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
@@ -573,6 +576,7 @@ dependencies = [
  "ed25519-dalek",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]

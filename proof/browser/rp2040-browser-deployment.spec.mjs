@@ -129,6 +129,131 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
+test("browser serial observes a distinct fresh Boot and invitation-bound Pico join", async ({ page }) => {
+  await page.goto(await startEntrance());
+  const result = await page.evaluate(async () => {
+    const { requestRp2040SpawnJoin } = await import(
+      "/targets/rp2040/browser-deployment/index.mjs"
+    );
+    const encode = (value) => {
+      const payload = new TextEncoder().encode(JSON.stringify(value));
+      const bytes = new Uint8Array(payload.length + 2);
+      new DataView(bytes.buffer).setUint16(0, payload.length, false);
+      bytes.set(payload, 2);
+      return bytes;
+    };
+    const advertisement = {
+      host_id: "pico/tour",
+      boot_id: "pico-boot/fresh",
+      offer_generation: 4,
+      capabilities: [{ implementation_id: "pico/signal-source@1" }],
+    };
+    const nonce = Array(32).fill(7);
+    const responses = [
+      encode({ protocol: 1, advertisement, friendly_label: "Pico W", verifying_key: Array(32).fill(1), freshness_sequence: 1 }),
+      encode({
+        protocol: 2,
+        spore_id: "spore:one",
+        image_id: "image:one",
+        invitation_id: "invitation:one",
+        body_id: "body:one",
+        host_id: advertisement.host_id,
+        boot_id: advertisement.boot_id,
+        offer_generation: advertisement.offer_generation,
+        nonce,
+        signature: Array(64).fill(9),
+      }),
+    ];
+    const evidence = { schema: "conduit.browser/serial-base-evidence@1", phase: "resource-truth" };
+    const base = {
+      writes: [],
+      usePlanId: null,
+      evidence: () => evidence,
+      startUse(planId) { this.usePlanId = planId; },
+      async write(bytes) { this.writes.push(Array.from(bytes)); return { bytes }; },
+      async read() { return { bytes: responses.shift() }; },
+    };
+    const secret = Array(32).fill(8);
+    const observation = await requestRp2040SpawnJoin({
+      base,
+      prepared: {
+        spore_id: "spore:one",
+        image_id: "image:one",
+        invitation_id: "invitation:one",
+        body_id: "body:one",
+        invitation_nonce: nonce,
+        invitation_secret: secret,
+        invitation_expires_at_millis: Date.now() + 60_000,
+      },
+    });
+    return { observation, usePlanId: base.usePlanId, write: base.writes[0], secret };
+  });
+  expect(result.observation).toMatchObject({
+    schema: "conduit.rp2040/browser-spawn-observation@1",
+    spore_id: "spore:one",
+    image_id: "image:one",
+    host_id: "pico/tour",
+    boot_id: "pico-boot/fresh",
+  });
+  expect(result.observation.advertisement.capabilities).toHaveLength(1);
+  expect(result.usePlanId).toBe("pico-spawn/spore:one");
+  expect(result.write.length).toBeLessThanOrEqual(4098);
+  expect(result.secret).toEqual(Array(32).fill(0));
+});
+
+test("expired invitation and join-to-advertisement mismatch refuse before admission", async ({ page }) => {
+  await page.goto(await startEntrance());
+  const result = await page.evaluate(async () => {
+    const { requestRp2040SpawnJoin } = await import(
+      "/targets/rp2040/browser-deployment/index.mjs"
+    );
+    const prepared = (expiry) => ({
+      spore_id: "spore:one", image_id: "image:one", invitation_id: "invitation:one",
+      body_id: "body:one", invitation_nonce: Array(32).fill(7),
+      invitation_secret: Array(32).fill(8), invitation_expires_at_millis: expiry,
+    });
+    const encode = (value) => {
+      const payload = new TextEncoder().encode(JSON.stringify(value));
+      const bytes = new Uint8Array(payload.length + 2);
+      new DataView(bytes.buffer).setUint16(0, payload.length, false);
+      bytes.set(payload, 2);
+      return bytes;
+    };
+    const base = (responses = []) => ({
+      writes: 0, evidence: () => ({}), startUse() {},
+      async write() { this.writes += 1; },
+      async read() { return { bytes: responses.shift() }; },
+    });
+    const expired = prepared(Date.now() - 1);
+    const expiredBase = base();
+    let expiredCode;
+    try { await requestRp2040SpawnJoin({ base: expiredBase, prepared: expired }); }
+    catch (error) { expiredCode = error.code; }
+
+    const advertisement = { host_id: "pico/one", boot_id: "boot/fresh", offer_generation: 1 };
+    const responses = [
+      encode({ protocol: 1, advertisement }),
+      encode({ protocol: 2, spore_id: "spore:one", image_id: "image:one",
+        invitation_id: "invitation:one", body_id: "body:one", host_id: "pico/one",
+        boot_id: "boot/stale", offer_generation: 1, nonce: Array(32).fill(7), signature: Array(64).fill(9) }),
+    ];
+    const mismatchBase = base(responses);
+    let mismatchCode;
+    try {
+      await requestRp2040SpawnJoin({ base: mismatchBase, prepared: prepared(Date.now() + 60_000) });
+    } catch (error) { mismatchCode = error.code; }
+    return { expiredCode, expiredWrites: expiredBase.writes, expiredSecret: expired.invitation_secret,
+      mismatchCode, mismatchWrites: mismatchBase.writes };
+  });
+  expect(result).toEqual({
+    expiredCode: "ExpiredInvitation",
+    expiredWrites: 0,
+    expiredSecret: Array(32).fill(0),
+    mismatchCode: "WrongBoot",
+    mismatchWrites: 1,
+  });
+});
+
 test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime promotion", async ({ page }) => {
   await installPicoboot(page);
   await page.goto(await startEntrance());
@@ -169,6 +294,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
       deploymentPlanId: "rp2040-deployment-plan/one",
       deploymentOperationId: "rp2040-deployment/one",
       targetId: RP2040_BROWSER_DEPLOYMENT.targetId,
+      sporeId: "spore/pico-w/one",
       imageId: "image/pico-w-signal/one",
       imageContentId: contentId,
       imageBytes: uf2,
@@ -196,6 +322,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
   expect(result.plan).toMatchObject({
     schema: "conduit.rp2040/browser-deployment-plan@1",
     targetId: "conduitos/thumbv6m/pico-w",
+    sporeId: "spore/pico-w/one",
     imageBytes: 512,
     chunkCount: 1,
     requiredInTransfers: 12,
@@ -291,6 +418,7 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
         deploymentPlanId: "p/family",
         deploymentOperationId: "o/family",
         targetId: RP2040_BROWSER_DEPLOYMENT.targetId,
+        sporeId: "spore/wrong",
         imageId: "image/wrong",
         imageContentId: contentId(wrongDigest),
         imageBytes: wrong,
@@ -305,6 +433,7 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
       deploymentPlanId: "p/stale",
       deploymentOperationId: "o/stale",
       targetId: RP2040_BROWSER_DEPLOYMENT.targetId,
+      sporeId: "spore/stale-status",
       imageId: "image/good",
       imageContentId: contentId(goodDigest),
       imageBytes: good,

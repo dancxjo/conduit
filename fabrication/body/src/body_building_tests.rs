@@ -50,6 +50,35 @@ fn checked_multihost_body_builds_distinct_body_bound_spores() {
 }
 
 #[test]
+fn exact_lifecycle_body_identity_is_a_valid_fabrication_binding() {
+    let mut description = parse_example();
+    description.body.id = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".into();
+    let configurations = configurations_for(&description);
+    assert!(check_body_description(
+        description,
+        &configurations,
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .is_ok());
+
+    let mut invalid = parse_example();
+    invalid.body.id = "not-a-body".into();
+    let configurations = configurations_for(&invalid);
+    assert!(matches!(
+        check_body_description(
+            invalid,
+            &configurations,
+            &test_catalog(),
+            &test_package_set(),
+        )
+        .unwrap_err()
+        .as_slice(),
+        [BodyDescriptionDiagnostic::InvalidBodyId]
+    ));
+}
+
+#[test]
 fn body_binding_changes_spore_not_reusable_image_identity() {
     let body = checked_example();
     let first = build_body_spores(

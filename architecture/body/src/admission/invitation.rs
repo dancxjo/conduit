@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     admission_transcript, verify_signature, AdmissionManager, AdmissionRefusal, AdmissionSigns,
     MembershipCredential, ADMISSION_SIGNATURE_BYTES, MAX_ADMISSION_ATTEMPTS,
-    MAX_ADMISSION_RECEIPTS, MAX_SPAWN_INVITATIONS,
+    MAX_ADMISSION_RECEIPTS, MAX_SPAWN_INVITATIONS, MAX_SPAWN_INVITATION_TTL_MILLIS,
 };
 use crate::identity::bind_identity;
 use crate::{AdmissionId, BodyId, BodyMembership, SpawnInvitationId};
@@ -30,6 +30,15 @@ impl SpawnInvitationSecret {
     pub fn sign(&self, transcript: &[u8; 32]) -> [u8; ADMISSION_SIGNATURE_BYTES] {
         use ed25519_dalek::Signer;
         SigningKey::from_bytes(&self.0).sign(transcript).to_bytes()
+    }
+
+    /// Copies the secret into an exact target-provisioning buffer.
+    ///
+    /// This is only for an admitted local deployment mechanism that must place
+    /// a self-joining invitation into a fresh spore. Callers must zero the
+    /// returned buffer immediately after transfer and must never log it.
+    pub fn copy_for_target_provisioning(&self) -> [u8; 32] {
+        self.0
     }
 }
 
@@ -121,7 +130,12 @@ impl AdmissionManager {
         now_millis: u64,
         expires_at_millis: u64,
     ) -> Result<SpawnInvitation, AdmissionRefusal> {
-        self.validate_expiry(nonce, now_millis, expires_at_millis)?;
+        self.validate_expiry_with_max(
+            nonce,
+            now_millis,
+            expires_at_millis,
+            MAX_SPAWN_INVITATION_TTL_MILLIS,
+        )?;
         if self.invitations.len() == MAX_SPAWN_INVITATIONS {
             return Err(AdmissionRefusal::InvitationCapacityExhausted);
         }

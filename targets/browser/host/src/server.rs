@@ -16,6 +16,7 @@ const RP2040_DEPLOYMENT_ORCHESTRATOR: &[u8] =
 const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../rp2040/browser-deployment/picoboot.mjs");
 const RP2040_UF2: &[u8] = include_bytes!("../../../rp2040/browser-deployment/uf2.mjs");
 const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../rp2040/browser-deployment/bootsel.mjs");
+const RP2040_SPAWN: &[u8] = include_bytes!("../../../rp2040/browser-deployment/spawn.mjs");
 const ESP32_DEPLOYMENT: &[u8] = include_bytes!("../../../esp32/browser-deployment/index.mjs");
 const ESP32_DEPLOYMENT_ORCHESTRATOR: &[u8] =
     include_bytes!("../../../esp32/browser-deployment/deployment.mjs");
@@ -27,6 +28,7 @@ const ESP32_SLIP: &[u8] = include_bytes!("../../../esp32/browser-deployment/slip
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/book-lifecycle.mjs");
+const BOOK_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/book-physical.mjs");
 const BOOK_STYLE: &[u8] = include_bytes!("../assets/book.css");
 const BOOK_CHAPTER_ONE: &[u8] = include_bytes!("../../../../tour/book/chapter-1.md");
 const BOOK_CHAPTER_TWO: &[u8] = include_bytes!("../../../../tour/book/chapter-2.md");
@@ -34,6 +36,7 @@ const BOOK_CHAPTER_THREE: &[u8] = include_bytes!("../../../../tour/book/chapter-
 const BOOK_CHAPTER_FOUR: &[u8] = include_bytes!("../../../../tour/book/chapter-4.md");
 const BOOK_CHAPTER_FIVE: &[u8] = include_bytes!("../../../../tour/book/chapter-5.md");
 const BOOK_CHAPTER_SIX: &[u8] = include_bytes!("../../../../tour/book/chapter-6.md");
+const BOOK_CHAPTER_SEVEN: &[u8] = include_bytes!("../../../../tour/book/chapter-7.md");
 const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
@@ -157,6 +160,9 @@ impl BrowserHostServer {
             Some("GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_BOOTSEL)
             }
+            Some("GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", RP2040_SPAWN)
+            }
             Some("GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_DEPLOYMENT)
             }
@@ -192,6 +198,11 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 BOOK_LIFECYCLE_SCRIPT,
             ),
+            Some("GET /book/book-physical.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BOOK_PHYSICAL_SCRIPT,
+            ),
             Some("GET /book/book.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", BOOK_STYLE)
             }
@@ -212,6 +223,9 @@ impl BrowserHostServer {
             }
             Some("GET /book/chapter-6.md HTTP/1.1") => {
                 ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_SIX)
+            }
+            Some("GET /book/chapter-7.md HTTP/1.1") => {
+                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_SEVEN)
             }
             _ => ("404 Not Found", "text/plain; charset=utf-8", b"not found"),
         };

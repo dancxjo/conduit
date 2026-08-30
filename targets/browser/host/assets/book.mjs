@@ -1,5 +1,6 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
 import { createBodyBirthRunner } from "./book-lifecycle.mjs";
+import { createPhysicalHostRunner } from "./book-physical.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -19,7 +20,7 @@ const sourceDrafts = new Map();
 
 try {
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md"].map((name) =>
+    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-7.md"].map((name) =>
       fetch(`./${name}`).then((response) => {
         if (!response.ok) throw new Error(`${name} is unavailable`);
         return response.text();
@@ -54,6 +55,8 @@ function requireBookAbi(api) {
     "conduit_book_body_output_ptr", "conduit_book_body_output_len",
     "conduit_book_body_admit_source_interaction", "conduit_book_body_birth",
     "conduit_book_body_current",
+    "conduit_book_body_prepare_selected_physical_spore",
+    "conduit_book_body_admit_physical_spore",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
@@ -69,8 +72,8 @@ function parseTourSteps(chapters) {
     if (line.startsWith("# Step ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length !== 12) {
-    throw new Error("this Tour slice must contain exactly twelve steps, received " + parsed.length);
+  if (parsed.length !== 13) {
+    throw new Error("this Tour slice must contain exactly thirteen steps, received " + parsed.length);
   }
   return parsed;
 }
@@ -190,6 +193,10 @@ function renderMarkdown(markdown) {
     } else if (line === "<!-- conduit-host-inventory -->") {
       flush();
       renderInventory(readInventory(host.runtime));
+      copy = appendCopy();
+    } else if (line === "<!-- conduit-physical-host -->") {
+      flush();
+      chapter.append(createPhysicalHostRunner({ host }));
       copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();

@@ -3,6 +3,7 @@
 mod abi;
 mod protocol;
 mod session;
+mod spore;
 
 #[cfg(test)]
 mod tests;

@@ -1,11 +1,19 @@
 use super::protocol::BirthReceipt;
 use crate::book_runner::interaction::{admit_source, SourceInteractionEvidence};
-use conduit_body::{AuthenticatedHostObservation, Body, BodyMembership, MembershipProofId, PartId};
+use conduit_body::{
+    AdmissionManager, AuthenticatedHostObservation, Body, BodyMembership, MembershipProofId, PartId,
+};
 use conduit_core::{bind_sign, BootId, HostId, OfferGeneration};
 use std::cell::RefCell;
 
 thread_local! {
-    static BODY: RefCell<Option<BirthReceipt>> = const { RefCell::new(None) };
+    static BODY: RefCell<Option<BodySession>> = const { RefCell::new(None) };
+}
+
+pub(super) struct BodySession {
+    pub(super) receipt: BirthReceipt,
+    pub(super) admission: AdmissionManager,
+    pub(super) pending_spore: Option<super::spore::PendingSpore>,
 }
 
 pub(super) fn birth(
@@ -114,12 +122,36 @@ pub(super) fn birth(
         raw_body: body,
         raw_membership: membership,
     };
-    BODY.with(|slot| *slot.borrow_mut() = Some(receipt.clone()));
+    let admission = AdmissionManager::new(receipt.raw_body.body_id.clone())
+        .map_err(|error| format!("create Body admission manager: {error:?}"))?;
+    BODY.with(|slot| {
+        *slot.borrow_mut() = Some(BodySession {
+            receipt: receipt.clone(),
+            admission,
+            pending_spore: None,
+        })
+    });
     Ok(receipt)
 }
 
 pub(super) fn current() -> Option<BirthReceipt> {
-    BODY.with(|slot| slot.borrow().clone())
+    BODY.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|session| session.receipt.clone())
+    })
+}
+
+pub(super) fn with_session<T>(
+    action: impl FnOnce(&mut BodySession) -> Result<T, String>,
+) -> Result<T, String> {
+    BODY.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        let session = slot
+            .as_mut()
+            .ok_or_else(|| "BIRTH is required before preparing a physical Host".to_string())?;
+        action(session)
+    })
 }
 
 #[cfg(test)]

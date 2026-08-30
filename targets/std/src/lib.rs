@@ -68,6 +68,7 @@ pub use run_control::{
 };
 pub mod pico_admission;
 pub mod pico_control_source;
+pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
 pub mod pool_webchat;

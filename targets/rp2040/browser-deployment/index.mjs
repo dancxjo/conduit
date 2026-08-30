@@ -8,3 +8,7 @@ export {
   RP2040_BOOTSEL_CONTROL,
   Rp2040BootselRefusal,
 } from "./bootsel.mjs";
+export {
+  requestRp2040SpawnJoin,
+  Rp2040SpawnRefusal,
+} from "./spawn.mjs";

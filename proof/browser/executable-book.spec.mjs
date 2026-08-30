@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
+import { installB7Devices, picoUf2 } from "./b7-fixture.mjs";
 
 let entrance;
 
@@ -38,7 +39,7 @@ async function openStep(page, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 12`);
+  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 13`);
 }
 
 test.beforeEach(async () => {
@@ -67,7 +68,7 @@ test("Step 0 edits and runs one ordinary Form before introducing architecture", 
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toMatch(/^browser\//);
 });
 
-test("Steps 0 through 11 lead with human motivation and return to the Conduit payoff", async ({
+test("Steps 0 through 12 lead with human motivation and return to the Conduit payoff", async ({
   page,
 }) => {
   const anchors = [
@@ -83,6 +84,7 @@ test("Steps 0 through 11 lead with human motivation and return to the Conduit pa
     "Look what just happened",
     "replaceable answer to current circumstances",
     "durable computer Conduit is maintaining",
+    "A successful deployment is only deployment",
   ];
   await openStep(page, 0);
   for (let step = 0; step < anchors.length; step += 1) {
@@ -180,7 +182,7 @@ test("Tour navigation preserves drafts but reset and restart change presentation
   await page.getByRole("button", { name: "Reset this step" }).click();
   await expect(page.locator("textarea")).toHaveValue(/"hello"/);
   await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 12");
+  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 13");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
@@ -349,11 +351,68 @@ test("Step 11 explicitly births one LULLED Body that Tour controls cannot replac
   await page.getByRole("button", { name: "Reset this step" }).click();
   await expectSameBody();
   await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 12");
+  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 13");
   for (let step = 0; step < 11; step += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
   await expectSameBody();
+});
+
+test("Step 12 keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {
+  await installB7Devices(page);
+  await openStep(page, 11);
+  await page.getByRole("button", { name: "Birth Body" }).click();
+  const birth = await page.locator(".body-birth-runner").evaluate((element) => ({
+    bodyId: element.dataset.bodyId,
+    birthSignId: element.dataset.birthSignId,
+  }));
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "Step 12 — Add a physical Host" })).toBeVisible();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator("input[type=file]").setInputFiles({
+    name: "reviewed-pico-local.uf2",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(picoUf2()),
+  });
+  await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
+  await expect(runner.locator(".physical-status")).toContainText("No spore, deployment, Boot, or membership exists");
+
+  await runner.getByRole("button", { name: "Prepare Body spore" }).click();
+  await expect(runner.locator('[data-stage="spore"]')).toHaveClass(/complete/);
+  await expect(runner.locator(".physical-status")).toContainText("Deployment, Boot, join, membership, offers, Plan, and Play remain absent");
+
+  await runner.getByRole("button", { name: "Connect BOOTSEL and deploy" }).click();
+  await expect(runner.locator('[data-stage="deploy"] span')).toHaveText("RebootRequested");
+  await expect(runner.locator(".physical-status")).toContainText("That proves no Boot, join, membership, offers, readiness, Plan, or Play");
+
+  await runner.getByRole("button", { name: "Connect running Pico and observe join" }).click();
+  await expect(runner.locator('[data-stage="boot"]')).toHaveClass(/complete/);
+  await expect(runner.locator(".physical-status")).toContainText("Admission remains an explicit action");
+
+  await runner.getByRole("button", { name: "Admit physical Part" }).click();
+  await expect(runner.locator('[data-stage="admit"]')).toHaveClass(/complete/);
+  await expect(runner.locator(".physical-status")).toContainText("current offers are ready. No Plan or Play was created");
+  const evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.prepared.body_id).toBe(birth.bodyId);
+  expect(evidence.prepared.invitation_secret).toBe("redacted");
+  expect(evidence.deployment).toMatchObject({
+    terminal: "RebootRequested",
+    spore_id: evidence.prepared.spore_id,
+    image_id: evidence.prepared.image_id,
+    runtime_truth_created: false,
+  });
+  expect(evidence.observation.boot_id).toBe("pico-boot/b7-browser-proof");
+  expect(evidence.admission).toMatchObject({
+    disposition: "admitted",
+    body_id: birth.bodyId,
+    spore_id: evidence.prepared.spore_id,
+    image_id: evidence.prepared.image_id,
+    offers_observed: true,
+    ready: true,
+    plan_id: null,
+    active_play_id: null,
+  });
+  expect(birth.birthSignId).toHaveLength(64);
 });
 
 test("stopping the two-Host lesson cancels without a late manifestation", async ({ page }) => {

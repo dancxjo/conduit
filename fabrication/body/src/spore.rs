@@ -29,6 +29,7 @@ pub struct SporeManifest {
     pub profile_id: String,
     pub build_id: String,
     pub image_id: String,
+    pub image_content_digest: String,
     pub target: String,
     pub output: SporeOutputKind,
     pub fabrication: FabricationBuildSelection,
@@ -40,6 +41,12 @@ pub struct BuiltSpore {
     pub manifest: SporeManifest,
     pub image: HostImage,
     pub image_bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SelectedPrebuiltContent<'a> {
+    pub image_manifest_bytes: &'a [u8],
+    pub image_content_digest: &'a str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +85,7 @@ pub enum BodyBuildDiagnostic {
         detail: String,
     },
     SourceIdentityMissing,
+    ImageContentDigestInvalid,
     SelectedImageMismatch {
         host: String,
         detail: String,
@@ -105,8 +113,39 @@ pub fn seal_prebuilt_body_spore(
     catalog: &FabricationCatalog,
     packages: &FabricationPackageSet,
 ) -> Result<BuiltSpore, BodyBuildDiagnostic> {
+    let image_content_digest = format!("sha256:{:x}", Sha256::digest(image_bytes));
+    seal_prebuilt_body_spore_with_content_digest(
+        body,
+        host_name,
+        source_identity,
+        image,
+        SelectedPrebuiltContent {
+            image_manifest_bytes: image_bytes,
+            image_content_digest: &image_content_digest,
+        },
+        catalog,
+        packages,
+    )
+}
+
+/// Seal a selected prebuilt artifact whose exact content digest was observed
+/// before spore creation. `image_manifest_bytes` retain the checked IMAGE
+/// manifest binding; the separately selected deployable artifact is verified
+/// against `image_content_digest` by the target deployment adapter.
+pub fn seal_prebuilt_body_spore_with_content_digest(
+    body: &CheckedBodyDescription,
+    host_name: &str,
+    source_identity: &str,
+    image: &HostImage,
+    selected: SelectedPrebuiltContent<'_>,
+    catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
+) -> Result<BuiltSpore, BodyBuildDiagnostic> {
     if source_identity.trim().is_empty() {
         return Err(BodyBuildDiagnostic::SourceIdentityMissing);
+    }
+    if !valid_sha256_digest(selected.image_content_digest) {
+        return Err(BodyBuildDiagnostic::ImageContentDigestInvalid);
     }
     let host = body
         .hosts()
@@ -138,23 +177,30 @@ pub fn seal_prebuilt_body_spore(
                 .into(),
         });
     }
-    conduit_host_fabrication::verify_image_binding(image, image_bytes).map_err(|diagnostic| {
-        BodyBuildDiagnostic::SelectedImageMismatch {
+    conduit_host_fabrication::verify_image_binding(image, selected.image_manifest_bytes).map_err(
+        |diagnostic| BodyBuildDiagnostic::SelectedImageMismatch {
             host: host_name.into(),
             detail: format!("{diagnostic:?}"),
-        }
-    })?;
+        },
+    )?;
     let fabrication = packages
         .derive_build_selection(host.configuration.profile(), &host.description.spore.output)
         .map_err(|error| BodyBuildDiagnostic::Fabrication {
             host: host_name.into(),
             detail: format!("{error:?}"),
         })?;
-    let manifest = seal_spore_manifest(body, host, source_identity, image, fabrication)?;
+    let manifest = seal_spore_manifest(
+        body,
+        host,
+        source_identity,
+        image,
+        selected.image_content_digest,
+        fabrication,
+    )?;
     Ok(BuiltSpore {
         manifest,
         image: image.clone(),
-        image_bytes: image_bytes.to_vec(),
+        image_bytes: selected.image_manifest_bytes.to_vec(),
     })
 }
 
@@ -214,8 +260,16 @@ pub fn build_body_spores(
                 continue;
             }
         };
-        let manifest = seal_spore_manifest(body, host, source_identity, &image, fabrication)
-            .map_err(|diagnostic| vec![diagnostic])?;
+        let image_content_digest = format!("sha256:{:x}", Sha256::digest(&image_bytes));
+        let manifest = seal_spore_manifest(
+            body,
+            host,
+            source_identity,
+            &image,
+            &image_content_digest,
+            fabrication,
+        )
+        .map_err(|diagnostic| vec![diagnostic])?;
         built.push(BuiltSpore {
             manifest,
             image,
@@ -234,6 +288,7 @@ fn seal_spore_manifest(
     host: &crate::CheckedBodyHost,
     source_identity: &str,
     image: &HostImage,
+    image_content_digest: &str,
     fabrication: FabricationBuildSelection,
 ) -> Result<SporeManifest, BodyBuildDiagnostic> {
     let binding = match host.description.spore.join_mode {
@@ -264,6 +319,7 @@ fn seal_spore_manifest(
         profile_id: image.manifest.profile_id.clone(),
         build_id: image.manifest.build_id.clone(),
         image_id: image.manifest.image_id.clone(),
+        image_content_digest: image_content_digest.into(),
         target: image.manifest.target.clone(),
         output: host.description.spore.output.clone(),
         fabrication,
@@ -274,6 +330,12 @@ fn seal_spore_manifest(
     })?;
     manifest.spore_id = format!("spore:sha256:{:x}", Sha256::digest(&basis));
     Ok(manifest)
+}
+
+fn valid_sha256_digest(value: &str) -> bool {
+    value.len() == 71
+        && value.starts_with("sha256:")
+        && value[7..].bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 pub fn deployment_receipt(
