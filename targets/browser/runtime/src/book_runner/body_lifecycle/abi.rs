@@ -143,6 +143,32 @@ pub extern "C" fn conduit_book_body_prepare_physical_spore(now_millis: u64) -> i
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_book_body_prepare_selected_physical_spore(
+    digest_length: usize,
+    now_millis: u64,
+) -> i32 {
+    clear_output();
+    if digest_length == 0 || 32usize.saturating_add(digest_length) > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let mut entropy = [0u8; 32];
+        entropy.copy_from_slice(&input[..32]);
+        let result = core::str::from_utf8(&input[32..32 + digest_length])
+            .map_err(|_| "selected IMAGE content digest is not UTF-8".to_string())
+            .and_then(|digest| spore::prepare_selected(entropy, now_millis, Some(digest)));
+        input[..32 + digest_length].fill(0);
+        match result {
+            Ok(receipt) => write_output(&receipt)
+                .map(|()| STATUS_READY)
+                .unwrap_or(ERROR_OUTPUT),
+            Err(message) => refuse(message, ERROR_SPORE),
+        }
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_book_body_admit_physical_spore(length: usize) -> i32 {
     clear_output();
     if length == 0 || length > INPUT_BYTES {

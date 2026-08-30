@@ -4,8 +4,9 @@ use std::collections::BTreeMap;
 
 use conduit_body::{AdmissionSigns, SpawnAdmissionProof, SpawnInvitationSecret};
 use conduit_body_fabrication::{
-    check_body_description, seal_prebuilt_body_spore, BodyBindingTarget, BodyDescription,
-    BodyHostDescription, DeploymentDescription, SporeBinding, SporeDescription, SporeJoinMode,
+    check_body_description, seal_prebuilt_body_spore, seal_prebuilt_body_spore_with_content_digest,
+    BodyBindingTarget, BodyDescription, BodyHostDescription, DeploymentDescription,
+    SelectedPrebuiltContent, SporeBinding, SporeDescription, SporeJoinMode,
 };
 use conduit_core::{HostAdvertisement, SignId};
 use conduit_host_fabrication::{
@@ -14,7 +15,6 @@ use conduit_host_fabrication::{
 };
 use conduit_host_rp2040::Rp2040FabricationPackage;
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
 
 use super::session;
 
@@ -86,6 +86,14 @@ pub(super) struct AdmissionReceipt {
 }
 
 pub(super) fn prepare(entropy: [u8; 32], now_millis: u64) -> Result<PreparedSpore, String> {
+    prepare_selected(entropy, now_millis, None)
+}
+
+pub(super) fn prepare_selected(
+    entropy: [u8; 32],
+    now_millis: u64,
+    selected_image_content_digest: Option<&str>,
+) -> Result<PreparedSpore, String> {
     session::with_session(|session| {
         if session.pending_spore.is_some() {
             return Err("this Body already owns one pending physical spore".into());
@@ -118,15 +126,29 @@ pub(super) fn prepare(entropy: [u8; 32], now_millis: u64) -> Result<PreparedSpor
             },
         )
         .map_err(|errors| format!("select reviewed prebuilt IMAGE: {errors:?}"))?;
-        let spore = seal_prebuilt_body_spore(
-            &body,
-            HOST_NAME,
-            &session.receipt.birth_sign_id,
-            &image,
-            &image_bytes,
-            &catalog,
-            &packages,
-        )
+        let spore = match selected_image_content_digest {
+            Some(digest) => seal_prebuilt_body_spore_with_content_digest(
+                &body,
+                HOST_NAME,
+                &session.receipt.birth_sign_id,
+                &image,
+                SelectedPrebuiltContent {
+                    image_manifest_bytes: &image_bytes,
+                    image_content_digest: digest,
+                },
+                &catalog,
+                &packages,
+            ),
+            None => seal_prebuilt_body_spore(
+                &body,
+                HOST_NAME,
+                &session.receipt.birth_sign_id,
+                &image,
+                &image_bytes,
+                &catalog,
+                &packages,
+            ),
+        }
         .map_err(|error| format!("seal Body spore: {error:?}"))?;
         if spore.manifest.binding
             != (SporeBinding::SelfJoining {
@@ -147,7 +169,7 @@ pub(super) fn prepare(entropy: [u8; 32], now_millis: u64) -> Result<PreparedSpor
             body_id: session.receipt.body_id.clone(),
             spore_id: spore.manifest.spore_id.clone(),
             image_id: spore.manifest.image_id.clone(),
-            image_content_digest: format!("sha256:{:x}", sha2::Sha256::digest(&image_bytes)),
+            image_content_digest: spore.manifest.image_content_digest.clone(),
             target_id: spore.manifest.target.clone(),
             output: spore.manifest.output.clone(),
             fabrication_package_id: spore.manifest.fabrication.fabrication_package_id.clone(),
@@ -365,6 +387,30 @@ mod tests {
         assert_ne!(first.spore_id, second.spore_id);
         assert_eq!(first.image_id, second.image_id);
         assert_eq!(first.image_content_digest, second.image_content_digest);
+    }
+
+    #[test]
+    fn selected_uf2_content_is_bound_before_spore_creation() {
+        born();
+        let first_digest = format!("sha256:{}", "1".repeat(64));
+        let first = prepare_selected([21; 32], 5_000, Some(&first_digest)).unwrap();
+        assert_eq!(first.image_content_digest, first_digest);
+
+        session::clear_for_test();
+        let interaction = admit_source(SEED.as_bytes(), 73).unwrap();
+        session::birth("browser/tour", "browser-boot/tour", SEED, 73, interaction).unwrap();
+        let second_digest = format!("sha256:{}", "2".repeat(64));
+        let second = prepare_selected([22; 32], 6_000, Some(&second_digest)).unwrap();
+        assert_eq!(first.image_id, second.image_id);
+        assert_ne!(first.image_content_digest, second.image_content_digest);
+        assert_ne!(first.spore_id, second.spore_id);
+
+        session::clear_for_test();
+        let interaction = admit_source(SEED.as_bytes(), 74).unwrap();
+        session::birth("browser/tour", "browser-boot/tour", SEED, 74, interaction).unwrap();
+        assert!(prepare_selected([23; 32], 7_000, Some("sha256:short"))
+            .unwrap_err()
+            .contains("ImageContentDigestInvalid"));
     }
 
     #[test]
