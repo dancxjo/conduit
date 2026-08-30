@@ -67,8 +67,8 @@ function exactBaseTruth(base) {
     truth.configuration?.configuration_value !== 1
     || truth.configuration.interface_number !== 1
     || truth.configuration.alternate_setting !== 0
-    || truth.configuration.in_endpoint !== 1
-    || truth.configuration.out_endpoint !== 1
+    || truth.configuration.in_endpoint !== 4
+    || truth.configuration.out_endpoint !== 3
   ) {
     refuse("PicobootInterface", "selected Base does not own the RP2040 PICOBOOT vendor interface");
   }
@@ -282,8 +282,8 @@ export const RP2040_BROWSER_DEPLOYMENT = Object.freeze({
   configurationValue: 1,
   interfaceNumber: 1,
   alternateSetting: 0,
-  inEndpoint: 1,
-  outEndpoint: 1,
+  inEndpoint: 4,
+  outEndpoint: 3,
   maximumTransferBytes: 4096,
   maximumInTransfers: 2048,
   maximumOutTransfers: 2048,

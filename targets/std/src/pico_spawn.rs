@@ -63,7 +63,7 @@ impl PicoSpawnSocket {
         timeout: Duration,
     ) -> Result<PicoSpawnObservation, PicoSpawnTransportError> {
         let mut secret = invitation.secret.copy_for_target_provisioning();
-        let provision = PicoSpawnProvision {
+        let mut provision = PicoSpawnProvision {
             protocol: PICO_SPAWN_PROTOCOL,
             spore_id,
             image_id,
@@ -71,16 +71,24 @@ impl PicoSpawnSocket {
             body_id: invitation.body_id.as_str(),
             nonce: invitation.nonce,
             expires_at_millis: invitation.expires_at_millis,
-            secret: &secret,
+            secret,
         };
-        let encoded =
-            serde_json::to_vec(&provision).map_err(|_| PicoSpawnTransportError::Malformed)?;
+        let mut encoded = match serde_json::to_vec(&provision) {
+            Ok(encoded) => encoded,
+            Err(_) => {
+                provision.secret.fill(0);
+                secret.fill(0);
+                return Err(PicoSpawnTransportError::Malformed);
+            }
+        };
+        provision.secret.fill(0);
+        secret.fill(0);
         if encoded.len() > MAX_PICO_ADMISSION_FRAME_BYTES {
-            secret.fill(0);
+            encoded.fill(0);
             return Err(PicoSpawnTransportError::Oversized);
         }
         let sent = self.line.send_raw_stream_frame(&encoded, timeout);
-        secret.fill(0);
+        encoded.fill(0);
         sent?;
 
         let mut bytes = [0u8; MAX_PICO_ADMISSION_FRAME_BYTES];

@@ -65,7 +65,7 @@ pub struct PicoSpawnProvision<'a> {
     pub body_id: &'a str,
     pub nonce: [u8; 32],
     pub expires_at_millis: u64,
-    pub secret: &'a [u8],
+    pub secret: [u8; 32],
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -151,13 +151,30 @@ mod tests {
             body_id: "body:one",
             nonce: [7; 32],
             expires_at_millis: 20,
-            secret: &[9; 32],
+            secret: [9; 32],
         };
         assert!(validate_pico_spawn_provision(&provision));
         provision.protocol += 1;
         assert!(!validate_pico_spawn_provision(&provision));
         provision.protocol = PICO_SPAWN_PROTOCOL;
-        provision.secret = &[0; 32];
+        provision.secret = [0; 32];
         assert!(!validate_pico_spawn_provision(&provision));
+    }
+
+    #[test]
+    fn spawn_provision_round_trips_through_the_firmware_json_decoder() {
+        let provision = PicoSpawnProvision {
+            protocol: PICO_SPAWN_PROTOCOL,
+            spore_id: "spore/one",
+            image_id: "image/one",
+            invitation_id: "invitation/one",
+            body_id: "body/one",
+            nonce: [7; 32],
+            expires_at_millis: 20,
+            secret: [9; 32],
+        };
+        let encoded = serde_json::to_vec(&provision).unwrap();
+        let decoded = serde_json::from_slice::<PicoSpawnProvision<'_>>(&encoded).unwrap();
+        assert_eq!(decoded, provision);
     }
 }

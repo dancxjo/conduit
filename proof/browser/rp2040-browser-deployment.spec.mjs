@@ -167,9 +167,11 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
     const evidence = { schema: "conduit.browser/serial-base-evidence@1", phase: "resource-truth" };
     const base = {
       writes: [],
+      signals: [],
       usePlanId: null,
       evidence: () => evidence,
       startUse(planId) { this.usePlanId = planId; },
+      async setSignals(signals) { this.signals.push({ ...signals }); },
       async write(bytes) { this.writes.push(Array.from(bytes)); return { bytes }; },
       async read() { return { bytes: responses.shift() }; },
     };
@@ -186,7 +188,7 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
         invitation_expires_at_millis: Date.now() + 60_000,
       },
     });
-    return { observation, usePlanId: base.usePlanId, write: base.writes[0], secret };
+    return { observation, usePlanId: base.usePlanId, signals: base.signals, write: base.writes[0], secret };
   });
   expect(result.observation).toMatchObject({
     schema: "conduit.rp2040/browser-spawn-observation@1",
@@ -197,6 +199,7 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
   });
   expect(result.observation.advertisement.capabilities).toHaveLength(1);
   expect(result.usePlanId).toBe("pico-spawn/spore:one");
+  expect(result.signals).toEqual([{ dataTerminalReady: true }]);
   expect(result.write.length).toBeLessThanOrEqual(4098);
   expect(result.secret).toEqual(Array(32).fill(0));
 });
@@ -221,6 +224,7 @@ test("expired invitation and join-to-advertisement mismatch refuse before admiss
     };
     const base = (responses = []) => ({
       writes: 0, evidence: () => ({}), startUse() {},
+      async setSignals() {},
       async write() { this.writes += 1; },
       async read() { return { bytes: responses.shift() }; },
     });
@@ -314,6 +318,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
       resourceEvidence,
       commands: __fakePicoboot.commands,
       dataWrites: __fakePicoboot.dataWrites,
+      acknowledgementEndpoint: __fakePicoboot.ackEndpoint,
       controlIn: __fakePicoboot.controlIn,
       controlOut: __fakePicoboot.controlOut,
     };
@@ -338,8 +343,11 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
     runtime_truth_created: false,
   });
   expect(result.commands.map(({ command }) => command)).toEqual([1, 6, 3, 5, 7, 2]);
+  expect(result.commands.every(({ endpoint }) => endpoint === 3)).toBe(true);
   expect(result.dataWrites).toHaveLength(1);
+  expect(result.dataWrites[0].endpoint).toBe(3);
   expect(result.dataWrites[0].bytes).toHaveLength(512);
+  expect(result.acknowledgementEndpoint).toBe(4);
   expect(result.controlOut[0].setup).toMatchObject({ request: 0x41, recipient: "interface", index: 1 });
   expect(result.controlIn).toHaveLength(6);
   expect(result.activeBase).toMatchObject({
@@ -347,6 +355,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
     admitted_in_transfers: 12,
     admitted_out_transfers: 8,
     use_plan_id: "rp2040-deployment-plan/one",
+    configuration: { interface_number: 1, in_endpoint: 4, out_endpoint: 3 },
   });
   expect(result.terminalBase).toMatchObject({ phase: "terminal", terminal: "DeviceLost" });
   expect(result.resourceEvidence).toMatchObject({
