@@ -10,6 +10,7 @@ on:
       - targets/browser/host/assets/book.css
       - targets/browser/host/assets/book.mjs
       - targets/browser/host/assets/book-lifecycle.mjs
+      - targets/browser/host/assets/book-graduation.mjs
       - targets/browser/host/assets/browser-host-bootstrap.mjs
       - targets/browser/host/src/**
       - targets/browser/host/Cargo.toml
@@ -35,6 +36,7 @@ on:
       - targets/browser/host/assets/book.css
       - targets/browser/host/assets/book.mjs
       - targets/browser/host/assets/book-lifecycle.mjs
+      - targets/browser/host/assets/book-graduation.mjs
       - targets/browser/host/assets/browser-host-bootstrap.mjs
       - targets/browser/host/src/**
       - targets/browser/host/Cargo.toml
@@ -120,11 +122,12 @@ jobs:
           cp targets/browser/host/assets/book.mjs "$site/book/"
           cp targets/browser/host/assets/book-lifecycle.mjs "$site/book/"
           cp targets/browser/host/assets/book-physical.mjs "$site/book/"
+          cp targets/browser/host/assets/book-graduation.mjs "$site/book/"
           cp targets/browser/host/assets/device-base.mjs "$site/"
           cp targets/browser/host/assets/usb-device-base.mjs "$site/"
           mkdir -p "$site/targets/rp2040/browser-deployment"
           cp targets/rp2040/browser-deployment/*.mjs "$site/targets/rp2040/browser-deployment/"
-          chapters=(chapter-{1..7}.md)
+          chapters=(chapter-{1..8}.md)
           expected_chapters="$(printf '%s\n' "${chapters[@]}")"
           source_chapters="$(find tour/book -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
           test "$source_chapters" = "$expected_chapters"
@@ -134,7 +137,7 @@ jobs:
           touch "$site/.nojekyll"
           staged_chapters="$(find "$site/book" -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)"
           test "$staged_chapters" = "$expected_chapters"
-          test "$(find "$site" -type f | wc -l)" = 23
+          test "$(find "$site" -type f | wc -l)" = 25
       - name: Upload the exact book Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
