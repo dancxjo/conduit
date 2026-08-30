@@ -18,14 +18,14 @@ use conduit_core::{
 use serde::Serialize;
 
 use super::{
-    config_path, plan::plan_contact, provision, require_success, run_build, write_receipt,
-    PhysicalGate, FQBN,
+    plan::plan_contact, require_success, run_build, upload_artifact, write_receipt, PhysicalGate,
 };
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 const APPLICATION_VID: &str = "1b4f";
 const APPLICATION_PID: &str = "9206";
 const MAX_RECEIPT_BYTES: usize = ASSIGNED_EXECUTION_RECEIPT_HEADER_BYTES + 1;
+const BOOTLOADER_WAIT: Duration = Duration::from_secs(300);
 
 #[derive(Args, Debug)]
 pub(super) struct ObserveContactArgs {
@@ -84,17 +84,13 @@ pub(super) fn run(
     validate_rx_proof(&root.join(&args.rx_proof))?;
 
     let built = run_build(Path::new("target/avr-promicro/build-receipt.json"), opts)?;
-    let upload_port = super::rx_check::wait_for_bootloader_port(Duration::from_secs(60))?;
-    let cli = provision(&root)?;
-    let output = Command::new(cli)
-        .args(["upload", "--fqbn", FQBN, "--port"])
-        .arg(&upload_port)
-        .args(["--input-file"])
-        .arg(&built.path)
-        .args(["--config-file"])
-        .arg(config_path(&root))
-        .output()?;
-    require_success(&output, "guarded assigned-Plan AVR Host flash")?;
+    let upload_port = super::rx_check::wait_for_bootloader_port(BOOTLOADER_WAIT)?;
+    upload_artifact(
+        &root,
+        &upload_port,
+        &built.path,
+        "guarded assigned-Plan AVR Host flash",
+    )?;
 
     let runtime = wait_for_runtime(Duration::from_secs(15))?;
     configure_serial(&runtime.path)?;
