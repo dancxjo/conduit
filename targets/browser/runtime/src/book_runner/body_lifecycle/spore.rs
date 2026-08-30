@@ -367,7 +367,16 @@ mod tests {
     fn born() {
         session::clear_for_test();
         let interaction = admit_source(SEED.as_bytes(), 71).unwrap();
-        session::birth("browser/tour", "browser-boot/tour", SEED, 71, interaction).unwrap();
+        session::birth(
+            "browser/creche",
+            "browser-boot/creche",
+            "brisk lantern",
+            "morse-network@1",
+            SEED,
+            71,
+            interaction,
+        )
+        .unwrap();
     }
 
     fn typed<T: serde::de::DeserializeOwned>(value: &str) -> T {
@@ -380,7 +389,16 @@ mod tests {
         let first = prepare([11; 32], 1_000).unwrap();
         session::clear_for_test();
         let interaction = admit_source(SEED.as_bytes(), 72).unwrap();
-        session::birth("browser/tour", "browser-boot/tour", SEED, 72, interaction).unwrap();
+        session::birth(
+            "browser/creche",
+            "browser-boot/creche",
+            "brisk lantern",
+            "morse-network@1",
+            SEED,
+            72,
+            interaction,
+        )
+        .unwrap();
         let second = prepare([12; 32], 2_000).unwrap();
         assert_ne!(first.body_id, second.body_id);
         assert_ne!(first.invitation_id, second.invitation_id);
@@ -398,7 +416,16 @@ mod tests {
 
         session::clear_for_test();
         let interaction = admit_source(SEED.as_bytes(), 73).unwrap();
-        session::birth("browser/tour", "browser-boot/tour", SEED, 73, interaction).unwrap();
+        session::birth(
+            "browser/creche",
+            "browser-boot/creche",
+            "brisk lantern",
+            "morse-network@1",
+            SEED,
+            73,
+            interaction,
+        )
+        .unwrap();
         let second_digest = format!("sha256:{}", "2".repeat(64));
         let second = prepare_selected([22; 32], 6_000, Some(&second_digest)).unwrap();
         assert_eq!(first.image_id, second.image_id);
@@ -407,7 +434,16 @@ mod tests {
 
         session::clear_for_test();
         let interaction = admit_source(SEED.as_bytes(), 74).unwrap();
-        session::birth("browser/tour", "browser-boot/tour", SEED, 74, interaction).unwrap();
+        session::birth(
+            "browser/creche",
+            "browser-boot/creche",
+            "brisk lantern",
+            "morse-network@1",
+            SEED,
+            74,
+            interaction,
+        )
+        .unwrap();
         assert!(prepare_selected([23; 32], 7_000, Some("sha256:short"))
             .unwrap_err()
             .contains("ImageContentDigestInvalid"));
@@ -449,7 +485,7 @@ mod tests {
         assert_eq!(receipt.disposition, "admitted");
         assert!(receipt.offers_observed);
         assert!(receipt.ready);
-        assert_eq!(session::current().unwrap().raw_membership.parts.len(), 2);
+        assert_eq!(session::current().unwrap().raw_membership.parts.len(), 1);
         assert!(prepare([14; 32], 3_002).is_ok());
     }
 

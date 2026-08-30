@@ -48,32 +48,29 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("Step 0 edits and runs one ordinary Form before introducing architecture", async ({ page }) => {
+test("Step 0 births one named Morse Network Body before introducing machinery", async ({ page }) => {
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "Step 0 — Hello, light" })).toBeVisible();
-  await expect(page.locator(".runner")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Step 0 — Birth your Body" })).toBeVisible();
+  await expect(page.locator(".body-birth-runner")).toHaveCount(1);
   await expect(page.locator(".gear-inventory")).toHaveCount(0);
-  const runner = page.locator(".runner");
-  const listing = runner.locator("#listing");
-  await listing.fill(
-    (await listing.inputValue()).replace('"SOS"', '"E"').replace("(120)", "(40)"),
-  );
-  await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".morse")).toHaveText("·");
-  await expect(runner.locator(".play-status")).toContainText("Completed");
-  await expect(runner.locator("details")).not.toHaveAttribute("open", "");
-  await expect(runner.locator("details dd")).toHaveCount(12);
-  const identities = await runner.locator("details dd").allTextContents();
-  expect(identities.every((identity) => identity.length > 8)).toBe(true);
-  expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toMatch(/^browser\//);
+  const runner = page.locator(".body-birth-runner");
+  await expect(runner.getByLabel("Initial program")).toHaveValue("morse-network@1");
+  await expect(runner.getByLabel("Friendly Body name")).not.toHaveValue("");
+  await runner.getByLabel("Friendly Body name").fill("patient firefly");
+  await runner.getByRole("button", { name: "Birth Body" }).click();
+  await expect(runner.locator(".body-state")).toHaveText("LULLED");
+  await expect(runner.locator(".body-identities")).toContainText("patient firefly");
+  const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
+  expect(raw.membership.parts).toHaveLength(0);
+  expect(raw.body.events).toHaveLength(1);
 });
 
 test("Steps 0 through 12 lead with human motivation and return to the Conduit payoff", async ({
   page,
 }) => {
   const anchors = [
-    "survive the device that first demonstrates it",
-    "Useful programs evolve",
+    "build one computer out of the computers you actually have",
+    "useful programs will still evolve",
     "different finite machines",
     "vocabulary fragments",
     "should not have to copy its internal machinery",
@@ -187,7 +184,7 @@ test("Tour navigation preserves drafts but reset and restart change presentation
 });
 
 test("unsupported capability and type mismatch remain ordinary pre-Play refusals", async ({ page }) => {
-  await openStep(page, 0);
+  await openStep(page, 1);
   const runner = page.locator(".runner");
   const listing = runner.locator("textarea");
   await listing.fill(`form unavailable {
@@ -307,9 +304,9 @@ test("Step 10 compact and raw views project the same exact immutable Plan", asyn
   await expect(runner.locator(".projected-hosts")).toContainText("presentation/text");
 });
 
-test("Step 11 explicitly births one LULLED Body that Tour controls cannot replace", async ({ page }) => {
-  await openStep(page, 11);
-  await expect(page.getByRole("heading", { name: "Step 11 — Birth a Body" })).toBeVisible();
+test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host", async ({ page }) => {
+  await openStep(page, 0);
+  await expect(page.getByRole("heading", { name: "Step 0 — Birth your Body" })).toBeVisible();
   let runner = page.locator(".body-birth-runner");
   const source = await runner.locator("textarea").inputValue();
   expect(source).not.toMatch(/HostId|BootId|browser\/|DOM|socket|address|Wake|Plan|Play/);
@@ -319,9 +316,7 @@ test("Step 11 explicitly births one LULLED Body that Tour controls cannot replac
   );
   await expect(runner.locator(".body-state")).toHaveText("LULLED");
   await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
-  await expect(runner.locator(".body-identities dd").nth(9)).toHaveText("none");
-  await expect(runner.locator(".body-identities dd").nth(10)).toHaveText("none");
-  await expect(runner.locator(".body-identities dd").nth(11)).toHaveText("none");
+  await expect(runner.locator(".body-identities")).toContainText("none yet");
   const identity = await runner.evaluate((element) => ({
     bodyId: element.dataset.bodyId,
     birthSignId: element.dataset.birthSignId,
@@ -331,12 +326,14 @@ test("Step 11 explicitly births one LULLED Body that Tour controls cannot replac
   const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
   expect(raw.body.state).toBe("Lulled");
   expect(raw.body.events).toEqual([{ Born: { sign_id: identity.birthSignId } }]);
-  expect(raw.membership.parts).toHaveLength(1);
-  expect(raw.membership.parts[0].state).toBe("Admitted");
-  expect(raw.membership.parts[0].current.host_id).toBe(
-    await page.evaluate(() => globalThis.__conduitBookHost.hostId),
-  );
-  expect(raw.membership.events).toHaveLength(2);
+  expect(raw.membership.parts).toHaveLength(0);
+  expect(raw.membership.events).toHaveLength(0);
+
+  await page.getByRole("button", { name: "Next" }).click();
+  const firstHost = page.locator(".first-host-runner");
+  await firstHost.getByRole("button", { name: "Give this Body its first Host" }).click();
+  await expect(firstHost.locator(".host-admission-status")).toContainText("one admitted browser Host");
+  await expect(firstHost.locator(".host-identities")).toContainText(identity.bodyId);
 
   const expectSameBody = async () => {
     runner = page.locator(".body-birth-runner");
@@ -346,27 +343,23 @@ test("Step 11 explicitly births one LULLED Body that Tour controls cannot replac
     await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
   };
   await page.getByRole("button", { name: "Previous" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
   await expectSameBody();
   await page.getByRole("button", { name: "Reset this step" }).click();
   await expectSameBody();
   await page.getByRole("button", { name: "Restart Tour" }).click();
   await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 13");
-  for (let step = 0; step < 11; step += 1) {
-    await page.getByRole("button", { name: "Next" }).click();
-  }
   await expectSameBody();
 });
 
 test("Step 12 keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {
   await installB7Devices(page);
-  await openStep(page, 11);
+  await openStep(page, 0);
   await page.getByRole("button", { name: "Birth Body" }).click();
   const birth = await page.locator(".body-birth-runner").evaluate((element) => ({
     bodyId: element.dataset.bodyId,
     birthSignId: element.dataset.birthSignId,
   }));
-  await page.getByRole("button", { name: "Next" }).click();
+  for (let step = 0; step < 12; step += 1) await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByRole("heading", { name: "Step 12 — Add a physical Host" })).toBeVisible();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
@@ -427,9 +420,9 @@ test("Step 12 retains a refused WebUSB acquisition as terminal", async ({ page }
       },
     });
   });
-  await openStep(page, 11);
+  await openStep(page, 0);
   await page.getByRole("button", { name: "Birth Body" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  for (let step = 0; step < 12; step += 1) await page.getByRole("button", { name: "Next" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -446,9 +439,9 @@ test("Step 12 retains a refused WebUSB acquisition as terminal", async ({ page }
 
 test("Step 12 retains the exact Picoboot refusal chain", async ({ page }) => {
   await installB7Devices(page, { staleStatus: true });
-  await openStep(page, 11);
+  await openStep(page, 0);
   await page.getByRole("button", { name: "Birth Body" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  for (let step = 0; step < 12; step += 1) await page.getByRole("button", { name: "Next" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",

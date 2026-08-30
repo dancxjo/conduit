@@ -1,4 +1,4 @@
-//! Explicit, bounded Body birth for the executable Tour.
+//! Explicit, bounded Body birth and first-Host admission for the Crèche.
 
 mod abi;
 mod protocol;

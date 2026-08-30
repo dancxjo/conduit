@@ -19,6 +19,8 @@ pub(super) struct BodySession {
 pub(super) fn birth(
     host: &str,
     boot: &str,
+    friendly_name: &str,
+    initial_program: &str,
     source: &str,
     birth_sequence: u64,
     admitted_interaction: SourceInteractionEvidence,
@@ -27,7 +29,14 @@ pub(super) fn birth(
         return Err("BIRTH sequence must be nonzero".into());
     }
     if current().is_some() {
-        return Err("this Tour session already has a Body; duplicate BIRTH was refused".into());
+        return Err("this Crèche session already has a Body; duplicate BIRTH was refused".into());
+    }
+    let friendly_name = friendly_name.trim();
+    if friendly_name.is_empty() || friendly_name.len() > 64 {
+        return Err("friendly name must contain 1 through 64 UTF-8 bytes".into());
+    }
+    if initial_program != "morse-network@1" {
+        return Err("the Crèche currently births only the reviewed Morse Network program".into());
     }
     let verified = admit_source(source.as_bytes(), admitted_interaction.sequence)?;
     if verified.proposal_identity != admitted_interaction.proposal_identity {
@@ -59,44 +68,8 @@ pub(super) fn birth(
     body.validate()
         .map_err(|error| format!("validate born Body: {error:?}"))?;
 
-    let here_part = PartId::bind(&body.body_id, "tour/here", 1)
-        .map_err(|error| format!("bind Here Part: {error:?}"))?;
-    let proof = MembershipProofId::bind(&admitted_interaction.result_identity)
-        .map_err(|error| format!("bind membership proof: {error:?}"))?;
-    let admit_sequence = birth_sequence
-        .checked_add(1)
-        .ok_or_else(|| "BIRTH sequence leaves no membership Sign capacity".to_string())?;
-    let attach_sequence = birth_sequence
-        .checked_add(2)
-        .ok_or_else(|| "BIRTH sequence leaves no membership Sign capacity".to_string())?;
-    let admit_sign = bind_sign(&host_id, &boot_id, None, admit_sequence);
-    let attach_sign = bind_sign(&host_id, &boot_id, None, attach_sequence);
-    let mut membership = BodyMembership::new(body.body_id.clone())
+    let membership = BodyMembership::new(body.body_id.clone())
         .map_err(|error| format!("create Body membership: {error:?}"))?;
-    membership
-        .admit(
-            &body.body_id,
-            membership.revision,
-            here_part.clone(),
-            proof.clone(),
-            admit_sign.sign_id,
-        )
-        .map_err(|error| format!("admit Here Part: {error:?}"))?;
-    membership
-        .observe_present(
-            &body.body_id,
-            membership.revision,
-            &here_part,
-            AuthenticatedHostObservation {
-                host_id: host_id.clone(),
-                boot_id: boot_id.clone(),
-                offer_generation: OfferGeneration(1),
-                proof_id: proof,
-                sequence: 1,
-            },
-            attach_sign.sign_id,
-        )
-        .map_err(|error| format!("observe current browser Host: {error:?}"))?;
     membership
         .validate()
         .map_err(|error| format!("validate Body membership: {error:?}"))?;
@@ -108,12 +81,14 @@ pub(super) fn birth(
         checked_form_id: body.checked_form_id.as_str().into(),
         seed_id: body.seed_id.as_str().into(),
         body_id: body.body_id.as_str().into(),
+        friendly_name: friendly_name.into(),
+        initial_program: initial_program.into(),
         birth_sequence,
         birth_sign_id: birth_sign.sign_id.as_str().into(),
         state: "LULLED",
-        here_part_id: here_part.as_str().into(),
-        host_id: host_id.as_str().into(),
-        boot_id: boot_id.as_str().into(),
+        here_part_id: None,
+        host_id: None,
+        boot_id: None,
         membership_revision: membership.revision.0,
         wake_id: None,
         plan_id: None,
@@ -132,6 +107,58 @@ pub(super) fn birth(
         })
     });
     Ok(receipt)
+}
+
+pub(super) fn attach_here(host: &str, boot: &str, sequence: u64) -> Result<BirthReceipt, String> {
+    with_session(|session| {
+        if session.receipt.here_part_id.is_some() {
+            return Ok(session.receipt.clone());
+        }
+        let host_id = HostId::from(host);
+        let boot_id = BootId::from(boot);
+        let here_part = PartId::bind(&session.receipt.raw_body.body_id, "creche/here", 1)
+            .map_err(|error| format!("bind Here Part: {error:?}"))?;
+        let proof = MembershipProofId::bind(&session.receipt.source_interaction.result_identity)
+            .map_err(|error| format!("bind membership proof: {error:?}"))?;
+        let admit_sign = bind_sign(&host_id, &boot_id, None, sequence);
+        let attach_sequence = sequence
+            .checked_add(1)
+            .ok_or_else(|| "Host attachment sequence overflow".to_string())?;
+        let attach_sign = bind_sign(&host_id, &boot_id, None, attach_sequence);
+        session
+            .receipt
+            .raw_membership
+            .admit(
+                &session.receipt.raw_body.body_id,
+                session.receipt.raw_membership.revision,
+                here_part.clone(),
+                proof.clone(),
+                admit_sign.sign_id,
+            )
+            .map_err(|error| format!("admit Here Part: {error:?}"))?;
+        session
+            .receipt
+            .raw_membership
+            .observe_present(
+                &session.receipt.raw_body.body_id,
+                session.receipt.raw_membership.revision,
+                &here_part,
+                AuthenticatedHostObservation {
+                    host_id: host_id.clone(),
+                    boot_id: boot_id.clone(),
+                    offer_generation: OfferGeneration(1),
+                    proof_id: proof,
+                    sequence: 1,
+                },
+                attach_sign.sign_id,
+            )
+            .map_err(|error| format!("observe current browser Host: {error:?}"))?;
+        session.receipt.here_part_id = Some(here_part.as_str().into());
+        session.receipt.host_id = Some(host_id.as_str().into());
+        session.receipt.boot_id = Some(boot_id.as_str().into());
+        session.receipt.membership_revision = session.receipt.raw_membership.revision.0;
+        Ok(session.receipt.clone())
+    })
 }
 
 pub(super) fn current() -> Option<BirthReceipt> {

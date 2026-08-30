@@ -72,6 +72,8 @@ pub extern "C" fn conduit_book_body_admit_source_interaction(
 pub extern "C" fn conduit_book_body_birth(
     host_length: usize,
     boot_length: usize,
+    friendly_name_length: usize,
+    initial_program_length: usize,
     source_length: usize,
     birth_sequence: u64,
 ) -> i32 {
@@ -80,10 +82,22 @@ pub extern "C" fn conduit_book_body_birth(
     let Some(identity_length) = host_length.checked_add(boot_length) else {
         return ERROR_INPUT;
     };
-    let Some(total_length) = identity_length.checked_add(source_length) else {
+    let Some(metadata_length) = identity_length
+        .checked_add(friendly_name_length)
+        .and_then(|length| length.checked_add(initial_program_length))
+    else {
         return ERROR_INPUT;
     };
-    if host_length == 0 || boot_length == 0 || source_length == 0 || total_length > INPUT_BYTES {
+    let Some(total_length) = metadata_length.checked_add(source_length) else {
+        return ERROR_INPUT;
+    };
+    if host_length == 0
+        || boot_length == 0
+        || friendly_name_length == 0
+        || initial_program_length == 0
+        || source_length == 0
+        || total_length > INPUT_BYTES
+    {
         return ERROR_INPUT;
     }
     let Some(interaction) = interaction else {
@@ -99,9 +113,23 @@ pub extern "C" fn conduit_book_body_birth(
                 .map_err(|_| "Host identity is not UTF-8".to_string())?;
             let boot = core::str::from_utf8(&input[host_length..identity_length])
                 .map_err(|_| "Boot identity is not UTF-8".to_string())?;
-            let source = core::str::from_utf8(&input[identity_length..total_length])
+            let friendly_name_end = identity_length + friendly_name_length;
+            let program_end = friendly_name_end + initial_program_length;
+            let friendly_name = core::str::from_utf8(&input[identity_length..friendly_name_end])
+                .map_err(|_| "friendly name is not UTF-8".to_string())?;
+            let initial_program = core::str::from_utf8(&input[friendly_name_end..program_end])
+                .map_err(|_| "initial program is not UTF-8".to_string())?;
+            let source = core::str::from_utf8(&input[program_end..total_length])
                 .map_err(|_| "Body Seed source is not UTF-8".to_string())?;
-            session::birth(host, boot, source, birth_sequence, interaction)
+            session::birth(
+                host,
+                boot,
+                friendly_name,
+                initial_program,
+                source,
+                birth_sequence,
+                interaction,
+            )
         })();
         input[..total_length].fill(0);
         match result {
@@ -109,6 +137,38 @@ pub extern "C" fn conduit_book_body_birth(
                 .map(|()| STATUS_READY)
                 .unwrap_or(ERROR_OUTPUT),
             Err(message) => refuse(message, ERROR_BIRTH),
+        }
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_book_body_attach_here(
+    host_length: usize,
+    boot_length: usize,
+    sequence: u64,
+) -> i32 {
+    clear_output();
+    let Some(total_length) = host_length.checked_add(boot_length) else {
+        return ERROR_INPUT;
+    };
+    if host_length == 0 || boot_length == 0 || total_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = (|| {
+            let host = core::str::from_utf8(&input[..host_length])
+                .map_err(|_| "Host identity is not UTF-8".to_string())?;
+            let boot = core::str::from_utf8(&input[host_length..total_length])
+                .map_err(|_| "Boot identity is not UTF-8".to_string())?;
+            session::attach_here(host, boot, sequence)
+        })();
+        input[..total_length].fill(0);
+        match result {
+            Ok(receipt) => write_output(&receipt)
+                .map(|()| STATUS_READY)
+                .unwrap_or(ERROR_OUTPUT),
+            Err(message) => refuse(message, ERROR_ADMISSION),
         }
     })
 }
