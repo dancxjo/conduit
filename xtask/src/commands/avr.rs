@@ -1,7 +1,9 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::{Command, Output},
+    process::{Child, Command, Output, Stdio},
+    thread,
+    time::{Duration, Instant},
 };
 
 use clap::{Args, Subcommand};
@@ -29,6 +31,7 @@ const EXPECTED_VID: &str = "1b4f";
 const EXPECTED_PID: &str = "9206";
 const MAX_FLASH_BYTES: u64 = SPORE_REGION_START;
 const MAX_SRAM_BYTES: u64 = SRAM_BYTES;
+const AVRDUDE_DEADLINE: Duration = Duration::from_secs(15);
 
 #[derive(Args, Debug)]
 pub struct AvrArgs {
@@ -397,13 +400,40 @@ fn upload_artifact(
     artifact: &Path,
     action: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let output = Command::new(avrdude_bin(root))
+    let child = Command::new(avrdude_bin(root))
         .arg(format!("-C{}", avrdude_config(root).display()))
         .args(["-q", "-q", "-patmega32u4", "-cavr109", "-b57600", "-D"])
         .arg(format!("-P{}", port.display()))
         .arg(format!("-Uflash:w:{}:i", artifact.display()))
-        .output()?;
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    let output = wait_for_child_output(child, AVRDUDE_DEADLINE, action)?;
     require_success(&output, action)
+}
+
+fn wait_for_child_output(
+    mut child: Child,
+    timeout: Duration,
+    action: &str,
+) -> Result<Output, Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if child.try_wait()?.is_some() {
+            return Ok(child.wait_with_output()?);
+        }
+        if Instant::now() >= deadline {
+            child.kill()?;
+            let output = child.wait_with_output()?;
+            return Err(format!(
+                "{action} timed out after {} ms; bootloader port may have disappeared: {}",
+                timeout.as_millis(),
+                String::from_utf8_lossy(&output.stderr).trim()
+            )
+            .into());
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {

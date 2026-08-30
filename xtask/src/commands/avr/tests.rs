@@ -58,3 +58,28 @@ fn parses_exact_build_metrics_and_enforces_both_capacities() {
         1
     );
 }
+
+#[test]
+fn child_output_wait_is_bounded() {
+    let completed = Command::new("sh")
+        .args(["-c", "exit 0"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    assert!(
+        wait_for_child_output(completed, Duration::from_secs(1), "test")
+            .unwrap()
+            .status
+            .success()
+    );
+
+    let stuck = Command::new("sleep")
+        .arg("60")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let error = wait_for_child_output(stuck, Duration::from_millis(20), "test").unwrap_err();
+    assert!(error.to_string().contains("timed out after 20 ms"));
+}
