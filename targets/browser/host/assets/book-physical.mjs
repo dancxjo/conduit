@@ -170,6 +170,7 @@ async function observe(runner, host, state) {
       maximumTransferBytes: 4096,
       maximumReads: 2,
       maximumWrites: 1,
+      maximumSignalOperations: 1,
     });
     state.observation = await requestRp2040SpawnJoin({ base, prepared: state.prepared });
     completeStage(runner, "boot", short(state.observation.boot_id));

@@ -72,8 +72,10 @@ export async function installB7Devices(page, { staleStatus = false } = {}) {
 
     const port = new EventTarget();
     port.responses = [];
+    port.signals = [];
     port.open = async () => {};
     port.close = async () => {};
+    port.setSignals = async (signals) => port.signals.push({ ...signals });
     port.getInfo = () => ({ usbVendorId: 0x2e8a, usbProductId: 0x000a });
     port.writable = { getWriter: () => ({
       write: async (bytes) => {
