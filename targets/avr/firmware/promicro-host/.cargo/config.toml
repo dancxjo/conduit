@@ -1,6 +1,6 @@
 [build]
-target = "avr-none"
-rustflags = ["-C", "target-cpu=atmega32u4", "-C", "linker=avr-gcc", "-D", "warnings"]
+target = "avr-atmega32u4.json"
+rustflags = ["--cfg", "avr_hal_asm_macro", "-D", "warnings"]
 
 [unstable]
 build-std = ["core"]

@@ -9,8 +9,8 @@ use super::{
     metric, require_success,
 };
 
-pub(super) const RUST_TOOLCHAIN: &str = "nightly-2026-05-25";
-pub(super) const AVR_HAL_REVISION: &str = "e0b0105b11a7c4209fb1704276a7921c3139d5cb";
+pub(super) const RUST_TOOLCHAIN: &str = "nightly-2024-07-22";
+pub(super) const AVR_HAL_REVISION: &str = "0be252f2a899dbd687a26f8561048ce61854eaae";
 pub(super) const FIRMWARE: &str = "targets/avr/firmware/promicro-host";
 const ELF_NAME: &str = "conduit-avr-promicro-host.elf";
 const HEX_NAME: &str = "conduit-avr-promicro-host.hex";
@@ -62,7 +62,9 @@ pub(super) fn build(root: &Path) -> Result<RustFirmwareArtifact, Box<dyn std::er
         .output()?;
     require_success(&output, "Rust AVR firmware build")?;
 
-    let firmware_target = root.join(FIRMWARE).join("target/avr-none/release");
+    let firmware_target = root
+        .join(FIRMWARE)
+        .join("target/avr-atmega32u4/release");
     let elf = firmware_target.join(ELF_NAME);
     if !elf.is_file() {
         return Err(format!("Rust AVR build omitted {}", elf.display()).into());

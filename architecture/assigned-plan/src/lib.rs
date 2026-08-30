@@ -2,7 +2,7 @@
 
 #![no_std]
 
-use sha2::{Digest, Sha256};
+mod sha256;
 
 pub const ASSIGNED_PLAN_SCHEMA: u16 = 2;
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 124;
@@ -28,7 +28,7 @@ pub struct AssignedIdentity(pub [u8; 16]);
 
 impl AssignedIdentity {
     pub fn from_text(value: &str) -> Self {
-        let digest = Sha256::digest(value.as_bytes());
+        let digest = sha256::digest(value.as_bytes());
         let mut result = [0; 16];
         result.copy_from_slice(&digest[..16]);
         Self(result)
@@ -148,7 +148,7 @@ pub fn decode_assigned_plan(
         }
     }
     let expected_digest = &bytes[92..124];
-    let actual_digest: [u8; 32] = Sha256::digest(&bytes[124..]).into();
+    let actual_digest = sha256::digest(&bytes[124..]);
     if actual_digest != expected_digest {
         return Err(AssignedPlanRefusal::DigestMismatch);
     }
@@ -304,7 +304,7 @@ pub fn decode_assigned_plan(
 }
 
 pub fn assigned_plan_payload_digest(payload: &[u8]) -> [u8; 32] {
-    Sha256::digest(payload).into()
+    sha256::digest(payload)
 }
 
 pub fn assigned_plan_magic() -> [u8; 8] {
