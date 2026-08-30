@@ -139,11 +139,11 @@ async function deploy(runner, host, state) {
     status(runner, "Deployment requested reboot. That proves no Boot, join, membership, offers, readiness, Plan, or Play.");
     renderEvidence(runner, state);
   } catch (error) {
-    button.disabled = false;
     const permissionHint = /access denied/i.test(error?.message ?? "")
-      ? " On Linux, run `sudo scripts/install-pico-headless-flash.sh`, reconnect the Pico in BOOTSEL mode, and retry."
+      ? " On Linux, run `sudo scripts/install-pico-headless-flash.sh` and reconnect the Pico in BOOTSEL mode."
       : "";
-    refuse(runner, "deployment", new Error(`${error.message}${permissionHint}`));
+    const freshHostHint = " This USB acquisition is terminal; reload the Tour to create a fresh browser Host before trying again.";
+    refuse(runner, "deployment", new Error(`${error.message}${permissionHint}${freshHostHint}`));
   }
 }
 
