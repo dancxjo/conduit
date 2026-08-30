@@ -77,12 +77,85 @@ pub enum BodyBuildDiagnostic {
     Encode {
         detail: String,
     },
+    SourceIdentityMissing,
+    SelectedImageMismatch {
+        host: String,
+        detail: String,
+    },
     DeploymentMetadataMissing {
         host: String,
     },
     DeploymentAdapterMissing {
         host: String,
     },
+}
+
+/// Seal a fresh Body binding around one already-built exact IMAGE.
+///
+/// Validation derives the IMAGE that the checked Host configuration and
+/// fabrication package require, but it retains the caller-selected bytes and
+/// identity. It does not BUILD a replacement artifact or promote the spore to
+/// deployment, Boot, membership, or readiness truth.
+pub fn seal_prebuilt_body_spore(
+    body: &CheckedBodyDescription,
+    host_name: &str,
+    source_identity: &str,
+    image: &HostImage,
+    image_bytes: &[u8],
+    catalog: &FabricationCatalog,
+    packages: &FabricationPackageSet,
+) -> Result<BuiltSpore, BodyBuildDiagnostic> {
+    if source_identity.trim().is_empty() {
+        return Err(BodyBuildDiagnostic::SourceIdentityMissing);
+    }
+    let host = body
+        .hosts()
+        .iter()
+        .find(|host| host.description.name == host_name)
+        .ok_or_else(|| BodyBuildDiagnostic::UnknownHost {
+            name: host_name.into(),
+        })?;
+    let profile = host.configuration.profile().clone();
+    let inputs = BuildInputs {
+        source_identity: image.manifest.source_identity.clone(),
+        toolchain_available: true,
+    };
+    let (expected_image, _) = build_host_image(
+        profile,
+        catalog,
+        packages,
+        &host.description.spore.output,
+        &inputs,
+    )
+    .map_err(|diagnostics| BodyBuildDiagnostic::HostBuild {
+        host: host_name.into(),
+        diagnostics,
+    })?;
+    if &expected_image != image {
+        return Err(BodyBuildDiagnostic::SelectedImageMismatch {
+            host: host_name.into(),
+            detail: "selected IMAGE does not match the checked Host configuration and package"
+                .into(),
+        });
+    }
+    conduit_host_fabrication::verify_image_binding(image, image_bytes).map_err(|diagnostic| {
+        BodyBuildDiagnostic::SelectedImageMismatch {
+            host: host_name.into(),
+            detail: format!("{diagnostic:?}"),
+        }
+    })?;
+    let fabrication = packages
+        .derive_build_selection(host.configuration.profile(), &host.description.spore.output)
+        .map_err(|error| BodyBuildDiagnostic::Fabrication {
+            host: host_name.into(),
+            detail: format!("{error:?}"),
+        })?;
+    let manifest = seal_spore_manifest(body, host, source_identity, image, fabrication)?;
+    Ok(BuiltSpore {
+        manifest,
+        image: image.clone(),
+        image_bytes: image_bytes.to_vec(),
+    })
 }
 
 pub fn build_body_spores(
@@ -141,45 +214,8 @@ pub fn build_body_spores(
                 continue;
             }
         };
-        let binding = match host.description.spore.join_mode {
-            SporeJoinMode::Prejoined => SporeBinding::Prejoined {
-                part_id: host
-                    .description
-                    .part
-                    .clone()
-                    .expect("checked prejoined Part"),
-            },
-            SporeJoinMode::SelfJoining => SporeBinding::SelfJoining {
-                invitation_id: host
-                    .description
-                    .spore
-                    .invitation
-                    .clone()
-                    .expect("checked invitation"),
-            },
-        };
-        let mut manifest = SporeManifest {
-            schema: SPORE_MANIFEST_SCHEMA.into(),
-            spore_id: String::new(),
-            body_id: body.description().body.id.clone(),
-            binding,
-            body_description_id: body.description_id().into(),
-            host_entry_name: host.description.name.clone(),
-            host_configuration_id: host.configuration.configuration_id().into(),
-            profile_id: image.manifest.profile_id.clone(),
-            build_id: image.manifest.build_id.clone(),
-            image_id: image.manifest.image_id.clone(),
-            target: image.manifest.target.clone(),
-            output: host.description.spore.output.clone(),
-            fabrication,
-            source_identity: source_identity.into(),
-        };
-        let basis = serde_json::to_vec(&manifest).map_err(|error| {
-            vec![BodyBuildDiagnostic::Encode {
-                detail: error.to_string(),
-            }]
-        })?;
-        manifest.spore_id = format!("spore:sha256:{:x}", Sha256::digest(&basis));
+        let manifest = seal_spore_manifest(body, host, source_identity, &image, fabrication)
+            .map_err(|diagnostic| vec![diagnostic])?;
         built.push(BuiltSpore {
             manifest,
             image,
@@ -191,6 +227,53 @@ pub fn build_body_spores(
     } else {
         Err(diagnostics)
     }
+}
+
+fn seal_spore_manifest(
+    body: &CheckedBodyDescription,
+    host: &crate::CheckedBodyHost,
+    source_identity: &str,
+    image: &HostImage,
+    fabrication: FabricationBuildSelection,
+) -> Result<SporeManifest, BodyBuildDiagnostic> {
+    let binding = match host.description.spore.join_mode {
+        SporeJoinMode::Prejoined => SporeBinding::Prejoined {
+            part_id: host
+                .description
+                .part
+                .clone()
+                .expect("checked prejoined Part"),
+        },
+        SporeJoinMode::SelfJoining => SporeBinding::SelfJoining {
+            invitation_id: host
+                .description
+                .spore
+                .invitation
+                .clone()
+                .expect("checked invitation"),
+        },
+    };
+    let mut manifest = SporeManifest {
+        schema: SPORE_MANIFEST_SCHEMA.into(),
+        spore_id: String::new(),
+        body_id: body.description().body.id.clone(),
+        binding,
+        body_description_id: body.description_id().into(),
+        host_entry_name: host.description.name.clone(),
+        host_configuration_id: host.configuration.configuration_id().into(),
+        profile_id: image.manifest.profile_id.clone(),
+        build_id: image.manifest.build_id.clone(),
+        image_id: image.manifest.image_id.clone(),
+        target: image.manifest.target.clone(),
+        output: host.description.spore.output.clone(),
+        fabrication,
+        source_identity: source_identity.into(),
+    };
+    let basis = serde_json::to_vec(&manifest).map_err(|error| BodyBuildDiagnostic::Encode {
+        detail: error.to_string(),
+    })?;
+    manifest.spore_id = format!("spore:sha256:{:x}", Sha256::digest(&basis));
+    Ok(manifest)
 }
 
 pub fn deployment_receipt(

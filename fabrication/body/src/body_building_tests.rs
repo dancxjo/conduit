@@ -86,6 +86,109 @@ fn body_binding_changes_spore_not_reusable_image_identity() {
 }
 
 #[test]
+fn prebuilt_image_seals_a_fresh_spore_without_changing_image_truth() {
+    let body = checked_example();
+    let built = build_body_spores(
+        &body,
+        Some("brainstem"),
+        "git:image-build",
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap()
+    .remove(0);
+    let sealed = seal_prebuilt_body_spore(
+        &body,
+        "brainstem",
+        "body:browser-birth/1",
+        &built.image,
+        &built.image_bytes,
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap();
+
+    assert_eq!(sealed.image, built.image);
+    assert_eq!(sealed.image_bytes, built.image_bytes);
+    assert_eq!(sealed.manifest.image_id, built.manifest.image_id);
+    assert_ne!(sealed.manifest.spore_id, built.manifest.spore_id);
+    assert_eq!(sealed.manifest.source_identity, "body:browser-birth/1");
+    assert_eq!(
+        sealed.manifest.binding,
+        SporeBinding::Prejoined {
+            part_id: "part:brainstem".into()
+        }
+    );
+}
+
+#[test]
+fn prebuilt_spore_refuses_wrong_bytes_image_and_missing_identity() {
+    let body = checked_example();
+    let built = build_body_spores(
+        &body,
+        Some("brainstem"),
+        "git:image-build",
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .unwrap()
+    .remove(0);
+    let mut wrong_bytes = built.image_bytes.clone();
+    wrong_bytes[0] ^= 1;
+    assert!(matches!(
+        seal_prebuilt_body_spore(
+            &body,
+            "brainstem",
+            "body:browser-birth/1",
+            &built.image,
+            &wrong_bytes,
+            &test_catalog(),
+            &test_package_set(),
+        ),
+        Err(BodyBuildDiagnostic::SelectedImageMismatch { .. })
+    ));
+
+    let mut wrong_image = built.image.clone();
+    wrong_image.manifest.image_id.push_str("-stale");
+    assert!(matches!(
+        seal_prebuilt_body_spore(
+            &body,
+            "brainstem",
+            "body:browser-birth/1",
+            &wrong_image,
+            &built.image_bytes,
+            &test_catalog(),
+            &test_package_set(),
+        ),
+        Err(BodyBuildDiagnostic::SelectedImageMismatch { .. })
+    ));
+    assert_eq!(
+        seal_prebuilt_body_spore(
+            &body,
+            "brainstem",
+            " ",
+            &built.image,
+            &built.image_bytes,
+            &test_catalog(),
+            &test_package_set(),
+        ),
+        Err(BodyBuildDiagnostic::SourceIdentityMissing)
+    );
+    assert!(matches!(
+        seal_prebuilt_body_spore(
+            &body,
+            "missing",
+            "body:browser-birth/1",
+            &built.image,
+            &built.image_bytes,
+            &test_catalog(),
+            &test_package_set(),
+        ),
+        Err(BodyBuildDiagnostic::UnknownHost { .. })
+    ));
+}
+
+#[test]
 fn validation_rejects_conflicts_incomplete_join_and_host_configuration_truth() {
     let mut duplicate = parse_example();
     duplicate.hosts[1].name = duplicate.hosts[0].name.clone();
