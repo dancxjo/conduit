@@ -129,15 +129,43 @@ fn explicit_acquisition_yields_exact_resource_then_bounded_use() {
         USB_BASE_IMPLEMENTATION
     );
     assert_eq!(resource.configuration.interface_number, 2);
-    session.begin_transfer(UsbTransferDirection::Out).unwrap();
     session
-        .complete_transfer(UsbTransferDirection::Out, 4_096)
+        .begin_transfer(UsbTransferKind::Bulk, UsbTransferDirection::Out, None)
+        .unwrap();
+    session
+        .complete_transfer(UsbTransferKind::Bulk, UsbTransferDirection::Out, 4_096)
         .unwrap();
     assert_eq!(session.retained_bytes(), 4_096);
     session.release_transfer().unwrap();
-    session.begin_transfer(UsbTransferDirection::In).unwrap();
     session
-        .complete_transfer(UsbTransferDirection::In, 3)
+        .begin_transfer(
+            UsbTransferKind::Control,
+            UsbTransferDirection::In,
+            Some(UsbControlSetup {
+                request_type: UsbControlRequestType::Vendor,
+                recipient: UsbControlRecipient::Interface,
+                request: 0x42,
+                value: 0,
+                index: 2,
+            }),
+        )
+        .unwrap();
+    assert_eq!(
+        session.retained_control_setup(),
+        Some(UsbControlSetup {
+            request_type: UsbControlRequestType::Vendor,
+            recipient: UsbControlRecipient::Interface,
+            request: 0x42,
+            value: 0,
+            index: 2,
+        })
+    );
+    assert_eq!(
+        session.release_transfer(),
+        Err(BrowserUsbRefusal::WrongPhase)
+    );
+    session
+        .complete_transfer(UsbTransferKind::Control, UsbTransferDirection::In, 0)
         .unwrap();
     session.release_transfer().unwrap();
     assert_eq!(session.admitted_in_transfers(), 1);
@@ -218,9 +246,11 @@ fn stale_resource_and_wrong_use_authority_never_start_use() {
 #[test]
 fn pressure_transfer_status_loss_and_cancellation_are_distinct() {
     let mut session = playing();
-    session.begin_transfer(UsbTransferDirection::Out).unwrap();
+    session
+        .begin_transfer(UsbTransferKind::Bulk, UsbTransferDirection::Out, None)
+        .unwrap();
     assert_eq!(
-        session.begin_transfer(UsbTransferDirection::In),
+        session.begin_transfer(UsbTransferKind::Control, UsbTransferDirection::In, None),
         Err(BrowserUsbRefusal::Pressure)
     );
     session
