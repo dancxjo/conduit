@@ -9,7 +9,10 @@ use std::{
 use clap::Args;
 use serde::Serialize;
 
-use super::{require_success, verify_device, write_receipt, PhysicalGate, EXPECTED_BY_ID};
+use super::{
+    build_identity::EmbeddedBuildIdentity, require_success, run_build, verify_device,
+    write_receipt, PhysicalGate, EXPECTED_BY_ID,
+};
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 const MAX_REPLY_BYTES: usize = 512;
@@ -19,6 +22,8 @@ const REPLY_DEADLINE: Duration = Duration::from_secs(3);
 pub(super) struct VerifyArgs {
     #[arg(long)]
     port: PathBuf,
+    #[arg(long)]
+    artifact_sha256: String,
     #[arg(long, value_parser = parse_u32_hex)]
     host_id: u32,
     #[arg(long, value_parser = parse_u32_hex)]
@@ -47,6 +52,9 @@ struct VerifyReceipt {
     outcome: &'static str,
     proof_class: &'static str,
     source_sha: String,
+    source_digest_sha256: String,
+    build_id: String,
+    artifact_sha256: String,
     port: String,
     host_id: String,
     boot_id: String,
@@ -83,11 +91,25 @@ pub(super) fn run(args: VerifyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would verify {}, open CDC once, bind a fresh Boot, admit one disabled observation activation, and require isolated status",
+                "would rebuild and verify isolated artifact {}, verify {}, open CDC once, require exact image attestation, bind a fresh Boot, require an empty executable offer set, admit one disabled observation activation, and require isolated status",
+                args.artifact_sha256,
                 args.port.display()
             );
         }
         return Ok(());
+    }
+
+    let built = run_build(
+        Path::new("target/avr-promicro/build-receipt.json"),
+        false,
+        opts,
+    )?;
+    if built.artifact_sha256 != args.artifact_sha256 {
+        return Err(format!(
+            "AVR isolated artifact digest mismatch: expected {}, built {}",
+            args.artifact_sha256, built.artifact_sha256
+        )
+        .into());
     }
 
     verify_device(&args.port)?;
@@ -106,9 +128,15 @@ pub(super) fn run(args: VerifyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
     exchange(&mut device, "HELLO\n", expected_hello())?;
     exchange(
         &mut device,
+        "ATTEST\n",
+        &expected_attestation(&built.identity),
+    )?;
+    exchange(
+        &mut device,
         &boot_frame(identities),
         &expected_boot(identities),
     )?;
+    exchange(&mut device, "OFFER\n", expected_isolated_offer())?;
     exchange(
         &mut device,
         &activation_frame(identities),
@@ -118,10 +146,13 @@ pub(super) fn run(args: VerifyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
 
     let root = workspace_root()?;
     let record = VerifyReceipt {
-        schema: "conduit.avr-promicro/cdc-verify@1",
+        schema: "conduit.avr-promicro/cdc-verify@2",
         outcome: "verified",
         proof_class: "physical-usb-cdc-fail-closed",
-        source_sha: super::git_head(&root)?,
+        source_sha: built.identity.source_sha,
+        source_digest_sha256: built.identity.source_digest_sha256,
+        build_id: built.identity.build_id,
+        artifact_sha256: built.artifact_sha256,
         port: args.port.display().to_string(),
         host_id: hex32(identities.host),
         boot_id: hex32(identities.boot),
@@ -164,6 +195,14 @@ fn validate_request(
     .contains(&0)
     {
         return Err("AVR CDC verification identities must all be nonzero".into());
+    }
+    if args.artifact_sha256.len() != 64
+        || !args
+            .artifact_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("AVR CDC verification requires one exact SHA-256 digest".into());
     }
     Ok(())
 }
@@ -255,6 +294,30 @@ pub(super) fn expected_hello() -> &'static str {
     "TARGET schema=conduit.target/availability@1 target_id=avr/promicro/pete-brainstem target=atmega32u4-5v-16mhz line=usb-cdc@1"
 }
 
+pub(super) fn expected_attestation(identity: &EmbeddedBuildIdentity) -> String {
+    format!(
+        "ATTESTATION schema=conduit.avr-promicro/image-attestation@1 build_id={} source_sha={} source_digest_sha256={} profile={} artifact_sha256_binding=build-receipt create_uart=isolated",
+        identity.build_id,
+        identity.source_sha,
+        identity.source_digest_sha256,
+        identity.profile
+    )
+}
+
+pub(super) fn expected_isolated_offer() -> &'static str {
+    "OFFER schema=conduit.host/offer-set@1 outcome=available count=0 reason=implementation-not-in-image create_uart=isolated"
+}
+
+pub(super) fn expected_hil_offer(ids: Identities, identity: &EmbeddedBuildIdentity) -> String {
+    format!(
+        "OFFER schema=conduit.host/offer-set@1 outcome=available count=1 host={} boot={} offer_generation={} kind=robotics/create-group-zero-observation@1 implementation=conduit.avr/create-group-zero@1 artifact_build={} operation_capacity=1 response_byte_capacity=26 maximum_deadline_ms=2000 create_uart=isolated",
+        hex32(ids.host),
+        hex32(ids.boot),
+        hex32(ids.offer),
+        identity.build_id
+    )
+}
+
 pub(super) fn expected_boot(ids: Identities) -> String {
     format!(
         "BOOT_BIND schema=conduit.host/boot-binding@1 outcome=bound host={} boot={} offer_generation={} create_uart=isolated",
@@ -324,6 +387,7 @@ mod tests {
     fn args() -> VerifyArgs {
         VerifyArgs {
             port: PathBuf::from("/dev/serial/by-id/usb-SparkFun_SparkFun_Pro_Micro-if00"),
+            artifact_sha256: "a".repeat(64),
             host_id: 11,
             offer_generation: 1,
             plan_fragment_id: 33,
@@ -350,11 +414,16 @@ mod tests {
 
     #[test]
     fn expected_transcript_requires_isolation_and_exact_identities() {
+        let identity = EmbeddedBuildIdentity::new("a".repeat(40), "b".repeat(64), false);
         assert!(expected_boot(ids()).contains("outcome=bound"));
         assert!(expected_activation(ids())
             .contains("authority_grant=00000042 execution=disabled create_uart=isolated"));
         assert!(expected_status().contains("create_tx_bytes=0"));
         assert!(expected_status().contains("motion_authority=absent"));
+        assert!(expected_attestation(&identity).contains(&identity.build_id));
+        assert!(expected_isolated_offer().contains("count=0"));
+        assert!(expected_hil_offer(ids(), &identity)
+            .contains("operation_capacity=1 response_byte_capacity=26"));
     }
 
     #[test]

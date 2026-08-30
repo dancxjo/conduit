@@ -14,6 +14,8 @@ constexpr size_t kCommandCapacity = 64;
 enum class Request : uint8_t {
   kHello,
   kStatus,
+  kAttest,
+  kOffer,
   kBindBoot,
   kActivateObservation,
   kExecuteObservation,
@@ -50,6 +52,10 @@ class CommandBuffer {
       request = Request::kHello;
     } else if (exact("STATUS")) {
       request = Request::kStatus;
+    } else if (exact("ATTEST")) {
+      request = Request::kAttest;
+    } else if (exact("OFFER")) {
+      request = Request::kOffer;
     } else if (starts_with("B ")) {
       request = parse_boot() ? Request::kBindBoot : Request::kMalformed;
     } else if (starts_with("A ")) {

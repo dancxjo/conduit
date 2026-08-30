@@ -3,10 +3,16 @@
 #include "create_hil.h"
 #include "group_zero.h"
 #include "lifecycle.h"
+#include "offer.h"
 #include "protocol.h"
 
 using conduit::promicro::CommandBuffer;
 using conduit::promicro::Request;
+
+#if !defined(CONDUIT_AVR_BUILD_ID) || !defined(CONDUIT_AVR_SOURCE_SHA) || \
+    !defined(CONDUIT_AVR_SOURCE_DIGEST)
+#error "AVR build identity must be supplied by cargo xtask"
+#endif
 
 #define WRITE_TEXT(text) Serial.print(F(text))
 
@@ -20,6 +26,18 @@ constexpr uint8_t kCreateTxPin = 1;
 
 CommandBuffer command;
 conduit::promicro::BrainstemLifecycle lifecycle;
+
+#if defined(CONDUIT_CREATE_HIL)
+constexpr conduit::promicro::ImageProfile kImageProfile =
+    conduit::promicro::ImageProfile::kCreateHil;
+#else
+constexpr conduit::promicro::ImageProfile kImageProfile =
+    conduit::promicro::ImageProfile::kIsolated;
+#endif
+
+const conduit::promicro::BuildAttestation kBuildAttestation{
+    CONDUIT_AVR_BUILD_ID, CONDUIT_AVR_SOURCE_SHA, CONDUIT_AVR_SOURCE_DIGEST,
+    kImageProfile};
 
 void isolate_create_uart() {
   Serial1.end();
@@ -118,6 +136,66 @@ void respond_status() {
 #else
       "create_codec=compiled-disabled\n");
 #endif
+}
+
+const char* image_profile() {
+  return kImageProfile == conduit::promicro::ImageProfile::kCreateHil
+             ? "create-hil"
+             : "isolated";
+}
+
+void respond_attestation() {
+  WRITE_TEXT(
+      "ATTESTATION schema=conduit.avr-promicro/image-attestation@1 "
+      "build_id=");
+  Serial.write(kBuildAttestation.build_id);
+  WRITE_TEXT(" source_sha=");
+  Serial.write(kBuildAttestation.source_sha);
+  WRITE_TEXT(" source_digest_sha256=");
+  Serial.write(kBuildAttestation.source_digest_sha256);
+  WRITE_TEXT(" profile=");
+  Serial.write(image_profile());
+  WRITE_TEXT(
+      " artifact_sha256_binding=build-receipt create_uart=isolated\n");
+}
+
+void respond_offer() {
+  conduit::promicro::CreateObservationOffer offer{};
+  const conduit::promicro::OfferResult result =
+      conduit::promicro::current_offer(lifecycle, kBuildAttestation, offer);
+  using conduit::promicro::OfferResult;
+  if (result == OfferResult::kBootAbsent) {
+    WRITE_TEXT(
+        "OFFER schema=conduit.host/offer-set@1 outcome=refused "
+        "reason=boot-absent count=0 create_uart=isolated\n");
+    return;
+  }
+  if (result == OfferResult::kInvalidBuildIdentity) {
+    WRITE_TEXT(
+        "OFFER schema=conduit.host/offer-set@1 outcome=refused "
+        "reason=invalid-build-identity count=0 create_uart=isolated\n");
+    return;
+  }
+  if (result == OfferResult::kNoExecutableImplementation) {
+    WRITE_TEXT(
+        "OFFER schema=conduit.host/offer-set@1 outcome=available count=0 "
+        "reason=implementation-not-in-image create_uart=isolated\n");
+    return;
+  }
+  WRITE_TEXT(
+      "OFFER schema=conduit.host/offer-set@1 outcome=available count=1 "
+      "host=");
+  write_hex(offer.placement.host_id.value, 8);
+  WRITE_TEXT(" boot=");
+  write_hex(offer.placement.boot_id.value, 8);
+  WRITE_TEXT(" offer_generation=");
+  write_hex(offer.placement.offer_generation, 8);
+  WRITE_TEXT(
+      " kind=robotics/create-group-zero-observation@1 "
+      "implementation=conduit.avr/create-group-zero@1 artifact_build=");
+  Serial.write(offer.artifact_build);
+  WRITE_TEXT(" operation_capacity=1 response_byte_capacity=26 "
+             "maximum_deadline_ms=2000 create_uart=isolated\n");
 }
 
 void respond_boot() {
@@ -290,6 +368,12 @@ void respond(Request request) {
       break;
     case Request::kStatus:
       respond_status();
+      break;
+    case Request::kAttest:
+      respond_attestation();
+      break;
+    case Request::kOffer:
+      respond_offer();
       break;
     case Request::kBindBoot:
       respond_boot();

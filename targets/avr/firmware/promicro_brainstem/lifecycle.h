@@ -107,6 +107,9 @@ class BrainstemLifecycle {
   }
 
   bool boot_bound() const { return boot_bound_; }
+  const BootBinding* binding() const {
+    return boot_bound_ ? &binding_ : nullptr;
+  }
   bool activation_admitted() const { return activation_admitted_; }
   bool matches_activation(uint32_t plan_fragment_id,
                           uint16_t operation_id) const {

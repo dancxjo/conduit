@@ -9,7 +9,8 @@ use serde::Serialize;
 use super::{
     cdc_verify::{
         activation_frame, boot_frame, configure_serial, exchange, expected_activation,
-        expected_boot, expected_hello, fresh_boot_id, hex16, hex32, read_line, Identities,
+        expected_attestation, expected_boot, expected_hello, expected_hil_offer, fresh_boot_id,
+        hex16, hex32, read_line, Identities,
     },
     run_build, verify_device, write_receipt, PhysicalGate, EXPECTED_BY_ID,
 };
@@ -73,6 +74,8 @@ struct ObserveReceipt {
     outcome: &'static str,
     proof_class: &'static str,
     source_sha: String,
+    source_digest_sha256: String,
+    build_id: String,
     artifact_sha256: String,
     port: String,
     host_id: String,
@@ -113,15 +116,15 @@ pub(super) fn run(args: ObserveArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         return Ok(());
     }
 
-    let (_, built_digest) = run_build(
+    let built = run_build(
         Path::new("target/avr-promicro/build-hil-receipt.json"),
         true,
         opts,
     )?;
-    if built_digest != args.artifact_sha256 {
+    if built.artifact_sha256 != args.artifact_sha256 {
         return Err(format!(
-            "AVR HIL artifact digest mismatch: expected {}, built {built_digest}",
-            args.artifact_sha256
+            "AVR HIL artifact digest mismatch: expected {}, built {}",
+            args.artifact_sha256, built.artifact_sha256
         )
         .into());
     }
@@ -141,8 +144,18 @@ pub(super) fn run(args: ObserveArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
     exchange(&mut device, "HELLO\n", expected_hello())?;
     exchange(
         &mut device,
+        "ATTEST\n",
+        &expected_attestation(&built.identity),
+    )?;
+    exchange(
+        &mut device,
         &boot_frame(identities),
         &expected_boot(identities),
+    )?;
+    exchange(
+        &mut device,
+        "OFFER\n",
+        &expected_hil_offer(identities, &built.identity),
     )?;
     exchange(
         &mut device,
@@ -164,8 +177,10 @@ pub(super) fn run(args: ObserveArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
         schema: "conduit.avr-promicro/create-group-zero@1",
         outcome: "completed",
         proof_class: "physical-create-group-zero-observation",
-        source_sha: super::git_head(&root)?,
-        artifact_sha256: built_digest,
+        source_sha: built.identity.source_sha,
+        source_digest_sha256: built.identity.source_digest_sha256,
+        build_id: built.identity.build_id,
+        artifact_sha256: built.artifact_sha256,
         port: args.port.display().to_string(),
         host_id: hex32(identities.host),
         boot_id: hex32(identities.boot),

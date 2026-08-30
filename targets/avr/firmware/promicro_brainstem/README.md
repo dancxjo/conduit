@@ -65,3 +65,18 @@ observation bytes `128,132,142,0`, consume at most 26 group-zero response bytes,
 and restore high impedance on every terminal path. There are no retries, baud
 scans, motion commands, or automatic executions. Compiling this path is not an
 electrical qualification or permission to flash/run it against the Create.
+
+Every repository-owned build embeds a deterministic 64-digit build identity
+derived from the source commit, the SHA-256 of every compiled `.ino` and `.h`,
+image profile, target, and pinned Arduino toolchain identities. `ATTEST` returns
+that build identity, source commit, source digest, and profile. The build
+receipt binds those same facts to the final HEX SHA-256;
+firmware does not make the impossible claim that its bytes contain their own
+self-referential digest.
+
+`OFFER` refuses before exact Boot binding. The transmitter-free `isolated`
+image then truthfully returns an empty offer set. The `create-hil` image returns
+exactly one boot-scoped `robotics/create-group-zero-observation@1` offer bound
+to the embedded build identity, one operation slot, 26 response bytes, and a
+2,000 ms maximum deadline. An offer is not activation or authority and does not
+enable the isolated Create UART.
