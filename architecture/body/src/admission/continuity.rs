@@ -69,12 +69,25 @@ impl AdmissionManager {
         now_millis: u64,
         expires_at_millis: u64,
     ) -> Result<(), AdmissionRefusal> {
+        self.validate_expiry_with_max(
+            nonce,
+            now_millis,
+            expires_at_millis,
+            MAX_ADMISSION_TTL_MILLIS,
+        )
+    }
+
+    pub(super) fn validate_expiry_with_max(
+        &self,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+        maximum_ttl_millis: u64,
+    ) -> Result<(), AdmissionRefusal> {
         if nonce == [0; 32] {
             return Err(AdmissionRefusal::StaleNonce);
         }
-        if expires_at_millis <= now_millis
-            || expires_at_millis - now_millis > MAX_ADMISSION_TTL_MILLIS
-        {
+        if expires_at_millis <= now_millis || expires_at_millis - now_millis > maximum_ttl_millis {
             return Err(AdmissionRefusal::InvalidExpiry);
         }
         Ok(())

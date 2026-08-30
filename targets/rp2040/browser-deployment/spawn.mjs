@@ -20,7 +20,15 @@ function requireIdentity(value, expected, name) {
     refuse("Identity", `${name} is missing or outside its finite bound`);
   }
   if (expected !== undefined && value !== expected) {
-    refuse(`Wrong${name.replaceAll(" ", "")}`, `${name} does not match the prepared spore`);
+    const code = {
+      "spore identity": "WrongSpore",
+      "IMAGE identity": "WrongImage",
+      "invitation identity": "WrongInvitation",
+      "Body identity": "WrongBody",
+      "Host identity": "WrongHost",
+      "Boot identity": "WrongBoot",
+    }[name] ?? "WrongIdentity";
+    refuse(code, `${name} does not match the prepared spore`);
   }
 }
 
@@ -85,6 +93,10 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
   if (!Number.isSafeInteger(prepared.invitation_expires_at_millis)
     || prepared.invitation_expires_at_millis <= 0) {
     refuse("Malformed", "invitation expiry is missing or outside its finite bound");
+  }
+  if (prepared.invitation_expires_at_millis <= Date.now()) {
+    prepared.invitation_secret.fill(0);
+    refuse("ExpiredInvitation", "prepared invitation expired before the Boot/join request");
   }
 
   const usePlanId = `pico-spawn/${prepared.spore_id}`;

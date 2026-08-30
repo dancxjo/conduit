@@ -21,7 +21,7 @@ use super::session;
 const HOST_NAME: &str = "tour-pico";
 const CONFIGURATION_NAME: &str = "tour-pico-prebuilt";
 const PREBUILT_SOURCE: &str = "conduit-pico-w-signal/pico-local-b7@1";
-const INVITATION_TTL_MILLIS: u64 = 60_000;
+const INVITATION_TTL_MILLIS: u64 = 10 * 60_000;
 
 pub(super) struct PendingSpore {
     spore_id: String,

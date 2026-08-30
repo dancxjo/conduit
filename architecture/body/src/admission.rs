@@ -24,6 +24,7 @@ pub use invitation::{
 pub const MAX_PENDING_ADMISSIONS: usize = 16;
 pub const MAX_ADMISSION_RECEIPTS: usize = 32;
 pub const MAX_SPAWN_INVITATIONS: usize = 16;
+pub const MAX_SPAWN_INVITATION_TTL_MILLIS: u64 = 10 * 60_000;
 pub const MAX_ADMISSION_ATTEMPTS: u8 = 3;
 pub const MAX_ADMISSION_TTL_MILLIS: u64 = 60_000;
 pub const ADMISSION_SIGNATURE_BYTES: usize = 64;

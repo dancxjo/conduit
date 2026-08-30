@@ -201,6 +201,59 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
   expect(result.secret).toEqual(Array(32).fill(0));
 });
 
+test("expired invitation and join-to-advertisement mismatch refuse before admission", async ({ page }) => {
+  await page.goto(await startEntrance());
+  const result = await page.evaluate(async () => {
+    const { requestRp2040SpawnJoin } = await import(
+      "/targets/rp2040/browser-deployment/index.mjs"
+    );
+    const prepared = (expiry) => ({
+      spore_id: "spore:one", image_id: "image:one", invitation_id: "invitation:one",
+      body_id: "body:one", invitation_nonce: Array(32).fill(7),
+      invitation_secret: Array(32).fill(8), invitation_expires_at_millis: expiry,
+    });
+    const encode = (value) => {
+      const payload = new TextEncoder().encode(JSON.stringify(value));
+      const bytes = new Uint8Array(payload.length + 2);
+      new DataView(bytes.buffer).setUint16(0, payload.length, false);
+      bytes.set(payload, 2);
+      return bytes;
+    };
+    const base = (responses = []) => ({
+      writes: 0, evidence: () => ({}), startUse() {},
+      async write() { this.writes += 1; },
+      async read() { return { bytes: responses.shift() }; },
+    });
+    const expired = prepared(Date.now() - 1);
+    const expiredBase = base();
+    let expiredCode;
+    try { await requestRp2040SpawnJoin({ base: expiredBase, prepared: expired }); }
+    catch (error) { expiredCode = error.code; }
+
+    const advertisement = { host_id: "pico/one", boot_id: "boot/fresh", offer_generation: 1 };
+    const responses = [
+      encode({ protocol: 1, advertisement }),
+      encode({ protocol: 2, spore_id: "spore:one", image_id: "image:one",
+        invitation_id: "invitation:one", body_id: "body:one", host_id: "pico/one",
+        boot_id: "boot/stale", offer_generation: 1, nonce: Array(32).fill(7), signature: Array(64).fill(9) }),
+    ];
+    const mismatchBase = base(responses);
+    let mismatchCode;
+    try {
+      await requestRp2040SpawnJoin({ base: mismatchBase, prepared: prepared(Date.now() + 60_000) });
+    } catch (error) { mismatchCode = error.code; }
+    return { expiredCode, expiredWrites: expiredBase.writes, expiredSecret: expired.invitation_secret,
+      mismatchCode, mismatchWrites: mismatchBase.writes };
+  });
+  expect(result).toEqual({
+    expiredCode: "ExpiredInvitation",
+    expiredWrites: 0,
+    expiredSecret: Array(32).fill(0),
+    mismatchCode: "WrongBoot",
+    mismatchWrites: 1,
+  });
+});
+
 test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime promotion", async ({ page }) => {
   await installPicoboot(page);
   await page.goto(await startEntrance());

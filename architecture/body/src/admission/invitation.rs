@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     admission_transcript, verify_signature, AdmissionManager, AdmissionRefusal, AdmissionSigns,
     MembershipCredential, ADMISSION_SIGNATURE_BYTES, MAX_ADMISSION_ATTEMPTS,
-    MAX_ADMISSION_RECEIPTS, MAX_SPAWN_INVITATIONS,
+    MAX_ADMISSION_RECEIPTS, MAX_SPAWN_INVITATIONS, MAX_SPAWN_INVITATION_TTL_MILLIS,
 };
 use crate::identity::bind_identity;
 use crate::{AdmissionId, BodyId, BodyMembership, SpawnInvitationId};
@@ -130,7 +130,12 @@ impl AdmissionManager {
         now_millis: u64,
         expires_at_millis: u64,
     ) -> Result<SpawnInvitation, AdmissionRefusal> {
-        self.validate_expiry(nonce, now_millis, expires_at_millis)?;
+        self.validate_expiry_with_max(
+            nonce,
+            now_millis,
+            expires_at_millis,
+            MAX_SPAWN_INVITATION_TTL_MILLIS,
+        )?;
         if self.invitations.len() == MAX_SPAWN_INVITATIONS {
             return Err(AdmissionRefusal::InvitationCapacityExhausted);
         }
