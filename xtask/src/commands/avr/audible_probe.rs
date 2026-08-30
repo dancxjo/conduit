@@ -1,7 +1,7 @@
 //! One bounded motion-free audible TX then telemetry RX hardware diagnostic.
 
 use std::{
-    io::{ErrorKind, Read},
+    io::{ErrorKind, Read, Write},
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
@@ -52,6 +52,7 @@ struct AudibleProbeReceipt {
     result: u8,
     observed_oi_mode: Option<u8>,
     contact_body_sectors: Option<u8>,
+    uart_baud: u32,
     transmitted_program: &'static str,
     motion_opcode_admitted: bool,
     create_stopped: bool,
@@ -91,6 +92,7 @@ pub(super) fn run(
     let runtime = wait_for_runtime(Duration::from_secs(15))?;
     configure_serial(&runtime.path)?;
     let mut device = open_nonblocking(&runtime.path)?;
+    write_trigger(&mut device, Duration::from_secs(2))?;
     let report = read_report(&mut device, Duration::from_secs(5))?;
     let completed = report[1] == 0 && report[2] == 3;
     let receipt = AudibleProbeReceipt {
@@ -103,6 +105,7 @@ pub(super) fn run(
         result: report[2],
         observed_oi_mode: completed.then_some(report[2]),
         contact_body_sectors: completed.then_some(report[3]),
+        uart_baud: 19_200,
         transmitted_program:
             "shared-create1-start-full-define-song-play-song-query-mode-query-group-zero",
         motion_opcode_admitted: false,
@@ -122,6 +125,24 @@ pub(super) fn run(
         .into());
     }
     Ok(())
+}
+
+fn write_trigger(
+    device: &mut std::fs::File,
+    timeout: Duration,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if !super::rx_check::wait_ready(device, libc::POLLOUT, deadline)? {
+            return Err("timed out arming AVR audible probe report".into());
+        }
+        match device.write(&[0x51]) {
+            Ok(1) => return Ok(()),
+            Ok(_) => {}
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
 }
 
 pub(super) fn build(
@@ -174,7 +195,7 @@ pub(super) fn build(
         sram_limit: MAX_SRAM_BYTES,
         static_sram_limit: MAX_STATIC_SRAM_BYTES,
         stack_reserve_bytes: STACK_RESERVE_BYTES,
-        create_uart: "bounded-motion-free-audible-tx-then-telemetry-rx",
+        create_uart: "bounded-motion-free-audible-tx-then-telemetry-rx-19200-8n1",
     };
     write_receipt(&root.join(receipt), &record, opts)?;
     Ok(BuiltArtifact {

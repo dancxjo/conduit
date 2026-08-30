@@ -6,11 +6,19 @@ use embedded_hal_v0::serial::{Read, Write};
 /// It owns no Create opcode, Plan identity, lifecycle, or retry policy.
 pub struct AvrCreateUart<U> {
     uart: U,
+    profile: UartProfile,
 }
 
 impl<U> AvrCreateUart<U> {
     pub const fn new(uart: U) -> Self {
-        Self { uart }
+        Self {
+            uart,
+            profile: UartProfile::CREATE_OI,
+        }
+    }
+
+    pub const fn with_profile(uart: U, profile: UartProfile) -> Self {
+        Self { uart, profile }
     }
 }
 
@@ -25,7 +33,7 @@ where
     }
 
     fn profile(&self) -> UartProfile {
-        UartProfile::CREATE_OI
+        self.profile
     }
 
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
@@ -39,7 +47,7 @@ where
         // One provider tick is 10 microseconds on this exact adapter. The
         // shared transaction supplies the finite deadline; no retry policy or
         // baud probing is introduced here.
-        for _ in 0..deadline_tick.min(2_000) {
+        for _ in 0..deadline_tick.min(10_000) {
             match self.uart.read() {
                 Ok(byte) => return Ok(Some(byte)),
                 Err(nb::Error::WouldBlock) => arduino_hal::delay_us(10),
