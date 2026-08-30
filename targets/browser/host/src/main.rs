@@ -13,10 +13,10 @@ fn main() -> Result<(), String> {
             )
         });
     let server = server::BrowserHostServer::bind(&runtime_path)?;
-    let url = if entrance.book {
-        server.book_url()?
-    } else {
-        server.url()?
+    let url = match entrance.surface {
+        Surface::Host => server.url()?,
+        Surface::Book => server.book_url()?,
+        Surface::Creche => server.creche_url()?,
     };
     println!("CONDUIT_BROWSER_HOST_URL={url}");
     if entrance.launch {
@@ -28,19 +28,27 @@ fn main() -> Result<(), String> {
 #[derive(Debug, PartialEq, Eq)]
 struct Entrance {
     launch: bool,
-    book: bool,
+    surface: Surface,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Surface {
+    Host,
+    Book,
+    Creche,
 }
 
 fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Entrance, String> {
     let mut entrance = Entrance {
         launch: true,
-        book: false,
+        surface: Surface::Host,
     };
     for argument in arguments {
         match argument.as_str() {
             "--no-open" if entrance.launch => entrance.launch = false,
-            "--book" if !entrance.book => entrance.book = true,
-            _ => return Err("usage: conduit-browser-host [--book] [--no-open]".into()),
+            "--book" if entrance.surface == Surface::Host => entrance.surface = Surface::Book,
+            "--creche" if entrance.surface == Surface::Host => entrance.surface = Surface::Creche,
+            _ => return Err("usage: conduit-browser-host [--book | --creche] [--no-open]".into()),
         }
     }
     Ok(entrance)
@@ -56,23 +64,31 @@ mod tests {
             parse_arguments(std::iter::empty()),
             Ok(Entrance {
                 launch: true,
-                book: false,
+                surface: Surface::Host,
             })
         );
         assert_eq!(
             parse_arguments(["--no-open".to_owned()].into_iter()),
             Ok(Entrance {
                 launch: false,
-                book: false,
+                surface: Surface::Host,
             })
         );
         assert_eq!(
             parse_arguments(["--book".to_owned(), "--no-open".to_owned()].into_iter()),
             Ok(Entrance {
                 launch: false,
-                book: true,
+                surface: Surface::Book,
             })
         );
+        assert_eq!(
+            parse_arguments(["--creche".to_owned(), "--no-open".to_owned()].into_iter()),
+            Ok(Entrance {
+                launch: false,
+                surface: Surface::Creche,
+            })
+        );
+        assert!(parse_arguments(["--book".to_owned(), "--creche".to_owned()].into_iter()).is_err());
         assert!(parse_arguments(["--port".to_owned(), "4173".to_owned()].into_iter()).is_err());
     }
 }

@@ -44,6 +44,22 @@ fn enter_patchbay(host: cli::PatchbayHost) -> Result<(), String> {
         .ok_or_else(|| format!("{executable} exited with {status}"))
 }
 
+fn enter_creche() -> Result<(), String> {
+    let executable = "conduit-browser-host";
+    let status = std::process::Command::new(executable)
+        .arg("--creche")
+        .status()
+        .map_err(|error| {
+            format!(
+                "{executable} is unavailable ({error}); install the Conduit browser Host alongside the `conduit` product entrance"
+            )
+        })?;
+    status
+        .success()
+        .then_some(())
+        .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
 use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
 
 fn run_with_placements(
@@ -83,6 +99,7 @@ fn render_runtime_report(path: &Path) -> Result<String, String> {
 fn main() {
     let command = cli::Cli::parse().command;
     let result = match command {
+        cli::Command::Creche => enter_creche(),
         cli::Command::Patchbay { on } => enter_patchbay(on),
         cli::Command::Run {
             form,

@@ -1,7 +1,7 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
-import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./book-lifecycle.mjs";
-import { createPhysicalHostRunner } from "./book-physical.mjs";
-import { createGraduationRunner, renderBiography } from "./book-graduation.mjs";
+import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
+import { createPhysicalHostRunner } from "./creche-physical.mjs";
+import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

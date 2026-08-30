@@ -11,6 +11,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Birth and provision a Body through the browser Crèche.
+    Creche,
     /// Enter the current Body through the shared Patchbay front door.
     Patchbay {
         /// Select the Host realization used to manifest Patchbay.
@@ -107,6 +109,12 @@ mod tests {
 
     #[test]
     fn public_command_tree_parses() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "creche"])
+                .expect("Crèche entrance parses")
+                .command,
+            Command::Creche
+        ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "patchbay", "--on", "browser"])
                 .expect("Patchbay browser entrance parses")
