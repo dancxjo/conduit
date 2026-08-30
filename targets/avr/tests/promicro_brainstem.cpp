@@ -5,6 +5,7 @@
 #include "../firmware/promicro_brainstem/lifecycle.h"
 #include "../firmware/promicro_brainstem/offer.h"
 #include "../firmware/promicro_brainstem/protocol.h"
+#include "../firmware/promicro_brainstem/rx_boundary.h"
 
 #include <assert.h>
 
@@ -90,6 +91,7 @@ int main() {
   assert(request(buffer, "STATUS\n") == Request::kStatus);
   assert(request(buffer, "ATTEST\n") == Request::kAttest);
   assert(request(buffer, "OFFER\n") == Request::kOffer);
+  assert(request(buffer, "RXDIAG\n") == Request::kRxBoundary);
   assert(request(buffer, "hello\n") == Request::kUnsupported);
   assert(request(buffer, "STATUS trailing\n") == Request::kUnsupported);
   assert(request(buffer, "B 0000000B:00000016:00000001\n") ==
@@ -114,6 +116,20 @@ int main() {
   assert(buffer.execution().deadline_ms == 500);
   assert(buffer.execution().request_bytes ==
          conduit::promicro::kGroupZeroRequestBytes);
+
+  conduit::promicro::RxBoundaryEvidence stable_rx;
+  for (uint16_t index = 0; index < conduit::promicro::kRxBoundarySamples;
+       ++index) {
+    stable_rx.push(true);
+  }
+  assert(stable_rx.stable_high());
+  conduit::promicro::RxBoundaryEvidence noisy_rx;
+  noisy_rx.push(true);
+  noisy_rx.push(false);
+  assert(!noisy_rx.stable_high());
+  assert(noisy_rx.high_samples == 1);
+  assert(noisy_rx.low_samples == 1);
+  assert(noisy_rx.transitions == 1);
   assert(buffer.execution().response_bytes ==
          conduit::promicro::kGroupZeroResponseBytes);
   assert(request(buffer, "O 00000021:002C:01f4\n") == Request::kMalformed);

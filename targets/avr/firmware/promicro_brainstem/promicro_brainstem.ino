@@ -6,6 +6,7 @@
 #include "lifecycle.h"
 #include "offer.h"
 #include "protocol.h"
+#include "rx_boundary.h"
 
 using conduit::promicro::CommandBuffer;
 using conduit::promicro::Request;
@@ -193,6 +194,34 @@ void respond_offer() {
              "maximum_deadline_ms=2000 create_uart=isolated\n");
 }
 
+void respond_rx_boundary() {
+  // GPIO-only sampling: USART1 remains disabled and TXO remains INPUT.
+  isolate_create_uart();
+  conduit::promicro::RxBoundaryEvidence evidence{};
+  const uint32_t started_us = micros();
+  for (uint16_t index = 0; index < conduit::promicro::kRxBoundarySamples;
+       ++index) {
+    evidence.push(digitalRead(conduit::promicro::kCreateRxPin) == HIGH);
+  }
+  const uint32_t duration_us = micros() - started_us;
+  isolate_create_uart();
+  WRITE_TEXT(
+      "RX_BOUNDARY schema=conduit.pete/create-rx-boundary@1 "
+      "outcome=sampled samples=");
+  Serial.print(conduit::promicro::kRxBoundarySamples);
+  WRITE_TEXT(" high=");
+  Serial.print(evidence.high_samples);
+  WRITE_TEXT(" low=");
+  Serial.print(evidence.low_samples);
+  WRITE_TEXT(" transitions=");
+  Serial.print(evidence.transitions);
+  WRITE_TEXT(" duration_us=");
+  Serial.print(duration_us);
+  WRITE_TEXT(
+      " rx_pin=D0/PD2 tx_pin=D1/PD3-input usart1=disabled "
+      "create_tx_bytes=0\n");
+}
+
 void respond_boot() {
   const conduit::promicro::BootBinding& binding = command.boot_binding();
   const conduit::promicro::BootBindResult result = lifecycle.bind_boot(binding);
@@ -369,6 +398,9 @@ void respond(Request request) {
       break;
     case Request::kOffer:
       respond_offer();
+      break;
+    case Request::kRxBoundary:
+      respond_rx_boundary();
       break;
     case Request::kBindBoot:
       respond_boot();

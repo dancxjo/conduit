@@ -15,6 +15,7 @@ mod avr_toolchain;
 mod build_identity;
 mod cdc_verify;
 mod hil_observe;
+mod rx_check;
 
 use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
@@ -69,6 +70,8 @@ enum AvrCommand {
     },
     /// Bind and verify one exact fail-closed Boot over guarded USB CDC.
     Verify(cdc_verify::VerifyArgs),
+    /// Sample the Create RX pin without enabling USART1 or the TX pin.
+    RxCheck(rx_check::RxCheckArgs),
     /// Execute and verify one exact attended Create group-zero observation.
     Observe(hil_observe::ObserveArgs),
 }
@@ -155,6 +158,7 @@ pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::E
             opts,
         ),
         AvrCommand::Verify(args) => cdc_verify::run(args, opts),
+        AvrCommand::RxCheck(args) => rx_check::run(args, opts),
         AvrCommand::Observe(args) => hil_observe::run(args, opts),
     }
 }

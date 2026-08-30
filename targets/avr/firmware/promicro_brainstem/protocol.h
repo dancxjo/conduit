@@ -16,6 +16,7 @@ enum class Request : uint8_t {
   kStatus,
   kAttest,
   kOffer,
+  kRxBoundary,
   kBindBoot,
   kActivateObservation,
   kExecuteObservation,
@@ -56,6 +57,8 @@ class CommandBuffer {
       request = Request::kAttest;
     } else if (exact("OFFER")) {
       request = Request::kOffer;
+    } else if (exact("RXDIAG")) {
+      request = Request::kRxBoundary;
     } else if (starts_with("B ")) {
       request = parse_boot() ? Request::kBindBoot : Request::kMalformed;
     } else if (starts_with("A ")) {
