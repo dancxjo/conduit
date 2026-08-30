@@ -138,8 +138,8 @@ export function createBrowserUsbDeviceBase({
     requireInteger(inEndpoint, 1, 15, "USB IN endpoint");
     requireInteger(outEndpoint, 1, 15, "USB OUT endpoint");
     requireInteger(maximumTransferBytes, 1, 4096, "USB transfer bytes");
-    requireInteger(maximumInTransfers, 1, 8, "USB IN transfer count");
-    requireInteger(maximumOutTransfers, 1, 8, "USB OUT transfer count");
+    requireInteger(maximumInTransfers, 1, 2048, "USB IN transfer count");
+    requireInteger(maximumOutTransfers, 1, 2048, "USB OUT transfer count");
     const identity = encoder.encode(hostId + bootId);
     writeInput(api, identity);
     requireStatus(api.conduit_browser_usb_start_acquisition(

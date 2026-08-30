@@ -17,7 +17,7 @@ pub(crate) const USB_RESOURCE_CLASS: &str = "conduit.resource/web-usb-device@1";
 pub(crate) const USB_BASE_IMPLEMENTATION: &str = "browser/web-usb@1";
 pub(crate) const MAXIMUM_USB_RESULT_BYTES: usize = 2_048;
 pub(crate) const MAXIMUM_USB_TRANSFER_BYTES: usize = 4_096;
-pub(crate) const MAXIMUM_USB_TRANSFERS: u16 = 8;
+pub(crate) const MAXIMUM_USB_TRANSFERS: u16 = 2_048;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct UsbConfiguration {
