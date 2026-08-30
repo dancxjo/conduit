@@ -59,7 +59,29 @@ async function openStep(page, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".creche-progress")).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
+  await expect(page.locator(".book-progress")).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
+}
+
+async function openStandaloneCreche(page) {
+  entrance.child.kill();
+  entrance = await startCreche();
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+}
+
+async function birthStandaloneBody(page, { attachFirstHost = false } = {}) {
+  await openStandaloneCreche(page);
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByRole("button", { name: "Birth Body" }).click();
+  const identity = await birth.evaluate((element) => ({
+    bodyId: element.dataset.bodyId,
+    birthSignId: element.dataset.birthSignId,
+  }));
+  if (attachFirstHost) {
+    await page.getByRole("button", { name: "2. First Host" }).click();
+    await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  }
+  return identity;
 }
 
 test.beforeEach(async () => {
@@ -68,24 +90,20 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("the first page births one named Morse Network Body before introducing machinery", async ({ page }) => {
+test("the Book opens as readable documentation and hands birth to the independent Crèche", async ({ page }) => {
+  const responses = [];
+  page.on("response", (response) => responses.push(new URL(response.url()).pathname));
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "Birth your Body" })).toBeVisible();
-  await expect(page.locator(".masthead")).toContainText("crèche");
-  await expect(page).toHaveTitle(/The Crèche$/);
-  await expect(page.locator(".body-birth-runner")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Bodies begin somewhere" })).toBeVisible();
+  await expect(page).toHaveTitle(/The Book$/);
+  await expect(page.locator(".body-birth-runner, .first-host-runner, .physical-host-runner, .graduation-runner")).toHaveCount(0);
   await expect(page.locator(".gear-inventory")).toHaveCount(0);
-  const runner = page.locator(".body-birth-runner");
-  await expect(runner.getByLabel("Initial program")).toHaveValue("morse-network@1");
-  await expect(runner.getByLabel("Friendly Body name")).not.toHaveValue("");
-  await runner.getByLabel("Friendly Body name").fill("patient firefly");
-  await runner.getByRole("button", { name: "Birth Body" }).click();
-  await expect(runner.locator(".body-state")).toHaveText("LULLED");
-  await expect(runner.locator(".body-identities")).toContainText("patient firefly");
-  await expect(page.locator(".creche-body-context")).toContainText("patient firefly");
-  const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
-  expect(raw.membership.parts).toHaveLength(0);
-  expect(raw.body.events).toHaveLength(1);
+  const handoff = page.getByRole("link", { name: "Birth a Body" });
+  await expect(handoff).toHaveAttribute("href", "../creche/");
+  expect(responses.some((path) => path.includes("creche-lifecycle") || path.includes("creche-physical") || path.includes("creche-graduation"))).toBe(false);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Bodies begin somewhere" })).toBeVisible();
+  await expect(page.locator(".body-birth-runner")).toHaveCount(0);
 });
 
 test("the standalone Crèche runs the same durable birth and graduation path without Book assets", async ({ page }) => {
@@ -146,27 +164,6 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   expect(selectAppearance).toBe("none");
 });
 
-test("birth keeps its controls and source disclosure in one contained column", async ({ page }) => {
-  await openStep(page, 0);
-  const runner = page.locator(".body-birth-runner");
-  const boxes = await Promise.all([
-    runner.getByLabel("Initial program").boundingBox(),
-    runner.getByLabel("Friendly Body name").boundingBox(),
-    runner.locator(".seed-source").boundingBox(),
-    runner.getByRole("button", { name: "Birth Body" }).boundingBox(),
-  ]);
-  for (const box of boxes) expect(box).not.toBeNull();
-  const [program, name, source, action] = boxes;
-  expect(program.width).toBeGreaterThan(200);
-  expect(program.height).toBeGreaterThan(30);
-  expect(program.y + program.height).toBeLessThanOrEqual(name.y);
-  expect(name.y + name.height).toBeLessThanOrEqual(source.y);
-  expect(source.y + source.height).toBeLessThanOrEqual(action.y);
-  const editor = await runner.locator(".birth-editor").boundingBox();
-  expect(source.x).toBeGreaterThanOrEqual(editor.x);
-  expect(source.x + source.width).toBeLessThanOrEqual(editor.x + editor.width);
-});
-
 test("all guided pages lead with human motivation and return to the Conduit payoff", async ({
   page,
 }) => {
@@ -183,7 +180,7 @@ test("all guided pages lead with human motivation and return to the Conduit payo
     "Machine-specific truth stays with the machine",
     "Look what just happened",
     "replaceable answer to current circumstances",
-    "durable computer Conduit is maintaining",
+    "durable computer Conduit maintains",
     "described enduring meaning",
   ];
   await openStep(page, 0);
@@ -271,7 +268,7 @@ test("the Back pages compare two realizations deliberately", async ({ page }) =>
   expect(directIdentities[3]).not.toBe(recursiveIdentities[3]);
 });
 
-test("Crèche navigation preserves drafts while reset and revisit change presentation only", async ({ page }) => {
+test("Book navigation preserves executable drafts without owning lifecycle controls", async ({ page }) => {
   await openStep(page, 2);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   const edited = (await page.locator("textarea").inputValue()).replace('"hello"', '"reader"');
@@ -279,11 +276,9 @@ test("Crèche navigation preserves drafts while reset and revisit change present
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Previous" }).click();
   await expect(page.locator("textarea")).toHaveValue(edited);
-  await page.getByRole("button", { name: "Reset this page" }).click();
-  await expect(page.locator("textarea")).toHaveValue(/"hello"/);
-  await page.getByRole("button", { name: "Revisit birth page" }).click();
-  await expect(page.locator(".creche-progress")).toHaveText(/^Page 1 of \d+$/);
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
+  await expect(page.getByRole("button", { name: "Reset this page" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Revisit birth page" })).toHaveCount(0);
 });
 
 test("unsupported capability and type mismatch remain ordinary pre-Play refusals", async ({ page }) => {
@@ -407,69 +402,10 @@ test("Plans and Plays compact and raw views project the same exact immutable Pla
   await expect(runner.locator(".projected-hosts")).toContainText("presentation/text");
 });
 
-test("birth explicitly creates one LULLED Body and Change one Gear admits its first browser Host", async ({ page }) => {
-  await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "Birth your Body" })).toBeVisible();
-  let runner = page.locator(".body-birth-runner");
-  const source = await runner.locator("textarea").inputValue();
-  expect(source).not.toMatch(/HostId|BootId|browser\/|DOM|socket|address|Wake|Plan|Play/);
-  await runner.getByRole("button", { name: "Birth Body" }).click();
-  await expect(runner.locator(".birth-status")).toContainText(
-    "one checked Seed now has one LULLED Body; no Wake, Plan, or Play exists",
-  );
-  await expect(runner.locator(".body-state")).toHaveText("LULLED");
-  await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
-  await expect(runner.locator(".body-identities")).toContainText("none yet");
-  const identity = await runner.evaluate((element) => ({
-    bodyId: element.dataset.bodyId,
-    birthSignId: element.dataset.birthSignId,
-  }));
-  expect(identity.bodyId).toHaveLength(64);
-  expect(identity.birthSignId).toHaveLength(64);
-  const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
-  expect(raw.body.state).toBe("Lulled");
-  expect(raw.body.events).toEqual([{ Born: { sign_id: identity.birthSignId } }]);
-  expect(raw.membership.parts).toHaveLength(0);
-  expect(raw.membership.events).toHaveLength(0);
-
-  await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
-  await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.locator(".creche-body-context")).toContainText(identity.bodyId);
-  const firstHost = page.locator(".first-host-runner");
-  await firstHost.getByRole("button", { name: "Give this Body its first Host" }).click();
-  await expect(firstHost.locator(".host-admission-status")).toContainText("one admitted browser Host");
-  await expect(firstHost.locator(".host-identities")).toContainText(identity.bodyId);
-  await expect(page.locator(".creche-body-context")).toContainText("1 admitted Part");
-
-  const expectSameBody = async () => {
-    runner = page.locator(".body-birth-runner");
-    await expect(runner).toHaveAttribute("data-body-id", identity.bodyId);
-    await expect(runner).toHaveAttribute("data-birth-sign-id", identity.birthSignId);
-    await expect(runner.locator(".birth-status")).toContainText("Same LULLED Body retained");
-    await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
-  };
-  await page.getByRole("button", { name: "Previous" }).click();
-  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
-  await page.getByRole("button", { name: "Previous" }).click();
-  await expectSameBody();
-  await page.getByRole("button", { name: "Reset this page" }).click();
-  await expectSameBody();
-  await page.getByRole("button", { name: "Revisit birth page" }).click();
-  await expect(page.locator(".creche-progress")).toHaveText(/^Page 1 of \d+$/);
-  await expectSameBody();
-});
-
 test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {
   await installB7Devices(page);
-  await openStep(page, 0);
-  await page.getByRole("button", { name: "Birth Body" }).click();
-  const birth = await page.locator(".body-birth-runner").evaluate((element) => ({
-    bodyId: element.dataset.bodyId,
-    birthSignId: element.dataset.birthSignId,
-  }));
-  await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
+  const birth = await birthStandaloneBody(page);
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -529,9 +465,8 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
       },
     });
   });
-  await openStep(page, 0);
-  await page.getByRole("button", { name: "Birth Body" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  await birthStandaloneBody(page);
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -548,9 +483,8 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
 
 test("Add a physical Host retains the exact Picoboot refusal chain", async ({ page }) => {
   await installB7Devices(page, { staleStatus: true });
-  await openStep(page, 0);
-  await page.getByRole("button", { name: "Birth Body" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
+  await birthStandaloneBody(page);
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -573,15 +507,8 @@ test("Add a physical Host retains the exact Picoboot refusal chain", async ({ pa
 });
 
 test("graduation retains the same Body through an ordinary hosted Patchbay Plan", async ({ page }) => {
-  await openStep(page, 0);
-  const birth = page.locator(".body-birth-runner");
-  await birth.getByRole("button", { name: "Birth Body" }).click();
-  const bodyId = await birth.getAttribute("data-body-id");
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  for (let pageIndex = 2; pageIndex < 13; pageIndex += 1) await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Graduate from the Crèche" })).toBeVisible();
+  const { bodyId } = await birthStandaloneBody(page, { attachFirstHost: true });
+  await page.getByRole("button", { name: "4. Graduate" }).click();
   const runner = page.locator(".graduation-runner");
   await expect(runner.locator(".graduation-criteria li.ready")).toHaveCount(3);
   await runner.getByRole("button", { name: "Host Patchbay on this Body" }).click();
@@ -595,10 +522,10 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   await expect(biography).toContainText("browser/patchbay-surface@1");
   await runner.getByRole("button", { name: "End the Crèche" }).click();
   await expect(page.locator(".creche-complete")).toContainText(bodyId);
-  await expect(page.locator(".creche-navigation")).toHaveCount(0);
-  await expect(page.locator(".compatible-reader li")).toHaveCount(4);
+  await expect(page.locator(".creche-steps")).toHaveCount(0);
+  await expect(page.locator(".creche-complete .body-biography li")).toHaveCount(4);
   const retained = await page.evaluate(() => {
-    const api = globalThis.__conduitBookHost.runtime;
+    const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_current();
     const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
     return JSON.parse(new TextDecoder().decode(bytes));
@@ -607,7 +534,7 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   expect(retained.graduation.choice).toBe("host-patchbay");
   expect(retained.graduation.patchbay_plan_id).toMatch(/^[0-9a-f]{64}$/);
   const durable = await page.evaluate(() => {
-    const api = globalThis.__conduitBookHost.runtime;
+    const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_biography();
     const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
     return JSON.parse(new TextDecoder().decode(bytes));
@@ -617,14 +544,8 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
 });
 
 test("graduation can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {
-  await openStep(page, 0);
-  const birth = page.locator(".body-birth-runner");
-  await birth.getByRole("button", { name: "Birth Body" }).click();
-  const bodyId = await birth.getAttribute("data-body-id");
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  for (let pageIndex = 2; pageIndex < 13; pageIndex += 1) await page.getByRole("button", { name: "Next" }).click();
+  const { bodyId } = await birthStandaloneBody(page, { attachFirstHost: true });
+  await page.getByRole("button", { name: "4. Graduate" }).click();
   const runner = page.locator(".graduation-runner");
   await runner.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);

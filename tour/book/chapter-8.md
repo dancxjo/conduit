@@ -1,10 +1,10 @@
 # Graduate from the Crèche
 
-You have described enduring meaning, admitted truthful machinery, and seen one Body extend across unlike Hosts. The guided Crèche should not become a permanent server or a hidden control plane merely because it helped this Body begin.
+The Book has described enduring meaning, truthful machinery, and one Form extending across unlike Hosts. A Body that performs this journey does so in the independent Crèche, which must not become a permanent server or hidden control plane merely because it helped the Body begin.
 
 ## Conduit idea
 
-Graduation checks durable Body identity, bound BIRTH evidence, the intended program, and a current admitted Part. You may then host Patchbay on this Body through the ordinary checker, planner, and truthful browser offer, or finish without hosting it and let a compatible reader project the Body later.
+In the Crèche, graduation checks durable Body identity, bound BIRTH evidence, the intended program, and a current admitted Part. You may then host Patchbay on this Body through the ordinary checker, planner, and truthful browser offer, or finish without hosting it and let a compatible reader project the Body later.
 
 <!-- conduit-graduation -->
 
