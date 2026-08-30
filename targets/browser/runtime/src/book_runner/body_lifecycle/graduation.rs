@@ -2,7 +2,9 @@ use super::{
     protocol::{GraduationReadiness, GraduationReceipt},
     session,
 };
+use conduit_body::{BodyGraduationChoice, BodyGraduationEvidence};
 use conduit_core::{bind_sign, BootId, HostId};
+use conduit_core::{ImplementationId, PlanId};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_options, PlanningOptions,
 };
@@ -85,6 +87,23 @@ pub(super) fn graduate(
             None,
             sequence,
         );
+        let choice = if choice_name == "host-patchbay" {
+            BodyGraduationChoice::HostedPatchbay
+        } else {
+            BodyGraduationChoice::ExternalReader
+        };
+        let durable = BodyGraduationEvidence {
+            body_id: body.receipt.raw_body.body_id.clone(),
+            sequence,
+            sign_id: sign.sign_id.clone(),
+            choice,
+            patchbay_plan_id: plan_id.as_deref().map(PlanId::from),
+            patchbay_implementation_id: implementation_id.as_deref().map(ImplementationId::from),
+        };
+        let mut biography = body.biography.clone();
+        biography
+            .graduate(durable)
+            .map_err(|error| format!("record Body graduation biography: {error:?}"))?;
         body.receipt.graduation = Some(GraduationReceipt {
             schema: "conduit.creche/graduation@1",
             body_id: body.receipt.body_id.clone(),
@@ -95,6 +114,7 @@ pub(super) fn graduate(
             patchbay_implementation_id: implementation_id,
             creche_required: false,
         });
+        body.biography = biography;
         Ok(body.receipt.clone())
     })
 }

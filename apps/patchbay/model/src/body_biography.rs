@@ -1,0 +1,157 @@
+use conduit_body::BodyId;
+use conduit_body::{
+    BodyBiographyEvidence, BodyBiographyRecordKind, BodyGraduationChoice,
+    MAX_BODY_BIOGRAPHY_RECORDS,
+};
+use conduit_core::SignId;
+
+pub const MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES: usize = 512;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodyBiographyProjection {
+    pub schema: &'static str,
+    pub body_id: BodyId,
+    pub friendly_name: String,
+    pub entries: Vec<BodyBiographyEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodyBiographyEntry {
+    pub sequence: u64,
+    pub heading: &'static str,
+    pub explanation: String,
+    pub evidence_sign_id: SignId,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BodyBiographyProjectionError {
+    InvalidEvidence,
+    ExplanationTooLong,
+}
+
+pub fn project_body_biography(
+    evidence: &BodyBiographyEvidence,
+) -> Result<BodyBiographyProjection, BodyBiographyProjectionError> {
+    evidence
+        .validate()
+        .map_err(|_| BodyBiographyProjectionError::InvalidEvidence)?;
+    let mut entries = Vec::with_capacity(evidence.records.len().min(MAX_BODY_BIOGRAPHY_RECORDS));
+    for record in &evidence.records {
+        let (heading, explanation) = match &record.kind {
+            BodyBiographyRecordKind::Born { seed_id } => (
+                "Born",
+                format!(
+                    "{} became Body {} from Seed {} with initial program {}.",
+                    evidence.friendly_name,
+                    evidence.body_id.as_str(),
+                    seed_id.as_str(),
+                    evidence.initial_program
+                ),
+            ),
+            BodyBiographyRecordKind::PartAdmitted { part_id, .. } => (
+                "Part admitted",
+                format!(
+                    "Part {} joined the admitted membership of this Body.",
+                    part_id.as_str()
+                ),
+            ),
+            BodyBiographyRecordKind::HostJoined {
+                part_id,
+                host_id,
+                boot_id,
+                ..
+            } => (
+                "Host joined",
+                format!(
+                    "Part {} was observed on Host {}, Boot {}.",
+                    part_id.as_str(),
+                    host_id.as_str(),
+                    boot_id.as_str()
+                ),
+            ),
+            BodyBiographyRecordKind::Graduated {
+                choice: BodyGraduationChoice::HostedPatchbay,
+                patchbay_plan_id,
+                patchbay_implementation_id,
+            } => (
+                "Graduated from the Crèche",
+                format!(
+                    "Patchbay was placed by Plan {} using implementation {}. The durable Body evidence remains independent of this reader.",
+                    patchbay_plan_id
+                        .as_ref()
+                        .expect("validated hosted graduation")
+                        .as_str(),
+                    patchbay_implementation_id
+                        .as_ref()
+                        .expect("validated hosted graduation")
+                        .as_str()
+                ),
+            ),
+            BodyBiographyRecordKind::Graduated {
+                choice: BodyGraduationChoice::ExternalReader,
+                ..
+            } => (
+                "Graduated from the Crèche",
+                "No Patchbay was hosted. A compatible reader can project this same durable Body evidence later."
+                    .into(),
+            ),
+        };
+        if explanation.len() > MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES {
+            return Err(BodyBiographyProjectionError::ExplanationTooLong);
+        }
+        entries.push(BodyBiographyEntry {
+            sequence: record.sequence,
+            heading,
+            explanation,
+            evidence_sign_id: record.sign_id.clone(),
+        });
+    }
+    Ok(BodyBiographyProjection {
+        schema: "conduit.patchbay/body-biography-projection@1",
+        body_id: evidence.body_id.clone(),
+        friendly_name: evidence.friendly_name.clone(),
+        entries,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
+    use conduit_core::{bind_sign, BootId, CheckedFormId, HostId, SourceDocumentId};
+
+    #[test]
+    fn projects_only_valid_durable_birth_evidence_after_roundtrip() {
+        let host = HostId::from("host/biography-reader");
+        let boot = BootId::from("boot/biography-reader");
+        let sign = bind_sign(&host, &boot, None, 7);
+        let body = Body::born(
+            SourceDocumentId::from("source/biography-reader"),
+            CheckedFormId::from("checked/biography-reader"),
+            7,
+            sign.sign_id,
+        )
+        .unwrap();
+        let evidence = BodyBiographyEvidence::born(
+            body.clone(),
+            BodyMembership::new(body.body_id.clone()).unwrap(),
+            "Workbench".into(),
+            "form/light-switch@1".into(),
+        )
+        .unwrap();
+        let reopened: BodyBiographyEvidence =
+            serde_json::from_str(&serde_json::to_string(&evidence).unwrap()).unwrap();
+
+        let projection = project_body_biography(&reopened).unwrap();
+        assert_eq!(projection.body_id, body.body_id);
+        assert_eq!(projection.entries.len(), 1);
+        assert_eq!(projection.entries[0].heading, "Born");
+
+        let mut invented = reopened;
+        invented.records[0].sequence += 1;
+        assert_eq!(
+            project_body_biography(&invented),
+            Err(BodyBiographyProjectionError::InvalidEvidence)
+        );
+    }
+}

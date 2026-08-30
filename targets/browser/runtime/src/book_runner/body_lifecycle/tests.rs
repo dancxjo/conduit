@@ -171,6 +171,17 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
         Some("browser/patchbay-surface@1")
     );
     assert!(!evidence.creche_required);
+    let biography = session::biography().unwrap();
+    biography.validate().unwrap();
+    assert_eq!(biography.body_id.as_str(), born.body_id);
+    assert_eq!(biography.records.len(), 4);
+    assert!(matches!(
+        biography.records.last().unwrap().kind,
+        conduit_body::BodyBiographyRecordKind::Graduated {
+            choice: conduit_body::BodyGraduationChoice::HostedPatchbay,
+            ..
+        }
+    ));
     assert!(super::graduation::graduate(2, 55)
         .unwrap_err()
         .contains("already graduated"));
@@ -183,4 +194,17 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
     let evidence = external.graduation.unwrap();
     assert_eq!(evidence.choice, "external-reader");
     assert!(evidence.patchbay_plan_id.is_none());
+    let biography = session::biography().unwrap();
+    let reopened: conduit_body::BodyBiographyEvidence =
+        serde_json::from_str(&serde_json::to_string(&biography).unwrap()).unwrap();
+    reopened.validate().unwrap();
+    assert_eq!(reopened.body_id.as_str(), born.body_id);
+    assert!(matches!(
+        reopened.records.last().unwrap().kind,
+        conduit_body::BodyBiographyRecordKind::Graduated {
+            choice: conduit_body::BodyGraduationChoice::ExternalReader,
+            patchbay_plan_id: None,
+            patchbay_implementation_id: None,
+        }
+    ));
 }
