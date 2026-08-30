@@ -52,13 +52,13 @@ function requireBookAbi(api) {
     "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
     "conduit_book_multi_start_sink",
     "conduit_book_multi_ingest", "conduit_book_multi_complete", "conduit_book_multi_cancel",
-    "conduit_book_body_input_ptr", "conduit_book_body_input_capacity",
-    "conduit_book_body_output_ptr", "conduit_book_body_output_len",
-    "conduit_book_body_admit_source_interaction", "conduit_book_body_birth",
-    "conduit_book_body_current", "conduit_book_body_biography", "conduit_book_body_attach_here",
-    "conduit_book_body_graduation_readiness", "conduit_book_body_graduate",
-    "conduit_book_body_prepare_selected_physical_spore",
-    "conduit_book_body_admit_physical_spore",
+    "conduit_creche_input_ptr", "conduit_creche_input_capacity",
+    "conduit_creche_output_ptr", "conduit_creche_output_len",
+    "conduit_creche_admit_source_interaction", "conduit_creche_birth",
+    "conduit_creche_current", "conduit_creche_biography", "conduit_creche_attach_here",
+    "conduit_creche_graduation_readiness", "conduit_creche_graduate",
+    "conduit_creche_prepare_selected_physical_spore",
+    "conduit_creche_admit_physical_spore",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }

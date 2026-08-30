@@ -1,9 +1,7 @@
 //! Inline Forms executed by the ordinary finite browser Host installation.
 
 mod abi;
-mod body_lifecycle;
 mod engine;
-mod interaction;
 mod multihost;
 mod protocol;
 
@@ -32,7 +30,7 @@ struct BookSession {
     realization: MorseRealization,
     expanded_gears: Vec<BookGearEvidence>,
     realization_backs: Vec<BookBackEvidence>,
-    source_interaction: Option<interaction::SourceInteractionEvidence>,
+    source_interaction: Option<crate::source_interaction::SourceInteractionEvidence>,
     timer_completions: u32,
     manifestation_completions: u32,
 }
@@ -174,7 +172,7 @@ impl BookSession {
     fn attach_source_interaction(
         &mut self,
         effect: &mut BookHostEffect,
-        source_interaction: interaction::SourceInteractionEvidence,
+        source_interaction: crate::source_interaction::SourceInteractionEvidence,
     ) {
         self.source_interaction = Some(source_interaction.clone());
         effect.attach_source_interaction(source_interaction);

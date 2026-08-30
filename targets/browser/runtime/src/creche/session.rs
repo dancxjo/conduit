@@ -1,5 +1,5 @@
 use super::protocol::BirthReceipt;
-use crate::book_runner::interaction::{admit_source, SourceInteractionEvidence};
+use crate::source_interaction::{admit_source, SourceInteractionEvidence};
 use conduit_body::{
     AdmissionManager, AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership,
     MembershipProofId, PartId,

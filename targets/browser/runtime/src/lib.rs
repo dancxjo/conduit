@@ -33,6 +33,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 mod book_runner;
 pub mod browser_pointer;
+mod creche;
 mod device_base;
 mod distributed;
 mod distributed_toggle;
@@ -41,6 +42,7 @@ mod installed_browser;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+mod source_interaction;
 mod structured_offers;
 mod text_lab_live;
 pub mod text_lab_split;

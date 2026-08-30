@@ -21,7 +21,7 @@ thread_local! {
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
-    static SOURCE_INTERACTION: RefCell<Option<crate::book_runner::interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
+    static SOURCE_INTERACTION: RefCell<Option<crate::source_interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
 }
 
 #[no_mangle]
@@ -56,8 +56,7 @@ pub extern "C" fn conduit_book_multi_admit_source_interaction(
     }
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
-        let result =
-            crate::book_runner::interaction::admit_source(&input[..source_length], sequence);
+        let result = crate::source_interaction::admit_source(&input[..source_length], sequence);
         input[..source_length].fill(0);
         match result {
             Ok(evidence) => {
@@ -127,7 +126,7 @@ pub extern "C" fn conduit_book_multi_start_source(
             let sink_host = take(sink_host_length)?;
             let sink_boot = take(sink_boot_length)?;
             let source = take(source_length)?;
-            let verified = crate::book_runner::interaction::admit_source(
+            let verified = crate::source_interaction::admit_source(
                 source.as_bytes(),
                 source_interaction.sequence,
             )

@@ -23,7 +23,7 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
     <details><summary>Raw graduation evidence</summary><pre><code></code></pre></details>`;
   let readiness;
   try {
-    readiness = call(host.runtime, "conduit_book_body_graduation_readiness");
+    readiness = call(host.runtime, "conduit_creche_graduation_readiness");
     for (const key of ["durable_identity", "birth_evidence", "current_admitted_part"]) {
       runner.querySelector(`[data-criterion="${key}"]`).classList.toggle("ready", readiness[key]);
     }
@@ -36,14 +36,14 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
   for (const button of runner.querySelectorAll("[data-choice]")) {
     button.disabled = !readiness?.ready;
     button.addEventListener("click", () => {
-      const receipt = call(host.runtime, "conduit_book_body_graduate", Number(button.dataset.choice), BigInt(nextSequence()));
+      const receipt = call(host.runtime, "conduit_creche_graduate", Number(button.dataset.choice), BigInt(nextSequence()));
       renderGraduation(runner, receipt, host.runtime);
       onBodyChanged?.();
     });
   }
   runner.querySelector(".end-creche").addEventListener("click", () => onEnd(
-    call(host.runtime, "conduit_book_body_current"),
-    call(host.runtime, "conduit_book_body_biography"),
+    call(host.runtime, "conduit_creche_current"),
+    call(host.runtime, "conduit_creche_biography"),
   ));
   const current = currentBody(host.runtime);
   if (current?.graduation) renderGraduation(runner, current, host.runtime);
@@ -71,7 +71,7 @@ function renderGraduation(runner, receipt, api) {
     list.append(dt, dd);
   }
   runner.querySelector("details code").textContent = JSON.stringify(evidence, null, 2);
-  renderBiography(runner.querySelector(".body-biography"), call(api, "conduit_book_body_biography"));
+  renderBiography(runner.querySelector(".body-biography"), call(api, "conduit_creche_biography"));
   runner.querySelector(".end-creche").hidden = false;
 }
 
@@ -108,7 +108,7 @@ function biographyExplanation(kind, facts, biography) {
 }
 
 function currentBody(api) {
-  const code = api.conduit_book_body_current();
+  const code = api.conduit_creche_current();
   if (code === 1) return null;
   if (code < 0) throw new Error(`Body projection refused (${code})`);
   return readOutput(api);
@@ -124,6 +124,6 @@ function call(api, name, ...args) {
 }
 
 function readOutput(api) {
-  const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_body_output_ptr(), api.conduit_book_body_output_len());
+  const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
   return JSON.parse(decoder.decode(bytes));
 }

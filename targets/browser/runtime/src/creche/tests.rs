@@ -1,5 +1,5 @@
 use super::session;
-use crate::book_runner::interaction::admit_source;
+use crate::source_interaction::admit_source;
 use conduit_body::{BodyLifecycleEvent, BodyState, MembershipEventKind, MembershipState};
 
 const SEED: &str = r#"form hello_across {

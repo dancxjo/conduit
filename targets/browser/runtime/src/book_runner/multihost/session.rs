@@ -3,10 +3,10 @@
 use super::plan::PreparedPlan;
 use super::protocol::{self, LineFrame, MultiHostReceipt, Output, PlanProjection};
 use crate::book_runner::engine::{self, BrowserHostEffect, DriveStatus, PendingHostEffect};
-use crate::book_runner::interaction::SourceInteractionEvidence;
 use crate::book_runner::protocol::{
     decode_manifestation, BookBackEvidence, BookEffect, BookGearEvidence,
 };
+use crate::source_interaction::SourceInteractionEvidence;
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, ActivePlayId, PlanFragment,
     PresentationIdentity,

@@ -76,12 +76,12 @@ function prepare(runner, host, state) {
     const digest = encoder.encode(state.imageDigest);
     const input = new Uint8Array(
       host.runtime.memory.buffer,
-      host.runtime.conduit_book_body_input_ptr(),
+      host.runtime.conduit_creche_input_ptr(),
       entropy.length + digest.length,
     );
     input.set(entropy);
     input.set(digest, entropy.length);
-    const code = host.runtime.conduit_book_body_prepare_selected_physical_spore(
+    const code = host.runtime.conduit_creche_prepare_selected_physical_spore(
       digest.length,
       BigInt(Date.now()),
     );
@@ -198,15 +198,15 @@ function admit(runner, host, state) {
       signature: observation.signature,
       observed_at_millis: observation.observed_at_millis,
     }));
-    if (encoded.length > host.runtime.conduit_book_body_input_capacity()) {
+    if (encoded.length > host.runtime.conduit_creche_input_capacity()) {
       throw new Error("join observation exceeds the admitted Body input bound");
     }
     new Uint8Array(
       host.runtime.memory.buffer,
-      host.runtime.conduit_book_body_input_ptr(),
+      host.runtime.conduit_creche_input_ptr(),
       encoded.length,
     ).set(encoded);
-    const code = host.runtime.conduit_book_body_admit_physical_spore(encoded.length);
+    const code = host.runtime.conduit_creche_admit_physical_spore(encoded.length);
     if (code < 0) throw outputError(host.runtime, "Part admission", code);
     state.admission = readOutput(host.runtime);
     completeStage(runner, "admit", `revision ${state.admission.membership_revision}`);
@@ -219,7 +219,7 @@ function admit(runner, host, state) {
 }
 
 function currentBody(api) {
-  const code = api.conduit_book_body_current();
+  const code = api.conduit_creche_current();
   if (code === 1) return null;
   if (code < 0) throw outputError(api, "Body projection", code);
   return readOutput(api);
@@ -228,13 +228,13 @@ function currentBody(api) {
 function readOutput(api) {
   return JSON.parse(decoder.decode(new Uint8Array(
     api.memory.buffer,
-    api.conduit_book_body_output_ptr(),
-    api.conduit_book_body_output_len(),
+    api.conduit_creche_output_ptr(),
+    api.conduit_creche_output_len(),
   )));
 }
 
 function outputError(api, operation, code) {
-  const evidence = api.conduit_book_body_output_len() > 0 ? readOutput(api) : null;
+  const evidence = api.conduit_creche_output_len() > 0 ? readOutput(api) : null;
   return new Error(evidence?.message ?? `${operation} refused (${code})`);
 }
 

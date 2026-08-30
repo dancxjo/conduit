@@ -354,7 +354,7 @@ fn derive_nonce(body_id: &str, now_millis: u64) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::book_runner::interaction::admit_source;
+    use crate::source_interaction::admit_source;
     use conduit_body::{BodyId, SpawnInvitationClaim, SpawnInvitationId};
     use conduit_core::{BootId, HostId};
 

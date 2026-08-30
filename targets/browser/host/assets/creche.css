@@ -15,10 +15,14 @@ main { width:min(70rem, calc(100% - 2rem)); margin:2rem auto 5rem; }
 #workspace { display:grid; gap:1rem; }
 .runner, .physical-host-runner, .graduation-runner, .creche-complete { display:grid; gap:1rem; padding:1.25rem; border:1px solid var(--line); border-radius:.85rem; background:var(--panel); }
 .editor, .result { min-width:0; }
-.birth-editor { display:grid; grid-template-columns:minmax(0,1fr); gap:.65rem; }
+.birth-editor { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; align-content:start; }
+.birth-field { display:grid; grid-template-columns:minmax(0,1fr); gap:.4rem; min-width:0; position:relative; }
 .birth-editor select, .birth-editor input, .birth-editor textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:white; }
+.select-field { position:relative; min-width:0; }
+.select-field::after { content:""; position:absolute; right:.85rem; top:50%; width:.5rem; height:.5rem; border-right:2px solid var(--green-dark); border-bottom:2px solid var(--green-dark); transform:translateY(-65%) rotate(45deg); pointer-events:none; }
+.birth-editor .select-field select { appearance:none; padding-right:2.5rem; }
 .birth-editor textarea { min-height:11rem; resize:vertical; font-family:ui-monospace, monospace; }
-.seed-source { width:100%; min-width:0; }
+.seed-source { width:100%; min-width:0; margin:0; position:relative; clear:both; }
 .seed-source summary { margin:.25rem 0 .65rem; cursor:pointer; }
 .actions, .physical-actions, .graduation-actions { display:flex; flex-wrap:wrap; gap:.55rem; }
 .body-chain { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:.8rem; align-items:center; }
