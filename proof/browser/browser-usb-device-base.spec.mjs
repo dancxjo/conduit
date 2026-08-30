@@ -29,8 +29,8 @@ async function startEntrance() {
   });
 }
 
-async function installSuccessfulUsb(page, transferStatus = "ok") {
-  await page.addInitScript(({ transferStatus }) => {
+async function installSuccessfulUsb(page, transferStatus = "ok", zeroLengthIn = false) {
+  await page.addInitScript(({ transferStatus, zeroLengthIn }) => {
     class FakeUsbDevice {
       constructor() {
         this.vendorId = 0x2e8a;
@@ -41,6 +41,8 @@ async function installSuccessfulUsb(page, transferStatus = "ok") {
         this.released = [];
         this.alternates = [];
         this.outTransfers = [];
+        this.controlInTransfers = [];
+        this.controlOutTransfers = [];
         this.closed = false;
       }
       async open() { this.opened = true; }
@@ -55,7 +57,16 @@ async function installSuccessfulUsb(page, transferStatus = "ok") {
       }
       async transferIn(endpoint) {
         this.inEndpoint = endpoint;
-        const bytes = new Uint8Array([9, 8, 7]);
+        const bytes = zeroLengthIn ? new Uint8Array() : new Uint8Array([9, 8, 7]);
+        return { status: transferStatus, data: new DataView(bytes.buffer) };
+      }
+      async controlTransferOut(setup, bytes) {
+        this.controlOutTransfers.push([setup, Array.from(bytes)]);
+        return { status: transferStatus, bytesWritten: bytes.byteLength };
+      }
+      async controlTransferIn(setup, length) {
+        this.controlInTransfers.push([setup, length]);
+        const bytes = zeroLengthIn ? new Uint8Array() : new Uint8Array([6, 5]);
         return { status: transferStatus, data: new DataView(bytes.buffer) };
       }
     }
@@ -69,7 +80,7 @@ async function installSuccessfulUsb(page, transferStatus = "ok") {
     Object.defineProperty(navigator, "usb", { configurable: true, value: usb });
     globalThis.__fakeUsb = usb;
     globalThis.__fakeUsbDevice = device;
-  }, { transferStatus });
+  }, { transferStatus, zeroLengthIn });
 }
 
 async function installUsbFailure(page, name, failingStage) {
@@ -222,6 +233,72 @@ test("selection, API, open, configuration, interface, and alternate failures rem
   expect(invalidResult.message).toContain("outside its admitted bound");
   expect(invalidResult.requests).toEqual([]);
   await expect(invalid.locator("#usb-device-status")).toHaveText("WebUSB acquisition offer available");
+});
+
+test("control transfers and zero-length acknowledgements remain finite Base truth", async ({ page }) => {
+  await installSuccessfulUsb(page, "ok", true);
+  await page.goto(await startEntrance());
+  await expect(page.locator("#identity")).toBeVisible();
+  const result = await page.evaluate(async () => {
+    const resource = await __conduitBrowserHost.usbDevices.acquireUsb({
+      interfaceNumber: 1,
+      maximumInTransfers: 4,
+      maximumOutTransfers: 4,
+    });
+    resource.startUse("browser/usb-control-plan/one");
+    const setup = {
+      requestType: "vendor",
+      recipient: "interface",
+      request: 0x41,
+      value: 0,
+      index: 1,
+    };
+    const bulkIn = await resource.transferIn(64);
+    const bulkOut = await resource.transferOut(new Uint8Array());
+    const controlOut = await resource.controlTransferOut(setup, new Uint8Array());
+    const controlIn = await resource.controlTransferIn({ ...setup, request: 0x42 }, 16);
+    let invalid;
+    try {
+      await resource.controlTransferOut({ ...setup, requestType: "ambient" });
+    } catch (error) {
+      invalid = error.message;
+    }
+    return {
+      lengths: [bulkIn.bytes.length, bulkOut.bytes.length, controlOut.bytes.length, controlIn.bytes.length],
+      evidence: resource.evidence(),
+      controlInTransfers: __fakeUsbDevice.controlInTransfers,
+      controlOutTransfers: __fakeUsbDevice.controlOutTransfers,
+      invalid,
+    };
+  });
+
+  expect(result.lengths).toEqual([0, 0, 0, 0]);
+  expect(result.evidence).toMatchObject({
+    phase: "usb-use-playing",
+    admitted_in_transfers: 2,
+    admitted_out_transfers: 2,
+    retained_bytes: 0,
+    last_transfer_kind: "Control",
+    last_transfer_direction: "In",
+    last_transfer_bytes: 0,
+    last_transfer_checksum: 0,
+    last_control_setup: {
+      request_type: "Vendor",
+      recipient: "Interface",
+      request: 0x42,
+      value: 0,
+      index: 1,
+    },
+  });
+  expect(result.controlOutTransfers).toEqual([[
+    { requestType: "vendor", recipient: "interface", request: 0x41, value: 0, index: 1 },
+    [],
+  ]]);
+  expect(result.controlInTransfers).toEqual([[
+    { requestType: "vendor", recipient: "interface", request: 0x42, value: 0, index: 1 },
+    16,
+  ]]);
+  expect(result.invalid).toContain("request type is unsupported");
 });
 
 test("disconnect, cancellation, overflow, and stalled transfer terminate without replacement", async ({ page }) => {

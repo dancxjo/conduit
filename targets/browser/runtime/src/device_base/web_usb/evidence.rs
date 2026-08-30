@@ -62,6 +62,14 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         "admitted_out_transfers": state.session.admitted_out_transfers(),
         "retained_bytes": state.session.retained_bytes(),
         "last_transfer_direction": state.last_transfer_direction.map(|value| format!("{value:?}")),
+        "last_transfer_kind": state.last_transfer_kind.map(|value| format!("{value:?}")),
+        "last_control_setup": state.last_control_setup.map(|value| serde_json::json!({
+            "request_type": format!("{:?}", value.request_type),
+            "recipient": format!("{:?}", value.recipient),
+            "request": value.request,
+            "value": value.value,
+            "index": value.index,
+        })),
         "last_transfer_bytes": state.last_transfer_bytes,
         "last_transfer_checksum": state.last_transfer_checksum,
     });

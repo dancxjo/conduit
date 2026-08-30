@@ -130,6 +130,44 @@ pub(crate) enum UsbTransferDirection {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UsbTransferKind {
+    Bulk,
+    Control,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UsbControlRequestType {
+    Standard,
+    Class,
+    Vendor,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum UsbControlRecipient {
+    Device,
+    Interface,
+    Endpoint,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct UsbControlSetup {
+    pub(crate) request_type: UsbControlRequestType,
+    pub(crate) recipient: UsbControlRecipient,
+    pub(crate) request: u8,
+    pub(crate) value: u16,
+    pub(crate) index: u16,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct RetainedUsbTransfer {
+    kind: UsbTransferKind,
+    direction: UsbTransferDirection,
+    control_setup: Option<UsbControlSetup>,
+    completed_bytes: Option<usize>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BrowserUsbTerminal {
     PermissionDenied,
     NoDeviceSelected,
@@ -199,7 +237,7 @@ pub(crate) struct BrowserUsbSession {
     expected_operation: Option<HostOperationId>,
     expected_host_id: Option<HostId>,
     expected_boot_id: Option<BootId>,
-    retained_transfer: Option<(UsbTransferDirection, usize)>,
+    retained_transfer: Option<RetainedUsbTransfer>,
     admitted_in_transfers: u16,
     admitted_out_transfers: u16,
 }
@@ -221,7 +259,13 @@ impl BrowserUsbSession {
         &self.phase
     }
     pub(crate) fn retained_bytes(&self) -> usize {
-        self.retained_transfer.map_or(0, |(_, bytes)| bytes)
+        self.retained_transfer
+            .and_then(|transfer| transfer.completed_bytes)
+            .unwrap_or(0)
+    }
+    pub(crate) fn retained_control_setup(&self) -> Option<UsbControlSetup> {
+        self.retained_transfer
+            .and_then(|transfer| transfer.control_setup)
     }
     pub(crate) const fn admitted_in_transfers(&self) -> u16 {
         self.admitted_in_transfers

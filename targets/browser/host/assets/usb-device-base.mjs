@@ -3,6 +3,12 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const IN = 1;
 const OUT = 2;
+const BULK = 1;
+const CONTROL = 2;
+const REQUEST_TYPES = new Set(["standard", "class", "vendor"]);
+const RECIPIENTS = new Set(["device", "interface", "endpoint", "other"]);
+const REQUEST_TYPE_CODES = Object.freeze({ standard: 1, class: 2, vendor: 3 });
+const RECIPIENT_CODES = Object.freeze({ device: 1, interface: 2, endpoint: 3, other: 4 });
 
 function requireStatus(status, operation) {
   if (status < 0) throw new Error(`browser USB ${operation} refused ${status}`);
@@ -53,6 +59,25 @@ function requireInteger(value, minimum, maximum, name) {
   if (!Number.isInteger(value) || value < minimum || value > maximum) {
     throw new RangeError(`${name} is outside its admitted bound`);
   }
+}
+
+function controlSetup(setup) {
+  if (!setup || !REQUEST_TYPES.has(setup.requestType)) {
+    throw new TypeError("USB control request type is unsupported");
+  }
+  if (!RECIPIENTS.has(setup.recipient)) {
+    throw new TypeError("USB control recipient is unsupported");
+  }
+  requireInteger(setup.request, 0, 255, "USB control request");
+  requireInteger(setup.value, 0, 65535, "USB control value");
+  requireInteger(setup.index, 0, 65535, "USB control index");
+  return Object.freeze({
+    requestType: setup.requestType,
+    recipient: setup.recipient,
+    request: setup.request,
+    value: setup.value,
+    index: setup.index,
+  });
 }
 
 export function createBrowserUsbDeviceBase({
@@ -195,11 +220,19 @@ export function createBrowserUsbDeviceBase({
         return publish();
       }
 
-      async function transfer(direction, effect) {
+      async function transfer(kind, direction, effect, setup = null) {
         if (!useStarted || terminal || device !== acquiredDevice) {
           throw new Error("WebUSB use Plan is not active");
         }
-        requireStatus(api.conduit_browser_usb_begin_transfer(direction), "transfer admission");
+        requireStatus(api.conduit_browser_usb_begin_transfer(
+          kind,
+          direction,
+          setup ? REQUEST_TYPE_CODES[setup.requestType] : 0,
+          setup ? RECIPIENT_CODES[setup.recipient] : 0,
+          setup?.request ?? 0,
+          setup?.value ?? 0,
+          setup?.index ?? 0,
+        ), "transfer admission");
         try {
           const { bytes, transferStatus } = await effect();
           if (transferStatus !== "ok") {
@@ -210,11 +243,11 @@ export function createBrowserUsbDeviceBase({
             publish();
             throw new DOMException(`WebUSB transfer ended ${transferStatus}`, "NetworkError");
           }
-          if (bytes.byteLength === 0 || bytes.byteLength > maximumTransferBytes) {
+          if (bytes.byteLength > maximumTransferBytes) {
             throw new RangeError("WebUSB transfer exceeds admitted bound");
           }
           writeInput(api, bytes);
-          requireStatus(api.conduit_browser_usb_complete_transfer(direction, bytes.length), "transfer completion");
+          requireStatus(api.conduit_browser_usb_complete_transfer(kind, direction, bytes.length), "transfer completion");
           const receipt = publish();
           requireStatus(api.conduit_browser_usb_release_transfer(), "transfer release");
           publish();
@@ -234,7 +267,7 @@ export function createBrowserUsbDeviceBase({
 
       async function transferOut(bytes) {
         const value = bytesOf(bytes);
-        if (value.byteLength === 0 || value.byteLength > maximumTransferBytes) {
+        if (value.byteLength > maximumTransferBytes) {
           terminal = true;
           requireStatus(api.conduit_browser_usb_transfer_failed(1), "oversized OUT transfer");
           await closePlatform(acquiredDevice, interfaceNumber);
@@ -242,11 +275,11 @@ export function createBrowserUsbDeviceBase({
           publish();
           throw new RangeError("WebUSB OUT transfer exceeds admitted bound");
         }
-        return transfer(OUT, async () => {
+        return transfer(BULK, OUT, async () => {
           const result = await acquiredDevice.transferOut(outEndpoint, value);
           if (result.status === "ok" && (
             !Number.isInteger(result.bytesWritten)
-            || result.bytesWritten <= 0
+            || result.bytesWritten < 0
             || result.bytesWritten > value.byteLength
           )) {
             throw new DOMException("WebUSB OUT completion had invalid byte truth", "NetworkError");
@@ -264,16 +297,56 @@ export function createBrowserUsbDeviceBase({
           publish();
           throw new RangeError("WebUSB IN transfer exceeds admitted bound");
         }
-        return transfer(IN, async () => {
+        return transfer(BULK, IN, async () => {
           const result = await acquiredDevice.transferIn(inEndpoint, length);
-          if (result.status === "ok" && !result.data?.byteLength) {
-            throw new DOMException("WebUSB IN completion had no byte truth", "NetworkError");
-          }
           return {
             bytes: result.data ? bytesOf(result.data) : new Uint8Array(),
             transferStatus: result.status,
           };
         });
+      }
+
+      async function controlTransferOut(setup, bytes = new Uint8Array()) {
+        const request = controlSetup(setup);
+        const value = bytesOf(bytes);
+        if (value.byteLength > maximumTransferBytes) {
+          terminal = true;
+          requireStatus(api.conduit_browser_usb_transfer_failed(1), "oversized control OUT transfer");
+          await closePlatform(acquiredDevice, interfaceNumber);
+          device = null;
+          publish();
+          throw new RangeError("WebUSB control OUT transfer exceeds admitted bound");
+        }
+        return transfer(CONTROL, OUT, async () => {
+          const result = await acquiredDevice.controlTransferOut(request, value);
+          if (result.status === "ok" && (
+            !Number.isInteger(result.bytesWritten)
+            || result.bytesWritten < 0
+            || result.bytesWritten > value.byteLength
+          )) {
+            throw new DOMException("WebUSB control OUT completion had invalid byte truth", "NetworkError");
+          }
+          return { bytes: value.subarray(0, result.bytesWritten), transferStatus: result.status };
+        }, request);
+      }
+
+      async function controlTransferIn(setup, length) {
+        const request = controlSetup(setup);
+        if (!Number.isInteger(length) || length <= 0 || length > maximumTransferBytes) {
+          terminal = true;
+          requireStatus(api.conduit_browser_usb_transfer_failed(1), "oversized control IN transfer");
+          await closePlatform(acquiredDevice, interfaceNumber);
+          device = null;
+          publish();
+          throw new RangeError("WebUSB control IN transfer exceeds admitted bound");
+        }
+        return transfer(CONTROL, IN, async () => {
+          const result = await acquiredDevice.controlTransferIn(request, length);
+          return {
+            bytes: result.data ? bytesOf(result.data) : new Uint8Array(),
+            transferStatus: result.status,
+          };
+        }, request);
       }
 
       async function close() {
@@ -294,7 +367,16 @@ export function createBrowserUsbDeviceBase({
         }
       }
 
-      return Object.freeze({ resourceTruth, evidence: () => evidence(api), startUse, transferIn, transferOut, close });
+      return Object.freeze({
+        resourceTruth,
+        evidence: () => evidence(api),
+        startUse,
+        transferIn,
+        transferOut,
+        controlTransferIn,
+        controlTransferOut,
+        close,
+      });
     } catch (error) {
       if (!terminal) {
         const outcome = acquisitionOutcome(error, stage);

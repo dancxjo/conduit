@@ -6,6 +6,8 @@ const INPUT_BYTES: usize = MAXIMUM_USB_TRANSFER_BYTES;
 const EVIDENCE_BYTES: usize = 4_096;
 const IN: i32 = 1;
 const OUT: i32 = 2;
+const BULK: i32 = 1;
+const CONTROL: i32 = 2;
 
 pub(super) struct AbiState {
     pub(super) host_id: HostId,
@@ -20,6 +22,8 @@ pub(super) struct AbiState {
     pub(super) evidence: [u8; EVIDENCE_BYTES],
     pub(super) evidence_len: usize,
     pub(super) last_transfer_direction: Option<UsbTransferDirection>,
+    pub(super) last_transfer_kind: Option<UsbTransferKind>,
+    pub(super) last_control_setup: Option<UsbControlSetup>,
     pub(super) last_transfer_bytes: usize,
     pub(super) last_transfer_checksum: u32,
     pub(super) stages: u16,
@@ -157,6 +161,8 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
         evidence: [0; EVIDENCE_BYTES],
         evidence_len: 0,
         last_transfer_direction: None,
+        last_transfer_kind: None,
+        last_control_setup: None,
         last_transfer_bytes: 0,
         last_transfer_checksum: 0,
         stages: 0b0000_0111,
@@ -301,23 +307,83 @@ pub extern "C" fn conduit_browser_usb_start_use(plan_len: usize, use_authority: 
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_browser_usb_begin_transfer(direction_code: i32) -> i32 {
+pub extern "C" fn conduit_browser_usb_begin_transfer(
+    kind_code: i32,
+    direction_code: i32,
+    request_type_code: i32,
+    recipient_code: i32,
+    request: u32,
+    value: u32,
+    index: u32,
+) -> i32 {
+    let kind = match kind_code {
+        BULK => UsbTransferKind::Bulk,
+        CONTROL => UsbTransferKind::Control,
+        _ => return -4,
+    };
     let direction = match direction_code {
         IN => UsbTransferDirection::In,
         OUT => UsbTransferDirection::Out,
         _ => return -3,
     };
-    mutate(|session| session.begin_transfer(direction))
+    let control_setup = match kind {
+        UsbTransferKind::Bulk
+            if request_type_code == 0
+                && recipient_code == 0
+                && request == 0
+                && value == 0
+                && index == 0 =>
+        {
+            None
+        }
+        UsbTransferKind::Bulk => return -5,
+        UsbTransferKind::Control => {
+            let request_type = match request_type_code {
+                1 => UsbControlRequestType::Standard,
+                2 => UsbControlRequestType::Class,
+                3 => UsbControlRequestType::Vendor,
+                _ => return -5,
+            };
+            let recipient = match recipient_code {
+                1 => UsbControlRecipient::Device,
+                2 => UsbControlRecipient::Interface,
+                3 => UsbControlRecipient::Endpoint,
+                4 => UsbControlRecipient::Other,
+                _ => return -5,
+            };
+            let (Ok(request), Ok(value), Ok(index)) = (
+                u8::try_from(request),
+                u16::try_from(value),
+                u16::try_from(index),
+            ) else {
+                return -5;
+            };
+            Some(UsbControlSetup {
+                request_type,
+                recipient,
+                request,
+                value,
+                index,
+            })
+        }
+    };
+    mutate(|session| session.begin_transfer(kind, direction, control_setup))
 }
 
 #[no_mangle]
 pub extern "C" fn conduit_browser_usb_complete_transfer(
+    kind_code: i32,
     direction_code: i32,
     transfer_len: usize,
 ) -> i32 {
-    if transfer_len == 0 || transfer_len > INPUT_BYTES {
+    if transfer_len > INPUT_BYTES {
         return -2;
     }
+    let kind = match kind_code {
+        BULK => UsbTransferKind::Bulk,
+        CONTROL => UsbTransferKind::Control,
+        _ => return -5,
+    };
     let direction = match direction_code {
         IN => UsbTransferDirection::In,
         OUT => UsbTransferDirection::Out,
@@ -330,12 +396,14 @@ pub extern "C" fn conduit_browser_usb_complete_transfer(
         };
         if state
             .session
-            .complete_transfer(direction, transfer_len)
+            .complete_transfer(kind, direction, transfer_len)
             .is_err()
         {
             return -4;
         }
         state.last_transfer_direction = Some(direction);
+        state.last_transfer_kind = Some(kind);
+        state.last_control_setup = state.session.retained_control_setup();
         state.last_transfer_bytes = transfer_len;
         state.last_transfer_checksum = INPUT.with(|input| {
             input.borrow()[..transfer_len]
