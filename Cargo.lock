@@ -4532,6 +4532,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-create-oi",
+ "conduit-embedded-build",
  "conduit-form",
  "conduit-host-conduitos-fabrication",
  "conduit-host-esp32-fabrication",

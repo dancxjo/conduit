@@ -159,7 +159,7 @@ pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn st
     Ok(())
 }
 
-fn discover_bootloader_port() -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub(super) fn discover_bootloader_port() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let mut matches = Vec::new();
     for entry in fs::read_dir("/dev")? {
         let path = entry?.path();
