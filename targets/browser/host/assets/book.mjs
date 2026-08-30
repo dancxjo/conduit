@@ -1,5 +1,5 @@
 import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
-import { createBodyBirthRunner, createFirstHostRunner } from "./book-lifecycle.mjs";
+import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./book-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./book-physical.mjs";
 
 const encoder = new TextEncoder();
@@ -14,8 +14,8 @@ let runnerCount = 0;
 let activeRunner = null;
 let activeDelay = null;
 let cancelActiveKeyEvent = null;
-let currentStep = 0;
-let steps = [];
+let currentPage = 0;
+let guidedPages = [];
 const sourceDrafts = new Map();
 
 try {
@@ -30,8 +30,8 @@ try {
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
-  steps = parseTourSteps(chapters);
-  renderStep(0);
+  guidedPages = parseCrechePages(chapters);
+  renderPage(0);
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
 } catch (error) {
@@ -61,7 +61,7 @@ function requireBookAbi(api) {
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
 
-function parseTourSteps(chapters) {
+function parseCrechePages(chapters) {
   const parsed = [];
   let current = [];
   for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
@@ -72,42 +72,60 @@ function parseTourSteps(chapters) {
     if (line.startsWith("# Step ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length !== 13) {
-    throw new Error("this Tour slice must contain exactly thirteen steps, received " + parsed.length);
-  }
+  if (parsed.length === 0) throw new Error("the Crèche has no guided pages");
   return parsed;
 }
 
-function renderStep(index) {
+function renderPage(index) {
   if (running) return;
-  currentStep = index;
+  currentPage = index;
   runnerCount = 0;
   chapter.replaceChildren();
-  renderMarkdown(steps[index]);
+  chapter.append(createCrecheBodyContext());
+  renderMarkdown(guidedPages[index]);
   chapter.append(createNavigation());
-  document.title = (chapter.querySelector("h1")?.textContent ?? "Conduit Tour") + " · The Conduit Tour";
+  document.title = (chapter.querySelector("h1")?.textContent ?? "The Crèche") + " · The Crèche";
+}
+
+function createCrecheBodyContext() {
+  const context = document.createElement("aside");
+  context.className = "creche-body-context";
+  context.setAttribute("aria-label", "Current Body in the Crèche");
+  const body = readBodyProjection(host.runtime);
+  if (!body) {
+    context.innerHTML = "<strong>Crèche</strong><span>No Body has been born yet.</span>";
+    return context;
+  }
+  const name = document.createElement("strong");
+  name.textContent = body.friendly_name;
+  const identity = document.createElement("code");
+  identity.textContent = body.body_id;
+  const state = document.createElement("span");
+  state.textContent = `${body.state} · ${body.raw_membership.parts.length} admitted Part${body.raw_membership.parts.length === 1 ? "" : "s"}`;
+  context.append(name, identity, state);
+  return context;
 }
 
 function createNavigation() {
   const navigation = document.createElement("nav");
-  navigation.className = "tour-navigation";
-  navigation.setAttribute("aria-label", "Tour steps");
+  navigation.className = "creche-navigation";
+  navigation.setAttribute("aria-label", "Guided Crèche pages");
   const progress = document.createElement("span");
-  progress.className = "tour-progress";
-  progress.textContent = "Step " + (currentStep + 1) + " of " + steps.length;
-  const previous = navigationButton("Previous", currentStep === 0, () => renderStep(currentStep - 1));
-  const reset = navigationButton("Reset this step", false, () => {
+  progress.className = "creche-progress";
+  progress.textContent = "Page " + (currentPage + 1) + " of " + guidedPages.length;
+  const previous = navigationButton("Previous", currentPage === 0, () => renderPage(currentPage - 1));
+  const reset = navigationButton("Reset this page", false, () => {
     for (const key of sourceDrafts.keys()) {
-      if (key.startsWith(currentStep + ":")) sourceDrafts.delete(key);
+      if (key.startsWith(currentPage + ":")) sourceDrafts.delete(key);
     }
-    renderStep(currentStep);
+    renderPage(currentPage);
   });
-  const restart = navigationButton("Restart Tour", false, () => {
+  const revisitBirth = navigationButton("Revisit birth page", false, () => {
     sourceDrafts.clear();
-    renderStep(0);
+    renderPage(0);
   });
-  const next = navigationButton("Next", currentStep === steps.length - 1, () => renderStep(currentStep + 1));
-  navigation.append(progress, previous, reset, restart, next);
+  const next = navigationButton("Next", currentPage === guidedPages.length - 1, () => renderPage(currentPage + 1));
+  navigation.append(progress, previous, reset, revisitBirth, next);
   return navigation;
 }
 
@@ -121,10 +139,10 @@ function navigationButton(label, disabled, action) {
 }
 
 function setNavigationDisabled(disabled) {
-  for (const button of chapter.querySelectorAll(".tour-navigation button")) {
+  for (const button of chapter.querySelectorAll(".creche-navigation button")) {
     button.disabled = disabled || (
-      (button.textContent === "Previous" && currentStep === 0)
-      || (button.textContent === "Next" && currentStep === steps.length - 1)
+      (button.textContent === "Previous" && currentPage === 0)
+      || (button.textContent === "Next" && currentPage === guidedPages.length - 1)
     );
   }
 }
@@ -148,7 +166,7 @@ function renderMarkdown(markdown) {
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
       runnerCount += 1;
-      const sourceKey = currentStep + ":" + runnerCount;
+      const sourceKey = currentPage + ":" + runnerCount;
       chapter.append(createBodyBirthRunner({
         source: source.join("\n"),
         sourceKey,
@@ -157,6 +175,7 @@ function renderMarkdown(markdown) {
         draft: sourceDrafts.get(sourceKey),
         onDraft: (value) => sourceDrafts.set(sourceKey, value),
         nextSequence: () => ++generation,
+        onBodyChanged: refreshCrecheBodyContext,
       }));
       copy = appendCopy();
     } else if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
@@ -200,7 +219,11 @@ function renderMarkdown(markdown) {
       copy = appendCopy();
     } else if (line === "<!-- conduit-first-host -->") {
       flush();
-      chapter.append(createFirstHostRunner({ host, nextSequence: () => ++generation }));
+      chapter.append(createFirstHostRunner({
+        host,
+        nextSequence: () => ++generation,
+        onBodyChanged: refreshCrecheBodyContext,
+      }));
       copy = appendCopy();
     } else if (line.startsWith("# ")) {
       flush();
@@ -226,6 +249,10 @@ function appendCopy() {
   copy.className = "chapter-copy";
   chapter.append(copy);
   return copy;
+}
+
+function refreshCrecheBodyContext() {
+  chapter.querySelector(".creche-body-context")?.replaceWith(createCrecheBodyContext());
 }
 
 function createRealizationComparison(source) {
@@ -266,7 +293,7 @@ function createRealizationComparison(source) {
 
 function createRunner(source, recursive = false, presentation = {}) {
   runnerCount += 1;
-  const sourceKey = currentStep + ":" + runnerCount;
+  const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const runner = document.createElement("section");
   runner.className = "runner";
@@ -299,7 +326,7 @@ function createRunner(source, recursive = false, presentation = {}) {
 
 function createMultiHostRunner(source, showPlan) {
   runnerCount += 1;
-  const sourceKey = currentStep + ":" + runnerCount;
+  const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const runner = document.createElement("section");
   runner.className = "runner multi-host-runner";

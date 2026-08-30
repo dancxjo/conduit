@@ -39,7 +39,7 @@ async function openStep(page, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".tour-progress")).toHaveText(`Step ${index + 1} of 13`);
+  await expect(page.locator(".creche-progress")).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
 }
 
 test.beforeEach(async () => {
@@ -51,6 +51,8 @@ test.afterEach(() => entrance?.child.kill());
 test("Step 0 births one named Morse Network Body before introducing machinery", async ({ page }) => {
   await openStep(page, 0);
   await expect(page.getByRole("heading", { name: "Step 0 — Birth your Body" })).toBeVisible();
+  await expect(page.locator(".masthead")).toContainText("crèche");
+  await expect(page).toHaveTitle(/The Crèche$/);
   await expect(page.locator(".body-birth-runner")).toHaveCount(1);
   await expect(page.locator(".gear-inventory")).toHaveCount(0);
   const runner = page.locator(".body-birth-runner");
@@ -60,6 +62,7 @@ test("Step 0 births one named Morse Network Body before introducing machinery", 
   await runner.getByRole("button", { name: "Birth Body" }).click();
   await expect(runner.locator(".body-state")).toHaveText("LULLED");
   await expect(runner.locator(".body-identities")).toContainText("patient firefly");
+  await expect(page.locator(".creche-body-context")).toContainText("patient firefly");
   const raw = JSON.parse(await runner.locator(".body-raw code").textContent());
   expect(raw.membership.parts).toHaveLength(0);
   expect(raw.body.events).toHaveLength(1);
@@ -168,7 +171,7 @@ test("Steps 4 through 6 reveal a Back and compare two realizations deliberately"
   expect(directIdentities[3]).not.toBe(recursiveIdentities[3]);
 });
 
-test("Tour navigation preserves drafts but reset and restart change presentation state only", async ({ page }) => {
+test("Crèche navigation preserves drafts while reset and revisit change presentation only", async ({ page }) => {
   await openStep(page, 1);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   const edited = (await page.locator("textarea").inputValue()).replace('"hello"', '"reader"');
@@ -176,10 +179,10 @@ test("Tour navigation preserves drafts but reset and restart change presentation
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Previous" }).click();
   await expect(page.locator("textarea")).toHaveValue(edited);
-  await page.getByRole("button", { name: "Reset this step" }).click();
+  await page.getByRole("button", { name: "Reset this page" }).click();
   await expect(page.locator("textarea")).toHaveValue(/"hello"/);
-  await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 13");
+  await page.getByRole("button", { name: "Revisit birth page" }).click();
+  await expect(page.locator(".creche-progress")).toHaveText(/^Page 1 of \d+$/);
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
@@ -330,10 +333,12 @@ test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host"
   expect(raw.membership.events).toHaveLength(0);
 
   await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.locator(".creche-body-context")).toContainText(identity.bodyId);
   const firstHost = page.locator(".first-host-runner");
   await firstHost.getByRole("button", { name: "Give this Body its first Host" }).click();
   await expect(firstHost.locator(".host-admission-status")).toContainText("one admitted browser Host");
   await expect(firstHost.locator(".host-identities")).toContainText(identity.bodyId);
+  await expect(page.locator(".creche-body-context")).toContainText("1 admitted Part");
 
   const expectSameBody = async () => {
     runner = page.locator(".body-birth-runner");
@@ -344,10 +349,10 @@ test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host"
   };
   await page.getByRole("button", { name: "Previous" }).click();
   await expectSameBody();
-  await page.getByRole("button", { name: "Reset this step" }).click();
+  await page.getByRole("button", { name: "Reset this page" }).click();
   await expectSameBody();
-  await page.getByRole("button", { name: "Restart Tour" }).click();
-  await expect(page.locator(".tour-progress")).toHaveText("Step 1 of 13");
+  await page.getByRole("button", { name: "Revisit birth page" }).click();
+  await expect(page.locator(".creche-progress")).toHaveText(/^Page 1 of \d+$/);
   await expectSameBody();
 });
 

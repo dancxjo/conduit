@@ -1,7 +1,7 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBodyBirthRunner({ source, sourceKey, listingId, host, draft, onDraft, nextSequence }) {
+export function createBodyBirthRunner({ source, sourceKey, listingId, host, draft, onDraft, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -40,6 +40,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
     runner.querySelector("#body-program").value,
     textarea.value,
     nextSequence(),
+    onBodyChanged,
   ));
 
   const current = readCurrent(host.runtime);
@@ -47,7 +48,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
   return runner;
 }
 
-function birth(runner, host, friendlyName, initialProgram, source, sequence) {
+function birth(runner, host, friendlyName, initialProgram, source, sequence, onBodyChanged) {
   const api = host.runtime;
   const sourceBytes = encoder.encode(source);
   const hostBytes = encoder.encode(host.hostId);
@@ -87,6 +88,7 @@ function birth(runner, host, friendlyName, initialProgram, source, sequence) {
     return;
   }
   renderReceipt(runner, readOutput(api), false);
+  onBodyChanged?.();
 }
 
 function readCurrent(api) {
@@ -94,6 +96,10 @@ function readCurrent(api) {
   if (code === 1) return null;
   if (code < 0) throw new Error(`current Body projection refused (${code})`);
   return readOutput(api);
+}
+
+export function readBodyProjection(api) {
+  return readCurrent(api);
 }
 
 function renderRefusal(runner, api, code) {
@@ -116,7 +122,7 @@ function renderReceipt(runner, receipt, retained) {
   runner.querySelector(".body-id").textContent = receipt.body_id;
   runner.querySelector(".body-state").textContent = receipt.state;
   runner.querySelector(".birth-status").textContent = retained
-    ? "Same LULLED Body retained — Tour presentation controls did not recreate it."
+    ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
     : "Born — one checked Seed now has one LULLED Body; no Wake, Plan, or Play exists.";
   const identities = [
     ["Friendly name", receipt.friendly_name],
@@ -150,7 +156,7 @@ function renderReceipt(runner, receipt, retained) {
   }, null, 2);
 }
 
-export function createFirstHostRunner({ host, nextSequence }) {
+export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner first-host-runner";
   runner.innerHTML = `
@@ -185,6 +191,7 @@ export function createFirstHostRunner({ host, nextSequence }) {
       return;
     }
     renderAttachedHost(runner, readOutput(api));
+    onBodyChanged?.();
   });
   return runner;
 }
