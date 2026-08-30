@@ -1,5 +1,7 @@
 //! Bounded, allocation-free validation for one Host-assigned Plan projection.
 
+#![no_std]
+
 use sha2::{Digest, Sha256};
 
 pub const ASSIGNED_PLAN_SCHEMA: u16 = 2;
