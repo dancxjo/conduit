@@ -9,9 +9,10 @@ use conduit_body_fabrication::{
 };
 use conduit_core::{HostAdvertisement, SignId};
 use conduit_host_fabrication::{
-    build_host_image, BuildInputs, ConfigurationBase, ConfigurationTarget, HostBounds,
-    HostConfiguration, SporeOutputKind,
+    build_host_image, BuildInputs, ConfigurationBase, ConfigurationTarget, FabricationCatalog,
+    FabricationPackageSet, HostBounds, HostConfiguration, SporeOutputKind,
 };
+use conduit_host_rp2040::Rp2040FabricationPackage;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
@@ -104,8 +105,8 @@ pub(super) fn prepare(entropy: [u8; 32], now_millis: u64) -> Result<PreparedSpor
             .map_err(|error| format!("issue spore invitation: {error:?}"))?;
         let (body, configuration) =
             checked_pico_body(&session.receipt.body_id, invitation.invitation_id.as_str())?;
-        let catalog = conduit_workspace_fabrication::catalog();
-        let packages = conduit_workspace_fabrication::package_set();
+        let packages = pico_package_set()?;
+        let catalog = FabricationCatalog::canonical().with_packages(&packages);
         let (image, image_bytes) = build_host_image(
             configuration.profile().clone(),
             &catalog,
@@ -285,8 +286,8 @@ fn checked_pico_body(
     };
     let mut configurations = BTreeMap::new();
     configurations.insert(CONFIGURATION_NAME.into(), configuration);
-    let catalog = conduit_workspace_fabrication::catalog();
-    let packages = conduit_workspace_fabrication::package_set();
+    let packages = pico_package_set()?;
+    let catalog = FabricationCatalog::canonical().with_packages(&packages);
     let body = check_body_description(
         BodyDescription {
             schema: 1,
@@ -312,6 +313,11 @@ fn checked_pico_body(
     )
     .map_err(|errors| format!("check physical Host description: {errors:?}"))?;
     Ok((body.clone(), body.hosts()[0].configuration.clone()))
+}
+
+fn pico_package_set() -> Result<FabricationPackageSet, String> {
+    FabricationPackageSet::compose(&[&Rp2040FabricationPackage])
+        .map_err(|error| format!("compose Pico fabrication package: {error:?}"))
 }
 
 fn derive_nonce(body_id: &str, now_millis: u64) -> [u8; 32] {
