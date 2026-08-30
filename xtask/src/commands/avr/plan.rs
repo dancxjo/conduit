@@ -46,8 +46,14 @@ pub(super) fn plan_contact(boot_id: &str) -> Result<PlannedContact, Box<dyn std:
         observed_at_tick: 0,
         maximum_age_ticks: 1,
     };
-    let host = live_create_observation_advertisement(&evidence, 0)
+    let mut host = live_create_observation_advertisement(&evidence, 0)
         .map_err(|error| format!("AVR Host offer refused: {error:?}"))?;
+    host.capabilities.retain(|capability| {
+        capability.implementation.implementation_id.as_str() == "pete/create1-observe-contact@1"
+    });
+    if host.capabilities.len() != 1 {
+        return Err("AVR Host offer did not contain the exact compiled contact capability".into());
+    }
     let placements =
         conduit_planner::default_expanded_placements(&expanded, core::slice::from_ref(&host))?;
     let plan = conduit_planner::plan_expanded_canonical(
