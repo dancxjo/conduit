@@ -15,6 +15,7 @@ pub(super) const FIRMWARE: &str = "targets/avr/firmware/promicro-host";
 const ELF_NAME: &str = "conduit-avr-promicro-host.elf";
 const HEX_NAME: &str = "conduit-avr-promicro-host.hex";
 const RECEIVE_ONLY_BIN: &str = "conduit-avr-receive-only";
+const AUDIBLE_PROBE_BIN: &str = "conduit-avr-audible-probe";
 
 pub(super) struct RustFirmwareArtifact {
     pub(super) hex: PathBuf,
@@ -49,6 +50,17 @@ pub(super) fn build_receive_only(
         RECEIVE_ONLY_BIN,
         "conduit-avr-receive-only.elf",
         "conduit-avr-receive-only.hex",
+    )
+}
+
+pub(super) fn build_audible_probe(
+    root: &Path,
+) -> Result<RustFirmwareArtifact, Box<dyn std::error::Error>> {
+    build_binary(
+        root,
+        AUDIBLE_PROBE_BIN,
+        "conduit-avr-audible-probe.elf",
+        "conduit-avr-audible-probe.hex",
     )
 }
 

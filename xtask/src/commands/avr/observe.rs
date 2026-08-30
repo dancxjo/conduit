@@ -180,7 +180,7 @@ fn validate_request(args: &ObserveContactArgs) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-fn validate_rx_proof(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn validate_rx_proof(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let proof: serde_json::Value = serde_json::from_slice(&fs::read(path)?)?;
     let exact = proof.get("schema").and_then(|value| value.as_str())
         == Some("conduit.avr-promicro/create-rx-check@2")
@@ -212,12 +212,14 @@ fn validate_rx_proof(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-struct RuntimeDevice {
-    path: PathBuf,
-    boot_id: String,
+pub(super) struct RuntimeDevice {
+    pub(super) path: PathBuf,
+    pub(super) boot_id: String,
 }
 
-fn wait_for_runtime(timeout: Duration) -> Result<RuntimeDevice, Box<dyn std::error::Error>> {
+pub(super) fn wait_for_runtime(
+    timeout: Duration,
+) -> Result<RuntimeDevice, Box<dyn std::error::Error>> {
     let deadline = Instant::now() + timeout;
     while Instant::now() < deadline {
         let matches = runtime_devices()?;
@@ -281,7 +283,7 @@ fn valid_boot_id(value: &str) -> bool {
         && value[4..].bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn configure_serial(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn configure_serial(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let output = Command::new("stty")
         .arg("-F")
         .arg(path)
@@ -290,7 +292,7 @@ fn configure_serial(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     require_success(&output, "AVR Host CDC configuration")
 }
 
-fn open_nonblocking(path: &Path) -> Result<File, Box<dyn std::error::Error>> {
+pub(super) fn open_nonblocking(path: &Path) -> Result<File, Box<dyn std::error::Error>> {
     Ok(OpenOptions::new()
         .read(true)
         .write(true)
