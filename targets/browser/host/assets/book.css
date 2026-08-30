@@ -116,6 +116,19 @@ details dt { color: var(--ink); font-weight: 700; }
 .body-identities { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .35rem .8rem; }
 .body-identities dt { color: var(--green-dark); font-weight: 700; }
 .body-identities dd { margin: 0; overflow-wrap: anywhere; }
+.physical-host-runner { margin-top: 1.6rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.physical-stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .55rem; padding: 0; list-style: none; }
+.physical-stages li { min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+.physical-stages strong, .physical-stages span { display: block; }
+.physical-stages strong { color: var(--green-dark); font-size: .72rem; }
+.physical-stages span { margin-top: .35rem; overflow: hidden; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.physical-stages li.complete { border-color: #68ae8d; background: #f3f8f4; }
+.physical-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1rem; }
+.image-picker { display: inline-flex; align-items: center; border-radius: 999px; padding: .7rem 1.15rem; color: #10271c; background: #77daa8; font-weight: 700; cursor: pointer; }
+.image-picker input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.physical-actions button { border: 1px solid var(--line); background: white; color: var(--ink); }
+.physical-status { min-height: 1.4rem; margin: 1rem 0 0; font-size: .88rem; }
+.physical-host-runner pre { max-height: 26rem; overflow: auto; padding: .75rem; border-radius: 8px; color: #e9f1ec; background: #17221d; font-size: .68rem; }
 .tour-navigation button { border: 1px solid var(--line); padding: .55rem .85rem; background: white; color: var(--ink); }
 .tour-navigation button:last-child { border-color: var(--green); background: var(--green); color: white; }
 .error { color: #a02828; }
@@ -132,5 +145,6 @@ details dt { color: var(--ink); font-weight: 700; }
   .actions { flex-wrap: wrap; }
   .tour-navigation { flex-wrap: wrap; }
   .tour-progress { width: 100%; }
+  .physical-stages { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }
