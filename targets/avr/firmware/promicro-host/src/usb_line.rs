@@ -46,16 +46,19 @@ impl UsbLine {
         // packet CDC class instead of adding another pair of stream buffers.
         let serial = CdcAcmClass::new(bus, 64);
         let builder = UsbDeviceBuilder::new(bus, UsbVidPid(0x1b4f, 0x9206));
-        let device = if let Some(boot_serial) = boot_serial {
-            let strings = StringDescriptors::new(LangID::EN).serial_number(boot_serial);
-            builder
-                .strings(&[strings])
-                .unwrap()
-                .device_class(USB_CLASS_CDC)
-                .build()
+        let strings = StringDescriptors::new(LangID::EN)
+            .manufacturer("SparkFun")
+            .product("SparkFun Pro Micro");
+        let strings = if let Some(boot_serial) = boot_serial {
+            strings.serial_number(boot_serial)
         } else {
-            builder.device_class(USB_CLASS_CDC).build()
+            strings
         };
+        let device = builder
+            .strings(&[strings])
+            .unwrap()
+            .device_class(USB_CLASS_CDC)
+            .build();
         Self { device, serial }
     }
 
