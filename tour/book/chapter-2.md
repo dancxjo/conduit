@@ -1,4 +1,4 @@
-# Step 3 — Use a generic verb
+# Use a generic verb
 
 If every application and machine needs its own special operation — robot-scale-number, web-scale-number, sensor-scale-number — the vocabulary fragments and Forms stop being portable.
 
@@ -24,7 +24,7 @@ The planned operation produces 3.000000 through the ordinary browser Host path. 
 
 A compact reusable vocabulary can travel across unlike applications and Hosts. Conduit does not need a new platform-flavored Gear each time the same meaning appears somewhere else.
 
-# Step 4 — A Gear can have a Back
+# A Gear can have a Back
 
 Callers need useful high-level meaning, but they should not have to copy its internal machinery into every Form. Otherwise sophisticated operations make every caller larger and more dependent on how one Host implements them.
 
@@ -60,7 +60,7 @@ Run the listing normally. The caller asks only for the text/morse Face, and this
 
 Rich meaning can be assembled from simpler capabilities without exposing that assembly to every caller. The Face stays stable while Conduit gains another honest way to realize it.
 
-# Step 5 — Morse opens up
+# Morse opens up
 
 A current Host may know a high-level operation directly, while a smaller Host knows only the pieces from which that operation can be built. Requiring every Host to implement the whole vocabulary natively would make constrained systems unnecessarily large.
 
@@ -84,4 +84,4 @@ This ordinary run still chooses the browser's direct text/morse leaf. The caller
 
 ## Payoff
 
-The same high-level request can fit both rich and constrained Hosts. Step 6 will place the direct leaf and recursive Back side by side so you can inspect why those two realization shapes exist.
+The same high-level request can fit both rich and constrained Hosts. A later page places the direct leaf and recursive Back side by side so you can inspect why those two realization shapes exist.

@@ -1,4 +1,4 @@
-# Step 11 — Keep one Body through change
+# Keep one Body through change
 
 The machinery that realizes an intended computer does not stay still. A laptop reboots, a browser disappears, a Pico disconnects, or one part is replaced. If the computer's identity is merely the identity of today's processes and devices, continuity disappears with them.
 

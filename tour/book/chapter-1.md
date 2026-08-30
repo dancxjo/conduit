@@ -1,4 +1,4 @@
-# Step 0 — Birth your Body
+# Birth your Body
 
 Conduit lets you build one computer out of the computers you actually have. The devices can be unlike, constrained, replaced, or temporarily unavailable while the intended computer continues.
 
@@ -25,7 +25,25 @@ The receipt separates the mutable friendly name, selected program, durable Body 
 
 You now have the same Body every later guided page will discuss and change. Deleting the Crèche later must not delete this Body or rewrite its beginning.
 
-# Step 1 — Change one Gear
+# Add a physical Host
+
+## Conduit idea
+
+A successful deployment is only deployment: a physical Host joins this Body only after its fresh Boot and invitation-bound request are separately observed and explicitly admitted.
+
+Use a reviewed `pico-local` UF2 built through `cargo xtask`. Each action below advances exactly one owner-controlled state. The unchanged Form remains free of board, USB, serial, address, implementation, spore, and deployment facts.
+
+On Linux, install Conduit's narrow Pico device rules once with `sudo scripts/install-pico-headless-flash.sh`, then reconnect the Pico. The rule grants `plugdev` access only to the RP2040 BOOTSEL/Picoboot identity and Conduit's exact running-firmware identity.
+
+<!-- conduit-physical-host -->
+
+The final state admits current membership, offers, and readiness. It deliberately creates no Plan or Play; running the same semantic Form on the physical indicator belongs to a later proof.
+
+## Payoff
+
+The machine becomes part of the Body through attributable evidence instead of being trusted merely because a cable appeared or a flash command returned success.
+
+# Change one Gear
 
 Your new Body exists, but it has nowhere to run. The first practical problem is to admit a machine that can help realize its program. This Crèche can offer its browser as the first Host without making the browser part of Body identity.
 
@@ -55,7 +73,7 @@ Change the quoted text and Run again. The source, uppercase operation, and prese
 
 Composition gives Conduit replaceable semantic pieces. The surrounding intention can remain stable while one part changes, which is the first ingredient needed for the same program to survive different realizations.
 
-# Step 2 — Fan out explicitly
+# Fan out explicitly
 
 One value often needs to feed several branches. That becomes dangerous when those branches may eventually live on different finite machines: an implicit listener or hidden queue could accept one branch while silently losing or delaying another.
 

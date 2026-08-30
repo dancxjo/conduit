@@ -37,7 +37,6 @@ const BOOK_CHAPTER_THREE: &[u8] = include_bytes!("../../../../tour/book/chapter-
 const BOOK_CHAPTER_FOUR: &[u8] = include_bytes!("../../../../tour/book/chapter-4.md");
 const BOOK_CHAPTER_FIVE: &[u8] = include_bytes!("../../../../tour/book/chapter-5.md");
 const BOOK_CHAPTER_SIX: &[u8] = include_bytes!("../../../../tour/book/chapter-6.md");
-const BOOK_CHAPTER_SEVEN: &[u8] = include_bytes!("../../../../tour/book/chapter-7.md");
 const BOOK_CHAPTER_EIGHT: &[u8] = include_bytes!("../../../../tour/book/chapter-8.md");
 const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
@@ -230,9 +229,6 @@ impl BrowserHostServer {
             }
             Some("GET /book/chapter-6.md HTTP/1.1") => {
                 ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_SIX)
-            }
-            Some("GET /book/chapter-7.md HTTP/1.1") => {
-                ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_SEVEN)
             }
             Some("GET /book/chapter-8.md HTTP/1.1") => {
                 ("200 OK", "text/markdown; charset=utf-8", BOOK_CHAPTER_EIGHT)

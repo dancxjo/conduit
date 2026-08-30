@@ -48,9 +48,9 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("Step 0 births one named Morse Network Body before introducing machinery", async ({ page }) => {
+test("the first page births one named Morse Network Body before introducing machinery", async ({ page }) => {
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "Step 0 — Birth your Body" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Birth your Body" })).toBeVisible();
   await expect(page.locator(".masthead")).toContainText("crèche");
   await expect(page).toHaveTitle(/The Crèche$/);
   await expect(page.locator(".body-birth-runner")).toHaveCount(1);
@@ -68,7 +68,7 @@ test("Step 0 births one named Morse Network Body before introducing machinery", 
   expect(raw.body.events).toHaveLength(1);
 });
 
-test("Step 0 keeps the birth controls and source disclosure in one contained column", async ({ page }) => {
+test("birth keeps its controls and source disclosure in one contained column", async ({ page }) => {
   await openStep(page, 0);
   const runner = page.locator(".body-birth-runner");
   const boxes = await Promise.all([
@@ -89,11 +89,12 @@ test("Step 0 keeps the birth controls and source disclosure in one contained col
   expect(source.x + source.width).toBeLessThanOrEqual(editor.x + editor.width);
 });
 
-test("Steps 0 through 12 lead with human motivation and return to the Conduit payoff", async ({
+test("all guided pages lead with human motivation and return to the Conduit payoff", async ({
   page,
 }) => {
   const anchors = [
     "build one computer out of the computers you actually have",
+    "A successful deployment is only deployment",
     "useful programs will still evolve",
     "different finite machines",
     "vocabulary fragments",
@@ -105,7 +106,7 @@ test("Steps 0 through 12 lead with human motivation and return to the Conduit pa
     "Look what just happened",
     "replaceable answer to current circumstances",
     "durable computer Conduit is maintaining",
-    "A successful deployment is only deployment",
+    "described enduring meaning",
   ];
   await openStep(page, 0);
   for (let step = 0; step < anchors.length; step += 1) {
@@ -118,8 +119,8 @@ test("Steps 0 through 12 lead with human motivation and return to the Conduit pa
   }
 });
 
-test("Steps 1 through 3 add substitution, explicit fan-out, and one generic verb", async ({ page }) => {
-  await openStep(page, 1);
+test("the substitution, explicit fan-out, and generic-verb pages execute in order", async ({ page }) => {
+  await openStep(page, 2);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   let runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
@@ -127,14 +128,14 @@ test("Steps 1 through 3 add substitution, explicit fan-out, and one generic verb
   await expect(runner.locator(".play-status")).toContainText("Completed");
 
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Step 2 — Fan out explicitly" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fan out explicitly" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("true");
   await expect(runner.locator(".play-status")).toContainText("Completed");
 
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Step 3 — Use a generic verb" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Use a generic verb" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("3.000000");
@@ -142,8 +143,8 @@ test("Steps 1 through 3 add substitution, explicit fan-out, and one generic verb
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
-test("Steps 4 through 6 reveal a Back and compare two realizations deliberately", async ({ page }) => {
-  await openStep(page, 4);
+test("the Back pages compare two realizations deliberately", async ({ page }) => {
+  await openStep(page, 5);
   await expect(page.getByLabel("Morse realization")).toHaveCount(0);
   let runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
@@ -193,7 +194,7 @@ test("Steps 4 through 6 reveal a Back and compare two realizations deliberately"
 });
 
 test("Crèche navigation preserves drafts while reset and revisit change presentation only", async ({ page }) => {
-  await openStep(page, 1);
+  await openStep(page, 2);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   const edited = (await page.locator("textarea").inputValue()).replace('"hello"', '"reader"');
   await page.locator("textarea").fill(edited);
@@ -208,7 +209,7 @@ test("Crèche navigation preserves drafts while reset and revisit change present
 });
 
 test("unsupported capability and type mismatch remain ordinary pre-Play refusals", async ({ page }) => {
-  await openStep(page, 1);
+  await openStep(page, 2);
   const runner = page.locator(".runner");
   const listing = runner.locator("textarea");
   await listing.fill(`form unavailable {
@@ -234,9 +235,9 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
 });
 
-test("Step 7 presents startup and current count through four admitted browser ticks", async ({ page }) => {
-  await openStep(page, 7);
-  await expect(page.getByRole("heading", { name: "Step 7 — State over time" })).toBeVisible();
+test("state over time presents startup and current count through four admitted browser ticks", async ({ page }) => {
+  await openStep(page, 8);
+  await expect(page.getByRole("heading", { name: "State over time" })).toBeVisible();
   const runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
@@ -252,8 +253,8 @@ test("Step 7 presents startup and current count through four admitted browser ti
   await expect(runner.locator("details dd")).toHaveCount(12);
 });
 
-test("stopping Step 7 cancels the pending timer without a late completion", async ({ page }) => {
-  await openStep(page, 7);
+test("stopping state over time cancels the pending timer without a late completion", async ({ page }) => {
+  await openStep(page, 8);
   const runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
@@ -265,9 +266,9 @@ test("stopping Step 7 cancels the pending timer without a late completion", asyn
   await expect(runner.locator(".morse")).toHaveText("0");
 });
 
-test("Step 8 shows the exact installed offers from the planning advertisement", async ({ page }) => {
-  await openStep(page, 8);
-  await expect(page.getByRole("heading", { name: "Step 8 — Meet the Host" })).toBeVisible();
+test("Meet the Host shows the exact installed offers from the planning advertisement", async ({ page }) => {
+  await openStep(page, 9);
+  await expect(page.getByRole("heading", { name: "Meet the Host" })).toBeVisible();
   const inventory = page.locator(".gear-inventory");
   await expect(inventory).toHaveCount(1);
   const visibleInstalled = await inventory.locator("li.available code").allTextContents();
@@ -286,9 +287,9 @@ test("Step 8 shows the exact installed offers from the planning advertisement", 
   ]));
 });
 
-test("Step 9 executes one unchanged Form across two independent browser Hosts", async ({ page }) => {
-  await openStep(page, 9);
-  await expect(page.getByRole("heading", { name: "Step 9 — Two browser Hosts" })).toBeVisible();
+test("Two browser Hosts executes one unchanged Form across independent Hosts", async ({ page }) => {
+  await openStep(page, 10);
+  await expect(page.getByRole("heading", { name: "Two browser Hosts" })).toBeVisible();
   const runner = page.locator(".multi-host-runner");
   const source = await runner.locator("textarea").inputValue();
   expect(source).not.toMatch(/HostId|BootId|browser\/|iframe|DOM|socket|address/);
@@ -311,9 +312,9 @@ test("Step 9 executes one unchanged Form across two independent browser Hosts", 
   await expect(runner.locator(".play-status")).toHaveAttribute("data-sink-receipt", /.+/);
 });
 
-test("Step 10 compact and raw views project the same exact immutable Plan", async ({ page }) => {
-  await openStep(page, 10);
-  await expect(page.getByRole("heading", { name: "Step 10 — Plans and Plays" })).toBeVisible();
+test("Plans and Plays compact and raw views project the same exact immutable Plan", async ({ page }) => {
+  await openStep(page, 11);
+  await expect(page.getByRole("heading", { name: "Plans and Plays" })).toBeVisible();
   const runner = page.locator(".multi-host-runner");
   await expect(runner.locator(".plan-view-details")).toHaveAttribute("open", "");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
@@ -328,9 +329,9 @@ test("Step 10 compact and raw views project the same exact immutable Plan", asyn
   await expect(runner.locator(".projected-hosts")).toContainText("presentation/text");
 });
 
-test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host", async ({ page }) => {
+test("birth explicitly creates one LULLED Body and Change one Gear admits its first browser Host", async ({ page }) => {
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "Step 0 — Birth your Body" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Birth your Body" })).toBeVisible();
   let runner = page.locator(".body-birth-runner");
   const source = await runner.locator("textarea").inputValue();
   expect(source).not.toMatch(/HostId|BootId|browser\/|DOM|socket|address|Wake|Plan|Play/);
@@ -354,6 +355,8 @@ test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host"
   expect(raw.membership.events).toHaveLength(0);
 
   await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
+  await page.getByRole("button", { name: "Next" }).click();
   await expect(page.locator(".creche-body-context")).toContainText(identity.bodyId);
   const firstHost = page.locator(".first-host-runner");
   await firstHost.getByRole("button", { name: "Give this Body its first Host" }).click();
@@ -369,6 +372,8 @@ test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host"
     await expect(runner.getByRole("button", { name: "Birth Body" })).toBeDisabled();
   };
   await page.getByRole("button", { name: "Previous" }).click();
+  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
+  await page.getByRole("button", { name: "Previous" }).click();
   await expectSameBody();
   await page.getByRole("button", { name: "Reset this page" }).click();
   await expectSameBody();
@@ -377,7 +382,7 @@ test("Step 0 explicitly births one LULLED Body and Step 1 admits its first Host"
   await expectSameBody();
 });
 
-test("Step 12 keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {
+test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {
   await installB7Devices(page);
   await openStep(page, 0);
   await page.getByRole("button", { name: "Birth Body" }).click();
@@ -385,8 +390,8 @@ test("Step 12 keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and 
     bodyId: element.dataset.bodyId,
     birthSignId: element.dataset.birthSignId,
   }));
-  for (let step = 0; step < 12; step += 1) await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Step 12 — Add a physical Host" })).toBeVisible();
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "Add a physical Host" })).toBeVisible();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -434,7 +439,7 @@ test("Step 12 keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and 
   expect(birth.birthSignId).toHaveLength(64);
 });
 
-test("Step 12 retains a refused WebUSB acquisition as terminal", async ({ page }) => {
+test("Add a physical Host retains a refused WebUSB acquisition as terminal", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "usb", {
       configurable: true,
@@ -448,7 +453,7 @@ test("Step 12 retains a refused WebUSB acquisition as terminal", async ({ page }
   });
   await openStep(page, 0);
   await page.getByRole("button", { name: "Birth Body" }).click();
-  for (let step = 0; step < 12; step += 1) await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -463,11 +468,11 @@ test("Step 12 retains a refused WebUSB acquisition as terminal", async ({ page }
   await expect(deploy).toBeDisabled();
 });
 
-test("Step 12 retains the exact Picoboot refusal chain", async ({ page }) => {
+test("Add a physical Host retains the exact Picoboot refusal chain", async ({ page }) => {
   await installB7Devices(page, { staleStatus: true });
   await openStep(page, 0);
   await page.getByRole("button", { name: "Birth Body" }).click();
-  for (let step = 0; step < 12; step += 1) await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator("input[type=file]").setInputFiles({
     name: "reviewed-pico-local.uf2",
@@ -489,15 +494,16 @@ test("Step 12 retains the exact Picoboot refusal chain", async ({ page }) => {
   await expect(runner.locator(".physical-status")).toContainText("StaleStatus");
 });
 
-test("Step 13 graduates the same Body through an ordinary hosted Patchbay Plan", async ({ page }) => {
+test("graduation retains the same Body through an ordinary hosted Patchbay Plan", async ({ page }) => {
   await openStep(page, 0);
   const birth = page.locator(".body-birth-runner");
   await birth.getByRole("button", { name: "Birth Body" }).click();
   const bodyId = await birth.getAttribute("data-body-id");
   await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  for (let step = 1; step < 13; step += 1) await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Step 13 — Graduate from the Crèche" })).toBeVisible();
+  for (let pageIndex = 2; pageIndex < 13; pageIndex += 1) await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "Graduate from the Crèche" })).toBeVisible();
   const runner = page.locator(".graduation-runner");
   await expect(runner.locator(".graduation-criteria li.ready")).toHaveCount(3);
   await runner.getByRole("button", { name: "Host Patchbay on this Body" }).click();
@@ -518,14 +524,15 @@ test("Step 13 graduates the same Body through an ordinary hosted Patchbay Plan",
   expect(retained.graduation.patchbay_plan_id).toMatch(/^[0-9a-f]{64}$/);
 });
 
-test("Step 13 can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {
+test("graduation can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {
   await openStep(page, 0);
   const birth = page.locator(".body-birth-runner");
   await birth.getByRole("button", { name: "Birth Body" }).click();
   const bodyId = await birth.getAttribute("data-body-id");
   await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  for (let step = 1; step < 13; step += 1) await page.getByRole("button", { name: "Next" }).click();
+  for (let pageIndex = 2; pageIndex < 13; pageIndex += 1) await page.getByRole("button", { name: "Next" }).click();
   const runner = page.locator(".graduation-runner");
   await runner.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
@@ -547,7 +554,7 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
       for (const callback of callbacks.splice(0)) callback(performance.now());
     };
   });
-  await openStep(page, 9);
+  await openStep(page, 10);
   const runner = page.locator(".multi-host-runner");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator(".play-status")).toContainText("Host A offered one value");

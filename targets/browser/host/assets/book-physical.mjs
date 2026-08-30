@@ -70,7 +70,7 @@ async function selectImage(runner, state, file) {
 function prepare(runner, host, state) {
   try {
     const current = currentBody(host.runtime);
-    if (!current) throw new Error("Birth the Body in Step 11 before preparing a physical Host");
+    if (!current) throw new Error("Birth the Body before preparing a physical Host");
     if (!state.imageBytes || !state.imageDigest) throw new Error("select one exact UF2 first");
     const entropy = crypto.getRandomValues(new Uint8Array(32));
     const digest = encoder.encode(state.imageDigest);
