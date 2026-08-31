@@ -31,13 +31,16 @@ use conduit_signal::{
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
+#[cfg(feature = "book-surface")]
 mod book_runner;
 pub mod browser_pointer;
+#[cfg(feature = "creche-surface")]
 mod creche;
 mod device_base;
 mod distributed;
 mod distributed_toggle;
 pub mod human_media;
+#[cfg_attr(not(feature = "book-surface"), allow(unused_imports, dead_code))]
 mod installed_browser;
 pub mod membership;
 mod membership_abi;

@@ -1,11 +1,11 @@
-import { createBrowserDeviceBase } from "../device-base.mjs";
-import { createBrowserUsbDeviceBase } from "../usb-device-base.mjs";
+import { createBrowserDeviceBase } from "./device-base.mjs";
+import { createBrowserUsbDeviceBase } from "./usb-device-base.mjs";
 import {
   createRp2040BrowserDeploymentAdapter,
   createRp2040BrowserFabricationAdapter,
   requestRp2040SpawnJoin,
   RP2040_BROWSER_DEPLOYMENT,
-} from "../targets/rp2040/browser-deployment/index.mjs";
+} from "./targets/rp2040/browser-deployment/index.mjs";
 
 const PACKAGED_MANIFEST_PATH = "./artifacts/pico-w-signal-pico-local.json";
 const BUILD_ID = "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local";

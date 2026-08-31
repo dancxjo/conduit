@@ -12,7 +12,7 @@ fn main() -> Result<(), String> {
                 "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
             )
         });
-    let server = server::BrowserHostServer::bind(&runtime_path)?;
+    let server = server::BrowserHostServer::bind(&runtime_path, entrance.surface.into())?;
     let url = match entrance.surface {
         Surface::Host => server.url()?,
         Surface::Book => server.book_url()?,
@@ -36,6 +36,16 @@ enum Surface {
     Host,
     Book,
     Creche,
+}
+
+impl From<Surface> for server::ProductSurface {
+    fn from(value: Surface) -> Self {
+        match value {
+            Surface::Host => Self::Host,
+            Surface::Book => Self::Book,
+            Surface::Creche => Self::Creche,
+        }
+    }
 }
 
 fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Entrance, String> {

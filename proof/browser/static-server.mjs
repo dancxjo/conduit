@@ -3,15 +3,18 @@ import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 
-const root = resolve(".");
+const root = resolve(process.argv[3] ?? ".");
 const port = Number.parseInt(process.argv[2] ?? "4173", 10);
 const mediaTypes = new Map([
+  [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
+  [".md", "text/markdown; charset=utf-8"],
   [".mjs", "text/javascript; charset=utf-8"],
+  [".wasm", "application/wasm"],
 ]);
 
-if (!Number.isSafeInteger(port) || port <= 0 || port > 65_535) {
+if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {
   throw new Error("invalid browser-host test port");
 }
 
@@ -39,7 +42,12 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, "127.0.0.1");
+server.listen(port, "127.0.0.1", () => {
+  const address = server.address();
+  if (typeof address === "object" && address) {
+    process.stdout.write(`CONDUIT_STATIC_SERVER_URL=http://127.0.0.1:${address.port}/\n`);
+  }
+});
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => server.close(() => process.exit(0)));
 }

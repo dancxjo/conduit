@@ -1,6 +1,6 @@
 # Bodies begin somewhere
 
-Conduit lets you build one computer out of the computers you actually have. The devices can be unlike, constrained, replaced, or temporarily unavailable while the intended computer continues.
+Conduit lets you build one computer out of the computers you actually have. The devices can be unlike, constrained, replaced, or temporarily unavailable while the _intended_ computer continues.
 
 We call that durable computer a **Body**. A Body has durable identity distinct from a friendly name, its current program, and the machines currently helping realize it.
 

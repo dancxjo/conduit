@@ -7,6 +7,7 @@ let entrance;
 async function startBook() {
   const child = spawn("target/debug/conduit-browser-host", ["--book", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
+    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_book_runtime.wasm" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
@@ -36,6 +37,7 @@ async function startBook() {
 async function startCreche() {
   const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
+    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_creche_runtime.wasm" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
@@ -49,6 +51,26 @@ async function startCreche() {
     child.stdout.on("data", inspect);
     child.stderr.on("data", inspect);
     child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
+  });
+  return { child, url };
+}
+
+async function startStaticProduct(root) {
+  const child = spawn("node", ["proof/browser/static-server.mjs", "0", root], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const url = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`staged product was not ready\n${output}`)), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const match = output.match(/CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/)/);
+      if (match) { clearTimeout(timeout); resolve(match[1]); }
+    };
+    child.stdout.on("data", inspect);
+    child.stderr.on("data", inspect);
+    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`staged product exited (${code})\n${output}`)); });
   });
   return { child, url };
 }
@@ -95,16 +117,64 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
+test("the staged Book and Crèche each boot with only their own product tree", async ({ page }) => {
+  const book = await startStaticProduct("target/book-product");
+  try {
+    await page.goto(`${book.url}index.html`);
+    await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+    const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
+    expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
+    expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
+  } finally {
+    book.child.kill();
+  }
+
+  const creche = await startStaticProduct("target/creche-product");
+  try {
+    await page.goto(`${creche.url}index.html`);
+    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    const exports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
+    expect(exports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
+    expect((await page.request.get(`${creche.url}chapter-1.md`)).status()).toBe(404);
+  } finally {
+    creche.child.kill();
+  }
+});
+
+test("the Book renders Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
+  await page.route("**/book/chapter-1.md", (route) => route.fulfill({
+    contentType: "text/markdown; charset=utf-8",
+    body: "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>",
+  }));
+  await openStep(page, 0);
+  await expect(page.locator("em")).toHaveText(["asterisk", "underscore"]);
+  await expect(page.locator("strong")).toHaveText(["strong asterisk", "strong underscore"]);
+  await expect(page.locator("#chapter")).not.toContainText("*asterisk*");
+  await expect(page.locator("#chapter")).not.toContainText("_underscore_");
+  await expect(page.locator("#chapter img")).toHaveCount(0);
+  await expect(page.locator("#chapter")).toContainText("<img src=x onerror=globalThis.__rawHtmlRan=true>");
+  expect(await page.evaluate(() => globalThis.__rawHtmlRan)).toBeUndefined();
+});
+
 test("the Book opens as readable documentation and hands birth to the independent Crèche", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));
   await openStep(page, 0);
   await expect(page.getByRole("heading", { name: "Bodies begin somewhere" })).toBeVisible();
   await expect(page).toHaveTitle(/The Book$/);
+  await expect(page.locator('.chapter-copy em', { hasText: "intended" })).toHaveCount(1);
+  await expect(page.locator('.chapter-copy strong', { hasText: /^Body$/ })).toHaveCount(1);
+  await expect(page.locator("#chapter")).not.toContainText("_intended_");
+  await expect(page.locator("#chapter")).not.toContainText("**Body**");
   await expect(page.locator(".body-birth-runner, .first-host-runner, .physical-host-runner, .graduation-runner")).toHaveCount(0);
   await expect(page.locator(".gear-inventory")).toHaveCount(0);
   const handoff = page.getByRole("link", { name: "Birth a Body" });
   await expect(handoff).toHaveAttribute("href", "../creche/");
+  await expect(page.locator('meta[name="conduit-creche-url"]')).toHaveAttribute("content", "../creche/");
+  const bookRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
+  expect(bookRuntimeExports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
+  expect((await page.request.get(new URL("/creche/", entrance.url).href)).status()).toBe(404);
+  expect((await page.request.get(new URL("/book/creche-lifecycle.mjs", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.includes("creche-lifecycle") || path.includes("creche-physical") || path.includes("creche-graduation"))).toBe(false);
   await page.reload();
   await expect(page.getByRole("heading", { name: "Bodies begin somewhere" })).toBeVisible();
@@ -138,6 +208,9 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   });
   expect(durable.body_id).toBe(bodyId);
   expect(durable.schema).toBe("conduit.body/biography-evidence@1");
+  const crecheRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
+  expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
+  expect((await page.request.get(new URL("/book/", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.startsWith("/book/") || path.includes("chapter-"))).toBe(false);
 });
 

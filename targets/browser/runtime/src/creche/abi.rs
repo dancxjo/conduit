@@ -2,6 +2,13 @@ use super::{session, spore};
 use crate::source_interaction::SourceInteractionEvidence;
 use std::cell::RefCell;
 
+#[derive(serde::Serialize)]
+struct CrecheRefusal {
+    schema: &'static str,
+    disposition: &'static str,
+    message: String,
+}
+
 const INPUT_BYTES: usize = 8 * 1_024;
 const OUTPUT_BYTES: usize = 32 * 1_024;
 const STATUS_READY: i32 = 0;
@@ -287,7 +294,13 @@ pub extern "C" fn conduit_creche_admit_physical_spore(length: usize) -> i32 {
 }
 
 fn refuse(message: String, code: i32) -> i32 {
-    if write_output(&crate::book_runner::refusal(message)).is_err() {
+    if write_output(&CrecheRefusal {
+        schema: "conduit.creche/refusal@1",
+        disposition: "refused-before-lifecycle-change",
+        message,
+    })
+    .is_err()
+    {
         ERROR_OUTPUT
     } else {
         code
