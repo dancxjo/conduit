@@ -286,68 +286,170 @@ test("the same Crèche lifecycle consumes packaged and template-specialized fabr
   expect(packaged.binding.body_id).not.toBe(specialized.binding.body_id);
 });
 
-test("the physical workflow is target-neutral while its injected adapter distinguishes all intentions", async ({ page }) => {
+test("the physical workflow renders one adapter-owned catalog without learning target mechanics", async ({ page }) => {
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
 
   const source = await (await page.request.get(new URL("./creche-physical.mjs", entrance.url).href)).text();
+  const catalogSource = await (await page.request.get(new URL("./creche-target-catalog.mjs", entrance.url).href)).text();
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
+  expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target")).toHaveText("Raspberry Pi Pico W · RP2040");
+  await expect(runner.locator(".physical-target optgroup")).toHaveCount(1);
+  await expect(runner.locator(".physical-target optgroup")).toHaveAttribute("label", "RP2040 boards");
+  await expect(runner.locator(".physical-target option")).toHaveText("Raspberry Pi Pico W · RP2040");
+  await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
+
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.catalog).toMatchObject({
+    schema: "conduit.creche/physical-host-target-catalog@1",
+    generation: 1,
+  });
+  expect(evidence.target_entry).toMatchObject({
+    family: { id: "conduit-target-family/rp2040@1", label: "RP2040 boards" },
+    target: {
+      id: "conduitos/thumbv6m/pico-w",
+      model_id: "raspberry-pi/pico-w@1",
+      profile_id: "pico-local",
+    },
+    expected_join_contract: "conduit.rp2040/browser-spawn-observation@1",
+  });
+  expect(evidence.target_entry.fabrication_strategies.map(({ id }) => id)).toEqual([
+    "packaged-exact",
+    "template-specialized",
+  ]);
+  expect(evidence.target_entry.intentions).toEqual([
+    { id: "fabricate-new", resultKind: "artifact", supported: true },
+    { id: "install-existing", resultKind: "installation", supported: false },
+    { id: "attach-running", resultKind: "attachment", supported: false },
+  ]);
+  expect(evidence.target_entry.carriers).toMatchObject({
+    deployment: [{ id: "conduit-carrier/browser-picoboot@1" }],
+    installation: [],
+    attachment: [],
+    observation: [{ id: "conduit-carrier/browser-serial-spawn@1" }],
+  });
+  expect(evidence.target_entry.bounds).toMatchObject({
+    maximumOperations: 16,
+    maximumOperationEvidenceBytes: 32768,
+    maximumRetainedEvidenceBytes: 131072,
+  });
 
   await runner.locator(".physical-mode").selectOption("install-existing");
-  await expect(runner.locator("details code")).toContainText('"terminal": "InstallExistingUnsupported"');
-  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
+  evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.intention).toMatchObject({ mode: "install-existing", result_kind: "installation", supported: false });
-  expect(evidence.terminal.target_evidence).toMatchObject({ mode: "install-existing", result_kind: "installation" });
+  expect(evidence.terminal).toMatchObject({
+    mode: "install-existing",
+    result_kind: "installation",
+    authority_requested: false,
+    artifact_work_started: false,
+  });
+  expect(evidence.admitted_operations).toBe(1);
 
   await runner.locator(".physical-mode").selectOption("attach-running");
-  await expect(runner.locator("details code")).toContainText('"terminal": "AttachRunningUnsupported"');
+  await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.intention).toMatchObject({ mode: "attach-running", result_kind: "attachment", supported: false });
-  expect(evidence.terminal.target_evidence).toMatchObject({ mode: "attach-running", result_kind: "attachment" });
+  expect(evidence.terminal).toMatchObject({ authority_requested: false, artifact_work_started: false });
+  expect(evidence.admitted_operations).toBe(1);
 });
 
-test("the physical workflow rejects unbounded adapters and cancels one active operation without late truth", async ({ page }) => {
+test("the physical target catalog refuses stale, duplicate, overflowing, and incompatible contributions", async ({ page }) => {
   await birthStandaloneBody(page);
-  const contractRefusal = await page.evaluate(async () => {
-    const { createPhysicalHostRunner } = await import("./creche-physical.mjs");
-    const invalid = {
-      schema: "conduit.creche/physical-host-target-adapter@1",
-      target: { id: "fixture/too-large", label: "Invalid fixture" },
-      modes: [
-        { id: "fabricate-new", resultKind: "artifact", supported: true },
-        { id: "install-existing", resultKind: "installation", supported: true },
-        { id: "attach-running", resultKind: "attachment", supported: true },
-      ],
-      bounds: { maximumOperations: 17, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096 },
-      createOptions() { return null; },
-      async obtain() {}, async bind() {}, async realize() {}, async observe() {}, async cancel() {},
-    };
-    try {
-      createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetAdapter: invalid });
-      return null;
-    } catch (error) {
-      return error.message;
-    }
-  });
-  expect(contractRefusal).toBe("physical Host target adapter bounds are missing or exceed the workflow maxima");
-
-  await page.evaluate(async () => {
-    const { createPhysicalHostRunner } = await import("./creche-physical.mjs");
-    let release;
-    globalThis.__fixtureCancelCount = 0;
-    const adapter = {
-      schema: "conduit.creche/physical-host-target-adapter@1",
-      target: { id: "fixture/cancellable", label: "Cancellable fixture" },
-      modes: [
+  const refusals = await page.evaluate(async () => {
+    const { createPhysicalHostTargetCatalog } = await import("./creche-target-catalog.mjs");
+    const entry = (suffix = "one", factory = null) => {
+      const target = {
+        id: `fixture/target-${suffix}`,
+        label: `Fixture ${suffix}`,
+        model_id: `fixture/model-${suffix}`,
+        profile_id: `fixture/profile-${suffix}`,
+      };
+      const modes = [
         { id: "fabricate-new", resultKind: "artifact", supported: true },
         { id: "install-existing", resultKind: "installation", supported: false },
         { id: "attach-running", resultKind: "attachment", supported: false },
-      ],
-      bounds: { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096 },
+      ];
+      const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096 };
+      const adapter = {
+        schema: "conduit.creche/physical-host-target-adapter@1",
+        target,
+        modes,
+        bounds,
+        createOptions() { return null; },
+        async obtain() {}, async bind() {}, async realize() {}, async observe() {}, async cancel() {},
+      };
+      return {
+        schema: "conduit.creche/physical-host-target-entry@1",
+        family: { id: "fixture/family", label: "Fixture family" },
+        target,
+        intentions: modes,
+        fabrication_strategies: [{ id: "fixture/strategy", label: "Fixture strategy" }],
+        carriers: { deployment: [], installation: [], attachment: [], observation: [] },
+        bounds,
+        expected_join_contract: "fixture/join@1",
+        createAdapter: factory ?? (() => adapter),
+      };
+    };
+    const evidence = {};
+    for (const [name, create] of Object.entries({
+      stale: () => createPhysicalHostTargetCatalog({ generation: 2, minimumGeneration: 2, contributions: [entry()] }),
+      duplicate: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry(), entry()] }),
+      overflow: () => createPhysicalHostTargetCatalog({
+        generation: 2,
+        bounds: { maximumEntries: 1 },
+        contributions: [entry("one"), entry("two")],
+      }),
+      incompatible: () => {
+        const catalog = createPhysicalHostTargetCatalog({
+          generation: 2,
+          contributions: [entry("one", () => ({
+            schema: "conduit.creche/physical-host-target-adapter@1",
+            target: { id: "fixture/wrong", label: "Wrong", model_id: "wrong", profile_id: "wrong" },
+            modes: [], bounds: {},
+            createOptions() {}, obtain() {}, bind() {}, realize() {}, observe() {}, cancel() {},
+          }))],
+        });
+        catalog.createAdapter({ targetId: "fixture/target-one", host: globalThis.__conduitCrecheHost });
+      },
+    })) {
+      try { create(); } catch (error) { evidence[name] = error.evidence; }
+    }
+    return evidence;
+  });
+  expect(refusals.stale).toMatchObject({ terminal: "StaleCatalogGeneration", catalog_generation: 2 });
+  expect(refusals.duplicate).toMatchObject({ terminal: "DuplicateIdentity", target_id: "fixture/target-one" });
+  expect(refusals.overflow).toMatchObject({ terminal: "CatalogBound", entries: 2, maximum_entries: 1 });
+  expect(refusals.incompatible).toMatchObject({ terminal: "IncompatibleAdapter", target_id: "fixture/target-one" });
+});
+
+test("the physical workflow cancels one bounded catalog operation without accepting late truth", async ({ page }) => {
+  await birthStandaloneBody(page);
+  await page.evaluate(async () => {
+    const { createPhysicalHostRunner } = await import("./creche-physical.mjs");
+    const { createPhysicalHostTargetCatalog } = await import("./creche-target-catalog.mjs");
+    let release;
+    globalThis.__fixtureCancelCount = 0;
+    const target = {
+      id: "fixture/cancellable",
+      label: "Cancellable fixture",
+      model_id: "fixture/cancellable-model",
+      profile_id: "fixture/cancellable-profile",
+    };
+    const modes = [
+      { id: "fabricate-new", resultKind: "artifact", supported: true },
+      { id: "install-existing", resultKind: "installation", supported: false },
+      { id: "attach-running", resultKind: "attachment", supported: false },
+    ];
+    const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096 };
+    const adapter = {
+      schema: "conduit.creche/physical-host-target-adapter@1",
+      target,
+      modes,
+      bounds,
       createOptions() { return null; },
       obtain() {
         return new Promise((resolve) => {
@@ -360,7 +462,19 @@ test("the physical workflow rejects unbounded adapters and cancels one active op
       async bind() {}, async realize() {}, async observe() {},
       async cancel() { globalThis.__fixtureCancelCount += 1; },
     };
-    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetAdapter: adapter });
+    const contribution = {
+      schema: "conduit.creche/physical-host-target-entry@1",
+      family: { id: "fixture/family", label: "Fixture family" },
+      target,
+      intentions: modes,
+      fabrication_strategies: [{ id: "fixture/strategy", label: "Fixture strategy" }],
+      carriers: { deployment: [], installation: [], attachment: [], observation: [] },
+      bounds,
+      expected_join_contract: "fixture/join@1",
+      createAdapter: () => adapter,
+    };
+    const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
+    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetCatalog });
     runner.dataset.fixture = "cancellation";
     document.querySelector("#workspace").append(runner);
     globalThis.__releaseFixtureObtainment = release;
@@ -378,15 +492,24 @@ test("the physical workflow rejects unbounded adapters and cancels one active op
 
   await page.evaluate(async () => {
     const { createPhysicalHostRunner } = await import("./creche-physical.mjs");
+    const { createPhysicalHostTargetCatalog } = await import("./creche-target-catalog.mjs");
+    const target = {
+      id: "fixture/evidence-bound",
+      label: "Evidence-bound fixture",
+      model_id: "fixture/evidence-bound-model",
+      profile_id: "fixture/evidence-bound-profile",
+    };
+    const modes = [
+      { id: "fabricate-new", resultKind: "artifact", supported: true },
+      { id: "install-existing", resultKind: "installation", supported: false },
+      { id: "attach-running", resultKind: "attachment", supported: false },
+    ];
+    const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 512, maximumRetainedEvidenceBytes: 4096 };
     const adapter = {
       schema: "conduit.creche/physical-host-target-adapter@1",
-      target: { id: "fixture/evidence-bound", label: "Evidence-bound fixture" },
-      modes: [
-        { id: "fabricate-new", resultKind: "artifact", supported: true },
-        { id: "install-existing", resultKind: "installation", supported: false },
-        { id: "attach-running", resultKind: "attachment", supported: false },
-      ],
-      bounds: { maximumOperations: 5, maximumOperationEvidenceBytes: 512, maximumRetainedEvidenceBytes: 4096 },
+      target,
+      modes,
+      bounds,
       createOptions() { return null; },
       async obtain() {
         return {
@@ -396,7 +519,19 @@ test("the physical workflow rejects unbounded adapters and cancels one active op
       },
       async bind() {}, async realize() {}, async observe() {}, async cancel() {},
     };
-    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetAdapter: adapter });
+    const contribution = {
+      schema: "conduit.creche/physical-host-target-entry@1",
+      family: { id: "fixture/family", label: "Fixture family" },
+      target,
+      intentions: modes,
+      fabrication_strategies: [{ id: "fixture/strategy", label: "Fixture strategy" }],
+      carriers: { deployment: [], installation: [], attachment: [], observation: [] },
+      bounds,
+      expected_join_contract: "fixture/join@1",
+      createAdapter: () => adapter,
+    };
+    const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
+    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetCatalog });
     runner.dataset.fixture = "evidence-bound";
     document.querySelector("#workspace").append(runner);
   });

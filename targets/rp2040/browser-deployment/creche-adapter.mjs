@@ -10,6 +10,47 @@ const PACKAGED_MANIFEST_PATH = "./artifacts/pico-w-signal-pico-local.json";
 const BUILD_ID = "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const TARGET = Object.freeze({
+  id: TARGET_ID,
+  label: "Raspberry Pi Pico W · RP2040",
+  model_id: "raspberry-pi/pico-w@1",
+  profile_id: "pico-local",
+});
+const MODES = Object.freeze([
+  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
+  Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
+  Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
+]);
+const BOUNDS = Object.freeze({
+  maximumOperations: 16,
+  maximumOperationEvidenceBytes: 32 * 1024,
+  maximumRetainedEvidenceBytes: 128 * 1024,
+  maximumArtifactBytes: RP2040_BROWSER_FABRICATION.maximumArtifactBytes,
+});
+
+export const RP2040_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
+  schema: "conduit.creche/physical-host-target-entry@1",
+  family: Object.freeze({ id: "conduit-target-family/rp2040@1", label: "RP2040 boards" }),
+  target: TARGET,
+  intentions: MODES,
+  fabrication_strategies: Object.freeze([
+    Object.freeze({ id: "packaged-exact", label: "Reviewed packaged IMAGE" }),
+    Object.freeze({ id: "template-specialized", label: "Reviewed template + bounded Body label" }),
+  ]),
+  carriers: Object.freeze({
+    deployment: Object.freeze([
+      Object.freeze({ id: "conduit-carrier/browser-picoboot@1", label: "Browser-attended Picoboot deployment" }),
+    ]),
+    installation: Object.freeze([]),
+    attachment: Object.freeze([]),
+    observation: Object.freeze([
+      Object.freeze({ id: "conduit-carrier/browser-serial-spawn@1", label: "Browser-attended spawn observation" }),
+    ]),
+  }),
+  bounds: BOUNDS,
+  expected_join_contract: "conduit.rp2040/browser-spawn-observation@1",
+  createAdapter: createRp2040CrecheTargetAdapter,
+});
 
 export function createRp2040CrecheTargetAdapter({ host }) {
   let strategy = "packaged-exact";
@@ -18,18 +59,9 @@ export function createRp2040CrecheTargetAdapter({ host }) {
 
   const descriptor = Object.freeze({
     schema: ADAPTER_SCHEMA,
-    target: Object.freeze({ id: TARGET_ID, label: "Raspberry Pi Pico W · RP2040" }),
-    modes: Object.freeze([
-      Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
-      Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
-      Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
-    ]),
-    bounds: Object.freeze({
-      maximumOperations: 16,
-      maximumOperationEvidenceBytes: 32 * 1024,
-      maximumRetainedEvidenceBytes: 128 * 1024,
-      maximumArtifactBytes: RP2040_BROWSER_FABRICATION.maximumArtifactBytes,
-    }),
+    target: TARGET,
+    modes: MODES,
+    bounds: BOUNDS,
   });
 
   function createOptions({ mode, onChange }) {

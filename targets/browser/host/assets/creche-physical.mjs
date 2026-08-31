@@ -1,20 +1,13 @@
-const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
+import { PHYSICAL_HOST_INTENTIONS } from "./creche-target-catalog.mjs";
+
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
-const MAXIMUM_OPERATIONS = 16;
-const MAXIMUM_OPERATION_EVIDENCE_BYTES = 32 * 1024;
-const MAXIMUM_RETAINED_EVIDENCE_BYTES = 128 * 1024;
+const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-const INTENTIONS = Object.freeze([
-  Object.freeze({ id: "fabricate-new", label: "Fabricate new machinery", resultKind: "artifact" }),
-  Object.freeze({ id: "install-existing", label: "Install on an existing computer", resultKind: "installation" }),
-  Object.freeze({ id: "attach-running", label: "Attach an already running Host", resultKind: "attachment" }),
-]);
-
-export function createPhysicalHostRunner({ host, targetAdapter }) {
-  const adapter = requireTargetAdapter(targetAdapter);
+export function createPhysicalHostRunner({ host, targetCatalog }) {
+  const catalog = requireTargetCatalog(targetCatalog);
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
   runner.innerHTML = `
@@ -29,7 +22,9 @@ export function createPhysicalHostRunner({ host, targetAdapter }) {
       <label>Intention
         <span class="select-field"><select class="physical-mode"></select></span>
       </label>
-      <label>Target <output class="physical-target"></output></label>
+      <label>Target
+        <span class="select-field"><select class="physical-target"></select></span>
+      </label>
       <div class="target-options"></div>
     </div>
     <div class="physical-actions">
@@ -43,18 +38,25 @@ export function createPhysicalHostRunner({ host, targetAdapter }) {
     <details><summary>Exact physical-Host evidence</summary><pre><code></code></pre></details>`;
 
   const modeControl = runner.querySelector(".physical-mode");
-  for (const intention of INTENTIONS) {
-    const support = adapter.modes.find((mode) => mode.id === intention.id);
-    const option = document.createElement("option");
-    option.value = intention.id;
-    option.textContent = `${intention.label}${support.supported ? "" : " · unavailable for this target"}`;
-    modeControl.append(option);
+  const targetControl = runner.querySelector(".physical-target");
+  for (const family of catalog.families) {
+    const heading = document.createElement("optgroup");
+    heading.label = family.label;
+    heading.dataset.familyId = family.id;
+    for (const entry of family.entries) {
+      const option = document.createElement("option");
+      option.value = entry.target.id;
+      option.textContent = entry.target.label;
+      heading.append(option);
+    }
+    targetControl.append(heading);
   }
-  runner.querySelector(".physical-target").textContent = adapter.target.label;
 
   const state = {
-    adapter,
-    mode: INTENTIONS[0].id,
+    catalog,
+    entry: null,
+    adapter: null,
+    mode: PHYSICAL_HOST_INTENTIONS[0].id,
     generation: 0,
     admittedOperations: 0,
     cancellations: 0,
@@ -69,39 +71,45 @@ export function createPhysicalHostRunner({ host, targetAdapter }) {
   };
 
   modeControl.addEventListener("change", () => selectMode(runner, host, state, modeControl.value));
+  targetControl.addEventListener("change", () => selectTarget(runner, host, state, targetControl.value));
   runner.querySelector(".bind").addEventListener("click", () => bindInvitation(runner, host, state));
   runner.querySelector(".realize").addEventListener("click", () => realizeHost(runner, host, state));
   runner.querySelector(".observe").addEventListener("click", () => observeJoin(runner, host, state));
   runner.querySelector(".admit").addEventListener("click", () => admitPart(runner, host, state));
   runner.querySelector(".cancel").addEventListener("click", () => cancelActive(runner, state, true));
-  selectMode(runner, host, state, state.mode);
+  selectTarget(runner, host, state, catalog.entries[0].target.id);
   return runner;
 }
 
-function requireTargetAdapter(adapter) {
-  const methods = ["createOptions", "obtain", "bind", "realize", "observe", "cancel"];
-  if (!adapter || adapter.schema !== ADAPTER_SCHEMA || methods.some((name) => typeof adapter[name] !== "function")) {
-    throw new TypeError("physical Host target adapter contract is incomplete");
+function requireTargetCatalog(catalog) {
+  if (!catalog || catalog.schema !== "conduit.creche/physical-host-target-catalog@1"
+    || !Number.isSafeInteger(catalog.generation) || catalog.generation <= 0
+    || !Array.isArray(catalog.entries) || catalog.entries.length === 0
+    || !Array.isArray(catalog.families) || catalog.families.length === 0
+    || typeof catalog.createAdapter !== "function") {
+    throw new TypeError("physical Host target catalog contract is incomplete");
   }
-  if (!adapter.target || !boundedText(adapter.target.id, 256) || !boundedText(adapter.target.label, 128)) {
-    throw new TypeError("physical Host target identity is missing or outside its finite bound");
+  return catalog;
+}
+
+function selectTarget(runner, host, state, targetId) {
+  cancelActive(runner, state, false);
+  const entry = state.catalog.entries.find((candidate) => candidate.target.id === targetId);
+  if (!entry) throw new TypeError("physical Host target is absent from the current catalog generation");
+  state.entry = entry;
+  state.adapter = null;
+  runner.querySelector(".physical-target").value = targetId;
+  const modeControl = runner.querySelector(".physical-mode");
+  modeControl.replaceChildren();
+  for (const intention of PHYSICAL_HOST_INTENTIONS) {
+    const support = entry.intentions.find((mode) => mode.id === intention.id);
+    const option = document.createElement("option");
+    option.value = intention.id;
+    option.textContent = `${intention.label}${support.supported ? "" : " · unavailable for this target"}`;
+    modeControl.append(option);
   }
-  if (!Array.isArray(adapter.modes) || adapter.modes.length !== INTENTIONS.length) {
-    throw new TypeError("physical Host target adapter must classify all three intentions");
-  }
-  for (const intention of INTENTIONS) {
-    const mode = adapter.modes.find((candidate) => candidate.id === intention.id);
-    if (!mode || typeof mode.supported !== "boolean" || mode.resultKind !== intention.resultKind) {
-      throw new TypeError(`physical Host target adapter misclassified ${intention.id}`);
-    }
-  }
-  const bounds = adapter.bounds;
-  if (!boundedInteger(bounds?.maximumOperations, 1, MAXIMUM_OPERATIONS)
-    || !boundedInteger(bounds?.maximumOperationEvidenceBytes, 256, MAXIMUM_OPERATION_EVIDENCE_BYTES)
-    || !boundedInteger(bounds?.maximumRetainedEvidenceBytes, 1024, MAXIMUM_RETAINED_EVIDENCE_BYTES)) {
-    throw new TypeError("physical Host target adapter bounds are missing or exceed the workflow maxima");
-  }
-  return adapter;
+  modeControl.value = state.mode;
+  selectMode(runner, host, state, state.mode);
 }
 
 function selectMode(runner, host, state, mode) {
@@ -117,8 +125,17 @@ function selectMode(runner, host, state, mode) {
   resetStages(runner);
   setButtons(runner, null);
   runner.querySelector(".physical-mode").disabled = false;
+  runner.querySelector(".physical-target").disabled = false;
   const options = runner.querySelector(".target-options");
   options.replaceChildren();
+  const support = state.entry.intentions.find((candidate) => candidate.id === state.mode);
+  if (!support.supported) {
+    fail(runner, state, "obtain", selectionFailure(state, "UnsupportedCombination", "selected target does not offer the selected physical Host intention"));
+    return;
+  }
+  if (!state.adapter) {
+    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host });
+  }
   const targetOptions = state.adapter.createOptions({
     mode: state.mode,
     onChange: () => selectMode(runner, host, state, state.mode),
@@ -150,6 +167,7 @@ function bindInvitation(runner, host, state) {
     state.phase = "bound";
     completeStage(runner, "bind", short(result.prepared.spore_id));
     runner.querySelector(".physical-mode").disabled = true;
+    runner.querySelector(".physical-target").disabled = true;
     setOptionsDisabled(runner, true);
     setButtons(runner, "realize");
     status(runner, "Invitation bound. Realization, Boot, join, membership, offers, Plan, and Play remain absent.");
@@ -282,6 +300,24 @@ function workflowFailure(state, operation, code, message) {
   });
 }
 
+function selectionFailure(state, code, message) {
+  return Object.freeze({
+    schema: SELECTION_FAILURE_SCHEMA,
+    catalog_generation: state.catalog.generation,
+    target_id: state.entry.target.id,
+    family_id: state.entry.family.id,
+    model_id: state.entry.target.model_id,
+    profile_id: state.entry.target.profile_id,
+    mode: state.mode,
+    result_kind: requireIntention(state.mode).resultKind,
+    operation: "obtain",
+    terminal: code,
+    message,
+    authority_requested: false,
+    artifact_work_started: false,
+  });
+}
+
 function requireOperationEvidence(state, evidence, operation) {
   let bytes;
   try {
@@ -297,14 +333,20 @@ function requireOperationEvidence(state, evidence, operation) {
 function renderEvidence(runner, state) {
   const evidence = {
     schema: WORKFLOW_SCHEMA,
-    target: state.adapter.target,
+    catalog: {
+      schema: state.catalog.schema,
+      generation: state.catalog.generation,
+      bounds: state.catalog.bounds,
+    },
+    target_entry: state.entry,
+    target: state.entry.target,
     intention: {
       schema: "conduit.creche/physical-host-intention@1",
       mode: state.mode,
       result_kind: requireIntention(state.mode).resultKind,
-      supported: state.adapter.modes.find((mode) => mode.id === state.mode).supported,
+      supported: state.entry.intentions.find((mode) => mode.id === state.mode).supported,
     },
-    bounds: state.adapter.bounds,
+    bounds: state.entry.bounds,
     admitted_operations: state.admittedOperations,
     cancellations: state.cancellations,
     active_operation: state.active?.operation ?? null,
@@ -317,7 +359,7 @@ function renderEvidence(runner, state) {
     admission: state.admission?.evidence ?? null,
   };
   const encoded = encoder.encode(JSON.stringify(evidence));
-  if (encoded.length > state.adapter.bounds.maximumRetainedEvidenceBytes) {
+  if (encoded.length > state.entry.bounds.maximumRetainedEvidenceBytes) {
     throw new RangeError("physical Host retained evidence exceeds its admitted byte bound");
   }
   runner.querySelector("details code").textContent = JSON.stringify(evidence, null, 2);
@@ -395,17 +437,13 @@ function currentOperation(state, generation) {
 }
 
 function requireIntention(mode) {
-  const intention = INTENTIONS.find((candidate) => candidate.id === mode);
+  const intention = PHYSICAL_HOST_INTENTIONS.find((candidate) => candidate.id === mode);
   if (!intention) throw new TypeError("physical Host intention is unknown");
   return intention;
 }
 
 function boundedText(value, maximum) {
   return typeof value === "string" && value.length > 0 && value.length <= maximum;
-}
-
-function boundedInteger(value, minimum, maximum) {
-  return Number.isSafeInteger(value) && value >= minimum && value <= maximum;
 }
 
 function short(value) {
