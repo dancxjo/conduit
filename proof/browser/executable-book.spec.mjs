@@ -143,7 +143,7 @@ async function installEsp32Release(page, { id, chipId, releaseName, headerOffset
 }
 
 async function installHostRelease(page, manifestName) {
-  const root = new URL("../../target/creche-host-releases/", import.meta.url);
+  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL(manifestName, root), "utf8"));
   for (const file of manifest.files) {
     const bytes = await readFile(new URL(file.path, root));
