@@ -110,6 +110,10 @@ function selectTarget(runner, host, state, targetId) {
     option.textContent = `${intention.label}${support.supported ? "" : " · unavailable for this target"}`;
     modeControl.append(option);
   }
+  const currentSupport = entry.intentions.find((mode) => mode.id === state.mode);
+  if (!currentSupport?.supported) {
+    state.mode = entry.intentions.find((mode) => mode.supported)?.id ?? state.mode;
+  }
   modeControl.value = state.mode;
   selectMode(runner, host, state, state.mode);
 }
@@ -211,7 +215,7 @@ function realizeHost(runner, host, state) {
     state.phase = "realized";
     completeStage(runner, "realize", result.terminal);
     setButtons(runner, "observe");
-    status(runner, "Realization completed. That proves no Boot, join, membership, offers, readiness, Plan, or Play.");
+    status(runner, "Carrier realization completed. No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted.");
   });
 }
 

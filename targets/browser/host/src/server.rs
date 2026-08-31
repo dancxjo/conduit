@@ -39,6 +39,12 @@ const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycl
 const CRECHE_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/creche-physical.mjs");
 const CRECHE_TARGET_CATALOG_SCRIPT: &[u8] = include_bytes!("../assets/creche-target-catalog.mjs");
 const CRECHE_SPORE_BUNDLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-spore-bundle.mjs");
+const CRECHE_RELEASE_BUNDLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-release-bundle.mjs");
+const CRECHE_EXISTING_COMPUTER_SCRIPT: &[u8] =
+    include_bytes!("../assets/creche-existing-computer.mjs");
+const STD_CRECHE_ADAPTER: &[u8] =
+    include_bytes!("../../../std/browser-deployment/creche-adapter.mjs");
+const BROWSER_CRECHE_ADAPTER: &[u8] = include_bytes!("../browser-deployment/creche-adapter.mjs");
 const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
 const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
 const CRECHE_PICO_ARTIFACT: &[u8] =
@@ -305,6 +311,26 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_SPORE_BUNDLE_SCRIPT,
+            ),
+            Some("GET /creche/creche-release-bundle.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                CRECHE_RELEASE_BUNDLE_SCRIPT,
+            ),
+            Some("GET /creche/creche-existing-computer.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                CRECHE_EXISTING_COMPUTER_SCRIPT,
+            ),
+            Some("GET /creche/targets/std/browser-deployment/creche-adapter.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                STD_CRECHE_ADAPTER,
+            ),
+            Some("GET /creche/targets/browser/browser-deployment/creche-adapter.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BROWSER_CRECHE_ADAPTER,
             ),
             Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",

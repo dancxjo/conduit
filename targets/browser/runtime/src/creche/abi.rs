@@ -9,7 +9,9 @@ struct CrecheRefusal {
     message: String,
 }
 
-const INPUT_BYTES: usize = 8 * 1_024;
+// A join carries one finite HostAdvertisement (bounded at 24 KiB by Body
+// admission) plus exact invitation and signature fields.
+const INPUT_BYTES: usize = 32 * 1_024;
 const OUTPUT_BYTES: usize = 32 * 1_024;
 const STATUS_READY: i32 = 0;
 const ERROR_INPUT: i32 = -451;
