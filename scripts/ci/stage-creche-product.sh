@@ -22,5 +22,5 @@ cp targets/browser/host/assets/artifacts/pico-w-signal-pico-local.json "$destina
 cp targets/browser/host/assets/artifacts/pico-w-signal-pico-local.uf2 "$destination/artifacts/"
 cp targets/rp2040/browser-deployment/*.mjs "$destination/targets/rp2040/browser-deployment/"
 
-test "$(find "$destination" -type f | wc -l)" -eq 19
+test "$(find "$destination" -type f | wc -l)" -eq 20
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"
