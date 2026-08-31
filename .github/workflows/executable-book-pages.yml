@@ -78,6 +78,7 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_creche_runtime.wasm
+          rm -rf target/book-product target/creche-product
           scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
           scripts/ci/stage-creche-product.sh target/conduit_creche_runtime.wasm target/creche-product
       - name: Prove the Book and Crèche independently in pinned Chromium
@@ -109,6 +110,7 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_creche_runtime.wasm
       - name: Stage independent product trees
         run: |
+          rm -rf target/book-product target/creche-product
           scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
           scripts/ci/stage-creche-product.sh target/conduit_creche_runtime.wasm target/creche-product
       - name: Upload the independent Book artifact
