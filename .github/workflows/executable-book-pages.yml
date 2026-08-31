@@ -79,6 +79,8 @@ jobs:
       - name: Install the pinned Xtensa Rust toolchain
         if: matrix.target != 'c3' && steps.esp-toolchain-cache.outputs.cache-hit != 'true'
         uses: esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           buildtargets: ${{ matrix.target == 'wroom' && 'esp32' || 'esp32s3' }}
           default: false
