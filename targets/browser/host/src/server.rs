@@ -19,6 +19,8 @@ const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../rp2040/browser-deployment
 const RP2040_SPAWN: &[u8] = include_bytes!("../../../rp2040/browser-deployment/spawn.mjs");
 const RP2040_FABRICATION: &[u8] =
     include_bytes!("../../../rp2040/browser-deployment/fabrication.mjs");
+const RP2040_CRECHE_ADAPTER: &[u8] =
+    include_bytes!("../../../rp2040/browser-deployment/creche-adapter.mjs");
 const ESP32_DEPLOYMENT: &[u8] = include_bytes!("../../../esp32/browser-deployment/index.mjs");
 const ESP32_DEPLOYMENT_ORCHESTRATOR: &[u8] =
     include_bytes!("../../../esp32/browser-deployment/deployment.mjs");
@@ -227,6 +229,14 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 RP2040_FABRICATION,
             ),
+            Some("GET /targets/rp2040/browser-deployment/creche-adapter.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/creche-adapter.mjs HTTP/1.1") => {
+                (
+                    "200 OK",
+                    "text/javascript; charset=utf-8",
+                    RP2040_CRECHE_ADAPTER,
+                )
+            }
             Some("GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_DEPLOYMENT)
             }
