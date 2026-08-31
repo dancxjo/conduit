@@ -1,8 +1,9 @@
 import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
+import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
-import { createRp2040CrecheTargetAdapter } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
+import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
 
 const MORSE_NETWORK = `form morse_network {
     message: text/literal("SOS")
@@ -16,6 +17,10 @@ const navigation = document.querySelector(".creche-steps");
 let host;
 let currentStep = 0;
 let sequence = 0;
+const targetCatalog = createPhysicalHostTargetCatalog({
+  generation: 1,
+  contributions: [RP2040_CRECHE_TARGET_CONTRIBUTION],
+});
 
 try {
   host = await initializeBrowserHost();
@@ -57,7 +62,7 @@ function renderStep() {
   }));
   if (currentStep === 2) workspace.append(createPhysicalHostRunner({
     host,
-    targetAdapter: createRp2040CrecheTargetAdapter({ host }),
+    targetCatalog,
   }));
   if (currentStep === 3) workspace.append(createGraduationRunner({
     host, nextSequence: () => ++sequence, onBodyChanged: refreshContext,

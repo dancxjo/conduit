@@ -35,6 +35,7 @@ const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
 const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
 const CRECHE_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/creche-physical.mjs");
+const CRECHE_TARGET_CATALOG_SCRIPT: &[u8] = include_bytes!("../assets/creche-target-catalog.mjs");
 const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
 const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
 const CRECHE_PICO_ARTIFACT: &[u8] =
@@ -278,6 +279,11 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_PHYSICAL_SCRIPT,
+            ),
+            Some("GET /creche/creche-target-catalog.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                CRECHE_TARGET_CATALOG_SCRIPT,
             ),
             Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",
