@@ -1,4 +1,4 @@
-import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
+import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -116,7 +116,7 @@ function renderMarkdown(markdown) {
   const flush = () => {
     if (paragraph.length === 0) return;
     const element = document.createElement("p");
-    element.textContent = paragraph.join(" ");
+    appendInlineMarkdown(element, paragraph.join(" "));
     copy.append(element);
     paragraph = [];
   };
@@ -178,12 +178,12 @@ function renderMarkdown(markdown) {
     } else if (line.startsWith("# ")) {
       flush();
       const heading = document.createElement("h1");
-      heading.textContent = line.slice(2);
+      appendInlineMarkdown(heading, line.slice(2));
       copy.append(heading);
     } else if (line.startsWith("## ")) {
       flush();
       const heading = document.createElement("h2");
-      heading.textContent = line.slice(3);
+      appendInlineMarkdown(heading, line.slice(3));
       copy.append(heading);
     } else if (line.trim() === "") {
       flush();
@@ -192,6 +192,46 @@ function renderMarkdown(markdown) {
     }
   }
   flush();
+}
+
+function appendInlineMarkdown(parent, source) {
+  const delimiters = [
+    { opening: "**", closing: "**", tag: "strong" },
+    { opening: "__", closing: "__", tag: "strong" },
+    { opening: "`", closing: "`", tag: "code" },
+    { opening: "*", closing: "*", tag: "em" },
+    { opening: "_", closing: "_", tag: "em" },
+  ];
+  let offset = 0;
+  while (offset < source.length) {
+    let match = null;
+    for (const delimiter of delimiters) {
+      const openingIndex = source.indexOf(delimiter.opening, offset);
+      if (openingIndex === -1) continue;
+      const closingIndex = source.indexOf(
+        delimiter.closing,
+        openingIndex + delimiter.opening.length,
+      );
+      if (closingIndex === -1 || closingIndex === openingIndex + delimiter.opening.length) continue;
+      if (!match || openingIndex < match.openingIndex) {
+        match = { ...delimiter, openingIndex, closingIndex };
+      }
+    }
+    if (!match) {
+      parent.append(document.createTextNode(source.slice(offset)));
+      return;
+    }
+    parent.append(document.createTextNode(source.slice(offset, match.openingIndex)));
+    const element = document.createElement(match.tag);
+    const content = source.slice(
+      match.openingIndex + match.opening.length,
+      match.closingIndex,
+    );
+    if (match.tag === "code") element.textContent = content;
+    else appendInlineMarkdown(element, content);
+    parent.append(element);
+    offset = match.closingIndex + match.closing.length;
+  }
 }
 
 function appendCopy() {
@@ -207,7 +247,9 @@ function createCrecheCallToAction(label = "Birth a Body") {
   const explanation = document.createElement("p");
   explanation.textContent = "The Book explains the idea. The Crèche owns the stateful birth and provisioning workflow.";
   const link = document.createElement("a");
-  link.href = "../creche/";
+  const configuredUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content.trim();
+  if (!configuredUrl) throw new Error("the Book has no configured Crèche entrance");
+  link.href = configuredUrl;
   link.textContent = label;
   callout.append(explanation, link);
   return callout;

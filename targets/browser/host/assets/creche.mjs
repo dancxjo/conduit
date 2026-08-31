@@ -1,4 +1,4 @@
-import { initializeBrowserHost } from "../browser-host-bootstrap.mjs";
+import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";

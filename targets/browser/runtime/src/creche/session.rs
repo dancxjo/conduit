@@ -77,7 +77,7 @@ pub(super) fn birth(
         .map_err(|error| format!("validate Body membership: {error:?}"))?;
 
     let receipt = BirthReceipt {
-        schema: "conduit.book/body-birth@1",
+        schema: "conduit.creche/body-birth@1",
         disposition: "born",
         source_document_id: body.source_document_id.as_str().into(),
         checked_form_id: body.checked_form_id.as_str().into(),

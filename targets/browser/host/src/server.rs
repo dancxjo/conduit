@@ -55,10 +55,28 @@ const MAX_REQUESTS: usize = 1024;
 pub struct BrowserHostServer {
     listener: TcpListener,
     runtime: Vec<u8>,
+    surface: ProductSurface,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProductSurface {
+    Host,
+    Book,
+    Creche,
+}
+
+impl ProductSurface {
+    fn permits(self, request: Option<&str>) -> bool {
+        match self {
+            Self::Host => true,
+            Self::Book => request.is_some_and(|line| line.starts_with("GET /book/")),
+            Self::Creche => request.is_some_and(|line| line.starts_with("GET /creche/")),
+        }
+    }
 }
 
 impl BrowserHostServer {
-    pub fn bind(runtime_path: &Path) -> Result<Self, String> {
+    pub fn bind(runtime_path: &Path, surface: ProductSurface) -> Result<Self, String> {
         let metadata = std::fs::metadata(runtime_path).map_err(|error| {
             format!(
                 "browser Host runtime {} is unavailable ({error})",
@@ -75,7 +93,11 @@ impl BrowserHostServer {
             .map_err(|error| format!("cannot read browser Host runtime: {error}"))?;
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .map_err(|error| format!("cannot bind ephemeral browser Host entrance: {error}"))?;
-        Ok(Self { listener, runtime })
+        Ok(Self {
+            listener,
+            runtime,
+            surface,
+        })
     }
 
     pub fn url(&self) -> Result<String, String> {
@@ -141,46 +163,66 @@ impl BrowserHostServer {
         }
         let request = std::str::from_utf8(&request[..length])
             .map_err(|_| "browser Host request was not UTF-8".to_owned())?;
-        let (status, content_type, body): (&str, &str, &[u8]) = match request.lines().next() {
+        let request_line = request.lines().next();
+        if !self.surface.permits(request_line) {
+            return self.write_response(
+                stream,
+                "404 Not Found",
+                "text/plain; charset=utf-8",
+                b"not found",
+            );
+        }
+        let (status, content_type, body): (&str, &str, &[u8]) = match request_line {
             Some("GET / HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", INDEX),
             Some("GET /host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOTSTRAP)
             }
-            Some("GET /browser-host-bootstrap.mjs HTTP/1.1") => {
+            Some("GET /browser-host-bootstrap.mjs HTTP/1.1")
+            | Some("GET /book/browser-host-bootstrap.mjs HTTP/1.1")
+            | Some("GET /creche/browser-host-bootstrap.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", HOST_BOOTSTRAP)
             }
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }
-            Some("GET /device-base.mjs HTTP/1.1") => {
+            Some("GET /device-base.mjs HTTP/1.1")
+            | Some("GET /creche/device-base.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", DEVICE_BASE)
             }
-            Some("GET /usb-device-base.mjs HTTP/1.1") => {
+            Some("GET /usb-device-base.mjs HTTP/1.1")
+            | Some("GET /creche/usb-device-base.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", USB_DEVICE_BASE)
             }
-            Some("GET /targets/rp2040/browser-deployment/index.mjs HTTP/1.1") => (
+            Some("GET /targets/rp2040/browser-deployment/index.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/index.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 RP2040_DEPLOYMENT,
             ),
-            Some("GET /targets/rp2040/browser-deployment/deployment.mjs HTTP/1.1") => (
+            Some("GET /targets/rp2040/browser-deployment/deployment.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/deployment.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 RP2040_DEPLOYMENT_ORCHESTRATOR,
             ),
-            Some("GET /targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1") => {
+            Some("GET /targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_PICOBOOT)
             }
-            Some("GET /targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1") => {
+            Some("GET /targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_UF2)
             }
-            Some("GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1") => {
+            Some("GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_BOOTSEL)
             }
-            Some("GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1") => {
+            Some("GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_SPAWN)
             }
-            Some("GET /targets/rp2040/browser-deployment/fabrication.mjs HTTP/1.1") => (
+            Some("GET /targets/rp2040/browser-deployment/fabrication.mjs HTTP/1.1")
+            | Some("GET /creche/targets/rp2040/browser-deployment/fabrication.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 RP2040_FABRICATION,
@@ -208,27 +250,26 @@ impl BrowserHostServer {
             Some("GET /targets/esp32/browser-deployment/slip.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_SLIP)
             }
-            Some("GET /runtime.wasm HTTP/1.1") => {
+            Some("GET /runtime.wasm HTTP/1.1")
+            | Some("GET /book/runtime.wasm HTTP/1.1")
+            | Some("GET /creche/runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())
             }
             Some("GET /book/ HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", BOOK),
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
-            Some("GET /book/creche-lifecycle.mjs HTTP/1.1")
-            | Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
+            Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_LIFECYCLE_SCRIPT,
             ),
-            Some("GET /book/creche-physical.mjs HTTP/1.1")
-            | Some("GET /creche/creche-physical.mjs HTTP/1.1") => (
+            Some("GET /creche/creche-physical.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_PHYSICAL_SCRIPT,
             ),
-            Some("GET /book/creche-graduation.mjs HTTP/1.1")
-            | Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
+            Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_GRADUATION_SCRIPT,
@@ -274,6 +315,16 @@ impl BrowserHostServer {
             }
             _ => ("404 Not Found", "text/plain; charset=utf-8", b"not found"),
         };
+        self.write_response(stream, status, content_type, body)
+    }
+
+    fn write_response(
+        &self,
+        stream: &mut TcpStream,
+        status: &str,
+        content_type: &str,
+        body: &[u8],
+    ) -> Result<(), String> {
         write!(
             stream,
             "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
@@ -306,8 +357,8 @@ mod tests {
     #[test]
     fn simultaneous_entrances_are_distinct_ipv4_loopback_listeners() {
         let runtime = runtime_fixture();
-        let first = BrowserHostServer::bind(&runtime).unwrap();
-        let second = BrowserHostServer::bind(&runtime).unwrap();
+        let first = BrowserHostServer::bind(&runtime, ProductSurface::Book).unwrap();
+        let second = BrowserHostServer::bind(&runtime, ProductSurface::Creche).unwrap();
         let first_address = first.local_addr().unwrap();
         let second_address = second.local_addr().unwrap();
         assert_eq!(first_address.ip(), Ipv4Addr::LOCALHOST);
@@ -319,7 +370,7 @@ mod tests {
     #[test]
     fn missing_and_oversized_runtime_artifacts_refuse_before_launch() {
         let missing = std::env::temp_dir().join("conduit-browser-host-absent.wasm");
-        assert!(BrowserHostServer::bind(&missing)
+        assert!(BrowserHostServer::bind(&missing, ProductSurface::Host)
             .unwrap_err()
             .contains("unavailable"));
 
@@ -329,9 +380,22 @@ mod tests {
             .open(&runtime)
             .unwrap();
         file.set_len(MAX_RUNTIME_BYTES as u64 + 1).unwrap();
-        assert!(BrowserHostServer::bind(&runtime)
+        assert!(BrowserHostServer::bind(&runtime, ProductSurface::Host)
             .unwrap_err()
             .contains("artifact bound"));
         std::fs::remove_file(runtime).unwrap();
+    }
+
+    #[test]
+    fn product_surfaces_refuse_the_other_products_routes() {
+        assert!(ProductSurface::Book.permits(Some("GET /book/ HTTP/1.1")));
+        assert!(ProductSurface::Book.permits(Some("GET /book/runtime.wasm HTTP/1.1")));
+        assert!(!ProductSurface::Book.permits(Some("GET /creche/ HTTP/1.1")));
+        assert!(!ProductSurface::Book.permits(Some("GET / HTTP/1.1")));
+
+        assert!(ProductSurface::Creche.permits(Some("GET /creche/ HTTP/1.1")));
+        assert!(ProductSurface::Creche.permits(Some("GET /creche/runtime.wasm HTTP/1.1")));
+        assert!(!ProductSurface::Creche.permits(Some("GET /book/ HTTP/1.1")));
+        assert!(!ProductSurface::Creche.permits(Some("GET / HTTP/1.1")));
     }
 }

@@ -6,6 +6,11 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["book-surface", "creche-surface"]
+book-surface = []
+creche-surface = []
+
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
