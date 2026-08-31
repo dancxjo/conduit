@@ -32,6 +32,7 @@ conduit-time = { path = "../../../semantics/time", features = ["form-catalog"] }
 conduit-wire = { path = "../../../architecture/wire" }
 conduit-host-fabrication = { path = "../../../fabrication/host" }
 conduit-host-rp2040 = { path = "../../rp2040/fabrication" }
+conduit-host-esp32-fabrication = { path = "../../esp32/fabrication" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

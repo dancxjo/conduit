@@ -191,8 +191,34 @@ function requireContribution(contribution, generation) {
     carriers: Object.freeze(carrierSnapshot),
     bounds: Object.freeze({ ...adapterBounds }),
     expected_join_contract: contribution.expected_join_contract,
+    target_profile: requireTargetProfile(contribution.target_profile, generation, target.id),
   });
   return Object.freeze({ entry, createAdapter: contribution.createAdapter });
+}
+
+function requireTargetProfile(profile, generation, targetId) {
+  if (!profile || typeof profile !== "object" || Array.isArray(profile)
+    || !boundedText(profile.schema, 256)) {
+    refuse("IncompatibleContribution", "physical Host target profile declaration is missing", generation, { target_id: targetId });
+  }
+  let copy;
+  try {
+    copy = JSON.parse(JSON.stringify(profile));
+  } catch (error) {
+    refuse("IncompatibleContribution", "physical Host target profile declaration is not finite JSON", generation, {
+      target_id: targetId,
+      cause: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return deepFreeze(copy);
+}
+
+function deepFreeze(value) {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) deepFreeze(child);
+    Object.freeze(value);
+  }
+  return value;
 }
 
 function requireIntentions(intentions, generation, targetId) {

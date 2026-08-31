@@ -122,6 +122,7 @@ pub(crate) fn prompt(
             machine: descriptor.machine.clone(),
             board: descriptor.board.clone(),
             os: descriptor.os.clone(),
+            fabrication_descriptor: exact_single_descriptor(descriptor),
         },
         bases,
         resources: existing
@@ -183,6 +184,13 @@ fn descriptor_matches(descriptor: &TargetDescriptor, target: &ConfigurationTarge
         && descriptor.os == target.os
 }
 
+fn exact_single_descriptor(descriptor: &TargetDescriptor) -> Option<String> {
+    match descriptor.fabrication_descriptors.as_slice() {
+        [binding] => Some(binding.clone()),
+        _ => None,
+    }
+}
+
 fn exact_implementation(
     available: &[String],
     selected: &str,
@@ -234,6 +242,7 @@ mod tests {
                 machine: descriptor.machine.clone(),
                 board: descriptor.board.clone(),
                 os: descriptor.os.clone(),
+                fabrication_descriptor: exact_single_descriptor(descriptor),
             },
             bases: vec![ConfigurationBase {
                 kind: kind.clone(),

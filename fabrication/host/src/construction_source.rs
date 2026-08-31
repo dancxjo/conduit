@@ -88,6 +88,16 @@ pub fn canonical_host_configuration_conduit(
             }
         })?;
     }
+    if let Some(descriptor) = &canonical.target.fabrication_descriptor {
+        write!(
+            &mut source,
+            ", fabrication_descriptor: {}",
+            string(descriptor)?
+        )
+        .map_err(|error| ConfigurationDiagnostic::Encode {
+            detail: error.to_string(),
+        })?;
+    }
     source.push_str("}\n");
     for base in &canonical.bases {
         write!(&mut source, "  base = {{kind: {}", string(&base.kind)?).map_err(|error| {
@@ -332,6 +342,24 @@ mod tests {
             &crate::test_packages::test_package_set(),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn exact_optional_fabrication_descriptor_round_trips_in_target_meaning() {
+        let source =
+            include_str!("../../../profiles/host-configurations/linux-workstation.host.conduit")
+                .replace(
+                    "os: \"linux\"}",
+                    "os: \"linux\", fabrication_descriptor: \"descriptor:sha256:exact\"}",
+                );
+        let configuration = parse_host_configuration_conduit(&source).unwrap();
+        assert_eq!(
+            configuration.target.fabrication_descriptor.as_deref(),
+            Some("descriptor:sha256:exact")
+        );
+        let encoded = canonical_host_configuration_conduit(&configuration).unwrap();
+        let round_trip = parse_host_configuration_conduit(&encoded).unwrap();
+        assert_eq!(round_trip, configuration);
     }
 
     #[test]

@@ -4,6 +4,7 @@ import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
 import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
+import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/esp32/browser-deployment/creche-adapter.mjs";
 
 const MORSE_NETWORK = `form morse_network {
     message: text/literal("SOS")
@@ -19,7 +20,7 @@ let currentStep = 0;
 let sequence = 0;
 const targetCatalog = createPhysicalHostTargetCatalog({
   generation: 1,
-  contributions: [RP2040_CRECHE_TARGET_CONTRIBUTION],
+  contributions: [RP2040_CRECHE_TARGET_CONTRIBUTION, ...ESP32_CRECHE_TARGET_CONTRIBUTIONS],
 });
 
 try {
@@ -92,7 +93,7 @@ function renderComplete(receipt, biography) {
 }
 
 function requireCrecheAbi(api) {
-  const required = ["memory", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_attach_here", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_admit_physical_spore"];
+  const required = ["memory", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_attach_here", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_admit_physical_spore"];
   if (required.some((name) => !(name in api))) throw new Error("Crèche runtime ABI is incomplete");
 }
 

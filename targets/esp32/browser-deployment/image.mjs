@@ -79,11 +79,13 @@ export async function parseEsp32Image({ targetId, segments, maximumTransferBytes
       refuse("SegmentOverlap", "ESP32 IMAGE segments overlap");
     }
   }
-  const bootloader = parsed.find((segment) => segment.offset === expectedHeader.bootloaderOffset);
-  if (!bootloader || bootloader.bytes.length < 24 || bootloader.bytes[0] !== 0xe9) {
+  const bootloader = parsed.find((segment) => segment.offset <= expectedHeader.bootloaderOffset
+    && segment.offset + segment.bytes.length >= expectedHeader.bootloaderOffset + 24);
+  const headerOffset = bootloader ? expectedHeader.bootloaderOffset - bootloader.offset : -1;
+  if (!bootloader || headerOffset < 0 || bootloader.bytes[headerOffset] !== 0xe9) {
     refuse("ImageHeader", "ESP32 IMAGE lacks the target's bootloader image header at its exact flash offset");
   }
-  const header = new DataView(bootloader.bytes.buffer, bootloader.bytes.byteOffset, 24);
+  const header = new DataView(bootloader.bytes.buffer, bootloader.bytes.byteOffset + headerOffset, 24);
   const chipId = header.getUint16(12, true);
   if (chipId !== expectedHeader.chipId) {
     refuse("IncompatibleImage", `ESP32 IMAGE chip id ${chipId} is incompatible with its selected target`);

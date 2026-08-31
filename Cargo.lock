@@ -558,6 +558,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-host-rp2040",
  "conduit-human",

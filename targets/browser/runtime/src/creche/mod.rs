@@ -5,6 +5,7 @@ mod graduation;
 mod protocol;
 mod session;
 mod spore;
+mod spore_target;
 
 #[cfg(test)]
 mod tests;

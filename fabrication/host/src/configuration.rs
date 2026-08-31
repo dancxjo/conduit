@@ -33,6 +33,8 @@ pub struct ConfigurationTarget {
     pub board: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub os: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fabrication_descriptor: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -313,7 +315,7 @@ pub fn check_host_configuration(
             architecture: descriptor.architecture.clone(),
             machine: descriptor.machine.clone(),
             build_profile: "release".into(),
-            fabrication_descriptor: None,
+            fabrication_descriptor: configuration.target.fabrication_descriptor.clone(),
         },
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
