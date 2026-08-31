@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{cli::GlobalOpts, workspace::workspace_root};
 
+mod browser_release;
 mod morse_key;
 
 const FABRICATION_RUNNER_MANIFEST: &str =
@@ -48,6 +49,9 @@ enum Esp32FirmwareCommand {
         distributed_lenia: bool,
         #[arg(long, default_value = "target/esp32-firmware/build-receipt.json")]
         receipt: PathBuf,
+        /// Also seal one merged browser-deployable generic release IMAGE and sidecar manifest.
+        #[arg(long)]
+        browser_artifact: Option<PathBuf>,
     },
     /// Build and flash one exact attached ESP32-family target.
     Flash {
@@ -110,7 +114,15 @@ pub fn run(args: Esp32FirmwareArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
             target,
             distributed_lenia,
             receipt,
-        } => run_build(target, distributed_lenia, receipt, opts).map(|_| ()),
+            browser_artifact,
+        } => run_build(
+            target,
+            distributed_lenia,
+            receipt,
+            browser_artifact.as_deref(),
+            opts,
+        )
+        .map(|_| ()),
         Esp32FirmwareCommand::Flash {
             target,
             distributed_lenia,
@@ -163,6 +175,7 @@ fn run_build(
     target: Esp32FamilyTarget,
     distributed_lenia: bool,
     receipt: PathBuf,
+    browser_artifact: Option<&Path>,
     opts: &GlobalOpts,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let root = workspace_root()?;
@@ -218,6 +231,9 @@ fn run_build(
         usb_serial: None,
     };
     write_receipt(&root.join(receipt), &record, opts)?;
+    if let Some(output) = browser_artifact {
+        browser_release::write(&root, target, &artifact, output, &record.source_sha, opts)?;
+    }
     Ok(artifact)
 }
 
@@ -234,7 +250,7 @@ fn run_flash(
         return Err(format!("ESP32 flash confirmation mismatch: target requires USB serial {}, received {confirm_serial}", facts.usb_serial).into());
     }
     if opts.dry_run {
-        let _ = run_build(target, distributed_lenia, PathBuf::new(), opts)?;
+        let _ = run_build(target, distributed_lenia, PathBuf::new(), None, opts)?;
         if !opts.quiet {
             println!(
                 "would flash {} through {} after verifying USB serial {}",
@@ -261,6 +277,7 @@ fn run_flash(
         target,
         distributed_lenia,
         PathBuf::from("target/esp32-firmware/build-receipt.json"),
+        None,
         opts,
     )?;
     let root = workspace_root()?;

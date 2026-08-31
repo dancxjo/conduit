@@ -26,6 +26,7 @@ export function createPhysicalHostRunner({ host, targetCatalog }) {
         <span class="select-field"><select class="physical-target"></select></span>
       </label>
       <div class="target-options"></div>
+      <div class="spore-download" aria-live="polite"></div>
     </div>
     <div class="physical-actions">
       <button class="bind" type="button" disabled>Bind Body invitation</button>
@@ -68,6 +69,7 @@ export function createPhysicalHostRunner({ host, targetCatalog }) {
     realization: null,
     observation: null,
     admission: null,
+    downloadUrl: null,
   };
 
   modeControl.addEventListener("change", () => selectMode(runner, host, state, modeControl.value));
@@ -122,6 +124,7 @@ function selectMode(runner, host, state, mode) {
   state.realization = null;
   state.observation = null;
   state.admission = null;
+  clearDownload(runner, state);
   resetStages(runner);
   setButtons(runner, null);
   runner.querySelector(".physical-mode").disabled = false;
@@ -170,8 +173,30 @@ function bindInvitation(runner, host, state) {
     runner.querySelector(".physical-target").disabled = true;
     setOptionsDisabled(runner, true);
     setButtons(runner, "realize");
+    renderDownload(runner, state, result.download);
     status(runner, "Invitation bound. Realization, Boot, join, membership, offers, Plan, and Play remain absent.");
   });
+}
+
+function renderDownload(runner, state, download) {
+  if (!download || download.schema !== "conduit.spore/browser-download@1"
+    || !(download.blob instanceof Blob) || typeof download.filename !== "string") {
+    throw new TypeError("physical Host adapter omitted its downloadable spore bundle");
+  }
+  clearDownload(runner, state);
+  state.downloadUrl = URL.createObjectURL(download.blob);
+  const link = document.createElement("a");
+  link.className = "download-spore";
+  link.href = state.downloadUrl;
+  link.download = download.filename;
+  link.textContent = `Download spore · ${download.bytes} bytes`;
+  runner.querySelector(".spore-download").append(link);
+}
+
+function clearDownload(runner, state) {
+  if (state.downloadUrl) URL.revokeObjectURL(state.downloadUrl);
+  state.downloadUrl = null;
+  runner.querySelector(".spore-download")?.replaceChildren();
 }
 
 function realizeHost(runner, host, state) {

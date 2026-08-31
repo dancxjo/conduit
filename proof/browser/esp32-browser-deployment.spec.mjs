@@ -27,8 +27,14 @@ async function startEntrance() {
   });
 }
 
-async function installRomLoader(page, { chipMagic = 0x6921506f, expectedMd5, mismatchedMd5 = false } = {}) {
-  await page.addInitScript(({ chipMagic, expectedMd5, mismatchedMd5 }) => {
+async function installRomLoader(page, {
+  chipMagic = 0x6921506f,
+  expectedMd5,
+  mismatchedMd5 = false,
+  failSignals = false,
+  failOperation = null,
+} = {}) {
+  await page.addInitScript(({ chipMagic, expectedMd5, mismatchedMd5, failSignals, failOperation }) => {
     const slipDecode = (encoded) => {
       const decoded = [];
       for (let index = 1; index < encoded.length - 1; index += 1) {
@@ -71,12 +77,16 @@ async function installRomLoader(page, { chipMagic = 0x6921506f, expectedMd5, mis
       }
       async open(options) { this.opened = options; }
       getInfo() { return { usbVendorId: 0x303a, usbProductId: 0x1001 }; }
-      async setSignals(signals) { this.signals.push({ ...signals }); }
+      async setSignals(signals) {
+        if (failSignals) throw new DOMException("reset lines failed", "NetworkError");
+        this.signals.push({ ...signals });
+      }
       async close() { this.closed = true; }
       accept(encoded) {
         const packet = slipDecode(new Uint8Array(encoded));
         const view = new DataView(packet.buffer, packet.byteOffset, packet.byteLength);
         const operation = view.getUint8(1);
+        if (operation === failOperation) throw new DOMException("serial transfer failed", "NetworkError");
         const size = view.getUint16(2, true);
         this.commands.push({ operation, size, checksum: view.getUint32(4, true), data: Array.from(packet.subarray(8)) });
         let value = 1;
@@ -103,7 +113,7 @@ async function installRomLoader(page, { chipMagic = 0x6921506f, expectedMd5, mis
       value: { requestPort: async () => port },
     });
     globalThis.__fakeEsp32 = port;
-  }, { chipMagic, expectedMd5, mismatchedMd5 });
+  }, { chipMagic, expectedMd5, mismatchedMd5, failSignals, failOperation });
 }
 
 test.afterEach(() => {
@@ -111,6 +121,7 @@ test.afterEach(() => {
 });
 
 async function runDeployment(page, overrides = {}) {
+  await page.waitForFunction(() => globalThis.__conduitBrowserHost?.devices);
   return page.evaluate(async (overrides) => {
     const { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT, sha256ContentId } = await import(
       "/targets/esp32/browser-deployment/index.mjs"
@@ -245,6 +256,24 @@ test("IMAGE chip incompatibility refuses before serial use", async ({ page }) =>
     evidence: { phase: "available", terminal: null },
     base: { phase: "resource-truth", admitted_reads: 0, admitted_writes: 0, admitted_signal_operations: 0 },
   });
+});
+
+test("reset-line and serial-transfer failures remain distinct terminals", async ({ page }) => {
+  const bytes = Uint8Array.from({ length: 1500 }, (_, index) => index & 0xff);
+  bytes[0] = 0xe9;
+  new DataView(bytes.buffer).setUint16(12, 5, true);
+  const expectedMd5 = createHash("md5").update(bytes).digest("hex");
+  await installRomLoader(page, { expectedMd5, failSignals: true });
+  await page.goto(await startEntrance());
+  const reset = await runDeployment(page);
+  expect(reset).toMatchObject({ code: "ResetFailed", evidence: { terminal: "ResetFailed" } });
+
+  const transferPage = await page.context().newPage();
+  await installRomLoader(transferPage, { expectedMd5, failOperation: 0x0a });
+  await transferPage.goto(await startEntrance());
+  const transfer = await runDeployment(transferPage);
+  expect(transfer).toMatchObject({ code: "DeploymentFailed", evidence: { terminal: "DeploymentFailed" } });
+  expect(transfer.code).not.toBe(reset.code);
 });
 
 test("WROOM and S3 retain their distinct chip observations and bootloader offsets", async ({ page }) => {

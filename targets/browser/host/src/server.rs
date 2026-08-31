@@ -29,6 +29,8 @@ const ESP32_MD5: &[u8] = include_bytes!("../../../esp32/browser-deployment/md5.m
 const ESP32_RESET: &[u8] = include_bytes!("../../../esp32/browser-deployment/reset.mjs");
 const ESP32_ROM_LOADER: &[u8] = include_bytes!("../../../esp32/browser-deployment/rom-loader.mjs");
 const ESP32_SLIP: &[u8] = include_bytes!("../../../esp32/browser-deployment/slip.mjs");
+const ESP32_CRECHE_ADAPTER: &[u8] =
+    include_bytes!("../../../esp32/browser-deployment/creche-adapter.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
@@ -36,6 +38,7 @@ const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
 const CRECHE_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/creche-physical.mjs");
 const CRECHE_TARGET_CATALOG_SCRIPT: &[u8] = include_bytes!("../assets/creche-target-catalog.mjs");
+const CRECHE_SPORE_BUNDLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-spore-bundle.mjs");
 const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
 const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
 const CRECHE_PICO_ARTIFACT: &[u8] =
@@ -238,29 +241,42 @@ impl BrowserHostServer {
                     RP2040_CRECHE_ADAPTER,
                 )
             }
-            Some("GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1") => {
+            Some("GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/index.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_DEPLOYMENT)
             }
-            Some("GET /targets/esp32/browser-deployment/deployment.mjs HTTP/1.1") => (
+            Some("GET /targets/esp32/browser-deployment/deployment.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/deployment.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 ESP32_DEPLOYMENT_ORCHESTRATOR,
             ),
-            Some("GET /targets/esp32/browser-deployment/image.mjs HTTP/1.1") => {
+            Some("GET /targets/esp32/browser-deployment/image.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/image.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_IMAGE)
             }
-            Some("GET /targets/esp32/browser-deployment/md5.mjs HTTP/1.1") => {
+            Some("GET /targets/esp32/browser-deployment/md5.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/md5.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_MD5)
             }
-            Some("GET /targets/esp32/browser-deployment/reset.mjs HTTP/1.1") => {
+            Some("GET /targets/esp32/browser-deployment/reset.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/reset.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_RESET)
             }
-            Some("GET /targets/esp32/browser-deployment/rom-loader.mjs HTTP/1.1") => {
+            Some("GET /targets/esp32/browser-deployment/rom-loader.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/rom-loader.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_ROM_LOADER)
             }
-            Some("GET /targets/esp32/browser-deployment/slip.mjs HTTP/1.1") => {
+            Some("GET /targets/esp32/browser-deployment/slip.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/slip.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", ESP32_SLIP)
             }
+            Some("GET /targets/esp32/browser-deployment/creche-adapter.mjs HTTP/1.1")
+            | Some("GET /creche/targets/esp32/browser-deployment/creche-adapter.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                ESP32_CRECHE_ADAPTER,
+            ),
             Some("GET /runtime.wasm HTTP/1.1")
             | Some("GET /book/runtime.wasm HTTP/1.1")
             | Some("GET /creche/runtime.wasm HTTP/1.1") => {
@@ -284,6 +300,11 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_TARGET_CATALOG_SCRIPT,
+            ),
+            Some("GET /creche/creche-spore-bundle.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                CRECHE_SPORE_BUNDLE_SCRIPT,
             ),
             Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",

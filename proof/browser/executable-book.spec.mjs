@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { installB7Devices } from "./b7-fixture.mjs";
 
@@ -111,6 +112,35 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
   return identity;
 }
 
+async function installEsp32Release(page, { id, chipId, releaseName, headerOffset = 0 }) {
+  const bytes = Buffer.alloc(headerOffset + 1500);
+  for (let index = headerOffset; index < bytes.length; index += 1) bytes[index] = (index - headerOffset) & 0xff;
+  bytes[headerOffset] = 0xe9;
+  bytes.writeUInt16LE(chipId, headerOffset + 12);
+  const artifactName = `esp32-${releaseName}-generic-release.bin`;
+  const manifestName = `esp32-${releaseName}-generic-release.json`;
+  await page.route(`**/artifacts/${artifactName}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/octet-stream",
+    body: bytes,
+  }));
+  await page.route(`**/artifacts/${manifestName}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      schema: "conduit.release/target-artifact@1",
+      target_id: id,
+      image_id: `conduit-release/${releaseName}@fixture`,
+      source_identity: "git:browser-proof-fixture",
+      artifact_layout: { format: "espressif-merged-image", flash_offset: 0 },
+      artifact_sha256: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+      bytes: bytes.length,
+      segments: [{ offset: 0, path: `./${artifactName}`, bytes: bytes.length }],
+    }),
+  }));
+  return bytes;
+}
+
 test.beforeEach(async () => {
   entrance = await startBook();
 });
@@ -136,6 +166,18 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
     expect((await page.request.get(`${creche.url}chapter-1.md`)).status()).toBe(404);
+    for (const target of ["c3", "s3", "wroom"]) {
+      expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.json`)).status()).toBe(200);
+      expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.bin`)).status()).toBe(200);
+    }
+    const birth = page.locator(".body-birth-runner");
+    await birth.getByRole("button", { name: "Birth Body" }).click();
+    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    const runner = page.locator(".physical-host-runner");
+    await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+    await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
   } finally {
     creche.child.kill();
   }
@@ -297,9 +339,15 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target optgroup")).toHaveCount(1);
-  await expect(runner.locator(".physical-target optgroup")).toHaveAttribute("label", "RP2040 boards");
-  await expect(runner.locator(".physical-target option")).toHaveText("Raspberry Pi Pico W · RP2040");
+  await expect(runner.locator(".physical-target optgroup")).toHaveCount(2);
+  await expect(runner.locator(".physical-target optgroup").nth(0)).toHaveAttribute("label", "RP2040 boards");
+  await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "ESP32 boards");
+  await expect(runner.locator(".physical-target option")).toHaveText([
+    "Raspberry Pi Pico W · RP2040",
+    "ESP32-C3",
+    "ESP32-S3",
+    "ESP32-WROOM-32 · HW-463",
+  ]);
   await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
 
   let evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -357,6 +405,107 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   expect(evidence.admitted_operations).toBe(1);
 });
 
+test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters without widening the family", async ({ page }) => {
+  const profiles = [
+    { id: "esp32/riscv32imc/usb-dcf8355d-esp32-c3", chipId: 5, profileId: "usb-dcf8355d-esp32-c3", releaseName: "c3" },
+    { id: "esp32/xtensa-lx7/usb-54e2006398-esp32-s3", chipId: 9, profileId: "usb-54e2006398-esp32-s3", releaseName: "s3" },
+    { id: "esp32/xtensa-lx6/hw-463-esp-wroom-32", chipId: 0, profileId: "hw-463-esp-wroom-32", releaseName: "wroom", headerOffset: 0x1000 },
+  ];
+  for (const [index, profile] of profiles.entries()) {
+    await installEsp32Release(page, profile);
+    await birthStandaloneBody(page, { sourceVariant: `esp32-${index}` });
+    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    const runner = page.locator(".physical-host-runner");
+    await runner.locator(".physical-target").selectOption(profile.id);
+    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    let evidence = JSON.parse(await runner.locator("details code").textContent());
+    expect(evidence.target_entry.target.profile_id).toBe(profile.profileId);
+    expect(evidence.target_entry.target_profile).toMatchObject({
+      schema: "conduit.esp32/creche-target-profile@1",
+      chip_id: profile.chipId,
+      fabrication_strategy: expect.stringContaining("reviewed generic release IMAGE download"),
+      expected_post_flash_join: "bounded serial spawn protocol 2",
+    });
+
+    await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+    evidence = JSON.parse(await runner.locator("details code").textContent());
+    const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      const magic = new TextDecoder().decode(bytes.subarray(0, 8));
+      const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+      const manifest = JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength)));
+      return { magic, manifest, bytes: bytes.length };
+    });
+    expect(bundle.magic).toBe("CNDSPOR1");
+    expect(bundle.manifest).toMatchObject({
+      schema: "conduit.spore/bundle@1",
+      spore: {
+        schema: "conduit.body/spore-manifest@2",
+        target: profile.id,
+        image_content_digest: evidence.binding?.image_content_digest,
+      },
+      artifact: {
+        layout: { format: "espressif-merged-image" },
+      },
+    });
+    expect(bundle.bytes).toBeGreaterThan(evidence.obtainment.artifact.bytes);
+    expect(evidence.binding).toMatchObject({
+      target_id: profile.id,
+      output: "esp32-image",
+      fabrication_package_id: "conduit-host-esp32@1",
+    });
+    expect(evidence.binding.image_content_digest).toBe(evidence.obtainment.artifact.content_digest);
+  }
+});
+
+test("an unavailable generic ESP32 release refuses before device authority or spore creation", async ({ page }) => {
+  await birthStandaloneBody(page, { sourceVariant: "esp32-release-absent" });
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+  await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
+  const evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence).toMatchObject({ binding: null, realization: null, observation: null, admission: null });
+  expect(evidence.terminal).toMatchObject({
+    operation: "obtain",
+    terminal: "ArtifactUnavailable",
+    authority_requested: false,
+    artifact_work_started: false,
+  });
+});
+
+test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal", async ({ page }) => {
+  await page.addInitScript(() => {
+    const port = new EventTarget();
+    port.open = async () => {};
+    port.close = async () => {};
+    port.getInfo = () => ({ usbVendorId: 0x1234, usbProductId: 0x5678 });
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: { requestPort: async () => port },
+    });
+  });
+  await installEsp32Release(page, {
+    id: "esp32/riscv32imc/usb-dcf8355d-esp32-c3",
+    chipId: 5,
+    releaseName: "c3",
+  });
+  await birthStandaloneBody(page, { sourceVariant: "esp32-wrong-port" });
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator("details code")).toContainText('"terminal": "WrongPort"');
+  const evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.terminal).toMatchObject({ operation: "realize", terminal: "WrongPort" });
+  expect(evidence.realization).toBeNull();
+});
+
 test("the physical target catalog refuses stale, duplicate, overflowing, and incompatible contributions", async ({ page }) => {
   await birthStandaloneBody(page);
   const refusals = await page.evaluate(async () => {
@@ -391,6 +540,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         carriers: { deployment: [], installation: [], attachment: [], observation: [] },
         bounds,
         expected_join_contract: "fixture/join@1",
+        target_profile: { schema: "fixture/target-profile@1" },
         createAdapter: factory ?? (() => adapter),
       };
     };
@@ -471,6 +621,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
       carriers: { deployment: [], installation: [], attachment: [], observation: [] },
       bounds,
       expected_join_contract: "fixture/join@1",
+      target_profile: { schema: "fixture/target-profile@1" },
       createAdapter: () => adapter,
     };
     const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
@@ -528,6 +679,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
       carriers: { deployment: [], installation: [], attachment: [], observation: [] },
       bounds,
       expected_join_contract: "fixture/join@1",
+      target_profile: { schema: "fixture/target-profile@1" },
       createAdapter: () => adapter,
     };
     const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });

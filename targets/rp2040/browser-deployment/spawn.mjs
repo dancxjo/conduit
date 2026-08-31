@@ -80,9 +80,15 @@ function parseObject(bytes, name) {
   }
 }
 
-export async function requestRp2040SpawnJoin({ base, prepared }) {
+export async function requestPhysicalSpawnJoin({
+  base,
+  prepared,
+  evidenceSchema,
+  usePlanPrefix,
+  subject = "physical Host",
+}) {
   if (!base || ["startUse", "write", "read", "setSignals", "evidence"].some((name) => typeof base[name] !== "function")) {
-    refuse("BaseContract", "Pico spawn observation requires one admitted browser serial Base");
+    refuse("BaseContract", `${subject} spawn observation requires one admitted browser serial Base`);
   }
   requireIdentity(prepared?.spore_id, undefined, "spore identity");
   requireIdentity(prepared?.image_id, undefined, "IMAGE identity");
@@ -99,7 +105,9 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
     refuse("ExpiredInvitation", "prepared invitation expired before the Boot/join request");
   }
 
-  const usePlanId = `pico-spawn/${prepared.spore_id}`;
+  requireIdentity(evidenceSchema, undefined, "evidence schema");
+  requireIdentity(usePlanPrefix, undefined, "use Plan prefix");
+  const usePlanId = `${usePlanPrefix}/${prepared.spore_id}`;
   let provision = null;
   try {
     base.startUse(usePlanId);
@@ -147,7 +155,7 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
     refuse("WrongInvitation", "join request nonce does not match the prepared invitation");
   }
   return Object.freeze({
-    schema: "conduit.rp2040/browser-spawn-observation@1",
+    schema: evidenceSchema,
     spore_id: join.spore_id,
     image_id: join.image_id,
     advertisement,
@@ -159,5 +167,15 @@ export async function requestRp2040SpawnJoin({ base, prepared }) {
     signature: join.signature,
     observed_at_millis: Date.now(),
     serial_use_plan_id: usePlanId,
+  });
+}
+
+export function requestRp2040SpawnJoin({ base, prepared }) {
+  return requestPhysicalSpawnJoin({
+    base,
+    prepared,
+    evidenceSchema: "conduit.rp2040/browser-spawn-observation@1",
+    usePlanPrefix: "pico-spawn",
+    subject: "Pico",
   });
 }

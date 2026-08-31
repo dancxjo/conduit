@@ -26,6 +26,10 @@ async function startEntrance() {
   });
 }
 
+async function waitForBrowserHost(page) {
+  await page.waitForFunction(() => globalThis.__conduitBrowserHost?.devices && globalThis.__conduitBrowserHost?.usbDevices);
+}
+
 async function installPicoboot(page, staleStatus = false) {
   await page.addInitScript(({ staleStatus }) => {
     class FakePicobootDevice {
@@ -191,6 +195,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
 
 test("browser serial observes a distinct fresh Boot and invitation-bound Pico join", async ({ page }) => {
   await page.goto(await startEntrance());
+  await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { requestRp2040SpawnJoin } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"
@@ -266,6 +271,7 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
 
 test("expired invitation and join-to-advertisement mismatch refuse before admission", async ({ page }) => {
   await page.goto(await startEntrance());
+  await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { requestRp2040SpawnJoin } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"
@@ -321,6 +327,7 @@ test("expired invitation and join-to-advertisement mismatch refuse before admiss
 test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime promotion", async ({ page }) => {
   await installPicoboot(page);
   await page.goto(await startEntrance());
+  await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"
@@ -427,6 +434,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
 test("running accepted firmware acknowledges a build-bound BOOTSEL reboot through Web Serial", async ({ page }) => {
   await installRunningPico(page);
   await page.goto(await startEntrance());
+  await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { requestRunningFirmwareBootsel } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"
@@ -459,6 +467,7 @@ test("running accepted firmware acknowledges a build-bound BOOTSEL reboot throug
 test("wrong IMAGE family and stale command status refuse without deployment success", async ({ page }) => {
   await installPicoboot(page, true);
   await page.goto(await startEntrance());
+  await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"

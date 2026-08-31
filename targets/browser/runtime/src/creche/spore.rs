@@ -1,26 +1,17 @@
 //! Body-owned preparation and admission for the Tour's physical Pico Host.
 
-use std::collections::BTreeMap;
-
 use conduit_body::{AdmissionSigns, SpawnAdmissionProof, SpawnInvitationSecret};
 use conduit_body_fabrication::{
-    check_body_description, seal_prebuilt_body_spore, seal_prebuilt_body_spore_with_content_digest,
-    BodyBindingTarget, BodyDescription, BodyHostDescription, DeploymentDescription,
-    SelectedPrebuiltContent, SporeBinding, SporeDescription, SporeJoinMode,
+    seal_prebuilt_body_spore, seal_prebuilt_body_spore_with_content_digest,
+    SelectedPrebuiltContent, SporeBinding,
 };
 use conduit_core::{HostAdvertisement, SignId};
 use conduit_host_fabrication::{
-    build_host_image, BuildInputs, ConfigurationBase, ConfigurationTarget, FabricationCatalog,
-    FabricationPackageSet, HostBounds, HostConfiguration, SporeOutputKind,
+    build_host_image, BuildInputs, FabricationCatalog, SporeOutputKind,
 };
-use conduit_host_rp2040::Rp2040FabricationPackage;
 use serde::{Deserialize, Serialize};
 
-use super::session;
-
-const HOST_NAME: &str = "tour-pico";
-const CONFIGURATION_NAME: &str = "tour-pico-prebuilt";
-const PREBUILT_SOURCE: &str = "conduit-pico-w-signal/pico-local-b7@1";
+use super::{session, spore_target};
 const INVITATION_TTL_MILLIS: u64 = 10 * 60_000;
 
 pub(super) struct PendingSpore {
@@ -46,6 +37,7 @@ pub(super) struct PreparedSpore {
     invitation_expires_at_millis: u64,
     invitation_secret: Vec<u8>,
     source_identity: String,
+    spore_manifest: conduit_body_fabrication::SporeManifest,
     does_not_prove: [&'static str; 6],
 }
 
@@ -94,6 +86,20 @@ pub(super) fn prepare_selected(
     now_millis: u64,
     selected_image_content_digest: Option<&str>,
 ) -> Result<PreparedSpore, String> {
+    prepare_selected_for_target(
+        entropy,
+        now_millis,
+        spore_target::PICO_W_TARGET_ID,
+        selected_image_content_digest,
+    )
+}
+
+pub(super) fn prepare_selected_for_target(
+    entropy: [u8; 32],
+    now_millis: u64,
+    target_id: &str,
+    selected_image_content_digest: Option<&str>,
+) -> Result<PreparedSpore, String> {
     session::with_session(|session| {
         if session.pending_spore.is_some() {
             return Err("this Body already owns one pending physical spore".into());
@@ -111,25 +117,27 @@ pub(super) fn prepare_selected(
                     .ok_or_else(|| "spore invitation expiry overflow".to_string())?,
             )
             .map_err(|error| format!("issue spore invitation: {error:?}"))?;
-        let (body, configuration) =
-            checked_pico_body(&session.receipt.body_id, invitation.invitation_id.as_str())?;
-        let packages = pico_package_set()?;
-        let catalog = FabricationCatalog::canonical().with_packages(&packages);
+        let target = spore_target::prepare(
+            &session.receipt.body_id,
+            invitation.invitation_id.as_str(),
+            target_id,
+        )?;
+        let catalog = FabricationCatalog::canonical().with_packages(&target.packages);
         let (image, image_bytes) = build_host_image(
-            configuration.profile().clone(),
+            target.configuration.profile().clone(),
             &catalog,
-            &packages,
-            &SporeOutputKind::Uf2,
+            &target.packages,
+            &target.output,
             &BuildInputs {
-                source_identity: PREBUILT_SOURCE.into(),
+                source_identity: target.source_identity.into(),
                 toolchain_available: true,
             },
         )
         .map_err(|errors| format!("select reviewed prebuilt IMAGE: {errors:?}"))?;
         let spore = match selected_image_content_digest {
             Some(digest) => seal_prebuilt_body_spore_with_content_digest(
-                &body,
-                HOST_NAME,
+                &target.body,
+                target.host_name,
                 &session.receipt.birth_sign_id,
                 &image,
                 SelectedPrebuiltContent {
@@ -137,16 +145,16 @@ pub(super) fn prepare_selected(
                     image_content_digest: digest,
                 },
                 &catalog,
-                &packages,
+                &target.packages,
             ),
             None => seal_prebuilt_body_spore(
-                &body,
-                HOST_NAME,
+                &target.body,
+                target.host_name,
                 &session.receipt.birth_sign_id,
                 &image,
                 &image_bytes,
                 &catalog,
-                &packages,
+                &target.packages,
             ),
         }
         .map_err(|error| format!("seal Body spore: {error:?}"))?;
@@ -162,7 +170,7 @@ pub(super) fn prepare_selected(
             .fabrication
             .deployment_adapter
             .clone()
-            .ok_or_else(|| "selected Pico IMAGE has no deployment adapter".to_string())?;
+            .ok_or_else(|| "selected physical Host IMAGE has no deployment adapter".to_string())?;
         let prepared = PreparedSpore {
             schema: "conduit.book/prepared-physical-spore@1",
             disposition: "prepared",
@@ -179,6 +187,7 @@ pub(super) fn prepare_selected(
             invitation_expires_at_millis: invitation.expires_at_millis,
             invitation_secret: invitation.secret.copy_for_target_provisioning().to_vec(),
             source_identity: spore.manifest.source_identity.clone(),
+            spore_manifest: spore.manifest.clone(),
             does_not_prove: [
                 "deployment",
                 "boot",
@@ -269,83 +278,10 @@ pub(super) fn admit(observation: JoinObservation) -> Result<AdmissionReceipt, St
     })
 }
 
-fn checked_pico_body(
-    body_id: &str,
-    invitation_id: &str,
-) -> Result<
-    (
-        conduit_body_fabrication::CheckedBodyDescription,
-        conduit_host_fabrication::CheckedHostConfiguration,
-    ),
-    String,
-> {
-    let configuration = HostConfiguration {
-        schema: 1,
-        name: CONFIGURATION_NAME.into(),
-        target: ConfigurationTarget {
-            architecture: "thumbv6m".into(),
-            machine: "pico-w".into(),
-            board: Some("pico-w".into()),
-            os: None,
-        },
-        bases: vec![ConfigurationBase {
-            kind: "serial/text".into(),
-            implementation: Some("pico/usb-cdc@1".into()),
-            implementations: Vec::new(),
-        }],
-        resources: Vec::new(),
-        limits: HostBounds {
-            static_memory_bytes: 256 * 1024,
-            heap_arena_bytes: 1,
-            queue_items: 16,
-            buffered_bytes: 64 * 1024,
-            active_instances: 16,
-            operation_slots: 16,
-            timer_slots: 16,
-            line_sessions: 1,
-            evidence_items: 64,
-        },
-    };
-    let mut configurations = BTreeMap::new();
-    configurations.insert(CONFIGURATION_NAME.into(), configuration);
-    let packages = pico_package_set()?;
-    let catalog = FabricationCatalog::canonical().with_packages(&packages);
-    let body = check_body_description(
-        BodyDescription {
-            schema: 1,
-            name: "Tour physical Host".into(),
-            body: BodyBindingTarget { id: body_id.into() },
-            hosts: vec![BodyHostDescription {
-                name: HOST_NAME.into(),
-                part: None,
-                configuration: CONFIGURATION_NAME.into(),
-                spore: SporeDescription {
-                    join_mode: SporeJoinMode::SelfJoining,
-                    output: SporeOutputKind::Uf2,
-                    invitation: Some(invitation_id.into()),
-                },
-                deployment: Some(DeploymentDescription {
-                    destination: "browser/webusb".into(),
-                }),
-            }],
-        },
-        &configurations,
-        &catalog,
-        &packages,
-    )
-    .map_err(|errors| format!("check physical Host description: {errors:?}"))?;
-    Ok((body.clone(), body.hosts()[0].configuration.clone()))
-}
-
-fn pico_package_set() -> Result<FabricationPackageSet, String> {
-    FabricationPackageSet::compose(&[&Rp2040FabricationPackage])
-        .map_err(|error| format!("compose Pico fabrication package: {error:?}"))
-}
-
 fn derive_nonce(body_id: &str, now_millis: u64) -> [u8; 32] {
     use sha2::{Digest, Sha256};
     let mut digest = Sha256::new();
-    digest.update(b"conduit.book/pico-spawn-nonce@1");
+    digest.update(b"conduit.creche/physical-host-spawn-nonce@1");
     digest.update(body_id.as_bytes());
     digest.update(now_millis.to_le_bytes());
     digest.finalize().into()
@@ -447,6 +383,42 @@ mod tests {
         assert!(prepare_selected([23; 32], 7_000, Some("sha256:short"))
             .unwrap_err()
             .contains("ImageContentDigestInvalid"));
+    }
+
+    #[test]
+    fn exact_esp32_targets_bind_in_c3_s3_wroom_order_without_family_widening() {
+        let targets = [
+            "esp32/riscv32imc/usb-dcf8355d-esp32-c3",
+            "esp32/xtensa-lx7/usb-54e2006398-esp32-s3",
+            "esp32/xtensa-lx6/hw-463-esp-wroom-32",
+        ];
+        for (index, target) in targets.into_iter().enumerate() {
+            born();
+            let digest = format!("sha256:{}", (index + 3).to_string().repeat(64));
+            let prepared = prepare_selected_for_target(
+                [31 + index as u8; 32],
+                8_000 + index as u64,
+                target,
+                Some(&digest),
+            )
+            .unwrap();
+            assert_eq!(prepared.target_id, target);
+            assert_eq!(prepared.output, SporeOutputKind::Esp32Image);
+            assert_eq!(prepared.image_content_digest, digest);
+            assert_eq!(prepared.fabrication_package_id, "conduit-host-esp32@1");
+            assert!(prepared.deployment_adapter.contains("esp32"));
+            session::clear_for_test();
+        }
+
+        born();
+        let refusal = prepare_selected_for_target(
+            [40; 32],
+            9_000,
+            "esp32/generic/family",
+            Some(&format!("sha256:{}", "9".repeat(64))),
+        )
+        .unwrap_err();
+        assert!(refusal.contains("unsupported exact Crèche physical Host target"));
     }
 
     #[test]

@@ -3,6 +3,7 @@ import { createBrowserUsbDeviceBase } from "../../../usb-device-base.mjs";
 import { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } from "./deployment.mjs";
 import { createRp2040BrowserFabricationAdapter, RP2040_BROWSER_FABRICATION } from "./fabrication.mjs";
 import { requestRp2040SpawnJoin } from "./spawn.mjs";
+import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const TARGET_ID = RP2040_BROWSER_DEPLOYMENT.targetId;
@@ -49,6 +50,15 @@ export const RP2040_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   }),
   bounds: BOUNDS,
   expected_join_contract: "conduit.rp2040/browser-spawn-observation@1",
+  target_profile: Object.freeze({
+    schema: "conduit.rp2040/creche-target-profile@1",
+    chip: "RP2040",
+    artifact_layout: "UF2 family RP2040; 512-byte blocks",
+    fabrication_strategy: "reviewed packaged IMAGE or bounded template specialization",
+    browser_transport: "WebUSB Picoboot",
+    loader_behavior: "BOOTSEL Picoboot command protocol then reboot",
+    expected_post_flash_join: "bounded Web Serial spawn protocol 2",
+  }),
   createAdapter: createRp2040CrecheTargetAdapter,
 });
 
@@ -164,8 +174,17 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost the selected RP2040 target or artifact identity");
       }
       requireCurrent(signal, mode, "bind");
+      const download = packageSporeBundle({
+        prepared,
+        artifact: {
+          layout: { format: "uf2", payloads: [{ family: "rp2040", bytes: obtainment.private.imageBytes.length }] },
+          payloads: [obtainment.private.imageBytes],
+        },
+        filename: `${prepared.spore_id.replaceAll(":", "-")}.spore`,
+      });
       return Object.freeze({
         prepared,
+        download,
         evidence: Object.freeze({ ...prepared, invitation_secret: "redacted" }),
       });
     } catch (error) {
