@@ -5,6 +5,8 @@ import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
 import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
 import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/esp32/browser-deployment/creche-adapter.mjs";
+import { STD_EXISTING_COMPUTER_CONTRIBUTIONS } from "./targets/std/browser-deployment/creche-adapter.mjs";
+import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "./targets/browser/browser-deployment/creche-adapter.mjs";
 
 const MORSE_NETWORK = `form morse_network {
     message: text/literal("SOS")
@@ -20,7 +22,12 @@ let currentStep = 0;
 let sequence = 0;
 const targetCatalog = createPhysicalHostTargetCatalog({
   generation: 1,
-  contributions: [RP2040_CRECHE_TARGET_CONTRIBUTION, ...ESP32_CRECHE_TARGET_CONTRIBUTIONS],
+  contributions: [
+    RP2040_CRECHE_TARGET_CONTRIBUTION,
+    ...ESP32_CRECHE_TARGET_CONTRIBUTIONS,
+    ...STD_EXISTING_COMPUTER_CONTRIBUTIONS,
+    BROWSER_EXISTING_COMPUTER_CONTRIBUTION,
+  ],
 });
 
 try {

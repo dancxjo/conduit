@@ -6,16 +6,21 @@ use conduit_body_fabrication::{
     check_body_description, BodyBindingTarget, BodyDescription, BodyHostDescription,
     DeploymentDescription, SporeDescription, SporeJoinMode,
 };
+use conduit_host_browser_fabrication::BrowserFabricationPackage;
 use conduit_host_esp32_fabrication::{
     esp32_descriptor_binding, Esp32FabricationPackage, Esp32FamilyTarget,
 };
 use conduit_host_fabrication::{
     ConfigurationBase, ConfigurationTarget, FabricationCatalog, FabricationPackageSet, HostBounds,
-    HostConfiguration, SporeOutputKind,
+    HostConfiguration, HostFabricationPackage, SporeOutputKind,
 };
+use conduit_host_hosted::HostedFabricationPackage;
 use conduit_host_rp2040::Rp2040FabricationPackage;
 
 pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
+pub(super) const STD_WORKSTATION_TARGET_ID: &str = "std/x86_64/workstation";
+pub(super) const STD_SERVER_TARGET_ID: &str = "std/x86_64/server";
+pub(super) const BROWSER_PAGE_TARGET_ID: &str = "browser/wasm32/page";
 
 pub(super) struct PreparedTarget {
     pub(super) body: conduit_body_fabrication::CheckedBodyDescription,
@@ -80,6 +85,12 @@ pub(super) fn prepare(
 }
 
 fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
+    match target_id {
+        STD_WORKSTATION_TARGET_ID => return hosted_target("workstation"),
+        STD_SERVER_TARGET_ID => return hosted_target("server"),
+        BROWSER_PAGE_TARGET_ID => return browser_target(),
+        _ => {}
+    }
     if target_id == PICO_W_TARGET_ID {
         return pico_target();
     }
@@ -88,6 +99,98 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
         .find(|candidate| candidate.target_descriptor().key() == target_id)
         .ok_or_else(|| format!("unsupported exact Crèche physical Host target {target_id:?}"))?;
     esp32_target(family)
+}
+
+fn hosted_target(machine: &'static str) -> Result<TargetFacts, String> {
+    let configuration_name = match machine {
+        "workstation" => "creche-hosted-linux-workstation",
+        "server" => "creche-hosted-linux-server",
+        _ => return Err(format!("unsupported hosted machine {machine:?}")),
+    };
+    let package = HostedFabricationPackage;
+    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
+    else {
+        return Err("hosted fabrication package is not an anchor".into());
+    };
+    let descriptor = anchor
+        .targets
+        .into_iter()
+        .find(|target| target.machine == machine)
+        .ok_or_else(|| format!("hosted fabrication package omitted {machine:?}"))?;
+    Ok(TargetFacts {
+        configuration_name,
+        host_name: configuration_name,
+        source_identity: "conduit/reviewed-hosted-linux-release@1",
+        deployment_destination: "operator/local-download",
+        output: SporeOutputKind::NativeBundle,
+        configuration: HostConfiguration {
+            schema: 1,
+            name: configuration_name.into(),
+            target: ConfigurationTarget {
+                architecture: descriptor.architecture,
+                machine: descriptor.machine,
+                board: descriptor.board,
+                os: descriptor.os,
+                fabrication_descriptor: None,
+            },
+            bases: vec![
+                ConfigurationBase {
+                    kind: "clock/monotonic".into(),
+                    implementation: Some("hosted/monotonic-clock@1".into()),
+                    implementations: Vec::new(),
+                },
+                ConfigurationBase {
+                    kind: "serial/text".into(),
+                    implementation: Some("hosted/serial@1".into()),
+                    implementations: Vec::new(),
+                },
+            ],
+            resources: Vec::new(),
+            limits: descriptor.maxima,
+        },
+        packages: FabricationPackageSet::compose(&[&HostedFabricationPackage])
+            .map_err(|error| format!("compose hosted fabrication package: {error:?}"))?,
+    })
+}
+
+fn browser_target() -> Result<TargetFacts, String> {
+    let package = BrowserFabricationPackage;
+    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
+    else {
+        return Err("browser fabrication package is not an anchor".into());
+    };
+    let descriptor = anchor
+        .targets
+        .into_iter()
+        .next()
+        .ok_or_else(|| "browser fabrication package omitted its page target".to_string())?;
+    Ok(TargetFacts {
+        configuration_name: "creche-browser-page",
+        host_name: "creche-browser-page",
+        source_identity: "conduit/reviewed-browser-host-release@1",
+        deployment_destination: "browser/local-sandbox",
+        output: SporeOutputKind::BrowserBundle,
+        configuration: HostConfiguration {
+            schema: 1,
+            name: "creche-browser-page".into(),
+            target: ConfigurationTarget {
+                architecture: descriptor.architecture,
+                machine: descriptor.machine,
+                board: descriptor.board,
+                os: descriptor.os,
+                fabrication_descriptor: None,
+            },
+            bases: vec![ConfigurationBase {
+                kind: "browser/dom".into(),
+                implementation: Some("browser/dom@1".into()),
+                implementations: Vec::new(),
+            }],
+            resources: Vec::new(),
+            limits: descriptor.maxima,
+        },
+        packages: FabricationPackageSet::compose(&[&BrowserFabricationPackage])
+            .map_err(|error| format!("compose browser fabrication package: {error:?}"))?,
+    })
 }
 
 fn pico_target() -> Result<TargetFacts, String> {
@@ -179,4 +282,52 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
         packages: FabricationPackageSet::compose(&[&Esp32FabricationPackage])
             .map_err(|error| format!("compose ESP32 fabrication package: {error:?}"))?,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn existing_computer_targets_are_exact_package_owned_outputs() {
+        let body_id = "a".repeat(64);
+        for (target_id, architecture, machine, output) in [
+            (
+                STD_WORKSTATION_TARGET_ID,
+                "x86_64",
+                "workstation",
+                SporeOutputKind::NativeBundle,
+            ),
+            (
+                STD_SERVER_TARGET_ID,
+                "x86_64",
+                "server",
+                SporeOutputKind::NativeBundle,
+            ),
+            (
+                BROWSER_PAGE_TARGET_ID,
+                "wasm32",
+                "page",
+                SporeOutputKind::BrowserBundle,
+            ),
+        ] {
+            let prepared = prepare(&body_id, "invitation/existing", target_id).unwrap();
+            let profile = prepared.configuration.profile();
+            assert_eq!(profile.target.architecture, architecture);
+            assert_eq!(profile.target.machine, machine);
+            assert_eq!(prepared.output, output);
+        }
+    }
+
+    #[test]
+    fn broad_or_unknown_existing_computer_targets_are_not_inferred() {
+        let body_id = "b".repeat(64);
+        for target in ["std/*/*", "std/aarch64/server", "browser/wasm32/worker"] {
+            let error = match prepare(&body_id, "invitation/existing", target) {
+                Ok(_) => panic!("broad target {target:?} was inferred"),
+                Err(error) => error,
+            };
+            assert!(error.contains("unsupported exact"));
+        }
+    }
 }

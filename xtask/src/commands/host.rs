@@ -19,6 +19,8 @@ mod host_esp32_inspection;
 mod host_esp32_inspection_tests;
 #[path = "host_local_model.rs"]
 mod host_local_model;
+#[path = "host_release.rs"]
+mod host_release;
 #[path = "host_target.rs"]
 mod host_target;
 
@@ -50,6 +52,14 @@ enum HostCommand {
     Build {
         profile: PathBuf,
         #[arg(long, default_value = "target/host-build")]
+        output: PathBuf,
+        /// Exact source identity; defaults to the current Git commit.
+        #[arg(long)]
+        source_identity: Option<String>,
+    },
+    /// Compile and seal the reviewed generic existing-computer release bundles.
+    Release {
+        #[arg(long, default_value = "target/creche-host-releases")]
         output: PathBuf,
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
@@ -268,6 +278,15 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 }
             }
             Ok(())
+        }
+        HostCommand::Release {
+            output,
+            source_identity,
+        } => {
+            let source_identity = source_identity
+                .map(Ok)
+                .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
+            host_release::run(&output, &source_identity, opts)
         }
         HostCommand::Capstone {
             output,

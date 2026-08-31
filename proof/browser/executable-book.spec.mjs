@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { installB7Devices } from "./b7-fixture.mjs";
 
@@ -141,6 +142,25 @@ async function installEsp32Release(page, { id, chipId, releaseName, headerOffset
   return bytes;
 }
 
+async function installHostRelease(page, manifestName) {
+  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const manifest = JSON.parse(await readFile(new URL(manifestName, root), "utf8"));
+  for (const file of manifest.files) {
+    const bytes = await readFile(new URL(file.path, root));
+    await page.route(`**/artifacts/${file.path}`, (route) => route.fulfill({
+      status: 200,
+      contentType: file.media_type,
+      body: bytes,
+    }));
+  }
+  await page.route(`**/artifacts/${manifestName}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(manifest),
+  }));
+  return manifest;
+}
+
 test.beforeEach(async () => {
   entrance = await startBook();
 });
@@ -170,6 +190,9 @@ test("the staged Book and Crèche each boot with only their own product tree", a
       expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.json`)).status()).toBe(200);
       expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.bin`)).status()).toBe(200);
     }
+    for (const artifact of ["hosted-linux-workstation.json", "hosted-linux-server.json", "conduit-linux-x86_64", "browser-page.json", "runtime.wasm", "index.html", "host.mjs"]) {
+      expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
+    }
     const birth = page.locator(".body-birth-runner");
     await birth.getByRole("button", { name: "Birth Body" }).click();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
@@ -180,6 +203,17 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
   } finally {
     creche.child.kill();
+  }
+
+  const browserBundle = await startStaticProduct("target/creche-product/artifacts");
+  try {
+    await page.goto(`${browserBundle.url}index.html`);
+    await expect(page).toHaveTitle("Conduit browser Host");
+    await expect(page.locator("#status")).toHaveText("Current and independently initialized");
+    await expect(page.locator("#identity")).toBeVisible();
+    expect(await page.evaluate(() => globalThis.__conduitBrowserHost.hostId)).toMatch(/^browser\//);
+  } finally {
+    browserBundle.child.kill();
   }
 });
 
@@ -339,14 +373,19 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target optgroup")).toHaveCount(2);
+  await expect(runner.locator(".physical-target optgroup")).toHaveCount(4);
   await expect(runner.locator(".physical-target optgroup").nth(0)).toHaveAttribute("label", "RP2040 boards");
   await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "ESP32 boards");
+  await expect(runner.locator(".physical-target optgroup").nth(2)).toHaveAttribute("label", "Linux computers");
+  await expect(runner.locator(".physical-target optgroup").nth(3)).toHaveAttribute("label", "Browser Hosts");
   await expect(runner.locator(".physical-target option")).toHaveText([
     "Raspberry Pi Pico W · RP2040",
     "ESP32-C3",
     "ESP32-S3",
     "ESP32-WROOM-32 · HW-463",
+    "Hosted Linux workstation",
+    "Hosted Linux server",
+    "Browser page Host",
   ]);
   await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
 
@@ -403,6 +442,129 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   expect(evidence.intention).toMatchObject({ mode: "attach-running", result_kind: "attachment", supported: false });
   expect(evidence.terminal).toMatchObject({ authority_requested: false, artifact_work_started: false });
   expect(evidence.admitted_operations).toBe(1);
+});
+
+test("an exact browser release becomes a Body-bound spore and a newly admitted browser Host", async ({ page }) => {
+  const release = await installHostRelease(page, "browser-page.json");
+  const birth = await birthStandaloneBody(page, { sourceVariant: "browser-existing-computer" });
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator(".physical-target").selectOption("browser/wasm32/page");
+  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.target_entry).toMatchObject({
+    family: { id: "conduit-target-family/browser@1" },
+    target: { id: "browser/wasm32/page", profile_id: "browser-wasm32-page" },
+    intentions: [
+      { id: "fabricate-new", supported: false },
+      { id: "install-existing", supported: true },
+      { id: "attach-running", supported: false },
+    ],
+    carriers: {
+      installation: [
+        { id: "conduit-carrier/browser-release-download@1" },
+        { id: "conduit-carrier/browser-local-sandbox@1" },
+      ],
+      observation: [{ id: "conduit-carrier/browser-local-spawn@1" }],
+    },
+  });
+  expect(evidence.obtainment).toMatchObject({
+    target_id: "browser/wasm32/page",
+    package_id: "browser-wasm@1",
+    output: "browser-bundle",
+    bundle_sha256: release.bundle_sha256,
+  });
+
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.binding).toMatchObject({
+    body_id: birth.bodyId,
+    target_id: "browser/wasm32/page",
+    output: "browser-bundle",
+    fabrication_package_id: "browser-wasm@1",
+    deployment_adapter: "conduit-host-browser/load@1",
+    image_content_digest: release.bundle_sha256,
+  });
+  const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+    const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+    return {
+      magic: new TextDecoder().decode(bytes.subarray(0, 8)),
+      manifest: JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))),
+    };
+  });
+  expect(bundle.magic).toBe("CNDSPOR1");
+  expect(bundle.manifest.artifact.layout).toMatchObject({
+    format: "browser-bundle",
+    release: { target_id: "browser/wasm32/page", bundle_sha256: release.bundle_sha256 },
+  });
+
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("BrowserBundleLoaded");
+  await runner.getByRole("button", { name: "Observe Boot and join" }).click();
+  await expect(runner.locator('[data-stage="observe"]')).toHaveClass(/complete/);
+  await runner.getByRole("button", { name: "Admit Part and offers" }).click();
+  await expect(runner.locator('[data-stage="admit"]')).toHaveClass(/complete/);
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.realization).toMatchObject({
+    terminal: "BrowserBundleLoaded",
+    target_id: "browser/wasm32/page",
+    boot_observed: false,
+    join_created: false,
+  });
+  expect(evidence.observation).toMatchObject({
+    schema: "conduit.browser/creche-spawn-observation@1",
+    spore_id: evidence.binding.spore_id,
+    image_id: evidence.binding.image_id,
+  });
+  expect(evidence.admission).toMatchObject({
+    disposition: "admitted",
+    body_id: birth.bodyId,
+    offers_observed: true,
+    ready: true,
+    plan_id: null,
+    active_play_id: null,
+  });
+});
+
+test("a native Linux target produces an exact spore but refuses to invent an installer", async ({ page }) => {
+  const release = await installHostRelease(page, "hosted-linux-workstation.json");
+  await birthStandaloneBody(page, { sourceVariant: "native-existing-computer" });
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator(".physical-target").selectOption("std/x86_64/workstation");
+  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.target_entry.target_profile).toMatchObject({
+    os: "linux",
+    architecture: "x86_64",
+    package_id: "hosted-native@1",
+    implemented_carriers: ["conduit-carrier/browser-release-download@1"],
+  });
+  expect(evidence.binding).toMatchObject({
+    target_id: "std/x86_64/workstation",
+    output: "native-bundle",
+    fabrication_package_id: "hosted-native@1",
+    image_content_digest: release.bundle_sha256,
+  });
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator("details code")).toContainText('"terminal": "ExplicitInstallerRequired"');
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
+  expect(evidence.terminal).toMatchObject({
+    operation: "realize",
+    terminal: "ExplicitInstallerRequired",
+    ambient_credentials_used: false,
+    ambient_addresses_used: false,
+    external_work_started: false,
+    unavailable_carriers: ["explicit-helper", "ssh", "package-manager", "container"],
+  });
 });
 
 test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters without widening the family", async ({ page }) => {
@@ -945,7 +1107,7 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator('[data-stage="realize"] span')).toHaveText("RebootRequested");
-  await expect(runner.locator(".physical-status")).toContainText("That proves no Boot, join, membership, offers, readiness, Plan, or Play");
+  await expect(runner.locator(".physical-status")).toContainText("No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted");
 
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
   await expect(runner.locator('[data-stage="observe"]')).toHaveClass(/complete/);
