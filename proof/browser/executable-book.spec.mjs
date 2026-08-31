@@ -271,6 +271,7 @@ test("the same Crèche lifecycle consumes packaged and template-specialized fabr
     const runner = page.locator(".physical-host-runner");
     await runner.locator(".fabrication-strategy").selectOption(strategy);
     await expect(runner.locator('[data-stage="image"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-stage="image"] span')).toHaveText(new RegExp(`^${strategy} ·`));
     await runner.getByRole("button", { name: "Prepare Body spore" }).click();
     await expect(runner.locator('[data-stage="spore"]')).toHaveClass(/complete/);
     return JSON.parse(await runner.locator("details code").textContent());

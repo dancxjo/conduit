@@ -47,6 +47,7 @@ export function createPhysicalHostRunner({ host }) {
     deployment: null,
     observation: null,
     admission: null,
+    fabricationRequest: 0,
   };
   runner.querySelector(".prepare").addEventListener("click", () => prepare(runner, host, state));
   runner.querySelector(".deploy").addEventListener("click", () => deploy(runner, host, state));
@@ -58,9 +59,17 @@ export function createPhysicalHostRunner({ host }) {
 }
 
 async function loadFabricatedImage(runner, host, state) {
+  const request = state.fabricationRequest + 1;
+  state.fabricationRequest = request;
+  const strategy = runner.querySelector(".fabrication-strategy").value;
+  state.imageBytes = null;
+  state.imageDigest = null;
+  state.artifact = null;
+  state.fabrication = null;
+  runner.querySelector(".prepare").disabled = true;
+  resetStage(runner, "image", `${strategy} · loading`);
   try {
     const body = currentBody(host.runtime);
-    const strategy = runner.querySelector(".fabrication-strategy").value;
     const fabrication = await createRp2040BrowserFabricationAdapter().fabricate({
       strategy,
       selection: {
@@ -72,6 +81,7 @@ async function loadFabricatedImage(runner, host, state) {
       },
       configuration: strategy === "template-specialized" ? { body_label: body?.friendly_name ?? "unborn" } : {},
     });
+    if (request !== state.fabricationRequest) return;
     state.imageBytes = fabrication.bytes;
     state.imageDigest = fabrication.content_id;
     state.fabrication = fabrication;
@@ -81,6 +91,7 @@ async function loadFabricatedImage(runner, host, state) {
     status(runner, "Exact IMAGE fabricated and cryptographically bound to its checked selection. No spore, deployment, Boot, or membership exists.");
     renderEvidence(runner, state);
   } catch (error) {
+    if (request !== state.fabricationRequest) return;
     refuse(runner, "local IMAGE fabrication", error);
   }
 }
@@ -259,6 +270,12 @@ function outputError(api, operation, code) {
 function completeStage(runner, name, value) {
   const stage = runner.querySelector(`[data-stage="${name}"]`);
   stage.classList.add("complete");
+  stage.querySelector("span").textContent = value;
+}
+
+function resetStage(runner, name, value) {
+  const stage = runner.querySelector(`[data-stage="${name}"]`);
+  stage.classList.remove("complete");
   stage.querySelector("span").textContent = value;
 }
 
