@@ -117,6 +117,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     spore_id: null,
     image_id: null,
     image_content_id: null,
+    spore_content_id: null,
     host_id: null,
     boot_id: null,
     resource_handle: null,
@@ -142,6 +143,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     sporeId,
     imageId,
     imageContentId,
+    sporeContentId,
     imageBytes,
     explicitAction = false,
   }) {
@@ -152,14 +154,15 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     requireIdentity(sporeId, "spore identity");
     requireIdentity(imageId, "IMAGE identity");
     requireIdentity(imageContentId, "IMAGE content identity");
+    requireIdentity(sporeContentId, "Spore content identity");
     if (targetId !== TARGET_ID) refuse("WrongTarget", "IMAGE target is not the selected Pico W target");
 
     const truth = exactBaseTruth(base);
     const maximumTransferBytes = truth.transfer_bounds?.maximum_transfer_bytes;
     const image = parseRp2040Uf2(imageBytes, maximumTransferBytes);
     const actualContentId = await sha256ContentId(imageBytes, cryptoApi);
-    if (actualContentId !== imageContentId) {
-      refuse("ContentIdentity", "selected IMAGE bytes do not match their sealed SHA-256 identity");
+    if (actualContentId !== sporeContentId) {
+      refuse("ContentIdentity", "selected native Spore bytes do not match their sealed SHA-256 identity");
     }
     const required = requiredPicobootTransfers(image.chunks.length);
     if (
@@ -179,6 +182,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
       sporeId,
       imageId,
       imageContentId,
+      sporeContentId,
       hostId: identity.hostId,
       bootId: identity.bootId,
       resourceHandle: identity.resourceHandle,
@@ -197,6 +201,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
       spore_id: sporeId,
       image_id: imageId,
       image_content_id: imageContentId,
+      spore_content_id: sporeContentId,
       host_id: identity.hostId,
       boot_id: identity.bootId,
       resource_handle: identity.resourceHandle,

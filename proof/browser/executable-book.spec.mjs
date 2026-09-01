@@ -572,17 +572,37 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    return { birth, evidence: JSON.parse(await runner.locator("details code").textContent()) };
+    const download = runner.locator(".download-spore");
+    await expect(download).toHaveAttribute("download", /-pico-w\.uf2$/);
+    const artifact = await download.evaluate(async (link) => {
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      const { readRp2040BodySpore } = await import("/creche/targets/rp2040/browser-deployment/index.mjs");
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      return {
+        filename: link.download,
+        bytes: bytes.byteLength,
+        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+        provision: readRp2040BodySpore(bytes),
+      };
+    });
+    return { birth, artifact, evidence: JSON.parse(await runner.locator("details code").textContent()) };
   };
   const first = await prepareOne("A");
   const second = await prepareOne("B");
   expect(first.birth.bodyId).not.toBe(second.birth.bodyId);
-  expect(first.evidence.obtainment.artifact.content_digest).toBe("sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d");
+  expect(first.evidence.obtainment.artifact.content_digest).toBe("sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e");
   expect(first.evidence.obtainment.artifact.content_digest).toBe(second.evidence.obtainment.artifact.content_digest);
-  expect(first.evidence.obtainment.artifact.artifact_id).toBe("conduit-pico-w-signal/pico-local-b7@1");
+  expect(first.evidence.obtainment.artifact.artifact_id).toBe("conduit-pico-w-signal/pico-local-b8@1");
   expect(first.evidence.binding.spore_id).not.toBe(second.evidence.binding.spore_id);
   expect(first.evidence.binding.invitation_id).not.toBe(second.evidence.binding.invitation_id);
   expect(first.evidence.binding.image_content_digest).toBe(second.evidence.binding.image_content_digest);
+  expect(first.artifact.contentDigest).toBe(first.evidence.binding.spore_artifact.content_digest);
+  expect(first.artifact.provision).toMatchObject({
+    spore_id: first.evidence.binding.spore_id,
+    body_id: first.birth.bodyId,
+    invitation_id: first.evidence.binding.invitation_id,
+  });
+  expect(first.artifact.contentDigest).not.toBe(second.artifact.contentDigest);
 });
 
 test("the same Crèche lifecycle consumes packaged and template-specialized fabrication", async ({ page }) => {
@@ -1374,7 +1394,7 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
   await expect(runner.locator(".physical-status")).toContainText("current offers are ready. No Plan or Play was created");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding.body_id).toBe(birth.bodyId);
-  expect(evidence.binding.invitation_secret).toBe("redacted");
+  expect(evidence.binding.invitation_secret).toBe("embedded in native UF2; redacted");
   expect(evidence.realization).toMatchObject({
     terminal: "RebootRequested",
     spore_id: evidence.binding.spore_id,

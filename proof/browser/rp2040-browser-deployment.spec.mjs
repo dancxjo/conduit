@@ -222,7 +222,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
     const selection = {
       targetId: "conduit-target/rp2040-pico-w@1",
       profileId: "pico-local",
-      buildId: "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local",
+      buildId: "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local",
       imageId: "conduit-image/pico-w-signal-b7@1",
       manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
     };
@@ -252,12 +252,12 @@ test("target-owned fabrication returns exact attributable bytes through two loca
   expect(result.packaged).toMatchObject({
     schema: "conduit.rp2040/browser-fabrication-result@1",
     strategy: "packaged-exact",
-    bytes: 773632,
-    content_id: "sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d",
+    bytes: 775168,
+    content_id: "sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e",
     maximum_artifact_bytes: 2097152,
     provenance: {
       mechanism: "packaged-exact",
-      artifact_id: "conduit-pico-w-signal/pico-local-b7@1",
+      artifact_id: "conduit-pico-w-signal/pico-local-b8@1",
       remote_builder: null,
       uploaded_artifact: null,
       cache_fallback: null,
@@ -270,6 +270,69 @@ test("target-owned fabrication returns exact attributable bytes through two loca
   expect(result.specialized.provenance.template_content_id).toBe(result.packaged.content_id);
   expect(result.unsupported.code).toBe("UnsupportedStrategy");
   expect(result.oversized.code).toBe("ConfigurationBound");
+});
+
+test("one reviewed IMAGE yields distinct directly plantable Body-bound UF2 spores", async ({ page }) => {
+  await page.goto(`${await startEntrance()}creche/`);
+  const result = await page.evaluate(async () => {
+    const {
+      bindRp2040BodySpore,
+      createRp2040BrowserFabricationAdapter,
+      readRp2040BodySpore,
+    } = await import("/targets/rp2040/browser-deployment/index.mjs");
+    const image = await createRp2040BrowserFabricationAdapter().fabricate({
+      strategy: "packaged-exact",
+      selection: {
+        targetId: "conduit-target/rp2040-pico-w@1",
+        profileId: "pico-local",
+        buildId: "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local",
+        imageId: "conduit-image/pico-w-signal-b7@1",
+        manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
+      },
+      configuration: {},
+    });
+    const prepared = (suffix) => ({
+      output: "uf2",
+      target_id: "conduitos/thumbv6m/pico-w",
+      spore_id: `spore:${suffix}`,
+      image_id: "image:reviewed",
+      image_content_digest: image.content_id,
+      invitation_id: `invitation:${suffix}`,
+      body_id: `body:${suffix}`,
+      invitation_nonce: Array(32).fill(suffix.charCodeAt(0)),
+      invitation_expires_at_millis: Date.now() + 60_000,
+      invitation_secret: Array(32).fill(suffix.charCodeAt(0) + 1),
+    });
+    const first = await bindRp2040BodySpore(image.bytes, prepared("a"));
+    const second = await bindRp2040BodySpore(image.bytes, prepared("b"));
+    const recovered = readRp2040BodySpore(first.bytes);
+    let missing;
+    try { readRp2040BodySpore(image.bytes); } catch (error) { missing = error.code; }
+    return {
+      imageBytes: image.bytes.byteLength,
+      first: { ...first, bytes: first.bytes.byteLength },
+      second: { ...second, bytes: second.bytes.byteLength },
+      recovered,
+      missing,
+    };
+  });
+  expect(result.first).toMatchObject({
+    schema: "conduit.rp2040/native-body-spore@1",
+    format: "uf2",
+    image_content_id: "sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e",
+    spore_id: "spore:a",
+    bootstrap_flash_address: 0x101ff000,
+  });
+  expect(result.first.bytes).toBe(result.imageBytes + 16 * 512);
+  expect(result.first.content_id).not.toBe(result.second.content_id);
+  expect(result.recovered).toMatchObject({
+    protocol: 2,
+    spore_id: "spore:a",
+    image_id: "image:reviewed",
+    invitation_id: "invitation:a",
+    body_id: "body:a",
+  });
+  expect(result.missing).toBe("SporeMissing");
 });
 
 test("browser serial observes a distinct fresh Boot and invitation-bound Pico join", async ({ page }) => {
@@ -287,7 +350,6 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
       maximumWrites: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumWrites,
       maximumSignalOperations: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumSignalOperations,
     });
-    const secret = Array(32).fill(8);
     const observation = await requestRp2040SpawnJoin({
       base,
       prepared: {
@@ -296,7 +358,6 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
         invitation_id: "invitation:one",
         body_id: "body:one",
         invitation_nonce: nonce,
-        invitation_secret: secret,
         invitation_expires_at_millis: Date.now() + 60_000,
       },
     });
@@ -306,7 +367,6 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
       browserReads: __fragmentedSpawnPort.reads,
       signals: __fragmentedSpawnPort.signals,
       write: __fragmentedSpawnPort.writes[0],
-      secret,
     };
   });
   expect(result.observation).toMatchObject({
@@ -343,7 +403,9 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
   expect(result.browserReads).toBe(7);
   expect(result.signals).toEqual([{ dataTerminalReady: true }]);
   expect(result.write.length).toBeLessThanOrEqual(4098);
-  expect(result.secret).toEqual(Array(32).fill(0));
+  const requestLength = (result.write[0] << 8) | result.write[1];
+  expect(new TextDecoder().decode(Uint8Array.from(result.write.slice(2, 2 + requestLength))))
+    .toBe("CONDUIT_SPORE_JOIN@1");
 });
 
 test("expired invitation and join-to-advertisement mismatch refuse before admission", async ({ page }) => {
@@ -356,7 +418,7 @@ test("expired invitation and join-to-advertisement mismatch refuse before admiss
     const prepared = (expiry) => ({
       spore_id: "spore:one", image_id: "image:one", invitation_id: "invitation:one",
       body_id: "body:one", invitation_nonce: Array(32).fill(7),
-      invitation_secret: Array(32).fill(8), invitation_expires_at_millis: expiry,
+      invitation_expires_at_millis: expiry,
     });
     const encode = (value) => {
       const payload = new TextEncoder().encode(JSON.stringify(value));
@@ -393,13 +455,11 @@ test("expired invitation and join-to-advertisement mismatch refuse before admiss
     try {
       await requestRp2040SpawnJoin({ base: mismatchBase, prepared: prepared(Date.now() + 60_000) });
     } catch (error) { mismatchCode = error.code; }
-    return { expiredCode, expiredWrites: expiredBase.writes, expiredSecret: expired.invitation_secret,
-      mismatchCode, mismatchWrites: mismatchBase.writes };
+    return { expiredCode, expiredWrites: expiredBase.writes, mismatchCode, mismatchWrites: mismatchBase.writes };
   });
   expect(result).toEqual({
     expiredCode: "ExpiredInvitation",
     expiredWrites: 0,
-    expiredSecret: Array(32).fill(0),
     mismatchCode: "WrongBoot",
     mismatchWrites: 1,
   });
@@ -449,6 +509,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
       sporeId: "spore/pico-w/one",
       imageId: "image/pico-w-signal/one",
       imageContentId: contentId,
+      sporeContentId: contentId,
       imageBytes: uf2,
       explicitAction: true,
     });
@@ -584,6 +645,7 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
         sporeId: "spore/wrong",
         imageId: "image/wrong",
         imageContentId: contentId(wrongDigest),
+        sporeContentId: contentId(wrongDigest),
         imageBytes: wrong,
         explicitAction: true,
       });
@@ -599,6 +661,7 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
       sporeId: "spore/stale-status",
       imageId: "image/good",
       imageContentId: contentId(goodDigest),
+      sporeContentId: contentId(goodDigest),
       imageBytes: good,
       explicitAction: true,
     });

@@ -1,9 +1,13 @@
 import { createBrowserDeviceBase } from "../../../device-base.mjs";
 import { createBrowserUsbDeviceBase } from "../../../usb-device-base.mjs";
 import { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } from "./deployment.mjs";
-import { createRp2040BrowserFabricationAdapter, RP2040_BROWSER_FABRICATION } from "./fabrication.mjs";
+import {
+  bindRp2040BodySpore,
+  createRp2040BrowserFabricationAdapter,
+  RP2040_BROWSER_FABRICATION,
+} from "./fabrication.mjs";
 import { PHYSICAL_SPAWN_STREAM_BOUNDS, requestRp2040SpawnJoin } from "./spawn.mjs";
-import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
+import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const TARGET_ID = RP2040_BROWSER_DEPLOYMENT.targetId;
@@ -11,7 +15,7 @@ const PACKAGED_MANIFEST_PATH = new URL(
   "../../../artifacts/pico-w-signal-pico-local.json",
   import.meta.url,
 ).href;
-const BUILD_ID = "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local";
+const BUILD_ID = "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const TARGET = Object.freeze({
@@ -150,7 +154,7 @@ export function createRp2040CrecheTargetAdapter({ host }) {
     }
   }
 
-  async function bind({ mode, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal }) {
     requireMode(mode, "bind");
     requireCurrent(signal, mode, "bind");
     const digest = obtainment?.private?.imageDigest;
@@ -177,18 +181,34 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost the selected RP2040 target or artifact identity");
       }
       requireCurrent(signal, mode, "bind");
-      const download = packageSporeBundle({
+      const nativeSpore = await bindRp2040BodySpore(obtainment.private.imageBytes, prepared);
+      prepared.invitation_secret.fill(0);
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-pico-w.uf2`;
+      const download = await createNativeSporeDownload({
         prepared,
-        artifact: {
-          layout: { format: "uf2", payloads: [{ family: "rp2040", bytes: obtainment.private.imageBytes.length }] },
-          payloads: [obtainment.private.imageBytes],
-        },
-        filename: `${prepared.spore_id.replaceAll(":", "-")}.spore`,
+        bytes: nativeSpore.bytes,
+        contentDigest: nativeSpore.content_id,
+        filename,
+        format: "uf2",
+        mediaType: "application/x-uf2",
       });
       return Object.freeze({
         prepared,
+        nativeSpore,
         download,
-        evidence: Object.freeze({ ...prepared, invitation_secret: "redacted" }),
+        evidence: Object.freeze({
+          ...prepared,
+          invitation_secret: "embedded in native UF2; redacted",
+          spore_artifact: Object.freeze({
+            format: nativeSpore.format,
+            filename,
+            bytes: nativeSpore.bytes.byteLength,
+            content_digest: nativeSpore.content_id,
+            image_content_digest: nativeSpore.image_content_id,
+            bootstrap_bytes: nativeSpore.bootstrap_bytes,
+            bootstrap_flash_address: nativeSpore.bootstrap_flash_address,
+          }),
+        }),
       });
     } catch (error) {
       if (error?.evidence) throw error;
@@ -230,7 +250,8 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         sporeId: prepared.spore_id,
         imageId: prepared.image_id,
         imageContentId: prepared.image_content_digest,
-        imageBytes: obtainment.private.imageBytes,
+        sporeContentId: binding.nativeSpore.content_id,
+        imageBytes: binding.nativeSpore.bytes,
         explicitAction: true,
       });
       const evidence = await deployment.deploy(plan, { signal });
@@ -326,6 +347,12 @@ export function createRp2040CrecheTargetAdapter({ host }) {
   }
 
   return Object.freeze({ ...descriptor, createOptions, obtain, bind, realize, observe, cancel });
+}
+
+function friendlyFilename(value) {
+  const name = String(value).normalize("NFKD").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
+  return name || "body";
 }
 
 function requireMode(mode, operation) {

@@ -372,7 +372,7 @@ fn pico_target() -> Result<TargetFacts, String> {
     Ok(TargetFacts {
         configuration_name: "creche-pico-w-prebuilt",
         host_name: "creche-pico-w",
-        source_identity: "conduit-pico-w-signal/pico-local-b7@1",
+        source_identity: "conduit-pico-w-signal/pico-local-b8@1",
         deployment_destination: Some("browser/webusb"),
         output: SporeOutputKind::Uf2,
         configuration: HostConfiguration {

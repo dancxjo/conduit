@@ -39,6 +39,7 @@ export async function installB7Devices(page, { staleStatus = false } = {}) {
       const key = await crypto.subtle.importKey("pkcs8", encoded, { name: "Ed25519" }, false, ["sign"]);
       return Array.from(new Uint8Array(await crypto.subtle.sign("Ed25519", key, bytes)));
     };
+    let embeddedProvision = null;
 
     class PicobootDevice {
       constructor() { this.vendorId = 0x2e8a; this.productId = 0x0003; this.configuration = null; this.pending = null; }
@@ -51,7 +52,21 @@ export async function installB7Devices(page, { staleStatus = false } = {}) {
         const value = new Uint8Array(bytes);
         if (value.byteLength === 32 && new DataView(value.buffer, value.byteOffset).getUint32(0, true) === 0x431fd10b) {
           const view = new DataView(value.buffer, value.byteOffset);
-          this.pending = { token: view.getUint32(4, true), command: view.getUint8(8) };
+          this.pending = {
+            token: view.getUint32(4, true),
+            command: view.getUint8(8),
+            arguments: value.slice(16, 32),
+          };
+        } else if (this.pending?.command === 0x05) {
+          const address = new DataView(this.pending.arguments.buffer).getUint32(0, true);
+          if (address === 0x101ff000 && value.byteLength === 4096) {
+            const magic = new TextDecoder().decode(value.subarray(0, 15));
+            const length = new DataView(value.buffer, value.byteOffset).getUint32(16, true);
+            if (magic !== "CONDUIT_SPORE@1" || length < 1 || length > value.byteLength - 20) {
+              throw new Error("flashed Pico Spore bootstrap is malformed");
+            }
+            embeddedProvision = JSON.parse(new TextDecoder().decode(value.subarray(20, 20 + length)));
+          }
         }
         return { status: "ok", bytesWritten: value.byteLength };
       }
@@ -80,7 +95,11 @@ export async function installB7Devices(page, { staleStatus = false } = {}) {
     port.writable = { getWriter: () => ({
       write: async (bytes) => {
         const length = new DataView(bytes.buffer, bytes.byteOffset).getUint16(0, false);
-        const provision = JSON.parse(new TextDecoder().decode(bytes.subarray(2, length + 2)));
+        const request = new TextDecoder().decode(bytes.subarray(2, length + 2));
+        if (request !== "CONDUIT_SPORE_JOIN@1" || !embeddedProvision) {
+          throw new Error("Pico join request arrived without one exact flashed native Spore");
+        }
+        const provision = embeddedProvision;
         const hostId = "s4/pico-local";
         const bootId = "pico-boot/b7-browser-proof";
         const advertisement = {

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 pub const PICO_ADMISSION_PROTOCOL: u16 = 1;
 pub const PICO_ADMISSION_REQUEST: &[u8] = b"CONDUIT_BODY_ADVERTISE_V1";
 pub const PICO_SPAWN_PROTOCOL: u16 = 2;
+pub const PICO_SPAWN_REQUEST: &[u8] = b"CONDUIT_SPORE_JOIN@1";
 pub const MAX_PICO_ADMISSION_FRAME_BYTES: usize = 4_096;
 pub const MAX_PICO_ADMISSION_ID_BYTES: usize = 128;
 
@@ -52,9 +53,9 @@ pub struct PicoAdmissionProof<'a> {
     pub signature: &'a [u8],
 }
 
-/// A spore-bound invitation provisioned over the operator-admitted local Line.
-/// The secret is transient proof material; constrained firmware does not retain
-/// it after producing the Boot-specific join request.
+/// A spore-bound invitation carried in the target-native artifact. The secret
+/// is transient proof material and is used only to produce a Boot-specific join
+/// request after the planted Host receives `PICO_SPAWN_REQUEST`.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PicoSpawnProvision<'a> {

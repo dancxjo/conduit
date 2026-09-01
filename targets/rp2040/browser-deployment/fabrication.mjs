@@ -1,10 +1,12 @@
-import { parseRp2040Uf2, sha256ContentId } from "./uf2.mjs";
+import { parseRp2040Uf2, RP2040_UF2, sha256ContentId } from "./uf2.mjs";
 
 const MAXIMUM_ARTIFACT_BYTES = 2 * 1024 * 1024;
 const MAXIMUM_CONFIGURATION_BYTES = 192;
 const UF2_BLOCK_BYTES = 512;
 const UF2_PAYLOAD_BYTES = 256;
 const encoder = new TextEncoder();
+const SPORE_MAGIC = encoder.encode("CONDUIT_SPORE@1\0");
+const SPORE_HEADER_BYTES = SPORE_MAGIC.byteLength + 4;
 
 export class Rp2040FabricationRefusal extends Error {
   constructor(code, message) {
@@ -94,6 +96,118 @@ function specializeTemplate(template, configurationBytes) {
   payload.set(configurationBytes, 17);
   view.setUint32(508, 0x0ab16f30, true);
   return bytes;
+}
+
+export async function bindRp2040BodySpore(imageBytes, prepared, cryptoApi = globalThis.crypto) {
+  if (prepared?.output !== "uf2" || prepared?.target_id !== "conduitos/thumbv6m/pico-w") {
+    refuse("SporeTarget", "prepared Body binding is not for the exact RP2040 Pico W target");
+  }
+  const provision = {
+    protocol: 2,
+    spore_id: prepared.spore_id,
+    image_id: prepared.image_id,
+    invitation_id: prepared.invitation_id,
+    body_id: prepared.body_id,
+    nonce: prepared.invitation_nonce,
+    expires_at_millis: prepared.invitation_expires_at_millis,
+    secret: prepared.invitation_secret,
+  };
+  const provisionBytes = encoder.encode(JSON.stringify(provision));
+  if (provisionBytes.byteLength < 1
+    || provisionBytes.byteLength > RP2040_UF2.sporeSectorBytes - SPORE_HEADER_BYTES) {
+    refuse("SporeBound", "RP2040 Body bootstrap exceeds its exact reserved flash sector");
+  }
+  const parsed = parseRp2040Uf2(imageBytes, 4096);
+  if (parsed.endAddress > RP2040_UF2.sporeSectorAddress) {
+    refuse("SporeOverlap", "RP2040 IMAGE overlaps the reserved native Spore bootstrap sector");
+  }
+  const base = imageBytes instanceof Uint8Array ? imageBytes : new Uint8Array(imageBytes);
+  const originalBlocks = base.byteLength / UF2_BLOCK_BYTES;
+  const sporeBlocks = RP2040_UF2.sporeSectorBytes / UF2_PAYLOAD_BYTES;
+  const totalBlocks = originalBlocks + sporeBlocks;
+  const bytes = new Uint8Array(base.byteLength + sporeBlocks * UF2_BLOCK_BYTES);
+  bytes.set(base);
+  for (let index = 0; index < originalBlocks; index += 1) {
+    new DataView(bytes.buffer, index * UF2_BLOCK_BYTES, UF2_BLOCK_BYTES).setUint32(24, totalBlocks, true);
+  }
+  const sector = new Uint8Array(RP2040_UF2.sporeSectorBytes).fill(0xff);
+  sector.set(SPORE_MAGIC);
+  new DataView(sector.buffer).setUint32(SPORE_MAGIC.byteLength, provisionBytes.byteLength, true);
+  sector.set(provisionBytes, SPORE_HEADER_BYTES);
+  for (let page = 0; page < sporeBlocks; page += 1) {
+    const index = originalBlocks + page;
+    const offset = index * UF2_BLOCK_BYTES;
+    const view = new DataView(bytes.buffer, offset, UF2_BLOCK_BYTES);
+    view.setUint32(0, 0x0a324655, true);
+    view.setUint32(4, 0x9e5d5157, true);
+    view.setUint32(8, 0x00002000, true);
+    view.setUint32(12, RP2040_UF2.sporeSectorAddress + page * UF2_PAYLOAD_BYTES, true);
+    view.setUint32(16, UF2_PAYLOAD_BYTES, true);
+    view.setUint32(20, index, true);
+    view.setUint32(24, totalBlocks, true);
+    view.setUint32(28, RP2040_UF2.familyId, true);
+    bytes.set(
+      sector.subarray(page * UF2_PAYLOAD_BYTES, (page + 1) * UF2_PAYLOAD_BYTES),
+      offset + 32,
+    );
+    view.setUint32(508, 0x0ab16f30, true);
+  }
+  parseRp2040Uf2(bytes, 4096);
+  const recovered = readRp2040BodySpore(bytes);
+  if (JSON.stringify(recovered) !== JSON.stringify(provision)) {
+    refuse("SporeBinding", "RP2040 native Spore did not retain its exact Body bootstrap");
+  }
+  const contentId = await sha256ContentId(bytes, cryptoApi);
+  return Object.freeze({
+    schema: "conduit.rp2040/native-body-spore@1",
+    format: "uf2",
+    bytes,
+    content_id: contentId,
+    image_content_id: prepared.image_content_digest,
+    spore_id: prepared.spore_id,
+    bootstrap_bytes: provisionBytes.byteLength,
+    bootstrap_flash_address: RP2040_UF2.sporeSectorAddress,
+  });
+}
+
+export function readRp2040BodySpore(value) {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  parseRp2040Uf2(bytes, 4096);
+  const sector = new Uint8Array(RP2040_UF2.sporeSectorBytes).fill(0xff);
+  let pages = 0;
+  for (let offset = 0; offset < bytes.byteLength; offset += UF2_BLOCK_BYTES) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, UF2_BLOCK_BYTES);
+    const address = view.getUint32(12, true);
+    if (address >= RP2040_UF2.sporeSectorAddress
+      && address < RP2040_UF2.sporeSectorAddress + RP2040_UF2.sporeSectorBytes) {
+      const page = (address - RP2040_UF2.sporeSectorAddress) / UF2_PAYLOAD_BYTES;
+      sector.set(bytes.subarray(offset + 32, offset + 32 + UF2_PAYLOAD_BYTES), page * UF2_PAYLOAD_BYTES);
+      pages += 1;
+    }
+  }
+  if (pages !== RP2040_UF2.sporeSectorBytes / UF2_PAYLOAD_BYTES
+    || SPORE_MAGIC.some((byte, index) => sector[index] !== byte)) {
+    refuse("SporeMissing", "RP2040 UF2 omits its exact native Spore bootstrap sector");
+  }
+  const length = new DataView(sector.buffer).getUint32(SPORE_MAGIC.byteLength, true);
+  if (length < 1 || length > RP2040_UF2.sporeSectorBytes - SPORE_HEADER_BYTES) {
+    refuse("SporeBound", "RP2040 UF2 bootstrap length is outside its reserved sector");
+  }
+  try {
+    const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(
+      sector.subarray(SPORE_HEADER_BYTES, SPORE_HEADER_BYTES + length),
+    ));
+    if (value?.protocol !== 2 || typeof value.spore_id !== "string"
+      || typeof value.image_id !== "string" || typeof value.invitation_id !== "string"
+      || typeof value.body_id !== "string" || !Array.isArray(value.nonce)
+      || !Array.isArray(value.secret)) {
+      refuse("SporeMalformed", "RP2040 UF2 bootstrap has the wrong bounded provision shape");
+    }
+    return value;
+  } catch (error) {
+    if (error instanceof Rp2040FabricationRefusal) throw error;
+    refuse("SporeMalformed", "RP2040 UF2 bootstrap is not exact JSON");
+  }
 }
 
 export function createRp2040BrowserFabricationAdapter({ fetchApi = globalThis.fetch, cryptoApi = globalThis.crypto } = {}) {
