@@ -19,7 +19,7 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
     const sourceImage = join(directory, build.image.file);
     const bytes = await readFile(sourceImage);
     const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-    if (digest !== build.image.sha256 || build.image_id !== `image:${digest}`) throw new Error(`stale ${targetId} IMAGE content identity`);
+    if (digest !== `sha256:${build.image.sha256}` || build.image_id !== `image:${digest}`) throw new Error(`stale ${targetId} IMAGE content identity`);
     await copyFile(sourceImage, join(output, product.output));
     const release = {
       schema: "conduit.conduitos/creche-release@1",
