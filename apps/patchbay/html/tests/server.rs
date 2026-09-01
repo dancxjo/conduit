@@ -223,7 +223,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(response.contains("Content-Type: text/css; charset=utf-8"));
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= patchbay_html::MAX_THEME_CSS_BYTES);
-    assert!(body.contains("--patchbay-theme-identity:\"conduit.patchbay/phosphor@1\""));
+    assert!(body.contains("--patchbay-theme-identity:\"conduit.presentation/phosphor@1\""));
     for (token, color) in [
         ("background", "#05070B"),
         ("surface", "#090D16"),
