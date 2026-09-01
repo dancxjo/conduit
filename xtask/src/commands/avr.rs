@@ -18,12 +18,12 @@ use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
 };
 use build_identity::{digest_compiled_sources, EmbeddedBuildIdentity, BUILD_ID_SCHEMA};
-use conduit_host_avr_fabrication::{APPLICATION_FLASH_BYTES, FQBN, SRAM_BYTES};
+use conduit_host_avr_fabrication::{FQBN, SPORE_REGION_START, SRAM_BYTES};
 const SKETCH: &str = "targets/avr/firmware/promicro_brainstem";
 const EXPECTED_BY_ID: &str = "usb-SparkFun_SparkFun_Pro_Micro-if00";
 const EXPECTED_VID: &str = "1b4f";
 const EXPECTED_PID: &str = "9206";
-const MAX_FLASH_BYTES: u64 = APPLICATION_FLASH_BYTES;
+const MAX_FLASH_BYTES: u64 = SPORE_REGION_START;
 const MAX_SRAM_BYTES: u64 = SRAM_BYTES;
 
 #[derive(Args, Debug)]

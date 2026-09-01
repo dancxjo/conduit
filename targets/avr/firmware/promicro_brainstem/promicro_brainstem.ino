@@ -1,4 +1,7 @@
 #include "protocol.h"
+#include "embedded_spore.h"
+
+#include <avr/pgmspace.h>
 
 using conduit::promicro::CommandBuffer;
 using conduit::promicro::Request;
@@ -18,6 +21,20 @@ constexpr uint8_t kPowerTogglePin = 4;
 constexpr uint8_t kChargingInputPin = 5;
 
 CommandBuffer command;
+
+uint8_t read_spore(uint16_t offset) {
+  return pgm_read_byte_near(conduit::promicro::kSporeRegionStart + offset);
+}
+
+void write_spore_field(uint8_t field) {
+  conduit::promicro::EmbeddedSporeField selected{};
+  if (!conduit::promicro::embedded_spore_field(read_spore, field, &selected)) {
+    return;
+  }
+  for (uint8_t index = 0; index < selected.length; ++index) {
+    Serial.write(read_spore(selected.offset + index));
+  }
+}
 
 void isolate_create_outputs() {
   Serial1.end();
@@ -43,7 +60,20 @@ void respond(Request request) {
     case Request::kAttest:
       WRITE_TEXT("ATTEST build_id=" CONDUIT_AVR_BUILD_ID " source_sha="
                  CONDUIT_AVR_SOURCE_SHA " source_digest_sha256="
-                 CONDUIT_AVR_SOURCE_DIGEST " profile=isolated\n");
+                 CONDUIT_AVR_SOURCE_DIGEST " profile=isolated ");
+      if (conduit::promicro::embedded_spore_valid(read_spore)) {
+        WRITE_TEXT("spore=present spore_id=");
+        write_spore_field(0);
+        WRITE_TEXT(" image_id=");
+        write_spore_field(1);
+        WRITE_TEXT(" invitation_id=");
+        write_spore_field(2);
+        WRITE_TEXT(" body_id=");
+        write_spore_field(3);
+        Serial.write('\n');
+      } else {
+        WRITE_TEXT("spore=absent\n");
+      }
       break;
     case Request::kOverflow:
       WRITE_TEXT("REFUSED reason=command-too-long limit=64\n");

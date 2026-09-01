@@ -110,7 +110,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
   const download = runner.locator(".download-spore");
-  await expect(download).toHaveAttribute("download", /\.spore$/);
+  await expect(download).toHaveAttribute("download", /-pro-micro\.hex$/);
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: TARGET_ID,
@@ -118,33 +118,35 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
     fabrication_package_id: "conduit-host-avr-promicro@1",
     deployment_adapter: null,
     image_content_digest: release.manifest.artifact.sha256,
+    invitation_secret: "embedded in native HEX; redacted",
+    spore_artifact: {
+      format: "intel-hex",
+      image_content_digest: release.manifest.artifact.sha256,
+      bootstrap_flash_address: 27_648,
+    },
   });
-  const bundle = await download.evaluate(async (link) => {
+  const native = await download.evaluate(async (link) => {
     const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+    const { readAvrBodySpore } = await import("/creche/targets/avr/browser-deployment/image.mjs");
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
     return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-      manifest: JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))),
+      startsWithRecord: new TextDecoder().decode(bytes.subarray(0, 1)),
+      containsLegacyEnvelope: new TextDecoder().decode(bytes).includes("CNDSPOR1"),
+      digest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+      provision: readAvrBodySpore(bytes),
       bytes: bytes.byteLength,
     };
   });
-  expect(bundle.magic).toBe("CNDSPOR1");
-  expect(bundle.bytes).toBeGreaterThan(release.artifact.byteLength);
-  expect(bundle.manifest).toMatchObject({
-    schema: "conduit.spore/bundle@1",
-    spore: {
-      schema: "conduit.body/spore-manifest@2",
-      target: TARGET_ID,
-      image_content_digest: release.manifest.artifact.sha256,
-    },
-    artifact: {
-      content_digest: release.manifest.artifact.sha256,
-      layout: {
-        format: "intel-hex",
-        release: { target_id: TARGET_ID, artifact: { format: "intel-hex" } },
-      },
-      payload_lengths: [release.artifact.byteLength],
-    },
+  expect(native.startsWithRecord).toBe(":");
+  expect(native.containsLegacyEnvelope).toBe(false);
+  expect(native.bytes).toBeGreaterThan(release.artifact.byteLength);
+  expect(native.digest).toBe(evidence.binding.spore_artifact.content_digest);
+  expect(native.provision).toMatchObject({
+    protocol: 2,
+    spore_id: evidence.binding.spore_id,
+    image_id: evidence.binding.image_id,
+    invitation_id: evidence.binding.invitation_id,
+    body_id: evidence.binding.body_id,
   });
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
@@ -184,7 +186,11 @@ test("the Pro Micro contract keeps board, bootloader, reset, port, and flash ref
       change(candidate);
       return module.validateProMicroReleaseManifest(candidate, adapter.AVR_PRO_MICRO_PROFILE);
     };
-    const binding = { prepared: { image_content_digest: releaseManifest.artifact.sha256 } };
+    const nativeDigest = `sha256:${"ab".repeat(32)}`;
+    const binding = {
+      prepared: { image_content_digest: releaseManifest.artifact.sha256 },
+      nativeSpore: { content_id: nativeDigest, programmed_bytes: 1_025, maximum_address: 28_672 },
+    };
     const programmer = {
       programmer_id: "fixture-programmer",
       target_id: adapter.AVR_PRO_MICRO_PROFILE.target.id,
@@ -196,9 +202,9 @@ test("the Pro Micro contract keeps board, bootloader, reset, port, and flash ref
       reset_observed: true,
       selected_port_generation: 4,
       observed_port_generation: 5,
-      artifact_sha256: releaseManifest.artifact.sha256,
-      programmed_bytes: 1,
-      maximum_address: 1,
+      artifact_sha256: nativeDigest,
+      programmed_bytes: binding.nativeSpore.programmed_bytes,
+      maximum_address: binding.nativeSpore.maximum_address,
     };
     return {
       wrongBoard: capture(() => mutate((candidate) => { candidate.board.model = "generic-avr"; })),
@@ -212,6 +218,9 @@ test("the Pro Micro contract keeps board, bootloader, reset, port, and flash ref
       programmerWrongBootloader: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, protocol: "stk500v1" }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
       programmerMissingReset: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, reset_observed: false }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
       stalePort: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, observed_port_generation: 4 }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      staleReleaseImage: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, artifact_sha256: releaseManifest.artifact.sha256 }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      wrongProgrammedBytes: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, programmed_bytes: 1_024 }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      wrongMaximumAddress: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, maximum_address: 28_671 }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
       acceptedReceipt: capture(() => module.validateExternalProgrammerEvidence(programmer, adapter.AVR_PRO_MICRO_PROFILE, binding)),
     };
   }, { releaseManifest: manifest });
@@ -228,6 +237,9 @@ test("the Pro Micro contract keeps board, bootloader, reset, port, and flash ref
     programmerWrongBootloader: "WrongBootloader",
     programmerMissingReset: "MissingResetTransition",
     stalePort: "StalePort",
+    staleReleaseImage: "StaleArtifact",
+    wrongProgrammedBytes: "StaleArtifact",
+    wrongMaximumAddress: "StaleArtifact",
     acceptedReceipt: "accepted",
   });
 });
