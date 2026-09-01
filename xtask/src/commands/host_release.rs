@@ -130,6 +130,11 @@ pub(super) fn run(
             "text/javascript; charset=utf-8",
         ),
         (
+            "targets/browser/host/assets/browser-host-membership.mjs",
+            "browser-host-membership.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
             "targets/browser/host/assets/media-host.mjs",
             "media-host.mjs",
             "text/javascript; charset=utf-8",

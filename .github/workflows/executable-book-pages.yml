@@ -6,13 +6,14 @@ on:
     paths: &product-paths
       - .github/workflows/executable-book-pages.yml
       - scripts/ci/stage-book-product.sh
+      - scripts/ci/build-browser-application-package.mjs
       - scripts/ci/stage-creche-product.sh
       - tour/book/**
       - targets/browser/host/assets/book.html
       - targets/browser/host/assets/book.css
       - targets/browser/host/assets/book.mjs
       - targets/browser/host/assets/book-state.mjs
-      - targets/browser/host/assets/book.application.json
+      - targets/browser/host/assets/book.application.template.json
       - targets/browser/host/assets/browser-application-loader.mjs
       - targets/browser/host/assets/browser-application-storage.mjs
       - apps/patchbay/html/assets/react.min.js
@@ -29,6 +30,7 @@ on:
       - targets/browser/host/assets/creche*.mjs
       - targets/browser/host/browser-deployment/**
       - targets/browser/host/assets/browser-host-bootstrap.mjs
+      - targets/browser/host/assets/browser-host-membership.mjs
       - targets/browser/host/assets/device-base.mjs
       - targets/browser/host/assets/usb-device-base.mjs
       - targets/browser/host/assets/artifacts/**
@@ -420,9 +422,9 @@ jobs:
           path: target/pages-site/creche
       - name: Verify the combined Pages carrier
         run: |
-          test "$(find target/pages-site/book -type f | wc -l)" -eq 39
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 70
-          test "$(find target/pages-site -type f | wc -l)" -eq 109
+          test "$(find target/pages-site/book -type f | wc -l)" -eq 40
+          test "$(find target/pages-site/creche -type f | wc -l)" -eq 74
+          test "$(find target/pages-site -type f | wc -l)" -eq 114
           touch target/pages-site/.nojekyll
       - name: Upload the combined Pages carrier
         uses: actions/upload-pages-artifact@v5

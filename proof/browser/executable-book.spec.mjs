@@ -7,6 +7,19 @@ import { openBookStep, startBook, startStaticProduct } from "./book-test-server.
 
 let entrance;
 
+function browserApplicationPackageDigest(manifest) {
+  const lines = [
+    "conduit.browser/application-package-content@1",
+    `application\0${manifest.application_id}`,
+    `state\0${manifest.state_compatibility.identity}\0${manifest.state_compatibility.version}`,
+  ];
+  for (const resource of manifest.resources) {
+    const dependencies = resource.dependencies.map(({ role, specifier }) => `${role}=${specifier}`).join(",");
+    lines.push(`resource\0${resource.role}\0${resource.kind}\0${resource.path}\0${resource.maximum_bytes}\0${resource.sha256}\0${dependencies}`);
+  }
+  return `sha256:${createHash("sha256").update(`${lines.join("\n")}\n`).digest("hex")}`;
+}
+
 async function startCreche() {
   const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
@@ -494,11 +507,20 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
   }
 });
 
-test("the Book renders Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
+test("the Book renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
+  const body = "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>";
   await page.route("**/book/chapter-1.md", (route) => route.fulfill({
     contentType: "text/markdown; charset=utf-8",
-    body: "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>",
+    body,
   }));
+  await page.route("**/book/book.application.json", async (route) => {
+    const response = await route.fetch();
+    const manifest = await response.json();
+    manifest.resources.find((resource) => resource.role === "chapter-1").sha256 =
+      `sha256:${createHash("sha256").update(body).digest("hex")}`;
+    manifest.package_digest = browserApplicationPackageDigest(manifest);
+    await route.fulfill({ response, contentType: "application/json", body: JSON.stringify(manifest) });
+  });
   await openStep(page, 0);
   await expect(page.locator("em")).toHaveText(["asterisk", "underscore"]);
   await expect(page.locator("strong")).toHaveText(["strong asterisk", "strong underscore"]);

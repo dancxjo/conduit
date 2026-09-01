@@ -1,4 +1,4 @@
-import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
+import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 
@@ -19,21 +19,15 @@ let guidedPages = [];
 let pageRoutes = [];
 let patchbaySequence = 0;
 let readingState;
+let admittedRuntimeBytes;
 
 export async function startApplication(application) {
 try {
   readingState = await openBookReadingState(application.storage);
+  admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-8.md"].map((name) =>
-      fetch(`./${name}`).then((response) => {
-        if (!response.ok) throw new Error(`${name} is unavailable`);
-        return response.text();
-      }),
-    )),
-    initializeBrowserHost({
-      runtimeUrl: application.resource("runtime"),
-      runtimeBytes: application.bytes("runtime"),
-    }),
+    Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
+    initializeBrowserHost(admittedRuntimeBytes),
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
@@ -680,7 +674,7 @@ let activeMemoryLine = null;
 
 async function ensurePeerHost() {
   if (peerHost !== null) return peerHost;
-  const initialized = await initializeBrowserHost();
+  const initialized = await initializeBrowserHost(admittedRuntimeBytes);
   requireBookAbi(initialized.runtime);
   if (initialized.hostId === host.hostId || initialized.bootId === host.bootId) {
     throw new Error("second browser Host did not receive independent Host and Boot identity");

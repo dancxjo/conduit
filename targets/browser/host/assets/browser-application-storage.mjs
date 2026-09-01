@@ -45,11 +45,12 @@ function exactText(value, label, maximumBytes) {
   return value;
 }
 
-export async function openBrowserApplicationStorage(applicationIdentity, applicationVersion) {
+export async function openBrowserApplicationStorage(applicationIdentity, applicationVersion, packageDigest) {
   exactText(applicationIdentity, "application identity", MAXIMUM_KEY_BYTES);
   if (!Number.isSafeInteger(applicationVersion) || applicationVersion < 1) {
     throw new Error("application storage version is invalid");
   }
+  if (!/^sha256:[0-9a-f]{64}$/.test(packageDigest ?? "")) throw new Error("application package identity is invalid");
   const database = await openDatabase();
   const prefix = `${applicationIdentity}@${applicationVersion}\u0000`;
 
@@ -101,6 +102,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
       identity: currentIdentity,
       applicationIdentity,
       applicationVersion,
+      packageDigest,
       key,
       value: encoded,
       valueBytes,
@@ -112,6 +114,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     schema: "conduit.browser/application-storage@1",
     applicationIdentity,
     applicationVersion,
+    packageDigest,
     bounds: Object.freeze({
       maximumRecords: MAXIMUM_RECORDS,
       maximumKeyBytes: MAXIMUM_KEY_BYTES,

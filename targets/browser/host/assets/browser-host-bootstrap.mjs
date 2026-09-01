@@ -1,42 +1,14 @@
-const INPUT_CAPACITY = 4096;
+import { initializeBrowserHost as initializeFromBytes } from "./browser-host-membership.mjs";
+
+const MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
 
 export async function initializeBrowserHost(options = {}) {
-  const hostId = `browser/${crypto.randomUUID()}`;
-  const bootId = `browser-boot/${crypto.randomUUID()}`;
-  const runtimeUrl = options.runtimeUrl ?? new URL("./runtime.wasm", import.meta.url);
-  const runtimeBytes = options.runtimeBytes;
-  const runtime = runtimeBytes
-    ? await WebAssembly.instantiate(runtimeBytes, {})
-    : await WebAssembly.instantiateStreaming(fetch(runtimeUrl), {});
-  const api = runtime.instance.exports;
-  const required = [
-    "memory",
-    "conduit_browser_membership_input_ptr",
-    "conduit_browser_membership_input_capacity",
-    "conduit_browser_membership_initialize",
-  ];
-  if (
-    required.some((name) => !(name in api)) ||
-    api.conduit_browser_membership_input_capacity() !== INPUT_CAPACITY
-  ) {
-    throw new Error("browser Host runtime ABI is incomplete");
+  if (options.runtimeBytes) return initializeFromBytes(options.runtimeBytes);
+  const response = await fetch(options.runtimeUrl ?? new URL("./runtime.wasm", import.meta.url));
+  if (!response.ok) throw new Error("browser Host runtime is unavailable");
+  const runtimeBytes = new Uint8Array(await response.arrayBuffer());
+  if (runtimeBytes.length === 0 || runtimeBytes.length > MAXIMUM_RUNTIME_BYTES) {
+    throw new Error("browser Host runtime exceeds its admitted bound");
   }
-  const encoder = new TextEncoder();
-  const host = encoder.encode(hostId);
-  const boot = encoder.encode(bootId);
-  const seed = crypto.getRandomValues(new Uint8Array(32));
-  const initialization = new Uint8Array(host.length + boot.length + seed.length);
-  initialization.set(host);
-  initialization.set(boot, host.length);
-  initialization.set(seed, host.length + boot.length);
-  new Uint8Array(
-    api.memory.buffer,
-    api.conduit_browser_membership_input_ptr(),
-    initialization.length,
-  ).set(initialization);
-  const status = api.conduit_browser_membership_initialize(host.length, boot.length);
-  seed.fill(0);
-  initialization.fill(0);
-  if (status < 0) throw new Error(`browser Host initialization failed ${status}`);
-  return Object.freeze({ hostId, bootId, runtime: api });
+  return initializeFromBytes(runtimeBytes);
 }
