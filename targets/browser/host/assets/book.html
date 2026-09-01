@@ -6,7 +6,8 @@
   <meta name="color-scheme" content="light dark">
   <script>
     const routedPage = /\/(?:meet-one-gear|connect-gears|edit-one-gear|branch-a-cord|meet-the-face|same-face-different-implementation|meet-the-host|state-over-time|use-two-hosts|plans-and-plays|keep-one-body-through-change|birth-belongs-in-the-creche|give-the-body-a-host|graduate-from-the-creche)\/(?:index\.html)?$/.test(location.pathname);
-    const bookRoot = new URL(routedPage ? "../" : "./", location.href).href;
+    const unslashedEntrance = /\/book$/.test(location.pathname);
+    const bookRoot = new URL(routedPage ? "../" : unslashedEntrance ? "./book/" : "./", location.href).href;
     document.write(`<base href="${bookRoot}">`);
   </script>
   <meta name="conduit-creche-url" content="../creche/">
@@ -15,7 +16,7 @@
 </head>
 <body>
   <header class="masthead">
-    <a href="./" aria-label="Conduit Book home"><span>conduit</span> book</a>
+    <a href="/conduit" aria-label="Conduit home"><span>conduit</span> book</a>
     <span id="host-state" role="status">Starting browser Host…</span>
   </header>
   <main id="chapter" aria-live="polite"></main>

@@ -6,6 +6,7 @@ import { extname, resolve, sep } from "node:path";
 const root = resolve(process.argv[3] ?? ".");
 const port = Number.parseInt(process.argv[2] ?? "4173", 10);
 const mount = normalizeMount(process.argv[4] ?? "/");
+const mountEntrance = mount === "/" ? "/" : mount.slice(0, -1);
 const mediaTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
@@ -22,11 +23,12 @@ if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
-    if (!pathname.startsWith(mount)) {
+    if (pathname !== mountEntrance && !pathname.startsWith(mount)) {
       response.writeHead(404).end();
       return;
     }
-    let file = resolve(root, pathname.slice(mount.length));
+    const relative = pathname === mountEntrance ? "" : pathname.slice(mount.length);
+    let file = resolve(root, relative);
     if (file !== root && !file.startsWith(`${root}${sep}`)) {
       response.writeHead(404).end();
       return;
