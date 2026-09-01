@@ -78,7 +78,9 @@ export function validateImageWriterEvidence(evidence, profile, binding) {
   if (evidence.architecture !== profile.architecture) {
     refuse("WrongArchitecture", "local writer receipt does not name ARMv6");
   }
-  if (evidence.image_sha256 !== binding.prepared.image_content_digest) {
+  if (evidence.image_content_digest !== binding.prepared?.image_content_digest
+    || evidence.artifact_sha256 !== binding.nativeSpore?.content_digest
+    || evidence.artifact_bytes !== binding.nativeSpore?.bytes?.byteLength) {
     refuse("StaleImage", "local writer receipt names a different SD image identity");
   }
   if (evidence.carrier !== "removable-sd-card" || evidence.raw_block_authority !== "local-helper-explicit"

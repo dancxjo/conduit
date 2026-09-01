@@ -34,19 +34,6 @@ export async function acquireHostRelease(profile, signal) {
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
-export function releaseArtifact(release) {
-  return Object.freeze({
-    layout: Object.freeze({
-      format: release.manifest.output,
-      release: release.manifest,
-      files: release.payloads.map(({ path, bytes, sha256, media_type }) => Object.freeze({
-        path, bytes: bytes.byteLength, sha256, media_type,
-      })),
-    }),
-    payloads: release.payloads.map(({ bytes }) => bytes),
-  });
-}
-
 function requireProfile(profile) {
   for (const name of ["target_id", "manifest_path", "package_id", "output", "builder_adapter", "deployment_adapter"]) {
     if (typeof profile?.[name] !== "string" || profile[name].length < 1 || profile[name].length > 256) {

@@ -455,7 +455,8 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await conduitosRunner.locator(".physical-target").selectOption("conduitos/x86_64/pc");
     await expect(conduitosRunner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await conduitosRunner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(conduitosRunner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+    const conduitosDownload = conduitosRunner.locator(".download-spore");
+    await expect(conduitosDownload).toHaveAttribute("download", /-conduitos-native\.iso$/);
     evidence = JSON.parse(await conduitosRunner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: "conduitos/x86_64/pc",
@@ -463,6 +464,25 @@ test("the staged Book and Crèche each boot with only their own product tree", a
       fabrication_package_id: "conduitos-image@1",
       deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
     });
+    const nativeIso = await conduitosDownload.evaluate(async (link) => {
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      const artifact = readBodyProvisionedMedia(bytes);
+      return {
+        isoMagic: new TextDecoder().decode(bytes.subarray(32769, 32774)),
+        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+        provision: artifact.provision,
+      };
+    });
+    expect(nativeIso).toMatchObject({
+      isoMagic: "CD001",
+      provision: {
+        spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
+        invitation_provision: { invitation_id: evidence.binding.invitation_id },
+      },
+    });
+    expect(nativeIso.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
     expect(requestedPaths).toContain("/conduit/creche/artifacts/conduitos-x86_64-pc-release.json");
     expect(requestedPaths).toContain("/conduit/creche/artifacts/conduitos-x86_64-pc.iso");
     expect(requestedPaths).not.toContain("/conduit/artifacts/conduitos-x86_64-pc-release.json");
@@ -823,7 +843,8 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-browser-wasm32-page\.zip$/);
+  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     body_id: birth.bodyId,
@@ -835,17 +856,24 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   });
   const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
     const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    const archive = readBodyBoundZip(bytes);
     return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-      manifest: JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))),
+      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
+      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+      files: Array.from(archive.entries.keys()),
+      provision: archive.provision,
     };
   });
-  expect(bundle.magic).toBe("CNDSPOR1");
-  expect(bundle.manifest.artifact.layout).toMatchObject({
-    format: "browser-bundle",
-    release: { target_id: "browser/wasm32/page", bundle_sha256: release.bundle_sha256 },
+  expect(bundle.magic).toBe("PK\u0003\u0004");
+  expect(bundle.files).toContain("runtime.wasm");
+  expect(bundle.provision).toMatchObject({
+    schema: "conduit.spore/native-package-provision@1",
+    spore: { spore_id: evidence.binding.spore_id, body_id: birth.bodyId },
+    invitation_provision: { invitation_id: evidence.binding.invitation_id },
   });
+  expect(bundle.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator('[data-stage="realize"] span')).toHaveText("BrowserBundleLoaded");
@@ -857,6 +885,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   expect(evidence.realization).toMatchObject({
     terminal: "BrowserBundleLoaded",
     target_id: "browser/wasm32/page",
+    artifact_content_digest: evidence.binding.spore_artifact.content_digest,
     boot_observed: false,
     join_created: false,
   });
@@ -884,7 +913,8 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-hosted-linux-x86_64\.zip$/);
+  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry.target_profile).toMatchObject({
     os: "linux",
@@ -905,7 +935,36 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
     output: "native-bundle",
     fabrication_package_id: "hosted-native@1",
     image_content_digest: release.bundle_sha256,
+    spore_artifact: {
+      format: "zip",
+      media_type: "application/zip",
+      image_content_digest: release.bundle_sha256,
+      files: expect.arrayContaining([
+        expect.objectContaining({ path: "conduit-linux-x86_64", mode: 0o100755 }),
+      ]),
+    },
   });
+  const hostedPackage = await runner.locator(".download-spore").evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    const archive = readBodyBoundZip(bytes);
+    return {
+      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
+      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+      files: Array.from(archive.entries.keys()),
+      provision: archive.provision,
+    };
+  });
+  expect(hostedPackage).toMatchObject({
+    magic: "PK\u0003\u0004",
+    provision: {
+      spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
+      invitation_provision: { invitation_id: evidence.binding.invitation_id },
+    },
+  });
+  expect(hostedPackage.files).toEqual(["conduit-linux-x86_64", "conduit-spore.json"]);
+  expect(hostedPackage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "ExplicitInstallerRequired"');
   evidence = JSON.parse(await runner.locator("details code").textContent());

@@ -67,7 +67,9 @@ export function validateLoaderEvidence(evidence, profile, binding) {
   if (!evidence || typeof evidence.loader_id !== "string") refuse("UnavailableWriter", "no explicit local disk or VM loader receipt was supplied");
   if (evidence.target_id !== profile.target.id || evidence.machine !== profile.machine) refuse("WrongMachine", "local loader receipt names a different machine");
   if (evidence.architecture !== profile.architecture) refuse("WrongArchitecture", "local loader receipt names a different architecture");
-  if (evidence.image_sha256 !== binding.prepared.image_content_digest) refuse("StaleArtifact", "local loader receipt names a different IMAGE identity");
+  if (evidence.image_content_digest !== binding.prepared?.image_content_digest
+    || evidence.artifact_sha256 !== binding.nativeSpore?.content_digest
+    || evidence.artifact_bytes !== binding.nativeSpore?.bytes?.byteLength) refuse("StaleArtifact", "local loader receipt names a different Body-bound ISO identity");
   if (!profile.supportedCarriers.includes(evidence.carrier) || evidence.explicit_authority !== true || evidence.load_completed !== true) {
     refuse("LoaderEvidenceInvalid", "local loader receipt omitted a supported carrier, explicit authority, or completed load truth");
   }

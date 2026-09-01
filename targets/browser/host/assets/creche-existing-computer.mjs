@@ -1,5 +1,6 @@
-import { acquireHostRelease, releaseArtifact } from "./creche-release-bundle.mjs";
-import { packageSporeBundle } from "./creche-spore-bundle.mjs";
+import { acquireHostRelease } from "./creche-release-bundle.mjs";
+import { createNativeSporeDownload } from "./creche-spore-bundle.mjs";
+import { createBodyBoundZip, readBodyBoundZip } from "./creche-native-zip.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
@@ -65,7 +66,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
   }
 
-  async function bind({ mode, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal }) {
     requireMode(mode, "bind", profile);
     requireCurrent(signal, mode, "bind", profile);
     const release = obtainment?.private?.release;
@@ -91,15 +92,36 @@ export function createExistingComputerAdapter({ host, profile }) {
         refuse(profile, mode, "bind", "BindingIdentity", "Body binding lost the exact generic Host release selection");
       }
       requireCurrent(signal, mode, "bind", profile);
-      const download = packageSporeBundle({
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-${profile.target.profile_id}.zip`;
+      const nativeSpore = await createBodyBoundZip({
+        prepared, release, filename,
+      });
+      prepared.invitation_secret.fill(0);
+      const download = await createNativeSporeDownload({
         prepared,
-        artifact: releaseArtifact(release),
-        filename: `${prepared.spore_id.replaceAll(":", "-")}.spore`,
+        bytes: nativeSpore.bytes,
+        contentDigest: nativeSpore.content_digest,
+        filename,
+        format: nativeSpore.format,
+        mediaType: nativeSpore.media_type,
       });
       return Object.freeze({
         prepared,
+        nativeSpore,
         download,
-        evidence: Object.freeze({ ...prepared, invitation_secret: "redacted" }),
+        evidence: Object.freeze({
+          ...prepared,
+          invitation_secret: "embedded in native ZIP; redacted",
+          spore_artifact: Object.freeze({
+            format: nativeSpore.format,
+            filename,
+            media_type: nativeSpore.media_type,
+            bytes: nativeSpore.bytes.byteLength,
+            content_digest: nativeSpore.content_digest,
+            image_content_digest: nativeSpore.image_content_digest,
+            files: nativeSpore.files,
+          }),
+        }),
       });
     } catch (error) {
       if (error?.evidence) throw error;
@@ -126,18 +148,31 @@ export function createExistingComputerAdapter({ host, profile }) {
         external_work_started: false,
       });
     }
-    const release = obtainment.private.release;
-    const runtime = release.payloads.find(({ path }) => path === "runtime.wasm");
-    if (!runtime) refuse(profile, mode, "realize", "StaleArtifact", "browser bundle omitted its exact runtime");
+    const nativeSpore = binding?.nativeSpore;
+    if (!nativeSpore?.bytes || await sha256(nativeSpore.bytes) !== nativeSpore.content_digest) {
+      refuse(profile, mode, "realize", "StaleArtifact", "Body-bound browser ZIP bytes are stale");
+    }
+    let packaged;
     try {
-      const instance = await WebAssembly.instantiate(runtime.bytes, {});
+      packaged = readBodyBoundZip(nativeSpore.bytes);
+    } catch (error) {
+      refuse(profile, mode, "realize", "StaleArtifact", "Body-bound browser ZIP is malformed", error);
+    }
+    if (packaged.provision.spore.spore_id !== binding.prepared.spore_id
+      || packaged.provision.spore.image_content_digest !== binding.prepared.image_content_digest) {
+      refuse(profile, mode, "realize", "StaleArtifact", "Body-bound browser ZIP lost its exact spore or IMAGE identity");
+    }
+    const runtime = packaged.entries.get("runtime.wasm");
+    if (!runtime) refuse(profile, mode, "realize", "StaleArtifact", "browser ZIP omitted its exact runtime");
+    try {
+      const instance = await WebAssembly.instantiate(runtime, {});
       const api = instance.instance.exports;
       requireMembershipAbi(api);
       const hostId = `browser/${crypto.randomUUID()}`;
       const bootId = `browser-boot/${crypto.randomUUID()}`;
       initializeMembership(api, hostId, bootId);
       requireCurrent(signal, mode, "realize", profile);
-      loadedHost = Object.freeze({ api, hostId, bootId });
+      loadedHost = Object.freeze({ api, hostId, bootId, artifactContentDigest: nativeSpore.content_digest });
       return Object.freeze({
         terminal: "BrowserBundleLoaded",
         evidence: Object.freeze({
@@ -145,7 +180,8 @@ export function createExistingComputerAdapter({ host, profile }) {
           terminal: "BrowserBundleLoaded",
           target_id: profile.target_id,
           package_id: profile.package_id,
-          bundle_sha256: release.manifest.bundle_sha256,
+          image_content_digest: binding.prepared.image_content_digest,
+          artifact_content_digest: nativeSpore.content_digest,
           spore_id: binding.prepared.spore_id,
           carrier: "conduit-carrier/browser-local-sandbox@1",
           host_id: hostId,
@@ -166,7 +202,10 @@ export function createExistingComputerAdapter({ host, profile }) {
     if (!profile.browser_carrier || !loadedHost) {
       refuse(profile, mode, "observe", "NoRunningCarrier", "no authenticated running Host carrier is available for observation");
     }
-    const { api, hostId, bootId } = loadedHost;
+    const { api, hostId, bootId, artifactContentDigest } = loadedHost;
+    if (binding?.nativeSpore?.content_digest !== artifactContentDigest) {
+      refuse(profile, mode, "observe", "StaleArtifact", "observed browser Host does not match the realized native ZIP");
+    }
     if (api.conduit_browser_membership_advertisement() < 0) {
       refuse(profile, mode, "observe", "AdvertisementFailed", "loaded browser Host did not export current offers");
     }
@@ -175,19 +214,31 @@ export function createExistingComputerAdapter({ host, profile }) {
       refuse(profile, mode, "observe", "WrongBoot", "browser Host advertisement lost the loaded Host or Boot identity");
     }
     const prepared = binding.prepared;
+    let provision;
+    try {
+      provision = readBodyBoundZip(binding.nativeSpore.bytes).provision;
+    } catch (error) {
+      refuse(profile, mode, "observe", "StaleArtifact", "Body-bound browser ZIP provision is unavailable", error);
+    }
+    if (provision.spore.spore_id !== prepared.spore_id
+      || provision.spore.body_id !== prepared.body_id
+      || provision.invitation_provision.invitation_id !== prepared.invitation_id) {
+      refuse(profile, mode, "observe", "StaleArtifact", "Body-bound browser ZIP provision lost the pending invitation identity");
+    }
+    const invitation = provision.invitation_provision;
     const envelope = encoder.encode(JSON.stringify({
       claim: {
-        invitation_id: prepared.invitation_id,
-        body_id: prepared.body_id,
-        nonce: prepared.invitation_nonce,
-        expires_at_millis: prepared.invitation_expires_at_millis,
+        invitation_id: invitation.invitation_id,
+        body_id: provision.spore.body_id,
+        nonce: invitation.nonce,
+        expires_at_millis: invitation.expires_at_millis,
       },
-      secret: prepared.invitation_secret,
+      secret: invitation.secret,
     }));
     writeMembershipInput(api, envelope);
     const code = api.conduit_browser_membership_prove_spawn(envelope.length);
     envelope.fill(0);
-    prepared.invitation_secret.fill(0);
+    invitation.secret.fill(0);
     if (code < 0) refuse(profile, mode, "observe", "JoinProofFailed", `loaded browser Host refused invitation proof ${code}`);
     const signature = Array.from(readMembershipOutput(api, false));
     requireCurrent(signal, mode, "observe", profile);
@@ -262,6 +313,16 @@ function requireProfile(profile) {
   if (!profile?.target || profile.target.id !== profile.target_id || typeof profile.browser_carrier !== "boolean") {
     throw new TypeError("existing-computer adapter profile is incomplete");
   }
+}
+
+function friendlyFilename(value) {
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return normalized.slice(0, 80) || "body";
+}
+
+async function sha256(bytes) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
 function readOutput(api) {

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{HostBounds, HostProfile};
+use crate::{HostBounds, HostProfile, SporeOutputKind};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PrerequisiteNode {
@@ -39,19 +39,6 @@ pub struct PackageCatalogContribution {
 }
 
 pub const FABRICATION_PACKAGE_CONTRACT: &str = "conduit.host/fabrication-package@1";
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SporeOutputKind {
-    NativeBundle,
-    BrowserBundle,
-    IntelHex,
-    Uf2,
-    DiskImage,
-    EfiArtifact,
-    Esp32Image,
-    SdImage,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

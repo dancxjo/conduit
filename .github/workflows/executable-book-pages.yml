@@ -322,6 +322,8 @@ jobs:
           proof/browser/creche-avr.spec.mjs
           proof/browser/creche-raspberry-pi.spec.mjs
           proof/browser/creche-conduitos.spec.mjs
+          proof/browser/creche-native-zip.spec.mjs
+          proof/browser/creche-native-disk.spec.mjs
           --project chromium
           --workers 1
           --retries 0
