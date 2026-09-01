@@ -347,6 +347,7 @@ jobs:
 
   products:
     needs: [products-proof, avr-release, esp32-release-images, host-releases, raspberry-pi-release, conduitos-releases]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
