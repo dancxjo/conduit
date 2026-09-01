@@ -1,7 +1,8 @@
-//! Bounded release and native-package assets for existing-computer Crèche targets.
+//! Bounded release and native-package assets shared by Crèche targets.
 
 const SPORE_DOWNLOAD: &[u8] = include_bytes!("../../assets/creche-spore-bundle.mjs");
 const NATIVE_ZIP: &[u8] = include_bytes!("../../assets/creche-native-zip.mjs");
+const NATIVE_DISK: &[u8] = include_bytes!("../../assets/creche-native-disk.mjs");
 const RELEASE_BUNDLE: &[u8] = include_bytes!("../../assets/creche-release-bundle.mjs");
 const EXISTING_COMPUTER: &[u8] = include_bytes!("../../assets/creche-existing-computer.mjs");
 const STD_ADAPTER: &[u8] = include_bytes!("../../../../std/browser-deployment/creche-adapter.mjs");
@@ -12,6 +13,7 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
     match request? {
         "GET /creche/creche-spore-bundle.mjs HTTP/1.1" => Some((javascript, SPORE_DOWNLOAD)),
         "GET /creche/creche-native-zip.mjs HTTP/1.1" => Some((javascript, NATIVE_ZIP)),
+        "GET /creche/creche-native-disk.mjs HTTP/1.1" => Some((javascript, NATIVE_DISK)),
         "GET /creche/creche-release-bundle.mjs HTTP/1.1" => Some((javascript, RELEASE_BUNDLE)),
         "GET /creche/creche-existing-computer.mjs HTTP/1.1" => {
             Some((javascript, EXISTING_COMPUTER))

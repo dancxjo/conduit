@@ -17,6 +17,7 @@ cp targets/browser/host/assets/creche-physical.mjs "$destination/creche-physical
 cp targets/browser/host/assets/creche-target-catalog.mjs "$destination/creche-target-catalog.mjs"
 cp targets/browser/host/assets/creche-spore-bundle.mjs "$destination/creche-spore-bundle.mjs"
 cp targets/browser/host/assets/creche-native-zip.mjs "$destination/creche-native-zip.mjs"
+cp targets/browser/host/assets/creche-native-disk.mjs "$destination/creche-native-disk.mjs"
 cp targets/browser/host/assets/creche-release-bundle.mjs "$destination/creche-release-bundle.mjs"
 cp targets/browser/host/assets/creche-existing-computer.mjs "$destination/creche-existing-computer.mjs"
 cp targets/browser/host/assets/creche-graduation.mjs "$destination/creche-graduation.mjs"
@@ -61,5 +62,5 @@ for route in birth first-host physical-host graduate; do
   cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 71
+test "$(find "$destination" -type f | wc -l)" -eq 72
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

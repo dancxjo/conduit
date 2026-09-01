@@ -432,7 +432,8 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await conduitosRunner.locator(".physical-target").selectOption("conduitos/x86_64/pc");
     await expect(conduitosRunner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await conduitosRunner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(conduitosRunner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+    const conduitosDownload = conduitosRunner.locator(".download-spore");
+    await expect(conduitosDownload).toHaveAttribute("download", /-conduitos-native\.iso$/);
     evidence = JSON.parse(await conduitosRunner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: "conduitos/x86_64/pc",
@@ -440,6 +441,25 @@ test("the staged Book and Crèche each boot with only their own product tree", a
       fabrication_package_id: "conduitos-image@1",
       deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
     });
+    const nativeIso = await conduitosDownload.evaluate(async (link) => {
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      const artifact = readBodyProvisionedMedia(bytes);
+      return {
+        isoMagic: new TextDecoder().decode(bytes.subarray(32769, 32774)),
+        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+        provision: artifact.provision,
+      };
+    });
+    expect(nativeIso).toMatchObject({
+      isoMagic: "CD001",
+      provision: {
+        spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
+        invitation_provision: { invitation_id: evidence.binding.invitation_id },
+      },
+    });
+    expect(nativeIso.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
     expect(requestedPaths).toContain("/conduit/creche/artifacts/conduitos-x86_64-pc-release.json");
     expect(requestedPaths).toContain("/conduit/creche/artifacts/conduitos-x86_64-pc.iso");
     expect(requestedPaths).not.toContain("/conduit/artifacts/conduitos-x86_64-pc-release.json");

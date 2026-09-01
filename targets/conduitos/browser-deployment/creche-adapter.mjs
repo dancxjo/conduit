@@ -1,4 +1,5 @@
-import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
+import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
+import { bindBodyProvisionedMedia } from "../../../creche-native-disk.mjs";
 import { acquireConduitOsRelease, validateLoaderEvidence } from "./image.mjs";
 
 const encoder = new TextEncoder();
@@ -56,7 +57,7 @@ function productContribution(profile) {
     intentions: PRODUCT_MODES,
     fabrication_strategies: Object.freeze([{ id: "reviewed-generic-release-download", label: "Reviewed generic ConduitOS product IMAGE" }]),
     carriers: Object.freeze({
-      deployment: Object.freeze([{ id: "conduit-carrier/downloadable-disk-image@1", label: "Download Body-bound disk IMAGE spore" }]),
+      deployment: Object.freeze([{ id: "conduit-carrier/downloadable-disk-image@1", label: "Download Body-bound ISO" }]),
       installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([]),
     }),
     bounds: BOUNDS,
@@ -98,7 +99,7 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
     const release = await acquireConduitOsRelease(profile, signal);
     return Object.freeze({ resultKind: "artifact", private: release, evidence: Object.freeze({ schema: "conduit.conduitos/creche-obtainment@1", target_id: profile.target.id, result_kind: "artifact", artifact_role: "product-host", profile_id: release.manifest.profile_id, build_id: release.manifest.build_id, image_id: release.manifest.image_id, image_sha256: release.digest, image_bytes: release.bytes.byteLength, carrier: "conduit-carrier/downloadable-disk-image@1", does_not_prove: Object.freeze(["load", "boot", "join", "membership"]) }) });
   }
-  async function bind({ mode, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal }) {
     requireFabrication(profile, mode, "bind"); requireCurrent(profile, signal, mode, "bind");
     const release = obtainment?.private;
     if (!release?.bytes || release.digest !== obtainment.evidence?.image_sha256) refuse(profile, mode, "bind", "MissingArtifact", "exact ConduitOS IMAGE truth is missing before Body binding");
@@ -113,8 +114,20 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
       if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest || prepared.output !== "disk-image" || prepared.fabrication_package_id !== "conduitos-image@1" || prepared.deployment_adapter !== profile.deploymentAdapter) {
         refuse(profile, mode, "bind", "BindingIdentity", "prepared invitation lost exact ConduitOS target, IMAGE, or loader-adapter truth");
       }
-      const download = packageSporeBundle({ prepared, artifact: Object.freeze({ layout: Object.freeze({ format: "hybrid-iso", release: release.manifest }), payloads: [release.bytes] }), filename: `${prepared.spore_id.replaceAll(":", "-")}.spore` });
-      return Object.freeze({ prepared, download, evidence: Object.freeze({ ...prepared, invitation_secret: "redacted" }) });
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-${profile.target.profile_id}.iso`;
+      const nativeSpore = await bindBodyProvisionedMedia({ prepared, imageBytes: release.bytes, filename, format: "iso", mediaType: "application/x-iso9660-image" });
+      prepared.invitation_secret.fill(0);
+      const download = await createNativeSporeDownload({ prepared, bytes: nativeSpore.bytes, contentDigest: nativeSpore.content_digest, filename, format: nativeSpore.format, mediaType: nativeSpore.media_type });
+      return Object.freeze({ prepared, nativeSpore, download, evidence: Object.freeze({
+        ...prepared,
+        invitation_secret: "embedded in native ISO; redacted",
+        spore_artifact: Object.freeze({
+          format: nativeSpore.format, filename, media_type: nativeSpore.media_type,
+          bytes: nativeSpore.bytes.byteLength, content_digest: nativeSpore.content_digest,
+          image_content_digest: nativeSpore.image_content_digest, image_bytes: nativeSpore.image_bytes,
+          provision_offset: nativeSpore.provision_offset, provision_bytes: nativeSpore.provision_bytes,
+        }),
+      }) });
     } finally { entropy.fill(0); }
   }
   async function realize({ mode, binding, signal }) {
@@ -139,3 +152,4 @@ function requireCurrent(profile, signal, mode, operation) { if (signal?.aborted)
 function refuse(profile, mode, operation, terminal, message) { const error = new Error(message); error.code = terminal; error.evidence = Object.freeze({ schema: "conduit.conduitos/creche-operation-refusal@1", target_id: profile.target.id, mode, operation, terminal, message, browser_device_authority_requested: false, external_work_started: false }); throw error; }
 function readOutput(api) { return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len()))); }
 function outputError(api, operation, code) { const output = readOutput(api); const error = new Error(`${operation} refused (${code}): ${output.message ?? "unknown refusal"}`); error.code = "RuntimeRefusal"; error.output = output; return error; }
+function friendlyFilename(value) { const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); return normalized.slice(0, 80) || "body"; }
