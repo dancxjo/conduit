@@ -7,7 +7,10 @@ import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const TARGET_ID = RP2040_BROWSER_DEPLOYMENT.targetId;
-const PACKAGED_MANIFEST_PATH = "./artifacts/pico-w-signal-pico-local.json";
+const PACKAGED_MANIFEST_PATH = new URL(
+  "../../../artifacts/pico-w-signal-pico-local.json",
+  import.meta.url,
+).href;
 const BUILD_ID = "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

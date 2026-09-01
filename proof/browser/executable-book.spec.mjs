@@ -57,8 +57,8 @@ async function startCreche() {
   return { child, url };
 }
 
-async function startStaticProduct(root) {
-  const child = spawn("node", ["proof/browser/static-server.mjs", "0", root], {
+async function startStaticProduct(root, mount = "/") {
+  const child = spawn("node", ["proof/browser/static-server.mjs", "0", root, mount], {
     cwd: new URL("../..", import.meta.url).pathname,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -67,7 +67,7 @@ async function startStaticProduct(root) {
     const timeout = setTimeout(() => reject(new Error(`staged product was not ready\n${output}`)), 10_000);
     const inspect = (chunk) => {
       output += chunk.toString();
-      const match = output.match(/CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/)/);
+      const match = output.match(/CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/\S*)/);
       if (match) { clearTimeout(timeout); resolve(match[1]); }
     };
     child.stdout.on("data", inspect);
@@ -179,8 +179,20 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     book.child.kill();
   }
 
-  const creche = await startStaticProduct("target/creche-product");
+  const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
   try {
+    const requestedPaths = [];
+    page.on("request", (request) => requestedPaths.push(new URL(request.url()).pathname));
+    await page.addInitScript(() => {
+      globalThis.__crecheDeviceAuthorityRequests = 0;
+      for (const name of ["serial", "usb"]) {
+        const method = name === "serial" ? "requestPort" : "requestDevice";
+        Object.defineProperty(navigator, name, {
+          configurable: true,
+          value: { [method]: async () => { globalThis.__crecheDeviceAuthorityRequests += 1; throw new Error("unexpected device authority"); } },
+        });
+      }
+    });
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
@@ -205,8 +217,54 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     const runner = page.locator(".physical-host-runner");
     await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    let evidence = JSON.parse(await runner.locator("details code").textContent());
+    const c3Manifest = JSON.parse(await readFile(
+      new URL("../../target/creche-product/artifacts/esp32-c3-generic-release.json", import.meta.url),
+      "utf8",
+    ));
+    expect(evidence.obtainment).toMatchObject({
+      target_id: c3Manifest.target_id,
+      artifact: {
+        image_id: c3Manifest.image_id,
+        bytes: c3Manifest.bytes,
+        release_source_identity: c3Manifest.source_identity,
+        release_artifact_sha256: c3Manifest.artifact_sha256,
+      },
+    });
+    expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.json");
+    expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.bin");
+    expect(requestedPaths).not.toContain("/conduit/artifacts/esp32-c3-generic-release.json");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    const spore = runner.locator(".download-spore");
+    await expect(spore).toHaveAttribute("download", /\.spore$/);
+    evidence = JSON.parse(await runner.locator("details code").textContent());
+    expect(evidence.binding).toMatchObject({
+      target_id: c3Manifest.target_id,
+      image_content_digest: evidence.obtainment.artifact.content_digest,
+    });
+    expect(evidence.binding.image_id).toMatch(/^image:sha256:[0-9a-f]{64}$/);
+    const bundle = await spore.evaluate(async (link) => {
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+      return {
+        magic: new TextDecoder().decode(bytes.subarray(0, 8)),
+        manifest: JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))),
+      };
+    });
+    expect(bundle).toMatchObject({
+      magic: "CNDSPOR1",
+      manifest: {
+        schema: "conduit.spore/bundle@1",
+        spore: {
+          target: c3Manifest.target_id,
+          image_id: evidence.binding.image_id,
+          image_content_digest: evidence.binding.image_content_digest,
+        },
+        artifact: { layout: { release: { image_id: c3Manifest.image_id } } },
+      },
+    });
+    expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
   } finally {
     creche.child.kill();
   }
@@ -220,6 +278,49 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     expect(await page.evaluate(() => globalThis.__conduitBrowserHost.hostId)).toMatch(/^browser\//);
   } finally {
     browserBundle.child.kill();
+  }
+});
+
+test("a missing ESP32 release in the prefixed staged Crèche refuses before binding or device authority", async ({ page }) => {
+  entrance.child.kill();
+  entrance = null;
+  const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  const requestedPaths = [];
+  page.on("request", (request) => requestedPaths.push(new URL(request.url()).pathname));
+  await page.addInitScript(() => {
+    globalThis.__crecheDeviceAuthorityRequests = 0;
+    for (const name of ["serial", "usb"]) {
+      const method = name === "serial" ? "requestPort" : "requestDevice";
+      Object.defineProperty(navigator, name, {
+        configurable: true,
+        value: { [method]: async () => { globalThis.__crecheDeviceAuthorityRequests += 1; throw new Error("unexpected device authority"); } },
+      });
+    }
+  });
+  await page.route("**/conduit/creche/artifacts/esp32-c3-generic-release.json", (route) => route.fulfill({ status: 404 }));
+  try {
+    await page.goto(`${creche.url}index.html`);
+    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
+    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    const runner = page.locator(".physical-host-runner");
+    await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+    await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
+    const evidence = JSON.parse(await runner.locator("details code").textContent());
+    expect(evidence).toMatchObject({ binding: null, realization: null, observation: null, admission: null });
+    expect(evidence.terminal).toMatchObject({
+      operation: "obtain",
+      terminal: "ArtifactUnavailable",
+      authority_requested: false,
+      artifact_work_started: false,
+    });
+    await expect(runner.getByRole("button", { name: "Bind Body invitation" })).toBeDisabled();
+    await expect(runner.locator(".download-spore")).toHaveCount(0);
+    expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.json");
+    expect(requestedPaths).not.toContain("/conduit/creche/artifacts/esp32-c3-generic-release.bin");
+    expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
+  } finally {
+    creche.child.kill();
   }
 });
 

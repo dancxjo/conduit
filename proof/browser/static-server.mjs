@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 
 const root = resolve(process.argv[3] ?? ".");
 const port = Number.parseInt(process.argv[2] ?? "4173", 10);
+const mount = normalizeMount(process.argv[4] ?? "/");
 const mediaTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
@@ -21,7 +22,11 @@ if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
-    const file = resolve(root, `.${pathname}`);
+    if (!pathname.startsWith(mount)) {
+      response.writeHead(404).end();
+      return;
+    }
+    const file = resolve(root, pathname.slice(mount.length));
     if (file === root || !file.startsWith(`${root}${sep}`)) {
       response.writeHead(404).end();
       return;
@@ -45,9 +50,16 @@ const server = createServer(async (request, response) => {
 server.listen(port, "127.0.0.1", () => {
   const address = server.address();
   if (typeof address === "object" && address) {
-    process.stdout.write(`CONDUIT_STATIC_SERVER_URL=http://127.0.0.1:${address.port}/\n`);
+    process.stdout.write(`CONDUIT_STATIC_SERVER_URL=http://127.0.0.1:${address.port}${mount}\n`);
   }
 });
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => server.close(() => process.exit(0)));
+}
+
+function normalizeMount(value) {
+  if (!value.startsWith("/") || value.includes("?") || value.includes("#") || value.includes("..")) {
+    throw new Error("invalid static product mount");
+  }
+  return value.endsWith("/") ? value : `${value}/`;
 }

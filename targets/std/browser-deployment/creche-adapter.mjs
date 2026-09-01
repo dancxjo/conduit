@@ -39,7 +39,7 @@ function profile(machine, label) {
   return Object.freeze({
     target,
     target_id: target.id,
-    manifest_path: `../../../artifacts/hosted-linux-${machine}.json`,
+    manifest_path: new URL(`../../../artifacts/hosted-linux-${machine}.json`, import.meta.url).href,
     package_id: "hosted-native@1",
     output: "native-bundle",
     builder_adapter: "conduit-host-hosted/build-native@1",

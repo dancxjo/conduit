@@ -9,7 +9,7 @@ const TARGET = Object.freeze({
 const PROFILE = Object.freeze({
   target: TARGET,
   target_id: TARGET.id,
-  manifest_path: "../../../artifacts/browser-page.json",
+  manifest_path: new URL("../../../artifacts/browser-page.json", import.meta.url).href,
   package_id: "browser-wasm@1",
   output: "browser-bundle",
   builder_adapter: "conduit-host-browser/build-wasm@1",
