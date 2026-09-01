@@ -7,7 +7,7 @@ release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEAS
 
 test -f "$runtime"
 test ! -e "$destination"
-mkdir -p "$destination/artifacts" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment"
+mkdir -p "$destination/artifacts" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
 
 cp targets/browser/host/assets/creche.html "$destination/index.html"
 cp targets/browser/host/assets/creche.css "$destination/creche.css"
@@ -43,12 +43,17 @@ for artifact in raspios-bookworm-pi4-model-b-rev-1.5-4gb.json conduit-linux-aarc
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
+for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduitos-aarch64-virt-release.json conduitos-aarch64-virt.iso; do
+  test -f "$release_artifacts/$artifact"
+  cp "$release_artifacts/$artifact" "$destination/artifacts/"
+done
 cp targets/avr/browser-deployment/*.mjs "$destination/targets/avr/browser-deployment/"
 cp targets/rp2040/browser-deployment/*.mjs "$destination/targets/rp2040/browser-deployment/"
 cp targets/esp32/browser-deployment/*.mjs "$destination/targets/esp32/browser-deployment/"
 cp targets/std/browser-deployment/*.mjs "$destination/targets/std/browser-deployment/"
 cp targets/browser/host/browser-deployment/*.mjs "$destination/targets/browser/browser-deployment/"
 cp targets/raspberry-pi/browser-deployment/*.mjs "$destination/targets/raspberry-pi/browser-deployment/"
+cp targets/conduitos/browser-deployment/*.mjs "$destination/targets/conduitos/browser-deployment/"
 
-test "$(find "$destination" -type f | wc -l)" -eq 61
+test "$(find "$destination" -type f | wc -l)" -eq 67
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

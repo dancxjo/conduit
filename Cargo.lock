@@ -560,6 +560,7 @@ dependencies = [
  "conduit-form",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
+ "conduit-host-conduitos-fabrication",
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-host-hosted",

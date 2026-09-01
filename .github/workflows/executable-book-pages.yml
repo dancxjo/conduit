@@ -38,6 +38,13 @@ on:
       - targets/raspberry-pi/browser-deployment/**
       - targets/raspberry-pi/fabrication-package/**
       - targets/raspberry-pi/fabrication/xtask/**
+      - targets/conduitos/browser-deployment/**
+      - targets/conduitos/fabrication-package/**
+      - targets/conduitos/fabrication/xtask/**
+      - targets/conduitos/fabrication/seal-creche-release.mjs
+      - targets/conduitos/src/**
+      - profiles/hosts/conduitos-native.profile.json
+      - profiles/hosts/conduitos-aarch64-headless.profile.json
       - targets/esp32/fabrication/**
       - targets/esp32/firmware/**
       - fabrication/host/src/package_contract.rs
@@ -54,6 +61,7 @@ on:
       - proof/browser/executable-book.spec.mjs
       - proof/browser/creche-avr.spec.mjs
       - proof/browser/creche-raspberry-pi.spec.mjs
+      - proof/browser/creche-conduitos.spec.mjs
       - proof/browser/playwright.config.mjs
       - proof/browser/static-server.mjs
       - package.json
@@ -143,6 +151,34 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  conduitos-releases:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+          components: rust-src,llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install the deterministic hybrid ISO tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xorriso
+      - name: Compile and seal the exact ConduitOS product Host releases
+        run: |
+          cargo +stable xtask host build profiles/hosts/conduitos-native.profile.json --output target/creche-conduitos-build/x86_64 --locked
+          cargo +stable xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json --output target/creche-conduitos-build/aarch64 --locked
+          node targets/conduitos/fabrication/seal-creche-release.mjs target/creche-conduitos-build target/creche-conduitos-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conduit-conduitos-releases
+          path: target/creche-conduitos-release
+          if-no-files-found: error
+          retention-days: 7
+
   esp32-release-images:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -207,7 +243,7 @@ jobs:
           retention-days: 7
 
   products-proof:
-    needs: [avr-release, esp32-release-images, host-releases, raspberry-pi-release]
+    needs: [avr-release, esp32-release-images, host-releases, raspberry-pi-release, conduitos-releases]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -251,6 +287,11 @@ jobs:
         with:
           name: conduit-raspberry-pi-release
           path: target/creche-release-artifacts
+      - name: Download the reviewed ConduitOS product Host releases
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-releases
+          path: target/creche-release-artifacts
       - name: Build the exact browser Host and product runtimes
         run: |
           cargo build --locked -p conduit-browser-host
@@ -268,12 +309,13 @@ jobs:
           proof/browser/executable-book.spec.mjs
           proof/browser/creche-avr.spec.mjs
           proof/browser/creche-raspberry-pi.spec.mjs
+          proof/browser/creche-conduitos.spec.mjs
           --project chromium
           --workers 1
           --retries 0
 
   products:
-    needs: [products-proof, avr-release, esp32-release-images, host-releases, raspberry-pi-release]
+    needs: [products-proof, avr-release, esp32-release-images, host-releases, raspberry-pi-release, conduitos-releases]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -304,6 +346,11 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: conduit-raspberry-pi-release
+          path: target/creche-release-artifacts
+      - name: Download the reviewed ConduitOS product Host releases
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-releases
           path: target/creche-release-artifacts
       - name: Build the independent Book and Crèche runtimes
         run: |
@@ -353,8 +400,8 @@ jobs:
       - name: Verify the combined Pages carrier
         run: |
           test "$(find target/pages-site/book -type f | wc -l)" -eq 12
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 61
-          test "$(find target/pages-site -type f | wc -l)" -eq 73
+          test "$(find target/pages-site/creche -type f | wc -l)" -eq 67
+          test "$(find target/pages-site -type f | wc -l)" -eq 79
           touch target/pages-site/.nojekyll
       - name: Upload the combined Pages carrier
         uses: actions/upload-pages-artifact@v5
