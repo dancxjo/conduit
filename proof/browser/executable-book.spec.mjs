@@ -1213,6 +1213,12 @@ test("the Back pages compare two realizations deliberately", async ({ page }) =>
   const recursive = comparison.locator(".runner").nth(1);
   await expect(direct.getByRole("heading", { name: "Direct leaf" })).toBeVisible();
   await expect(recursive.getByRole("heading", { name: "Recursive Form Back" })).toBeVisible();
+  await recursive.getByRole("button", { name: "Flip Back" }).click();
+  await expect(recursive.getByRole("heading", { name: "Reviewed Form Back" })).toBeVisible();
+  await expect(recursive.getByText("Implementation Kind", { exact: true }).first()).toBeVisible();
+  await expect(recursive.locator(".back-implementation dd")).not.toHaveCount(0);
+  await recursive.getByRole("button", { name: "Flip to Face" }).click();
+  await expect(recursive.getByRole("textbox", { name: "Editable Conduit listing" })).toBeVisible();
   const listing = direct.locator("textarea");
   await listing.fill((await listing.inputValue()).replace('"HELLO"', '"E"'));
   await expect(recursive.locator("textarea")).toHaveValue(await listing.inputValue());

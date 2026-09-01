@@ -89,6 +89,16 @@ textarea {
 .compact-patchbay-text ol { padding-left: 1.1rem; }
 .compact-patchbay-text li { margin-bottom: .45rem; }
 .compact-patchbay-refusal { margin: 0; color: #ffb2a9; font-size: .72rem; }
+.realization-heading { position: relative; }
+.realization-heading .flip-back { position: absolute; right: 1rem; bottom: .75rem; border: 1px solid var(--green); background: white; color: var(--green-dark); }
+.back-implementation { display: none; min-height: 25rem; padding: 2rem; color: #e9f1ec; background: #17221d; }
+.back-implementation > span { color: #9fe2c4; font-size: .7rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.back-implementation h4 { margin: .35rem 0 1rem; font: 750 1.4rem/1.2 Georgia, serif; }
+.back-implementation dl { display: grid; grid-template-columns: minmax(9rem, .4fr) minmax(0, 1fr); gap: .45rem 1rem; }
+.back-implementation dt { color: #9fb0a6; font-size: .72rem; font-weight: 700; }
+.back-implementation dd { margin: 0; overflow-wrap: anywhere; font: 600 .72rem/1.45 ui-monospace, monospace; }
+.runner.back-flipped > .editor, .runner.back-flipped > .result { display: none; }
+.runner.back-flipped > .back-implementation { display: block; }
 .actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; display: flex; gap: .55rem; align-items: center; }
 button { border: 0; border-radius: 999px; padding: .7rem 1.15rem; font: inherit; font-weight: 700; cursor: pointer; }
 .run { background: #77daa8; color: #10271c; }

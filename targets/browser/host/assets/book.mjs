@@ -342,7 +342,8 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.sourceKey = sourceKey;
   runner.dataset.recursive = String(recursive);
   runner.innerHTML = `
-    ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3></header>` : ""}
+    ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3>${recursive ? '<button class="flip-back" type="button" aria-pressed="false">Flip Back</button>' : ""}</header>` : ""}
+    ${recursive ? '<aside class="back-implementation" aria-hidden="true"><span>Implementation side</span><h4>Reviewed Form Back</h4><p>Run the projection to resolve the exact implementation identities.</p><dl></dl></aside>' : ""}
     <div class="editor">
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable</label>
@@ -363,6 +364,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   const textarea = runner.querySelector("textarea");
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
+  const flip = runner.querySelector(".flip-back");
   textarea.value = sourceDrafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
     sourceDrafts.set(sourceKey, textarea.value);
@@ -370,6 +372,12 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
   stop.addEventListener("click", () => stopListing(runner));
+  flip?.addEventListener("click", () => {
+    const flipped = runner.classList.toggle("back-flipped");
+    flip.setAttribute("aria-pressed", String(flipped));
+    flip.textContent = flipped ? "Flip to Face" : "Flip Back";
+    runner.querySelector(".back-implementation").setAttribute("aria-hidden", String(!flipped));
+  });
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
 }
@@ -523,6 +531,29 @@ function renderCompactPatchbayProjection(figure, projection) {
     ordered.append(item);
   }
   appendExactProjection(figure.querySelector(".compact-patchbay-exact dl"), projection);
+  const implementation = figure.closest(".runner")?.querySelector(".back-implementation dl");
+  if (implementation) renderBackImplementation(implementation, projection);
+}
+
+function renderBackImplementation(list, projection) {
+  list.replaceChildren();
+  const backs = projection.realization_backs.length > 0
+    ? projection.realization_backs
+    : [{ invocation_path: "direct leaf", kind_id: "No reviewed Back opened", checked_form_id: projection.checked_form_id }];
+  for (const back of backs) {
+    for (const [name, value] of [
+      ["Invocation", back.invocation_path],
+      ["Implementation Kind", back.kind_id],
+      ["Checked implementation Form", back.checked_form_id],
+      ["Realization expansion", projection.realization_expanded_form_id],
+    ]) {
+      const term = document.createElement("dt");
+      term.textContent = name;
+      const description = document.createElement("dd");
+      description.textContent = value;
+      list.append(term, description);
+    }
+  }
 }
 
 function compactPorts(label, ports) {
