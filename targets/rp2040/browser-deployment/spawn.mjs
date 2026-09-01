@@ -1,5 +1,9 @@
 const PROTOCOL = 2;
-const MAX_FRAME_BYTES = 4096;
+const MAX_FRAME_BYTES = 4094;
+const MAX_STREAM_READ_BYTES = MAX_FRAME_BYTES + 2;
+const MAX_TOTAL_RESPONSE_BYTES = MAX_STREAM_READ_BYTES * 2;
+const MAX_STREAM_CHUNKS_PER_READ = MAX_STREAM_READ_BYTES;
+const MAX_STREAM_READ_MILLIS = 10_000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
@@ -50,15 +54,22 @@ function frame(payload) {
 }
 
 async function readFrame(base, state) {
-  while (state.length < 2 || state.length < new DataView(state.buffer, state.byteOffset, state.byteLength).getUint16(0, false) + 2) {
-    const { bytes } = await base.read();
-    if (state.length + bytes.byteLength > (MAX_FRAME_BYTES + 2) * 2) {
-      refuse("Oversized", "spawn response exceeds its admitted frame bound");
-    }
+  let chunks = 0;
+  if (!completeFrameAvailable(state)) {
+    const remainingBytes = MAX_STREAM_READ_BYTES - state.length;
+    if (remainingBytes < 1) refuse("Oversized", "spawn response exceeds its admitted frame bound");
+    const result = await base.readStream({
+      maximumBytes: remainingBytes,
+      maximumChunks: remainingBytes,
+      timeoutMillis: MAX_STREAM_READ_MILLIS,
+      complete: (bytes) => completeFrameAvailable(state, bytes),
+    });
+    const { bytes } = result;
     const joined = new Uint8Array(state.length + bytes.byteLength);
     joined.set(state);
     joined.set(bytes, state.length);
     state = joined;
+    chunks = result.chunks;
   }
   const length = new DataView(state.buffer, state.byteOffset, state.byteLength).getUint16(0, false);
   if (length === 0 || length > MAX_FRAME_BYTES) {
@@ -67,7 +78,16 @@ async function readFrame(base, state) {
   return {
     payload: state.slice(2, length + 2),
     remainder: state.slice(length + 2),
+    chunks,
   };
+}
+
+function completeFrameAvailable(prior, incoming = new Uint8Array()) {
+  const total = prior.length + incoming.length;
+  if (total < 2) return false;
+  const byte = (index) => index < prior.length ? prior[index] : incoming[index - prior.length];
+  const length = (byte(0) << 8) | byte(1);
+  return length === 0 || length > MAX_FRAME_BYTES || total >= length + 2;
 }
 
 function parseObject(bytes, name) {
@@ -87,7 +107,7 @@ export async function requestPhysicalSpawnJoin({
   usePlanPrefix,
   subject = "physical Host",
 }) {
-  if (!base || ["startUse", "write", "read", "setSignals", "evidence"].some((name) => typeof base[name] !== "function")) {
+  if (!base || ["startUse", "write", "readStream", "setSignals", "evidence"].some((name) => typeof base[name] !== "function")) {
     refuse("BaseContract", `${subject} spawn observation requires one admitted browser serial Base`);
   }
   requireIdentity(prepared?.spore_id, undefined, "spore identity");
@@ -167,6 +187,15 @@ export async function requestPhysicalSpawnJoin({
     signature: join.signature,
     observed_at_millis: Date.now(),
     serial_use_plan_id: usePlanId,
+    serial_stream: Object.freeze({
+      response_frames: 2,
+      browser_chunks: first.chunks + second.chunks,
+      admitted_reads: Number(first.chunks > 0) + Number(second.chunks > 0),
+      maximum_read_bytes: MAX_STREAM_READ_BYTES,
+      maximum_total_response_bytes: MAX_TOTAL_RESPONSE_BYTES,
+      maximum_chunks_per_read: MAX_STREAM_CHUNKS_PER_READ,
+      maximum_read_millis: MAX_STREAM_READ_MILLIS,
+    }),
   });
 }
 
@@ -179,3 +208,12 @@ export function requestRp2040SpawnJoin({ base, prepared }) {
     subject: "Pico",
   });
 }
+
+export const PHYSICAL_SPAWN_STREAM_BOUNDS = Object.freeze({
+  maximumTransferBytes: MAX_STREAM_READ_BYTES,
+  maximumReads: 2,
+  maximumWrites: 1,
+  maximumSignalOperations: 1,
+  maximumChunksPerRead: MAX_STREAM_CHUNKS_PER_READ,
+  maximumReadMillis: MAX_STREAM_READ_MILLIS,
+});

@@ -129,6 +129,85 @@ async function installRunningPico(page, buildId = "pico-build/accepted") {
   }, { buildId });
 }
 
+async function installFragmentedSpawnSerial(page) {
+  await page.addInitScript(() => {
+    const encode = (value) => {
+      const payload = new TextEncoder().encode(JSON.stringify(value));
+      const bytes = new Uint8Array(payload.length + 2);
+      new DataView(bytes.buffer).setUint16(0, payload.length, false);
+      bytes.set(payload, 2);
+      return bytes;
+    };
+    const split = (bytes, lengths) => {
+      const chunks = [];
+      let offset = 0;
+      for (const length of lengths) {
+        chunks.push(bytes.slice(offset, offset + length));
+        offset += length;
+      }
+      chunks.push(bytes.slice(offset));
+      return chunks;
+    };
+    const advertisement = {
+      host_id: "pico/tour",
+      boot_id: "pico-boot/fresh",
+      offer_generation: 4,
+      capabilities: [{ implementation_id: "pico/signal-source@1" }],
+    };
+    const nonce = Array(32).fill(7);
+    const chunks = [
+      ...split(encode({
+        protocol: 1,
+        advertisement,
+        friendly_label: "Pico W",
+        verifying_key: Array(32).fill(1),
+        freshness_sequence: 1,
+      }), [1, 3]),
+      ...split(encode({
+        protocol: 2,
+        spore_id: "spore:one",
+        image_id: "image:one",
+        invitation_id: "invitation:one",
+        body_id: "body:one",
+        host_id: advertisement.host_id,
+        boot_id: advertisement.boot_id,
+        offer_generation: advertisement.offer_generation,
+        nonce,
+        signature: Array(64).fill(9),
+      }), [2, 1, 7]),
+    ];
+    const port = new EventTarget();
+    port.reads = 0;
+    port.writes = [];
+    port.signals = [];
+    port.open = async () => {};
+    port.close = async () => {};
+    port.getInfo = () => ({ usbVendorId: 0x2e8a, usbProductId: 0x000a });
+    port.setSignals = async (signals) => port.signals.push({ ...signals });
+    port.writable = {
+      getWriter: () => ({
+        write: async (bytes) => port.writes.push(Array.from(bytes)),
+        releaseLock() {},
+      }),
+    };
+    port.readable = {
+      getReader: () => ({
+        read: async () => {
+          port.reads += 1;
+          const value = chunks.shift();
+          return { value, done: !value };
+        },
+        releaseLock() {},
+      }),
+    };
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: { requestPort: async () => port },
+    });
+    globalThis.__fragmentedSpawnPort = port;
+  });
+}
+
 test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
@@ -194,52 +273,20 @@ test("target-owned fabrication returns exact attributable bytes through two loca
 });
 
 test("browser serial observes a distinct fresh Boot and invitation-bound Pico join", async ({ page }) => {
+  await installFragmentedSpawnSerial(page);
   await page.goto(await startEntrance());
   await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
-    const { requestRp2040SpawnJoin } = await import(
+    const { PHYSICAL_SPAWN_STREAM_BOUNDS, requestRp2040SpawnJoin } = await import(
       "/targets/rp2040/browser-deployment/index.mjs"
     );
-    const encode = (value) => {
-      const payload = new TextEncoder().encode(JSON.stringify(value));
-      const bytes = new Uint8Array(payload.length + 2);
-      new DataView(bytes.buffer).setUint16(0, payload.length, false);
-      bytes.set(payload, 2);
-      return bytes;
-    };
-    const advertisement = {
-      host_id: "pico/tour",
-      boot_id: "pico-boot/fresh",
-      offer_generation: 4,
-      capabilities: [{ implementation_id: "pico/signal-source@1" }],
-    };
     const nonce = Array(32).fill(7);
-    const responses = [
-      encode({ protocol: 1, advertisement, friendly_label: "Pico W", verifying_key: Array(32).fill(1), freshness_sequence: 1 }),
-      encode({
-        protocol: 2,
-        spore_id: "spore:one",
-        image_id: "image:one",
-        invitation_id: "invitation:one",
-        body_id: "body:one",
-        host_id: advertisement.host_id,
-        boot_id: advertisement.boot_id,
-        offer_generation: advertisement.offer_generation,
-        nonce,
-        signature: Array(64).fill(9),
-      }),
-    ];
-    const evidence = { schema: "conduit.browser/serial-base-evidence@1", phase: "resource-truth" };
-    const base = {
-      writes: [],
-      signals: [],
-      usePlanId: null,
-      evidence: () => evidence,
-      startUse(planId) { this.usePlanId = planId; },
-      async setSignals(signals) { this.signals.push({ ...signals }); },
-      async write(bytes) { this.writes.push(Array.from(bytes)); return { bytes }; },
-      async read() { return { bytes: responses.shift() }; },
-    };
+    const base = await globalThis.__conduitBrowserHost.devices.acquireSerial({
+      maximumTransferBytes: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumTransferBytes,
+      maximumReads: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumReads,
+      maximumWrites: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumWrites,
+      maximumSignalOperations: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumSignalOperations,
+    });
     const secret = Array(32).fill(8);
     const observation = await requestRp2040SpawnJoin({
       base,
@@ -253,7 +300,14 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
         invitation_expires_at_millis: Date.now() + 60_000,
       },
     });
-    return { observation, usePlanId: base.usePlanId, signals: base.signals, write: base.writes[0], secret };
+    return {
+      observation,
+      base: base.evidence(),
+      browserReads: __fragmentedSpawnPort.reads,
+      signals: __fragmentedSpawnPort.signals,
+      write: __fragmentedSpawnPort.writes[0],
+      secret,
+    };
   });
   expect(result.observation).toMatchObject({
     schema: "conduit.rp2040/browser-spawn-observation@1",
@@ -263,7 +317,30 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
     boot_id: "pico-boot/fresh",
   });
   expect(result.observation.advertisement.capabilities).toHaveLength(1);
-  expect(result.usePlanId).toBe("pico-spawn/spore:one");
+  expect(result.observation.serial_use_plan_id).toBe("pico-spawn/spore:one");
+  expect(result.observation.serial_stream).toEqual({
+    response_frames: 2,
+    browser_chunks: 7,
+    admitted_reads: 2,
+    maximum_read_bytes: 4096,
+    maximum_total_response_bytes: 8192,
+    maximum_chunks_per_read: 4096,
+    maximum_read_millis: 10000,
+  });
+  expect(result.base).toMatchObject({
+    phase: "serial-use-playing",
+    admitted_reads: 2,
+    admitted_writes: 1,
+    admitted_signal_operations: 1,
+    retained_bytes: 0,
+    transfer_bounds: {
+      maximum_transfer_bytes: 4096,
+      maximum_reads: 2,
+      maximum_writes: 1,
+      maximum_signal_operations: 1,
+    },
+  });
+  expect(result.browserReads).toBe(7);
   expect(result.signals).toEqual([{ dataTerminalReady: true }]);
   expect(result.write.length).toBeLessThanOrEqual(4098);
   expect(result.secret).toEqual(Array(32).fill(0));
@@ -292,7 +369,11 @@ test("expired invitation and join-to-advertisement mismatch refuse before admiss
       writes: 0, evidence: () => ({}), startUse() {},
       async setSignals() {},
       async write() { this.writes += 1; },
-      async read() { return { bytes: responses.shift() }; },
+      async readStream({ complete }) {
+        const bytes = responses.shift();
+        if (!complete(bytes)) throw new Error("fixture response did not complete one frame");
+        return { bytes, chunks: 1 };
+      },
     });
     const expired = prepared(Date.now() - 1);
     const expiredBase = base();

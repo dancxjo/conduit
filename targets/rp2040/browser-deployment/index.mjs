@@ -9,6 +9,7 @@ export {
   Rp2040BootselRefusal,
 } from "./bootsel.mjs";
 export {
+  PHYSICAL_SPAWN_STREAM_BOUNDS,
   requestRp2040SpawnJoin,
   Rp2040SpawnRefusal,
 } from "./spawn.mjs";

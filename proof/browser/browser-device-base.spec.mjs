@@ -84,6 +84,34 @@ async function installSerialFailure(page, name, duringOpen = false) {
   }, { name, duringOpen });
 }
 
+async function installBoundedStreamSerial(page, { chunkBytes = 1, pending = false } = {}) {
+  await page.addInitScript(({ chunkBytes, pending }) => {
+    const port = new EventTarget();
+    port.reads = 0;
+    port.cancellations = 0;
+    port.open = async () => {};
+    port.close = async () => {};
+    port.getInfo = () => ({ usbVendorId: 0x2e8a, usbProductId: 0x000a });
+    port.readable = {
+      getReader: () => ({
+        read: () => {
+          port.reads += 1;
+          return pending
+            ? new Promise(() => {})
+            : Promise.resolve({ value: new Uint8Array(chunkBytes).fill(port.reads), done: false });
+        },
+        cancel: async () => { port.cancellations += 1; },
+        releaseLock() {},
+      }),
+    };
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: { requestPort: async () => port },
+    });
+    globalThis.__boundedStreamPort = port;
+  }, { chunkBytes, pending });
+}
+
 test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
@@ -162,6 +190,123 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
     admitted_reads: 1,
     admitted_writes: 1,
     retained_bytes: 0,
+  });
+});
+
+test("one admitted serial read bounds internal bytes, browser chunks, and elapsed time", async ({ page }) => {
+  await installBoundedStreamSerial(page);
+  await page.goto(await startEntrance());
+  await page.waitForFunction(() => globalThis.__conduitBrowserHost?.devices);
+  const chunks = await page.evaluate(async () => {
+    const base = await __conduitBrowserHost.devices.acquireSerial({
+      maximumTransferBytes: 4,
+      maximumReads: 1,
+      maximumWrites: 1,
+    });
+    base.startUse("browser/serial-stream-chunks/one");
+    try {
+      await base.readStream({
+        maximumBytes: 4,
+        maximumChunks: 3,
+        timeoutMillis: 1_000,
+        complete: () => false,
+      });
+      return null;
+    } catch (error) {
+      return {
+        code: error.code,
+        reads: __boundedStreamPort.reads,
+        evidence: base.evidence(),
+      };
+    }
+  });
+  expect(chunks).toMatchObject({
+    code: "StreamChunkBound",
+    reads: 3,
+    evidence: {
+      phase: "terminal",
+      terminal: "TransferFailed",
+      admitted_reads: 1,
+      retained_bytes: 0,
+    },
+  });
+
+  const bytesPage = await page.context().newPage();
+  await installBoundedStreamSerial(bytesPage, { chunkBytes: 2 });
+  await bytesPage.goto(await startEntrance());
+  await bytesPage.waitForFunction(() => globalThis.__conduitBrowserHost?.devices);
+  const bytes = await bytesPage.evaluate(async () => {
+    const base = await __conduitBrowserHost.devices.acquireSerial({
+      maximumTransferBytes: 4,
+      maximumReads: 1,
+      maximumWrites: 1,
+    });
+    base.startUse("browser/serial-stream-bytes/one");
+    try {
+      await base.readStream({
+        maximumBytes: 1,
+        maximumChunks: 1,
+        timeoutMillis: 1_000,
+        complete: () => false,
+      });
+      return null;
+    } catch (error) {
+      return {
+        code: error.code,
+        reads: __boundedStreamPort.reads,
+        evidence: base.evidence(),
+      };
+    }
+  });
+  expect(bytes).toMatchObject({
+    code: "StreamByteBound",
+    reads: 1,
+    evidence: {
+      phase: "terminal",
+      terminal: "TransferFailed",
+      admitted_reads: 1,
+      retained_bytes: 0,
+    },
+  });
+
+  const timeoutPage = await page.context().newPage();
+  await installBoundedStreamSerial(timeoutPage, { pending: true });
+  await timeoutPage.goto(await startEntrance());
+  await timeoutPage.waitForFunction(() => globalThis.__conduitBrowserHost?.devices);
+  const timeout = await timeoutPage.evaluate(async () => {
+    const base = await __conduitBrowserHost.devices.acquireSerial({
+      maximumTransferBytes: 4,
+      maximumReads: 1,
+      maximumWrites: 1,
+    });
+    base.startUse("browser/serial-stream-time/one");
+    try {
+      await base.readStream({
+        maximumBytes: 4,
+        maximumChunks: 4,
+        timeoutMillis: 20,
+        complete: () => false,
+      });
+      return null;
+    } catch (error) {
+      return {
+        code: error.code,
+        reads: __boundedStreamPort.reads,
+        cancellations: __boundedStreamPort.cancellations,
+        evidence: base.evidence(),
+      };
+    }
+  });
+  expect(timeout).toMatchObject({
+    code: "StreamTimeout",
+    reads: 1,
+    cancellations: 1,
+    evidence: {
+      phase: "terminal",
+      terminal: "TransferFailed",
+      admitted_reads: 1,
+      retained_bytes: 0,
+    },
   });
 });
 
