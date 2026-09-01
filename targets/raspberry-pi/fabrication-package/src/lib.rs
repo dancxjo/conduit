@@ -52,7 +52,9 @@ fn raspberry_pi_os_target() -> TargetDescriptor {
         host_core: "host-core/std@1".into(),
         presenter: None,
         host_operations: Vec::new(),
-        toolchain_identity: "rustc:stable+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu".into(),
+        toolchain_identity:
+            "rustc:stable+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu+libc6-dev-arm64-cross"
+                .into(),
         builder_adapter: "conduit-host-raspberry-pi/build-raspios-native@1".into(),
         deployment_adapter: Some("conduit-host-raspberry-pi/install-raspios-package@1".into()),
         outputs: vec![SporeOutputKind::NativeBundle],

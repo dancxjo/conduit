@@ -105,7 +105,7 @@ jobs:
       - name: Install the Raspberry Pi OS cross linker
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +stable xtask host release --output target/creche-host-releases
       - uses: actions/upload-artifact@v4
