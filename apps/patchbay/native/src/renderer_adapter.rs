@@ -22,8 +22,11 @@ fn select_render_view(
     has_environment: bool,
     has_prewake: bool,
     prewake_environment_view: bool,
+    body_document: bool,
 ) -> RenderView {
-    if has_prewake && prewake_environment_view && has_environment {
+    if body_document {
+        RenderView::Document
+    } else if has_prewake && prewake_environment_view && has_environment {
         RenderView::Environment
     } else if has_graph {
         RenderView::Patchbay
@@ -80,14 +83,27 @@ impl PatchbayApplication {
         let linear_view = self.linear_view;
         let parts = self.parts_projection()?;
         let lifecycle = LifecycleContext {
-            body_id: self
-                .build_birth
-                .body()
-                .map(|body| body.body_id.as_str().to_owned()),
-            wake_id: self
-                .build_birth
-                .wake_value()
-                .map(|wake| wake.wake_id.as_str().to_owned()),
+            body_id: self.body_workbench.current().map_or_else(
+                || {
+                    self.build_birth
+                        .body()
+                        .map(|body| body.body_id.as_str().to_owned())
+                },
+                |workbench| Some(workbench.current().body_id.as_str().to_owned()),
+            ),
+            wake_id: self.body_workbench.current().map_or_else(
+                || {
+                    self.build_birth
+                        .wake_value()
+                        .map(|wake| wake.wake_id.as_str().to_owned())
+                },
+                |workbench| match &workbench.current().lifecycle {
+                    patchbay_model::CurrentBodyLifecycle::Awake { wake_id } => {
+                        Some(wake_id.as_str().to_owned())
+                    }
+                    patchbay_model::CurrentBodyLifecycle::Lulled => None,
+                },
+            ),
             plan_id: self
                 .control
                 .plan()
@@ -99,7 +115,10 @@ impl PatchbayApplication {
                     .find_map(|plan| plan.active_play_id.as_ref())
                     .map(|play| play.as_str().to_owned())
             }),
-            flow: self.lifecycle_flow(),
+            flow: self.body_workbench.current().map_or_else(
+                || self.lifecycle_flow(),
+                crate::native_body_workbench::NativeBodyWorkbench::lifecycle_flow,
+            ),
             parts,
             selected_part: self.selected_part.clone(),
             selected_candidate: self.selected_candidate.clone(),
@@ -108,6 +127,10 @@ impl PatchbayApplication {
                 .browser_parts
                 .as_ref()
                 .is_some_and(super::browser_parts::BrowserPartsCoordinator::is_pending),
+            body_workbench_destination: self
+                .body_workbench
+                .current()
+                .map(crate::native_body_workbench::NativeBodyWorkbench::destination),
         };
         let realization_hosts = self
             .environment
@@ -169,6 +192,10 @@ impl PatchbayApplication {
             self.environment.is_some(),
             self.prewake.is_some(),
             self.prewake_environment_view,
+            self.body_workbench.current().is_some_and(|workbench| {
+                workbench.destination()
+                    != crate::native_body_workbench::NativeWorkbenchDestination::Program
+            }),
         );
         let hit_targets = if render_view == RenderView::Environment {
             if let Some(environment) = &self.environment {
@@ -192,6 +219,27 @@ impl PatchbayApplication {
             } else {
                 Vec::new()
             }
+        } else if render_view == RenderView::Document && self.body_workbench.is_attached() {
+            crate::native_body_workbench_view::draw_body_workbench(
+                &mut buffer,
+                size.width as usize,
+                size.height as usize,
+                &lines,
+                self.body_workbench
+                    .current()
+                    .expect("Body document selection requires a workbench")
+                    .destination(),
+                self.body_workbench
+                    .current()
+                    .expect("Body document selection requires a workbench")
+                    .history_selection(),
+                self.body_workbench
+                    .current()
+                    .expect("Body document selection requires a workbench")
+                    .history()
+                    .entries
+                    .len(),
+            )
         } else if let Some(graph) = graph {
             if linear_view {
                 draw_document(
@@ -262,16 +310,25 @@ mod tests {
     #[test]
     fn render_selection_keeps_default_form_launch_on_patchbay() {
         let cases = [
-            (true, false, false, false, RenderView::Patchbay),
-            (true, true, false, false, RenderView::Patchbay),
-            (true, true, true, false, RenderView::Patchbay),
-            (true, true, true, true, RenderView::Environment),
-            (false, false, false, false, RenderView::Document),
+            (true, false, false, false, false, RenderView::Patchbay),
+            (true, true, false, false, false, RenderView::Patchbay),
+            (true, true, true, false, false, RenderView::Patchbay),
+            (true, true, true, true, false, RenderView::Environment),
+            (false, false, false, false, false, RenderView::Document),
+            (true, false, false, false, true, RenderView::Document),
         ];
 
-        for (has_graph, has_environment, has_prewake, environment_view, expected) in cases {
+        for (has_graph, has_environment, has_prewake, environment_view, body_document, expected) in
+            cases
+        {
             assert_eq!(
-                select_render_view(has_graph, has_environment, has_prewake, environment_view,),
+                select_render_view(
+                    has_graph,
+                    has_environment,
+                    has_prewake,
+                    environment_view,
+                    body_document,
+                ),
                 expected
             );
         }

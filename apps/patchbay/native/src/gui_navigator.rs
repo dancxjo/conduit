@@ -21,6 +21,8 @@ pub(super) struct FormsNavigatorView<'a> {
     pub(super) scroll: usize,
     pub(super) body_born: bool,
     pub(super) parts_open: bool,
+    pub(super) body_workbench_destination:
+        Option<crate::native_body_workbench::NativeWorkbenchDestination>,
 }
 
 pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
@@ -74,47 +76,86 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
         &format!("{} ABOVE  {} BELOW", forms.scroll, remaining),
         theme.structure_secondary,
     );
-    for (index, (icon, label)) in [
-        (Icon::Body, "BODIES [UNAVAILABLE]"),
-        (
-            Icon::Host,
-            if forms.body_born {
-                "PARTS (F12)"
-            } else {
-                "PARTS [UNAVAILABLE]"
-            },
-        ),
-        (Icon::Sign, "SIGNS [UNAVAILABLE]"),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let y = 178 + index as i32 * 18;
-        icon_label(
-            target,
-            icon,
-            Point::new(14, y),
-            label,
-            if index == 1 && forms.body_born {
-                theme.text_primary
-            } else {
-                theme.structure_secondary
-            },
-        );
-        if index == 1 && forms.body_born {
+    if let Some(selected) = forms.body_workbench_destination {
+        for (index, (icon, label, destination)) in [
+            (
+                Icon::Form,
+                "PROGRAM",
+                crate::native_body_workbench::NativeWorkbenchDestination::Program,
+            ),
+            (
+                Icon::Body,
+                "BODY",
+                crate::native_body_workbench::NativeWorkbenchDestination::Body,
+            ),
+            (
+                Icon::Sign,
+                "HISTORY (BODY / SIGNS)",
+                crate::native_body_workbench::NativeWorkbenchDestination::History,
+            ),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let y = 178 + index as i32 * 18;
+            icon_label(target, icon, Point::new(14, y), label, theme.text_primary);
             let bounds = PixelRect {
                 x: 10,
                 y: y - 4,
                 width: 154,
-                height: 25,
+                height: 20,
             };
-            if forms.parts_open {
+            if selected == destination {
                 frame_rect(target, bounds, theme.focus, 2);
             }
             targets.push(HitTarget {
-                action: GuiAction::TogglePartsView,
+                action: GuiAction::SelectBodyWorkbench(destination),
                 shape: HitShape::Rect(bounds),
             });
+        }
+    } else {
+        for (index, (icon, label)) in [
+            (Icon::Body, "BODIES [UNAVAILABLE]"),
+            (
+                Icon::Host,
+                if forms.body_born {
+                    "PARTS (F12)"
+                } else {
+                    "PARTS [UNAVAILABLE]"
+                },
+            ),
+            (Icon::Sign, "SIGNS [UNAVAILABLE]"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let y = 178 + index as i32 * 18;
+            icon_label(
+                target,
+                icon,
+                Point::new(14, y),
+                label,
+                if index == 1 && forms.body_born {
+                    theme.text_primary
+                } else {
+                    theme.structure_secondary
+                },
+            );
+            if index == 1 && forms.body_born {
+                let bounds = PixelRect {
+                    x: 10,
+                    y: y - 4,
+                    width: 154,
+                    height: 25,
+                };
+                if forms.parts_open {
+                    frame_rect(target, bounds, theme.focus, 2);
+                }
+                targets.push(HitTarget {
+                    action: GuiAction::TogglePartsView,
+                    shape: HitShape::Rect(bounds),
+                });
+            }
         }
     }
     text(target, Point::new(14, 226), "ACTIONS", theme.emphasis);

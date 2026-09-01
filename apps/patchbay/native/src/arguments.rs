@@ -1,6 +1,15 @@
 use std::path::PathBuf;
 
-pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter Patchbay truthfully; the current Body may be NONE\n  --form <PATH>                         Open a canonical .conduit Form\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --prewake-hold                        Hold the simulated Plan effect-free until explicitly released\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --help                                Print help";
+pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter Patchbay truthfully; the current Body may be NONE\n  --form <PATH>                         Open a canonical .conduit Form\n  --body-evidence <PATH>                Attach validated serialized Body biography evidence\n  --external-reader                     Read the graduated Body without inventing placement\n  --hosted-reader <PLAN> <IMPLEMENTATION>  Require the exact graduated Patchbay placement\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --prewake-hold                        Hold the simulated Plan effect-free until explicitly released\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --help                                Print help";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NativeBodyEntrance {
+    Hosted {
+        plan_id: String,
+        implementation_id: String,
+    },
+    ExternalReader,
+}
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Arguments {
@@ -10,6 +19,8 @@ pub struct Arguments {
     pub snapshot_path: Option<PathBuf>,
     pub linear_snapshot_path: Option<PathBuf>,
     pub form_path: Option<PathBuf>,
+    pub body_evidence_path: Option<PathBuf>,
+    pub body_entrance: Option<NativeBodyEntrance>,
     pub environment_path: Option<PathBuf>,
     pub prewake: bool,
     pub prewake_hold: bool,
@@ -53,6 +64,27 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
             }
             "--form" if parsed.form_path.is_none() => {
                 parsed.form_path = Some(arguments.next().ok_or("--form requires a path")?.into());
+            }
+            "--body-evidence" if parsed.body_evidence_path.is_none() => {
+                parsed.body_evidence_path = Some(
+                    arguments
+                        .next()
+                        .ok_or("--body-evidence requires a path")?
+                        .into(),
+                );
+            }
+            "--external-reader" if parsed.body_entrance.is_none() => {
+                parsed.body_entrance = Some(NativeBodyEntrance::ExternalReader);
+            }
+            "--hosted-reader" if parsed.body_entrance.is_none() => {
+                parsed.body_entrance = Some(NativeBodyEntrance::Hosted {
+                    plan_id: arguments
+                        .next()
+                        .ok_or("--hosted-reader requires a Plan and implementation identity")?,
+                    implementation_id: arguments
+                        .next()
+                        .ok_or("--hosted-reader requires a Plan and implementation identity")?,
+                });
             }
             "--environment" if parsed.environment_path.is_none() => {
                 parsed.environment_path = Some(
@@ -117,6 +149,21 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
     }
     if parsed.prewake_hold && !parsed.prewake {
         return Err("--prewake-hold requires --prewake".into());
+    }
+    if parsed.body_evidence_path.is_some() {
+        if parsed.form_path.is_none() {
+            return Err("--body-evidence requires the Body's canonical --form".into());
+        }
+        if parsed.body_entrance.is_none() {
+            return Err(
+                "--body-evidence requires exactly one --external-reader or --hosted-reader".into(),
+            );
+        }
+        if parsed.front_door {
+            return Err("--body-evidence and --front-door are exclusive entrances".into());
+        }
+    } else if parsed.body_entrance.is_some() {
+        return Err("a Body reader entrance requires --body-evidence".into());
     }
     Ok(parsed)
 }

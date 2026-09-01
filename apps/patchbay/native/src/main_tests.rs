@@ -119,6 +119,52 @@ fn arguments_are_explicit_and_fail_closed() {
         parse_arguments(vec!["--prewake-hold".into()].into_iter()),
         Err("--prewake-hold requires --prewake".into())
     );
+    let external = parse_arguments(
+        [
+            "--form",
+            "roseau.conduit",
+            "--body-evidence",
+            "roseau-body.json",
+            "--external-reader",
+        ]
+        .into_iter()
+        .map(str::to_owned),
+    )
+    .unwrap();
+    assert_eq!(
+        external.body_entrance,
+        Some(super::arguments::NativeBodyEntrance::ExternalReader)
+    );
+    let hosted = parse_arguments(
+        [
+            "--form",
+            "roseau.conduit",
+            "--body-evidence",
+            "roseau-body.json",
+            "--hosted-reader",
+            "plan/roseau-patchbay",
+            "native/patchbay@1",
+        ]
+        .into_iter()
+        .map(str::to_owned),
+    )
+    .unwrap();
+    assert!(matches!(
+        hosted.body_entrance,
+        Some(super::arguments::NativeBodyEntrance::Hosted { .. })
+    ));
+    assert!(parse_arguments(
+        ["--body-evidence", "roseau-body.json", "--external-reader"]
+            .into_iter()
+            .map(str::to_owned)
+    )
+    .is_err());
+    assert!(parse_arguments(
+        ["--form", "roseau.conduit", "--external-reader"]
+            .into_iter()
+            .map(str::to_owned)
+    )
+    .is_err());
     assert_eq!(
         parse_arguments(
             vec![

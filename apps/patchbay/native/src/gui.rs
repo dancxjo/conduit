@@ -68,6 +68,8 @@ pub struct LifecycleContext {
     pub selected_candidate: Option<conduit_body::CandidateId>,
     pub pending_revoke: Option<conduit_body::PartId>,
     pub browser_spawn_pending: bool,
+    pub body_workbench_destination:
+        Option<crate::native_body_workbench::NativeWorkbenchDestination>,
 }
 
 pub struct PatchbayViewContext<'a> {
@@ -229,6 +231,7 @@ pub fn draw_patchbay(
                 scroll: form_scroll,
                 body_born: lifecycle.body_id.is_some(),
                 parts_open: lifecycle.parts.is_some(),
+                body_workbench_destination: lifecycle.body_workbench_destination,
             },
             theme,
             &mut targets,
