@@ -33,6 +33,8 @@ mod receipts;
 mod remote_kernel;
 #[cfg(all(feature = "bluetooth", not(feature = "distributed-lenia")))]
 mod session;
+#[path = "../../spore.rs"]
+mod spore;
 
 #[cfg(all(feature = "bluetooth", not(feature = "distributed-lenia")))]
 static REMOTE_KERNEL: static_cell::StaticCell<remote_kernel::Esp32RemoteSignalKernel> =
@@ -80,6 +82,7 @@ async fn main(_spawner: Spawner) {
     esp_println::logger::init_logger_from_env();
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
+    spore::attest_from_flash();
     esp_alloc::heap_allocator!(size: 48 * 1024);
     let timer_group = TimerGroup::new(peripherals.TIMG0);
     let software_interrupts = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
