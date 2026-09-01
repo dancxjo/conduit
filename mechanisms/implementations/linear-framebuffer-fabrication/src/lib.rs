@@ -11,10 +11,7 @@ fn package_catalog() -> PackageCatalogContribution {
         presenters: BTreeMap::from([(
             "presenter/native-graphical@1".into(),
             PresenterMetadata {
-                targets: vec![
-                    "std/x86_64/workstation".into(),
-                    "conduitos/x86_64/pc".into(),
-                ],
+                targets: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
                 prerequisites: vec![
                     PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
                     PrerequisiteNode::Facility("compositor/native@1".into()),
@@ -58,10 +55,7 @@ impl HostFabricationPackage for LinearFramebufferFabricationExtension {
                 base_kind: "display/scanout".into(),
                 implementation_id: "display/linear-framebuffer@1".into(),
                 implementation_revision: 1,
-                target_patterns: vec![
-                    "std/x86_64/workstation".into(),
-                    "conduitos/x86_64/pc".into(),
-                ],
+                target_patterns: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
                 prerequisites: Vec::new(),
                 build_feature: Some("base-linear-framebuffer".into()),
             }],

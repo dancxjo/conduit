@@ -1,13 +1,29 @@
-# Use a generic verb
+# Branch a Cord
 
-If every application and machine needs its own special operation — robot-scale-number, web-scale-number, sensor-scale-number — the vocabulary fragments and Forms stop being portable.
-
-## Conduit idea
-
-Prefer small generic semantic verbs whose typed meaning is useful across many domains. Exact scalar scaling is the same idea whether a later Form uses it for a robot, a visualization, or a sensor.
+One value can feed more than one Gear. Draw that choice explicitly and the whole branch stays visible.
 
 ```conduit run
-form generic-scale {
+form branch-a-cord {
+    source: scalar/literal(0.5)
+    double: math/scale(2.0)
+    quiet: math/deadband(0.6)
+    compare: logic/compare("gt")
+    result: presentation/bool-value
+
+    source > double > compare.left
+    source > quiet > compare.right
+    compare.out > result
+}
+```
+
+Both branches begin at the same output Port and meet again at `compare`.
+
+# Meet the Face
+
+Look at a Gear from the outside and you see its **Face**: its meaning and typed Ports. A caller can connect to that contract without knowing how the Gear is implemented.
+
+```conduit run
+form meet-the-face {
     source: scalar/literal(1.5)
     scale: math/scale(2.0)
     result: presentation/scalar
@@ -16,35 +32,17 @@ form generic-scale {
 }
 ```
 
-## What the run proves
+`scale` receives a scalar and emits a scalar. That public shape is enough to compose it here and somewhere entirely different.
 
-The planned operation produces 3.000000 through the ordinary browser Host path. The exact six-place result comes from the selected implementation; there is no page-local arithmetic shortcut.
+# Same Face, different implementation
 
-## Payoff
+Some Gears open. `text/morse` has a reviewed Form **Back** made from smaller Gears.
 
-A compact reusable vocabulary can travel across unlike applications and Hosts. Conduit does not need a new platform-flavored Gear each time the same meaning appears somewhere else.
+Use **Open Back** on the `morse` faceplate. The original Gear stays put while its checked internal topology opens beneath it. Return to the Face whenever you like; the source listing does not change.
 
-# A Gear can have a Back
-
-Callers need useful high-level meaning, but they should not have to copy its internal machinery into every Form. Otherwise sophisticated operations make every caller larger and more dependent on how one Host implements them.
-
-## Conduit idea
-
-A high-level Gear keeps one public Face while a reviewed Form Back can describe the same meaning with smaller Gears.
-
-```text
-             text/morse
-                 |
-          one checked Face
-                 |
-       reviewed Form Back
-                 |
- characters -> lookup -> gaps -> flatten -> timing
-```
-
-```conduit run
-form gear-with-a-back {
-    message: text/literal("E")
+```conduit compare
+form same-morse-caller {
+    message: text/literal("HELLO")
     morse: text/morse(40)
     light: presentation/indicator
 
@@ -52,36 +50,4 @@ form gear-with-a-back {
 }
 ```
 
-## What the run proves
-
-Run the listing normally. The caller asks only for the text/morse Face, and this capable browser Host satisfies it with its available direct leaf. The reviewed Back remains implementation knowledge rather than source the caller must own.
-
-## Payoff
-
-Rich meaning can be assembled from simpler capabilities without exposing that assembly to every caller. The Face stays stable while Conduit gains another honest way to realize it.
-
-# Morse opens up
-
-A current Host may know a high-level operation directly, while a smaller Host knows only the pieces from which that operation can be built. Requiring every Host to implement the whole vocabulary natively would make constrained systems unnecessarily large.
-
-## Conduit idea
-
-The reviewed Back for Morse expresses text/morse through character decomposition, lookup, gaps, flattening, and timing. A planner may keep opening reviewed Backs until the remaining leaves are operations the available machinery actually offers.
-
-```conduit run
-form morse-opens-up {
-    message: text/literal("SOS")
-    encode: text/morse(unit-ms = 40)
-    result: presentation/indicator
-
-    message > encode > result
-}
-```
-
-## What the run proves
-
-This ordinary run still chooses the browser's direct text/morse leaf. The caller does not request a recursive mode, and the Tour does not silently force one. The important distinction is now visible: a Kind and its Face fix the meaning; a particular implementation does not.
-
-## Payoff
-
-The same high-level request can fit both rich and constrained Hosts. A later page places the direct leaf and recursive Back side by side so you can inspect why those two realization shapes exist.
+A rich Host may use a direct Morse implementation. A smaller Host may open this Back until it reaches Gears it can provide. The caller still sees the same Face.

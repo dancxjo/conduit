@@ -175,7 +175,7 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      chapter.append(createMultiHostRunner(source.join("\n"), showPlan));
+      appendWorkbench(createMultiHostRunner(source.join("\n"), showPlan));
       copy = appendCopy();
     } else if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
       flush();
@@ -184,8 +184,8 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      chapter.append(comparison
-        ? createRealizationComparison(source.join("\n"))
+      appendWorkbench(comparison
+        ? createFaceBackRunner(source.join("\n"))
         : createRunner(source.join("\n"), recursive));
       copy = appendCopy();
     } else if (line === "```text") {
@@ -282,6 +282,13 @@ function appendCopy() {
   return copy;
 }
 
+function appendWorkbench(content) {
+  const workbench = document.createElement("div");
+  workbench.className = "book-workbench";
+  workbench.append(content);
+  chapter.append(workbench);
+}
+
 function createCrecheCallToAction(label = "Birth a Body") {
   const callout = document.createElement("aside");
   callout.className = "creche-handoff";
@@ -296,42 +303,11 @@ function createCrecheCallToAction(label = "Birth a Body") {
   return callout;
 }
 
-function createRealizationComparison(source) {
-  const comparison = document.createElement("div");
-  comparison.className = "realization-comparison";
-  const face = document.createElement("div");
-  face.className = "shared-face";
-  const faceLabel = document.createElement("span");
-  faceLabel.textContent = "Same requested Face";
-  const faceContract = document.createElement("code");
-  faceContract.textContent = "text/morse · text: value/text@1 → pattern: value/morse-pattern@1";
-  face.append(faceLabel, faceContract);
-  const direct = createRunner(source, false, {
-    eyebrow: "Realization A",
-    title: "Direct leaf",
-    runLabel: "Run direct leaf",
+function createFaceBackRunner(source) {
+  return createRunner(source, false, {
+    faceBack: true,
+    runLabel: "Run this Form",
   });
-  const recursive = createRunner(source, true, {
-    eyebrow: "Realization B",
-    title: "Recursive Form Back",
-    runLabel: "Run recursive Back",
-  });
-  const directSource = direct.querySelector("textarea");
-  const recursiveSource = recursive.querySelector("textarea");
-  recursiveSource.value = directSource.value;
-  sourceDrafts.set(recursive.dataset.sourceKey, directSource.value);
-  directSource.addEventListener("input", () => {
-    recursiveSource.value = directSource.value;
-    sourceDrafts.set(recursive.dataset.sourceKey, directSource.value);
-    refreshCompactPatchbay(recursive, recursiveSource.value, true);
-  });
-  recursiveSource.addEventListener("input", () => {
-    directSource.value = recursiveSource.value;
-    sourceDrafts.set(direct.dataset.sourceKey, recursiveSource.value);
-    refreshCompactPatchbay(direct, directSource.value, false);
-  });
-  comparison.append(face, direct, recursive);
-  return comparison;
 }
 
 function createRunner(source, recursive = false, presentation = {}) {
@@ -343,8 +319,6 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.sourceKey = sourceKey;
   runner.dataset.recursive = String(recursive);
   runner.innerHTML = `
-    ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3>${recursive ? '<button class="flip-back" type="button" aria-pressed="false">Flip Back</button>' : ""}</header>` : ""}
-    ${recursive ? '<aside class="back-implementation" aria-hidden="true"><span>Implementation side</span><h4>Reviewed Form Back</h4><p>Run the projection to resolve the exact implementation identities.</p><dl></dl></aside>' : ""}
     <div class="editor">
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable</label>
@@ -360,12 +334,15 @@ function createRunner(source, recursive = false, presentation = {}) {
       <h2>Planned result</h2>
       <output class="morse" aria-label="Planned result">ready</output>
       <p class="play-status" role="status">Edit the message or timing, then run it.</p>
-      <details><summary>What happened?</summary><dl></dl><div class="expansion"></div></details>
+      <details class="exact-evidence"><summary>Inspect exact evidence</summary>
+        <h3>Checked Form</h3><dl class="exact-projection"></dl>
+        <h3>Latest run</h3><dl class="run-identities"></dl><div class="expansion"></div>
+      </details>
     </div>`;
+  runner.dataset.faceBack = String(presentation.faceBack === true);
   const textarea = runner.querySelector("textarea");
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
-  const flip = runner.querySelector(".flip-back");
   textarea.value = sourceDrafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
     sourceDrafts.set(sourceKey, textarea.value);
@@ -373,12 +350,6 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
   stop.addEventListener("click", () => stopListing(runner));
-  flip?.addEventListener("click", () => {
-    const flipped = runner.classList.toggle("back-flipped");
-    flip.setAttribute("aria-pressed", String(flipped));
-    flip.textContent = flipped ? "Flip to Face" : "Flip Back";
-    runner.querySelector(".back-implementation").setAttribute("aria-hidden", String(!flipped));
-  });
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
 }
@@ -411,10 +382,13 @@ function createMultiHostRunner(source, showPlan) {
       <h2>Planned result on Host B</h2>
       <output class="morse" aria-label="Planned result">ready</output>
       <p class="play-status" role="status">Run the Form to start two independent browser Hosts.</p>
-      <details class="evidence"><summary>What happened?</summary><dl></dl><div class="expansion"></div></details>
-      <details class="plan-view-details"><summary>Exact Plan for this Play</summary><div class="plan-view"></div><details class="raw-plan"><summary>Raw Plan evidence</summary><pre><code></code></pre></details></details>
+      <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
+        <h3>Checked Form</h3><dl class="exact-projection"></dl>
+        <h3>Latest run</h3><dl class="run-identities"></dl><div class="expansion"></div>
+        <h3>Exact Plan for this Play</h3><div class="plan-view"></div><div class="raw-plan"><h4>Raw Plan evidence</h4><pre><code></code></pre></div>
+      </details>
     </div>`;
-  runner.querySelector(".plan-view-details").open = showPlan;
+  runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
   const textarea = runner.querySelector("textarea");
   textarea.value = sourceDrafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
@@ -431,21 +405,24 @@ function compactPatchbayFrame() {
   return `<figure class="compact-patchbay" aria-label="Patchbay">
     <figcaption><span>Form · Patchbay</span><strong>Checking source…</strong></figcaption>
     <div class="book-flow-root" aria-label="Real Patchbay canvas"></div>
-    <details class="compact-patchbay-text"><summary>Ordered textual equivalent</summary><ol></ol></details>
-    <details class="compact-patchbay-exact"><summary>Exact projection identity</summary><dl></dl></details>
+    <ol class="compact-patchbay-text" aria-label="Ordered textual equivalent" hidden></ol>
+    <section class="gear-back-expansion" hidden aria-label="Reviewed Form Back topology">
+      <header><strong>Inside this Gear</strong><button type="button" class="close-gear-back">Return to Face</button></header>
+      <div class="book-flow-root gear-back-flow" aria-label="Reviewed Form Back Patchbay topology"></div>
+    </section>
   </figure>`;
 }
 
 function refreshCompactPatchbay(runner, source, recursive) {
   const figure = runner.querySelector(".compact-patchbay");
+  figure.dataset.backExpanded = "false";
+  figure.querySelector(".gear-back-expansion").hidden = true;
   const expected = ++patchbaySequence;
   figure.dataset.sequence = String(expected);
   const sourceBytes = encoder.encode(source);
   const visual = figure.querySelector(".book-flow-root");
-  const text = figure.querySelector(".compact-patchbay-text ol");
-  const exact = figure.querySelector(".compact-patchbay-exact dl");
+  const text = figure.querySelector(".compact-patchbay-text");
   text.replaceChildren();
-  exact.replaceChildren();
   if (sourceBytes.length === 0 || sourceBytes.length > host.runtime.conduit_book_input_capacity()) {
     renderCompactPatchbayRefusal(figure, "Source exceeds the compact Patchbay input bound.");
     return false;
@@ -480,21 +457,28 @@ function renderCompactPatchbayRefusal(figure, message) {
 }
 
 function renderCompactPatchbayProjection(figure, projection) {
+  figure.faceProjection = projection;
   figure.dataset.disposition = "accepted";
   figure.dataset.sourceDocumentId = projection.source_document_id;
   figure.dataset.checkedFormId = projection.checked_form_id;
   figure.dataset.expandedFormId = projection.realization_expanded_form_id;
   figure.querySelector("figcaption strong").textContent = projection.form_name;
   const visual = figure.querySelector(".book-flow-root");
-  renderFlow(patchbaySnapshot(projection), {
+  const runner = figure.closest(".runner");
+  const expanded = figure.dataset.backExpanded === "true";
+  renderFlow(patchbaySnapshot(projection, {
+    reviewedBack: runner?.dataset.faceBack === "true",
+    backExpanded: expanded,
+  }), {
     target: visual,
     lens: "form",
     onSelect: () => {},
     onConnect: () => {},
     onClear: () => {},
+    onOpenBack: (subjectIdentity) => toggleGearBack(figure, projection, subjectIdentity),
   });
 
-  const ordered = figure.querySelector(".compact-patchbay-text ol");
+  const ordered = figure.querySelector(".compact-patchbay-text");
   for (const gear of projection.gears) {
     const item = document.createElement("li");
     const ports = [
@@ -509,19 +493,68 @@ function renderCompactPatchbayProjection(figure, projection) {
     item.textContent = `Cord from ${cord.source_gear_id} output ${cord.source_port_id} to ${cord.sink_gear_id} input ${cord.sink_port_id}; ${cord.info_kind}, ${cord.temporal}.`;
     ordered.append(item);
   }
-  appendExactProjection(figure.querySelector(".compact-patchbay-exact dl"), projection);
-  const implementation = figure.closest(".runner")?.querySelector(".back-implementation dl");
-  if (implementation) renderBackImplementation(implementation, projection);
+  appendExactProjection(runner?.querySelector(".exact-projection"), projection);
 }
 
-function patchbaySnapshot(projection) {
+function toggleGearBack(figure, faceProjection, subjectIdentity) {
+  const expansion = figure.querySelector(".gear-back-expansion");
+  const opening = figure.dataset.backExpanded !== "true";
+  figure.dataset.backExpanded = String(opening);
+  expansion.hidden = !opening;
+  renderCompactPatchbayProjection(figure, faceProjection);
+  if (!opening) return;
+
+  const runner = figure.closest(".runner");
+  const source = runner.querySelector("textarea").value;
+  const sourceBytes = encoder.encode(source);
+  const expected = ++patchbaySequence;
+  new Uint8Array(
+    host.runtime.memory.buffer,
+    host.runtime.conduit_book_input_ptr(),
+    sourceBytes.length,
+  ).set(sourceBytes);
+  const code = host.runtime.conduit_book_project_patchbay_recursive(sourceBytes.length, BigInt(expected));
+  const back = host.runtime.conduit_book_output_len() > 0 ? readOutput(host.runtime) : null;
+  if (code < 0 || !back || back.sequence !== expected) {
+    renderFlowRefusal(expansion.querySelector(".gear-back-flow"), back?.message ?? "Reviewed Back unavailable.");
+    return;
+  }
+  if (back.source_document_id !== faceProjection.source_document_id
+    || back.checked_form_id !== faceProjection.checked_form_id) {
+    renderFlowRefusal(expansion.querySelector(".gear-back-flow"), "Reviewed Back changed the requested Face.");
+    return;
+  }
+  expansion.dataset.subjectIdentity = subjectIdentity;
+  expansion.dataset.sourceDocumentId = back.source_document_id;
+  expansion.dataset.checkedFormId = back.checked_form_id;
+  expansion.dataset.expandedFormId = back.realization_expanded_form_id;
+  renderFlow(patchbaySnapshot(back, { realizationTopology: true }), {
+    target: expansion.querySelector(".gear-back-flow"),
+    lens: "form",
+    onSelect: () => {},
+    onConnect: () => {},
+    onClear: () => {},
+    onOpenBack: () => {},
+  });
+  expansion.querySelector(".close-gear-back").onclick = () => {
+    if (figure.dataset.backExpanded === "true") toggleGearBack(figure, faceProjection, subjectIdentity);
+  };
+}
+
+function patchbaySnapshot(projection, options = {}) {
   const subjects = [];
   const relationships = [];
   const properties = [];
+  const gears = options.realizationTopology ? projection.realization_gears : projection.gears;
+  const cords = options.realizationTopology ? projection.realization_cords : projection.cords;
   const addProperty = (subject, name, value) => properties.push({ subject, name, value: { Text: value } });
-  for (const gear of projection.gears) {
+  for (const gear of gears) {
     subjects.push({ identity: gear.gear_id, role: "Gear", label: gear.gear_id, accessibility_name: `Gear ${gear.gear_id}` });
     addProperty(gear.gear_id, "kind-id", gear.kind_id);
+    if (options.reviewedBack && gear.kind_id === "text/morse") {
+      addProperty(gear.gear_id, "reviewed-back", "available");
+      addProperty(gear.gear_id, "back-expanded", String(options.backExpanded === true));
+    }
     for (const [direction, ports] of [["receiving", gear.inputs], ["emitting", gear.outputs]]) {
       for (const port of ports) {
         const identity = `${gear.gear_id}.${port.port_id}`;
@@ -534,7 +567,7 @@ function patchbaySnapshot(projection) {
       }
     }
   }
-  for (const [index, cord] of projection.cords.entries()) {
+  for (const [index, cord] of cords.entries()) {
     const identity = `cord:${index}:${cord.source_gear_id}.${cord.source_port_id}->${cord.sink_gear_id}.${cord.sink_port_id}`;
     subjects.push({ identity, role: "Cord", label: `Cord ${index + 1}`, accessibility_name: `Cord from ${cord.source_gear_id}.${cord.source_port_id} to ${cord.sink_gear_id}.${cord.sink_port_id}` });
     addProperty(identity, "source-port", `${cord.source_gear_id}.${cord.source_port_id}`);
@@ -552,28 +585,9 @@ function patchbaySnapshot(projection) {
   };
 }
 
-function renderBackImplementation(list, projection) {
-  list.replaceChildren();
-  const backs = projection.realization_backs.length > 0
-    ? projection.realization_backs
-    : [{ invocation_path: "direct leaf", kind_id: "No reviewed Back opened", checked_form_id: projection.checked_form_id }];
-  for (const back of backs) {
-    for (const [name, value] of [
-      ["Invocation", back.invocation_path],
-      ["Implementation Kind", back.kind_id],
-      ["Checked implementation Form", back.checked_form_id],
-      ["Realization expansion", projection.realization_expanded_form_id],
-    ]) {
-      const term = document.createElement("dt");
-      term.textContent = name;
-      const description = document.createElement("dd");
-      description.textContent = value;
-      list.append(term, description);
-    }
-  }
-}
-
 function appendExactProjection(list, projection) {
+  if (!list) return;
+  list.replaceChildren();
   for (const [name, value] of [
     ["Source", projection.source_document_id],
     ["Checked Form", projection.checked_form_id],
@@ -1070,7 +1084,7 @@ function renderIdentities(runner, effect) {
     active_play_id: "Active Play", presentation_id: "Presentation",
     placement_id: "Placement", host_id: "Host", boot_id: "Boot",
   };
-  const list = runner.querySelector("details.evidence dl, details:not(.plan-view-details) dl");
+  const list = runner.querySelector(".run-identities");
   list.replaceChildren();
   for (const [key, label] of Object.entries(labels)) {
     const term = document.createElement("dt");
@@ -1091,7 +1105,7 @@ function renderIdentities(runner, effect) {
       list.append(term, identity);
     }
   }
-  const expansion = runner.querySelector("details.evidence .expansion, details:not(.plan-view-details) .expansion");
+  const expansion = runner.querySelector(".exact-evidence .expansion");
   expansion.replaceChildren();
   const mode = document.createElement("p");
   mode.textContent = `Selected realization: ${effect.realization}`;

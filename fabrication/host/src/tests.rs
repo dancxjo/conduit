@@ -1,7 +1,7 @@
 use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
-const STD_WORKSTATION: &str = include_str!("../../../profiles/hosts/std-workstation.profile.json");
+const STD_COMPUTER: &str = include_str!("../../../profiles/hosts/std-computer.profile.json");
 const CONDUITOS_NATIVE: &str =
     include_str!("../../../profiles/hosts/conduitos-native.profile.json");
 const BROWSER_PAGE: &str = include_str!("../../../profiles/hosts/browser-page.profile.json");
@@ -18,7 +18,7 @@ fn parse(source: &str) -> HostProfile {
 fn four_materially_different_checked_in_profiles_validate() {
     let catalog = test_catalog();
     let profiles = [
-        parse(STD_WORKSTATION),
+        parse(STD_COMPUTER),
         parse(CONDUITOS_NATIVE),
         parse(BROWSER_PAGE),
         parse(CONDUITOS_HEADLESS),
@@ -90,7 +90,7 @@ fn aarch64_virt_profile_closes_the_exact_linear_serial_presenter() {
 #[test]
 fn canonical_identity_ignores_declaration_order_but_not_meaning() {
     let catalog = test_catalog();
-    let profile = parse(STD_WORKSTATION);
+    let profile = parse(STD_COMPUTER);
     let expected = validate_profile(profile.clone(), &catalog).unwrap();
     let mut reordered = profile.clone();
     reordered.exclusions.reverse();
@@ -109,7 +109,7 @@ fn canonical_identity_ignores_declaration_order_but_not_meaning() {
 #[test]
 fn canonical_std_offer_metadata_drives_exact_prerequisites() {
     let catalog = test_catalog();
-    let profile = parse(STD_WORKSTATION);
+    let profile = parse(STD_COMPUTER);
     let validated = validate_profile(profile.clone(), &catalog).unwrap();
     assert!(validated.dependency_paths().keys().any(|path| {
         path.contains("capability:time/tick@conduit.std/time-tick@2")
@@ -130,7 +130,7 @@ fn canonical_std_offer_metadata_drives_exact_prerequisites() {
 #[test]
 fn invalid_unknown_unbounded_and_contradictory_profiles_fail_specifically() {
     let catalog = test_catalog();
-    let mut profile = parse(STD_WORKSTATION);
+    let mut profile = parse(STD_COMPUTER);
     profile.target.machine = "unknown".into();
     profile.resources[0].slots = 0;
     profile.resources.push(profile.resources[0].clone());
@@ -241,7 +241,7 @@ fn build_inputs() -> BuildInputs {
 fn three_profiles_build_through_one_deterministic_pipeline() {
     let catalog = test_catalog();
     let profiles = [
-        parse(STD_WORKSTATION),
+        parse(STD_COMPUTER),
         parse(BROWSER_PAGE),
         parse(CONDUITOS_HEADLESS),
     ];
@@ -272,7 +272,7 @@ fn three_profiles_build_through_one_deterministic_pipeline() {
 #[test]
 fn build_identity_uses_canonical_profile_meaning_not_declaration_order() {
     let catalog = test_catalog();
-    let profile = parse(STD_WORKSTATION);
+    let profile = parse(STD_COMPUTER);
     let expected = test_build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
     let mut reordered = profile;
     reordered.host_operations.reverse();
@@ -312,7 +312,7 @@ fn profile_controls_graphical_inclusion_and_headless_omission() {
 #[test]
 fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
     let catalog = test_catalog();
-    let mut profile = parse(STD_WORKSTATION);
+    let mut profile = parse(STD_COMPUTER);
     profile.bounds.queue_items = u32::MAX;
     let mut inputs = build_inputs();
     inputs.toolchain_available = false;
@@ -329,7 +329,7 @@ fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
     )));
 
     let (image, mut bytes) =
-        test_build_host_image(parse(STD_WORKSTATION), &catalog, &build_inputs()).unwrap();
+        test_build_host_image(parse(STD_COMPUTER), &catalog, &build_inputs()).unwrap();
     bytes[0] = b'[';
     assert!(matches!(
         verify_image_binding(&image, &bytes),
@@ -341,7 +341,7 @@ fn build_refuses_budget_toolchain_and_artifact_binding_failures() {
 #[test]
 fn build_output_contains_no_runtime_truth() {
     let (image, _) =
-        test_build_host_image(parse(STD_WORKSTATION), &test_catalog(), &build_inputs()).unwrap();
+        test_build_host_image(parse(STD_COMPUTER), &test_catalog(), &build_inputs()).unwrap();
     let encoded = serde_json::to_string(&image).unwrap();
     for forbidden in ["BodyId", "PlanId", "PlayId", "HostOffer", "BootId"] {
         assert!(!encoded.contains(forbidden));
@@ -408,7 +408,7 @@ fn bind_tick_runtime(
 #[test]
 fn compiled_capability_is_absent_until_runtime_prerequisites_are_ready() {
     let (image, bytes) =
-        test_build_host_image(parse(STD_WORKSTATION), &test_catalog(), &build_inputs()).unwrap();
+        test_build_host_image(parse(STD_COMPUTER), &test_catalog(), &build_inputs()).unwrap();
     let unavailable = bind_tick_runtime(&image, &bytes, "boot/a", 1, false);
     assert!(unavailable.advertisement().capabilities.is_empty());
     assert!(unavailable.advertisement().resources.is_empty());
@@ -430,7 +430,7 @@ fn compiled_capability_is_absent_until_runtime_prerequisites_are_ready() {
 #[test]
 fn runtime_cannot_advertise_unbuilt_implementation_or_stale_boot() {
     let (image, bytes) =
-        test_build_host_image(parse(STD_WORKSTATION), &test_catalog(), &build_inputs()).unwrap();
+        test_build_host_image(parse(STD_COMPUTER), &test_catalog(), &build_inputs()).unwrap();
     let bound = bind_tick_runtime(&image, &bytes, "boot/current", 1, true);
     let (identity, mut advertisement) = bound.into_parts();
     advertisement.capabilities[0]
@@ -452,7 +452,7 @@ fn runtime_cannot_advertise_unbuilt_implementation_or_stale_boot() {
 #[test]
 fn rebuild_reseals_image_while_old_boot_truth_remains_old() {
     let catalog = test_catalog();
-    let profile = parse(STD_WORKSTATION);
+    let profile = parse(STD_COMPUTER);
     let (old_image, old_bytes) =
         test_build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
     let old = bind_tick_runtime(&old_image, &old_bytes, "boot/old", 1, true);

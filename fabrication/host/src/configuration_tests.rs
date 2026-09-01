@@ -8,7 +8,7 @@ use crate::{
 const HOSTED: &str = r#"
 host linux {
   schema = 1
-  target = {architecture: "x86_64", machine: "workstation", os: "linux"}
+  target = {architecture: "x86_64", machine: "computer", os: "linux"}
   base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}
   limits = {static_memory_bytes: 1048576, heap_arena_bytes: 1048576, queue_items: 64, buffered_bytes: 65536, active_instances: 8, operation_slots: 8, timer_slots: 8, line_sessions: 2, evidence_items: 64}
 }
@@ -22,7 +22,7 @@ fn canonical_source_lowers_into_existing_profile_with_provenance() {
         &test_package_set(),
     )
     .unwrap();
-    assert_eq!(checked.profile().target.key(), "std/x86_64/workstation");
+    assert_eq!(checked.profile().target.key(), "std/x86_64/computer");
     assert_eq!(
         checked.profile().source_configuration_id.as_deref(),
         Some(checked.configuration_id())
@@ -34,6 +34,21 @@ fn canonical_source_lowers_into_existing_profile_with_provenance() {
             "hosted/protected-file@1".into()
         )]
     );
+}
+
+#[test]
+fn retired_hosted_role_labels_migrate_to_one_canonical_computer() {
+    for role in ["workstation", "server"] {
+        let source = HOSTED.replace("machine: \"computer\"", &format!("machine: \"{role}\""));
+        let checked = check_host_configuration(
+            parse_host_configuration_conduit(&source).unwrap(),
+            &FabricationCatalog::canonical().with_packages(&test_package_set()),
+            &test_package_set(),
+        )
+        .unwrap();
+        assert_eq!(checked.configuration().target.machine, "computer");
+        assert_eq!(checked.profile().target.key(), "std/x86_64/computer");
+    }
 }
 
 #[test]
@@ -103,7 +118,7 @@ fn rejects_each_required_invalid_class() {
         .iter()
         .any(|item| matches!(item, ConfigurationDiagnostic::DuplicateResource { .. })));
 
-    let wrong_family = HOSTED.replace("machine: \"workstation\"", "machine: \"page\"");
+    let wrong_family = HOSTED.replace("machine: \"computer\"", "machine: \"page\"");
     let diagnostics = check_host_configuration(
         parse_host_configuration_conduit(&wrong_family).unwrap(),
         &FabricationCatalog::canonical().with_packages(&test_package_set()),
@@ -136,14 +151,9 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
             "sha256:485b9a6a941e3961b7dbabd811da32fa6f833a21a9ea896315ee4598f2a257c3",
         ),
         (
-            "linux-server.host.conduit",
-            "sha256:f7bf73927e0e61ea401e86b1675848e8a255224b33c6cb14e2d9b77f169eadce",
-            "sha256:cca876687209749d902d266e5d8118a8ef76b193feba63bca2865694f5e3a366",
-        ),
-        (
-            "linux-workstation.host.conduit",
-            "sha256:c5bd48ce787c3d19df10bbcfa653937662b7ee494384cf2cd33c4cd27bd31a3f",
-            "sha256:0348d29cf0862963e8852489dc71e6be4429bf56a07484cd1ebaa2fe89e6c718",
+            "linux-computer.host.conduit",
+            "sha256:fae0becde708c48b6bb0f3adc795efbbdc39bb6d0e96f87a4762afd3beb20b26",
+            "sha256:747201fefd484f9f2e8582436b29d32cdcebaca631632756291a66ceea73a4e4",
         ),
         (
             "pico-w.host.conduit",

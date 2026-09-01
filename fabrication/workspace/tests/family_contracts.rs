@@ -29,28 +29,28 @@ fn build_configuration(source: &str) -> conduit_host_fabrication::HostImage {
 
 #[test]
 fn native_and_browser_are_not_flash_shaped() {
-    let workstation = build_configuration(include_str!(
-        "../../../profiles/host-configurations/linux-workstation.host.conduit"
+    let clock_host = build_configuration(include_str!(
+        "../../../profiles/host-configurations/linux-clock.host.conduit"
     ));
-    let server = build_configuration(include_str!(
-        "../../../profiles/host-configurations/linux-server.host.conduit"
+    let serial_host = build_configuration(include_str!(
+        "../../../profiles/host-configurations/linux-serial.host.conduit"
     ));
     let browser = build_configuration(include_str!(
         "../../../profiles/host-configurations/browser-page.host.conduit"
     ));
 
-    assert_eq!(workstation.manifest.output, SporeOutputKind::NativeBundle);
-    assert_eq!(server.manifest.output, SporeOutputKind::NativeBundle);
+    assert_eq!(clock_host.manifest.output, SporeOutputKind::NativeBundle);
+    assert_eq!(serial_host.manifest.output, SporeOutputKind::NativeBundle);
     assert_eq!(
-        workstation.manifest.post_build_actions,
+        clock_host.manifest.post_build_actions,
         [PostBuildAction::Launch]
     );
     assert_eq!(
-        server.manifest.post_build_actions,
+        serial_host.manifest.post_build_actions,
         [PostBuildAction::Launch]
     );
     assert_ne!(
-        workstation.manifest.base_selections, server.manifest.base_selections,
+        clock_host.manifest.base_selections, serial_host.manifest.base_selections,
         "one hosted package must preserve narrower construction choices"
     );
     assert_eq!(browser.manifest.output, SporeOutputKind::BrowserBundle);
@@ -58,7 +58,7 @@ fn native_and_browser_are_not_flash_shaped() {
         browser.manifest.post_build_actions,
         [PostBuildAction::Load, PostBuildAction::Launch]
     );
-    for image in [&workstation, &server, &browser] {
+    for image in [&clock_host, &serial_host, &browser] {
         assert!(!image
             .manifest
             .post_build_actions

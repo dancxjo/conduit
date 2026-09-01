@@ -7,6 +7,50 @@ use std::collections::BTreeMap;
 
 pub struct HostedFabricationPackage;
 
+pub const HOSTED_TARGET_ID: &str = "std/x86_64/computer";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HostedPlatformSupport {
+    Supported,
+    Planned,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HostedPlatformVariant {
+    pub os: &'static str,
+    pub architecture: &'static str,
+    pub support: HostedPlatformSupport,
+    pub reason: &'static str,
+}
+
+pub const HOSTED_PLATFORM_VARIANTS: [HostedPlatformVariant; 4] = [
+    HostedPlatformVariant {
+        os: "linux",
+        architecture: "x86_64",
+        support: HostedPlatformSupport::Supported,
+        reason: "reviewed native build and launch adapters are available",
+    },
+    HostedPlatformVariant {
+        os: "linux",
+        architecture: "aarch64",
+        support: HostedPlatformSupport::Planned,
+        reason:
+            "cross-built artifacts exist, but the hosted package has no reviewed launch adapter",
+    },
+    HostedPlatformVariant {
+        os: "windows",
+        architecture: "x86_64",
+        support: HostedPlatformSupport::Planned,
+        reason: "no reviewed Windows build and launch adapters are installed",
+    },
+    HostedPlatformVariant {
+        os: "macos",
+        architecture: "aarch64",
+        support: HostedPlatformSupport::Planned,
+        reason: "no reviewed macOS build and launch adapters are installed",
+    },
+];
+
 fn package_catalog() -> PackageCatalogContribution {
     let implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
@@ -65,12 +109,12 @@ fn maxima() -> HostBounds {
     }
 }
 
-fn target(label: &str, machine: &str) -> TargetDescriptor {
+fn target() -> TargetDescriptor {
     TargetDescriptor {
-        label: label.into(),
+        label: "Hosted computer · Linux · x86_64".into(),
         family: "std".into(),
         architecture: "x86_64".into(),
-        machine: machine.into(),
+        machine: "computer".into(),
         board: None,
         os: Some("linux".into()),
         host_core: "host-core/std@1".into(),
@@ -104,10 +148,7 @@ impl HostFabricationPackage for HostedFabricationPackage {
             package_id: "hosted-native@1".into(),
             package_revision: 1,
             catalog: package_catalog(),
-            targets: vec![
-                target("Hosted Linux workstation", "workstation"),
-                target("Hosted Linux server", "server"),
-            ],
+            targets: vec![target()],
             offers: vec![
                 offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),
                 offer("serial/text", "hosted/serial@1", "base-serial"),
@@ -119,5 +160,44 @@ impl HostFabricationPackage for HostedFabricationPackage {
                 offer("timer/monotonic", "hosted/monotonic-clock@1", "base-timer"),
             ],
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_canonical_target_separates_platform_from_role() {
+        let FabricationContribution::Anchor(anchor) = HostedFabricationPackage.contribution()
+        else {
+            panic!("hosted package must remain an anchor");
+        };
+        assert_eq!(anchor.targets.len(), 1);
+        let target = &anchor.targets[0];
+        assert_eq!(target.key(), HOSTED_TARGET_ID);
+        assert_eq!(target.os.as_deref(), Some("linux"));
+        assert_eq!(target.architecture, "x86_64");
+        assert_eq!(target.machine, "computer");
+        assert!(!target.label.to_lowercase().contains("workstation"));
+        assert!(!target.label.to_lowercase().contains("server"));
+    }
+
+    #[test]
+    fn package_owns_explicit_current_and_planned_platform_truth() {
+        assert_eq!(HOSTED_PLATFORM_VARIANTS.len(), 4);
+        assert!(HOSTED_PLATFORM_VARIANTS.iter().any(|variant| {
+            variant.os == "linux"
+                && variant.architecture == "x86_64"
+                && variant.support == HostedPlatformSupport::Supported
+        }));
+        for os in ["windows", "macos"] {
+            let variant = HOSTED_PLATFORM_VARIANTS
+                .iter()
+                .find(|variant| variant.os == os)
+                .expect("each conceptual desktop platform must be explicit");
+            assert_eq!(variant.support, HostedPlatformSupport::Planned);
+            assert!(!variant.reason.is_empty());
+        }
     }
 }

@@ -31,7 +31,7 @@ for target in c3 s3 wroom; do
   cp "$release_artifacts/esp32-$target-generic-release.bin" "$destination/artifacts/"
   cp "$release_artifacts/esp32-$target-generic-release.json" "$destination/artifacts/"
 done
-for artifact in hosted-linux-workstation.json hosted-linux-server.json conduit-linux-x86_64 browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
+for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
@@ -60,5 +60,5 @@ for route in birth first-host physical-host graduate; do
   cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 71
+test "$(find "$destination" -type f | wc -l)" -eq 70
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

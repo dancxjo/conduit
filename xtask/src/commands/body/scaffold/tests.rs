@@ -37,7 +37,7 @@ fn explicit_hosts_replace_the_implicit_minimal_template() {
     let composition = compose(
         None,
         &[
-            "forebrain=linux-workstation".parse().unwrap(),
+            "forebrain=linux-computer".parse().unwrap(),
             "brainstem=pico-w".parse().unwrap(),
         ],
     )

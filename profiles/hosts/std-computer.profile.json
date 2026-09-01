@@ -1,7 +1,7 @@
 {
   "schema": "conduit.host/profile@1",
-  "name": "std-workstation",
-  "target": { "family": "std", "architecture": "x86_64", "machine": "workstation", "build_profile": "release" },
+  "name": "std-computer",
+  "target": { "family": "std", "architecture": "x86_64", "machine": "computer", "build_profile": "release" },
   "host_core": "host-core/std@1",
   "fragments": ["profile-fragment/explicit-local-trust@1"],
   "capabilities": [{ "kind": "time/tick", "contract_revision": "conduit.std/time-tick@2", "implementation": "std/kernel-time-tick@2" }],

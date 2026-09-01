@@ -120,28 +120,16 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
             package_id: "hosted-native@1".into(),
             package_revision: 1,
             catalog: Default::default(),
-            targets: vec![
-                target(
-                    "Hosted Linux workstation",
-                    "std",
-                    "x86_64",
-                    "workstation",
-                    None,
-                    Some("linux"),
-                    "host-core/std@1",
-                    hosted_maxima.clone(),
-                ),
-                target(
-                    "Hosted Linux server",
-                    "std",
-                    "x86_64",
-                    "server",
-                    None,
-                    Some("linux"),
-                    "host-core/std@1",
-                    hosted_maxima.clone(),
-                ),
-            ],
+            targets: vec![target(
+                "Hosted computer · Linux · x86_64",
+                "std",
+                "x86_64",
+                "computer",
+                None,
+                Some("linux"),
+                "host-core/std@1",
+                hosted_maxima.clone(),
+            )],
             offers: vec![
                 offer(
                     "clock/monotonic",
@@ -289,10 +277,7 @@ pub(crate) fn test_package_set() -> FabricationPackageSet {
                 base_kind: "display/scanout".into(),
                 implementation_id: "display/linear-framebuffer@1".into(),
                 implementation_revision: 1,
-                target_patterns: vec![
-                    "std/x86_64/workstation".into(),
-                    "conduitos/x86_64/pc".into(),
-                ],
+                target_patterns: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
                 prerequisites: Vec::new(),
                 build_feature: Some("base-linear-framebuffer".into()),
             }],
@@ -354,10 +339,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
             (
                 "presenter/native-graphical@1".into(),
                 PresenterMetadata {
-                    targets: vec![
-                        "std/x86_64/workstation".into(),
-                        "conduitos/x86_64/pc".into(),
-                    ],
+                    targets: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
                     prerequisites: vec![
                         PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
                         PrerequisiteNode::Facility("compositor/native@1".into()),

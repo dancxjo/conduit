@@ -79,25 +79,20 @@ pub(super) fn run(
         "target/aarch64-unknown-linux-gnu/release/conduit",
         &output.join("conduit-linux-aarch64"),
     )?;
-    for (target, name) in [
-        ("std/x86_64/workstation", "hosted-linux-workstation.json"),
-        ("std/x86_64/server", "hosted-linux-server.json"),
-    ] {
-        seal(
-            output,
-            name,
-            target,
-            "hosted-native@1",
-            "native-bundle",
-            "conduit-host-hosted/build-native@1",
-            "conduit-host-hosted/launch@1",
-            source_identity,
-            &[(
-                "conduit-linux-x86_64",
-                "application/vnd.conduit.host+executable",
-            )],
-        )?;
-    }
+    seal(
+        output,
+        "hosted-linux-x86_64.json",
+        "std/x86_64/computer",
+        "hosted-native@1",
+        "native-bundle",
+        "conduit-host-hosted/build-native@1",
+        "conduit-host-hosted/launch@1",
+        source_identity,
+        &[(
+            "conduit-linux-x86_64",
+            "application/vnd.conduit.host+executable",
+        )],
+    )?;
     seal(
         output,
         "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json",

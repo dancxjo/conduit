@@ -19,15 +19,14 @@ use conduit_host_fabrication::{
     ConfigurationBase, ConfigurationTarget, FabricationCatalog, FabricationPackageSet, HostBounds,
     HostConfiguration, HostFabricationPackage, SporeOutputKind,
 };
-use conduit_host_hosted::HostedFabricationPackage;
+use conduit_host_hosted::{HostedFabricationPackage, HOSTED_TARGET_ID};
 use conduit_host_raspberry_pi::{
     RaspberryPiFabricationPackage, B_PLUS_TARGET, RASPBERRY_PI_OS_TARGET,
 };
 use conduit_host_rp2040::Rp2040FabricationPackage;
 
 pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
-pub(super) const STD_WORKSTATION_TARGET_ID: &str = "std/x86_64/workstation";
-pub(super) const STD_SERVER_TARGET_ID: &str = "std/x86_64/server";
+pub(super) const STD_COMPUTER_TARGET_ID: &str = HOSTED_TARGET_ID;
 pub(super) const BROWSER_PAGE_TARGET_ID: &str = "browser/wasm32/page";
 pub(super) const CONDUITOS_X86_64_TARGET_ID: &str = "conduitos/x86_64/pc";
 pub(super) const CONDUITOS_AARCH64_TARGET_ID: &str = "conduitos/aarch64/virt";
@@ -98,8 +97,7 @@ pub(super) fn prepare(
 
 fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     match target_id {
-        STD_WORKSTATION_TARGET_ID => return hosted_target("workstation"),
-        STD_SERVER_TARGET_ID => return hosted_target("server"),
+        STD_COMPUTER_TARGET_ID => return hosted_target(),
         BROWSER_PAGE_TARGET_ID => return browser_target(),
         _ => {}
     }
@@ -276,12 +274,8 @@ fn avr_target() -> Result<TargetFacts, String> {
     })
 }
 
-fn hosted_target(machine: &'static str) -> Result<TargetFacts, String> {
-    let configuration_name = match machine {
-        "workstation" => "creche-hosted-linux-workstation",
-        "server" => "creche-hosted-linux-server",
-        _ => return Err(format!("unsupported hosted machine {machine:?}")),
-    };
+fn hosted_target() -> Result<TargetFacts, String> {
+    let configuration_name = "creche-hosted-linux-x86-64";
     let package = HostedFabricationPackage;
     let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
     else {
@@ -290,8 +284,8 @@ fn hosted_target(machine: &'static str) -> Result<TargetFacts, String> {
     let descriptor = anchor
         .targets
         .into_iter()
-        .find(|target| target.machine == machine)
-        .ok_or_else(|| format!("hosted fabrication package omitted {machine:?}"))?;
+        .find(|target| target.key() == STD_COMPUTER_TARGET_ID)
+        .ok_or_else(|| "hosted fabrication package omitted its canonical computer".to_string())?;
     Ok(TargetFacts {
         configuration_name,
         host_name: configuration_name,
@@ -468,15 +462,9 @@ mod tests {
         let body_id = "a".repeat(64);
         for (target_id, architecture, machine, output) in [
             (
-                STD_WORKSTATION_TARGET_ID,
+                STD_COMPUTER_TARGET_ID,
                 "x86_64",
-                "workstation",
-                SporeOutputKind::NativeBundle,
-            ),
-            (
-                STD_SERVER_TARGET_ID,
-                "x86_64",
-                "server",
+                "computer",
                 SporeOutputKind::NativeBundle,
             ),
             (
