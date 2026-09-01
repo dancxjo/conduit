@@ -17,6 +17,7 @@ mod build_birth;
 mod candidate_form;
 mod control;
 mod cross_host_renderer;
+mod current_body_frame;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
@@ -107,6 +108,11 @@ pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
     PRESENTATION_PROJECT_KIND,
+};
+pub use current_body_frame::{
+    CurrentBodyFrame, CurrentBodyFrameError, CurrentBodyFrameSlot, CurrentBodyHost,
+    CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
+    CurrentBodyPhysicalHostSummary, CurrentBodyProgram, CurrentBodyTransition,
 };
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,
