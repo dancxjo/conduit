@@ -8,6 +8,10 @@ use crate::{
     wroom32::hw463_esp_wroom_32_sample,
 };
 
+pub const NATIVE_SPORE_FLASH_BYTES: u64 = 4 * 1024 * 1024;
+pub const NATIVE_SPORE_REGION_BYTES: u64 = 4096;
+pub const NATIVE_SPORE_REGION_START: u64 = NATIVE_SPORE_FLASH_BYTES - NATIVE_SPORE_REGION_BYTES;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Esp32FamilyTarget {
@@ -69,7 +73,7 @@ impl Esp32FamilyTarget {
                 static_memory_bytes: 64 * 1024 * 1024,
                 heap_arena_bytes: 64 * 1024 * 1024,
                 queue_items: 4096,
-                buffered_bytes: 4 * 1024 * 1024,
+                buffered_bytes: NATIVE_SPORE_FLASH_BYTES,
                 active_instances: 4096,
                 operation_slots: 4096,
                 timer_slots: 4096,

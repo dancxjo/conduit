@@ -123,16 +123,20 @@ test.afterEach(() => {
 async function runDeployment(page, overrides = {}) {
   await page.waitForFunction(() => globalThis.__conduitBrowserHost?.devices);
   return page.evaluate(async (overrides) => {
-    const { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT, sha256ContentId } = await import(
+    const { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT, sha256ContentId, sha256Bytes } = await import(
       "/targets/esp32/browser-deployment/index.mjs"
     );
     const targetId = overrides.targetId ?? "esp32/riscv32imc/usb-dcf8355d-esp32-c3";
-    const segmentBytes = new Uint8Array(1500);
-    segmentBytes.forEach((_, index) => { segmentBytes[index] = index & 0xff; });
-    segmentBytes[0] = 0xe9;
-    new DataView(segmentBytes.buffer).setUint16(12, overrides.imageChipId ?? 5, true);
-    const segments = [{ offset: overrides.imageOffset ?? 0, bytes: segmentBytes }];
+    const payload = new Uint8Array(1500);
+    payload.forEach((_, index) => { payload[index] = index & 0xff; });
+    payload[0] = 0xe9;
+    new DataView(payload.buffer).setUint16(12, overrides.imageChipId ?? 5, true);
+    const headerOffset = overrides.imageOffset ?? 0;
+    const segmentBytes = headerOffset === 0 ? payload : new Uint8Array(headerOffset + payload.byteLength).fill(0xff);
+    if (headerOffset !== 0) segmentBytes.set(payload, headerOffset);
+    const segments = [{ offset: 0, bytes: segmentBytes }];
     const imageContentId = await sha256ContentId(targetId, segments);
+    const artifactContentId = await sha256Bytes(segmentBytes);
     const base = await __conduitBrowserHost.devices.acquireSerial({
       baudRate: ESP32_BROWSER_DEPLOYMENT.baudRate,
       maximumTransferBytes: ESP32_BROWSER_DEPLOYMENT.maximumTransferBytes,
@@ -148,6 +152,8 @@ async function runDeployment(page, overrides = {}) {
         targetId,
         imageId: "image/esp32-c3-signal/one",
         imageContentId,
+        sporeId: "spore/esp32/one",
+        artifactContentId: overrides.artifactContentId ?? artifactContentId,
         segments,
         resetStrategy: overrides.resetStrategy ?? "usb-jtag",
         explicitAction: true,
@@ -179,6 +185,7 @@ test("exact ESP32 IMAGE deploys through one finite Web Serial Base without runti
   expect(result.plan).toMatchObject({
     schema: "conduit.esp32/browser-deployment-plan@1",
     targetId: "esp32/riscv32imc/usb-dcf8355d-esp32-c3",
+    sporeId: "spore/esp32/one",
     resetStrategy: "usb-jtag",
     requiredReads: 128,
     requiredWrites: 9,
@@ -212,6 +219,60 @@ test("exact ESP32 IMAGE deploys through one finite Web Serial Base without runti
   expect(result.evidence.resource_terminal).toBe("Closed");
 });
 
+test("two Bodies produce distinct native ESP32 images with recoverable provisioning", async ({ page }) => {
+  await page.goto(await startEntrance());
+  const result = await page.evaluate(async () => {
+    const { bindEsp32BodySpore, readEsp32BodySpore } = await import("/targets/esp32/browser-deployment/index.mjs");
+    const targetId = "esp32/riscv32imc/usb-dcf8355d-esp32-c3";
+    const generic = new Uint8Array(2048);
+    generic[0] = 0xe9;
+    new DataView(generic.buffer).setUint16(12, 5, true);
+    const prepared = (suffix) => ({
+      output: "esp32-image",
+      target_id: targetId,
+      spore_id: `spore/${suffix}`,
+      image_id: "image/shared",
+      invitation_id: `invitation/${suffix}`,
+      body_id: `body/${suffix}`,
+      invitation_nonce: Array(32).fill(suffix.charCodeAt(0)),
+      invitation_secret: Array(32).fill(suffix.charCodeAt(0) + 1),
+      invitation_expires_at_millis: 2_000_000_000_000,
+      image_content_digest: `sha256:${"ab".repeat(32)}`,
+    });
+    const first = await bindEsp32BodySpore({ targetId, segments: [{ offset: 0, bytes: generic }], prepared: prepared("a") });
+    const second = await bindEsp32BodySpore({ targetId, segments: [{ offset: 0, bytes: generic }], prepared: prepared("b") });
+    const downloaded = new Uint8Array(await new Blob([first.bytes]).arrayBuffer());
+    return {
+      first: {
+        bytes: first.bytes.byteLength,
+        contentId: first.content_id,
+        deploymentContentId: first.deployment_content_id,
+        provision: readEsp32BodySpore(downloaded),
+        deploymentUsesDownloadBytes: first.segments.length === 1
+          && first.segments[0].offset === 0
+          && first.segments[0].bytes.every((byte, index) => byte === downloaded[index]),
+        legacyEnvelope: new TextDecoder().decode(downloaded.subarray(0, 8)) === "CNDSPOR1",
+      },
+      secondContentId: second.content_id,
+    };
+  });
+
+  expect(result.first).toMatchObject({
+    bytes: 4 * 1024 * 1024,
+    provision: {
+      spore_id: "spore/a",
+      image_id: "image/shared",
+      invitation_id: "invitation/a",
+      body_id: "body/a",
+    },
+    deploymentUsesDownloadBytes: true,
+    legacyEnvelope: false,
+  });
+  expect(result.first.contentId).toMatch(/^sha256:[0-9a-f]{64}$/);
+  expect(result.first.deploymentContentId).toMatch(/^sha256:[0-9a-f]{64}$/);
+  expect(result.first.contentId).not.toBe(result.secondContentId);
+});
+
 test("wrong chip and flash verification mismatch remain distinct terminal refusals", async ({ page }) => {
   const bytes = Uint8Array.from({ length: 1500 }, (_, index) => index & 0xff);
   bytes[0] = 0xe9;
@@ -242,6 +303,20 @@ test("insufficient serial operation budget refuses before use or reset", async (
   expect(result).toMatchObject({ code: "OperationBudget" });
   expect(result.base).toMatchObject({ phase: "resource-truth", admitted_reads: 0, admitted_writes: 0, admitted_signal_operations: 0 });
   expect(result.evidence).toMatchObject({ phase: "available", terminal: null });
+});
+
+test("stale Body-bound artifact content refuses before serial use", async ({ page }) => {
+  const bytes = Uint8Array.from({ length: 1500 }, (_, index) => index & 0xff);
+  bytes[0] = 0xe9;
+  new DataView(bytes.buffer).setUint16(12, 5, true);
+  await installRomLoader(page, { expectedMd5: createHash("md5").update(bytes).digest("hex") });
+  await page.goto(await startEntrance());
+  const result = await runDeployment(page, { artifactContentId: `sha256:${"00".repeat(32)}` });
+  expect(result).toMatchObject({
+    code: "ArtifactContentIdentity",
+    evidence: { phase: "available", terminal: null },
+    base: { phase: "resource-truth", admitted_reads: 0, admitted_writes: 0, admitted_signal_operations: 0 },
+  });
 });
 
 test("IMAGE chip incompatibility refuses before serial use", async ({ page }) => {
@@ -286,6 +361,7 @@ test("WROOM and S3 retain their distinct chip observations and bootloader offset
       imageOffset: 0x1000,
       resetStrategy: "classic",
       extendedBeginBytes: 16,
+      maximumReads: 256,
     },
     {
       targetId: "esp32/xtensa-lx7/usb-54e2006398-esp32-s3",
@@ -299,15 +375,20 @@ test("WROOM and S3 retain their distinct chip observations and bootloader offset
   ];
   for (const value of cases) {
     const isolated = await page.context().newPage();
-    const bytes = Uint8Array.from({ length: 1500 }, (_, index) => index & 0xff);
-    bytes[0] = 0xe9;
-    new DataView(bytes.buffer).setUint16(12, value.imageChipId, true);
+    const payload = Uint8Array.from({ length: 1500 }, (_, index) => index & 0xff);
+    payload[0] = 0xe9;
+    new DataView(payload.buffer).setUint16(12, value.imageChipId, true);
+    const bytes = value.imageOffset
+      ? new Uint8Array(value.imageOffset + payload.byteLength).fill(0xff)
+      : payload;
+    if (value.imageOffset) bytes.set(payload, value.imageOffset);
     await installRomLoader(isolated, {
       chipMagic: value.chipMagic,
       expectedMd5: createHash("md5").update(bytes).digest("hex"),
     });
     await isolated.goto(await startEntrance());
     const result = await runDeployment(isolated, value);
+    expect(result, JSON.stringify(result)).toHaveProperty("plan");
     expect(result.plan).toMatchObject({ targetId: value.targetId, resetStrategy: value.resetStrategy });
     expect(result.receipt).toMatchObject({ terminal: "RebootRequested", chip: value.chip, chip_magic: value.chipMagic });
     expect(result.commands.find(({ operation }) => operation === 0x02).size).toBe(value.extendedBeginBytes);

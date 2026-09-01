@@ -4,8 +4,8 @@ import {
   requestPhysicalSpawnJoin,
 } from "../../rp2040/browser-deployment/spawn.mjs";
 import { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT } from "./deployment.mjs";
-import { parseEsp32Image } from "./image.mjs";
-import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
+import { bindEsp32BodySpore, parseEsp32Image } from "./image.mjs";
+import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
@@ -120,7 +120,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
       });
       return Object.freeze({
         resultKind: "artifact",
-        private: Object.freeze({ segments: parsed.segments, imageDigest: parsed.contentId, releaseManifest: release.manifest }),
+        private: Object.freeze({ segments: parsed.segments, imageDigest: parsed.contentId }),
         evidence: Object.freeze({
           schema: "conduit.esp32/creche-obtainment@1",
           target_id: targetProfile.target.id,
@@ -144,7 +144,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
     }
   }
 
-  async function bind({ mode, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal }) {
     requireMode(mode, "bind", targetProfile);
     requireCurrent(signal, mode, "bind", targetProfile);
     const digest = obtainment?.private?.imageDigest;
@@ -171,18 +171,38 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
         refuse(targetProfile, mode, "bind", "BindingIdentity", "prepared invitation lost the selected ESP32 target or artifact identity");
       }
       requireCurrent(signal, mode, "bind", targetProfile);
-      const download = packageSporeBundle({
+      const nativeSpore = await bindEsp32BodySpore({
+        targetId: targetProfile.target.id,
+        segments: obtainment.private.segments,
         prepared,
-        artifact: {
-          layout: {
-            ...targetProfile.declaration.artifact_layout,
-            release: obtainment.private.releaseManifest,
-          },
-          payloads: obtainment.private.segments.map(({ bytes }) => bytes),
-        },
-        filename: `${prepared.spore_id.replaceAll(":", "-")}.spore`,
       });
-      return Object.freeze({ prepared, download, evidence: Object.freeze({ ...prepared, invitation_secret: "redacted", spore_manifest: prepared.spore_manifest }) });
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-${targetProfile.releaseName}.bin`;
+      const download = await createNativeSporeDownload({
+        prepared,
+        bytes: nativeSpore.bytes,
+        contentDigest: nativeSpore.content_id,
+        filename,
+        format: "ESP32 image",
+      });
+      return Object.freeze({
+        prepared,
+        nativeSpore,
+        download,
+        evidence: Object.freeze({
+          ...prepared,
+          invitation_secret: "embedded in native ESP32 image; redacted",
+          spore_artifact: Object.freeze({
+            format: nativeSpore.format,
+            filename,
+            bytes: nativeSpore.bytes.byteLength,
+            content_digest: nativeSpore.content_id,
+            deployment_content_digest: nativeSpore.deployment_content_id,
+            image_content_digest: nativeSpore.image_content_id,
+            bootstrap_bytes: nativeSpore.bootstrap_bytes,
+            bootstrap_flash_address: nativeSpore.bootstrap_flash_address,
+          }),
+        }),
+      });
     } catch (error) {
       if (error?.evidence) throw error;
       refuse(targetProfile, mode, "bind", error?.code ?? "BindingFailed", "ESP32 invitation binding terminated without success", error);
@@ -191,7 +211,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
     }
   }
 
-  async function realize({ mode, host: currentHost, obtainment, binding, signal }) {
+  async function realize({ mode, host: currentHost, binding, signal }) {
     requireMode(mode, "realize", targetProfile);
     requireCurrent(signal, mode, "realize", targetProfile);
     try {
@@ -201,13 +221,19 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
       requirePort(activeBase.evidence(), targetProfile);
       activeDeployment = createEsp32BrowserDeploymentAdapter({ base: activeBase });
       const prepared = binding.prepared;
+      const nativeSpore = binding.nativeSpore;
+      if (!nativeSpore?.segments || nativeSpore.spore_id !== prepared.spore_id) {
+        refuse(targetProfile, mode, "realize", "MissingArtifact", "exact Body-bound ESP32 Spore is missing before deployment");
+      }
       const plan = await activeDeployment.sealDeployment({
         deploymentPlanId: `deployment-plan/${prepared.spore_id}`,
         deploymentOperationId: `deployment/${prepared.spore_id}`,
         targetId: prepared.target_id,
         imageId: prepared.image_id,
-        imageContentId: prepared.image_content_digest,
-        segments: obtainment.private.segments,
+        imageContentId: nativeSpore.deployment_content_id,
+        artifactContentId: nativeSpore.content_id,
+        sporeId: prepared.spore_id,
+        segments: nativeSpore.segments,
         resetStrategy: targetProfile.resetStrategy,
         explicitAction: true,
       });
@@ -282,8 +308,12 @@ function profile(values) {
       chip_id: values.chipId,
       architecture: values.architecture,
       artifact_layout: Object.freeze({ format: "espressif-merged-image", flash_offset: 0, maximum_bytes: ESP32_BROWSER_DEPLOYMENT.imageBounds.maximumImageBytes }),
-      flash: Object.freeze({ bytes: values.flashBytes, transfer_block_bytes: ESP32_BROWSER_DEPLOYMENT.imageBounds.flashBlockBytes }),
-      fabrication_strategy: "reviewed generic release IMAGE download, then Body-bound spore packaging",
+      flash: Object.freeze({
+        bytes: values.flashBytes,
+        transfer_block_bytes: ESP32_BROWSER_DEPLOYMENT.imageBounds.flashBlockBytes,
+        spore_region: Object.freeze({ start: 4 * 1024 * 1024 - 4096, bytes: 4096, body_bound: true }),
+      }),
+      fabrication_strategy: "reviewed generic release IMAGE download, then Body binding into one merged ESP32 flash image",
       browser_transport: values.transport,
       reset_strategy: values.resetStrategy,
       rom_loader: "Espressif serial ROM loader with exact chip observation and MD5 verification",
@@ -386,6 +416,11 @@ function joinFrom(evidence) {
     boot_id: evidence.boot_id, nonce: evidence.nonce, signature: evidence.signature,
     observed_at_millis: evidence.observed_at_millis,
   });
+}
+
+function friendlyFilename(value) {
+  const stem = String(value).normalize("NFKD").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+  return stem || "body";
 }
 
 function refuse(targetProfile, mode, operation, code, message, cause = undefined, details = {}) {
