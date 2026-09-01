@@ -17,6 +17,7 @@ const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.m
 const HOST_MEMBERSHIP: &[u8] = include_bytes!("../assets/browser-host-membership.mjs");
 const APPLICATION_LOADER: &[u8] = include_bytes!("../assets/browser-application-loader.mjs");
 const APPLICATION_STORAGE: &[u8] = include_bytes!("../assets/browser-application-storage.mjs");
+const APPLICATION_PRESENTATION: &[u8] = include_bytes!("../assets/application-presentation.mjs");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
@@ -47,6 +48,7 @@ const ESP32_CRECHE_ADAPTER: &[u8] =
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_STATE: &[u8] = include_bytes!("../assets/book-state.mjs");
+const BOOK_NAVIGATION: &[u8] = include_bytes!("../assets/book-navigation.mjs");
 const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
 const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
@@ -230,6 +232,11 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 APPLICATION_STORAGE,
             ),
+            Some("GET /book/application-presentation.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_PRESENTATION,
+            ),
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }
@@ -339,6 +346,9 @@ impl BrowserHostServer {
             }
             Some("GET /book/book-state.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_STATE)
+            }
+            Some("GET /book/book-navigation.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", BOOK_NAVIGATION)
             }
             Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
                 "200 OK",

@@ -62,6 +62,69 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   }
 });
 
+test("Book navigation is one finite Host-manifested view with stale and pressure refusal", async ({ page }) => {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  const navigation = page.locator('[data-application-slot="book-navigation"]');
+  await expect(navigation.locator('[data-application-component="navigation"]')).toHaveCount(1);
+  await expect(navigation.locator('[data-application-key="progress"]')).toHaveText("Page 1 of 14");
+  await expect(navigation.getByRole("button", { name: "Previous" })).toBeDisabled();
+  await expect(navigation.getByRole("button", { name: "Next" })).toBeEnabled();
+
+  await page.evaluate(() => {
+    globalThis.__staleBookNavigationButton = document.querySelector('[data-application-key="next"]');
+    globalThis.__staleBookNavigationButton.click();
+  });
+  await expect(page.getByRole("heading", { name: "Connect Gears" })).toBeVisible();
+  await page.evaluate(() => globalThis.__staleBookNavigationButton.click());
+  expect(await page.evaluate(() => globalThis.__conduitBrowserApplication.presentation.lastRefusal("book-navigation"))).toBe("stale-revision");
+  await expect(page.getByRole("heading", { name: "Connect Gears" })).toBeVisible();
+
+  const presentationEvidence = await page.evaluate(() => {
+    const presentation = globalThis.__conduitBrowserApplication.presentation;
+    const before = document.querySelector('[data-application-slot="book-navigation"]').innerHTML;
+    let malformedRefusal;
+    try {
+      presentation.present("book-navigation", {
+        revision: 999,
+        actions: [],
+        nodes: Array.from({ length: 33 }, (_, index) => ({
+          parent: index === 0 ? null : 0,
+          component: "paragraph",
+          key: `oversized-${index}`,
+          text: "refuse before mutation",
+          action: null,
+        })),
+      });
+    } catch (error) { malformedRefusal = error.code; }
+    const unchangedAfterRefusal = document.querySelector('[data-application-slot="book-navigation"]').innerHTML === before;
+    presentation.present("book-navigation", {
+      revision: 1_000,
+      actions: [{ id: "proof.activate", event: "activate" }],
+      nodes: [
+        { parent: null, component: "navigation", key: "proof-nav", text: "", action: null },
+        { parent: 0, component: "button", key: "proof-button", text: "Pressure", action: 0 },
+      ],
+    }, { eventCapacity: 1 });
+    const button = document.querySelector('[data-application-key="proof-button"]');
+    button.click();
+    button.click();
+    const event = presentation.nextEvent("book-navigation");
+    return {
+      malformedRefusal,
+      unchangedAfterRefusal,
+      pressureRefusal: presentation.lastRefusal("book-navigation"),
+      event: { action: event.action, revision: event.revision, encodedBytes: event.encoded.length },
+    };
+  });
+  expect(presentationEvidence).toEqual({
+    malformedRefusal: "too-many-nodes",
+    unchangedAfterRefusal: true,
+    pressureRefusal: "queue-pressure",
+    event: { action: "proof.activate", revision: 1_000, encodedBytes: 23 },
+  });
+});
+
 test("browser Host refuses malformed and escaping application packages before launch", async ({ page }) => {
   for (const [mutate, refusal] of [
     [(manifest) => { manifest.schema = "wrong"; }, "browser application package schema is unsupported"],

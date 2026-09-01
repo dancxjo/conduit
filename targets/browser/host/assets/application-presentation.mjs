@@ -48,6 +48,10 @@ const COMPONENTS = Object.freeze({
   18: ["table", "table"], 19: ["div", "grid"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
+const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
+  Object.entries(COMPONENTS).map(([identity, [, kind]]) => [kind, Number(identity)]),
+));
+const EVENT_IDENTITIES = Object.freeze({ activate: 1, change: 2, input: 3, toggle: 4, submit: 5 });
 const THEME_ROLES = Object.freeze([
   "background", "reading-paper", "workbench-canvas", "bootstrap-surface", "surface",
   "structure-primary", "structure-secondary", "text-primary", "text-secondary", "emphasis",
@@ -119,6 +123,46 @@ export function decodeApplicationView(input) {
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
 }
 
+export function encodeApplicationView(view) {
+  if (!view || !Number.isSafeInteger(view.revision) || view.revision < 0 || view.revision > 0xffff_ffff) refuse("malformed-encoding");
+  if (!Array.isArray(view.nodes) || !Array.isArray(view.actions)) refuse("malformed-encoding");
+  const chunks = [];
+  const push = (...bytes) => chunks.push(Uint8Array.of(...bytes));
+  const header = new Uint8Array(7);
+  header[0] = VERSION;
+  new DataView(header.buffer).setUint32(1, view.revision, true);
+  header[5] = view.nodes.length;
+  header[6] = view.actions.length;
+  chunks.push(header);
+  for (const action of view.actions) {
+    const kind = EVENT_IDENTITIES[action?.event];
+    if (!kind) refuse("unknown-event");
+    const encoded = new TextEncoder().encode(action.id ?? "");
+    if (encoded.length === 0 || encoded.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
+    push(kind, encoded.length);
+    chunks.push(encoded);
+  }
+  for (const node of view.nodes) {
+    const component = COMPONENT_IDENTITIES[node?.component];
+    if (!component) refuse("unknown-component");
+    const parent = node.parent === null ? 255 : node.parent;
+    const action = node.action === null ? 255 : node.action;
+    if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
+    const key = new TextEncoder().encode(node.key ?? "");
+    const content = new TextEncoder().encode(node.text ?? "");
+    if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
+    push(parent, component, action, key.length, content.length & 0xff, content.length >>> 8);
+    chunks.push(key, content);
+  }
+  const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
+  if (length > MAX_BYTES) refuse("oversized-encoding");
+  const encoded = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) { encoded.set(chunk, offset); offset += chunk.length; }
+  decodeApplicationView(encoded);
+  return encoded;
+}
+
 function eventValue(event) {
   if (event.currentTarget instanceof HTMLInputElement || event.currentTarget instanceof HTMLTextAreaElement || event.currentTarget instanceof HTMLSelectElement) return event.currentTarget.value;
   return "";
@@ -180,6 +224,7 @@ export function manifestApplicationView(input, root, options = {}) {
         options.onEvent?.(event);
       });
     }
+    if (node.component === 8 && node.action === null) element.disabled = true;
     elements.push(element);
     if (node.parent === null) fragment.append(element);
     else elements[node.parent].append(element);
@@ -197,6 +242,47 @@ export function manifestApplicationView(input, root, options = {}) {
     nextEvent() { return queue.shift() ?? null; },
     queuedEvents() { return queue.length; },
     lastRefusal() { return lastRefusal; },
+  });
+}
+
+export function createApplicationPresentationHost(scope = document) {
+  const manifestations = new Map();
+  const revisions = new Map();
+  const refusals = new Map();
+  const rootFor = (slot) => {
+    if (typeof slot !== "string" || !/^[a-z][a-z0-9-]{0,47}$/.test(slot)) refuse("unknown-component");
+    const matches = Array.from(scope.querySelectorAll("[data-application-slot]"))
+      .filter((element) => element.dataset.applicationSlot === slot);
+    if (matches.length !== 1) refuse("unknown-component");
+    return matches[0];
+  };
+  return Object.freeze({
+    present(slot, description, options = {}) {
+      const encoded = description instanceof Uint8Array ? description : encodeApplicationView(description);
+      const view = decodeApplicationView(encoded);
+      const previous = revisions.get(slot) ?? 0;
+      if (view.revision <= previous) refuse("stale-revision");
+      revisions.set(slot, view.revision);
+      refusals.delete(slot);
+      const manifestation = manifestApplicationView(encoded, rootFor(slot), {
+        eventCapacity: options.eventCapacity,
+        theme: options.theme,
+        onEvent(event) {
+          if (revisions.get(slot) !== event.revision) {
+            refusals.set(slot, "stale-revision");
+            options.onRefusal?.("stale-revision");
+            return;
+          }
+          options.onEvent?.(event);
+        },
+        onRefusal(code) { refusals.set(slot, code); options.onRefusal?.(code); },
+      });
+      manifestations.set(slot, manifestation);
+      return Object.freeze({ revision: view.revision });
+    },
+    nextEvent(slot) { return manifestations.get(slot)?.nextEvent() ?? null; },
+    queuedEvents(slot) { return manifestations.get(slot)?.queuedEvents() ?? 0; },
+    lastRefusal(slot) { return refusals.get(slot) ?? manifestations.get(slot)?.lastRefusal() ?? null; },
   });
 }
 
