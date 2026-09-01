@@ -81,6 +81,7 @@ mod appliance_hil_client;
 mod bluetooth_line;
 #[cfg(any(feature = "pico-local", feature = "wifi-bootstrap"))]
 mod body_admission;
+mod embedded_spore;
 #[cfg(all(feature = "session-control", not(feature = "light-switch")))]
 mod bootsel;
 #[cfg(feature = "wifi-bootstrap")]

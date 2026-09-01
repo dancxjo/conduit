@@ -6,6 +6,7 @@ const MAX_STREAM_CHUNKS_PER_READ = MAX_STREAM_READ_BYTES;
 const MAX_STREAM_READ_MILLIS = 10_000;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
+const NATIVE_SPORE_JOIN_REQUEST = encoder.encode("CONDUIT_SPORE_JOIN@1");
 
 export class Rp2040SpawnRefusal extends Error {
   constructor(code, message, cause = undefined) {
@@ -115,38 +116,20 @@ export async function requestPhysicalSpawnJoin({
   requireIdentity(prepared?.invitation_id, undefined, "invitation identity");
   requireIdentity(prepared?.body_id, undefined, "Body identity");
   requireBytes(prepared?.invitation_nonce, 32, "invitation nonce");
-  requireBytes(prepared?.invitation_secret, 32, "invitation secret");
   if (!Number.isSafeInteger(prepared.invitation_expires_at_millis)
     || prepared.invitation_expires_at_millis <= 0) {
     refuse("Malformed", "invitation expiry is missing or outside its finite bound");
   }
   if (prepared.invitation_expires_at_millis <= Date.now()) {
-    prepared.invitation_secret.fill(0);
     refuse("ExpiredInvitation", "prepared invitation expired before the Boot/join request");
   }
 
   requireIdentity(evidenceSchema, undefined, "evidence schema");
   requireIdentity(usePlanPrefix, undefined, "use Plan prefix");
   const usePlanId = `${usePlanPrefix}/${prepared.spore_id}`;
-  let provision = null;
-  try {
-    base.startUse(usePlanId);
-    await base.setSignals({ dataTerminalReady: true });
-    provision = encoder.encode(JSON.stringify({
-      protocol: PROTOCOL,
-      spore_id: prepared.spore_id,
-      image_id: prepared.image_id,
-      invitation_id: prepared.invitation_id,
-      body_id: prepared.body_id,
-      nonce: prepared.invitation_nonce,
-      expires_at_millis: prepared.invitation_expires_at_millis,
-      secret: prepared.invitation_secret,
-    }));
-    await base.write(frame(provision));
-  } finally {
-    provision?.fill(0);
-    prepared.invitation_secret.fill(0);
-  }
+  base.startUse(usePlanId);
+  await base.setSignals({ dataTerminalReady: true });
+  await base.write(frame(NATIVE_SPORE_JOIN_REQUEST));
 
   const first = await readFrame(base, new Uint8Array());
   const second = await readFrame(base, first.remainder);

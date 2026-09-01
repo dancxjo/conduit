@@ -183,9 +183,9 @@ function bindInvitation(runner, host, state) {
 }
 
 function renderDownload(runner, state, download) {
-  if (!download || download.schema !== "conduit.spore/browser-download@1"
+  if (!download || !["conduit.spore/browser-download@1", "conduit.spore/browser-download@2"].includes(download.schema)
     || !(download.blob instanceof Blob) || typeof download.filename !== "string") {
-    throw new TypeError("physical Host adapter omitted its downloadable spore bundle");
+    throw new TypeError("physical Host adapter omitted its downloadable spore artifact");
   }
   clearDownload(runner, state);
   state.downloadUrl = URL.createObjectURL(download.blob);
@@ -193,7 +193,8 @@ function renderDownload(runner, state, download) {
   link.className = "download-spore";
   link.href = state.downloadUrl;
   link.download = download.filename;
-  link.textContent = `Download spore · ${download.bytes} bytes`;
+  const format = download.format ? ` ${download.format.toUpperCase()}` : " spore";
+  link.textContent = `Download${format} · ${download.bytes} bytes`;
   runner.querySelector(".spore-download").append(link);
 }
 

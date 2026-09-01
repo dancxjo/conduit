@@ -572,7 +572,20 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    return { birth, evidence: JSON.parse(await runner.locator("details code").textContent()) };
+    const download = runner.locator(".download-spore");
+    await expect(download).toHaveAttribute("download", /-pico-w\.uf2$/);
+    const artifact = await download.evaluate(async (link) => {
+      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+      const { readRp2040BodySpore } = await import("/creche/targets/rp2040/browser-deployment/index.mjs");
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      return {
+        filename: link.download,
+        bytes: bytes.byteLength,
+        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+        provision: readRp2040BodySpore(bytes),
+      };
+    });
+    return { birth, artifact, evidence: JSON.parse(await runner.locator("details code").textContent()) };
   };
   const first = await prepareOne("A");
   const second = await prepareOne("B");
@@ -583,6 +596,13 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
   expect(first.evidence.binding.spore_id).not.toBe(second.evidence.binding.spore_id);
   expect(first.evidence.binding.invitation_id).not.toBe(second.evidence.binding.invitation_id);
   expect(first.evidence.binding.image_content_digest).toBe(second.evidence.binding.image_content_digest);
+  expect(first.artifact.contentDigest).toBe(first.evidence.binding.spore_artifact.content_digest);
+  expect(first.artifact.provision).toMatchObject({
+    spore_id: first.evidence.binding.spore_id,
+    body_id: first.birth.bodyId,
+    invitation_id: first.evidence.binding.invitation_id,
+  });
+  expect(first.artifact.contentDigest).not.toBe(second.artifact.contentDigest);
 });
 
 test("the same Crèche lifecycle consumes packaged and template-specialized fabrication", async ({ page }) => {

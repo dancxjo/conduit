@@ -4,9 +4,9 @@ use core::fmt::{self, Write};
 
 use conduit_body::{
     ambient_admission_transcript, validate_pico_challenge, validate_pico_spawn_provision,
-    PicoAdmissionChallenge, PicoAdmissionProof, PicoSpawnJoinRequest, PicoSpawnProvision,
-    SpawnInvitationSecret, MAX_PICO_ADMISSION_FRAME_BYTES,
-    PICO_ADMISSION_PROTOCOL, PICO_ADMISSION_REQUEST, PICO_SPAWN_PROTOCOL,
+    PicoAdmissionChallenge, PicoAdmissionProof, PicoSpawnJoinRequest, SpawnInvitationSecret,
+    MAX_PICO_ADMISSION_FRAME_BYTES, PICO_ADMISSION_PROTOCOL, PICO_ADMISSION_REQUEST,
+    PICO_SPAWN_PROTOCOL, PICO_SPAWN_REQUEST,
 };
 use conduit_core::OfferGeneration;
 use ed25519_dalek::{Signer, SigningKey};
@@ -27,6 +27,7 @@ pub(crate) struct PicoBodyAdmission {
     boot_id: heapless::String<128>,
     signing_key: SigningKey,
     freshness_sequence: u64,
+    embedded_spore: Option<conduit_body::PicoSpawnProvision<'static>>,
 }
 
 impl PicoBodyAdmission {
@@ -47,6 +48,7 @@ impl PicoBodyAdmission {
             boot_id,
             signing_key: SigningKey::from_bytes(&seed),
             freshness_sequence: 0,
+            embedded_spore: crate::embedded_spore::load(),
         }
     }
 
@@ -126,10 +128,13 @@ impl PicoBodyAdmission {
         line: &mut UsbLinkSession,
         request: &[u8],
     ) -> Result<bool, UsbLinkError> {
-        let (provision, _) = match serde_json_core::from_slice::<PicoSpawnProvision<'_>>(request) {
-            Ok(value) => value,
-            Err(_) => return Ok(false),
-        };
+        if request != PICO_SPAWN_REQUEST {
+            return Ok(false);
+        }
+        let provision = self
+            .embedded_spore
+            .as_ref()
+            .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
         if !validate_pico_spawn_provision(&provision) {
             return Err(UsbLinkError::InvalidGeneratedEndpoint);
         }

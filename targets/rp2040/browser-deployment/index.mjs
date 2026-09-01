@@ -14,7 +14,9 @@ export {
   Rp2040SpawnRefusal,
 } from "./spawn.mjs";
 export {
+  bindRp2040BodySpore,
   createRp2040BrowserFabricationAdapter,
+  readRp2040BodySpore,
   RP2040_BROWSER_FABRICATION,
   Rp2040FabricationRefusal,
 } from "./fabrication.mjs";

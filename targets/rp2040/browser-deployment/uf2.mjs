@@ -6,6 +6,7 @@ const MAXIMUM_FLASH_BYTES = 2 * 1024 * 1024;
 const MAXIMUM_UF2_BYTES = MAXIMUM_FLASH_BYTES * 2;
 const FLASH_START = 0x10000000;
 const FLASH_END = FLASH_START + MAXIMUM_FLASH_BYTES;
+const SPORE_SECTOR_ADDRESS = FLASH_END - FLASH_SECTOR_BYTES;
 const MAGIC_START_0 = 0x0a324655;
 const MAGIC_START_1 = 0x9e5d5157;
 const MAGIC_END = 0x0ab16f30;
@@ -61,7 +62,7 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
 
   const blockCount = bytes.byteLength / BLOCK_BYTES;
   const pages = [];
-  let expectedAddress = null;
+  let previousEnd = null;
   for (let index = 0; index < blockCount; index += 1) {
     const offset = index * BLOCK_BYTES;
     const view = new DataView(bytes.buffer, bytes.byteOffset + offset, BLOCK_BYTES);
@@ -89,10 +90,13 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
     ) {
       refuse("Uf2Sequence", `UF2 block ${index} has stale address or sequence truth`);
     }
-    if (expectedAddress !== null && address !== expectedAddress) {
-      refuse("SparseImage", "RP2040 browser deployment admits one contiguous IMAGE range");
+    if (previousEnd !== null && address !== previousEnd && address !== SPORE_SECTOR_ADDRESS) {
+      refuse("SparseImage", "RP2040 UF2 admits only one exact native Spore bootstrap sector gap");
     }
-    expectedAddress = address + payloadBytes;
+    if (previousEnd !== null && address < previousEnd) {
+      refuse("Uf2Sequence", `RP2040 UF2 block ${index} overlaps an earlier flash page`);
+    }
+    previousEnd = address + payloadBytes;
     pages.push({
       address,
       bytes: bytes.slice(offset + 32, offset + 32 + payloadBytes),
@@ -102,7 +106,12 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
   const chunks = [];
   for (let index = 0; index < pages.length;) {
     const first = pages[index];
-    const take = Math.min(maximumTransferBytes / PAYLOAD_BYTES, pages.length - index);
+    let take = 1;
+    const maximumPages = maximumTransferBytes / PAYLOAD_BYTES;
+    while (take < maximumPages && index + take < pages.length
+      && pages[index + take].address === first.address + take * PAYLOAD_BYTES) {
+      take += 1;
+    }
     const chunkBytes = new Uint8Array(take * PAYLOAD_BYTES);
     for (let page = 0; page < take; page += 1) {
       chunkBytes.set(pages[index + page].bytes, page * PAYLOAD_BYTES);
@@ -112,7 +121,7 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
   }
 
   const startAddress = pages[0].address;
-  const endAddress = expectedAddress;
+  const endAddress = previousEnd;
   const eraseStart = Math.floor(startAddress / FLASH_SECTOR_BYTES) * FLASH_SECTOR_BYTES;
   const eraseEnd = alignUp(endAddress, FLASH_SECTOR_BYTES);
   if (eraseStart !== startAddress) {
@@ -120,7 +129,7 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
   }
   return Object.freeze({
     uf2Bytes: bytes.byteLength,
-    imageBytes: endAddress - startAddress,
+    imageBytes: pages.length * PAYLOAD_BYTES,
     blockCount,
     startAddress,
     endAddress,
@@ -144,4 +153,6 @@ export const RP2040_UF2 = Object.freeze({
   familyFlag: FAMILY_FLAG,
   flashStart: FLASH_START,
   flashEnd: FLASH_END,
+  sporeSectorAddress: SPORE_SECTOR_ADDRESS,
+  sporeSectorBytes: FLASH_SECTOR_BYTES,
 });
