@@ -64,6 +64,10 @@ mod interaction_feedback;
 mod interaction_status;
 mod keyboard_input;
 mod lifecycle_flow;
+mod native_body_workbench;
+#[cfg(test)]
+mod native_body_workbench_tests;
+mod native_body_workbench_view;
 #[cfg(test)]
 mod navigation_journey;
 #[cfg(test)]
@@ -123,6 +127,7 @@ struct PatchbayApplication {
     pending_back_target: Option<forms_navigation::BackNavigationEntry>,
     pending_back_selection: bool,
     graphical_form: Option<patchbay_model::PatchbayGraph>,
+    body_workbench: native_body_workbench::NativeBodyWorkbenchSlot,
     layout: patchbay_model::PatchbayLayout,
     interaction: Option<PatchbayInteraction>,
     entrance: Option<front_door::NativeFrontDoorPresentation>,
@@ -214,6 +219,7 @@ impl ApplicationHandler for PatchbayApplication {
         }
         match event {
             WindowEvent::CloseRequested => {
+                let _ = self.body_workbench.detach();
                 self.native_keyboard.close();
                 event_loop.exit();
             }

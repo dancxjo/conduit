@@ -57,6 +57,21 @@ impl PatchbayApplication {
                 | GuiAction::BeginShortTextEdit { .. }
         );
         match action {
+            GuiAction::SelectBodyWorkbench(destination) => {
+                let workbench = self
+                    .body_workbench
+                    .current_mut()
+                    .ok_or("Body workbench is not attached")?;
+                workbench.select(destination);
+                self.parts_open = false;
+            }
+            GuiAction::SelectBodyHistory(index) => {
+                let workbench = self
+                    .body_workbench
+                    .current_mut()
+                    .ok_or("Body workbench is not attached")?;
+                workbench.select_history(index)?;
+            }
             GuiAction::TogglePartsView
             | GuiAction::SpawnBrowserPart
             | GuiAction::CancelBrowserPartSpawn
@@ -67,7 +82,15 @@ impl PatchbayApplication {
             | GuiAction::RequestRevokePart(_)
             | GuiAction::ConfirmRevokePart(_) => return self.handle_parts_action(action),
             GuiAction::Viewport(action) => self.perform_viewport_action(action),
-            GuiAction::Lifecycle(action) => self.dispatch_invocation(action)?,
+            GuiAction::Lifecycle(action) => {
+                if self.body_workbench.is_attached() {
+                    self.publish_refusal(format!(
+                        "{action:?} is unavailable: this attached Body reader has no lifecycle coordinator"
+                    ));
+                } else {
+                    self.dispatch_invocation(action)?;
+                }
+            }
             GuiAction::EnvironmentAdd(_)
             | GuiAction::EnvironmentSelect(_)
             | GuiAction::EnvironmentRemove(_)
