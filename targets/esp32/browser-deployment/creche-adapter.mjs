@@ -268,7 +268,10 @@ function profile(values) {
   const target = Object.freeze({ id: values.id, label: values.label, model_id: values.modelId, profile_id: values.profileId });
   return Object.freeze({
     ...values,
-    artifactManifest: `../../../artifacts/esp32-${values.releaseName}-generic-release.json`,
+    artifactManifest: new URL(
+      `../../../artifacts/esp32-${values.releaseName}-generic-release.json`,
+      import.meta.url,
+    ).href,
     target,
     declaration: Object.freeze({
       schema: "conduit.esp32/creche-target-profile@1",

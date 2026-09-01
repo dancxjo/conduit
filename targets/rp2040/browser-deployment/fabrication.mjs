@@ -59,7 +59,7 @@ async function fetchReviewedTemplate(selection, fetchApi, cryptoApi) {
     || typeof manifest.path !== "string") {
     refuse("Manifest", "reviewed artifact manifest is malformed or outside the admitted bound");
   }
-  const artifactResponse = await fetchApi(manifest.path, { cache: "no-store" });
+  const artifactResponse = await fetchApi(new URL(manifest.path, response.url), { cache: "no-store" });
   if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed artifact is unavailable (${artifactResponse.status})`);
   const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
   if (bytes.byteLength !== manifest.bytes || bytes.byteLength > MAXIMUM_ARTIFACT_BYTES) {

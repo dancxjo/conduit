@@ -26,7 +26,10 @@ export const AVR_PRO_MICRO_PROFILE = Object.freeze({
     model_id: "sparkfun/pro-micro-atmega32u4@1",
     profile_id: "atmega32u4-5v-16mhz-caterina-avr109",
   }),
-  manifestPath: "../../../artifacts/avr-promicro-atmega32u4-5v-16mhz.json",
+  manifestPath: new URL(
+    "../../../artifacts/avr-promicro-atmega32u4-5v-16mhz.json",
+    import.meta.url,
+  ).href,
   packageId: "conduit-host-avr-promicro@1",
   builderAdapter: "conduit-host-avr/build-intel-hex@1",
   board: "sparkfun-pro-micro-5v-16mhz",

@@ -6,6 +6,6 @@
   "source_revision": "e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217",
   "content_digest": "sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d",
   "bytes": 773632,
-  "path": "./artifacts/pico-w-signal-pico-local.uf2",
+  "path": "./pico-w-signal-pico-local.uf2",
   "maximum_bytes": 2097152
 }
