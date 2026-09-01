@@ -1394,7 +1394,7 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
   await expect(runner.locator(".physical-status")).toContainText("current offers are ready. No Plan or Play was created");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding.body_id).toBe(birth.bodyId);
-  expect(evidence.binding.invitation_secret).toBe("redacted");
+  expect(evidence.binding.invitation_secret).toBe("embedded in native UF2; redacted");
   expect(evidence.realization).toMatchObject({
     terminal: "RebootRequested",
     spore_id: evidence.binding.spore_id,
