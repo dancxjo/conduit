@@ -203,6 +203,9 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       expect.objectContaining({ role: "Gear", label: "hello/upper" }),
       expect.objectContaining({ role: "Cord" }),
     ]));
+    const upperFaceplate = page.locator('.faceplate-title[title="hello/upper"]');
+    await expect(upperFaceplate).toHaveText("upper");
+    await expect(upperFaceplate).toHaveAttribute("title", "hello/upper");
     const birthAction = opened.presentation.actions.find(
       ({ intent, target }) => intent === "conduit.intent/birth@1" && target === seed.identity,
     );

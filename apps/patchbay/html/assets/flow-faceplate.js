@@ -23,6 +23,7 @@ function PortRow({ port, onActivate }) {
 }
 
 export function FaceplateNode({ data }) {
+  const title = data.role === "Gear" ? data.label.slice(data.label.lastIndexOf("/") + 1) : data.label;
   return e("article", {
     className: `flow-faceplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}`,
     "data-subject": data.subjectIdentity,
@@ -45,7 +46,7 @@ export function FaceplateNode({ data }) {
   },
   e("header", null,
     e("span", { className: "faceplate-icon", title: data.iconName, "aria-hidden": "true" }, data.icon),
-    e("span", { className: "faceplate-title", title: data.label }, data.label),
+    e("span", { className: "faceplate-title", title: data.label }, title),
     e("span", { className: "faceplate-role", title: data.role }, data.role),
   ),
   data.reviewedBack && e("button", {
