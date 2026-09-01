@@ -210,7 +210,7 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
 });
 
-test("every executable listing shows one current compact Patchbay from checked Form truth", async ({ page }) => {
+test("every executable listing uses the real Patchbay renderer for checked Form truth", async ({ page }) => {
   let projectedListings = 0;
   for (let pageIndex = 0; pageIndex < 14; pageIndex += 1) {
     await openStep(page, pageIndex);
@@ -220,7 +220,9 @@ test("every executable listing shows one current compact Patchbay from checked F
     for (let runnerIndex = 0; runnerIndex < count; runnerIndex += 1) {
       const patchbay = runners.nth(runnerIndex).locator(".compact-patchbay");
       await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
-      await expect(patchbay.locator(".compact-gear").first()).toBeVisible();
+      await expect(patchbay.locator(".book-flow-root")).toHaveAttribute("data-renderer", "react-flow");
+      await expect(patchbay.locator(".react-flow")).toBeVisible();
+      await expect(patchbay.locator(".flow-faceplate").first()).toBeVisible();
       await expect(patchbay.locator(".compact-patchbay-text li").first()).toContainText("Gear");
       await expect(patchbay.locator(".compact-patchbay-exact")).toContainText("Checked Form");
       await expect(patchbay).not.toContainText("Host ID");
@@ -230,7 +232,7 @@ test("every executable listing shows one current compact Patchbay from checked F
   expect(projectedListings).toBe(10);
 });
 
-test("compact Patchbay replaces stale topology with local refusal and the latest accepted edit", async ({ page }) => {
+test("Book Patchbay replaces stale topology with local refusal and the latest accepted edit", async ({ page }) => {
   await openStep(page, 2);
   const runner = page.locator(".runner");
   const listing = runner.locator("textarea");
@@ -240,7 +242,7 @@ test("compact Patchbay replaces stale topology with local refusal and the latest
 
   await listing.fill("form unfinished {");
   await expect(patchbay).toHaveAttribute("data-disposition", "refused");
-  await expect(patchbay.locator(".compact-gear")).toHaveCount(0);
+  await expect(patchbay.locator(".flow-faceplate")).toHaveCount(0);
   await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("parse compact Book Patchbay");
 
   await listing.fill(original.replace('"hello"', '"latest"'));
@@ -254,12 +256,12 @@ test("compact Patchbay replaces stale topology with local refusal and the latest
   await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("Gear bound exceeded");
 });
 
-test("compact Patchbay keeps fan-out explicit and recursive realization beneath one visible Face", async ({ page }) => {
+test("Book Patchbay keeps fan-out explicit and recursive realization beneath one visible Face", async ({ page }) => {
   await openStep(page, 3);
   const fanout = page.locator(".compact-patchbay");
-  await expect(fanout.locator(".compact-cords li")).toHaveCount(5);
-  await expect(fanout.locator(".compact-cords")).toContainText("explicit-fanout/source.value → explicit-fanout/left.in");
-  await expect(fanout.locator(".compact-cords")).toContainText("explicit-fanout/source.value → explicit-fanout/right.in");
+  await expect(fanout.locator(".react-flow__edge")).toHaveCount(5);
+  await expect(fanout.locator(".compact-patchbay-text")).toContainText("explicit-fanout/source output value to explicit-fanout/left input in");
+  await expect(fanout.locator(".compact-patchbay-text")).toContainText("explicit-fanout/source output value to explicit-fanout/right input in");
 
   await openStep(page, 7);
   const direct = page.locator(".runner").nth(0).locator(".compact-patchbay");
@@ -275,7 +277,9 @@ test("compact Patchbay keeps fan-out explicit and recursive realization beneath 
   expect(await direct.getAttribute("data-expanded-form-id")).not.toBe(
     await recursive.getAttribute("data-expanded-form-id"),
   );
-  await expect(direct.locator(".compact-gears")).toHaveText(await recursive.locator(".compact-gears").textContent());
+  expect(await direct.locator(".flow-faceplate").allTextContents()).toEqual(
+    await recursive.locator(".flow-faceplate").allTextContents(),
+  );
   await expect(direct.locator(".compact-patchbay-exact")).toContainText("Opened Backs0");
   await expect(recursive.locator(".compact-patchbay-exact")).not.toContainText("Opened Backs0");
 });
@@ -283,8 +287,10 @@ test("compact Patchbay keeps fan-out explicit and recursive realization beneath 
 test("the staged Book and Crèche each boot with only their own product tree", async ({ page }) => {
   const book = await startStaticProduct("target/book-product");
   try {
-    await page.goto(`${book.url}index.html`);
+    await page.goto(`${book.url}change-one-gear/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+    await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
+    await expect(page.locator(".flow-faceplate").first()).toBeVisible();
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
     expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
@@ -1213,6 +1219,12 @@ test("the Back pages compare two realizations deliberately", async ({ page }) =>
   const recursive = comparison.locator(".runner").nth(1);
   await expect(direct.getByRole("heading", { name: "Direct leaf" })).toBeVisible();
   await expect(recursive.getByRole("heading", { name: "Recursive Form Back" })).toBeVisible();
+  await recursive.getByRole("button", { name: "Flip Back" }).click();
+  await expect(recursive.getByRole("heading", { name: "Reviewed Form Back" })).toBeVisible();
+  await expect(recursive.getByText("Implementation Kind", { exact: true }).first()).toBeVisible();
+  await expect(recursive.locator(".back-implementation dd")).not.toHaveCount(0);
+  await recursive.getByRole("button", { name: "Flip to Face" }).click();
+  await expect(recursive.getByRole("textbox", { name: "Editable Conduit listing" })).toBeVisible();
   const listing = direct.locator("textarea");
   await listing.fill((await listing.inputValue()).replace('"HELLO"', '"E"'));
   await expect(recursive.locator("textarea")).toHaveValue(await listing.inputValue());

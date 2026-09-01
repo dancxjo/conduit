@@ -7,12 +7,16 @@ destination=${2:?usage: stage-book-product.sh RUNTIME DESTINATION}
 test -f "$runtime"
 test ! -e "$destination"
 mkdir -p "$destination"
+mkdir -p "$destination/assets"
 
 cp targets/browser/host/assets/book.html "$destination/index.html"
 cp targets/browser/host/assets/book.css "$destination/book.css"
 cp targets/browser/host/assets/book.mjs "$destination/book.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp "$runtime" "$destination/runtime.wasm"
+for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.js flow-scene.js flow-layout.js flow-faceplate.js portable-navigation.js; do
+    cp "apps/patchbay/html/assets/$asset" "$destination/assets/$asset"
+done
 
 chapters='chapter-1.md
 chapter-2.md
@@ -46,5 +50,5 @@ printf '%s\n' "$page_routes" | while IFS= read -r route; do
     cp targets/browser/host/assets/book.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 26
+test "$(find "$destination" -type f | wc -l)" -eq 35
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"

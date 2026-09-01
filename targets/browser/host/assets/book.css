@@ -8,6 +8,18 @@
   --green: #176b50;
   --green-dark: #0c4937;
   --amber: #ffbf47;
+  --patchbay-background: #17221d;
+  --patchbay-surface: #203129;
+  --patchbay-structure-primary: #68ae8d;
+  --patchbay-structure-secondary: #52655b;
+  --patchbay-text-primary: #dce8e1;
+  --patchbay-text-secondary: #9fb0a6;
+  --patchbay-emphasis: #9fe2c4;
+  --patchbay-focus: #ffbf47;
+  --patchbay-warning: #ffbf47;
+  --patchbay-failure: #ffb2a9;
+  --patchbay-success: #77daa8;
+  --patchbay-muted: #718078;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -73,22 +85,39 @@ textarea {
 .compact-patchbay figcaption { display: grid; gap: .15rem; margin-bottom: .8rem; text-align: left; }
 .compact-patchbay figcaption span { color: #9fb0a6; font-size: .65rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 .compact-patchbay figcaption strong { overflow-wrap: anywhere; font: 750 .9rem/1.2 Georgia, serif; }
-.compact-patchbay-visual { display: grid; gap: .7rem; }
-.compact-gears { display: grid; gap: .45rem; }
-.compact-gear { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem .5rem; padding: .55rem; border: 1px solid #52655b; border-radius: 8px; background: #17221d; }
-.compact-gear strong { overflow-wrap: anywhere; font-size: .72rem; }
-.compact-gear code { overflow-wrap: anywhere; color: #9fe2c4; font-size: .58rem; }
-.compact-ports { display: flex; flex-wrap: wrap; gap: .25rem; margin: .1rem 0 0; padding: 0; list-style: none; }
-.compact-ports-output { justify-content: flex-end; }
-.compact-ports li { padding: .15rem .3rem; border: 1px solid #68ae8d; border-radius: 999px; color: #dce8e1; font: 650 .55rem/1.2 ui-monospace, monospace; }
-.compact-ports-input li { border-color: #bba66e; }
-.compact-cords { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
-.compact-cords li { padding: .4rem .5rem; overflow-wrap: anywhere; border-left: 3px solid #77daa8; color: #dce8e1; background: #17221d; font: 600 .58rem/1.35 ui-monospace, monospace; }
-.compact-cords small { display: block; margin-top: .15rem; color: #9fb0a6; }
+.book-flow-root { position: relative; width: 100%; height: 24rem; overflow: hidden; border: 1px solid var(--patchbay-structure-secondary); border-radius: .55rem; background: var(--patchbay-background); }
+.react-flow__node-faceplate { width: 15rem; min-width: 15rem; padding: 0; border: 0; background: transparent; font-weight: 400; }
+.flow-faceplate { width: 15rem; max-width: 15rem; overflow: hidden; border: 1px solid var(--patchbay-structure-primary); border-radius: .55rem; background: var(--patchbay-surface); color: var(--patchbay-text-primary); }
+.flow-faceplate header { display: grid; grid-template-columns: minmax(0,1.6rem) minmax(0,1fr) minmax(0,4.75rem); gap: .35rem; align-items: center; min-height: 2.4rem; padding: .45rem .55rem; overflow: hidden; border-bottom: 1px solid var(--patchbay-structure-secondary); }
+.faceplate-icon,.faceplate-title,.faceplate-role,.faceplate-clue,.faceplate-port-name,.faceplate-port code { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.faceplate-icon { color: var(--patchbay-emphasis); font-weight: 800; }
+.faceplate-title { font-weight: 750; }
+.faceplate-role { color: var(--patchbay-text-secondary); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; }
+.faceplate-clue { min-height: 1.75rem; margin: 0; padding: .35rem .55rem; color: var(--patchbay-text-secondary); font-size: .72rem; }
+.faceplate-ports { border-top: 1px solid var(--patchbay-structure-secondary); }
+.faceplate-port { position: relative; display: grid; grid-template-columns: minmax(0,3fr) minmax(0,2fr); gap: .35rem; align-items: center; min-height: 1.75rem; padding: .25rem .75rem; overflow: hidden; font-size: .7rem; }
+.faceplate-port + .faceplate-port { border-top: 1px solid color-mix(in srgb,var(--patchbay-structure-secondary) 55%,transparent); }
+.faceplate-port.emitting { text-align: right; }
+.faceplate-port code { color: var(--patchbay-text-secondary); font-size: .62rem; }
+.faceplate-handle { width: .72rem; height: .72rem; border: 2px solid var(--patchbay-structure-primary); background: var(--patchbay-background); }
+.react-flow__edge-text { fill: var(--patchbay-text-primary); font-size: .66rem; }
+.react-flow__edge-textbg { fill: var(--patchbay-surface); }
+.react-flow__edge-path { stroke: var(--patchbay-structure-primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.react-flow__controls { box-shadow: none; border: 1px solid var(--patchbay-structure-secondary); }
 .compact-patchbay details { color: #b7c7be; }
 .compact-patchbay-text ol { padding-left: 1.1rem; }
 .compact-patchbay-text li { margin-bottom: .45rem; }
 .compact-patchbay-refusal { margin: 0; color: #ffb2a9; font-size: .72rem; }
+.realization-heading { position: relative; }
+.realization-heading .flip-back { position: absolute; right: 1rem; bottom: .75rem; border: 1px solid var(--green); background: white; color: var(--green-dark); }
+.back-implementation { display: none; min-height: 25rem; padding: 2rem; color: #e9f1ec; background: #17221d; }
+.back-implementation > span { color: #9fe2c4; font-size: .7rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.back-implementation h4 { margin: .35rem 0 1rem; font: 750 1.4rem/1.2 Georgia, serif; }
+.back-implementation dl { display: grid; grid-template-columns: minmax(9rem, .4fr) minmax(0, 1fr); gap: .45rem 1rem; }
+.back-implementation dt { color: #9fb0a6; font-size: .72rem; font-weight: 700; }
+.back-implementation dd { margin: 0; overflow-wrap: anywhere; font: 600 .72rem/1.45 ui-monospace, monospace; }
+.runner.back-flipped > .editor, .runner.back-flipped > .result { display: none; }
+.runner.back-flipped > .back-implementation { display: block; }
 .actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; display: flex; gap: .55rem; align-items: center; }
 button { border: 0; border-radius: 999px; padding: .7rem 1.15rem; font: inherit; font-weight: 700; cursor: pointer; }
 .run { background: #77daa8; color: #10271c; }

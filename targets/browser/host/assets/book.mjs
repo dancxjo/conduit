@@ -1,4 +1,5 @@
 import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
+import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -342,7 +343,8 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.sourceKey = sourceKey;
   runner.dataset.recursive = String(recursive);
   runner.innerHTML = `
-    ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3></header>` : ""}
+    ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3>${recursive ? '<button class="flip-back" type="button" aria-pressed="false">Flip Back</button>' : ""}</header>` : ""}
+    ${recursive ? '<aside class="back-implementation" aria-hidden="true"><span>Implementation side</span><h4>Reviewed Form Back</h4><p>Run the projection to resolve the exact implementation identities.</p><dl></dl></aside>' : ""}
     <div class="editor">
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable</label>
@@ -363,6 +365,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   const textarea = runner.querySelector("textarea");
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
+  const flip = runner.querySelector(".flip-back");
   textarea.value = sourceDrafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
     sourceDrafts.set(sourceKey, textarea.value);
@@ -370,6 +373,12 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
   stop.addEventListener("click", () => stopListing(runner));
+  flip?.addEventListener("click", () => {
+    const flipped = runner.classList.toggle("back-flipped");
+    flip.setAttribute("aria-pressed", String(flipped));
+    flip.textContent = flipped ? "Flip to Face" : "Flip Back";
+    runner.querySelector(".back-implementation").setAttribute("aria-hidden", String(!flipped));
+  });
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
 }
@@ -419,9 +428,9 @@ function createMultiHostRunner(source, showPlan) {
 }
 
 function compactPatchbayFrame() {
-  return `<figure class="compact-patchbay" aria-label="Compact read-only Patchbay">
+  return `<figure class="compact-patchbay" aria-label="Patchbay">
     <figcaption><span>Form · Patchbay</span><strong>Checking source…</strong></figcaption>
-    <div class="compact-patchbay-visual" aria-hidden="true"></div>
+    <div class="book-flow-root" aria-label="Real Patchbay canvas"></div>
     <details class="compact-patchbay-text"><summary>Ordered textual equivalent</summary><ol></ol></details>
     <details class="compact-patchbay-exact"><summary>Exact projection identity</summary><dl></dl></details>
   </figure>`;
@@ -432,10 +441,9 @@ function refreshCompactPatchbay(runner, source, recursive) {
   const expected = ++patchbaySequence;
   figure.dataset.sequence = String(expected);
   const sourceBytes = encoder.encode(source);
-  const visual = figure.querySelector(".compact-patchbay-visual");
+  const visual = figure.querySelector(".book-flow-root");
   const text = figure.querySelector(".compact-patchbay-text ol");
   const exact = figure.querySelector(".compact-patchbay-exact dl");
-  visual.replaceChildren();
   text.replaceChildren();
   exact.replaceChildren();
   if (sourceBytes.length === 0 || sourceBytes.length > host.runtime.conduit_book_input_capacity()) {
@@ -467,11 +475,8 @@ function refreshCompactPatchbay(runner, source, recursive) {
 function renderCompactPatchbayRefusal(figure, message) {
   figure.dataset.disposition = "refused";
   figure.querySelector("figcaption strong").textContent = "Source not checked";
-  const refusal = document.createElement("p");
-  refusal.className = "compact-patchbay-refusal";
-  refusal.setAttribute("role", "status");
-  refusal.textContent = message;
-  figure.querySelector(".compact-patchbay-visual").replaceChildren(refusal);
+  const visual = figure.querySelector(".book-flow-root");
+  renderFlowRefusal(visual, message);
 }
 
 function renderCompactPatchbayProjection(figure, projection) {
@@ -480,32 +485,14 @@ function renderCompactPatchbayProjection(figure, projection) {
   figure.dataset.checkedFormId = projection.checked_form_id;
   figure.dataset.expandedFormId = projection.realization_expanded_form_id;
   figure.querySelector("figcaption strong").textContent = projection.form_name;
-  const visual = figure.querySelector(".compact-patchbay-visual");
-  const gearRack = document.createElement("div");
-  gearRack.className = "compact-gears";
-  for (const gear of projection.gears) {
-    const card = document.createElement("article");
-    card.className = "compact-gear";
-    const name = document.createElement("strong");
-    name.textContent = gear.gear_id;
-    const kind = document.createElement("code");
-    kind.textContent = gear.kind_id;
-    const inputs = compactPorts("IN", gear.inputs);
-    const outputs = compactPorts("OUT", gear.outputs);
-    card.append(name, kind, inputs, outputs);
-    gearRack.append(card);
-  }
-  const cordRack = document.createElement("ol");
-  cordRack.className = "compact-cords";
-  for (const cord of projection.cords) {
-    const item = document.createElement("li");
-    item.textContent = `${cord.source_gear_id}.${cord.source_port_id} → ${cord.sink_gear_id}.${cord.sink_port_id}`;
-    const type = document.createElement("small");
-    type.textContent = `${cord.info_kind} · ${cord.temporal}`;
-    item.append(type);
-    cordRack.append(item);
-  }
-  visual.append(gearRack, cordRack);
+  const visual = figure.querySelector(".book-flow-root");
+  renderFlow(patchbaySnapshot(projection), {
+    target: visual,
+    lens: "form",
+    onSelect: () => {},
+    onConnect: () => {},
+    onClear: () => {},
+  });
 
   const ordered = figure.querySelector(".compact-patchbay-text ol");
   for (const gear of projection.gears) {
@@ -523,18 +510,67 @@ function renderCompactPatchbayProjection(figure, projection) {
     ordered.append(item);
   }
   appendExactProjection(figure.querySelector(".compact-patchbay-exact dl"), projection);
+  const implementation = figure.closest(".runner")?.querySelector(".back-implementation dl");
+  if (implementation) renderBackImplementation(implementation, projection);
 }
 
-function compactPorts(label, ports) {
-  const list = document.createElement("ul");
-  list.className = `compact-ports compact-ports-${label.toLowerCase()}`;
-  for (const port of ports) {
-    const item = document.createElement("li");
-    item.textContent = `${label} ${port.port_id}`;
-    item.title = `${port.info_kind} · ${port.temporal}`;
-    list.append(item);
+function patchbaySnapshot(projection) {
+  const subjects = [];
+  const relationships = [];
+  const properties = [];
+  const addProperty = (subject, name, value) => properties.push({ subject, name, value: { Text: value } });
+  for (const gear of projection.gears) {
+    subjects.push({ identity: gear.gear_id, role: "Gear", label: gear.gear_id, accessibility_name: `Gear ${gear.gear_id}` });
+    addProperty(gear.gear_id, "kind-id", gear.kind_id);
+    for (const [direction, ports] of [["receiving", gear.inputs], ["emitting", gear.outputs]]) {
+      for (const port of ports) {
+        const identity = `${gear.gear_id}.${port.port_id}`;
+        subjects.push({ identity, role: "Port", label: port.port_id, accessibility_name: `${direction} Port ${identity}` });
+        relationships.push({ source: gear.gear_id, target: identity, kind: "Contains" });
+        addProperty(identity, "semantic-id", identity);
+        addProperty(identity, "direction", direction);
+        addProperty(identity, "value-kind", port.info_kind);
+        addProperty(identity, "temporal", port.temporal);
+      }
+    }
   }
-  return list;
+  for (const [index, cord] of projection.cords.entries()) {
+    const identity = `cord:${index}:${cord.source_gear_id}.${cord.source_port_id}->${cord.sink_gear_id}.${cord.sink_port_id}`;
+    subjects.push({ identity, role: "Cord", label: `Cord ${index + 1}`, accessibility_name: `Cord from ${cord.source_gear_id}.${cord.source_port_id} to ${cord.sink_gear_id}.${cord.sink_port_id}` });
+    addProperty(identity, "source-port", `${cord.source_gear_id}.${cord.source_port_id}`);
+    addProperty(identity, "sink-port", `${cord.sink_gear_id}.${cord.sink_port_id}`);
+    addProperty(identity, "value-kind", cord.info_kind);
+  }
+  return {
+    presentation: {
+      identity: projection.visible_expanded_form_id,
+      revision: projection.sequence,
+      basis: { source_document_id: projection.source_document_id, checked_form_id: projection.checked_form_id },
+      subjects, relationships, properties, text: [], actions: [], disclosures: [],
+    },
+    interaction: { revision: projection.sequence, selected_subject: null },
+  };
+}
+
+function renderBackImplementation(list, projection) {
+  list.replaceChildren();
+  const backs = projection.realization_backs.length > 0
+    ? projection.realization_backs
+    : [{ invocation_path: "direct leaf", kind_id: "No reviewed Back opened", checked_form_id: projection.checked_form_id }];
+  for (const back of backs) {
+    for (const [name, value] of [
+      ["Invocation", back.invocation_path],
+      ["Implementation Kind", back.kind_id],
+      ["Checked implementation Form", back.checked_form_id],
+      ["Realization expansion", projection.realization_expanded_form_id],
+    ]) {
+      const term = document.createElement("dt");
+      term.textContent = name;
+      const description = document.createElement("dd");
+      description.textContent = value;
+      list.append(term, description);
+    }
+  }
 }
 
 function appendExactProjection(list, projection) {

@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::Path;
 
+mod book_assets;
 mod surface;
 use surface::ProductDocument;
 pub use surface::ProductSurface;
@@ -187,6 +188,9 @@ impl BrowserHostServer {
                 ProductDocument::Creche => CRECHE,
             };
             return self.write_response(stream, "200 OK", "text/html; charset=utf-8", body);
+        }
+        if let Some((content_type, body)) = book_assets::response(request_line) {
+            return self.write_response(stream, "200 OK", content_type, body);
         }
         let (status, content_type, body): (&str, &str, &[u8]) = match request_line {
             Some("GET / HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", INDEX),
