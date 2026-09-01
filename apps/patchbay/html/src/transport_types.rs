@@ -65,7 +65,31 @@ pub struct RendererSnapshot {
     pub parts: Option<PartsView>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authoring: Option<BrowserAuthoring>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_workbench: Option<BrowserBodyWorkbench>,
     pub interaction: HtmlInteractionState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserBodyWorkbench {
+    pub schema: String,
+    pub evidence_revision: u64,
+    pub encoded_evidence: Vec<u8>,
+    pub entrance: BrowserBodyWorkbenchEntrance,
+    pub body_id: String,
+    pub current: serde_json::Value,
+    pub history: serde_json::Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "kind", deny_unknown_fields)]
+pub enum BrowserBodyWorkbenchEntrance {
+    Hosted {
+        plan_id: String,
+        implementation_id: String,
+    },
+    ExternalReader,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
