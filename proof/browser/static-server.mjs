@@ -26,12 +26,16 @@ const server = createServer(async (request, response) => {
       response.writeHead(404).end();
       return;
     }
-    const file = resolve(root, pathname.slice(mount.length));
-    if (file === root || !file.startsWith(`${root}${sep}`)) {
+    let file = resolve(root, pathname.slice(mount.length));
+    if (file !== root && !file.startsWith(`${root}${sep}`)) {
       response.writeHead(404).end();
       return;
     }
-    const metadata = await stat(file);
+    let metadata = await stat(file);
+    if (metadata.isDirectory()) {
+      file = resolve(file, "index.html");
+      metadata = await stat(file);
+    }
     if (!metadata.isFile()) {
       response.writeHead(404).end();
       return;

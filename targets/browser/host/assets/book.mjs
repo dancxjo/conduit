@@ -14,6 +14,7 @@ let activeDelay = null;
 let cancelActiveKeyEvent = null;
 let currentPage = 0;
 let guidedPages = [];
+let pageRoutes = [];
 const sourceDrafts = new Map();
 
 try {
@@ -29,7 +30,10 @@ try {
   host = initialized;
   requireBookAbi(host.runtime);
   guidedPages = parseBookPages(chapters);
-  renderPage(0);
+  pageRoutes = guidedPages.map(pageRoute);
+  const initialPage = pageIndexForLocation();
+  renderPage(initialPage);
+  if (isProductRoot()) replacePageRoute(initialPage);
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
 } catch (error) {
@@ -68,8 +72,9 @@ function parseBookPages(chapters) {
   return parsed;
 }
 
-function renderPage(index) {
+function renderPage(index, routeChange = "none") {
   if (running) return;
+  if (routeChange === "push") history.pushState(null, "", pageRoutes[index]);
   currentPage = index;
   runnerCount = 0;
   chapter.replaceChildren();
@@ -85,11 +90,44 @@ function createNavigation() {
   const progress = document.createElement("span");
   progress.className = "book-progress";
   progress.textContent = "Page " + (currentPage + 1) + " of " + guidedPages.length;
-  const previous = navigationButton("Previous", currentPage === 0, () => renderPage(currentPage - 1));
-  const next = navigationButton("Next", currentPage === guidedPages.length - 1, () => renderPage(currentPage + 1));
+  const previous = navigationButton("Previous", currentPage === 0, () => renderPage(currentPage - 1, "push"));
+  const next = navigationButton("Next", currentPage === guidedPages.length - 1, () => renderPage(currentPage + 1, "push"));
   navigation.append(progress, previous, next);
   return navigation;
 }
+
+function pageRoute(markdown) {
+  const title = markdown.match(/^# (.+)$/m)?.[1];
+  if (!title) throw new Error("a Book page has no title");
+  const slug = title.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (!slug) throw new Error("a Book page has no route identity");
+  return new URL(`${slug}/`, document.baseURI).pathname;
+}
+
+function pageIndexForLocation() {
+  if (isProductRoot()) return 0;
+  const index = pageRoutes.indexOf(location.pathname);
+  if (index === -1) throw new Error("this Book page does not exist");
+  return index;
+}
+
+function isProductRoot() {
+  return location.pathname === new URL(".", document.baseURI).pathname
+    || location.pathname === new URL("index.html", document.baseURI).pathname;
+}
+
+function replacePageRoute(index) {
+  history.replaceState(null, "", pageRoutes[index]);
+}
+
+addEventListener("popstate", () => {
+  const index = pageIndexForLocation();
+  if (running) {
+    replacePageRoute(currentPage);
+    return;
+  }
+  renderPage(index);
+});
 
 function navigationButton(label, disabled, action) {
   const button = document.createElement("button");

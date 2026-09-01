@@ -5,6 +5,7 @@ use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::Path;
 
 mod surface;
+use surface::ProductDocument;
 pub use surface::ProductSurface;
 
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
@@ -180,6 +181,13 @@ impl BrowserHostServer {
                 b"not found",
             );
         }
+        if let Some(document) = self.surface.document(request_line) {
+            let body = match document {
+                ProductDocument::Book => BOOK,
+                ProductDocument::Creche => CRECHE,
+            };
+            return self.write_response(stream, "200 OK", "text/html; charset=utf-8", body);
+        }
         let (status, content_type, body): (&str, &str, &[u8]) = match request_line {
             Some("GET / HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", INDEX),
             Some("GET /host.mjs HTTP/1.1") => {
@@ -294,7 +302,6 @@ impl BrowserHostServer {
             | Some("GET /creche/runtime.wasm HTTP/1.1") => {
                 ("200 OK", "application/wasm", self.runtime.as_slice())
             }
-            Some("GET /book/ HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", BOOK),
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
@@ -365,7 +372,6 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 CRECHE_GRADUATION_SCRIPT,
             ),
-            Some("GET /creche/ HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", CRECHE),
             Some("GET /creche/creche.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", CRECHE_SCRIPT)
             }
