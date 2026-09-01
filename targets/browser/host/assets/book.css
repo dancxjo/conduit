@@ -92,6 +92,15 @@ textarea {
 .react-flow__edge-text { fill: var(--patchbay-text-primary); font-size: .66rem; }
 .react-flow__edge-textbg { fill: var(--patchbay-surface); }
 .react-flow__edge-path { stroke: var(--patchbay-structure-primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.react-flow__edge.cord-semantic .react-flow__edge-path {
+  stroke: var(--patchbay-emphasis);
+  stroke-dasharray: 3 9;
+  animation: book-cord-flow .9s linear infinite;
+}
+@keyframes book-cord-flow { to { stroke-dashoffset: -12; } }
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__edge.cord-semantic .react-flow__edge-path { animation: none; stroke-dasharray: none; }
+}
 .react-flow__controls { box-shadow: none; border: 1px solid var(--patchbay-structure-secondary); }
 .compact-patchbay-refusal { margin: 0; color: #ffb2a9; font-size: .72rem; }
 .gear-back-expansion { margin-top: .8rem; padding: .8rem; border: 1px solid var(--patchbay-emphasis); border-radius: .55rem; background: var(--patchbay-background); }

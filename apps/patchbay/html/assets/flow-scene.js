@@ -90,9 +90,9 @@ function cordVisual(properties, lens) {
     strokeWidth: capacity.strokeWidth,
   };
   return {
-    label: valueKind,
+    label: properties.has("flow-label") ? properties.get("flow-label") : valueKind,
     className: "cord-semantic",
-    animated: false,
+    animated: properties.get("flow-animation") === "directional",
     strokeWidth: capacity.items === null ? 3 : capacity.strokeWidth,
   };
 }
