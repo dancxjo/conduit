@@ -4,6 +4,7 @@ use crate::{
         EvidenceKind, EvidenceManifest, EvidenceOutput, EvidenceProvenance, EvidenceResult,
     },
     process::{run_suite, run_suite_with_environment, StepError},
+    suites::patchbay_body_workbench::PROVE_PATCHBAY_BODY_WORKBENCH_STEPS,
     suites::prove::{
         PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS, PROVE_BODY_MEMBERSHIP_STEPS,
         PROVE_BROWSER_HOST_STEPS, PROVE_DEGRADED_PROFILES_STEPS, PROVE_DIVERSITY_STEPS,
@@ -105,6 +106,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         ProveTarget::LlmCrossHost => run_suite(PROVE_LLM_CROSS_HOST_STEPS, &root, opts),
         ProveTarget::MessagingGithub => crate::commands::messaging_github::run(&args, &root, opts),
+        ProveTarget::PatchbayBodyWorkbench => {
+            run_suite(PROVE_PATCHBAY_BODY_WORKBENCH_STEPS, &root, opts)
+        }
         ProveTarget::PatchbayFrontDoor => run_patchbay_front_door(&args, &root, opts),
         ProveTarget::StdPicoUsb => {
             let pico_args = crate::commands::pico::PicoArgs {

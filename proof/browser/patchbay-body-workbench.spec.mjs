@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
 
 let server;
+let hostedTruth;
 
 async function openWorkbench(page, entrance) {
   server = spawn("target/debug/patchbay-html", ["--body-workbench-fixture", entrance], {
@@ -32,6 +33,36 @@ for (const entrance of ["hosted", "external"]) {
     await openWorkbench(page, entrance);
     const snapshot = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
     const originalEvidence = snapshot.body_workbench.encoded_evidence;
+    const attachment = snapshot.body_workbench.entrance;
+    if (entrance === "hosted") {
+      expect(attachment).toEqual({
+        kind: "hosted",
+        plan_id: "plan/roseau-hosted-patchbay",
+        implementation_id: "browser/patchbay-surface@1",
+      });
+    } else {
+      expect(attachment).toEqual({ kind: "external-reader" });
+    }
+
+    const current = snapshot.body_workbench.current;
+    const history = snapshot.body_workbench.history;
+    const projectedTruth = {
+      body_id: snapshot.body_workbench.body_id,
+      program: current.program,
+      lifecycle: current.lifecycle,
+      current_hosts: current.current_hosts,
+      biography_identity: history.entries.map(entry => ({
+        moment: entry.moment,
+        sign_id: entry.exact.record.sign_id,
+      })),
+    };
+    if (entrance === "hosted") {
+      hostedTruth = projectedTruth;
+    } else {
+      expect(projectedTruth).toEqual(hostedTruth);
+    }
+    expect(JSON.stringify(history)).not.toMatch(/timestamp|wall.?clock|utc/i);
+    expect(history.entries.every(entry => entry.linear.includes(snapshot.body_workbench.body_id))).toBe(true);
 
     await expect(page.getByRole("heading", { name: "Roseau" })).toBeVisible();
     await expect(page.locator("#body-workbench-status")).toContainText("Lulled · 1 Part · 1 current Host");
