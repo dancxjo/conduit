@@ -24,3 +24,29 @@ export function createBookNavigation(presentation, navigate) {
     },
   });
 }
+
+export function createBookRunnerActions(presentation, slot, runLabel, onRun, onStop) {
+  let revision = 0;
+  return Object.freeze({
+    render(running) {
+      presentation.present(slot, {
+        revision: ++revision,
+        actions: [
+          { id: "book.run", event: "activate" },
+          { id: "book.stop", event: "activate" },
+        ],
+        nodes: [
+          { parent: null, component: "action-group", key: "runner-actions", text: "", action: null },
+          { parent: 0, component: "button", key: "run", text: runLabel, action: running ? null : 0 },
+          { parent: 0, component: "button", key: "stop", text: "Stop", action: running ? 1 : null },
+        ],
+      }, {
+        onEvent(event) {
+          presentation.nextEvent(slot);
+          if (event.action === "book.run") onRun();
+          else if (event.action === "book.stop") onStop();
+        },
+      });
+    },
+  });
+}
