@@ -210,6 +210,76 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
 });
 
+test("every executable listing shows one current compact Patchbay from checked Form truth", async ({ page }) => {
+  let projectedListings = 0;
+  for (let pageIndex = 0; pageIndex < 14; pageIndex += 1) {
+    await openStep(page, pageIndex);
+    const runners = page.locator(".runner");
+    const count = await runners.count();
+    projectedListings += count;
+    for (let runnerIndex = 0; runnerIndex < count; runnerIndex += 1) {
+      const patchbay = runners.nth(runnerIndex).locator(".compact-patchbay");
+      await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
+      await expect(patchbay.locator(".compact-gear").first()).toBeVisible();
+      await expect(patchbay.locator(".compact-patchbay-text li").first()).toContainText("Gear");
+      await expect(patchbay.locator(".compact-patchbay-exact")).toContainText("Checked Form");
+      await expect(patchbay).not.toContainText("Host ID");
+      await expect(patchbay).not.toContainText("Implementation");
+    }
+  }
+  expect(projectedListings).toBe(10);
+});
+
+test("compact Patchbay replaces stale topology with local refusal and the latest accepted edit", async ({ page }) => {
+  await openStep(page, 2);
+  const runner = page.locator(".runner");
+  const listing = runner.locator("textarea");
+  const patchbay = runner.locator(".compact-patchbay");
+  const original = await listing.inputValue();
+  const originalChecked = await patchbay.getAttribute("data-checked-form-id");
+
+  await listing.fill("form unfinished {");
+  await expect(patchbay).toHaveAttribute("data-disposition", "refused");
+  await expect(patchbay.locator(".compact-gear")).toHaveCount(0);
+  await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("parse compact Book Patchbay");
+
+  await listing.fill(original.replace('"hello"', '"latest"'));
+  await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
+  await expect(patchbay).not.toHaveAttribute("data-checked-form-id", originalChecked);
+  await expect(patchbay.locator("figcaption strong")).toHaveText("change-one-gear");
+
+  const oversized = `form oversized {\n${Array.from({ length: 17 }, (_, index) => `g${index}: text/literal("x")`).join("\n")}\n}`;
+  await listing.fill(oversized);
+  await expect(patchbay).toHaveAttribute("data-disposition", "refused");
+  await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("Gear bound exceeded");
+});
+
+test("compact Patchbay keeps fan-out explicit and recursive realization beneath one visible Face", async ({ page }) => {
+  await openStep(page, 3);
+  const fanout = page.locator(".compact-patchbay");
+  await expect(fanout.locator(".compact-cords li")).toHaveCount(5);
+  await expect(fanout.locator(".compact-cords")).toContainText("explicit-fanout/source.value → explicit-fanout/left.in");
+  await expect(fanout.locator(".compact-cords")).toContainText("explicit-fanout/source.value → explicit-fanout/right.in");
+
+  await openStep(page, 7);
+  const direct = page.locator(".runner").nth(0).locator(".compact-patchbay");
+  const recursive = page.locator(".runner").nth(1).locator(".compact-patchbay");
+  await expect(direct).toHaveAttribute("data-disposition", "accepted");
+  await expect(recursive).toHaveAttribute("data-disposition", "accepted");
+  expect(await direct.getAttribute("data-checked-form-id")).toBe(
+    await recursive.getAttribute("data-checked-form-id"),
+  );
+  expect(await direct.getAttribute("data-source-document-id")).toBe(
+    await recursive.getAttribute("data-source-document-id"),
+  );
+  expect(await direct.getAttribute("data-expanded-form-id")).not.toBe(
+    await recursive.getAttribute("data-expanded-form-id"),
+  );
+  await expect(direct.locator(".compact-gears")).toHaveText(await recursive.locator(".compact-gears").textContent());
+  await expect(direct.locator(".compact-patchbay-exact")).toContainText("Opened Backs0");
+  await expect(recursive.locator(".compact-patchbay-exact")).not.toContainText("Opened Backs0");
+});
+
 test("the staged Book and Crèche each boot with only their own product tree", async ({ page }) => {
   const book = await startStaticProduct("target/book-product");
   try {

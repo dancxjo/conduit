@@ -15,6 +15,7 @@ let cancelActiveKeyEvent = null;
 let currentPage = 0;
 let guidedPages = [];
 let pageRoutes = [];
+let patchbaySequence = 0;
 const sourceDrafts = new Map();
 
 try {
@@ -48,6 +49,7 @@ function requireBookAbi(api) {
     "conduit_book_output_ptr", "conduit_book_output_len", "conduit_book_start",
     "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_complete_with_output", "conduit_book_cancel",
     "conduit_book_inventory", "conduit_book_admit_source_interaction",
+    "conduit_book_project_patchbay", "conduit_book_project_patchbay_recursive",
     "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
     "conduit_book_multi_output_ptr", "conduit_book_multi_output_len",
     "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
@@ -320,10 +322,12 @@ function createRealizationComparison(source) {
   directSource.addEventListener("input", () => {
     recursiveSource.value = directSource.value;
     sourceDrafts.set(recursive.dataset.sourceKey, directSource.value);
+    refreshCompactPatchbay(recursive, recursiveSource.value, true);
   });
   recursiveSource.addEventListener("input", () => {
     directSource.value = recursiveSource.value;
     sourceDrafts.set(direct.dataset.sourceKey, recursiveSource.value);
+    refreshCompactPatchbay(direct, directSource.value, false);
   });
   comparison.append(face, direct, recursive);
   return comparison;
@@ -336,14 +340,18 @@ function createRunner(source, recursive = false, presentation = {}) {
   const runner = document.createElement("section");
   runner.className = "runner";
   runner.dataset.sourceKey = sourceKey;
+  runner.dataset.recursive = String(recursive);
   runner.innerHTML = `
     ${presentation.title ? `<header class="realization-heading"><span>${presentation.eyebrow}</span><h3>${presentation.title}</h3></header>` : ""}
     <div class="editor">
-      <label class="editor-label" for="${listingId}">Conduit · editable</label>
-      <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
-      <div class="actions">
-        <button class="run" type="button">${presentation.runLabel ?? "Run"}</button><button class="stop" type="button" disabled>Stop</button>
+      <div class="source-editor">
+        <label class="editor-label" for="${listingId}">Conduit · editable</label>
+        <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
+        <div class="actions">
+          <button class="run" type="button">${presentation.runLabel ?? "Run"}</button><button class="stop" type="button" disabled>Stop</button>
+        </div>
       </div>
+      ${compactPatchbayFrame()}
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
@@ -356,9 +364,13 @@ function createRunner(source, recursive = false, presentation = {}) {
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
   textarea.value = sourceDrafts.get(sourceKey) ?? source;
-  textarea.addEventListener("input", () => sourceDrafts.set(sourceKey, textarea.value));
+  textarea.addEventListener("input", () => {
+    sourceDrafts.set(sourceKey, textarea.value);
+    refreshCompactPatchbay(runner, textarea.value, recursive);
+  });
   run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
   stop.addEventListener("click", () => stopListing(runner));
+  refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
 }
 
@@ -372,11 +384,14 @@ function createMultiHostRunner(source, showPlan) {
   runner.dataset.mode = "multi";
   runner.innerHTML = `
     <div class="editor">
-      <label class="editor-label" for="${listingId}">Conduit · editable · unchanged across Hosts</label>
-      <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
-      <div class="actions">
-        <button class="run" type="button">Run across two Hosts</button><button class="stop" type="button" disabled>Stop</button>
+      <div class="source-editor">
+        <label class="editor-label" for="${listingId}">Conduit · editable · unchanged across Hosts</label>
+        <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
+        <div class="actions">
+          <button class="run" type="button">Run across two Hosts</button><button class="stop" type="button" disabled>Stop</button>
+        </div>
       </div>
+      ${compactPatchbayFrame()}
     </div>
     <div class="result multi-host-result">
       <div class="host-map" aria-label="Two independent browser Hosts">
@@ -393,10 +408,150 @@ function createMultiHostRunner(source, showPlan) {
   runner.querySelector(".plan-view-details").open = showPlan;
   const textarea = runner.querySelector("textarea");
   textarea.value = sourceDrafts.get(sourceKey) ?? source;
-  textarea.addEventListener("input", () => sourceDrafts.set(sourceKey, textarea.value));
+  textarea.addEventListener("input", () => {
+    sourceDrafts.set(sourceKey, textarea.value);
+    refreshCompactPatchbay(runner, textarea.value, false);
+  });
   runner.querySelector(".run").addEventListener("click", () => runMultiHostListing(runner, textarea.value));
   runner.querySelector(".stop").addEventListener("click", () => stopListing(runner));
+  refreshCompactPatchbay(runner, textarea.value, false);
   return runner;
+}
+
+function compactPatchbayFrame() {
+  return `<figure class="compact-patchbay" aria-label="Compact read-only Patchbay">
+    <figcaption><span>Form · Patchbay</span><strong>Checking source…</strong></figcaption>
+    <div class="compact-patchbay-visual" aria-hidden="true"></div>
+    <details class="compact-patchbay-text"><summary>Ordered textual equivalent</summary><ol></ol></details>
+    <details class="compact-patchbay-exact"><summary>Exact projection identity</summary><dl></dl></details>
+  </figure>`;
+}
+
+function refreshCompactPatchbay(runner, source, recursive) {
+  const figure = runner.querySelector(".compact-patchbay");
+  const expected = ++patchbaySequence;
+  figure.dataset.sequence = String(expected);
+  const sourceBytes = encoder.encode(source);
+  const visual = figure.querySelector(".compact-patchbay-visual");
+  const text = figure.querySelector(".compact-patchbay-text ol");
+  const exact = figure.querySelector(".compact-patchbay-exact dl");
+  visual.replaceChildren();
+  text.replaceChildren();
+  exact.replaceChildren();
+  if (sourceBytes.length === 0 || sourceBytes.length > host.runtime.conduit_book_input_capacity()) {
+    renderCompactPatchbayRefusal(figure, "Source exceeds the compact Patchbay input bound.");
+    return false;
+  }
+  new Uint8Array(
+    host.runtime.memory.buffer,
+    host.runtime.conduit_book_input_ptr(),
+    sourceBytes.length,
+  ).set(sourceBytes);
+  const project = recursive
+    ? host.runtime.conduit_book_project_patchbay_recursive
+    : host.runtime.conduit_book_project_patchbay;
+  const code = project(sourceBytes.length, BigInt(expected));
+  const output = host.runtime.conduit_book_output_len() > 0 ? readOutput(host.runtime) : null;
+  if (code < 0) {
+    renderCompactPatchbayRefusal(figure, output?.message ?? `Projection refused (${code}).`);
+    return false;
+  }
+  if (!output || output.sequence !== expected || figure.dataset.sequence !== String(expected)) {
+    renderCompactPatchbayRefusal(figure, "Stale compact Patchbay projection refused.");
+    return false;
+  }
+  renderCompactPatchbayProjection(figure, output);
+  return true;
+}
+
+function renderCompactPatchbayRefusal(figure, message) {
+  figure.dataset.disposition = "refused";
+  figure.querySelector("figcaption strong").textContent = "Source not checked";
+  const refusal = document.createElement("p");
+  refusal.className = "compact-patchbay-refusal";
+  refusal.setAttribute("role", "status");
+  refusal.textContent = message;
+  figure.querySelector(".compact-patchbay-visual").replaceChildren(refusal);
+}
+
+function renderCompactPatchbayProjection(figure, projection) {
+  figure.dataset.disposition = "accepted";
+  figure.dataset.sourceDocumentId = projection.source_document_id;
+  figure.dataset.checkedFormId = projection.checked_form_id;
+  figure.dataset.expandedFormId = projection.realization_expanded_form_id;
+  figure.querySelector("figcaption strong").textContent = projection.form_name;
+  const visual = figure.querySelector(".compact-patchbay-visual");
+  const gearRack = document.createElement("div");
+  gearRack.className = "compact-gears";
+  for (const gear of projection.gears) {
+    const card = document.createElement("article");
+    card.className = "compact-gear";
+    const name = document.createElement("strong");
+    name.textContent = gear.gear_id;
+    const kind = document.createElement("code");
+    kind.textContent = gear.kind_id;
+    const inputs = compactPorts("IN", gear.inputs);
+    const outputs = compactPorts("OUT", gear.outputs);
+    card.append(name, kind, inputs, outputs);
+    gearRack.append(card);
+  }
+  const cordRack = document.createElement("ol");
+  cordRack.className = "compact-cords";
+  for (const cord of projection.cords) {
+    const item = document.createElement("li");
+    item.textContent = `${cord.source_gear_id}.${cord.source_port_id} → ${cord.sink_gear_id}.${cord.sink_port_id}`;
+    const type = document.createElement("small");
+    type.textContent = `${cord.info_kind} · ${cord.temporal}`;
+    item.append(type);
+    cordRack.append(item);
+  }
+  visual.append(gearRack, cordRack);
+
+  const ordered = figure.querySelector(".compact-patchbay-text ol");
+  for (const gear of projection.gears) {
+    const item = document.createElement("li");
+    const ports = [
+      ...gear.inputs.map((port) => `input ${port.port_id}: ${port.info_kind} (${port.temporal})`),
+      ...gear.outputs.map((port) => `output ${port.port_id}: ${port.info_kind} (${port.temporal})`),
+    ];
+    item.textContent = `Gear ${gear.gear_id}, Kind ${gear.kind_id}; ${ports.join("; ") || "no Ports"}.`;
+    ordered.append(item);
+  }
+  for (const cord of projection.cords) {
+    const item = document.createElement("li");
+    item.textContent = `Cord from ${cord.source_gear_id} output ${cord.source_port_id} to ${cord.sink_gear_id} input ${cord.sink_port_id}; ${cord.info_kind}, ${cord.temporal}.`;
+    ordered.append(item);
+  }
+  appendExactProjection(figure.querySelector(".compact-patchbay-exact dl"), projection);
+}
+
+function compactPorts(label, ports) {
+  const list = document.createElement("ul");
+  list.className = `compact-ports compact-ports-${label.toLowerCase()}`;
+  for (const port of ports) {
+    const item = document.createElement("li");
+    item.textContent = `${label} ${port.port_id}`;
+    item.title = `${port.info_kind} · ${port.temporal}`;
+    list.append(item);
+  }
+  return list;
+}
+
+function appendExactProjection(list, projection) {
+  for (const [name, value] of [
+    ["Source", projection.source_document_id],
+    ["Checked Form", projection.checked_form_id],
+    ["Visible expansion", projection.visible_expanded_form_id],
+    ["Realization expansion", projection.realization_expanded_form_id],
+    ["Realization", projection.realization],
+    ["Opened Backs", projection.realization_backs.length],
+  ]) {
+    const term = document.createElement("dt");
+    term.textContent = name;
+    const description = document.createElement("dd");
+    description.textContent = String(value);
+    list.append(term, description);
+  }
 }
 
 class BrowserMemoryLine {
