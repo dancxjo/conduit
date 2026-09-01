@@ -1,0 +1,28 @@
+{
+  "schema": "conduit.browser/application-package-template@1",
+  "application_id": "conduit.application/book",
+  "state_compatibility": { "identity": "conduit.application/book-reading-state", "version": 1 },
+  "resources": [
+    { "role": "application-module", "kind": "module", "path": "book.mjs", "maximum_bytes": 65536, "dependencies": [{"role":"browser-host-membership","specifier":"./browser-host-membership.mjs"},{"role":"patchbay-flow","specifier":"./assets/flow.js"},{"role":"book-state","specifier":"./book-state.mjs"}] },
+    { "role": "browser-host-membership", "kind": "module", "path": "browser-host-membership.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "book-state", "kind": "module", "path": "book-state.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "patchbay-flow", "kind": "module", "path": "assets/flow.js", "maximum_bytes": 16384, "dependencies": [{"role":"patchbay-flow-scene","specifier":"./flow-scene.js"},{"role":"patchbay-faceplate","specifier":"./flow-faceplate.js"}] },
+    { "role": "patchbay-flow-scene", "kind": "module", "path": "assets/flow-scene.js", "maximum_bytes": 32768, "dependencies": [{"role":"patchbay-flow-layout","specifier":"./flow-layout.js"},{"role":"patchbay-portable-navigation","specifier":"./portable-navigation.js"}] },
+    { "role": "patchbay-flow-layout", "kind": "module", "path": "assets/flow-layout.js", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "patchbay-faceplate", "kind": "module", "path": "assets/flow-faceplate.js", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "patchbay-portable-navigation", "kind": "module", "path": "assets/portable-navigation.js", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "runtime", "kind": "wasm", "path": "runtime.wasm", "maximum_bytes": 4194304, "dependencies": [] },
+    { "role": "book-style", "kind": "style", "path": "book.css", "maximum_bytes": 32768, "dependencies": [] },
+    { "role": "patchbay-style", "kind": "style", "path": "assets/react-flow.css", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "react", "kind": "classic-script", "path": "assets/react.min.js", "maximum_bytes": 32768, "dependencies": [] },
+    { "role": "react-dom", "kind": "classic-script", "path": "assets/react-dom.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"}] },
+    { "role": "react-flow", "kind": "classic-script", "path": "assets/react-flow.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"},{"role":"react-dom","specifier":"global:ReactDOM"}] },
+    { "role": "chapter-1", "kind": "content", "path": "chapter-1.md", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "chapter-2", "kind": "content", "path": "chapter-2.md", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "chapter-3", "kind": "content", "path": "chapter-3.md", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "chapter-4", "kind": "content", "path": "chapter-4.md", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "chapter-5", "kind": "content", "path": "chapter-5.md", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "chapter-6", "kind": "content", "path": "chapter-6.md", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "chapter-8", "kind": "content", "path": "chapter-8.md", "maximum_bytes": 8192, "dependencies": [] }
+  ]
+}

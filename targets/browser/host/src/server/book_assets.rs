@@ -1,19 +1,21 @@
 //! Production Patchbay presentation assets reused by the executable Book.
 
-const REACT: &[u8] = include_bytes!("../../../../../apps/patchbay/html/assets/react.min.js");
-const REACT_DOM: &[u8] =
+pub(super) const REACT: &[u8] =
+    include_bytes!("../../../../../apps/patchbay/html/assets/react.min.js");
+pub(super) const REACT_DOM: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/react-dom.min.js");
-const REACT_FLOW: &[u8] =
+pub(super) const REACT_FLOW: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/react-flow.min.js");
-const REACT_FLOW_STYLE: &[u8] =
+pub(super) const REACT_FLOW_STYLE: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/react-flow.css");
-const FLOW: &[u8] = include_bytes!("../../../../../apps/patchbay/html/assets/flow.js");
-const FLOW_SCENE: &[u8] = include_bytes!("../../../../../apps/patchbay/html/assets/flow-scene.js");
-const FLOW_LAYOUT: &[u8] =
+pub(super) const FLOW: &[u8] = include_bytes!("../../../../../apps/patchbay/html/assets/flow.js");
+pub(super) const FLOW_SCENE: &[u8] =
+    include_bytes!("../../../../../apps/patchbay/html/assets/flow-scene.js");
+pub(super) const FLOW_LAYOUT: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/flow-layout.js");
-const FLOW_FACEPLATE: &[u8] =
+pub(super) const FLOW_FACEPLATE: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/flow-faceplate.js");
-const PORTABLE_NAVIGATION: &[u8] =
+pub(super) const PORTABLE_NAVIGATION: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/portable-navigation.js");
 
 pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static [u8])> {

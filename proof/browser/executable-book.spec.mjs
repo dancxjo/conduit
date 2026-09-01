@@ -3,37 +3,21 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { installB7Devices } from "./b7-fixture.mjs";
+import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
 
 let entrance;
 
-async function startBook() {
-  const child = spawn("target/debug/conduit-browser-host", ["--book", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_book_runtime.wasm" },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error(`executable book was not ready\n${output}`)),
-      10_000,
-    );
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/book\/)/);
-      if (match) {
-        clearTimeout(timeout);
-        resolve(match[1]);
-      }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => {
-      clearTimeout(timeout);
-      reject(new Error(`executable book exited (${code})\n${output}`));
-    });
-  });
-  return { child, url };
+function browserApplicationPackageDigest(manifest) {
+  const lines = [
+    "conduit.browser/application-package-content@1",
+    `application\0${manifest.application_id}`,
+    `state\0${manifest.state_compatibility.identity}\0${manifest.state_compatibility.version}`,
+  ];
+  for (const resource of manifest.resources) {
+    const dependencies = resource.dependencies.map(({ role, specifier }) => `${role}=${specifier}`).join(",");
+    lines.push(`resource\0${resource.role}\0${resource.kind}\0${resource.path}\0${resource.maximum_bytes}\0${resource.sha256}\0${dependencies}`);
+  }
+  return `sha256:${createHash("sha256").update(`${lines.join("\n")}\n`).digest("hex")}`;
 }
 
 async function startCreche() {
@@ -57,33 +41,8 @@ async function startCreche() {
   return { child, url };
 }
 
-async function startStaticProduct(root, mount = "/") {
-  const child = spawn("node", ["proof/browser/static-server.mjs", "0", root, mount], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`staged product was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/\S*)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`staged product exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
-
 async function openStep(page, index) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  for (let current = 0; current < index; current += 1) {
-    await page.getByRole("button", { name: "Next" }).click();
-  }
-  await expect(page.locator(".book-progress")).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
+  await openBookStep(page, entrance, index);
 }
 
 async function openStandaloneCreche(page) {
@@ -348,6 +307,8 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
+    await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./book.application.json");
+    await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/book");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
     expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
@@ -546,11 +507,20 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
   }
 });
 
-test("the Book renders Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
+test("the Book renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
+  const body = "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>";
   await page.route("**/book/chapter-1.md", (route) => route.fulfill({
     contentType: "text/markdown; charset=utf-8",
-    body: "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>",
+    body,
   }));
+  await page.route("**/book/book.application.json", async (route) => {
+    const response = await route.fetch();
+    const manifest = await response.json();
+    manifest.resources.find((resource) => resource.role === "chapter-1").sha256 =
+      `sha256:${createHash("sha256").update(body).digest("hex")}`;
+    manifest.package_digest = browserApplicationPackageDigest(manifest);
+    await route.fulfill({ response, contentType: "application/json", body: JSON.stringify(manifest) });
+  });
   await openStep(page, 0);
   await expect(page.locator("em")).toHaveText(["asterisk", "underscore"]);
   await expect(page.locator("strong")).toHaveText(["strong asterisk", "strong underscore"]);

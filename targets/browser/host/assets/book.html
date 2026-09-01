@@ -10,9 +10,8 @@
     document.write(`<base href="${bookRoot}">`);
   </script>
   <meta name="conduit-creche-url" content="../creche/">
+  <meta name="conduit-application-package" content="./book.application.json">
   <title>Meet one Gear · The Book</title>
-  <link rel="stylesheet" href="./assets/react-flow.css">
-  <link rel="stylesheet" href="./book.css">
 </head>
 <body>
   <header class="masthead">
@@ -21,9 +20,6 @@
   </header>
   <main id="chapter" aria-live="polite"></main>
   <noscript>This executable chapter requires JavaScript and WebAssembly.</noscript>
-  <script src="./assets/react.min.js"></script>
-  <script src="./assets/react-dom.min.js"></script>
-  <script src="./assets/react-flow.min.js"></script>
-  <script type="module" src="./book.mjs"></script>
+  <script type="module" src="./browser-application-loader.mjs"></script>
 </body>
 </html>

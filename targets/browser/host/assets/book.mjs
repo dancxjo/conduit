@@ -1,5 +1,6 @@
-import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
+import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
+import { openBookReadingState } from "./book-state.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -17,17 +18,16 @@ let currentPage = 0;
 let guidedPages = [];
 let pageRoutes = [];
 let patchbaySequence = 0;
-const sourceDrafts = new Map();
+let readingState;
+let admittedRuntimeBytes;
 
+export async function startApplication(application) {
 try {
+  readingState = await openBookReadingState(application.storage);
+  admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
-    Promise.all(["chapter-1.md", "chapter-2.md", "chapter-3.md", "chapter-4.md", "chapter-5.md", "chapter-6.md", "chapter-8.md"].map((name) =>
-      fetch(`./${name}`).then((response) => {
-        if (!response.ok) throw new Error(`${name} is unavailable`);
-        return response.text();
-      }),
-    )),
-    initializeBrowserHost(),
+    Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
+    initializeBrowserHost(admittedRuntimeBytes),
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
@@ -38,10 +38,19 @@ try {
   if (isProductRoot()) replacePageRoute(initialPage);
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
+  globalThis.__conduitBookPersistence = Object.freeze({
+    schema: "conduit.book/persistence@1",
+    flush: readingState.flush,
+  });
 } catch (error) {
   hostState.textContent = "Browser Host unavailable";
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
+}
+}
+
+function persistBookState() {
+  return readingState.persist();
 }
 
 function requireBookAbi(api) {
@@ -343,9 +352,10 @@ function createRunner(source, recursive = false, presentation = {}) {
   const textarea = runner.querySelector("textarea");
   const run = runner.querySelector(".run");
   const stop = runner.querySelector(".stop");
-  textarea.value = sourceDrafts.get(sourceKey) ?? source;
+  textarea.value = readingState.drafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
-    sourceDrafts.set(sourceKey, textarea.value);
+    readingState.drafts.set(sourceKey, textarea.value);
+    persistBookState();
     refreshCompactPatchbay(runner, textarea.value, recursive);
   });
   run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
@@ -390,9 +400,10 @@ function createMultiHostRunner(source, showPlan) {
     </div>`;
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
   const textarea = runner.querySelector("textarea");
-  textarea.value = sourceDrafts.get(sourceKey) ?? source;
+  textarea.value = readingState.drafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
-    sourceDrafts.set(sourceKey, textarea.value);
+    readingState.drafts.set(sourceKey, textarea.value);
+    persistBookState();
     refreshCompactPatchbay(runner, textarea.value, false);
   });
   runner.querySelector(".run").addEventListener("click", () => runMultiHostListing(runner, textarea.value));
@@ -494,6 +505,13 @@ function renderCompactPatchbayProjection(figure, projection) {
     ordered.append(item);
   }
   appendExactProjection(runner?.querySelector(".exact-projection"), projection);
+  const sourceKey = runner?.dataset.sourceKey;
+  if (runner?.dataset.faceBack === "true" && sourceKey && readingState.expandedBacks.has(sourceKey)
+    && figure.dataset.backExpanded !== "true" && figure.dataset.backRestoreApplied !== "true") {
+    figure.dataset.backRestoreApplied = "true";
+    const subject = projection.gears.find((gear) => gear.kind_id === "text/morse")?.gear_id;
+    if (subject) queueMicrotask(() => toggleGearBack(figure, projection, subject));
+  }
 }
 
 function toggleGearBack(figure, faceProjection, subjectIdentity) {
@@ -501,6 +519,12 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
   const opening = figure.dataset.backExpanded !== "true";
   figure.dataset.backExpanded = String(opening);
   expansion.hidden = !opening;
+  const sourceKey = figure.closest(".runner")?.dataset.sourceKey;
+  if (sourceKey) {
+    if (opening) readingState.expandedBacks.add(sourceKey);
+    else readingState.expandedBacks.delete(sourceKey);
+    persistBookState();
+  }
   renderCompactPatchbayProjection(figure, faceProjection);
   if (!opening) return;
 
@@ -650,7 +674,7 @@ let activeMemoryLine = null;
 
 async function ensurePeerHost() {
   if (peerHost !== null) return peerHost;
-  const initialized = await initializeBrowserHost();
+  const initialized = await initializeBrowserHost(admittedRuntimeBytes);
   requireBookAbi(initialized.runtime);
   if (initialized.hostId === host.hostId || initialized.bootId === host.bootId) {
     throw new Error("second browser Host did not receive independent Host and Boot identity");

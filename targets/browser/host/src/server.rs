@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::Path;
 
+mod application_package;
 mod book_assets;
 mod existing_computer_assets;
 mod surface;
@@ -13,6 +14,9 @@ pub use surface::ProductSurface;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
 const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.mjs");
+const HOST_MEMBERSHIP: &[u8] = include_bytes!("../assets/browser-host-membership.mjs");
+const APPLICATION_LOADER: &[u8] = include_bytes!("../assets/browser-application-loader.mjs");
+const APPLICATION_STORAGE: &[u8] = include_bytes!("../assets/browser-application-storage.mjs");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
@@ -42,6 +46,7 @@ const ESP32_CRECHE_ADAPTER: &[u8] =
     include_bytes!("../../../esp32/browser-deployment/creche-adapter.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
+const BOOK_STATE: &[u8] = include_bytes!("../assets/book-state.mjs");
 const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
 const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
@@ -76,6 +81,7 @@ const MAX_REQUESTS: usize = 1024;
 pub struct BrowserHostServer {
     listener: TcpListener,
     runtime: Vec<u8>,
+    book_application: Vec<u8>,
     surface: ProductSurface,
 }
 
@@ -95,11 +101,13 @@ impl BrowserHostServer {
         }
         let runtime = std::fs::read(runtime_path)
             .map_err(|error| format!("cannot read browser Host runtime: {error}"))?;
+        let book_application = application_package::book_manifest(&runtime)?;
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .map_err(|error| format!("cannot bind ephemeral browser Host entrance: {error}"))?;
         Ok(Self {
             listener,
             runtime,
+            book_application,
             surface,
         })
     }
@@ -189,6 +197,14 @@ impl BrowserHostServer {
         if let Some((content_type, body)) = existing_computer_assets::response(request_line) {
             return self.write_response(stream, "200 OK", content_type, body);
         }
+        if request_line == Some("GET /book/book.application.json HTTP/1.1") {
+            return self.write_response(
+                stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &self.book_application,
+            );
+        }
         let (status, content_type, body): (&str, &str, &[u8]) = match request_line {
             Some("GET / HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", INDEX),
             Some("GET /host.mjs HTTP/1.1") => {
@@ -199,6 +215,21 @@ impl BrowserHostServer {
             | Some("GET /creche/browser-host-bootstrap.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", HOST_BOOTSTRAP)
             }
+            Some("GET /browser-host-membership.mjs HTTP/1.1")
+            | Some("GET /book/browser-host-membership.mjs HTTP/1.1")
+            | Some("GET /creche/browser-host-membership.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", HOST_MEMBERSHIP)
+            }
+            Some("GET /book/browser-application-loader.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_LOADER,
+            ),
+            Some("GET /book/browser-application-storage.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_STORAGE,
+            ),
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }
@@ -306,6 +337,9 @@ impl BrowserHostServer {
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
+            Some("GET /book/book-state.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", BOOK_STATE)
+            }
             Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
@@ -409,66 +443,4 @@ impl BrowserHostServer {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    fn runtime_fixture() -> std::path::PathBuf {
-        let name = format!(
-            "conduit-browser-host-runtime-{}-{}.wasm",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        );
-        let path = std::env::temp_dir().join(name);
-        std::fs::write(&path, b"bounded wasm fixture").unwrap();
-        path
-    }
-
-    #[test]
-    fn simultaneous_entrances_are_distinct_ipv4_loopback_listeners() {
-        let runtime = runtime_fixture();
-        let first = BrowserHostServer::bind(&runtime, ProductSurface::Book).unwrap();
-        let second = BrowserHostServer::bind(&runtime, ProductSurface::Creche).unwrap();
-        let first_address = first.local_addr().unwrap();
-        let second_address = second.local_addr().unwrap();
-        assert_eq!(first_address.ip(), Ipv4Addr::LOCALHOST);
-        assert_eq!(second_address.ip(), Ipv4Addr::LOCALHOST);
-        assert_ne!(first_address, second_address);
-        std::fs::remove_file(runtime).unwrap();
-    }
-
-    #[test]
-    fn missing_and_oversized_runtime_artifacts_refuse_before_launch() {
-        let missing = std::env::temp_dir().join("conduit-browser-host-absent.wasm");
-        assert!(BrowserHostServer::bind(&missing, ProductSurface::Host)
-            .unwrap_err()
-            .contains("unavailable"));
-
-        let runtime = runtime_fixture();
-        let file = std::fs::OpenOptions::new()
-            .write(true)
-            .open(&runtime)
-            .unwrap();
-        file.set_len(MAX_RUNTIME_BYTES as u64 + 1).unwrap();
-        assert!(BrowserHostServer::bind(&runtime, ProductSurface::Host)
-            .unwrap_err()
-            .contains("artifact bound"));
-        std::fs::remove_file(runtime).unwrap();
-    }
-
-    #[test]
-    fn product_surfaces_refuse_the_other_products_routes() {
-        assert!(ProductSurface::Book.permits(Some("GET /book/ HTTP/1.1")));
-        assert!(ProductSurface::Book.permits(Some("GET /book/runtime.wasm HTTP/1.1")));
-        assert!(!ProductSurface::Book.permits(Some("GET /creche/ HTTP/1.1")));
-        assert!(!ProductSurface::Book.permits(Some("GET / HTTP/1.1")));
-
-        assert!(ProductSurface::Creche.permits(Some("GET /creche/ HTTP/1.1")));
-        assert!(ProductSurface::Creche.permits(Some("GET /creche/runtime.wasm HTTP/1.1")));
-        assert!(!ProductSurface::Creche.permits(Some("GET /book/ HTTP/1.1")));
-        assert!(!ProductSurface::Creche.permits(Some("GET / HTTP/1.1")));
-    }
-}
+mod tests;
