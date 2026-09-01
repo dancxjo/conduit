@@ -261,6 +261,50 @@ export function createBrowserDeviceBase({
         });
       }
 
+      async function readStream({ maximumBytes, maximumChunks, timeoutMillis, complete } = {}) {
+        if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1 || maximumBytes > maximumTransferBytes) {
+          throw new RangeError("serial stream byte bound is outside the admitted transfer bound");
+        }
+        if (!Number.isSafeInteger(maximumChunks) || maximumChunks < 1 || maximumChunks > maximumBytes) {
+          throw new RangeError("serial stream chunk bound must fit its finite byte bound");
+        }
+        if (!Number.isSafeInteger(timeoutMillis) || timeoutMillis < 1 || timeoutMillis > 60_000) {
+          throw new RangeError("serial stream time bound must be between 1 and 60000 milliseconds");
+        }
+        if (typeof complete !== "function") {
+          throw new TypeError("serial stream completion predicate is required");
+        }
+        let chunks = 0;
+        const result = await transfer(READ, async () => {
+          if (!acquiredPort.readable) throw new DOMException("serial port is not readable", "NetworkError");
+          const reader = acquiredPort.readable.getReader();
+          const retained = new Uint8Array(maximumBytes);
+          let retainedBytes = 0;
+          const deadline = Date.now() + timeoutMillis;
+          try {
+            while (chunks < maximumChunks) {
+              const remainingMillis = deadline - Date.now();
+              if (remainingMillis <= 0) throw streamRefusal("StreamTimeout", "serial stream exceeded its admitted time bound");
+              const { value, done } = await readBefore(reader, remainingMillis);
+              if (done || !value?.byteLength) throw new DOMException("serial port closed before a value", "AbortError");
+              if (retainedBytes + value.byteLength > retained.byteLength) {
+                throw streamRefusal("StreamByteBound", "serial stream exceeds its admitted byte bound");
+              }
+              retained.set(value, retainedBytes);
+              retainedBytes += value.byteLength;
+              chunks += 1;
+              if (complete(retained.subarray(0, retainedBytes)) === true) {
+                return retained.slice(0, retainedBytes);
+              }
+            }
+            throw streamRefusal("StreamChunkBound", "serial stream exceeded its admitted browser-chunk bound");
+          } finally {
+            reader.releaseLock();
+          }
+        });
+        return Object.freeze({ ...result, chunks });
+      }
+
       async function setSignals({ dataTerminalReady, requestToSend, break: breakSignal } = {}) {
         if (!useStarted || terminal || port !== acquiredPort) {
           throw new Error("browser serial use Plan is not active");
@@ -309,6 +353,7 @@ export function createBrowserDeviceBase({
         startUse,
         write,
         read,
+        readStream,
         setSignals,
         close,
       });
@@ -326,6 +371,38 @@ export function createBrowserDeviceBase({
       }
       throw error;
     }
+  }
+
+  function readBefore(reader, timeoutMillis) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const timeout = setTimeout(async () => {
+        if (settled) return;
+        settled = true;
+        try {
+          await reader.cancel?.();
+        } catch {}
+        reject(streamRefusal("StreamTimeout", "serial stream exceeded its admitted time bound"));
+      }, timeoutMillis);
+      reader.read().then((result) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        resolve(result);
+      }, (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        reject(error);
+      });
+    });
+  }
+
+  function streamRefusal(code, message) {
+    const error = new Error(message);
+    error.name = "SerialStreamRefusal";
+    error.code = code;
+    return error;
   }
 
   function terminate() {

@@ -2,7 +2,7 @@ import { createBrowserDeviceBase } from "../../../device-base.mjs";
 import { createBrowserUsbDeviceBase } from "../../../usb-device-base.mjs";
 import { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } from "./deployment.mjs";
 import { createRp2040BrowserFabricationAdapter, RP2040_BROWSER_FABRICATION } from "./fabrication.mjs";
-import { requestRp2040SpawnJoin } from "./spawn.mjs";
+import { PHYSICAL_SPAWN_STREAM_BOUNDS, requestRp2040SpawnJoin } from "./spawn.mjs";
 import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
@@ -269,10 +269,10 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         output: null,
       });
       activeBase = await devices.acquireSerial({
-        maximumTransferBytes: 4096,
-        maximumReads: 2,
-        maximumWrites: 1,
-        maximumSignalOperations: 1,
+        maximumTransferBytes: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumTransferBytes,
+        maximumReads: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumReads,
+        maximumWrites: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumWrites,
+        maximumSignalOperations: PHYSICAL_SPAWN_STREAM_BOUNDS.maximumSignalOperations,
       });
       const evidence = await requestRp2040SpawnJoin({ base: activeBase, prepared: binding.prepared });
       requireCurrent(signal, mode, "observe");

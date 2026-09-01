@@ -1,5 +1,8 @@
 import { createBrowserDeviceBase } from "../../../device-base.mjs";
-import { requestPhysicalSpawnJoin } from "../../rp2040/browser-deployment/spawn.mjs";
+import {
+  PHYSICAL_SPAWN_STREAM_BOUNDS,
+  requestPhysicalSpawnJoin,
+} from "../../rp2040/browser-deployment/spawn.mjs";
 import { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT } from "./deployment.mjs";
 import { parseEsp32Image } from "./image.mjs";
 import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
@@ -347,10 +350,14 @@ async function browserSerial(host, targetProfile, observation = false) {
     stopBits: ESP32_BROWSER_DEPLOYMENT.stopBits,
     parity: ESP32_BROWSER_DEPLOYMENT.parity,
     bufferSize: ESP32_BROWSER_DEPLOYMENT.bufferSize,
-    maximumTransferBytes: ESP32_BROWSER_DEPLOYMENT.maximumTransferBytes,
-    maximumReads: observation ? 2 : ESP32_BROWSER_DEPLOYMENT.maximumReads,
-    maximumWrites: observation ? 1 : ESP32_BROWSER_DEPLOYMENT.maximumWrites,
-    maximumSignalOperations: observation ? 1 : ESP32_BROWSER_DEPLOYMENT.maximumSignalOperations,
+    maximumTransferBytes: observation
+      ? PHYSICAL_SPAWN_STREAM_BOUNDS.maximumTransferBytes
+      : ESP32_BROWSER_DEPLOYMENT.maximumTransferBytes,
+    maximumReads: observation ? PHYSICAL_SPAWN_STREAM_BOUNDS.maximumReads : ESP32_BROWSER_DEPLOYMENT.maximumReads,
+    maximumWrites: observation ? PHYSICAL_SPAWN_STREAM_BOUNDS.maximumWrites : ESP32_BROWSER_DEPLOYMENT.maximumWrites,
+    maximumSignalOperations: observation
+      ? PHYSICAL_SPAWN_STREAM_BOUNDS.maximumSignalOperations
+      : ESP32_BROWSER_DEPLOYMENT.maximumSignalOperations,
   });
 }
 
