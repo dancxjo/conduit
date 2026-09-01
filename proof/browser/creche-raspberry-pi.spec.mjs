@@ -180,7 +180,8 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   ].sort());
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-conduitos-model-b-plus\.img$/);
+  await expect(runner.locator(".download-spore")).toContainText("Download IMG");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: BARE_TARGET,
@@ -188,7 +189,36 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
     fabrication_package_id: "conduit-host-raspberry-pi@1",
     deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
     image_content_digest: release.artifact.sha256,
+    spore_artifact: {
+      format: "img",
+      media_type: "application/x-raw-disk-image",
+      image_content_digest: release.artifact.sha256,
+      image_bytes: release.artifact.bytes,
+      provision_bytes: 4096,
+    },
   });
+  const nativeImage = await runner.locator(".download-spore").evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+    const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    const artifact = readBodyProvisionedMedia(bytes);
+    return {
+      mbrMagic: Array.from(bytes.subarray(510, 512)),
+      bytes: bytes.byteLength,
+      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+      provision: artifact.provision,
+    };
+  });
+  expect(nativeImage).toMatchObject({
+    mbrMagic: [0x55, 0xaa],
+    bytes: release.artifact.bytes + 4096,
+    provision: {
+      image_bytes: release.artifact.bytes,
+      spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
+      invitation_provision: { invitation_id: evidence.binding.invitation_id },
+    },
+  });
+  expect(nativeImage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "AbsentWriter"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -209,13 +239,20 @@ test("Pi model, architecture, boot partition, image, writer, and unsupported-mod
     const adapter = await import(adapterUrl);
     const capture = (work) => { try { work(); return "accepted"; } catch (error) { return error.code; } };
     const mutate = (change) => { const candidate = structuredClone(releaseManifest); change(candidate); return image.validateRaspberryPiImageManifest(candidate, adapter.RASPBERRY_PI_B_PLUS_PROFILE); };
-    const binding = { prepared: { image_content_digest: releaseManifest.artifact.sha256 } };
+    const artifactDigest = `sha256:${"9".repeat(64)}`;
+    const artifactBytes = releaseManifest.artifact.bytes + 4096;
+    const binding = {
+      prepared: { image_content_digest: releaseManifest.artifact.sha256 },
+      nativeSpore: { content_digest: artifactDigest, bytes: { byteLength: artifactBytes } },
+    };
     const writer = {
       writer_id: "fixture-local-writer",
       target_id: adapter.RASPBERRY_PI_B_PLUS_PROFILE.target.id,
       board: adapter.RASPBERRY_PI_B_PLUS_PROFILE.board,
       architecture: adapter.RASPBERRY_PI_B_PLUS_PROFILE.architecture,
-      image_sha256: releaseManifest.artifact.sha256,
+      image_content_digest: releaseManifest.artifact.sha256,
+      artifact_sha256: artifactDigest,
+      artifact_bytes: artifactBytes,
       carrier: "removable-sd-card",
       raw_block_authority: "local-helper-explicit",
       write_completed: true,
@@ -229,7 +266,7 @@ test("Pi model, architecture, boot partition, image, writer, and unsupported-mod
       absentWriter: capture(() => image.validateImageWriterEvidence(null, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
       writerWrongModel: capture(() => image.validateImageWriterEvidence({ ...writer, board: "raspberry-pi-zero-v1" }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
       writerWrongArchitecture: capture(() => image.validateImageWriterEvidence({ ...writer, architecture: "armv7" }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
-      writerStaleImage: capture(() => image.validateImageWriterEvidence({ ...writer, image_sha256: `sha256:${"1".repeat(64)}` }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
+      writerStaleImage: capture(() => image.validateImageWriterEvidence({ ...writer, artifact_sha256: `sha256:${"1".repeat(64)}` }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
       acceptedWriter: capture(() => image.validateImageWriterEvidence(writer, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
     };
   }, {

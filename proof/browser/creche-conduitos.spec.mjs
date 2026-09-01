@@ -66,9 +66,45 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
     expect.stringMatching(/\/creche\/artifacts\/conduitos-x86_64-pc\.iso$/),
   ]);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-conduitos-native\.iso$/);
+  await expect(runner.locator(".download-spore")).toContainText("Download ISO");
   evidence = JSON.parse(await runner.locator("details code").textContent());
-  expect(evidence.binding).toMatchObject({ target_id: X86, output: "disk-image", fabrication_package_id: "conduitos-image@1", deployment_adapter: "conduit-host-conduitos/boot-x86_64@1", image_content_digest: release.manifest.artifact.sha256 });
+  expect(evidence.binding).toMatchObject({
+    target_id: X86,
+    output: "disk-image",
+    fabrication_package_id: "conduitos-image@1",
+    deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
+    image_content_digest: release.manifest.artifact.sha256,
+    spore_artifact: {
+      format: "iso",
+      media_type: "application/x-iso9660-image",
+      image_content_digest: release.manifest.artifact.sha256,
+      image_bytes: release.manifest.artifact.bytes,
+      provision_bytes: 4096,
+    },
+  });
+  const nativeIso = await runner.locator(".download-spore").evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+    const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    const artifact = readBodyProvisionedMedia(bytes);
+    return {
+      isoMagic: new TextDecoder().decode(bytes.subarray(32769, 32774)),
+      bytes: bytes.byteLength,
+      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+      provision: artifact.provision,
+    };
+  });
+  expect(nativeIso).toMatchObject({
+    isoMagic: "CD001",
+    bytes: release.manifest.artifact.bytes + 4096,
+    provision: {
+      image_bytes: release.manifest.artifact.bytes,
+      spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
+      invitation_provision: { invitation_id: evidence.binding.invitation_id },
+    },
+  });
+  expect(nativeIso.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
   expect(authority).toEqual([]);
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
@@ -104,7 +140,24 @@ test("architecture, machine, firmware, bootloader, role, stale IMAGE, and absent
     const image = await import(imageUrl); const adapter = await import(adapterUrl);
     const capture = (work) => { try { work(); return "accepted"; } catch (error) { return error.code; } };
     const mutate = (change) => { const candidate = structuredClone(manifest); change(candidate); return image.validateConduitOsReleaseManifest(candidate, adapter.CONDUITOS_X86_64_PROFILE); };
-    const binding = { prepared: { image_content_digest: manifest.artifact.sha256 } };
+    const artifactDigest = `sha256:${"9".repeat(64)}`;
+    const artifactBytes = manifest.artifact.bytes + 4096;
+    const binding = {
+      prepared: { image_content_digest: manifest.artifact.sha256 },
+      nativeSpore: { content_digest: artifactDigest, bytes: { byteLength: artifactBytes } },
+    };
+    const loader = {
+      loader_id: "fixture-loader",
+      target_id: adapter.CONDUITOS_X86_64_PROFILE.target.id,
+      machine: adapter.CONDUITOS_X86_64_PROFILE.machine,
+      architecture: adapter.CONDUITOS_X86_64_PROFILE.architecture,
+      image_content_digest: manifest.artifact.sha256,
+      artifact_sha256: artifactDigest,
+      artifact_bytes: artifactBytes,
+      carrier: "downloadable-disk-image",
+      explicit_authority: true,
+      load_completed: true,
+    };
     return {
       wrongArchitecture: capture(() => mutate((candidate) => { candidate.architecture = "ia32"; })),
       wrongMachine: capture(() => mutate((candidate) => { candidate.machine = "virt"; })),
@@ -113,7 +166,8 @@ test("architecture, machine, firmware, bootloader, role, stale IMAGE, and absent
       unsupportedRole: capture(() => mutate((candidate) => { candidate.artifact_role = "architecture-proof-appliance"; })),
       staleArtifact: capture(() => mutate((candidate) => { candidate.artifact.sha256 = `sha256:${"0".repeat(64)}`; })),
       unavailableWriter: capture(() => image.validateLoaderEvidence(null, adapter.CONDUITOS_X86_64_PROFILE, binding)),
+      acceptedLoader: capture(() => image.validateLoaderEvidence(loader, adapter.CONDUITOS_X86_64_PROFILE, binding)),
     };
   }, { manifest, imageUrl: new URL("targets/conduitos/browser-deployment/image.mjs", entrance.url).href, adapterUrl: new URL("targets/conduitos/browser-deployment/creche-adapter.mjs", entrance.url).href });
-  expect(terminals).toEqual({ wrongArchitecture: "WrongArchitecture", wrongMachine: "WrongMachine", missingFirmware: "MissingFirmware", missingBootloader: "MissingBootloader", unsupportedRole: "UnsupportedProductRole", staleArtifact: "StaleArtifact", unavailableWriter: "UnavailableWriter" });
+  expect(terminals).toEqual({ wrongArchitecture: "WrongArchitecture", wrongMachine: "WrongMachine", missingFirmware: "MissingFirmware", missingBootloader: "MissingBootloader", unsupportedRole: "UnsupportedProductRole", staleArtifact: "StaleArtifact", unavailableWriter: "UnavailableWriter", acceptedLoader: "accepted" });
 });

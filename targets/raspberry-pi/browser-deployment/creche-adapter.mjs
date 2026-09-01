@@ -1,5 +1,6 @@
 import { createExistingComputerAdapter, EXISTING_COMPUTER_BOUNDS, EXISTING_COMPUTER_MODES } from "../../../creche-existing-computer.mjs";
-import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
+import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
+import { bindBodyProvisionedMedia } from "../../../creche-native-disk.mjs";
 import { acquireRaspberryPiImage, validateImageWriterEvidence } from "./image.mjs";
 
 const encoder = new TextEncoder();
@@ -115,7 +116,7 @@ const bareMetalContribution = Object.freeze({
   ]),
   carriers: Object.freeze({
     deployment: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download spore for explicit local SD writer" }),
+      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download Body-bound IMG for explicit local SD writer" }),
     ]),
     installation: Object.freeze([]),
     attachment: Object.freeze([]),
@@ -162,7 +163,7 @@ export function createBareMetalAdapter({ host, imageWriter } = {}) {
     });
   }
 
-  async function bind({ mode, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal }) {
     requireMode(mode, "bind"); requireCurrent(signal, mode, "bind");
     const release = obtainment?.private;
     if (!release?.bytes || release.digest !== obtainment.evidence?.image_sha256) refuse(mode, "bind", "MissingArtifact", "exact SD image truth is missing before Body binding");
@@ -180,12 +181,43 @@ export function createBareMetalAdapter({ host, imageWriter } = {}) {
         || prepared.deployment_adapter !== RASPBERRY_PI_B_PLUS_PROFILE.deploymentAdapter) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost exact Model B+, SD image, or writer-adapter truth");
       }
-      const download = packageSporeBundle({
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-conduitos-model-b-plus.img`;
+      const nativeSpore = await bindBodyProvisionedMedia({
         prepared,
-        artifact: Object.freeze({ layout: Object.freeze({ format: "mbr-fat32-sd-image", release: release.manifest }), payloads: [release.bytes] }),
-        filename: `${prepared.spore_id.replaceAll(":", "-")}.spore`,
+        imageBytes: release.bytes,
+        filename,
+        format: "img",
+        mediaType: "application/x-raw-disk-image",
       });
-      return Object.freeze({ prepared, download, evidence: Object.freeze({ ...prepared, invitation_secret: "redacted" }) });
+      prepared.invitation_secret.fill(0);
+      const download = await createNativeSporeDownload({
+        prepared,
+        bytes: nativeSpore.bytes,
+        contentDigest: nativeSpore.content_digest,
+        filename,
+        format: nativeSpore.format,
+        mediaType: nativeSpore.media_type,
+      });
+      return Object.freeze({
+        prepared,
+        nativeSpore,
+        download,
+        evidence: Object.freeze({
+          ...prepared,
+          invitation_secret: "embedded in native IMG; redacted",
+          spore_artifact: Object.freeze({
+            format: nativeSpore.format,
+            filename,
+            media_type: nativeSpore.media_type,
+            bytes: nativeSpore.bytes.byteLength,
+            content_digest: nativeSpore.content_digest,
+            image_content_digest: nativeSpore.image_content_digest,
+            image_bytes: nativeSpore.image_bytes,
+            provision_offset: nativeSpore.provision_offset,
+            provision_bytes: nativeSpore.provision_bytes,
+          }),
+        }),
+      });
     } finally { entropy.fill(0); }
   }
 
@@ -231,3 +263,4 @@ function refuse(mode, operation, terminal, message) {
 }
 function readOutput(api) { return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len()))); }
 function outputError(api, operation, code) { const output = readOutput(api); const error = new Error(`${operation} refused (${code}): ${output.message ?? "unknown refusal"}`); error.code = "RuntimeRefusal"; error.output = output; return error; }
+function friendlyFilename(value) { const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); return normalized.slice(0, 80) || "body"; }
