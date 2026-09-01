@@ -167,6 +167,49 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
+test("every Book page and Crèche step has a direct, history-aware route", async ({ page }) => {
+  const bookPages = [
+    ["bodies-begin-somewhere", "Bodies begin somewhere"],
+    ["add-a-physical-host", "Add a physical Host"],
+    ["change-one-gear", "Change one Gear"],
+    ["fan-out-explicitly", "Fan out explicitly"],
+    ["use-a-generic-verb", "Use a generic verb"],
+    ["a-gear-can-have-a-back", "A Gear can have a Back"],
+    ["morse-opens-up", "Morse opens up"],
+    ["same-face-different-implementation", "Same Face, different implementation"],
+    ["state-over-time", "State over time"],
+    ["meet-the-host", "Meet the Host"],
+    ["two-browser-hosts", "Two browser Hosts"],
+    ["plans-and-plays", "Plans and Plays"],
+    ["keep-one-body-through-change", "Keep one Body through change"],
+    ["graduate-from-the-creche", "Graduate from the Crèche"],
+  ];
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  for (let index = 0; index < bookPages.length; index += 1) {
+    const [slug, title] = bookPages[index];
+    await expect(page).toHaveURL(new RegExp(`/book/${slug}/$`));
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+    if (index + 1 < bookPages.length) await page.getByRole("button", { name: "Next" }).click();
+  }
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: bookPages.at(-1)[1] })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/book/${bookPages.at(-2)[0]}/$`));
+
+  await openStandaloneCreche(page);
+  const steps = ["birth", "first-host", "physical-host", "graduate"];
+  await expect(page).toHaveURL(/\/creche\/birth\/$/);
+  for (let index = 1; index < steps.length; index += 1) {
+    await page.getByRole("button", { name: `${index + 1}.`, exact: false }).click();
+    await expect(page).toHaveURL(new RegExp(`/creche/${steps[index]}/$`));
+  }
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 2, name: "Graduate" })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
+});
+
 test("the staged Book and Crèche each boot with only their own product tree", async ({ page }) => {
   const book = await startStaticProduct("target/book-product");
   try {

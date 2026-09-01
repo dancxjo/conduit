@@ -55,5 +55,10 @@ cp targets/browser/host/browser-deployment/*.mjs "$destination/targets/browser/b
 cp targets/raspberry-pi/browser-deployment/*.mjs "$destination/targets/raspberry-pi/browser-deployment/"
 cp targets/conduitos/browser-deployment/*.mjs "$destination/targets/conduitos/browser-deployment/"
 
-test "$(find "$destination" -type f | wc -l)" -eq 67
+for route in birth first-host physical-host graduate; do
+  mkdir "$destination/$route"
+  cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
+done
+
+test "$(find "$destination" -type f | wc -l)" -eq 71
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

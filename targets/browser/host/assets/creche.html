@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light dark">
+  <script>
+    if (/\/(?:birth|first-host|physical-host|graduate)\/(?:index\.html)?$/.test(location.pathname)) {
+      document.write('<base href="../">');
+    }
+  </script>
   <title>Conduit Crèche</title>
   <link rel="stylesheet" href="./creche.css">
 </head>

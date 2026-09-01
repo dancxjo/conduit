@@ -17,11 +17,17 @@ const MORSE_NETWORK = `form morse_network {
     light: presentation/indicator
     message > morse > light
 }`;
-const steps = ["Birth", "First Host", "Physical Host", "Graduate"];
+const steps = [
+  { name: "Birth", slug: "birth" },
+  { name: "First Host", slug: "first-host" },
+  { name: "Physical Host", slug: "physical-host" },
+  { name: "Graduate", slug: "graduate" },
+];
 const workspace = document.querySelector("#workspace");
 const navigation = document.querySelector(".creche-steps");
+const crecheBaseUrl = new URL(".", document.baseURI);
 let host;
-let currentStep = 0;
+let currentStep = stepIndexForLocation();
 let sequence = 0;
 const targetCatalog = createPhysicalHostTargetCatalog({
   generation: 1,
@@ -43,6 +49,7 @@ try {
   globalThis.__conduitCrecheHost = host;
   renderNavigation();
   renderStep();
+  if (isProductRoot()) replaceStepRoute(currentStep);
 } catch (error) {
   document.querySelector("#host-state").textContent = "Crèche unavailable";
   workspace.textContent = error instanceof Error ? error.message : String(error);
@@ -50,12 +57,12 @@ try {
 
 function renderNavigation() {
   navigation.replaceChildren();
-  steps.forEach((name, index) => {
+  steps.forEach(({ name }, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = `${index + 1}. ${name}`;
     button.setAttribute("aria-current", index === currentStep ? "step" : "false");
-    button.addEventListener("click", () => { currentStep = index; renderNavigation(); renderStep(); });
+    button.addEventListener("click", () => navigateToStep(index));
     navigation.append(button);
   });
 }
@@ -63,7 +70,7 @@ function renderNavigation() {
 function renderStep() {
   workspace.replaceChildren();
   const heading = document.createElement("h2");
-  heading.textContent = steps[currentStep];
+  heading.textContent = steps[currentStep].name;
   workspace.append(heading);
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
     source: MORSE_NETWORK, sourceKey: "standalone-creche", listingId: "creche-seed", host,
@@ -84,6 +91,35 @@ function renderStep() {
   }));
   refreshContext();
 }
+
+function stepIndexForLocation() {
+  if (isProductRoot()) return 0;
+  const index = steps.findIndex(({ slug }) => location.pathname === new URL(`${slug}/`, crecheBaseUrl).pathname);
+  if (index === -1) throw new Error("this Crèche step does not exist");
+  return index;
+}
+
+function isProductRoot() {
+  return location.pathname === crecheBaseUrl.pathname
+    || location.pathname === new URL("index.html", crecheBaseUrl).pathname;
+}
+
+function replaceStepRoute(index) {
+  history.replaceState(null, "", new URL(`${steps[index].slug}/`, crecheBaseUrl).pathname);
+}
+
+function navigateToStep(index) {
+  history.pushState(null, "", new URL(`${steps[index].slug}/`, crecheBaseUrl).pathname);
+  currentStep = index;
+  renderNavigation();
+  renderStep();
+}
+
+addEventListener("popstate", () => {
+  currentStep = stepIndexForLocation();
+  renderNavigation();
+  renderStep();
+});
 
 function refreshContext() {
   workspace.querySelector(".creche-body-context")?.remove();

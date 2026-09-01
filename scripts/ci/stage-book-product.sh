@@ -27,5 +27,24 @@ printf '%s\n' "$chapters" | while IFS= read -r chapter; do
     cp "tour/book/$chapter" "$destination/$chapter"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 12
+page_routes='bodies-begin-somewhere
+add-a-physical-host
+change-one-gear
+fan-out-explicitly
+use-a-generic-verb
+a-gear-can-have-a-back
+morse-opens-up
+same-face-different-implementation
+state-over-time
+meet-the-host
+two-browser-hosts
+plans-and-plays
+keep-one-body-through-change
+graduate-from-the-creche'
+printf '%s\n' "$page_routes" | while IFS= read -r route; do
+    mkdir "$destination/$route"
+    cp targets/browser/host/assets/book.html "$destination/$route/index.html"
+done
+
+test "$(find "$destination" -type f | wc -l)" -eq 26
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
