@@ -3,38 +3,9 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { installB7Devices } from "./b7-fixture.mjs";
+import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
 
 let entrance;
-
-async function startBook() {
-  const child = spawn("target/debug/conduit-browser-host", ["--book", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_book_runtime.wasm" },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error(`executable book was not ready\n${output}`)),
-      10_000,
-    );
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/book\/)/);
-      if (match) {
-        clearTimeout(timeout);
-        resolve(match[1]);
-      }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => {
-      clearTimeout(timeout);
-      reject(new Error(`executable book exited (${code})\n${output}`));
-    });
-  });
-  return { child, url };
-}
 
 async function startCreche() {
   const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
@@ -57,33 +28,8 @@ async function startCreche() {
   return { child, url };
 }
 
-async function startStaticProduct(root, mount = "/") {
-  const child = spawn("node", ["proof/browser/static-server.mjs", "0", root, mount], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`staged product was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/\S*)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`staged product exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
-
 async function openStep(page, index) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  for (let current = 0; current < index; current += 1) {
-    await page.getByRole("button", { name: "Next" }).click();
-  }
-  await expect(page.locator(".book-progress")).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
+  await openBookStep(page, entrance, index);
 }
 
 async function openStandaloneCreche(page) {
@@ -348,6 +294,8 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
+    await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./book.application.json");
+    await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.identity)).toBe("conduit.application/book");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
     expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);

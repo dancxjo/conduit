@@ -13,6 +13,8 @@ pub use surface::ProductSurface;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
 const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.mjs");
+const APPLICATION_LOADER: &[u8] = include_bytes!("../assets/browser-application-loader.mjs");
+const APPLICATION_STORAGE: &[u8] = include_bytes!("../assets/browser-application-storage.mjs");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
@@ -42,6 +44,8 @@ const ESP32_CRECHE_ADAPTER: &[u8] =
     include_bytes!("../../../esp32/browser-deployment/creche-adapter.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
+const BOOK_STATE: &[u8] = include_bytes!("../assets/book-state.mjs");
+const BOOK_APPLICATION: &[u8] = include_bytes!("../assets/book.application.json");
 const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
 const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
@@ -199,6 +203,16 @@ impl BrowserHostServer {
             | Some("GET /creche/browser-host-bootstrap.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", HOST_BOOTSTRAP)
             }
+            Some("GET /book/browser-application-loader.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_LOADER,
+            ),
+            Some("GET /book/browser-application-storage.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_STORAGE,
+            ),
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }
@@ -306,6 +320,14 @@ impl BrowserHostServer {
             Some("GET /book/book.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", BOOK_SCRIPT)
             }
+            Some("GET /book/book-state.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", BOOK_STATE)
+            }
+            Some("GET /book/book.application.json HTTP/1.1") => (
+                "200 OK",
+                "application/json; charset=utf-8",
+                BOOK_APPLICATION,
+            ),
             Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",

@@ -19,6 +19,7 @@ export default defineConfig({
     "browser-pointer.spec.mjs",
     "browser-host-entrance.spec.mjs",
     "executable-book.spec.mjs",
+    "browser-application-package.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-raspberry-pi.spec.mjs",
     "creche-conduitos.spec.mjs",

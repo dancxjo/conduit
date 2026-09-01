@@ -1,10 +1,13 @@
 const INPUT_CAPACITY = 4096;
 
-export async function initializeBrowserHost() {
+export async function initializeBrowserHost(options = {}) {
   const hostId = `browser/${crypto.randomUUID()}`;
   const bootId = `browser-boot/${crypto.randomUUID()}`;
-  const runtimeUrl = new URL("./runtime.wasm", import.meta.url);
-  const runtime = await WebAssembly.instantiateStreaming(fetch(runtimeUrl), {});
+  const runtimeUrl = options.runtimeUrl ?? new URL("./runtime.wasm", import.meta.url);
+  const runtimeBytes = options.runtimeBytes;
+  const runtime = runtimeBytes
+    ? await WebAssembly.instantiate(runtimeBytes, {})
+    : await WebAssembly.instantiateStreaming(fetch(runtimeUrl), {});
   const api = runtime.instance.exports;
   const required = [
     "memory",

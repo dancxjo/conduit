@@ -12,7 +12,11 @@ mkdir -p "$destination/assets"
 cp targets/browser/host/assets/book.html "$destination/index.html"
 cp targets/browser/host/assets/book.css "$destination/book.css"
 cp targets/browser/host/assets/book.mjs "$destination/book.mjs"
+cp targets/browser/host/assets/book-state.mjs "$destination/book-state.mjs"
+cp targets/browser/host/assets/book.application.json "$destination/book.application.json"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
+cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
+cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp "$runtime" "$destination/runtime.wasm"
 for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.js flow-scene.js flow-layout.js flow-faceplate.js portable-navigation.js; do
     cp "apps/patchbay/html/assets/$asset" "$destination/assets/$asset"
@@ -50,5 +54,5 @@ printf '%s\n' "$page_routes" | while IFS= read -r route; do
     cp targets/browser/host/assets/book.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 35
+test "$(find "$destination" -type f | wc -l)" -eq 39
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
