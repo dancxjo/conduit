@@ -2,7 +2,9 @@ name: book-and-creche-pages
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - main
     paths: &product-paths
       - .github/workflows/executable-book-pages.yml
       - README.md
@@ -92,11 +94,6 @@ on:
       - proof/browser/static-server.mjs
       - package.json
       - package-lock.json
-  push:
-    branches:
-      - main
-    paths: *product-paths
-
 concurrency:
   group: book-and-creche-pages
   cancel-in-progress: false
@@ -347,7 +344,6 @@ jobs:
 
   products:
     needs: [products-proof, avr-release, esp32-release-images, host-releases, raspberry-pi-release, conduitos-releases]
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
