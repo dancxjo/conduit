@@ -314,6 +314,7 @@ pub(super) const fn output_name(output: &SporeOutputKind) -> &'static str {
     match output {
         SporeOutputKind::NativeBundle => "native-bundle",
         SporeOutputKind::BrowserBundle => "browser-bundle",
+        SporeOutputKind::IntelHex => "intel-hex",
         SporeOutputKind::Uf2 => "uf2",
         SporeOutputKind::DiskImage => "disk-image",
         SporeOutputKind::EfiArtifact => "efi-artifact",

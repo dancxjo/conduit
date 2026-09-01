@@ -558,6 +558,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-form",
+ "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
@@ -650,6 +651,13 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-host-avr-fabrication"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
 ]
 
 [[package]]
@@ -1083,6 +1091,7 @@ dependencies = [
 name = "conduit-workspace-fabrication"
 version = "0.1.0"
 dependencies = [
+ "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
  "conduit-host-conduitos-fabrication",
  "conduit-host-esp32-fabrication",
@@ -4531,6 +4540,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-form",
+ "conduit-host-avr-fabrication",
  "conduit-host-conduitos-fabrication",
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",

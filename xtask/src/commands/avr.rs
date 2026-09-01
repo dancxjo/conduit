@@ -12,18 +12,19 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 
 mod avr_toolchain;
 mod build_identity;
+mod release;
 
 use avr_toolchain::{
     config_path, provision, verify_cores, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
 };
 use build_identity::{digest_compiled_sources, EmbeddedBuildIdentity, BUILD_ID_SCHEMA};
-const FQBN: &str = "SparkFun:avr:promicro:cpu=16MHzatmega32U4";
+use conduit_host_avr_fabrication::{APPLICATION_FLASH_BYTES, FQBN, SRAM_BYTES};
 const SKETCH: &str = "targets/avr/firmware/promicro_brainstem";
 const EXPECTED_BY_ID: &str = "usb-SparkFun_SparkFun_Pro_Micro-if00";
 const EXPECTED_VID: &str = "1b4f";
 const EXPECTED_PID: &str = "9206";
-const MAX_FLASH_BYTES: u64 = 28_672;
-const MAX_SRAM_BYTES: u64 = 2_560;
+const MAX_FLASH_BYTES: u64 = APPLICATION_FLASH_BYTES;
+const MAX_SRAM_BYTES: u64 = SRAM_BYTES;
 
 #[derive(Args, Debug)]
 pub struct AvrArgs {
@@ -39,6 +40,11 @@ enum AvrCommand {
     Build {
         #[arg(long, default_value = "target/avr-promicro/build-receipt.json")]
         receipt: PathBuf,
+    },
+    /// Build and seal the exact generic Pro Micro Intel HEX release.
+    Release {
+        #[arg(long, default_value = "target/creche-avr-release")]
+        output: PathBuf,
     },
     /// Flash only after exact artifact, device, and physical gates are supplied.
     Flash {
@@ -102,15 +108,17 @@ struct FlashReceipt {
 }
 
 struct BuiltArtifact {
-    path: PathBuf,
-    artifact_sha256: String,
-    identity: EmbeddedBuildIdentity,
+    pub(super) path: PathBuf,
+    pub(super) artifact_sha256: String,
+    pub(super) flash_bytes: u64,
+    pub(super) identity: EmbeddedBuildIdentity,
 }
 
 pub fn run(args: AvrArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         AvrCommand::Check => run_check(opts),
         AvrCommand::Build { receipt } => run_build(&receipt, opts).map(|_| ()),
+        AvrCommand::Release { output } => release::run(&output, opts),
         AvrCommand::Flash {
             port,
             artifact_sha256,
@@ -170,6 +178,7 @@ fn run_build(
         return Ok(BuiltArtifact {
             path: artifact,
             artifact_sha256: String::new(),
+            flash_bytes: 0,
             identity,
         });
     }
@@ -242,6 +251,7 @@ fn run_build(
     Ok(BuiltArtifact {
         path: artifact,
         artifact_sha256: digest,
+        flash_bytes,
         identity,
     })
 }

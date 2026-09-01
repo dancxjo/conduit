@@ -6,6 +6,10 @@ use conduit_body_fabrication::{
     check_body_description, BodyBindingTarget, BodyDescription, BodyHostDescription,
     DeploymentDescription, SporeDescription, SporeJoinMode,
 };
+use conduit_host_avr_fabrication::{
+    AvrProMicroFabricationPackage, FABRICATION_DESCRIPTOR as AVR_DESCRIPTOR,
+    PACKAGE_ID as AVR_PACKAGE_ID, TARGET_ID as AVR_TARGET_ID,
+};
 use conduit_host_browser_fabrication::BrowserFabricationPackage;
 use conduit_host_esp32_fabrication::{
     esp32_descriptor_binding, Esp32FabricationPackage, Esp32FamilyTarget,
@@ -35,7 +39,7 @@ struct TargetFacts {
     configuration_name: &'static str,
     host_name: &'static str,
     source_identity: &'static str,
-    deployment_destination: &'static str,
+    deployment_destination: Option<&'static str>,
     output: SporeOutputKind,
     configuration: HostConfiguration,
     packages: FabricationPackageSet,
@@ -64,8 +68,10 @@ pub(super) fn prepare(
                     output: target.output.clone(),
                     invitation: Some(invitation_id.into()),
                 },
-                deployment: Some(DeploymentDescription {
-                    destination: target.deployment_destination.into(),
+                deployment: target.deployment_destination.map(|destination| {
+                    DeploymentDescription {
+                        destination: destination.into(),
+                    }
                 }),
             }],
         },
@@ -94,11 +100,50 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     if target_id == PICO_W_TARGET_ID {
         return pico_target();
     }
+    if target_id == AVR_TARGET_ID {
+        return avr_target();
+    }
     let family = Esp32FamilyTarget::ALL
         .into_iter()
         .find(|candidate| candidate.target_descriptor().key() == target_id)
         .ok_or_else(|| format!("unsupported exact Crèche physical Host target {target_id:?}"))?;
     esp32_target(family)
+}
+
+fn avr_target() -> Result<TargetFacts, String> {
+    let package = AvrProMicroFabricationPackage;
+    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
+    else {
+        return Err("AVR Pro Micro fabrication package is not an anchor".into());
+    };
+    let descriptor = anchor
+        .targets
+        .into_iter()
+        .find(|target| target.key() == AVR_TARGET_ID)
+        .ok_or_else(|| "AVR Pro Micro package omitted its exact target".to_string())?;
+    Ok(TargetFacts {
+        configuration_name: "creche-avr-promicro-prebuilt",
+        host_name: "creche-avr-promicro",
+        source_identity: "conduit-avr-promicro/reviewed-intel-hex@1",
+        deployment_destination: None,
+        output: SporeOutputKind::IntelHex,
+        configuration: HostConfiguration {
+            schema: 1,
+            name: "creche-avr-promicro-prebuilt".into(),
+            target: ConfigurationTarget {
+                architecture: descriptor.architecture,
+                machine: descriptor.machine,
+                board: descriptor.board,
+                os: None,
+                fabrication_descriptor: Some(AVR_DESCRIPTOR.into()),
+            },
+            bases: Vec::new(),
+            resources: Vec::new(),
+            limits: descriptor.maxima,
+        },
+        packages: FabricationPackageSet::compose(&[&AvrProMicroFabricationPackage])
+            .map_err(|error| format!("compose {AVR_PACKAGE_ID}: {error:?}"))?,
+    })
 }
 
 fn hosted_target(machine: &'static str) -> Result<TargetFacts, String> {
@@ -121,7 +166,7 @@ fn hosted_target(machine: &'static str) -> Result<TargetFacts, String> {
         configuration_name,
         host_name: configuration_name,
         source_identity: "conduit/reviewed-hosted-linux-release@1",
-        deployment_destination: "operator/local-download",
+        deployment_destination: Some("operator/local-download"),
         output: SporeOutputKind::NativeBundle,
         configuration: HostConfiguration {
             schema: 1,
@@ -168,7 +213,7 @@ fn browser_target() -> Result<TargetFacts, String> {
         configuration_name: "creche-browser-page",
         host_name: "creche-browser-page",
         source_identity: "conduit/reviewed-browser-host-release@1",
-        deployment_destination: "browser/local-sandbox",
+        deployment_destination: Some("browser/local-sandbox"),
         output: SporeOutputKind::BrowserBundle,
         configuration: HostConfiguration {
             schema: 1,
@@ -198,7 +243,7 @@ fn pico_target() -> Result<TargetFacts, String> {
         configuration_name: "creche-pico-w-prebuilt",
         host_name: "creche-pico-w",
         source_identity: "conduit-pico-w-signal/pico-local-b7@1",
-        deployment_destination: "browser/webusb",
+        deployment_destination: Some("browser/webusb"),
         output: SporeOutputKind::Uf2,
         configuration: HostConfiguration {
             schema: 1,
@@ -252,7 +297,7 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
         configuration_name,
         host_name: configuration_name,
         source_identity,
-        deployment_destination: "browser/webserial",
+        deployment_destination: Some("browser/webserial"),
         output: SporeOutputKind::Esp32Image,
         configuration: HostConfiguration {
             schema: 1,
@@ -329,5 +374,20 @@ mod tests {
             };
             assert!(error.contains("unsupported exact"));
         }
+    }
+
+    #[test]
+    fn exact_pro_micro_retains_intel_hex_and_package_identity() {
+        let prepared = prepare(&"c".repeat(64), "invitation/avr", AVR_TARGET_ID).unwrap();
+        assert_eq!(prepared.configuration.profile().target.key(), AVR_TARGET_ID);
+        assert_eq!(prepared.output, SporeOutputKind::IntelHex);
+        assert_eq!(
+            prepared
+                .packages
+                .anchor_for_target(AVR_TARGET_ID)
+                .unwrap()
+                .package_id,
+            AVR_PACKAGE_ID
+        );
     }
 }

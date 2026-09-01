@@ -108,6 +108,23 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
 }
 
 #[test]
+fn exact_pro_micro_is_intel_hex_without_an_implemented_browser_flasher() {
+    let packages = conduit_workspace_fabrication::package_set();
+    let target = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";
+    let descriptor = packages.target_descriptor(target).unwrap();
+    assert_eq!(
+        packages.anchor_for_target(target).unwrap().package_id,
+        "conduit-host-avr-promicro@1"
+    );
+    assert_eq!(descriptor.default_output, SporeOutputKind::IntelHex);
+    assert_eq!(descriptor.deployment_adapter, None);
+    assert_eq!(
+        descriptor.post_build_actions,
+        [PostBuildAction::Flash, PostBuildAction::Boot]
+    );
+}
+
+#[test]
 fn ordinary_package_set_excludes_the_proof_only_rp2040_audio_fixture() {
     let packages = conduit_workspace_fabrication::package_set();
     assert!(packages
@@ -129,6 +146,7 @@ fn ordinary_package_set_manifest_cannot_depend_on_fixture_paths() {
 fn target_family_fabrication_owners_are_not_firmware_children() {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     for owner in [
+        repository.join("targets/avr/fabrication/Cargo.toml"),
         repository.join("targets/esp32/fabrication/Cargo.toml"),
         repository.join("targets/rp2040/fabrication/Cargo.toml"),
     ] {

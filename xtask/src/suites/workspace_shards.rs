@@ -18,6 +18,7 @@ package_test_shard!(
     "check.test.foundation",
     "Foundation crate unit and integration tests",
     [
+        "conduit-host-avr-fabrication",
         "conduit-host-browser-fabrication",
         "conduit-host-conduitos-fabrication",
         "conduit-host-esp32-fabrication",

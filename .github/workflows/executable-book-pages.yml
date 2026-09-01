@@ -30,10 +30,17 @@ on:
       - targets/browser/runtime/src/membership_abi.rs
       - targets/browser/runtime/src/lib.rs
       - targets/rp2040/browser-deployment/**
+      - targets/avr/browser-deployment/**
+      - targets/avr/fabrication/**
+      - targets/avr/firmware/**
       - targets/esp32/browser-deployment/**
       - targets/std/browser-deployment/**
       - targets/esp32/fabrication/**
       - targets/esp32/firmware/**
+      - fabrication/host/src/package_contract.rs
+      - fabrication/workspace/**
+      - xtask/src/commands/avr.rs
+      - xtask/src/commands/avr/**
       - xtask/src/commands/esp32_firmware.rs
       - xtask/src/commands/host.rs
       - xtask/src/commands/host_release.rs
@@ -42,6 +49,7 @@ on:
       - architecture/form/src/back_catalog.rs
       - architecture/form/src/checked_syntax.rs
       - proof/browser/executable-book.spec.mjs
+      - proof/browser/creche-avr.spec.mjs
       - proof/browser/playwright.config.mjs
       - proof/browser/static-server.mjs
       - package.json
@@ -56,6 +64,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  avr-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Restore the pinned AVR toolchain
+        uses: actions/cache@v6
+        with:
+          path: |
+            target/avr-promicro/tools
+            target/avr-promicro/arduino
+          key: avr-promicro-arduino-cli-1.5.1-arduino-avr-1.8.8-sparkfun-avr-1.1.13
+      - name: Compile and seal the exact generic Pro Micro release
+        run: cargo +stable xtask avr release --output target/creche-avr-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conduit-avr-promicro-release
+          path: target/creche-avr-release
+          if-no-files-found: error
+          retention-days: 7
+
   host-releases:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -138,7 +171,7 @@ jobs:
           retention-days: 7
 
   products-proof:
-    needs: [esp32-release-images, host-releases]
+    needs: [avr-release, esp32-release-images, host-releases]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -172,6 +205,11 @@ jobs:
         with:
           name: conduit-existing-computer-releases
           path: target/creche-release-artifacts
+      - name: Download the reviewed generic Pro Micro release
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-avr-promicro-release
+          path: target/creche-release-artifacts
       - name: Build the exact browser Host and product runtimes
         run: |
           cargo build --locked -p conduit-browser-host
@@ -187,12 +225,13 @@ jobs:
           npx playwright test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-book.spec.mjs
+          proof/browser/creche-avr.spec.mjs
           --project chromium
           --workers 1
           --retries 0
 
   products:
-    needs: [products-proof, esp32-release-images, host-releases]
+    needs: [products-proof, avr-release, esp32-release-images, host-releases]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -213,6 +252,11 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: conduit-existing-computer-releases
+          path: target/creche-release-artifacts
+      - name: Download the reviewed generic Pro Micro release
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-avr-promicro-release
           path: target/creche-release-artifacts
       - name: Build the independent Book and Crèche runtimes
         run: |
@@ -262,8 +306,8 @@ jobs:
       - name: Verify the combined Pages carrier
         run: |
           test "$(find target/pages-site/book -type f | wc -l)" -eq 12
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 51
-          test "$(find target/pages-site -type f | wc -l)" -eq 63
+          test "$(find target/pages-site/creche -type f | wc -l)" -eq 55
+          test "$(find target/pages-site -type f | wc -l)" -eq 67
           touch target/pages-site/.nojekyll
       - name: Upload the combined Pages carrier
         uses: actions/upload-pages-artifact@v5

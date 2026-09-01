@@ -31,7 +31,7 @@ pub(super) struct PreparedSpore {
     target_id: String,
     output: SporeOutputKind,
     fabrication_package_id: String,
-    deployment_adapter: String,
+    deployment_adapter: Option<String>,
     invitation_id: String,
     invitation_nonce: [u8; 32],
     invitation_expires_at_millis: u64,
@@ -165,12 +165,7 @@ pub(super) fn prepare_selected_for_target(
         {
             return Err("sealed spore lost its exact self-joining invitation".into());
         }
-        let deployment_adapter = spore
-            .manifest
-            .fabrication
-            .deployment_adapter
-            .clone()
-            .ok_or_else(|| "selected physical Host IMAGE has no deployment adapter".to_string())?;
+        let deployment_adapter = spore.manifest.fabrication.deployment_adapter.clone();
         let prepared = PreparedSpore {
             schema: "conduit.book/prepared-physical-spore@1",
             disposition: "prepared",
@@ -406,7 +401,10 @@ mod tests {
             assert_eq!(prepared.output, SporeOutputKind::Esp32Image);
             assert_eq!(prepared.image_content_digest, digest);
             assert_eq!(prepared.fabrication_package_id, "conduit-host-esp32@1");
-            assert!(prepared.deployment_adapter.contains("esp32"));
+            assert!(prepared
+                .deployment_adapter
+                .as_deref()
+                .is_some_and(|adapter| adapter.contains("esp32")));
             session::clear_for_test();
         }
 
@@ -419,6 +417,23 @@ mod tests {
         )
         .unwrap_err();
         assert!(refusal.contains("unsupported exact Crèche physical Host target"));
+    }
+
+    #[test]
+    fn exact_pro_micro_spore_retains_external_carrier_truth() {
+        const TARGET: &str = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";
+        born();
+        let digest = format!("sha256:{}", "a".repeat(64));
+        let prepared =
+            prepare_selected_for_target([41; 32], 10_000, TARGET, Some(&digest)).unwrap();
+        assert_eq!(prepared.target_id, TARGET);
+        assert_eq!(prepared.output, SporeOutputKind::IntelHex);
+        assert_eq!(prepared.image_content_digest, digest);
+        assert_eq!(
+            prepared.fabrication_package_id,
+            "conduit-host-avr-promicro@1"
+        );
+        assert_eq!(prepared.deployment_adapter, None);
     }
 
     #[test]

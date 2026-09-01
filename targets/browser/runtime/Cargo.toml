@@ -31,6 +31,7 @@ conduit-text = { path = "../../../semantics/text", default-features = false, fea
 conduit-time = { path = "../../../semantics/time", features = ["form-catalog"] }
 conduit-wire = { path = "../../../architecture/wire" }
 conduit-host-fabrication = { path = "../../../fabrication/host" }
+conduit-host-avr-fabrication = { path = "../../avr/fabrication" }
 conduit-host-rp2040 = { path = "../../rp2040/fabrication" }
 conduit-host-esp32-fabrication = { path = "../../esp32/fabrication" }
 conduit-host-hosted = { path = "../../std/fabrication-package" }

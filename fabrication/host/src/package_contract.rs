@@ -45,6 +45,7 @@ pub const FABRICATION_PACKAGE_CONTRACT: &str = "conduit.host/fabrication-package
 pub enum SporeOutputKind {
     NativeBundle,
     BrowserBundle,
+    IntelHex,
     Uf2,
     DiskImage,
     EfiArtifact,

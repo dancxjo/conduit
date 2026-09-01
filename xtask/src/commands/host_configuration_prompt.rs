@@ -231,7 +231,11 @@ mod tests {
     #[test]
     fn prepared_configuration_uses_shared_descriptor_and_catalog_truth() {
         let packages = conduit_workspace_fabrication::package_set();
-        let descriptor = packages.target_descriptors().remove(0);
+        let descriptor = packages
+            .target_descriptors()
+            .into_iter()
+            .find(|descriptor| !compatible_base_implementations(descriptor, &packages).is_empty())
+            .expect("workspace must retain one target with configurable Bases");
         let choices = compatible_base_implementations(descriptor, &packages);
         let (kind, implementations) = choices.first().unwrap();
         let prompted = prepare(HostConfiguration {
