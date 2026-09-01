@@ -24,9 +24,9 @@ conduit-time = { path = "../../../semantics/time" }
 conduit-text = { path = "../../../semantics/text", default-features = false }
 conduit-wire = { path = "../../../architecture/wire" }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [dev-dependencies]
 conduit-std-host = { path = "../../../targets/std" }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
-serde_json = "1"
