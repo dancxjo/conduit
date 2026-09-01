@@ -19,6 +19,9 @@ use conduit_host_fabrication::{
     HostConfiguration, HostFabricationPackage, SporeOutputKind,
 };
 use conduit_host_hosted::HostedFabricationPackage;
+use conduit_host_raspberry_pi::{
+    RaspberryPiFabricationPackage, B_PLUS_TARGET, RASPBERRY_PI_OS_TARGET,
+};
 use conduit_host_rp2040::Rp2040FabricationPackage;
 
 pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
@@ -103,11 +106,74 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     if target_id == AVR_TARGET_ID {
         return avr_target();
     }
+    if matches!(target_id, RASPBERRY_PI_OS_TARGET | B_PLUS_TARGET) {
+        return raspberry_pi_target(target_id);
+    }
     let family = Esp32FamilyTarget::ALL
         .into_iter()
         .find(|candidate| candidate.target_descriptor().key() == target_id)
         .ok_or_else(|| format!("unsupported exact Crèche physical Host target {target_id:?}"))?;
     esp32_target(family)
+}
+
+fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
+    let package = RaspberryPiFabricationPackage;
+    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
+    else {
+        return Err("Raspberry Pi fabrication package is not an anchor".into());
+    };
+    let descriptor = anchor
+        .targets
+        .into_iter()
+        .find(|target| target.key() == target_id)
+        .ok_or_else(|| format!("Raspberry Pi package omitted exact target {target_id:?}"))?;
+    let (configuration_name, host_name, source_identity, deployment_destination) =
+        if target_id == RASPBERRY_PI_OS_TARGET {
+            (
+                "creche-raspberry-pi-os-pi4",
+                "creche-raspberry-pi-os-pi4",
+                "conduit/reviewed-raspberry-pi-os-aarch64-release@1",
+                Some("operator/local-package-installer"),
+            )
+        } else {
+            (
+                "creche-conduitos-rpi-b-plus",
+                "creche-conduitos-rpi-b-plus",
+                "conduitos/reviewed-armv6-rpi-b-plus-sd-image@1",
+                Some("operator/local-removable-media-writer"),
+            )
+        };
+    Ok(TargetFacts {
+        configuration_name,
+        host_name,
+        source_identity,
+        deployment_destination,
+        output: descriptor.default_output,
+        configuration: HostConfiguration {
+            schema: 1,
+            name: configuration_name.into(),
+            target: ConfigurationTarget {
+                architecture: descriptor.architecture,
+                machine: descriptor.machine,
+                board: descriptor.board,
+                os: descriptor.os,
+                fabrication_descriptor: None,
+            },
+            bases: vec![ConfigurationBase {
+                kind: "serial/text".into(),
+                implementation: Some(if target_id == RASPBERRY_PI_OS_TARGET {
+                    "raspberry-pi-os/serial@1".into()
+                } else {
+                    "raspberry-pi/pl011@1".into()
+                }),
+                implementations: Vec::new(),
+            }],
+            resources: Vec::new(),
+            limits: descriptor.maxima,
+        },
+        packages: FabricationPackageSet::compose(&[&RaspberryPiFabricationPackage])
+            .map_err(|error| format!("compose Raspberry Pi fabrication package: {error:?}"))?,
+    })
 }
 
 fn avr_target() -> Result<TargetFacts, String> {
@@ -389,5 +455,30 @@ mod tests {
                 .package_id,
             AVR_PACKAGE_ID
         );
+    }
+
+    #[test]
+    fn raspberry_pi_os_and_bare_metal_are_distinct_exact_targets() {
+        let body_id = "d".repeat(64);
+        let os = prepare(&body_id, "invitation/pi-os", RASPBERRY_PI_OS_TARGET).unwrap();
+        let bare = prepare(&body_id, "invitation/pi-bare", B_PLUS_TARGET).unwrap();
+        assert_eq!(os.output, SporeOutputKind::NativeBundle);
+        assert_eq!(
+            os.configuration.profile().target.key(),
+            RASPBERRY_PI_OS_TARGET
+        );
+        assert_eq!(bare.output, SporeOutputKind::SdImage);
+        assert_eq!(bare.configuration.profile().target.key(), B_PLUS_TARGET);
+        for unsupported in [
+            "std/aarch64/raspberry-pi-5",
+            "conduitos/armv7/raspberry-pi-3",
+            "conduitos/armv6/raspberry-pi-b-plus",
+        ] {
+            let error = match prepare(&body_id, "invitation/pi", unsupported) {
+                Ok(_) => panic!("unsupported Raspberry Pi target was inferred"),
+                Err(error) => error,
+            };
+            assert!(error.contains("unsupported exact"));
+        }
     }
 }

@@ -20,6 +20,7 @@ export default defineConfig({
     "browser-host-entrance.spec.mjs",
     "executable-book.spec.mjs",
     "creche-avr.spec.mjs",
+    "creche-raspberry-pi.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-device-base.spec.mjs",
     "browser-usb-device-base.spec.mjs",

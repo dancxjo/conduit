@@ -4,6 +4,9 @@ use std::io::{Read, Write};
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::Path;
 
+mod surface;
+pub use surface::ProductSurface;
+
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const BOOTSTRAP: &[u8] = include_bytes!("../assets/host.mjs");
 const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.mjs");
@@ -48,6 +51,10 @@ const CRECHE_EXISTING_COMPUTER_SCRIPT: &[u8] =
 const STD_CRECHE_ADAPTER: &[u8] =
     include_bytes!("../../../std/browser-deployment/creche-adapter.mjs");
 const BROWSER_CRECHE_ADAPTER: &[u8] = include_bytes!("../browser-deployment/creche-adapter.mjs");
+const RASPBERRY_PI_CRECHE_ADAPTER: &[u8] =
+    include_bytes!("../../../raspberry-pi/browser-deployment/creche-adapter.mjs");
+const RASPBERRY_PI_IMAGE: &[u8] =
+    include_bytes!("../../../raspberry-pi/browser-deployment/image.mjs");
 const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
 const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
 const CRECHE_PICO_ARTIFACT: &[u8] =
@@ -71,23 +78,6 @@ pub struct BrowserHostServer {
     listener: TcpListener,
     runtime: Vec<u8>,
     surface: ProductSurface,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ProductSurface {
-    Host,
-    Book,
-    Creche,
-}
-
-impl ProductSurface {
-    fn permits(self, request: Option<&str>) -> bool {
-        match self {
-            Self::Host => true,
-            Self::Book => request.is_some_and(|line| line.starts_with("GET /book/")),
-            Self::Creche => request.is_some_and(|line| line.starts_with("GET /creche/")),
-        }
-    }
 }
 
 impl BrowserHostServer {
@@ -344,6 +334,18 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 BROWSER_CRECHE_ADAPTER,
+            ),
+            Some(
+                "GET /creche/targets/raspberry-pi/browser-deployment/creche-adapter.mjs HTTP/1.1",
+            ) => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                RASPBERRY_PI_CRECHE_ADAPTER,
+            ),
+            Some("GET /creche/targets/raspberry-pi/browser-deployment/image.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                RASPBERRY_PI_IMAGE,
             ),
             Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",

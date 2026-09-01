@@ -196,6 +196,9 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     for (const artifact of ["hosted-linux-workstation.json", "hosted-linux-server.json", "conduit-linux-x86_64", "browser-page.json", "runtime.wasm", "index.html", "host.mjs"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
+    for (const artifact of ["raspios-bookworm-pi4-model-b-rev-1.5-4gb.json", "conduit-linux-aarch64", "rpi-b-plus-image.json", "conduitos-rpi-b-plus.img"]) {
+      expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
+    }
     const birth = page.locator(".body-birth-runner");
     await birth.getByRole("button", { name: "Birth Body" }).click();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
@@ -376,12 +379,13 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target optgroup")).toHaveCount(5);
+  await expect(runner.locator(".physical-target optgroup")).toHaveCount(6);
   await expect(runner.locator(".physical-target optgroup").nth(0)).toHaveAttribute("label", "RP2040 boards");
   await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "SparkFun Pro Micro");
   await expect(runner.locator(".physical-target optgroup").nth(2)).toHaveAttribute("label", "ESP32 boards");
   await expect(runner.locator(".physical-target optgroup").nth(3)).toHaveAttribute("label", "Linux computers");
   await expect(runner.locator(".physical-target optgroup").nth(4)).toHaveAttribute("label", "Browser Hosts");
+  await expect(runner.locator(".physical-target optgroup").nth(5)).toHaveAttribute("label", "Raspberry Pi computers");
   await expect(runner.locator(".physical-target option")).toHaveText([
     "Raspberry Pi Pico W · RP2040",
     "Pro Micro · ATmega32U4 · 5 V / 16 MHz",
@@ -391,6 +395,8 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     "Hosted Linux workstation",
     "Hosted Linux server",
     "Browser page Host",
+    "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
+    "Model B+ v1.2 · ARMv6 · bare-metal ConduitOS",
   ]);
   await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
 

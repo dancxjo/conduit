@@ -105,6 +105,21 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
             [PostBuildAction::Flash, PostBuildAction::Boot]
         );
     }
+
+    let pi_os = packages
+        .target_descriptor("std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb")
+        .unwrap();
+    assert_eq!(
+        packages
+            .anchor_for_target("std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb")
+            .unwrap()
+            .package_id,
+        "conduit-host-raspberry-pi@1"
+    );
+    assert_eq!(pi_os.os.as_deref(), Some("raspberry-pi-os-bookworm-64"));
+    assert_eq!(pi_os.default_output, SporeOutputKind::NativeBundle);
+    assert_eq!(pi_os.post_build_actions, [PostBuildAction::Launch]);
+    assert!(!pi_os.post_build_actions.contains(&PostBuildAction::Flash));
 }
 
 #[test]
