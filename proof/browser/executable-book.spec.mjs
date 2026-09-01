@@ -402,7 +402,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     expect(evidence.binding.image_id).toMatch(/^image:sha256:[0-9a-f]{64}$/);
     const artifact = await spore.evaluate(async (link) => {
       const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readEsp32BodySpore } = await import(new URL("./targets/esp32/browser-deployment/index.mjs", location.href).href);
+      const { readEsp32BodySpore } = await import(new URL("../targets/esp32/browser-deployment/index.mjs", location.href).href);
       const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
       return {
         magic: new TextDecoder().decode(bytes.subarray(0, 8)),
@@ -919,7 +919,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
       expected_post_flash_join: "bounded serial spawn protocol 2",
       flash: {
         spore_region: {
-          offset: 4 * 1024 * 1024 - 4096,
+          start: 4 * 1024 * 1024 - 4096,
           bytes: 4096,
           body_bound: true,
         },
@@ -935,7 +935,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     evidence = JSON.parse(await runner.locator("details code").textContent());
     const artifact = await runner.locator(".download-spore").evaluate(async (link) => {
       const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readEsp32BodySpore } = await import(new URL("./targets/esp32/browser-deployment/index.mjs", location.href).href);
+      const { readEsp32BodySpore } = await import(new URL("../targets/esp32/browser-deployment/index.mjs", location.href).href);
       const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
       return {
         magic: new TextDecoder().decode(bytes.subarray(0, 8)),
