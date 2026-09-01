@@ -48,6 +48,17 @@ export function FaceplateNode({ data }) {
     e("span", { className: "faceplate-title", title: data.label }, data.label),
     e("span", { className: "faceplate-role", title: data.role }, data.role),
   ),
+  data.reviewedBack && e("button", {
+    type: "button",
+    className: "faceplate-back-control nodrag nowheel",
+    "aria-expanded": String(data.backExpanded),
+    "aria-label": `${data.backExpanded ? "Close" : "Open"} reviewed Back for ${data.label}`,
+    onClick: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      data.onOpenBack?.(data.subjectIdentity);
+    },
+  }, data.backExpanded ? "Close Back" : "Open Back"),
   data.clue && e("p", { className: "faceplate-clue", title: data.clue }, data.clue),
   data.ports.length > 0 && e("div", { className: "faceplate-ports", "aria-label": "Exact typed Ports" },
     data.ports.map((port) => e(PortRow, { key: port.id, port, onActivate:data.onActivate })),

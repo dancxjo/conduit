@@ -31,19 +31,19 @@ printf '%s\n' "$chapters" | while IFS= read -r chapter; do
     cp "tour/book/$chapter" "$destination/$chapter"
 done
 
-page_routes='bodies-begin-somewhere
-add-a-physical-host
-change-one-gear
-fan-out-explicitly
-use-a-generic-verb
-a-gear-can-have-a-back
-morse-opens-up
+page_routes='meet-one-gear
+connect-gears
+edit-one-gear
+branch-a-cord
+meet-the-face
 same-face-different-implementation
-state-over-time
 meet-the-host
-two-browser-hosts
+state-over-time
+use-two-hosts
 plans-and-plays
 keep-one-body-through-change
+birth-belongs-in-the-creche
+give-the-body-a-host
 graduate-from-the-creche'
 printf '%s\n' "$page_routes" | while IFS= read -r route; do
     mkdir "$destination/$route"

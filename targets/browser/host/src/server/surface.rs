@@ -14,19 +14,19 @@ pub(super) enum ProductDocument {
 
 const BOOK_DOCUMENT_PATHS: &[&str] = &[
     "/book/",
-    "/book/bodies-begin-somewhere/",
-    "/book/add-a-physical-host/",
-    "/book/change-one-gear/",
-    "/book/fan-out-explicitly/",
-    "/book/use-a-generic-verb/",
-    "/book/a-gear-can-have-a-back/",
-    "/book/morse-opens-up/",
+    "/book/meet-one-gear/",
+    "/book/connect-gears/",
+    "/book/edit-one-gear/",
+    "/book/branch-a-cord/",
+    "/book/meet-the-face/",
     "/book/same-face-different-implementation/",
-    "/book/state-over-time/",
     "/book/meet-the-host/",
-    "/book/two-browser-hosts/",
+    "/book/state-over-time/",
+    "/book/use-two-hosts/",
     "/book/plans-and-plays/",
     "/book/keep-one-body-through-change/",
+    "/book/birth-belongs-in-the-creche/",
+    "/book/give-the-body-a-host/",
     "/book/graduate-from-the-creche/",
 ];
 

@@ -75,7 +75,7 @@ function presentEdges(edges) {
   }));
 }
 
-function Workspace({ snapshot, onSelect, onConnect, onClear, lens }) {
+function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens }) {
   const projected = projectFlowScene(snapshot, lens);
   const initial = React.useMemo(() => {
     const restored = restore(projected);
@@ -111,7 +111,7 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, lens }) {
   };
   const presentedNodes = nodes.map((node) => ({
     ...node,
-    data: { ...node.data, onActivate: onSelect },
+    data: { ...node.data, onActivate: onSelect, onOpenBack },
   }));
   return e(
     ReactFlow,

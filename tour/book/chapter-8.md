@@ -1,15 +1,9 @@
 # Graduate from the Crèche
 
-The Book has described enduring meaning, truthful machinery, and one Form extending across unlike Hosts. A Body that performs this journey does so in the independent Crèche, which must not become a permanent server or hidden control plane merely because it helped the Body begin.
-
-## Conduit idea
-
-In the Crèche, graduation checks durable Body identity, bound BIRTH evidence, the intended program, and a current admitted Part. You may then host Patchbay on this Body through the ordinary checker, planner, and truthful browser offer, or finish without hosting it and let a compatible reader project the Body later.
+Graduation checks that the Body has a beginning, an intended program, and a current admitted Part. Then the temporary nursery can step away.
 
 <!-- conduit-graduation -->
 
-The placement choice and its Sign become explicit Body evidence. Hosting, moving, replacing, or omitting a Patchbay does not create another Body: Patchbay is a projection over authoritative truth, never the owner of that truth.
+Patchbay may live with the Body or another compatible reader may present it later. Moving or closing that view does not move or erase the Body.
 
-## Payoff
-
-The Crèche can disappear after either choice. The same durable computer remains, and no permanent book server is required to keep its identity or evidence honest.
+The path now runs in the order you met it: Gear, Cord, Face, Back, Host, many Hosts, Body, then Crèche.

@@ -14,7 +14,7 @@ use crate::{StdHost, TimerAdapter};
 
 fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, HostImage) {
     let mut profile: HostProfile = serde_json::from_str(include_str!(
-        "../../../profiles/hosts/std-workstation.profile.json"
+        "../../../profiles/hosts/std-computer.profile.json"
     ))
     .unwrap();
     profile.bounds.timer_slots += extra_timer_slots;

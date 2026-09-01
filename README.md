@@ -116,7 +116,7 @@ See [Body building and spores](docs/body-building.md) for the exact artifact and
 
 Forms, host construction, and body construction are different document roles, not different little languages.
 
-Canonical source uses one tokenizer, value syntax, declaration machinery, span model, and diagnostic system. Files such as `examples/hello.conduit`, `profiles/host-configurations/linux-workstation.host.conduit`, and `profiles/bodies/pete-r1.body.conduit` describe different things but belong to the same Conduit language.
+Canonical source uses one tokenizer, value syntax, declaration machinery, span model, and diagnostic system. Files such as `examples/hello.conduit`, `profiles/host-configurations/linux-computer.host.conduit`, and `profiles/bodies/pete-r1.body.conduit` describe different things but belong to the same Conduit language.
 
 The language stays intentionally small. New architectural concepts should extend the common grammar only when necessary; they should not sprout a YAML, TOML, JSON, or ad hoc mini-language merely because a new subsystem needs configuration.
 

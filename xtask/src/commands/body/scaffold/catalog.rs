@@ -255,17 +255,14 @@ pub(super) fn list(
 
 fn template_hosts(template: BodyTemplate) -> Vec<TemplateHost> {
     match template {
-        BodyTemplate::Minimal => vec![host("main", "linux-workstation")],
-        BodyTemplate::Hosted => vec![
-            host("app", "linux-workstation"),
-            host("page", "browser-page"),
-        ],
+        BodyTemplate::Minimal => vec![host("main", "linux-computer")],
+        BodyTemplate::Hosted => vec![host("app", "linux-computer"), host("page", "browser-page")],
         BodyTemplate::Robot => vec![
-            host("forebrain", "linux-workstation"),
+            host("forebrain", "linux-computer"),
             host("brainstem", "pico-w"),
         ],
         BodyTemplate::Distributed => vec![
-            host("coordinator", "linux-workstation"),
+            host("coordinator", "linux-computer"),
             TemplateHost {
                 name: "peer",
                 configuration: "browser-page",

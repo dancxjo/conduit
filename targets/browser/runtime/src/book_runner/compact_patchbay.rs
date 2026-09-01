@@ -23,6 +23,8 @@ pub(super) struct CompactPatchbayProjection {
     pub(super) realization: &'static str,
     pub(super) gears: Vec<CompactGear>,
     pub(super) cords: Vec<CompactCord>,
+    pub(super) realization_gears: Vec<CompactGear>,
+    pub(super) realization_cords: Vec<CompactCord>,
     pub(super) realization_backs: Vec<CompactBack>,
 }
 
@@ -99,6 +101,7 @@ pub(super) fn project(
         })
         .transpose()?;
     let realization = realized.as_ref().unwrap_or(&visible);
+    admit_topology(realization)?;
 
     Ok(CompactPatchbayProjection {
         schema: "conduit.book/compact-patchbay@1",
@@ -121,6 +124,28 @@ pub(super) fn project(
             })
             .collect(),
         cords: visible
+            .connections
+            .iter()
+            .map(|cord| CompactCord {
+                source_gear_id: cord.source_gear_id.as_str().into(),
+                source_port_id: cord.source_port_id.as_str().into(),
+                sink_gear_id: cord.sink_gear_id.as_str().into(),
+                sink_port_id: cord.sink_port_id.as_str().into(),
+                info_kind: cord.value_kind.as_str().into(),
+                temporal: cord.temporal.as_str(),
+            })
+            .collect(),
+        realization_gears: realization
+            .gears
+            .iter()
+            .map(|gear| CompactGear {
+                gear_id: gear.gear_id.as_str().into(),
+                kind_id: gear.kind_id.as_str().into(),
+                inputs: gear.inputs.iter().map(port).collect(),
+                outputs: gear.outputs.iter().map(port).collect(),
+            })
+            .collect(),
+        realization_cords: realization
             .connections
             .iter()
             .map(|cord| CompactCord {
@@ -205,11 +230,17 @@ mod tests {
     }
 
     #[test]
-    fn recursive_realization_preserves_visible_topology_and_changes_exact_expansion() {
+    fn recursive_realization_preserves_the_face_and_carries_bounded_back_topology() {
         let direct = project(MORSE, 8, false).unwrap();
         let recursive = project(MORSE, 9, true).unwrap();
         assert_eq!(direct.gears, recursive.gears);
         assert_eq!(direct.cords, recursive.cords);
+        assert_eq!(direct.realization_gears, direct.gears);
+        assert_eq!(direct.realization_cords, direct.cords);
+        assert_ne!(recursive.realization_gears, recursive.gears);
+        assert_ne!(recursive.realization_cords, recursive.cords);
+        assert!(recursive.realization_gears.len() <= MAXIMUM_BROWSER_GEARS);
+        assert!(recursive.realization_cords.len() <= MAXIMUM_BROWSER_CORDS);
         assert_eq!(direct.checked_form_id, recursive.checked_form_id);
         assert_eq!(
             direct.visible_expanded_form_id,

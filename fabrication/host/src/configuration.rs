@@ -163,6 +163,20 @@ pub fn check_host_configuration(
     catalog: &FabricationCatalog,
     packages: &FabricationPackageSet,
 ) -> Result<CheckedHostConfiguration, Vec<ConfigurationDiagnostic>> {
+    let mut configuration = configuration;
+    // Schema-1 descriptions may retain the retired deployment-role machine
+    // labels. Migrate them at the checked-description boundary; the canonical
+    // catalog and emitted identity contain only the hosted computer target.
+    if configuration.target.architecture == "x86_64"
+        && configuration.target.os.as_deref() == Some("linux")
+        && configuration.target.board.is_none()
+        && matches!(
+            configuration.target.machine.as_str(),
+            "workstation" | "server"
+        )
+    {
+        configuration.target.machine = "computer".into();
+    }
     let mut diagnostics = Vec::new();
     if configuration.schema != HOST_CONFIGURATION_SCHEMA {
         diagnostics.push(ConfigurationDiagnostic::UnsupportedSchema {

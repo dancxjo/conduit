@@ -432,7 +432,7 @@ fn configurations_for(description: &BodyDescription) -> BTreeMap<String, HostCon
         .map(|host| {
             let source = match host.name.as_str() {
                 "forebrain" => include_str!(
-                    "../../../profiles/host-configurations/linux-workstation.host.conduit"
+                    "../../../profiles/host-configurations/linux-computer.host.conduit"
                 ),
                 "brainstem" => {
                     include_str!("../../../profiles/host-configurations/pico-w.host.conduit")
@@ -441,7 +441,7 @@ fn configurations_for(description: &BodyDescription) -> BTreeMap<String, HostCon
                     include_str!("../../../profiles/host-configurations/browser-page.host.conduit")
                 }
                 _ => include_str!(
-                    "../../../profiles/host-configurations/linux-workstation.host.conduit"
+                    "../../../profiles/host-configurations/linux-computer.host.conduit"
                 ),
             };
             (

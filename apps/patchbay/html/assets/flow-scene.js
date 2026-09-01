@@ -124,6 +124,8 @@ export function projectFlowScene(snapshot, lens = "world") {
       icon: subjectProperties.get(subject.identity)?.get("icon-token") || (subject.role === "Gear" ? "◆" : "◇"),
       iconName: subjectProperties.get(subject.identity)?.get("icon-name") || subject.role,
       clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
+      reviewedBack: subjectProperties.get(subject.identity)?.get("reviewed-back") === "available",
+      backExpanded: subjectProperties.get(subject.identity)?.get("back-expanded") === "true",
       lens,
       ports: (children.get(subject.identity) || []).map((identity) => allSubjects.get(identity)).filter((item) => item?.role === "Port").map((port) => {
         const properties = subjectProperties.get(port.identity) || new Map();
