@@ -306,6 +306,7 @@ pub enum ProveTarget {
     LlmCrossHost,
     LlmPlanningAdvice,
     MessagingGithub,
+    PatchbayBodyWorkbench,
     PatchbayFrontDoor,
     StdPicoUsb,
     PicoWifiBootstrap,
