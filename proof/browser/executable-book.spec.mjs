@@ -393,33 +393,35 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
     const spore = runner.locator(".download-spore");
-    await expect(spore).toHaveAttribute("download", /\.spore$/);
+    await expect(spore).toHaveAttribute("download", /-c3\.bin$/);
     evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: c3Manifest.target_id,
       image_content_digest: evidence.obtainment.artifact.content_digest,
     });
     expect(evidence.binding.image_id).toMatch(/^image:sha256:[0-9a-f]{64}$/);
-    const bundle = await spore.evaluate(async (link) => {
+    const artifact = await spore.evaluate(async (link) => {
       const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+      const { readEsp32BodySpore } = await import(new URL("./targets/esp32/browser-deployment/index.mjs", location.href).href);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
       return {
         magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-        manifest: JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))),
+        bytes: bytes.byteLength,
+        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+        provision: readEsp32BodySpore(bytes),
       };
     });
-    expect(bundle).toMatchObject({
-      magic: "CNDSPOR1",
-      manifest: {
-        schema: "conduit.spore/bundle@1",
-        spore: {
-          target: c3Manifest.target_id,
-          image_id: evidence.binding.image_id,
-          image_content_digest: evidence.binding.image_content_digest,
-        },
-        artifact: { layout: { release: { image_id: c3Manifest.image_id } } },
+    expect(artifact).toMatchObject({
+      bytes: 4 * 1024 * 1024,
+      provision: {
+        spore_id: evidence.binding.spore_id,
+        image_id: evidence.binding.image_id,
+        invitation_id: evidence.binding.invitation_id,
+        body_id: evidence.binding.body_id,
       },
     });
+    expect(artifact.magic).not.toBe("CNDSPOR1");
+    expect(artifact.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
     expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
 
     await page.goto(`${creche.url}index.html`);
@@ -915,32 +917,44 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
       chip_id: profile.chipId,
       fabrication_strategy: expect.stringContaining("reviewed generic release IMAGE download"),
       expected_post_flash_join: "bounded serial spawn protocol 2",
+      flash: {
+        spore_region: {
+          offset: 4 * 1024 * 1024 - 4096,
+          bytes: 4096,
+          body_bound: true,
+        },
+      },
     });
 
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+    await expect(runner.locator(".download-spore")).toHaveAttribute(
+      "download",
+      new RegExp(`-${profile.releaseName}\\.bin$`),
+    );
     evidence = JSON.parse(await runner.locator("details code").textContent());
-    const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
+    const artifact = await runner.locator(".download-spore").evaluate(async (link) => {
       const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const magic = new TextDecoder().decode(bytes.subarray(0, 8));
-      const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
-      const manifest = JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength)));
-      return { magic, manifest, bytes: bytes.length };
+      const { readEsp32BodySpore } = await import(new URL("./targets/esp32/browser-deployment/index.mjs", location.href).href);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      return {
+        magic: new TextDecoder().decode(bytes.subarray(0, 8)),
+        bytes: bytes.byteLength,
+        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+        provision: readEsp32BodySpore(bytes),
+      };
     });
-    expect(bundle.magic).toBe("CNDSPOR1");
-    expect(bundle.manifest).toMatchObject({
-      schema: "conduit.spore/bundle@1",
-      spore: {
-        schema: "conduit.body/spore-manifest@2",
-        target: profile.id,
-        image_content_digest: evidence.binding?.image_content_digest,
-      },
-      artifact: {
-        layout: { format: "espressif-merged-image" },
+    expect(artifact).toMatchObject({
+      bytes: 4 * 1024 * 1024,
+      provision: {
+        spore_id: evidence.binding.spore_id,
+        image_id: evidence.binding.image_id,
+        invitation_id: evidence.binding.invitation_id,
+        body_id: evidence.binding.body_id,
       },
     });
-    expect(bundle.bytes).toBeGreaterThan(evidence.obtainment.artifact.bytes);
+    expect(artifact.magic).not.toBe("CNDSPOR1");
+    expect(artifact.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
     expect(evidence.binding).toMatchObject({
       target_id: profile.id,
       output: "esp32-image",
