@@ -548,6 +548,7 @@ function patchbaySnapshot(projection, options = {}) {
   const gears = options.realizationTopology ? projection.realization_gears : projection.gears;
   const cords = options.realizationTopology ? projection.realization_cords : projection.cords;
   const addProperty = (subject, name, value) => properties.push({ subject, name, value: { Text: value } });
+  const portIdentity = (gearId, direction, portId) => `${gearId}.${direction}:${portId}`;
   for (const gear of gears) {
     subjects.push({ identity: gear.gear_id, role: "Gear", label: gear.gear_id, accessibility_name: `Gear ${gear.gear_id}` });
     addProperty(gear.gear_id, "kind-id", gear.kind_id);
@@ -557,7 +558,10 @@ function patchbaySnapshot(projection, options = {}) {
     }
     for (const [direction, ports] of [["receiving", gear.inputs], ["emitting", gear.outputs]]) {
       for (const port of ports) {
-        const identity = `${gear.gear_id}.${port.port_id}`;
+        // A Gear may intentionally use the same authored name for its input
+        // and output. Direction is therefore part of the presentation subject
+        // identity even though the authored Port label remains unchanged.
+        const identity = portIdentity(gear.gear_id, direction, port.port_id);
         subjects.push({ identity, role: "Port", label: port.port_id, accessibility_name: `${direction} Port ${identity}` });
         relationships.push({ source: gear.gear_id, target: identity, kind: "Contains" });
         addProperty(identity, "semantic-id", identity);
@@ -570,9 +574,13 @@ function patchbaySnapshot(projection, options = {}) {
   for (const [index, cord] of cords.entries()) {
     const identity = `cord:${index}:${cord.source_gear_id}.${cord.source_port_id}->${cord.sink_gear_id}.${cord.sink_port_id}`;
     subjects.push({ identity, role: "Cord", label: `Cord ${index + 1}`, accessibility_name: `Cord from ${cord.source_gear_id}.${cord.source_port_id} to ${cord.sink_gear_id}.${cord.sink_port_id}` });
-    addProperty(identity, "source-port", `${cord.source_gear_id}.${cord.source_port_id}`);
-    addProperty(identity, "sink-port", `${cord.sink_gear_id}.${cord.sink_port_id}`);
+    addProperty(identity, "source-port", portIdentity(cord.source_gear_id, "emitting", cord.source_port_id));
+    addProperty(identity, "sink-port", portIdentity(cord.sink_gear_id, "receiving", cord.sink_port_id));
     addProperty(identity, "value-kind", cord.info_kind);
+    // Motion on the authored Face communicates Cord direction only. It is not
+    // presented as evidence that a Play delivered an item.
+    addProperty(identity, "flow-animation", "directional");
+    addProperty(identity, "flow-label", "");
   }
   return {
     presentation: {
