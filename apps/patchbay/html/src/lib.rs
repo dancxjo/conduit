@@ -3,6 +3,7 @@
 //! Its JSON carries the portable Presentation and exact Manifestation result;
 //! DOM/SVG objects and HTTP mechanics remain renderer-local transport facts.
 
+mod body_workbench;
 mod cross_host;
 mod demo;
 mod front_door;
@@ -11,6 +12,10 @@ mod server;
 mod snapshot;
 mod transport_types;
 
+pub use body_workbench::{
+    attach_body_workbench, body_workbench_fixture_snapshot, body_workbench_snapshot,
+    BodyWorkbenchError,
+};
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::{
     demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot,
