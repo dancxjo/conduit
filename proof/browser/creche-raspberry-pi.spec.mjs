@@ -31,10 +31,11 @@ async function startCreche() {
 async function installRelease(page, manifestName) {
   const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL(manifestName, root), "utf8"));
-  const files = manifest.files
+  const artifactPaths = Array.isArray(manifest.files) && manifest.files.every((file) => typeof file?.path === "string")
     ? manifest.files.map(({ path }) => path)
-    : [manifest.artifact.path];
-  for (const path of files) {
+    : [manifest.artifact?.path];
+  if (artifactPaths.some((path) => typeof path !== "string")) throw new TypeError(`${manifestName} has no downloadable payload`);
+  for (const path of artifactPaths) {
     const bytes = await readFile(new URL(path, root));
     await page.route(`**/artifacts/${path}`, (route) => route.fulfill({ status: 200, body: bytes }));
   }
@@ -172,9 +173,10 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
 
 test("Pi model, architecture, boot partition, image, writer, and unsupported-model refusals stay distinct", async ({ page }) => {
   const release = await installRelease(page, BARE_MANIFEST);
-  const terminals = await page.evaluate(async ({ releaseManifest }) => {
-    const image = await import("./targets/raspberry-pi/browser-deployment/image.mjs");
-    const adapter = await import("./targets/raspberry-pi/browser-deployment/creche-adapter.mjs");
+  await page.goto(entrance.url);
+  const terminals = await page.evaluate(async ({ releaseManifest, imageUrl, adapterUrl }) => {
+    const image = await import(imageUrl);
+    const adapter = await import(adapterUrl);
     const capture = (work) => { try { work(); return "accepted"; } catch (error) { return error.code; } };
     const mutate = (change) => { const candidate = structuredClone(releaseManifest); change(candidate); return image.validateRaspberryPiImageManifest(candidate, adapter.RASPBERRY_PI_B_PLUS_PROFILE); };
     const binding = { prepared: { image_content_digest: releaseManifest.artifact.sha256 } };
@@ -200,7 +202,11 @@ test("Pi model, architecture, boot partition, image, writer, and unsupported-mod
       writerStaleImage: capture(() => image.validateImageWriterEvidence({ ...writer, image_sha256: `sha256:${"1".repeat(64)}` }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
       acceptedWriter: capture(() => image.validateImageWriterEvidence(writer, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
     };
-  }, { releaseManifest: release });
+  }, {
+    releaseManifest: release,
+    imageUrl: new URL("targets/raspberry-pi/browser-deployment/image.mjs", entrance.url).href,
+    adapterUrl: new URL("targets/raspberry-pi/browser-deployment/creche-adapter.mjs", entrance.url).href,
+  });
   expect(terminals).toEqual({
     wrongModel: "WrongModel",
     wrongArchitecture: "WrongArchitecture",

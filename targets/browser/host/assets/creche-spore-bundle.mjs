@@ -1,7 +1,8 @@
 const MAGIC = new TextEncoder().encode("CNDSPOR1");
 const encoder = new TextEncoder();
 const MAXIMUM_MANIFEST_BYTES = 64 * 1024;
-const MAXIMUM_PAYLOAD_BYTES = 16 * 1024 * 1024;
+// Admit the reviewed 64 MiB SD image while retaining one finite envelope bound.
+const MAXIMUM_PAYLOAD_BYTES = 80 * 1024 * 1024;
 
 export function packageSporeBundle({ prepared, artifact, filename }) {
   if (prepared?.spore_manifest?.schema !== "conduit.body/spore-manifest@2"
