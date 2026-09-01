@@ -250,6 +250,10 @@ test("same-named input and output Ports keep distinct animated Cords", async ({ 
   await expect(patchbay.locator(".compact-patchbay-text")).toContainText(
     "meet-one-gear/change output text to meet-one-gear/result input text",
   );
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(patchbay.locator(".react-flow__edge-path").first()).toHaveCSS("animation-name", "none");
+  await expect(patchbay.locator(".react-flow__edge-path").first()).toHaveCSS("stroke-dasharray", "none");
 });
 
 test("reading measure stays narrow while the Patchbay workbench uses wide and narrow viewports", async ({ page }) => {
