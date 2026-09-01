@@ -2123,3 +2123,47 @@ local environment lacked `mkfs.vfat` and `mcopy`; no physical Pi, flash, boot,
 or HIL result is claimed. The seam adds no second runtime, scheduler, planner,
 ambient package discovery, deployment authority, physical-board result, or
 equivalence between BUILD, LOAD, LAUNCH, FLASH, and BOOT.
+
+The Patchbay Body-workbench epic from #2021 completed its P0-P5 ladder through
+the capstone implementation in PR #2040, merged as exact main
+`321640f74cd81af5d71d5a32671363b8838a4663`. Its final head passed required
+workflow `33485697008`. The related Book integration in PR #2041 and Pages
+carrier correction in PR #2042 then merged as
+`1da57bbd8199a46ea144628bb4bf11350e9e401a` and
+`735dded896821e1ff1dae3e3fe6ddbc03c96c41e`. PR #2042's exact head passed
+required check workflow `33492273684` and product workflow `33492273756`.
+Exact-main product workflow `33493449325` passed release construction,
+products-proof, product assembly, Pages upload, and deployment on `735dded8`.
+
+One typed `cargo xtask prove patchbay-body-workbench` entrance now retains a
+bounded machine-readable identity ledger tying the Body evidence schema,
+identity, event sequence, and graduation choice to Patchbay attachment,
+current frame, biography, semantic navigation, selected subjects, and Exact
+and Linear projections. Hosted attachment retains the exact planned
+implementation; external attachment refuses to invent placement. Both project
+the same graduated Body and biography truth. Program, Body, and History answer
+the human-facing product questions, while Follow crosses from an exact planned
+Cord to its realized Line without adding Body facts to authored Form truth.
+The golden lulled Body offers Wake only through retained authority and action
+evidence.
+
+Deterministic native composition and pinned Chromium prove equivalent subjects
+and evidence across native, browser, Exact, and Linear manifestations rather
+than pixel parity. The negative matrix keeps malformed, oversized, unsupported,
+ungraduated, wrong, stale, mismatched, absent, offline, refused, failed,
+cancelled, and no-authoritative-time cases distinct. Closing or removing a
+manifestation leaves serialized evidence and canonical Body truth
+byte-identical.
+
+The deployed Book reuses the production ReactFlow Patchbay renderer and exposes
+the reviewed implementation Back for the same-Face comparison. Live Chromium
+verification on exact-main deployment `735dded8` observed two production
+ReactFlow roots, six production faceplates, the working Flip Back transition,
+and the retained implementation Kind and checked implementation Form. The Book
+handoff resolves to `https://dancxjo.github.io/conduit/creche/`, and the
+independently deployed Crèche answered successfully at that path.
+
+This acceptance establishes bounded deterministic contracts, native semantic
+composition, pinned browser execution, and the deployed Book and Crèche
+carrier. It adds no new semantic feature or event family, renderer-owned truth,
+realtime/background guarantee, physical device execution, or HIL claim.
