@@ -5,6 +5,9 @@ on:
   pull_request:
     paths: &product-paths
       - .github/workflows/executable-book-pages.yml
+      - README.md
+      - site/**
+      - scripts/ci/stage-pages-root.sh
       - scripts/ci/stage-book-product.sh
       - scripts/ci/build-browser-application-package.mjs
       - scripts/ci/stage-creche-product.sh
@@ -80,6 +83,7 @@ on:
       - architecture/form/src/checked_syntax.rs
       - proof/browser/executable-book.spec.mjs
       - proof/browser/browser-application-package.spec.mjs
+      - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
       - proof/browser/creche-raspberry-pi.spec.mjs
@@ -321,15 +325,17 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_creche_runtime.wasm
-          rm -rf target/book-product target/creche-product
+          rm -rf target/pages-root target/book-product target/creche-product
+          scripts/ci/stage-pages-root.sh target/pages-root
           scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
           scripts/ci/stage-creche-product.sh target/conduit_creche_runtime.wasm target/creche-product target/creche-release-artifacts
-      - name: Prove the Book and Crèche independently in pinned Chromium
+      - name: Prove the Pages products independently and together in pinned Chromium
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-book.spec.mjs
           proof/browser/browser-application-package.spec.mjs
+          proof/browser/pages-front-door.spec.mjs
           proof/browser/creche-avr.spec.mjs
           proof/browser/creche-raspberry-pi.spec.mjs
           proof/browser/creche-conduitos.spec.mjs
@@ -385,9 +391,17 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_creche_runtime.wasm
       - name: Stage independent product trees
         run: |
-          rm -rf target/book-product target/creche-product
+          rm -rf target/pages-root target/book-product target/creche-product
+          scripts/ci/stage-pages-root.sh target/pages-root
           scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
           scripts/ci/stage-creche-product.sh target/conduit_creche_runtime.wasm target/creche-product target/creche-release-artifacts
+      - name: Upload the independent Pages root artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduit-pages-root
+          path: target/pages-root
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload the independent Book artifact
         uses: actions/upload-artifact@v4
         with:
@@ -412,6 +426,11 @@ jobs:
       actions: read
       contents: read
     steps:
+      - name: Download the independent Pages root artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-pages-root
+          path: target/pages-site
       - name: Download the independent Book artifact
         uses: actions/download-artifact@v6
         with:
@@ -426,7 +445,9 @@ jobs:
         run: |
           test "$(find target/pages-site/book -type f | wc -l)" -eq 42
           test "$(find target/pages-site/creche -type f | wc -l)" -eq 74
-          test "$(find target/pages-site -type f | wc -l)" -eq 116
+          actual=$(find target/pages-site -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)
+          expected=$(printf '%s\n' book creche index.html site.css | LC_ALL=C sort)
+          test "$actual" = "$expected"
           touch target/pages-site/.nojekyll
       - name: Upload the combined Pages carrier
         uses: actions/upload-pages-artifact@v5
@@ -440,7 +461,7 @@ jobs:
     timeout-minutes: 5
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}book/
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       actions: read
       contents: read
@@ -449,6 +470,6 @@ jobs:
     steps:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
-      - name: Deploy Book and Crèche
+      - name: Deploy Conduit Pages
         id: deployment
         uses: actions/deploy-pages@v5

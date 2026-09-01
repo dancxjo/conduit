@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <script>
-    if (/\/(?:birth|first-host|physical-host|graduate)\/(?:index\.html)?$/.test(location.pathname)) {
+    if (/\/creche$/.test(location.pathname)) {
+      document.write('<base href="./creche/">');
+    } else if (/\/(?:birth|first-host|physical-host|graduate)\/(?:index\.html)?$/.test(location.pathname)) {
       document.write('<base href="../">');
     }
   </script>
@@ -13,7 +15,7 @@
   <link rel="stylesheet" href="./creche.css">
 </head>
 <body>
-  <header class="masthead"><a href="/">conduit</a><strong>Crèche</strong><span id="host-state" role="status">Starting browser Host…</span></header>
+  <header class="masthead"><a href="/conduit" aria-label="Conduit home">conduit</a><strong>Crèche</strong><span id="host-state" role="status">Starting browser Host…</span></header>
   <main>
     <header class="introduction"><p class="eyebrow">Independent Body birth and provisioning</p><h1>Birth a Body</h1><p>The Crèche is temporary help for creating a durable computer. Its controls are not lifecycle truth.</p></header>
     <nav class="creche-steps" aria-label="Crèche workflow"></nav>

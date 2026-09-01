@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Conduit makes one logical computer, a Body, from one or many physical and virtual computers.">
+  <title>Conduit · The Body is the computer</title>
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="wordmark" href="/conduit" aria-label="Conduit home">conduit</a>
+    <nav aria-label="Primary">
+      <a href="/conduit/book">Book</a>
+      <a href="/conduit/creche">Crèche</a>
+      <a href="https://github.com/dancxjo/conduit">Source</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">The Body is the computer.</p>
+      <h1 id="hero-title">One logical computer.<br>One machine or many.</h1>
+      <p class="lede">Conduit lets you make a <strong>Body</strong>, one logical computer, from the physical and virtual computers you actually have. A Body can be one multicore machine or a changing collection of browsers, laptops, VMs, Raspberry Pis, microcontrollers, and other Hosts.</p>
+      <p class="lede secondary">Its programs are <strong>Forms</strong>: semantic graphs that describe what should happen without welding that meaning to the machines that happen to realize it now.</p>
+      <div class="hero-actions">
+        <a class="primary-action" href="/conduit/book">Learn Conduit</a>
+        <a class="secondary-action" href="/conduit/creche">Birth a Body</a>
+      </div>
+    </section>
+
+    <section class="body-contrast" aria-labelledby="body-contrast-title">
+      <div class="section-heading">
+        <p class="eyebrow">Same idea, different scale</p>
+        <h2 id="body-contrast-title">The machine boundary is not the computer boundary.</h2>
+      </div>
+      <div class="body-examples">
+        <article class="body-card">
+          <header><span class="body-mark" aria-hidden="true">◆</span><div><p class="card-kicker">Body A</p><h3>One physical computer</h3></div></header>
+          <div class="machine single-machine" aria-label="One machine with processor lanes, memory, storage, display, and devices"><span>8 CPU lanes</span><span>memory</span><span>storage</span><span>display + devices</span></div>
+          <p>Conduit can schedule several Forms against one machine's finite resources. This is the operating-system-shaped case.</p>
+        </article>
+        <article class="body-card">
+          <header><span class="body-mark" aria-hidden="true">◆</span><div><p class="card-kicker">Body B</p><h3>Several unlike computers</h3></div></header>
+          <div class="machine-grid" aria-label="Browser, laptop, virtual machine, and Pico participating in one Body"><span>browser</span><span>laptop</span><span>VM</span><span>Pico</span></div>
+          <p>The same scheduling model can place compatible work across Hosts and admitted Lines. Distribution changes topology and cost, not the identity of the computer.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="model" aria-labelledby="model-title">
+      <div class="section-heading"><p class="eyebrow">A small mental model</p><h2 id="model-title">Programs are Forms. The Body carries the work.</h2></div>
+      <dl class="concepts">
+        <div><dt>Form</dt><dd>A program: connected semantic work.</dd></div>
+        <div><dt>Body</dt><dd>The logical computer, made from one Host or many.</dd></div>
+        <div><dt>Host</dt><dd>One current running environment offering finite machinery.</dd></div>
+        <div><dt>Plan</dt><dd>One exact admitted realization of the Body's current work.</dd></div>
+      </dl>
+      <p class="model-copy">A Body may run many Forms. The architectural direction is one logical scheduler per Body, planning all current work together rather than creating a separate scheduling universe for every program.</p>
+    </section>
+
+    <section class="doors" aria-labelledby="doors-title">
+      <div class="section-heading"><p class="eyebrow">Choose a door</p><h2 id="doors-title">Go as deep as you want.</h2></div>
+      <div class="door-grid">
+        <a class="door" href="/conduit/book"><span>Learn</span><strong>The Book</strong><p>Build the mental model by running real Forms in the browser.</p></a>
+        <a class="door" href="/conduit/creche"><span>Begin</span><strong>The Crèche</strong><p>Birth a Body and prepare or attach its first machinery.</p></a>
+        <a class="door" href="https://github.com/dancxjo/conduit"><span>Build</span><strong>Source</strong><p>Read the repository, code, architecture, and contribution guide.</p></a>
+        <a class="door" href="https://github.com/dancxjo/conduit/blob/main/STATUS.md"><span>Verify</span><strong>What works today?</strong><p>See the exact accepted proof boundary before making a capability claim.</p></a>
+      </div>
+      <p class="patchbay-note"><strong>Patchbay</strong> is Conduit's visual application for working with Forms, Bodies, Plans, Plays, Hosts, and evidence. Its browser deployment is still converging on the generic browser Host, so this front door does not advertise a premature public route.</p>
+    </section>
+  </main>
+
+  <footer><p>Conduit is experimental. The site explains the direction; <a href="https://github.com/dancxjo/conduit/blob/main/STATUS.md">STATUS.md</a> says what has actually been proved.</p></footer>
+</body>
+</html>
