@@ -7,7 +7,7 @@ use conduit_planner::{
 
 #[test]
 fn phosphor_theme_is_fixed_bounded_and_matches_the_shared_palette() {
-    assert_eq!(PHOSPHOR_THEME.identity, "conduit.patchbay/phosphor@1");
+    assert_eq!(PHOSPHOR_THEME.identity, "conduit.presentation/phosphor@1");
     assert_eq!(PHOSPHOR_THEME.background.packed_rgb(), 0x0005_070B);
     assert_eq!(PHOSPHOR_THEME.surface.packed_rgb(), 0x0009_0D16);
     assert_eq!(PHOSPHOR_THEME.structure_primary.packed_rgb(), 0x000D_D8F6);
@@ -37,7 +37,7 @@ fn deuteranopia_simulation_keeps_focus_and_emphasis_distinct_from_the_field() {
 #[test]
 fn phosphor_decoration_is_a_truthful_realization_of_the_dos_shell_palette_preference() {
     let style = dos_shell_style();
-    assert_eq!(PHOSPHOR_THEME.identity, "conduit.patchbay/phosphor@1");
+    assert_eq!(PHOSPHOR_THEME.identity, "conduit.presentation/phosphor@1");
     assert!(style.preferences.contains(&PlannerPreference::PreferEqual {
         fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
             PRESENTATION_PALETTE_CLASS,

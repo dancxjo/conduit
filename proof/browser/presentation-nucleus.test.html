@@ -8,6 +8,7 @@ import {
   instantiatePresentationNucleus,
   manifestPresentationNucleus,
 } from "./presentation-nucleus-runtime.mjs";
+import { manifestApplicationView } from "../../targets/browser/host/assets/application-presentation.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -33,6 +34,25 @@ try {
   assert(proof.structured.variant === "passed", "assessment outcome remains a typed variant");
   assert(proof.structured.quantityUnit === "ratio/percent", "score retains its quantity unit");
   assert(proof.structured.quantity === 88, "score retains its signed magnitude");
+  assert(proof.application.view.revision === 1, "application view revision remains exact");
+  assert(root.dataset.applicationTheme === "conduit.presentation/phosphor@1", "browser Host consumes the shared renderer-neutral theme");
+  const continueButton = root.querySelector("[data-application-action='nucleus.continue']");
+  continueButton.click();
+  const applicationEvent = proof.application.nextEvent();
+  assert(applicationEvent.action === "nucleus.continue", "browser event returns through the bounded action identity");
+  assert(applicationEvent.encoded.length < 64, "browser event is one finite encoded protocol value");
+  for (let index = 0; index < 9; index += 1) continueButton.click();
+  assert(proof.application.lastRefusal() === "queue-pressure", "browser event pressure refuses distinctly");
+  while (proof.application.nextEvent()) {}
+  const acceptedMarkup = root.innerHTML;
+  let malformedRefusal = "";
+  try {
+    manifestApplicationView(Uint8Array.of(2), root);
+  } catch (error) {
+    malformedRefusal = error.code;
+  }
+  assert(malformedRefusal === "unsupported-version", "unsupported application view version refuses distinctly");
+  assert(root.innerHTML === acceptedMarkup, "refused application view does not partially mutate the DOM");
   let missingContext = false;
   try {
     manifestPresentationNucleus(api, null);
@@ -45,6 +65,17 @@ try {
     graphicsKinds: proof.graphics.map((command) => command.kind),
     text: proof.text,
     structured: proof.structured,
+    application: {
+      revision: proof.application.view.revision,
+      theme: root.dataset.applicationTheme,
+      heading: root.querySelector("[data-application-key=heading]").textContent,
+      action: applicationEvent.action,
+      encodedEventBytes: applicationEvent.encoded.length,
+      queuedEvents: proof.application.queuedEvents(),
+      pressureRefusal: proof.application.lastRefusal(),
+      malformedRefusal,
+      unchangedAfterRefusal: root.innerHTML === acceptedMarkup,
+    },
     missingContext,
   };
   document.querySelector("#result").textContent = "ok";

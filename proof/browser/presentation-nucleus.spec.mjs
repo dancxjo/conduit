@@ -14,6 +14,9 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   await expect(page.locator("#nucleus [data-graphics-kind=text]")).toHaveText("ready");
   await expect(page.locator("#nucleus [data-graphics-kind=icon]")).toHaveAttribute("role", "img");
   await expect(page.locator("#nucleus [data-presentation-kind=text]")).toHaveText("STRASSE");
+  await expect(page.locator("#nucleus [data-application-component=shell]")).toHaveCount(1);
+  await expect(page.locator("#nucleus")).toHaveAttribute("data-application-theme", "conduit.presentation/phosphor@1");
+  await expect(page.locator("#nucleus [data-application-key=heading]")).toHaveText("Browser Host presentation");
   const structured = page.locator("#nucleus [data-presentation-kind=structured-info]");
   await expect(structured).toHaveAttribute("data-schema", "education/feedback@1");
   await expect(structured).toHaveAttribute("data-variant", "passed");
@@ -29,6 +32,17 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
       variant: "passed",
       quantityUnit: "ratio/percent",
       quantity: 88,
+    },
+    application: {
+      revision: 1,
+      theme: "conduit.presentation/phosphor@1",
+      heading: "Browser Host presentation",
+      action: "nucleus.continue",
+      encodedEventBytes: 25,
+      queuedEvents: 0,
+      pressureRefusal: "queue-pressure",
+      malformedRefusal: "unsupported-version",
+      unchangedAfterRefusal: true,
     },
     missingContext: true,
   });

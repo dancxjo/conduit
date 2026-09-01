@@ -11,8 +11,9 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_presentation::{
-    GraphicsScene, LayoutFrame, PresentationComposition, MAX_LAYOUT_FRAME_BYTES,
-    MAX_PRESENTATION_COMPOSITION_BYTES,
+    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationView,
+    ApplicationViewNode, GraphicsScene, LayoutFrame, PresentationComposition,
+    MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
 };
 use std::collections::BTreeMap;
 
@@ -88,6 +89,7 @@ type NucleusScheduler = FixedScheduler<
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrowserNucleusProof {
+    pub application_view: ApplicationView,
     pub graphics: GraphicsScene,
     pub layout: LayoutFrame,
     pub text: String,
@@ -110,6 +112,7 @@ pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
     )
     .map_err(|error| format!("project browser structured presentation: {error:?}"))?;
     Ok(BrowserNucleusProof {
+        application_view: tiny_application_view()?,
         graphics: GraphicsScene::decode(&graphics_bytes)
             .map_err(|error| format!("decode browser graphics manifestation: {error:?}"))?,
         layout: LayoutFrame::decode(&layout_bytes)
@@ -121,6 +124,49 @@ pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
         structured,
         structured_plan_id,
     })
+}
+
+fn tiny_application_view() -> Result<ApplicationView, String> {
+    let view = ApplicationView {
+        revision: 1,
+        actions: vec![ApplicationAction {
+            id: "nucleus.continue".into(),
+            event: ApplicationEventKind::Activate,
+        }],
+        nodes: vec![
+            ApplicationViewNode {
+                parent: None,
+                component: ApplicationComponent::Shell,
+                key: "nucleus".into(),
+                text: String::new(),
+                action: None,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::Heading,
+                key: "heading".into(),
+                text: "Browser Host presentation".into(),
+                action: None,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::Paragraph,
+                key: "explanation".into(),
+                text: "A finite application view, not raw HTML.".into(),
+                action: None,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::Button,
+                key: "continue".into(),
+                text: "Continue".into(),
+                action: Some(0),
+            },
+        ],
+    };
+    view.validate()
+        .map_err(|error| format!("validate browser application view: {error:?}"))?;
+    Ok(view)
 }
 
 fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core::PlanId), String> {

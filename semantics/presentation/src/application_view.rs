@@ -1,0 +1,445 @@
+//! Finite renderer-neutral application views and browser-independent actions.
+
+use alloc::collections::VecDeque;
+use alloc::{string::String, vec::Vec};
+
+pub const APPLICATION_VIEW_VERSION: u8 = 1;
+pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
+pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
+pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
+pub const MAX_APPLICATION_VIEW_TEXT_BYTES: usize = 256;
+pub const MAX_APPLICATION_ACTIONS: usize = 16;
+pub const MAX_APPLICATION_ACTION_ID_BYTES: usize = 48;
+pub const MAX_APPLICATION_EVENT_BYTES: usize = 512;
+pub const MAX_APPLICATION_EVENT_ENCODED_BYTES: usize =
+    9 + MAX_APPLICATION_ACTION_ID_BYTES + MAX_APPLICATION_EVENT_BYTES;
+pub const MAX_APPLICATION_EVENT_QUEUE: usize = 8;
+pub const MAX_APPLICATION_VIEW_BYTES: usize = 16_384;
+/// Phase-one views admit no application-selected external resources.
+pub const MAX_APPLICATION_VIEW_RESOURCES: usize = 0;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum ApplicationComponent {
+    Shell = 1,
+    Masthead = 2,
+    Main = 3,
+    Stack = 4,
+    Panel = 5,
+    Heading = 6,
+    Paragraph = 7,
+    Button = 8,
+    Status = 9,
+    Disclosure = 10,
+    PatchbayCanvas = 11,
+    Navigation = 12,
+    Code = 13,
+    ActionGroup = 14,
+    TextInput = 15,
+    Select = 16,
+    TextArea = 17,
+    Table = 18,
+    Grid = 19,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum ApplicationEventKind {
+    Activate = 1,
+    Change = 2,
+    Input = 3,
+    Toggle = 4,
+    Submit = 5,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApplicationAction {
+    pub id: String,
+    pub event: ApplicationEventKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApplicationViewNode {
+    pub parent: Option<u8>,
+    pub component: ApplicationComponent,
+    pub key: String,
+    pub text: String,
+    pub action: Option<u8>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApplicationView {
+    pub revision: u32,
+    pub nodes: Vec<ApplicationViewNode>,
+    pub actions: Vec<ApplicationAction>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ApplicationViewRefusal {
+    Empty,
+    TooManyNodes,
+    TooDeep,
+    DuplicateKey,
+    UnknownParent,
+    TextTooLong,
+    TooManyActions,
+    ActionIdTooLong,
+    DuplicateAction,
+    UnknownAction,
+    MalformedEncoding,
+    OversizedEncoding,
+    UnsupportedVersion,
+    StaleRevision,
+    EventTooLarge,
+    QueuePressure,
+}
+
+impl ApplicationView {
+    pub fn validate(&self) -> Result<(), ApplicationViewRefusal> {
+        if self.nodes.is_empty() {
+            return Err(ApplicationViewRefusal::Empty);
+        }
+        if self.nodes.len() > MAX_APPLICATION_VIEW_NODES {
+            return Err(ApplicationViewRefusal::TooManyNodes);
+        }
+        if self.actions.len() > MAX_APPLICATION_ACTIONS {
+            return Err(ApplicationViewRefusal::TooManyActions);
+        }
+        for (index, node) in self.nodes.iter().enumerate() {
+            if node.key.is_empty()
+                || node.key.len() > MAX_APPLICATION_VIEW_KEY_BYTES
+                || node.text.len() > MAX_APPLICATION_VIEW_TEXT_BYTES
+            {
+                return Err(ApplicationViewRefusal::TextTooLong);
+            }
+            if self.nodes[..index]
+                .iter()
+                .any(|other| other.key == node.key)
+            {
+                return Err(ApplicationViewRefusal::DuplicateKey);
+            }
+            let depth = match node.parent {
+                None if index == 0 => 1,
+                None => return Err(ApplicationViewRefusal::UnknownParent),
+                Some(parent) if usize::from(parent) < index => self.depth(usize::from(parent))? + 1,
+                _ => return Err(ApplicationViewRefusal::UnknownParent),
+            };
+            if depth > MAX_APPLICATION_VIEW_DEPTH {
+                return Err(ApplicationViewRefusal::TooDeep);
+            }
+            if node
+                .action
+                .is_some_and(|action| usize::from(action) >= self.actions.len())
+            {
+                return Err(ApplicationViewRefusal::UnknownAction);
+            }
+        }
+        for (index, action) in self.actions.iter().enumerate() {
+            if action.id.is_empty() || action.id.len() > MAX_APPLICATION_ACTION_ID_BYTES {
+                return Err(ApplicationViewRefusal::ActionIdTooLong);
+            }
+            if self.actions[..index]
+                .iter()
+                .any(|other| other.id == action.id)
+            {
+                return Err(ApplicationViewRefusal::DuplicateAction);
+            }
+        }
+        Ok(())
+    }
+
+    fn depth(&self, mut index: usize) -> Result<usize, ApplicationViewRefusal> {
+        let mut depth = 1;
+        while let Some(parent) = self
+            .nodes
+            .get(index)
+            .ok_or(ApplicationViewRefusal::UnknownParent)?
+            .parent
+        {
+            depth += 1;
+            index = usize::from(parent);
+            if depth > MAX_APPLICATION_VIEW_DEPTH {
+                return Err(ApplicationViewRefusal::TooDeep);
+            }
+        }
+        Ok(depth)
+    }
+
+    pub fn encode(&self) -> Result<Vec<u8>, ApplicationViewRefusal> {
+        self.validate()?;
+        let mut out = Vec::with_capacity(8 + self.nodes.len() * 16);
+        out.push(APPLICATION_VIEW_VERSION);
+        out.extend_from_slice(&self.revision.to_le_bytes());
+        out.push(self.nodes.len() as u8);
+        out.push(self.actions.len() as u8);
+        for action in &self.actions {
+            out.push(action.event as u8);
+            out.push(action.id.len() as u8);
+            out.extend_from_slice(action.id.as_bytes());
+        }
+        for node in &self.nodes {
+            out.push(node.parent.unwrap_or(u8::MAX));
+            out.push(node.component as u8);
+            out.push(node.action.unwrap_or(u8::MAX));
+            out.push(node.key.len() as u8);
+            out.extend_from_slice(&(node.text.len() as u16).to_le_bytes());
+            out.extend_from_slice(node.key.as_bytes());
+            out.extend_from_slice(node.text.as_bytes());
+        }
+        if out.len() > MAX_APPLICATION_VIEW_BYTES {
+            return Err(ApplicationViewRefusal::OversizedEncoding);
+        }
+        Ok(out)
+    }
+
+    pub fn decode(encoded: &[u8]) -> Result<Self, ApplicationViewRefusal> {
+        if encoded.len() > MAX_APPLICATION_VIEW_BYTES {
+            return Err(ApplicationViewRefusal::OversizedEncoding);
+        }
+        let mut cursor = Cursor::new(encoded);
+        if cursor.byte()? != APPLICATION_VIEW_VERSION {
+            return Err(ApplicationViewRefusal::UnsupportedVersion);
+        }
+        let revision = cursor.u32()?;
+        let node_count = usize::from(cursor.byte()?);
+        let action_count = usize::from(cursor.byte()?);
+        if node_count > MAX_APPLICATION_VIEW_NODES {
+            return Err(ApplicationViewRefusal::TooManyNodes);
+        }
+        if action_count > MAX_APPLICATION_ACTIONS {
+            return Err(ApplicationViewRefusal::TooManyActions);
+        }
+        let mut actions = Vec::with_capacity(action_count);
+        for _ in 0..action_count {
+            let event = decode_event_kind(cursor.byte()?)?;
+            let length = usize::from(cursor.byte()?);
+            actions.push(ApplicationAction {
+                id: cursor.text(length)?.into(),
+                event,
+            });
+        }
+        let mut nodes = Vec::with_capacity(node_count);
+        for _ in 0..node_count {
+            let parent = match cursor.byte()? {
+                u8::MAX => None,
+                value => Some(value),
+            };
+            let component = decode_component(cursor.byte()?)?;
+            let action = match cursor.byte()? {
+                u8::MAX => None,
+                value => Some(value),
+            };
+            let key_length = usize::from(cursor.byte()?);
+            let text_length = usize::from(cursor.u16()?);
+            nodes.push(ApplicationViewNode {
+                parent,
+                component,
+                action,
+                key: cursor.text(key_length)?.into(),
+                text: cursor.text(text_length)?.into(),
+            });
+        }
+        if !cursor.complete() {
+            return Err(ApplicationViewRefusal::MalformedEncoding);
+        }
+        let view = Self {
+            revision,
+            nodes,
+            actions,
+        };
+        view.validate()?;
+        Ok(view)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApplicationEvent {
+    pub revision: u32,
+    pub action: String,
+    pub kind: ApplicationEventKind,
+    pub value: Vec<u8>,
+}
+
+impl ApplicationEvent {
+    pub fn validate(&self, view: &ApplicationView) -> Result<(), ApplicationViewRefusal> {
+        if self.revision != view.revision {
+            return Err(ApplicationViewRefusal::StaleRevision);
+        }
+        if self.value.len() > MAX_APPLICATION_EVENT_BYTES {
+            return Err(ApplicationViewRefusal::EventTooLarge);
+        }
+        let action = view
+            .actions
+            .iter()
+            .find(|candidate| candidate.id == self.action)
+            .ok_or(ApplicationViewRefusal::UnknownAction)?;
+        if action.event != self.kind {
+            return Err(ApplicationViewRefusal::UnknownAction);
+        }
+        Ok(())
+    }
+
+    pub fn encode(&self, view: &ApplicationView) -> Result<Vec<u8>, ApplicationViewRefusal> {
+        self.validate(view)?;
+        let mut encoded = Vec::with_capacity(9 + self.action.len() + self.value.len());
+        encoded.push(APPLICATION_VIEW_VERSION);
+        encoded.extend_from_slice(&self.revision.to_le_bytes());
+        encoded.push(self.kind as u8);
+        encoded.push(self.action.len() as u8);
+        encoded.extend_from_slice(&(self.value.len() as u16).to_le_bytes());
+        encoded.extend_from_slice(self.action.as_bytes());
+        encoded.extend_from_slice(&self.value);
+        Ok(encoded)
+    }
+
+    pub fn decode(encoded: &[u8], view: &ApplicationView) -> Result<Self, ApplicationViewRefusal> {
+        if encoded.len() > MAX_APPLICATION_EVENT_ENCODED_BYTES {
+            return Err(ApplicationViewRefusal::EventTooLarge);
+        }
+        let mut cursor = Cursor::new(encoded);
+        if cursor.byte()? != APPLICATION_VIEW_VERSION {
+            return Err(ApplicationViewRefusal::UnsupportedVersion);
+        }
+        let revision = cursor.u32()?;
+        let kind = decode_event_kind(cursor.byte()?)?;
+        let action_length = usize::from(cursor.byte()?);
+        let value_length = usize::from(cursor.u16()?);
+        if action_length == 0 || action_length > MAX_APPLICATION_ACTION_ID_BYTES {
+            return Err(ApplicationViewRefusal::ActionIdTooLong);
+        }
+        if value_length > MAX_APPLICATION_EVENT_BYTES {
+            return Err(ApplicationViewRefusal::EventTooLarge);
+        }
+        let action = cursor.text(action_length)?.into();
+        let value = cursor.bytes(value_length)?.to_vec();
+        if !cursor.complete() {
+            return Err(ApplicationViewRefusal::MalformedEncoding);
+        }
+        let event = Self {
+            revision,
+            action,
+            kind,
+            value,
+        };
+        event.validate(view)?;
+        Ok(event)
+    }
+}
+
+#[derive(Debug)]
+pub struct ApplicationEventQueue {
+    capacity: usize,
+    queued: VecDeque<ApplicationEvent>,
+}
+
+impl ApplicationEventQueue {
+    pub fn new(capacity: usize) -> Result<Self, ApplicationViewRefusal> {
+        if capacity == 0 || capacity > MAX_APPLICATION_EVENT_QUEUE {
+            return Err(ApplicationViewRefusal::QueuePressure);
+        }
+        Ok(Self {
+            capacity,
+            queued: VecDeque::with_capacity(capacity),
+        })
+    }
+
+    pub fn push(
+        &mut self,
+        event: ApplicationEvent,
+        view: &ApplicationView,
+    ) -> Result<(), ApplicationViewRefusal> {
+        event.validate(view)?;
+        if self.queued.len() == self.capacity {
+            return Err(ApplicationViewRefusal::QueuePressure);
+        }
+        self.queued.push_back(event);
+        Ok(())
+    }
+
+    pub fn pop(&mut self) -> Option<ApplicationEvent> {
+        self.queued.pop_front()
+    }
+}
+
+struct Cursor<'a> {
+    encoded: &'a [u8],
+    offset: usize,
+}
+
+impl<'a> Cursor<'a> {
+    const fn new(encoded: &'a [u8]) -> Self {
+        Self { encoded, offset: 0 }
+    }
+    fn bytes(&mut self, length: usize) -> Result<&'a [u8], ApplicationViewRefusal> {
+        let end = self
+            .offset
+            .checked_add(length)
+            .ok_or(ApplicationViewRefusal::MalformedEncoding)?;
+        let value = self
+            .encoded
+            .get(self.offset..end)
+            .ok_or(ApplicationViewRefusal::MalformedEncoding)?;
+        self.offset = end;
+        Ok(value)
+    }
+    fn byte(&mut self) -> Result<u8, ApplicationViewRefusal> {
+        Ok(self.bytes(1)?[0])
+    }
+    fn u16(&mut self) -> Result<u16, ApplicationViewRefusal> {
+        Ok(u16::from_le_bytes(
+            self.bytes(2)?
+                .try_into()
+                .map_err(|_| ApplicationViewRefusal::MalformedEncoding)?,
+        ))
+    }
+    fn u32(&mut self) -> Result<u32, ApplicationViewRefusal> {
+        Ok(u32::from_le_bytes(
+            self.bytes(4)?
+                .try_into()
+                .map_err(|_| ApplicationViewRefusal::MalformedEncoding)?,
+        ))
+    }
+    fn text(&mut self, length: usize) -> Result<&'a str, ApplicationViewRefusal> {
+        core::str::from_utf8(self.bytes(length)?)
+            .map_err(|_| ApplicationViewRefusal::MalformedEncoding)
+    }
+    fn complete(&self) -> bool {
+        self.offset == self.encoded.len()
+    }
+}
+
+fn decode_event_kind(value: u8) -> Result<ApplicationEventKind, ApplicationViewRefusal> {
+    match value {
+        1 => Ok(ApplicationEventKind::Activate),
+        2 => Ok(ApplicationEventKind::Change),
+        3 => Ok(ApplicationEventKind::Input),
+        4 => Ok(ApplicationEventKind::Toggle),
+        5 => Ok(ApplicationEventKind::Submit),
+        _ => Err(ApplicationViewRefusal::MalformedEncoding),
+    }
+}
+
+fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRefusal> {
+    match value {
+        1 => Ok(ApplicationComponent::Shell),
+        2 => Ok(ApplicationComponent::Masthead),
+        3 => Ok(ApplicationComponent::Main),
+        4 => Ok(ApplicationComponent::Stack),
+        5 => Ok(ApplicationComponent::Panel),
+        6 => Ok(ApplicationComponent::Heading),
+        7 => Ok(ApplicationComponent::Paragraph),
+        8 => Ok(ApplicationComponent::Button),
+        9 => Ok(ApplicationComponent::Status),
+        10 => Ok(ApplicationComponent::Disclosure),
+        11 => Ok(ApplicationComponent::PatchbayCanvas),
+        12 => Ok(ApplicationComponent::Navigation),
+        13 => Ok(ApplicationComponent::Code),
+        14 => Ok(ApplicationComponent::ActionGroup),
+        15 => Ok(ApplicationComponent::TextInput),
+        16 => Ok(ApplicationComponent::Select),
+        17 => Ok(ApplicationComponent::TextArea),
+        18 => Ok(ApplicationComponent::Table),
+        19 => Ok(ApplicationComponent::Grid),
+        _ => Err(ApplicationViewRefusal::MalformedEncoding),
+    }
+}
