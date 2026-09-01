@@ -1,6 +1,6 @@
 use std::{fs, path::Path, process::Command};
 
-use conduit_host_esp32_fabrication::Esp32FamilyTarget;
+use conduit_host_esp32_fabrication::{Esp32FamilyTarget, NATIVE_SPORE_REGION_START};
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
@@ -59,9 +59,9 @@ pub(super) fn write(
         .arg(&output);
     require_success(command, "ESP32 generic browser release packaging")?;
     let bytes = fs::metadata(&output)?.len();
-    if bytes == 0 || bytes > 4 * 1024 * 1024 {
+    if bytes == 0 || bytes > NATIVE_SPORE_REGION_START {
         return Err(format!(
-            "ESP32 generic browser release {} violates its 4 MiB artifact bound",
+            "ESP32 generic browser release {} overlaps the reserved native Spore sector",
             output.display()
         )
         .into());

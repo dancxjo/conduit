@@ -1,4 +1,4 @@
-import { parseEsp32Image, Esp32ImageRefusal, ESP32_IMAGE_BOUNDS } from "./image.mjs";
+import { parseEsp32Image, sha256Bytes, Esp32ImageRefusal, ESP32_IMAGE_BOUNDS } from "./image.mjs";
 import { deployEsp32Rom, Esp32RomRefusal, ESP32_ROM_TARGETS, requiredEsp32Transfers } from "./rom-loader.mjs";
 import { enterEsp32RomLoader, Esp32ResetRefusal, ESP32_RESET_OPERATION_COUNTS } from "./reset.mjs";
 
@@ -111,6 +111,8 @@ export function createEsp32BrowserDeploymentAdapter({ base, cryptoApi = globalTh
     chip_magic: null,
     image_id: null,
     image_content_id: null,
+    spore_id: null,
+    artifact_content_id: null,
     host_id: null,
     boot_id: null,
     resource_handle: null,
@@ -142,6 +144,8 @@ export function createEsp32BrowserDeploymentAdapter({ base, cryptoApi = globalTh
     targetId,
     imageId,
     imageContentId,
+    sporeId,
+    artifactContentId,
     segments,
     resetStrategy = "classic",
     explicitAction = false,
@@ -152,6 +156,8 @@ export function createEsp32BrowserDeploymentAdapter({ base, cryptoApi = globalTh
     requireIdentity(deploymentOperationId, "deployment operation identity");
     requireIdentity(imageId, "IMAGE identity");
     requireIdentity(imageContentId, "IMAGE content identity");
+    requireIdentity(sporeId, "Spore identity");
+    requireIdentity(artifactContentId, "Spore artifact content identity");
     if (!ESP32_ROM_TARGETS[targetId]) refuse("WrongTarget", "selected ESP32 target is unsupported");
     if (!(resetStrategy in ESP32_RESET_OPERATION_COUNTS)) refuse("ResetStrategy", "selected reset strategy is unsupported");
 
@@ -164,6 +170,13 @@ export function createEsp32BrowserDeploymentAdapter({ base, cryptoApi = globalTh
     });
     if (image.contentId !== imageContentId) {
       refuse("ContentIdentity", "selected IMAGE segments do not match their sealed SHA-256 identity");
+    }
+    if (image.segments.length !== 1 || image.segments[0].offset !== 0) {
+      refuse("ArtifactLayout", "deployable ESP32 Spore must be one merged image at flash offset zero");
+    }
+    const observedArtifactContentId = await sha256Bytes(image.segments[0].bytes, cryptoApi);
+    if (observedArtifactContentId !== artifactContentId) {
+      refuse("ArtifactContentIdentity", "deployable ESP32 Spore bytes do not match their sealed SHA-256 identity");
     }
     const required = requiredEsp32Transfers(image);
     const signalOperations = ESP32_RESET_OPERATION_COUNTS[resetStrategy];
@@ -183,6 +196,8 @@ export function createEsp32BrowserDeploymentAdapter({ base, cryptoApi = globalTh
       targetId,
       imageId,
       imageContentId,
+      sporeId,
+      artifactContentId,
       hostId: identity.hostId,
       bootId: identity.bootId,
       resourceHandle: identity.resourceHandle,
@@ -202,6 +217,8 @@ export function createEsp32BrowserDeploymentAdapter({ base, cryptoApi = globalTh
       target_id: targetId,
       image_id: imageId,
       image_content_id: imageContentId,
+      spore_id: sporeId,
+      artifact_content_id: artifactContentId,
       host_id: identity.hostId,
       boot_id: identity.bootId,
       resource_handle: identity.resourceHandle,

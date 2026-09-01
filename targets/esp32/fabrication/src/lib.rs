@@ -11,7 +11,10 @@ pub use descriptor::{
     esp32_descriptor_binding, validate_esp32_binding, validate_esp32_descriptor,
     validate_esp32_target, Esp32BoardDescriptor, Esp32DescriptorDiagnostic,
 };
-pub use family::{Esp32FamilyTarget, Esp32FamilyTargetFacts};
+pub use family::{
+    Esp32FamilyTarget, Esp32FamilyTargetFacts, NATIVE_SPORE_FLASH_BYTES, NATIVE_SPORE_REGION_BYTES,
+    NATIVE_SPORE_REGION_START,
+};
 pub use wroom32::hw463_esp_wroom_32_sample;
 
 #[cfg(test)]
