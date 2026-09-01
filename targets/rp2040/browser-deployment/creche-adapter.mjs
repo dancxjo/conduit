@@ -15,7 +15,7 @@ const PACKAGED_MANIFEST_PATH = new URL(
   "../../../artifacts/pico-w-signal-pico-local.json",
   import.meta.url,
 ).href;
-const BUILD_ID = "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local";
+const BUILD_ID = "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const TARGET = Object.freeze({

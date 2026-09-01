@@ -590,9 +590,9 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
   const first = await prepareOne("A");
   const second = await prepareOne("B");
   expect(first.birth.bodyId).not.toBe(second.birth.bodyId);
-  expect(first.evidence.obtainment.artifact.content_digest).toBe("sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d");
+  expect(first.evidence.obtainment.artifact.content_digest).toBe("sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e");
   expect(first.evidence.obtainment.artifact.content_digest).toBe(second.evidence.obtainment.artifact.content_digest);
-  expect(first.evidence.obtainment.artifact.artifact_id).toBe("conduit-pico-w-signal/pico-local-b7@1");
+  expect(first.evidence.obtainment.artifact.artifact_id).toBe("conduit-pico-w-signal/pico-local-b8@1");
   expect(first.evidence.binding.spore_id).not.toBe(second.evidence.binding.spore_id);
   expect(first.evidence.binding.invitation_id).not.toBe(second.evidence.binding.invitation_id);
   expect(first.evidence.binding.image_content_digest).toBe(second.evidence.binding.image_content_digest);

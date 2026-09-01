@@ -222,7 +222,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
     const selection = {
       targetId: "conduit-target/rp2040-pico-w@1",
       profileId: "pico-local",
-      buildId: "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local",
+      buildId: "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local",
       imageId: "conduit-image/pico-w-signal-b7@1",
       manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
     };
@@ -252,12 +252,12 @@ test("target-owned fabrication returns exact attributable bytes through two loca
   expect(result.packaged).toMatchObject({
     schema: "conduit.rp2040/browser-fabrication-result@1",
     strategy: "packaged-exact",
-    bytes: 773632,
-    content_id: "sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d",
+    bytes: 775168,
+    content_id: "sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e",
     maximum_artifact_bytes: 2097152,
     provenance: {
       mechanism: "packaged-exact",
-      artifact_id: "conduit-pico-w-signal/pico-local-b7@1",
+      artifact_id: "conduit-pico-w-signal/pico-local-b8@1",
       remote_builder: null,
       uploaded_artifact: null,
       cache_fallback: null,
@@ -285,7 +285,7 @@ test("one reviewed IMAGE yields distinct directly plantable Body-bound UF2 spore
       selection: {
         targetId: "conduit-target/rp2040-pico-w@1",
         profileId: "pico-local",
-        buildId: "conduit-pico-w-signal:e6e112f64d6a81d9ad8cf2b031fcaa832f7e8217:thumbv6m-none-eabi:release:pico-local",
+        buildId: "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local",
         imageId: "conduit-image/pico-w-signal-b7@1",
         manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
       },
@@ -319,7 +319,7 @@ test("one reviewed IMAGE yields distinct directly plantable Body-bound UF2 spore
   expect(result.first).toMatchObject({
     schema: "conduit.rp2040/native-body-spore@1",
     format: "uf2",
-    image_content_id: "sha256:b373071c9bf76282457a5f03e59e5d5caaba21e376076b759724434efcf2bc9d",
+    image_content_id: "sha256:11e92a00aa1e1144faacfd25540426e57dd862b172595ef9197da02daf17ef8e",
     spore_id: "spore:a",
     bootstrap_flash_address: 0x101ff000,
   });
