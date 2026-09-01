@@ -399,9 +399,9 @@ jobs:
           path: target/pages-site/creche
       - name: Verify the combined Pages carrier
         run: |
-          test "$(find target/pages-site/book -type f | wc -l)" -eq 12
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 67
-          test "$(find target/pages-site -type f | wc -l)" -eq 79
+          test "$(find target/pages-site/book -type f | wc -l)" -eq 26
+          test "$(find target/pages-site/creche -type f | wc -l)" -eq 71
+          test "$(find target/pages-site -type f | wc -l)" -eq 97
           touch target/pages-site/.nojekyll
       - name: Upload the combined Pages carrier
         uses: actions/upload-pages-artifact@v5
