@@ -4,8 +4,8 @@ import {
   MAX_FLOW_WORKSPACES,
   projectFlowScene,
   reconcileFlowScene,
-} from "/assets/flow-scene.js";
-import { FaceplateNode } from "/assets/flow-faceplate.js";
+} from "./flow-scene.js";
+import { FaceplateNode } from "./flow-faceplate.js";
 
 const React = window.React;
 const ReactDOM = window.ReactDOM;
@@ -19,10 +19,22 @@ const e = React.createElement;
 const ReactFlow = Flow.default || Flow.ReactFlow || Flow;
 let instance = null;
 let root = null;
+const roots = new WeakMap();
 let currentScene = null;
 let arrangeCurrent = null;
 const workspaceIndexKey = "conduit.patchbay.flow/workspaces";
 const nodeTypes = { faceplate: FaceplateNode };
+
+function rootFor(target) {
+  let mounted = roots.get(target);
+  if (!mounted) {
+    mounted = ReactDOM.createRoot
+      ? ReactDOM.createRoot(target)
+      : { render: (tree) => ReactDOM.render(tree, target) };
+    roots.set(target, mounted);
+  }
+  return mounted;
+}
 
 function storageKey(workspaceIdentity) {
   return `conduit.patchbay.flow/${encodeURIComponent(workspaceIdentity)}`;
@@ -150,16 +162,19 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, lens }) {
 }
 
 export function renderFlow(snapshot, handlers) {
-  const target = document.querySelector("#flow-root");
-  if (!root) {
-    root = ReactDOM.createRoot
-      ? ReactDOM.createRoot(target)
-      : { render: (tree) => ReactDOM.render(tree, target) };
-  }
-  root.render(e(Workspace, { snapshot, ...handlers }));
+  const target = handlers.target || document.querySelector("#flow-root");
+  if (!target) throw new Error("Patchbay flow target is unavailable");
+  root = rootFor(target);
+  const { target: _target, ...workspaceHandlers } = handlers;
+  root.render(e(Workspace, { snapshot, ...workspaceHandlers }));
   target.dataset.renderer = "react-flow";
   target.dataset.presentationId = snapshot.presentation.identity;
   target.dataset.presentationRevision = String(snapshot.presentation.revision);
+}
+
+export function renderFlowRefusal(target, message) {
+  rootFor(target).render(e("p", { className: "compact-patchbay-refusal", role: "status" }, message));
+  delete target.dataset.renderer;
 }
 
 export function fitFlow() {

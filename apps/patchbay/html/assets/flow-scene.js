@@ -1,5 +1,5 @@
-import { layoutFlowScene } from "/assets/flow-layout.js";
-import { projectCurrent } from "/assets/portable-navigation.js";
+import { layoutFlowScene } from "./flow-layout.js";
+import { projectCurrent } from "./portable-navigation.js";
 
 export const FLOW_PRESENTATION_SCHEMA = "conduit.patchbay.flow-presentation/v1";
 export const MAX_FLOW_SUBJECTS = 512;
