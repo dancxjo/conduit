@@ -3,7 +3,8 @@ use std::{fs, path::Path};
 use conduit_host_avr_fabrication::{
     APPLICATION_FLASH_BYTES, ARTIFACT_FORMAT, BOARD, BOOTLOADER, BOOTLOADER_PROTOCOL,
     BOOT_REGION_BYTES, BOOT_REGION_START, BUILDER_ADAPTER, CLOCK_HZ, FLASH_BYTES, FQBN, MCU,
-    PACKAGE_ID, PACKAGE_REVISION, RESET_TRANSITION, SRAM_BYTES, TARGET_ID,
+    PACKAGE_ID, PACKAGE_REVISION, RESET_TRANSITION, SPORE_REGION_BYTES, SPORE_REGION_START,
+    SRAM_BYTES, TARGET_ID,
 };
 use serde::Serialize;
 
@@ -49,6 +50,8 @@ struct FlashManifest {
     boot_region_start: u64,
     boot_region_bytes: u64,
     compiled_application_bytes: u64,
+    spore_region_start: u64,
+    spore_region_bytes: u64,
 }
 
 #[derive(Serialize)]
@@ -117,6 +120,8 @@ pub(super) fn run(output: &Path, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             boot_region_start: BOOT_REGION_START,
             boot_region_bytes: BOOT_REGION_BYTES,
             compiled_application_bytes: built.flash_bytes,
+            spore_region_start: SPORE_REGION_START,
+            spore_region_bytes: SPORE_REGION_BYTES,
         },
         artifact: ArtifactManifest {
             path: ARTIFACT_NAME,

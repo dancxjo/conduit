@@ -1,4 +1,5 @@
 #include "../firmware/promicro_brainstem/protocol.h"
+#include "../firmware/promicro_brainstem/embedded_spore.h"
 
 #include <assert.h>
 
@@ -29,4 +30,27 @@ int main() {
   }
   assert(buffer.push('\n') == Request::kOverflow);
   assert(request(buffer, "HELLO\n") == Request::kHello);
+
+  uint8_t spore[conduit::promicro::kSporeRegionBytes];
+  memset(spore, 0xff, sizeof(spore));
+  memcpy(spore, "CONDUIT_SPORE@1", 16);
+  spore[16] = 1;
+  uint16_t cursor = conduit::promicro::kSporeFixedBytes;
+  const char* fields[] = {"spore/one", "image/one", "invitation/one", "body/one"};
+  for (const char* field : fields) {
+    const uint8_t length = static_cast<uint8_t>(strlen(field));
+    spore[cursor++] = length;
+    memcpy(spore + cursor, field, length);
+    cursor += length;
+  }
+  spore[17] = cursor & 0xff;
+  spore[18] = cursor >> 8;
+  const auto read = [&spore](uint16_t offset) { return spore[offset]; };
+  assert(conduit::promicro::embedded_spore_valid(read));
+  conduit::promicro::EmbeddedSporeField body{};
+  assert(conduit::promicro::embedded_spore_field(read, 3, &body));
+  assert(body.length == strlen("body/one"));
+  assert(memcmp(spore + body.offset, "body/one", body.length) == 0);
+  spore[0] = 'X';
+  assert(!conduit::promicro::embedded_spore_valid(read));
 }

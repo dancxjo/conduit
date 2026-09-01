@@ -1,5 +1,5 @@
-import { packageSporeBundle } from "../../../creche-spore-bundle.mjs";
-import { acquireProMicroRelease, validateExternalProgrammerEvidence } from "./image.mjs";
+import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
+import { acquireProMicroRelease, bindAvrBodySpore, validateExternalProgrammerEvidence } from "./image.mjs";
 
 const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
@@ -52,6 +52,7 @@ const declaration = Object.freeze({
     total_bytes: 32_768,
     application_bytes: 28_672,
     boot_region: Object.freeze({ start: 28_672, bytes: 4_096, protected: true }),
+    spore_region: Object.freeze({ start: 27_648, bytes: 1_024, body_bound: true }),
   }),
   sram_bytes: 2_560,
   artifact_format: "intel-hex",
@@ -122,7 +123,7 @@ export function createAvrProMicroCrecheAdapter({ host, externalProgrammer } = {}
     });
   }
 
-  async function bind({ mode, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal }) {
     requireMode(mode, "bind");
     requireCurrent(signal, mode, "bind");
     const release = obtainment?.private;
@@ -143,15 +144,37 @@ export function createAvrProMicroCrecheAdapter({ host, externalProgrammer } = {}
         || prepared.deployment_adapter !== null) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost the exact Pro Micro target, artifact, or external-carrier truth");
       }
-      const download = packageSporeBundle({
+      const nativeSpore = await bindAvrBodySpore(release.bytes, prepared);
+      prepared.invitation_secret.fill(0);
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-pro-micro.hex`;
+      const download = await createNativeSporeDownload({
         prepared,
-        artifact: {
-          layout: Object.freeze({ format: "intel-hex", release: release.manifest }),
-          payloads: [release.bytes],
-        },
-        filename: `${prepared.spore_id.replaceAll(":", "-")}.spore`,
+        bytes: nativeSpore.bytes,
+        contentDigest: nativeSpore.content_id,
+        filename,
+        format: "intel-hex",
+        mediaType: "application/vnd.conduit.intel-hex",
       });
-      return Object.freeze({ prepared, download, evidence: Object.freeze({ ...prepared, invitation_secret: "redacted" }) });
+      return Object.freeze({
+        prepared,
+        nativeSpore,
+        download,
+        evidence: Object.freeze({
+          ...prepared,
+          invitation_secret: "embedded in native HEX; redacted",
+          spore_artifact: Object.freeze({
+            format: nativeSpore.format,
+            filename,
+            bytes: nativeSpore.bytes.byteLength,
+            content_digest: nativeSpore.content_id,
+            image_content_digest: nativeSpore.image_content_id,
+            programmed_bytes: nativeSpore.programmed_bytes,
+            maximum_address: nativeSpore.maximum_address,
+            bootstrap_bytes: nativeSpore.bootstrap_bytes,
+            bootstrap_flash_address: nativeSpore.bootstrap_flash_address,
+          }),
+        }),
+      });
     } finally {
       entropy.fill(0);
     }
@@ -231,6 +254,11 @@ function refuse(mode, operation, terminal, message) {
 
 function readOutput(api) {
   return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len())));
+}
+
+function friendlyFilename(value) {
+  const stem = String(value).normalize("NFKD").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+  return stem || "body";
 }
 
 function outputError(api, operation, code) {

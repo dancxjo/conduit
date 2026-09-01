@@ -12,6 +12,8 @@ pub const MCU: &str = "atmega32u4";
 pub const CLOCK_HZ: u64 = 16_000_000;
 pub const FLASH_BYTES: u64 = 32_768;
 pub const APPLICATION_FLASH_BYTES: u64 = 28_672;
+pub const SPORE_REGION_BYTES: u64 = 1_024;
+pub const SPORE_REGION_START: u64 = APPLICATION_FLASH_BYTES - SPORE_REGION_BYTES;
 pub const BOOT_REGION_START: u64 = APPLICATION_FLASH_BYTES;
 pub const BOOT_REGION_BYTES: u64 = FLASH_BYTES - APPLICATION_FLASH_BYTES;
 pub const SRAM_BYTES: u64 = 2_560;
@@ -21,7 +23,7 @@ pub const BOOTLOADER_PROTOCOL: &str = "avr109";
 pub const RESET_TRANSITION: &str = "1200-baud-touch-then-fresh-port";
 pub const BUILDER_ADAPTER: &str = "conduit-host-avr/build-intel-hex@1";
 pub const FABRICATION_DESCRIPTOR: &str =
-    "sparkfun-pro-micro/atmega32u4/5v/16mhz/caterina-avr109/app-0x0000-0x6fff";
+    "sparkfun-pro-micro/atmega32u4/5v/16mhz/caterina-avr109/app-0x0000-0x6bff/spore-0x6c00-0x6fff";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ProMicroFacts {
@@ -119,5 +121,6 @@ mod tests {
         assert_eq!(target.deployment_adapter, None);
         assert_eq!(target.maxima.static_memory_bytes, SRAM_BYTES);
         assert_eq!(APPLICATION_FLASH_BYTES + BOOT_REGION_BYTES, FLASH_BYTES);
+        assert_eq!(SPORE_REGION_START + SPORE_REGION_BYTES, BOOT_REGION_START);
     }
 }
