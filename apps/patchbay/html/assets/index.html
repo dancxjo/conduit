@@ -21,6 +21,27 @@
     <span class="shell-launchers" role="toolbar" aria-label="Patchbay drawers"><button id="toggle-palette" type="button" aria-expanded="false" aria-controls="palette">Seeds</button><button id="toggle-parts" type="button" aria-expanded="false" aria-controls="parts">Parts</button><button id="toggle-inspector" type="button" aria-expanded="false" aria-controls="inspector">Inspector</button><button id="toggle-truth" type="button" aria-expanded="false" aria-controls="deep-inspection">Exact truth</button><button id="toggle-structured" type="button" aria-expanded="false" aria-controls="structured-navigator">Subjects</button></span>
     <span id="place-controls" class="place-controls" role="toolbar" aria-label="Available Places"></span><span id="aspect-controls" class="lens-controls" role="toolbar" aria-label="Available Aspects"></span><a href="#linear">Linear presentation</a>
   </nav>
+  <section id="body-workbench" class="body-workbench" aria-labelledby="body-workbench-title" hidden>
+    <header class="body-workbench-hero">
+      <div><p class="eyebrow">CURRENT BODY</p><h2 id="body-workbench-title"></h2><p id="body-workbench-status"></p></div>
+      <button id="body-workbench-action" type="button"></button>
+    </header>
+    <nav class="body-workbench-tabs" aria-label="Body workbench">
+      <button type="button" data-workbench-destination="program">Program</button>
+      <button type="button" data-workbench-destination="body">Body</button>
+      <button type="button" data-workbench-destination="history">History</button>
+    </nav>
+    <section id="body-workbench-current" aria-labelledby="body-workbench-current-title">
+      <h3 id="body-workbench-current-title">What is this Body?</h3>
+      <p id="body-workbench-placement"></p><dl></dl>
+      <details><summary>Exact Body and program identity</summary><dl class="body-workbench-exact"></dl></details>
+    </section>
+    <section id="body-workbench-history" aria-labelledby="body-workbench-history-title" hidden>
+      <h3 id="body-workbench-history-title">What has happened to it?</h3>
+      <ol></ol>
+      <details><summary>Linear BODY / SIGNS evidence</summary><ol class="body-workbench-linear"></ol></details>
+    </section>
+  </section>
   <main>
     <div class="workspace" data-layout-regions="finite" data-overflow="scroll-regions">
       <aside id="palette" class="side-panel" aria-labelledby="palette-title" data-region="navigator" data-priority="secondary-context">
