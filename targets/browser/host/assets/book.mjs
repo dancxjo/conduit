@@ -1,6 +1,7 @@
 import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
+import { createBookNavigation } from "./book-navigation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -20,10 +21,12 @@ let pageRoutes = [];
 let patchbaySequence = 0;
 let readingState;
 let admittedRuntimeBytes;
+let navigation;
 
 export async function startApplication(application) {
 try {
   readingState = await openBookReadingState(application.storage);
+  navigation = createBookNavigation(application.presentation, (offset) => renderPage(currentPage + offset, "push"));
   admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
     Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
@@ -91,21 +94,8 @@ function renderPage(index, routeChange = "none") {
   runnerCount = 0;
   chapter.replaceChildren();
   renderMarkdown(guidedPages[index]);
-  chapter.append(createNavigation());
+  navigation.render(currentPage, guidedPages.length, running);
   document.title = (chapter.querySelector("h1")?.textContent ?? "The Book") + " · The Book";
-}
-
-function createNavigation() {
-  const navigation = document.createElement("nav");
-  navigation.className = "book-navigation";
-  navigation.setAttribute("aria-label", "Book pages");
-  const progress = document.createElement("span");
-  progress.className = "book-progress";
-  progress.textContent = "Page " + (currentPage + 1) + " of " + guidedPages.length;
-  const previous = navigationButton("Previous", currentPage === 0, () => renderPage(currentPage - 1, "push"));
-  const next = navigationButton("Next", currentPage === guidedPages.length - 1, () => renderPage(currentPage + 1, "push"));
-  navigation.append(progress, previous, next);
-  return navigation;
 }
 
 function pageRoute(markdown) {
@@ -141,22 +131,9 @@ addEventListener("popstate", () => {
   renderPage(index);
 });
 
-function navigationButton(label, disabled, action) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.textContent = label;
-  button.disabled = disabled;
-  button.addEventListener("click", action);
-  return button;
-}
-
 function setNavigationDisabled(disabled) {
-  for (const button of chapter.querySelectorAll(".book-navigation button")) {
-    button.disabled = disabled || (
-      (button.textContent === "Previous" && currentPage === 0)
-      || (button.textContent === "Next" && currentPage === guidedPages.length - 1)
-    );
-  }
+  if (disabled !== running) throw new Error("Book navigation state is inconsistent");
+  navigation.render(currentPage, guidedPages.length, running);
 }
 
 function renderMarkdown(markdown) {

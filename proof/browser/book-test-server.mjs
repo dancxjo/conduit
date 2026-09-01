@@ -47,5 +47,5 @@ export async function openBookStep(page, entrance, index) {
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
   }
-  await expect(page.locator(".book-progress")).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
+  await expect(page.locator('[data-application-key="progress"]')).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
 }
