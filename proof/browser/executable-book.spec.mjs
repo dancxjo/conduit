@@ -490,6 +490,7 @@ test("the Book opens as readable documentation and hands birth to the independen
   await expect(page.locator(".gear-inventory")).toHaveCount(0);
   const handoff = page.getByRole("link", { name: "Birth a Body" });
   await expect(handoff).toHaveAttribute("href", "../creche/");
+  await expect(handoff).toHaveJSProperty("href", new URL("../creche/", entrance.url).href);
   await expect(page.locator('meta[name="conduit-creche-url"]')).toHaveAttribute("content", "../creche/");
   const bookRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
   expect(bookRuntimeExports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
