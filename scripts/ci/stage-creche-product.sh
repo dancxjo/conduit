@@ -7,7 +7,7 @@ release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEAS
 
 test -f "$runtime"
 test ! -e "$destination"
-mkdir -p "$destination/artifacts" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment"
+mkdir -p "$destination/artifacts" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment"
 
 cp targets/browser/host/assets/creche.html "$destination/index.html"
 cp targets/browser/host/assets/creche.css "$destination/creche.css"
@@ -35,10 +35,15 @@ for artifact in hosted-linux-workstation.json hosted-linux-server.json conduit-l
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
+for artifact in avr-promicro-atmega32u4-5v-16mhz.json promicro-atmega32u4-5v-16mhz.hex; do
+  test -f "$release_artifacts/$artifact"
+  cp "$release_artifacts/$artifact" "$destination/artifacts/"
+done
+cp targets/avr/browser-deployment/*.mjs "$destination/targets/avr/browser-deployment/"
 cp targets/rp2040/browser-deployment/*.mjs "$destination/targets/rp2040/browser-deployment/"
 cp targets/esp32/browser-deployment/*.mjs "$destination/targets/esp32/browser-deployment/"
 cp targets/std/browser-deployment/*.mjs "$destination/targets/std/browser-deployment/"
 cp targets/browser/host/browser-deployment/*.mjs "$destination/targets/browser/browser-deployment/"
 
-test "$(find "$destination" -type f | wc -l)" -eq 51
+test "$(find "$destination" -type f | wc -l)" -eq 55
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

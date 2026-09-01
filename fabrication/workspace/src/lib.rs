@@ -1,3 +1,4 @@
+use conduit_host_avr_fabrication::AvrProMicroFabricationPackage;
 use conduit_host_browser_fabrication::BrowserFabricationPackage;
 use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
 use conduit_host_esp32_fabrication::Esp32FabricationPackage;
@@ -10,6 +11,7 @@ use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtensio
 /// The finite package environment explicitly chosen by this repository's tooling.
 pub fn package_set() -> FabricationPackageSet {
     FabricationPackageSet::compose(&[
+        &AvrProMicroFabricationPackage,
         &HostedFabricationPackage,
         &BrowserFabricationPackage,
         &ConduitOsFabricationPackage,

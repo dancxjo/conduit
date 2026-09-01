@@ -190,6 +190,9 @@ test("the staged Book and Crèche each boot with only their own product tree", a
       expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.json`)).status()).toBe(200);
       expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.bin`)).status()).toBe(200);
     }
+    for (const artifact of ["avr-promicro-atmega32u4-5v-16mhz.json", "promicro-atmega32u4-5v-16mhz.hex"]) {
+      expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
+    }
     for (const artifact of ["hosted-linux-workstation.json", "hosted-linux-server.json", "conduit-linux-x86_64", "browser-page.json", "runtime.wasm", "index.html", "host.mjs"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
@@ -373,13 +376,15 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target optgroup")).toHaveCount(4);
+  await expect(runner.locator(".physical-target optgroup")).toHaveCount(5);
   await expect(runner.locator(".physical-target optgroup").nth(0)).toHaveAttribute("label", "RP2040 boards");
-  await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "ESP32 boards");
-  await expect(runner.locator(".physical-target optgroup").nth(2)).toHaveAttribute("label", "Linux computers");
-  await expect(runner.locator(".physical-target optgroup").nth(3)).toHaveAttribute("label", "Browser Hosts");
+  await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "SparkFun Pro Micro");
+  await expect(runner.locator(".physical-target optgroup").nth(2)).toHaveAttribute("label", "ESP32 boards");
+  await expect(runner.locator(".physical-target optgroup").nth(3)).toHaveAttribute("label", "Linux computers");
+  await expect(runner.locator(".physical-target optgroup").nth(4)).toHaveAttribute("label", "Browser Hosts");
   await expect(runner.locator(".physical-target option")).toHaveText([
     "Raspberry Pi Pico W · RP2040",
+    "Pro Micro · ATmega32U4 · 5 V / 16 MHz",
     "ESP32-C3",
     "ESP32-S3",
     "ESP32-WROOM-32 · HW-463",

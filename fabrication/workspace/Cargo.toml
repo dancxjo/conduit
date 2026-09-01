@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 conduit-host-fabrication = { path = "../host" }
+conduit-host-avr-fabrication = { path = "../../targets/avr/fabrication" }
 conduit-host-browser-fabrication = { path = "../../targets/browser/host/fabrication-package" }
 conduit-host-conduitos-fabrication = { path = "../../targets/conduitos/fabrication-package" }
 conduit-host-esp32-fabrication = { path = "../../targets/esp32/fabrication" }

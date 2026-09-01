@@ -55,6 +55,7 @@ members = [
 	"apps/pete",
 
 	# Exact Host, machine, board, and target-family realizations.
+	"targets/avr/fabrication",
 	"targets/browser/host",
 	"targets/browser/host/fabrication-package",
 	"targets/browser/runtime",

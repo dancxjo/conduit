@@ -1,0 +1,8 @@
+[package]
+name = "conduit-host-avr-fabrication"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-host-fabrication = { path = "../../../fabrication/host" }

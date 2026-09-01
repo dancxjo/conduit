@@ -1,0 +1,233 @@
+import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { expect, test } from "@playwright/test";
+
+const TARGET_ID = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";
+const MANIFEST_NAME = "avr-promicro-atmega32u4-5v-16mhz.json";
+const ARTIFACT_NAME = "promicro-atmega32u4-5v-16mhz.hex";
+let entrance;
+
+async function startCreche() {
+  const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_creche_runtime.wasm" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const url = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
+      if (match) {
+        clearTimeout(timeout);
+        resolve(match[1]);
+      }
+    };
+    child.stdout.on("data", inspect);
+    child.stderr.on("data", inspect);
+    child.once("exit", (code) => {
+      clearTimeout(timeout);
+      reject(new Error(`Crèche exited (${code})\n${output}`));
+    });
+  });
+  return { child, url };
+}
+
+async function installReviewedRelease(page) {
+  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const manifest = JSON.parse(await readFile(new URL(MANIFEST_NAME, root), "utf8"));
+  const artifact = await readFile(new URL(ARTIFACT_NAME, root));
+  await page.route(`**/artifacts/${MANIFEST_NAME}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(manifest),
+  }));
+  await page.route(`**/artifacts/${ARTIFACT_NAME}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/vnd.conduit.intel-hex",
+    body: artifact,
+  }));
+  return { manifest, artifact };
+}
+
+async function birthBody(page) {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+}
+
+test.beforeEach(async () => {
+  entrance = await startCreche();
+});
+
+test.afterEach(() => entrance?.child.kill());
+
+test("the exact Pro Micro release becomes a Body-bound downloadable spore", async ({ page }) => {
+  const release = await installReviewedRelease(page);
+  await birthBody(page);
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator(".physical-target").selectOption(TARGET_ID);
+  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.target_entry).toMatchObject({
+    family: { id: "conduit-target-family/sparkfun-pro-micro@1" },
+    target: { id: TARGET_ID, profile_id: "atmega32u4-5v-16mhz-caterina-avr109" },
+    intentions: [
+      { id: "fabricate-new", supported: true },
+      { id: "install-existing", supported: false },
+      { id: "attach-running", supported: false },
+    ],
+    carriers: {
+      deployment: [{ id: "conduit-carrier/external-programmer-download@1" }],
+      installation: [],
+      attachment: [],
+      observation: [],
+    },
+    target_profile: {
+      schema: "conduit.avr/creche-target-profile@1",
+      board: "sparkfun-pro-micro-5v-16mhz",
+      fqbn: "SparkFun:avr:promicro:cpu=16MHzatmega32U4",
+      mcu: "atmega32u4",
+      clock_hz: 16_000_000,
+      voltage_mv: 5_000,
+      artifact_format: "intel-hex",
+      browser_deployment: expect.stringContaining("unavailable"),
+      authenticated_join_implemented: false,
+    },
+  });
+  expect(evidence.obtainment).toMatchObject({
+    target_id: TARGET_ID,
+    image_id: release.manifest.image_id,
+    artifact_sha256: release.manifest.artifact.sha256,
+    artifact_bytes: release.artifact.byteLength,
+    format: "intel-hex",
+    browser_deployment_offered: false,
+  });
+
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  const download = runner.locator(".download-spore");
+  await expect(download).toHaveAttribute("download", /\.spore$/);
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.binding).toMatchObject({
+    target_id: TARGET_ID,
+    output: "intel-hex",
+    fabrication_package_id: "conduit-host-avr-promicro@1",
+    deployment_adapter: null,
+    image_content_digest: release.manifest.artifact.sha256,
+  });
+  const bundle = await download.evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+    const manifestLength = new DataView(bytes.buffer, bytes.byteOffset + 8, 4).getUint32(0, true);
+    return {
+      magic: new TextDecoder().decode(bytes.subarray(0, 8)),
+      manifest: JSON.parse(new TextDecoder().decode(bytes.subarray(12, 12 + manifestLength))),
+      bytes: bytes.byteLength,
+    };
+  });
+  expect(bundle.magic).toBe("CNDSPOR1");
+  expect(bundle.bytes).toBeGreaterThan(release.artifact.byteLength);
+  expect(bundle.manifest).toMatchObject({
+    schema: "conduit.spore/bundle@1",
+    spore: {
+      schema: "conduit.body/spore-manifest@2",
+      target: TARGET_ID,
+      image_content_digest: release.manifest.artifact.sha256,
+    },
+    artifact: {
+      content_digest: release.manifest.artifact.sha256,
+      layout: {
+        format: "intel-hex",
+        release: { target_id: TARGET_ID, artifact: { format: "intel-hex" } },
+      },
+      payload_lengths: [release.artifact.byteLength],
+    },
+  });
+
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator("details code")).toContainText('"terminal": "AbsentProgrammer"');
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
+  expect(evidence.terminal).toMatchObject({
+    operation: "realize",
+    terminal: "AbsentProgrammer",
+    authority_requested: false,
+    external_work_started: false,
+  });
+});
+
+test("the Pro Micro contract keeps board, bootloader, reset, port, and flash refusals distinct", async ({ page }) => {
+  const { manifest } = await installReviewedRelease(page);
+  await birthBody(page);
+  const terminals = await page.evaluate(async ({ releaseManifest }) => {
+    const module = await import("./targets/avr/browser-deployment/image.mjs");
+    const adapter = await import("./targets/avr/browser-deployment/creche-adapter.mjs");
+    const capture = (work) => {
+      try {
+        work();
+        return "accepted";
+      } catch (error) {
+        return error.code;
+      }
+    };
+    const record = (address, type, data = []) => {
+      const bytes = [data.length, address >> 8, address & 0xff, type, ...data];
+      const checksum = (-bytes.reduce((sum, value) => sum + value, 0)) & 0xff;
+      return `:${[...bytes, checksum].map((value) => value.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+    };
+    const parse = (lines) => module.parseIntelHex(new TextEncoder().encode(`${lines.join("\n")}\n`));
+    const mutate = (change) => {
+      const candidate = structuredClone(releaseManifest);
+      change(candidate);
+      return module.validateProMicroReleaseManifest(candidate, adapter.AVR_PRO_MICRO_PROFILE);
+    };
+    const binding = { prepared: { image_content_digest: releaseManifest.artifact.sha256 } };
+    const programmer = {
+      programmer_id: "fixture-programmer",
+      target_id: adapter.AVR_PRO_MICRO_PROFILE.target.id,
+      board: adapter.AVR_PRO_MICRO_PROFILE.board,
+      mcu: adapter.AVR_PRO_MICRO_PROFILE.mcu,
+      bootloader: adapter.AVR_PRO_MICRO_PROFILE.bootloader,
+      protocol: adapter.AVR_PRO_MICRO_PROFILE.protocol,
+      reset_transition: adapter.AVR_PRO_MICRO_PROFILE.resetTransition,
+      reset_observed: true,
+      selected_port_generation: 4,
+      observed_port_generation: 5,
+      artifact_sha256: releaseManifest.artifact.sha256,
+      programmed_bytes: 1,
+      maximum_address: 1,
+    };
+    return {
+      wrongBoard: capture(() => mutate((candidate) => { candidate.board.model = "generic-avr"; })),
+      wrongBootloader: capture(() => mutate((candidate) => { candidate.bootloader.protocol = "stk500v1"; })),
+      missingReset: capture(() => mutate((candidate) => { candidate.bootloader.reset_transition = null; })),
+      wrongFormat: capture(() => mutate((candidate) => { candidate.artifact.format = "binary"; })),
+      oversizedImage: capture(() => parse([record(0, 4, [0, 1]), record(0, 0, [1]), record(0, 1)])),
+      protectedBootRegion: capture(() => parse([record(0x7000, 0, [1]), record(0, 1)])),
+      absentProgrammer: capture(() => module.validateExternalProgrammerEvidence(null, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      programmerWrongBoard: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, board: "other" }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      programmerWrongBootloader: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, protocol: "stk500v1" }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      programmerMissingReset: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, reset_observed: false }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      stalePort: capture(() => module.validateExternalProgrammerEvidence({ ...programmer, observed_port_generation: 4 }, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+      acceptedReceipt: capture(() => module.validateExternalProgrammerEvidence(programmer, adapter.AVR_PRO_MICRO_PROFILE, binding)),
+    };
+  }, { releaseManifest: manifest });
+
+  expect(terminals).toEqual({
+    wrongBoard: "WrongBoard",
+    wrongBootloader: "WrongBootloader",
+    missingReset: "MissingResetTransition",
+    wrongFormat: "WrongArtifactFormat",
+    oversizedImage: "OversizedImage",
+    protectedBootRegion: "ProtectedBootRegion",
+    absentProgrammer: "AbsentProgrammer",
+    programmerWrongBoard: "WrongBoard",
+    programmerWrongBootloader: "WrongBootloader",
+    programmerMissingReset: "MissingResetTransition",
+    stalePort: "StalePort",
+    acceptedReceipt: "accepted",
+  });
+});

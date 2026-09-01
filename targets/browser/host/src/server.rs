@@ -10,6 +10,9 @@ const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.m
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
+const AVR_CRECHE_ADAPTER: &[u8] =
+    include_bytes!("../../../avr/browser-deployment/creche-adapter.mjs");
+const AVR_IMAGE: &[u8] = include_bytes!("../../../avr/browser-deployment/image.mjs");
 const RP2040_DEPLOYMENT: &[u8] = include_bytes!("../../../rp2040/browser-deployment/index.mjs");
 const RP2040_DEPLOYMENT_ORCHESTRATOR: &[u8] =
     include_bytes!("../../../rp2040/browser-deployment/deployment.mjs");
@@ -220,6 +223,16 @@ impl BrowserHostServer {
             Some("GET /targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1")
             | Some("GET /creche/targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RP2040_PICOBOOT)
+            }
+            Some("GET /targets/avr/browser-deployment/creche-adapter.mjs HTTP/1.1")
+            | Some("GET /creche/targets/avr/browser-deployment/creche-adapter.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                AVR_CRECHE_ADAPTER,
+            ),
+            Some("GET /targets/avr/browser-deployment/image.mjs HTTP/1.1")
+            | Some("GET /creche/targets/avr/browser-deployment/image.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", AVR_IMAGE)
             }
             Some("GET /targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1")
             | Some("GET /creche/targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1") => {
