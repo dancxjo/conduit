@@ -55,6 +55,9 @@ const RASPBERRY_PI_CRECHE_ADAPTER: &[u8] =
     include_bytes!("../../../raspberry-pi/browser-deployment/creche-adapter.mjs");
 const RASPBERRY_PI_IMAGE: &[u8] =
     include_bytes!("../../../raspberry-pi/browser-deployment/image.mjs");
+const CONDUITOS_CRECHE_ADAPTER: &[u8] =
+    include_bytes!("../../../conduitos/browser-deployment/creche-adapter.mjs");
+const CONDUITOS_IMAGE: &[u8] = include_bytes!("../../../conduitos/browser-deployment/image.mjs");
 const CRECHE_GRADUATION_SCRIPT: &[u8] = include_bytes!("../assets/creche-graduation.mjs");
 const CRECHE_STYLE: &[u8] = include_bytes!("../assets/creche.css");
 const CRECHE_PICO_ARTIFACT: &[u8] =
@@ -347,6 +350,16 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 RASPBERRY_PI_IMAGE,
             ),
+            Some(
+                "GET /creche/targets/conduitos/browser-deployment/creche-adapter.mjs HTTP/1.1",
+            ) => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                CONDUITOS_CRECHE_ADAPTER,
+            ),
+            Some("GET /creche/targets/conduitos/browser-deployment/image.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", CONDUITOS_IMAGE)
+            }
             Some("GET /creche/creche-graduation.mjs HTTP/1.1") => (
                 "200 OK",
                 "text/javascript; charset=utf-8",

@@ -11,6 +11,7 @@ use conduit_host_avr_fabrication::{
     PACKAGE_ID as AVR_PACKAGE_ID, TARGET_ID as AVR_TARGET_ID,
 };
 use conduit_host_browser_fabrication::BrowserFabricationPackage;
+use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
 use conduit_host_esp32_fabrication::{
     esp32_descriptor_binding, Esp32FabricationPackage, Esp32FamilyTarget,
 };
@@ -28,6 +29,8 @@ pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub(super) const STD_WORKSTATION_TARGET_ID: &str = "std/x86_64/workstation";
 pub(super) const STD_SERVER_TARGET_ID: &str = "std/x86_64/server";
 pub(super) const BROWSER_PAGE_TARGET_ID: &str = "browser/wasm32/page";
+pub(super) const CONDUITOS_X86_64_TARGET_ID: &str = "conduitos/x86_64/pc";
+pub(super) const CONDUITOS_AARCH64_TARGET_ID: &str = "conduitos/aarch64/virt";
 
 pub(super) struct PreparedTarget {
     pub(super) body: conduit_body_fabrication::CheckedBodyDescription,
@@ -109,11 +112,72 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     if matches!(target_id, RASPBERRY_PI_OS_TARGET | B_PLUS_TARGET) {
         return raspberry_pi_target(target_id);
     }
+    if matches!(
+        target_id,
+        CONDUITOS_X86_64_TARGET_ID | CONDUITOS_AARCH64_TARGET_ID
+    ) {
+        return conduitos_target(target_id);
+    }
     let family = Esp32FamilyTarget::ALL
         .into_iter()
         .find(|candidate| candidate.target_descriptor().key() == target_id)
         .ok_or_else(|| format!("unsupported exact Crèche physical Host target {target_id:?}"))?;
     esp32_target(family)
+}
+
+fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
+    let package = ConduitOsFabricationPackage;
+    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
+    else {
+        return Err("ConduitOS fabrication package is not an anchor".into());
+    };
+    let descriptor = anchor
+        .targets
+        .into_iter()
+        .find(|target| target.key() == target_id)
+        .ok_or_else(|| format!("ConduitOS package omitted exact product target {target_id:?}"))?;
+    let (configuration_name, source_identity) = if target_id == CONDUITOS_X86_64_TARGET_ID {
+        (
+            "creche-conduitos-x86-64-pc",
+            "conduitos/reviewed-x86-64-pc-release@1",
+        )
+    } else {
+        (
+            "creche-conduitos-aarch64-virt",
+            "conduitos/reviewed-aarch64-virt-release@1",
+        )
+    };
+    Ok(TargetFacts {
+        configuration_name,
+        host_name: configuration_name,
+        source_identity,
+        deployment_destination: Some("operator/local-disk-or-vm-loader"),
+        output: SporeOutputKind::DiskImage,
+        configuration: HostConfiguration {
+            schema: 1,
+            name: configuration_name.into(),
+            target: ConfigurationTarget {
+                architecture: descriptor.architecture,
+                machine: descriptor.machine,
+                board: descriptor.board,
+                os: descriptor.os,
+                fabrication_descriptor: None,
+            },
+            bases: if target_id == CONDUITOS_AARCH64_TARGET_ID {
+                vec![ConfigurationBase {
+                    kind: "serial/text".into(),
+                    implementation: Some("conduitos/pl011@1".into()),
+                    implementations: Vec::new(),
+                }]
+            } else {
+                Vec::new()
+            },
+            resources: Vec::new(),
+            limits: descriptor.maxima,
+        },
+        packages: FabricationPackageSet::compose(&[&ConduitOsFabricationPackage])
+            .map_err(|error| format!("compose ConduitOS fabrication package: {error:?}"))?,
+    })
 }
 
 fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
@@ -427,6 +491,28 @@ mod tests {
             assert_eq!(profile.target.architecture, architecture);
             assert_eq!(profile.target.machine, machine);
             assert_eq!(prepared.output, output);
+        }
+    }
+
+    #[test]
+    fn conduitos_creche_targets_are_only_earned_product_hosts() {
+        let body_id = "a".repeat(64);
+        for (target_id, architecture, machine) in [
+            (CONDUITOS_X86_64_TARGET_ID, "x86_64", "pc"),
+            (CONDUITOS_AARCH64_TARGET_ID, "aarch64", "virt"),
+        ] {
+            let prepared = prepare(&body_id, "invitation/conduitos", target_id).unwrap();
+            let profile = prepared.configuration.profile();
+            assert_eq!(profile.target.architecture, architecture);
+            assert_eq!(profile.target.machine, machine);
+            assert_eq!(prepared.output, SporeOutputKind::DiskImage);
+        }
+        for proof_only in [
+            "conduitos/ia32/pc",
+            "conduitos/riscv64/virt",
+            "conduitos/loongarch64/virt",
+        ] {
+            assert!(prepare(&body_id, "invitation/conduitos", proof_only).is_err());
         }
     }
 

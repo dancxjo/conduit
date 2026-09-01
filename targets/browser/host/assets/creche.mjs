@@ -9,6 +9,7 @@ import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/esp32/browser-deplo
 import { STD_EXISTING_COMPUTER_CONTRIBUTIONS } from "./targets/std/browser-deployment/creche-adapter.mjs";
 import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "./targets/browser/browser-deployment/creche-adapter.mjs";
 import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/raspberry-pi/browser-deployment/creche-adapter.mjs";
+import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/conduitos/browser-deployment/creche-adapter.mjs";
 
 const MORSE_NETWORK = `form morse_network {
     message: text/literal("SOS")
@@ -31,6 +32,7 @@ const targetCatalog = createPhysicalHostTargetCatalog({
     ...STD_EXISTING_COMPUTER_CONTRIBUTIONS,
     BROWSER_EXISTING_COMPUTER_CONTRIBUTION,
     ...RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS,
+    ...CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS,
   ],
 });
 
