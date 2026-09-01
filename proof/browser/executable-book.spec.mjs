@@ -308,7 +308,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
     await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./book.application.json");
-    await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.identity)).toBe("conduit.application/book");
+    await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/book");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
     expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
