@@ -78,7 +78,7 @@ const piOsContribution = Object.freeze({
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound Raspberry Pi OS spore" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound Raspberry Pi OS ZIP" }),
     ]),
     attachment: Object.freeze([]),
     observation: Object.freeze([]),

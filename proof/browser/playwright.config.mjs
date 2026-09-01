@@ -22,6 +22,7 @@ export default defineConfig({
     "creche-avr.spec.mjs",
     "creche-raspberry-pi.spec.mjs",
     "creche-conduitos.spec.mjs",
+    "creche-native-zip.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-device-base.spec.mjs",
     "browser-usb-device-base.spec.mjs",

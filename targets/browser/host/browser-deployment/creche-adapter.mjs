@@ -30,7 +30,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound browser spore" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound browser ZIP" }),
       Object.freeze({ id: "conduit-carrier/browser-local-sandbox@1", label: "Load exact browser bundle locally" }),
     ]),
     attachment: Object.freeze([]),

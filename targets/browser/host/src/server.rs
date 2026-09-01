@@ -5,6 +5,7 @@ use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::Path;
 
 mod book_assets;
+mod existing_computer_assets;
 mod surface;
 use surface::ProductDocument;
 pub use surface::ProductSurface;
@@ -46,13 +47,6 @@ const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
 const CRECHE_PHYSICAL_SCRIPT: &[u8] = include_bytes!("../assets/creche-physical.mjs");
 const CRECHE_TARGET_CATALOG_SCRIPT: &[u8] = include_bytes!("../assets/creche-target-catalog.mjs");
-const CRECHE_SPORE_BUNDLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-spore-bundle.mjs");
-const CRECHE_RELEASE_BUNDLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-release-bundle.mjs");
-const CRECHE_EXISTING_COMPUTER_SCRIPT: &[u8] =
-    include_bytes!("../assets/creche-existing-computer.mjs");
-const STD_CRECHE_ADAPTER: &[u8] =
-    include_bytes!("../../../std/browser-deployment/creche-adapter.mjs");
-const BROWSER_CRECHE_ADAPTER: &[u8] = include_bytes!("../browser-deployment/creche-adapter.mjs");
 const RASPBERRY_PI_CRECHE_ADAPTER: &[u8] =
     include_bytes!("../../../raspberry-pi/browser-deployment/creche-adapter.mjs");
 const RASPBERRY_PI_IMAGE: &[u8] =
@@ -192,6 +186,9 @@ impl BrowserHostServer {
         if let Some((content_type, body)) = book_assets::response(request_line) {
             return self.write_response(stream, "200 OK", content_type, body);
         }
+        if let Some((content_type, body)) = existing_computer_assets::response(request_line) {
+            return self.write_response(stream, "200 OK", content_type, body);
+        }
         let (status, content_type, body): (&str, &str, &[u8]) = match request_line {
             Some("GET / HTTP/1.1") => ("200 OK", "text/html; charset=utf-8", INDEX),
             Some("GET /host.mjs HTTP/1.1") => {
@@ -323,31 +320,6 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 CRECHE_TARGET_CATALOG_SCRIPT,
-            ),
-            Some("GET /creche/creche-spore-bundle.mjs HTTP/1.1") => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                CRECHE_SPORE_BUNDLE_SCRIPT,
-            ),
-            Some("GET /creche/creche-release-bundle.mjs HTTP/1.1") => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                CRECHE_RELEASE_BUNDLE_SCRIPT,
-            ),
-            Some("GET /creche/creche-existing-computer.mjs HTTP/1.1") => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                CRECHE_EXISTING_COMPUTER_SCRIPT,
-            ),
-            Some("GET /creche/targets/std/browser-deployment/creche-adapter.mjs HTTP/1.1") => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                STD_CRECHE_ADAPTER,
-            ),
-            Some("GET /creche/targets/browser/browser-deployment/creche-adapter.mjs HTTP/1.1") => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                BROWSER_CRECHE_ADAPTER,
             ),
             Some(
                 "GET /creche/targets/raspberry-pi/browser-deployment/creche-adapter.mjs HTTP/1.1",

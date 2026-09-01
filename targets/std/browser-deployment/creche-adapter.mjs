@@ -22,7 +22,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound native spore" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound native ZIP" }),
     ]),
     attachment: Object.freeze([]),
     observation: Object.freeze([]),

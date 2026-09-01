@@ -94,7 +94,8 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
   });
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-raspios-bookworm-64-aarch64\.zip$/);
+  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: PI_OS_TARGET,
@@ -102,7 +103,36 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
     fabrication_package_id: "conduit-host-raspberry-pi@1",
     deployment_adapter: "conduit-host-raspberry-pi/install-raspios-package@1",
     image_content_digest: release.bundle_sha256,
+    spore_artifact: {
+      format: "zip",
+      media_type: "application/zip",
+      image_content_digest: release.bundle_sha256,
+      files: expect.arrayContaining([
+        expect.objectContaining({ path: "conduit-linux-aarch64", mode: 0o100755 }),
+      ]),
+    },
   });
+  const nativePackage = await runner.locator(".download-spore").evaluate(async (link) => {
+    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
+    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    const archive = readBodyBoundZip(bytes);
+    return {
+      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
+      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
+      files: Array.from(archive.entries.keys()),
+      provision: archive.provision,
+    };
+  });
+  expect(nativePackage).toMatchObject({
+    magic: "PK\u0003\u0004",
+    files: ["conduit-linux-aarch64", "conduit-spore.json"],
+    provision: {
+      spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id },
+      invitation_provision: { invitation_id: evidence.binding.invitation_id },
+    },
+  });
+  expect(nativePackage.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "UnavailableCredentials"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
