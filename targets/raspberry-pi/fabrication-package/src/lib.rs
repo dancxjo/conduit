@@ -5,10 +5,11 @@ use conduit_host_fabrication::{
 
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const ZERO_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-v1";
+pub const RASPBERRY_PI_OS_TARGET: &str = "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb";
 
 pub struct RaspberryPiFabricationPackage;
 
-fn target(label: &str, machine: &str) -> TargetDescriptor {
+fn bare_metal_target(label: &str, machine: &str) -> TargetDescriptor {
     TargetDescriptor {
         label: label.into(),
         family: "conduitos".into(),
@@ -40,6 +41,38 @@ fn target(label: &str, machine: &str) -> TargetDescriptor {
     }
 }
 
+fn raspberry_pi_os_target() -> TargetDescriptor {
+    TargetDescriptor {
+        label: "Raspberry Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit".into(),
+        family: "std".into(),
+        architecture: "aarch64".into(),
+        machine: "raspberry-pi-4-model-b-rev-1.5-4gb".into(),
+        board: Some("raspberry-pi-4-model-b-rev-1.5-4gb".into()),
+        os: Some("raspberry-pi-os-bookworm-64".into()),
+        host_core: "host-core/std@1".into(),
+        presenter: None,
+        host_operations: Vec::new(),
+        toolchain_identity: "rustc:stable+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu".into(),
+        builder_adapter: "conduit-host-raspberry-pi/build-raspios-native@1".into(),
+        deployment_adapter: Some("conduit-host-raspberry-pi/install-raspios-package@1".into()),
+        outputs: vec![SporeOutputKind::NativeBundle],
+        default_output: SporeOutputKind::NativeBundle,
+        post_build_actions: vec![PostBuildAction::Launch],
+        fabrication_descriptors: Vec::new(),
+        maxima: HostBounds {
+            static_memory_bytes: 2 * 1024 * 1024 * 1024,
+            heap_arena_bytes: 2 * 1024 * 1024 * 1024,
+            queue_items: 262_144,
+            buffered_bytes: 512 * 1024 * 1024,
+            active_instances: 262_144,
+            operation_slots: 262_144,
+            timer_slots: 262_144,
+            line_sessions: 65_536,
+            evidence_items: 262_144,
+        },
+    }
+}
+
 impl HostFabricationPackage for RaspberryPiFabricationPackage {
     fn contribution(&self) -> FabricationContribution {
         FabricationContribution::Anchor(FabricationAnchor {
@@ -47,20 +80,31 @@ impl HostFabricationPackage for RaspberryPiFabricationPackage {
             package_revision: 1,
             catalog: Default::default(),
             targets: vec![
-                target(
+                raspberry_pi_os_target(),
+                bare_metal_target(
                     "Raspberry Pi Model B+ v1.2",
                     "raspberry-pi-model-b-plus-v1.2",
                 ),
-                target("Raspberry Pi Zero v1", "raspberry-pi-zero-v1"),
+                bare_metal_target("Raspberry Pi Zero v1", "raspberry-pi-zero-v1"),
             ],
-            offers: vec![ImplementationOffer {
-                base_kind: "serial/text".into(),
-                implementation_id: "raspberry-pi/pl011@1".into(),
-                implementation_revision: 1,
-                target_patterns: vec![B_PLUS_TARGET.into(), ZERO_TARGET.into()],
-                prerequisites: Vec::new(),
-                build_feature: Some("base-pl011".into()),
-            }],
+            offers: vec![
+                ImplementationOffer {
+                    base_kind: "serial/text".into(),
+                    implementation_id: "raspberry-pi/pl011@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec![B_PLUS_TARGET.into(), ZERO_TARGET.into()],
+                    prerequisites: Vec::new(),
+                    build_feature: Some("base-pl011".into()),
+                },
+                ImplementationOffer {
+                    base_kind: "serial/text".into(),
+                    implementation_id: "raspberry-pi-os/serial@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec![RASPBERRY_PI_OS_TARGET.into()],
+                    prerequisites: Vec::new(),
+                    build_feature: Some("base-serial".into()),
+                },
+            ],
         })
     }
 }

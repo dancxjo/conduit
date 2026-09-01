@@ -90,6 +90,31 @@ struct ImageRecord {
     kernel_image_sha256: String,
     boot_claimed: bool,
     physical_proof_claimed: bool,
+    target_id: String,
+    fabrication_package_id: &'static str,
+    fabrication_package_revision: u32,
+    output: &'static str,
+    builder_adapter: &'static str,
+    deployment_adapter: &'static str,
+    source_identity: String,
+    image_id: String,
+    artifact: ImageArtifactRecord,
+    boot_files: Vec<BootFileRecord>,
+}
+
+#[derive(Serialize)]
+struct ImageArtifactRecord {
+    path: String,
+    format: &'static str,
+    bytes: u64,
+    sha256: String,
+}
+
+#[derive(Serialize)]
+struct BootFileRecord {
+    path: &'static str,
+    bytes: u64,
+    sha256: String,
 }
 
 #[derive(Serialize)]
@@ -161,10 +186,30 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         )?;
     }
     verify_image(&image, &stage, &paths.target)?;
+    let base_commit = git_head(&paths.root)?;
+    let image_sha256 = sha256_file(&image)?;
+    let image_name = image
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| refusal("image-record-failed", "image name is not UTF-8"))?
+        .to_owned();
+    let boot_files = image_files()
+        .into_iter()
+        .map(|path| {
+            let staged = stage.join(path);
+            Ok(BootFileRecord {
+                path,
+                bytes: fs::metadata(&staged)
+                    .map_err(|error| refusal("image-record-failed", error))?
+                    .len(),
+                sha256: format!("sha256:{}", sha256_file(&staged)?),
+            })
+        })
+        .collect::<Result<Vec<_>, ConduitosError>>()?;
     let record = ImageRecord {
         schema: "conduit.conduitos.armv6-rpi-image/v1",
         proof_class: "deterministic-image-artifact-only",
-        base_commit: git_head(&paths.root)?,
+        base_commit: base_commit.clone(),
         architecture: "armv6",
         machine: "BCM2835/ARM1176JZF-S",
         board: board.id(),
@@ -180,7 +225,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
             })
             .collect(),
         image_path: image.display().to_string(),
-        image_sha256: sha256_file(&image)?,
+        image_sha256: image_sha256.clone(),
         image_bytes: IMAGE_BYTES,
         partition_scheme: "mbr/single-fat32-lba",
         partition_start_sector: PARTITION_START_SECTOR,
@@ -191,6 +236,21 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         kernel_image_sha256: sha256_file(&paths.target.join("kernel.img"))?,
         boot_claimed: false,
         physical_proof_claimed: false,
+        target_id: format!("conduitos/armv6/{}", board.id()),
+        fabrication_package_id: "conduit-host-raspberry-pi@1",
+        fabrication_package_revision: 1,
+        output: "sd-image",
+        builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1",
+        deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
+        source_identity: format!("git:{base_commit}"),
+        image_id: format!("conduitos-image/{base_commit}/{}/v1", board.identity_slug()),
+        artifact: ImageArtifactRecord {
+            path: image_name,
+            format: "mbr-fat32-sd-image",
+            bytes: IMAGE_BYTES,
+            sha256: format!("sha256:{image_sha256}"),
+        },
+        boot_files,
     };
     fs::write(
         paths

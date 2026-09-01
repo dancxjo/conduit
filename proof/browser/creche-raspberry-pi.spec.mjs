@@ -1,0 +1,219 @@
+import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { expect, test } from "@playwright/test";
+
+const PI_OS_TARGET = "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb";
+const BARE_TARGET = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
+const PI_OS_MANIFEST = "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json";
+const BARE_MANIFEST = "rpi-b-plus-image.json";
+let entrance;
+
+async function startCreche() {
+  const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
+    cwd: new URL("../..", import.meta.url).pathname,
+    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_creche_runtime.wasm" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const url = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
+    const inspect = (chunk) => {
+      output += chunk.toString();
+      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
+      if (match) { clearTimeout(timeout); resolve(match[1]); }
+    };
+    child.stdout.on("data", inspect); child.stderr.on("data", inspect);
+    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
+  });
+  return { child, url };
+}
+
+async function installRelease(page, manifestName) {
+  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const manifest = JSON.parse(await readFile(new URL(manifestName, root), "utf8"));
+  const files = manifest.files
+    ? manifest.files.map(({ path }) => path)
+    : [manifest.artifact.path];
+  for (const path of files) {
+    const bytes = await readFile(new URL(path, root));
+    await page.route(`**/artifacts/${path}`, (route) => route.fulfill({ status: 200, body: bytes }));
+  }
+  await page.route(`**/artifacts/${manifestName}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(manifest),
+  }));
+  return manifest;
+}
+
+async function birthBody(page) {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  return page.locator(".physical-host-runner");
+}
+
+test.beforeEach(async () => { entrance = await startCreche(); });
+test.afterEach(() => entrance?.child.kill());
+
+test("Raspberry Pi OS is an exact existing-machine package, not a disk image", async ({ page }) => {
+  const release = await installRelease(page, PI_OS_MANIFEST);
+  const runner = await birthBody(page);
+  await runner.locator(".physical-target").selectOption(PI_OS_TARGET);
+  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.target_entry).toMatchObject({
+    family: { id: "conduit-target-family/raspberry-pi@1" },
+    target: { id: PI_OS_TARGET, model_id: "raspberry-pi/pi-4-model-b-rev-1.5-4gb@1" },
+    intentions: [
+      { id: "fabricate-new", supported: false },
+      { id: "install-existing", supported: true },
+      { id: "attach-running", supported: false },
+    ],
+    target_profile: {
+      intention: "install-existing",
+      model: "raspberry-pi-4-model-b-rev-1.5-4gb",
+      architecture: "aarch64",
+      os: "raspberry-pi-os-bookworm-64",
+      artifact_format: "native-bundle",
+      browser_role: "download Body-bound package only",
+    },
+  });
+  expect(evidence.obtainment).toMatchObject({
+    result_kind: "installation",
+    target_id: PI_OS_TARGET,
+    os: "raspberry-pi-os-bookworm-64",
+    architecture: "aarch64",
+    package_id: "conduit-host-raspberry-pi@1",
+    output: "native-bundle",
+    bundle_sha256: release.bundle_sha256,
+    does_not_prove: ["body-binding", "installation", "start", "boot-observation", "join", "membership"],
+  });
+
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.binding).toMatchObject({
+    target_id: PI_OS_TARGET,
+    output: "native-bundle",
+    fabrication_package_id: "conduit-host-raspberry-pi@1",
+    deployment_adapter: "conduit-host-raspberry-pi/install-raspios-package@1",
+    image_content_digest: release.bundle_sha256,
+  });
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator("details code")).toContainText('"terminal": "UnavailableCredentials"');
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
+  expect(evidence.terminal).toMatchObject({
+    operation: "realize",
+    terminal: "UnavailableCredentials",
+    ambient_credentials_used: false,
+    ambient_addresses_used: false,
+    external_work_started: false,
+  });
+});
+
+test("bare-metal Model B+ becomes an exact SD spore without browser block authority", async ({ page }) => {
+  const release = await installRelease(page, BARE_MANIFEST);
+  const runner = await birthBody(page);
+  await runner.locator(".physical-target").selectOption(BARE_TARGET);
+  await expect(runner.locator(".physical-mode")).toHaveValue("fabricate-new");
+  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.target_entry).toMatchObject({
+    family: { id: "conduit-target-family/raspberry-pi@1" },
+    target: { id: BARE_TARGET, profile_id: "bcm2835-armv6-direct-kernel-sd" },
+    target_profile: {
+      intention: "fabricate-new",
+      model: "raspberry-pi-model-b-plus-v1.2",
+      architecture: "armv6",
+      image_format: "mbr-fat32-sd-image",
+      carrier: "removable-sd-card",
+      browser_raw_block_authority: false,
+      physical_flash_boot_uart_human_gated: true,
+    },
+  });
+  expect(evidence.obtainment).toMatchObject({
+    target_id: BARE_TARGET,
+    image_id: release.image_id,
+    image_sha256: release.artifact.sha256,
+    image_bytes: release.artifact.bytes,
+    image_format: "mbr-fat32-sd-image",
+    browser_raw_block_authority_claimed: false,
+    does_not_prove: ["image-write", "boot", "uart-observation", "join", "membership"],
+  });
+  expect(evidence.obtainment.boot_files.map(({ path }) => path).sort()).toEqual([
+    "LICENCE.broadcom", "bootcode.bin", "config.txt", "fixup.dat", "kernel.img", "start.elf",
+  ].sort());
+
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.spore$/);
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence.binding).toMatchObject({
+    target_id: BARE_TARGET,
+    output: "sd-image",
+    fabrication_package_id: "conduit-host-raspberry-pi@1",
+    deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
+    image_content_digest: release.artifact.sha256,
+  });
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator("details code")).toContainText('"terminal": "AbsentWriter"');
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
+  expect(evidence.terminal).toMatchObject({
+    operation: "realize",
+    terminal: "AbsentWriter",
+    browser_raw_block_authority_claimed: false,
+    external_work_started: false,
+  });
+});
+
+test("Pi model, architecture, boot partition, image, writer, and unsupported-model refusals stay distinct", async ({ page }) => {
+  const release = await installRelease(page, BARE_MANIFEST);
+  const terminals = await page.evaluate(async ({ releaseManifest }) => {
+    const image = await import("./targets/raspberry-pi/browser-deployment/image.mjs");
+    const adapter = await import("./targets/raspberry-pi/browser-deployment/creche-adapter.mjs");
+    const capture = (work) => { try { work(); return "accepted"; } catch (error) { return error.code; } };
+    const mutate = (change) => { const candidate = structuredClone(releaseManifest); change(candidate); return image.validateRaspberryPiImageManifest(candidate, adapter.RASPBERRY_PI_B_PLUS_PROFILE); };
+    const binding = { prepared: { image_content_digest: releaseManifest.artifact.sha256 } };
+    const writer = {
+      writer_id: "fixture-local-writer",
+      target_id: adapter.RASPBERRY_PI_B_PLUS_PROFILE.target.id,
+      board: adapter.RASPBERRY_PI_B_PLUS_PROFILE.board,
+      architecture: adapter.RASPBERRY_PI_B_PLUS_PROFILE.architecture,
+      image_sha256: releaseManifest.artifact.sha256,
+      carrier: "removable-sd-card",
+      raw_block_authority: "local-helper-explicit",
+      write_completed: true,
+      byte_verification_completed: true,
+    };
+    return {
+      wrongModel: capture(() => mutate((candidate) => { candidate.board = "raspberry-pi-5"; })),
+      wrongArchitecture: capture(() => mutate((candidate) => { candidate.architecture = "aarch64"; })),
+      incompleteBootPartition: capture(() => mutate((candidate) => { candidate.boot_files.pop(); })),
+      staleImage: capture(() => mutate((candidate) => { candidate.artifact.sha256 = `sha256:${"0".repeat(64)}`; })),
+      absentWriter: capture(() => image.validateImageWriterEvidence(null, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
+      writerWrongModel: capture(() => image.validateImageWriterEvidence({ ...writer, board: "raspberry-pi-zero-v1" }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
+      writerWrongArchitecture: capture(() => image.validateImageWriterEvidence({ ...writer, architecture: "armv7" }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
+      writerStaleImage: capture(() => image.validateImageWriterEvidence({ ...writer, image_sha256: `sha256:${"1".repeat(64)}` }, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
+      acceptedWriter: capture(() => image.validateImageWriterEvidence(writer, adapter.RASPBERRY_PI_B_PLUS_PROFILE, binding)),
+    };
+  }, { releaseManifest: release });
+  expect(terminals).toEqual({
+    wrongModel: "WrongModel",
+    wrongArchitecture: "WrongArchitecture",
+    incompleteBootPartition: "IncompleteBootPartition",
+    staleImage: "StaleImage",
+    absentWriter: "AbsentWriter",
+    writerWrongModel: "WrongModel",
+    writerWrongArchitecture: "WrongArchitecture",
+    writerStaleImage: "StaleImage",
+    acceptedWriter: "accepted",
+  });
+
+  const runner = await birthBody(page);
+  await expect(runner.locator(`.physical-target option[value="std/aarch64/raspberry-pi-5"]`)).toHaveCount(0);
+  await expect(runner.locator(`.physical-target option[value="conduitos/armv7/raspberry-pi-3"]`)).toHaveCount(0);
+});

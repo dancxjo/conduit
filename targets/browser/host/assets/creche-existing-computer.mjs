@@ -113,7 +113,11 @@ export function createExistingComputerAdapter({ host, profile }) {
     requireMode(mode, "realize", profile);
     requireCurrent(signal, mode, "realize", profile);
     if (!profile.browser_carrier) {
-      refuse(profile, mode, "realize", "ExplicitInstallerRequired", "the native spore is downloadable, but no reviewed native installer/start carrier is implemented", undefined, {
+      const terminal = profile.credentials_required ? "UnavailableCredentials" : "ExplicitInstallerRequired";
+      const message = profile.credentials_required
+        ? "the Body-bound package is downloadable, but no explicit Raspberry Pi OS installation credentials were supplied to a local helper"
+        : "the native spore is downloadable, but no reviewed native installer/start carrier is implemented";
+      refuse(profile, mode, "realize", terminal, message, undefined, {
         spore_id: binding.prepared.spore_id,
         offered_carriers: ["conduit-carrier/browser-release-download@1"],
         unavailable_carriers: ["explicit-helper", "ssh", "package-manager", "container"],
