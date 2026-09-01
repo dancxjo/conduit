@@ -1282,6 +1282,10 @@ test("the first Gear, explicit branch, and Face pages execute in order", async (
   await openStep(page, 2);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   let runner = page.locator(".runner");
+  await expect(runner.locator('[data-application-component="action-group"]')).toHaveCount(1);
+  await expect(runner.getByRole("button", { name: "Run" })).toHaveAttribute("data-application-action", "book.run");
+  await expect(runner.getByRole("button", { name: "Stop" })).toBeDisabled();
+  await expect(runner.locator(".run, .stop")).toHaveCount(0);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
   await expect(runner.locator(".play-status")).toContainText("Completed");
