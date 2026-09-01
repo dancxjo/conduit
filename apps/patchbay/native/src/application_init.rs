@@ -42,7 +42,7 @@ impl PatchbayApplication {
             .lines()
             .to_vec();
         let workspace = workspace_open::open_workspace(
-            arguments.form_path,
+            arguments.form_path.clone(),
             arguments.environment_path,
             arguments.prewake,
         )?;
@@ -140,6 +140,7 @@ impl PatchbayApplication {
             pending_back_target: None,
             pending_back_selection: false,
             graphical_form: workspace.graphical_form,
+            body_workbench: Default::default(),
             layout: workspace.layout,
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             entrance: None,
@@ -188,6 +189,21 @@ impl PatchbayApplication {
             rendered_once: false,
             failure: None,
         };
+        if let Some(path) = arguments.body_evidence_path {
+            let entrance = arguments
+                .body_entrance
+                .expect("validated Body evidence arguments include an entrance");
+            let encoded = std::fs::read(&path)
+                .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+            let graph = application
+                .graphical_form
+                .as_ref()
+                .ok_or("Body workbench requires a checked graphical Form")?;
+            application
+                .body_workbench
+                .replace(1, encoded, entrance, graph)
+                .map_err(|error| format!("native Body workbench: {error}"))?;
+        }
         if arguments.control_demo || arguments.control_demo_stop {
             application.birth_body()?;
             application.wake_body()?;

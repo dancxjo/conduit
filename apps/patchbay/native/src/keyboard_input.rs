@@ -17,6 +17,12 @@ impl PatchbayApplication {
         if !event.state.is_pressed() {
             return;
         }
+        if self.handle_body_workbench_key(&event.logical_key) {
+            if let Some(window) = &self.window {
+                window.request_redraw();
+            }
+            return;
+        }
         match self.handle_front_door_key(&event.logical_key) {
             Ok(true) => {
                 if let Some(window) = &self.window {

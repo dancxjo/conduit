@@ -234,6 +234,7 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
         wake_id: Some("wake/exact".into()),
         plan_id: Some("plan/exact".into()),
         play_id: None,
+        body_workbench_destination: None,
         flow: LifecycleFlow {
             state_code: "PLAN_READY",
             state_text: "PLAN ready".into(),

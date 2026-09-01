@@ -329,6 +329,13 @@ impl PatchbayApplication {
     }
 
     pub(super) fn presentation_lines(&self) -> Vec<String> {
+        if let Some(workbench) = self.body_workbench.current() {
+            if workbench.destination()
+                != crate::native_body_workbench::NativeWorkbenchDestination::Program
+            {
+                return workbench.lines(self.linear_view, self.exact_identity_open);
+            }
+        }
         if self.linear_view {
             match self.parts_portable_presentation() {
                 Ok(Some(presentation)) => {

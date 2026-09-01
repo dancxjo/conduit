@@ -22,6 +22,8 @@ pub enum ViewportAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    SelectBodyWorkbench(crate::native_body_workbench::NativeWorkbenchDestination),
+    SelectBodyHistory(usize),
     TogglePartsView,
     SpawnBrowserPart,
     CancelBrowserPartSpawn,
