@@ -1,6 +1,12 @@
+import { manifestApplicationView } from "../../targets/browser/host/assets/application-presentation.mjs";
+
 const REQUIRED_EXPORTS = [
   "memory",
   "conduit_browser_presentation_nucleus_run",
+  "conduit_browser_presentation_nucleus_application_view_ptr",
+  "conduit_browser_presentation_nucleus_application_view_len",
+  "conduit_browser_presentation_nucleus_application_theme_ptr",
+  "conduit_browser_presentation_nucleus_application_theme_len",
   "conduit_browser_presentation_nucleus_graphics_ptr",
   "conduit_browser_presentation_nucleus_graphics_len",
   "conduit_browser_presentation_nucleus_layout_ptr",
@@ -113,14 +119,24 @@ export function manifestPresentationNucleus(api, root) {
     "conduit_browser_presentation_nucleus_structured_ptr",
     "conduit_browser_presentation_nucleus_structured_len",
   ));
+  const applicationTheme = bytes(
+    api,
+    "conduit_browser_presentation_nucleus_application_theme_ptr",
+    "conduit_browser_presentation_nucleus_application_theme_len",
+  );
+  const application = manifestApplicationView(bytes(
+    api,
+    "conduit_browser_presentation_nucleus_application_view_ptr",
+    "conduit_browser_presentation_nucleus_application_view_len",
+  ), root, { theme: applicationTheme });
 
-  root.replaceChildren();
+  const applicationShell = root.firstElementChild;
   root.dataset.viewport = `${layout.viewport.width}x${layout.viewport.height}`;
   for (const [index, placement] of layout.children.entries()) {
     const child = document.createElement("section");
     child.dataset.layoutIndex = String(index);
     child.dataset.layoutRect = `${placement.x},${placement.y},${placement.width},${placement.height}`;
-    root.append(child);
+    applicationShell.append(child);
   }
   for (const [index, command] of graphics.entries()) {
     const leaf = document.createElement(command.kind === 2 ? "span" : "div");
@@ -129,12 +145,12 @@ export function manifestPresentationNucleus(api, root) {
     leaf.dataset.clip = `${command.clip.x},${command.clip.y},${command.clip.width},${command.clip.height}`;
     leaf.textContent = command.payload;
     if (command.kind === 3) leaf.setAttribute("role", "img");
-    root.append(leaf);
+    applicationShell.append(leaf);
   }
   const presentedText = document.createElement("output");
   presentedText.dataset.presentationKind = "text";
   presentedText.textContent = text;
-  root.append(presentedText);
+  applicationShell.append(presentedText);
   const structuredPresentation = document.createElement("output");
   structuredPresentation.dataset.presentationKind = "structured-info";
   structuredPresentation.dataset.schema = structured.schema;
@@ -142,6 +158,6 @@ export function manifestPresentationNucleus(api, root) {
   structuredPresentation.dataset.quantityUnit = structured.quantityUnit;
   structuredPresentation.dataset.quantity = String(structured.quantity);
   structuredPresentation.setAttribute("aria-label", "Education feedback structured information");
-  root.append(structuredPresentation);
-  return Object.freeze({ layout, graphics, text, structured });
+  applicationShell.append(structuredPresentation);
+  return Object.freeze({ layout, graphics, text, structured, application });
 }

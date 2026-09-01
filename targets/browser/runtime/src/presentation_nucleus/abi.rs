@@ -1,8 +1,15 @@
 use super::execute_browser_nucleus;
-use conduit_presentation::{MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES};
+use conduit_presentation::{
+    MAX_APPLICATION_THEME_BYTES, MAX_APPLICATION_VIEW_BYTES, MAX_GRAPHICS_SCENE_BYTES,
+    MAX_LAYOUT_FRAME_BYTES,
+};
 use std::cell::RefCell;
 
 struct BrowserNucleusBuffers {
+    application_theme: [u8; MAX_APPLICATION_THEME_BYTES],
+    application_theme_len: usize,
+    application_view: [u8; MAX_APPLICATION_VIEW_BYTES],
+    application_view_len: usize,
     graphics: [u8; MAX_GRAPHICS_SCENE_BYTES],
     graphics_len: usize,
     layout: [u8; MAX_LAYOUT_FRAME_BYTES],
@@ -21,11 +28,30 @@ thread_local! {
 pub extern "C" fn conduit_browser_presentation_nucleus_run() -> i32 {
     match execute_browser_nucleus() {
         Ok(proof) => {
+            let encoded_application_theme =
+                match conduit_presentation::CONDUIT_APPLICATION_THEME.encode() {
+                    Ok(encoded) => encoded,
+                    Err(_) => return -1,
+                };
+            let mut application_theme = [0; MAX_APPLICATION_THEME_BYTES];
+            application_theme[..encoded_application_theme.len()]
+                .copy_from_slice(&encoded_application_theme);
+            let encoded_application_view = match proof.application_view.encode() {
+                Ok(encoded) => encoded,
+                Err(_) => return -1,
+            };
+            let mut application_view = [0; MAX_APPLICATION_VIEW_BYTES];
+            application_view[..encoded_application_view.len()]
+                .copy_from_slice(&encoded_application_view);
             let mut text = [0; conduit_text::MAX_TEXT_BYTES as usize];
             text[..proof.text.len()].copy_from_slice(proof.text.as_bytes());
             let (structured, structured_len) = encode_structured(&proof.structured);
             BROWSER_NUCLEUS.with(|slot| {
                 *slot.borrow_mut() = Some(BrowserNucleusBuffers {
+                    application_theme,
+                    application_theme_len: encoded_application_theme.len(),
+                    application_view,
+                    application_view_len: encoded_application_view.len(),
                     graphics: proof.graphics.encode(),
                     graphics_len: proof.graphics.encoded_len(),
                     layout: proof.layout.encode(),
@@ -40,6 +66,42 @@ pub extern "C" fn conduit_browser_presentation_nucleus_run() -> i32 {
         }
         Err(_) => -1,
     }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_presentation_nucleus_application_theme_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.application_theme.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_presentation_nucleus_application_theme_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.application_theme_len)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_presentation_nucleus_application_view_ptr() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.application_view.as_ptr() as usize)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_presentation_nucleus_application_view_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map_or(0, |proof| proof.application_view_len)
+    })
 }
 
 fn encode_structured(

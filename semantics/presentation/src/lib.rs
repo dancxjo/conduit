@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+mod application_theme;
+mod application_view;
 mod bitmap;
 mod bitmap_catalog;
 mod calendar_time;
@@ -31,6 +33,8 @@ mod temporal;
 mod temporal_model;
 mod temporal_wording;
 
+pub use application_theme::*;
+pub use application_view::*;
 pub use bitmap::*;
 pub use bitmap_catalog::*;
 pub use calendar_time::*;
