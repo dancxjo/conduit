@@ -926,7 +926,7 @@ test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal"
 test("the physical target catalog refuses stale, duplicate, overflowing, and incompatible contributions", async ({ page }) => {
   await birthStandaloneBody(page);
   const refusals = await page.evaluate(async () => {
-    const { createPhysicalHostTargetCatalog } = await import("./creche-target-catalog.mjs");
+    const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
     const entry = (suffix = "one", factory = null) => {
       const target = {
         id: `fixture/target-${suffix}`,
@@ -996,8 +996,8 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
 test("the physical workflow cancels one bounded catalog operation without accepting late truth", async ({ page }) => {
   await birthStandaloneBody(page);
   await page.evaluate(async () => {
-    const { createPhysicalHostRunner } = await import("./creche-physical.mjs");
-    const { createPhysicalHostTargetCatalog } = await import("./creche-target-catalog.mjs");
+    const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
+    const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
     let release;
     globalThis.__fixtureCancelCount = 0;
     const target = {
@@ -1059,8 +1059,8 @@ test("the physical workflow cancels one bounded catalog operation without accept
   expect(await page.evaluate(() => globalThis.__fixtureCancelCount)).toBe(1);
 
   await page.evaluate(async () => {
-    const { createPhysicalHostRunner } = await import("./creche-physical.mjs");
-    const { createPhysicalHostTargetCatalog } = await import("./creche-target-catalog.mjs");
+    const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
+    const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
     const target = {
       id: "fixture/evidence-bound",
       label: "Evidence-bound fixture",
