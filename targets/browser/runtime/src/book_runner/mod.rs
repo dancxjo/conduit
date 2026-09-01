@@ -1,6 +1,7 @@
 //! Inline Forms executed by the ordinary finite browser Host installation.
 
 mod abi;
+mod compact_patchbay;
 mod engine;
 mod multihost;
 mod protocol;

@@ -13,6 +13,7 @@ const ERROR_OUTPUT: i32 = -404;
 const ERROR_COMPLETE: i32 = -405;
 const ERROR_CANCEL: i32 = -406;
 const ERROR_INTERACTION: i32 = -407;
+const ERROR_PROJECTION: i32 = -408;
 
 thread_local! {
     static SESSION: RefCell<Option<BookSession>> = const { RefCell::new(None) };
@@ -50,6 +51,46 @@ pub extern "C" fn conduit_book_inventory() -> i32 {
     write_output(&crate::installed_browser::inventory())
         .map(|()| STATUS_READY)
         .unwrap_or(ERROR_OUTPUT)
+}
+
+/// Projects the exact checked Form beside its Book source without planning or
+/// starting a Play.
+#[no_mangle]
+pub extern "C" fn conduit_book_project_patchbay(source_length: usize, sequence: u64) -> i32 {
+    project_patchbay(source_length, sequence, false)
+}
+
+/// Projects the same visible checked Form while retaining distinct recursive
+/// expansion evidence for the comparison lesson.
+#[no_mangle]
+pub extern "C" fn conduit_book_project_patchbay_recursive(
+    source_length: usize,
+    sequence: u64,
+) -> i32 {
+    project_patchbay(source_length, sequence, true)
+}
+
+fn project_patchbay(source_length: usize, sequence: u64, recursive: bool) -> i32 {
+    clear_output();
+    if source_length == 0 || source_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = core::str::from_utf8(&input[..source_length])
+            .map_err(|_| "compact Book Patchbay source is not UTF-8".to_owned())
+            .and_then(|source| super::compact_patchbay::project(source, sequence, recursive));
+        input[..source_length].fill(0);
+        match result {
+            Ok(projection) => write_output(&projection)
+                .map(|()| STATUS_READY)
+                .unwrap_or(ERROR_OUTPUT),
+            Err(message) => {
+                let _ = write_output(&super::refusal(message));
+                ERROR_PROJECTION
+            }
+        }
+    })
 }
 
 /// Admits the exact editable source through the portable typed human-interaction
