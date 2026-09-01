@@ -7,6 +7,9 @@ const RELEASE_BUNDLE: &[u8] = include_bytes!("../../assets/creche-release-bundle
 const EXISTING_COMPUTER: &[u8] = include_bytes!("../../assets/creche-existing-computer.mjs");
 const STD_ADAPTER: &[u8] = include_bytes!("../../../../std/browser-deployment/creche-adapter.mjs");
 const BROWSER_ADAPTER: &[u8] = include_bytes!("../../browser-deployment/creche-adapter.mjs");
+const ORANGE_PI_ADAPTER: &[u8] =
+    include_bytes!("../../../../orange-pi/browser-deployment/creche-adapter.mjs");
+const ORANGE_PI_IMAGE: &[u8] = include_bytes!("../../../../orange-pi/browser-deployment/image.mjs");
 
 pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static [u8])> {
     let javascript = "text/javascript; charset=utf-8";
@@ -23,6 +26,12 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
         }
         "GET /creche/targets/browser/browser-deployment/creche-adapter.mjs HTTP/1.1" => {
             Some((javascript, BROWSER_ADAPTER))
+        }
+        "GET /creche/targets/orange-pi/browser-deployment/creche-adapter.mjs HTTP/1.1" => {
+            Some((javascript, ORANGE_PI_ADAPTER))
+        }
+        "GET /creche/targets/orange-pi/browser-deployment/image.mjs HTTP/1.1" => {
+            Some((javascript, ORANGE_PI_IMAGE))
         }
         _ => None,
     }

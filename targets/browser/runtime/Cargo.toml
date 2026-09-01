@@ -35,6 +35,7 @@ conduit-host-avr-fabrication = { path = "../../avr/fabrication" }
 conduit-host-rp2040 = { path = "../../rp2040/fabrication" }
 conduit-host-esp32-fabrication = { path = "../../esp32/fabrication" }
 conduit-host-hosted = { path = "../../std/fabrication-package" }
+conduit-host-orange-pi = { path = "../../orange-pi/fabrication-package" }
 conduit-host-browser-fabrication = { path = "../host/fabrication-package" }
 conduit-host-raspberry-pi = { path = "../../raspberry-pi/fabrication-package" }
 conduit-host-conduitos-fabrication = { path = "../../conduitos/fabrication-package" }

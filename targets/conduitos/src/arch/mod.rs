@@ -28,14 +28,23 @@ pub use ia32::{
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 mod aarch64;
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_fp_simd,
     enable_interrupts, initialize_machine, install_low_mmio_map, interruptible_idle,
     mmio_table_addresses, pop_interrupt, present, read_counter, timer_arm,
+};
+
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-orange-pi-5"))]
+mod aarch64_orange_pi_5;
+
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-orange-pi-5"))]
+pub use aarch64_orange_pi_5::{
+    Clock, Idle, Interrupts, Serial, Timer, disable_interrupts, enable_fp_simd, enable_interrupts,
+    initialize_machine, present, read_counter,
 };
 
 #[cfg(target_arch = "aarch64")]
