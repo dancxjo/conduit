@@ -233,6 +233,21 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
   expect(projectedListings).toBe(9);
 });
 
+test("same-named input and output Ports keep distinct animated Cords", async ({ page }) => {
+  await openStep(page, 0);
+  const patchbay = page.locator(".runner").first().locator(".compact-patchbay");
+  await expect(patchbay.locator(".react-flow__node")).toHaveCount(3);
+  await expect(patchbay.locator(".react-flow__edge")).toHaveCount(2);
+  await expect(patchbay.locator(".react-flow__edge.animated")).toHaveCount(2);
+  await expect(patchbay.locator(".react-flow__edge-text")).toHaveCount(0);
+  await expect(patchbay.locator(".compact-patchbay-text")).toContainText(
+    "meet-one-gear/words output text to meet-one-gear/change input text",
+  );
+  await expect(patchbay.locator(".compact-patchbay-text")).toContainText(
+    "meet-one-gear/change output text to meet-one-gear/result input text",
+  );
+});
+
 test("reading measure stays narrow while the Patchbay workbench uses wide and narrow viewports", async ({ page }) => {
   for (const width of [1440, 1600]) {
     await page.setViewportSize({ width, height: 1000 });
