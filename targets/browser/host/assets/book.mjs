@@ -1,7 +1,7 @@
 import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
-import { createBookNavigation } from "./book-navigation.mjs";
+import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -12,6 +12,7 @@ let peerHost = null;
 let generation = 0;
 let running = false;
 let runnerCount = 0;
+let runnerSlotSequence = 0;
 let activeRunner = null;
 let activeDelay = null;
 let cancelActiveKeyEvent = null;
@@ -22,11 +23,13 @@ let patchbaySequence = 0;
 let readingState;
 let admittedRuntimeBytes;
 let navigation;
+let hostPresentation;
 
 export async function startApplication(application) {
 try {
   readingState = await openBookReadingState(application.storage);
-  navigation = createBookNavigation(application.presentation, (offset) => renderPage(currentPage + offset, "push"));
+  hostPresentation = application.presentation;
+  navigation = createBookNavigation(hostPresentation, (offset) => renderPage(currentPage + offset, "push"));
   admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
     Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
@@ -300,6 +303,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   runnerCount += 1;
   const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
+  const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner";
   runner.dataset.sourceKey = sourceKey;
@@ -309,9 +313,7 @@ function createRunner(source, recursive = false, presentation = {}) {
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable</label>
         <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
-        <div class="actions">
-          <button class="run" type="button">${presentation.runLabel ?? "Run"}</button><button class="stop" type="button" disabled>Stop</button>
-        </div>
+        <div data-application-slot="${actionsSlot}"></div>
       </div>
       ${compactPatchbayFrame()}
     </div>
@@ -327,16 +329,17 @@ function createRunner(source, recursive = false, presentation = {}) {
     </div>`;
   runner.dataset.faceBack = String(presentation.faceBack === true);
   const textarea = runner.querySelector("textarea");
-  const run = runner.querySelector(".run");
-  const stop = runner.querySelector(".stop");
   textarea.value = readingState.drafts.get(sourceKey) ?? source;
   textarea.addEventListener("input", () => {
     readingState.drafts.set(sourceKey, textarea.value);
     persistBookState();
     refreshCompactPatchbay(runner, textarea.value, recursive);
   });
-  run.addEventListener("click", () => runListing(runner, textarea.value, recursive));
-  stop.addEventListener("click", () => stopListing(runner));
+  runner.actionControls = createBookRunnerActions(
+    hostPresentation, actionsSlot, presentation.runLabel ?? "Run",
+    () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
+  );
+  queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
 }
@@ -345,6 +348,7 @@ function createMultiHostRunner(source, showPlan) {
   runnerCount += 1;
   const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
+  const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner multi-host-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -354,9 +358,7 @@ function createMultiHostRunner(source, showPlan) {
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable · unchanged across Hosts</label>
         <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
-        <div class="actions">
-          <button class="run" type="button">Run across two Hosts</button><button class="stop" type="button" disabled>Stop</button>
-        </div>
+        <div data-application-slot="${actionsSlot}"></div>
       </div>
       ${compactPatchbayFrame()}
     </div>
@@ -383,8 +385,11 @@ function createMultiHostRunner(source, showPlan) {
     persistBookState();
     refreshCompactPatchbay(runner, textarea.value, false);
   });
-  runner.querySelector(".run").addEventListener("click", () => runMultiHostListing(runner, textarea.value));
-  runner.querySelector(".stop").addEventListener("click", () => stopListing(runner));
+  runner.actionControls = createBookRunnerActions(
+    hostPresentation, actionsSlot, "Run across two Hosts",
+    () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),
+  );
+  queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, false);
   return runner;
 }
@@ -668,8 +673,7 @@ async function runMultiHostListing(runner, source) {
   running = true;
   activeRunner = runner;
   setNavigationDisabled(true);
-  runner.querySelector(".run").disabled = true;
-  runner.querySelector(".stop").disabled = false;
+  runner.actionControls.render(true);
   status.classList.remove("error");
   status.textContent = "Starting an independent second browser Host…";
   try {
@@ -902,8 +906,7 @@ function finishRun(runner) {
   running = false;
   activeRunner = null;
   setNavigationDisabled(false);
-  runner.querySelector(".run").disabled = false;
-  runner.querySelector(".stop").disabled = true;
+  runner.actionControls.render(false);
 }
 
 async function runListing(runner, source, recursive) {
@@ -958,8 +961,7 @@ async function runListing(runner, source, recursive) {
   setNavigationDisabled(true);
   status.classList.remove("error");
   status.textContent = "Playing through this browser Host…";
-  runner.querySelector(".run").disabled = true;
-  runner.querySelector(".stop").disabled = false;
+  runner.actionControls.render(true);
   try {
     while (progress.effect_kind) {
       if (progress.effect_kind === "timer") {
@@ -1002,16 +1004,14 @@ async function runListing(runner, source, recursive) {
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
-    runner.querySelector(".run").disabled = false;
-    runner.querySelector(".stop").disabled = true;
+    runner.actionControls.render(false);
   } catch (error) {
     status.textContent = error instanceof Error ? error.message : String(error);
     status.classList.add("error");
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
-    runner.querySelector(".run").disabled = false;
-    runner.querySelector(".stop").disabled = true;
+    runner.actionControls.render(false);
   }
 }
 
@@ -1025,8 +1025,7 @@ function stopListing(runner) {
   activeRunner = null;
   setNavigationDisabled(false);
   setIndicator(runner, false);
-  runner.querySelector(".run").disabled = false;
-  runner.querySelector(".stop").disabled = true;
+  runner.actionControls.render(false);
   runner.querySelector(".play-status").textContent = "Stopped. The Play was cancelled.";
 }
 
