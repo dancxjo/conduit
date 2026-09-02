@@ -3,8 +3,79 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Conduit browser Host</title>
 <style>
-  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-  body { max-width: 48rem; margin: 4rem auto; padding: 0 1.5rem; }
+  :root {
+    color-scheme: light;
+    --ink: #17221d;
+    --muted: #66736b;
+    --paper: #f5f2e9;
+    --panel: #fffdf7;
+    --green: #176b50;
+    --green-dark: #0c4937;
+    --mint: #9fe2c4;
+    --amber: #ffbf47;
+    --failure: #8b2f26;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { min-height: 100vh; margin: 0; background: var(--paper); color: var(--ink); }
+  .suspense {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: var(--paper);
+    opacity: 1;
+    text-align: center;
+    transition: opacity 280ms ease;
+  }
+  .suspense.leaving { opacity: 0; pointer-events: none; }
+  .suspense[hidden], .host[hidden] { display: none; }
+  .suspense-card { width: min(30rem, 100%); }
+  .spinner {
+    position: relative;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin: 0 auto 1.75rem;
+    border: .25rem solid color-mix(in srgb, var(--green) 18%, transparent);
+    border-radius: 50%;
+    animation: orbit 1.35s linear infinite;
+  }
+  .spinner::before {
+    content: "";
+    position: absolute;
+    width: 1.25rem;
+    height: 1.25rem;
+    top: -.45rem;
+    left: 50%;
+    border: .22rem solid var(--panel);
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 .25rem .8rem rgb(23 107 80 / 25%);
+    transform: translateX(-50%);
+  }
+  .spinner::after {
+    content: "c";
+    position: absolute;
+    inset: .85rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--mint);
+    background: var(--green-dark);
+    font: 800 2rem/1 Georgia, serif;
+    transform: rotate(0deg);
+    animation: counter-orbit 1.35s linear infinite;
+  }
+  .eyebrow { margin: 0 0 .65rem; color: var(--green); font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .suspense h1 { margin: 0; font: 750 clamp(2.1rem, 8vw, 3.4rem)/1 Georgia, serif; letter-spacing: -.035em; }
+  .suspense p:last-child { margin: .8rem auto 0; color: var(--muted); line-height: 1.6; }
+  .suspense.failed .spinner { display: none; }
+  .suspense.failed .eyebrow, .suspense.failed h1 { color: var(--failure); }
+  .host { max-width: 48rem; margin: 0 auto; padding: 4rem 1.5rem; opacity: 0; transition: opacity 280ms ease; }
+  .host.ready { opacity: 1; }
   dt { font-weight: 650; margin-top: 1rem; }
   dd { margin: .25rem 0; overflow-wrap: anywhere; }
   button { margin: .5rem .5rem .5rem 0; padding: .6rem 1rem; }
@@ -16,10 +87,24 @@
     color: Canvas;
   }
   output { white-space: pre-wrap; overflow-wrap: anywhere; }
+  @keyframes orbit { to { transform: rotate(360deg); } }
+  @keyframes counter-orbit { to { transform: rotate(-360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner, .spinner::after { animation: none; }
+    .suspense, .host { transition: none; }
+  }
 </style>
-<main>
+<main id="suspense" class="suspense" aria-busy="true">
+  <div class="suspense-card">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="eyebrow">Conduit browser Host</p>
+    <h1>Waking up a little Host…</h1>
+    <p id="starting-status" role="status">Preparing one fresh, bounded WebAssembly incarnation.</p>
+  </div>
+</main>
+<main id="host" class="host" hidden>
   <h1>Conduit browser Host</h1>
-  <p id="status" role="status">Initializing one independent page/WASM incarnation…</p>
+  <p id="status" role="status">Current and independently initialized</p>
   <p><a href="/creche/">Open the Crèche to birth or provision a Body</a></p>
   <dl hidden id="identity">
     <dt>Host</dt><dd id="host-id"></dd>
