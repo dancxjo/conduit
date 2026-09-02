@@ -411,7 +411,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     for (const artifact of ["hosted-linux-x86_64.json", "conduit-linux-x86_64", "hosted-windows-x86_64.json", "conduit-windows-x86_64.exe", "hosted-macos-aarch64.json", "conduit-macos-aarch64", "browser-page.json", "runtime.wasm", "index.html", "host.mjs"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
-    for (const artifact of ["orange-pi-5-image.json", "conduitos-orange-pi-5.img", "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json", "conduit-linux-aarch64", "rpi-b-plus-image.json", "conduitos-rpi-b-plus.img"]) {
+    for (const artifact of ["orange-pi-5-image.json", "conduitos-orange-pi-5.img", "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json", "raspios-bookworm-zero-2-w-rev-1.0.json", "raspios-bookworm-zero-2-wh-rev-1.0.json", "conduit-linux-aarch64", "rpi-b-plus-image.json", "conduitos-rpi-b-plus.img", "rpi-zero-v1-image.json", "conduitos-rpi-zero-v1.img", "rpi-zero-w-v1.1-image.json", "conduitos-rpi-zero-w-v1.1.img", "rpi-zero-wh-v1.1-image.json", "conduitos-rpi-zero-wh-v1.1.img"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
     for (const artifact of ["conduitos-x86_64-pc-release.json", "conduitos-x86_64-pc.iso", "conduitos-aarch64-virt-release.json", "conduitos-aarch64-virt.iso"]) {
@@ -785,7 +785,12 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     "Browser page Host",
     "Orange Pi 5 · RK3588S · bare-metal ConduitOS",
     "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
+    "Pi Zero 2 W rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+    "Pi Zero 2 WH rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
     "Model B+ v1.2 · ARMv6 · bare-metal ConduitOS",
+    "Pi Zero v1 · ARMv6 · bare-metal ConduitOS",
+    "Pi Zero W v1.1 · ARMv6 · bare-metal ConduitOS",
+    "Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
     "x86_64 PC · product Host",
     "AArch64 virt · product Host",
     "IA-32 PC · architecture proof only",
@@ -1021,8 +1026,24 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
 
 test("Windows and macOS native releases are exact selectable Crèche targets", async ({ page }) => {
   const profiles = [
-    { id: "std/x86_64/windows-computer", profileId: "hosted-windows-x86_64", manifest: "hosted-windows-x86_64.json", os: "windows", architecture: "x86_64", machine: "windows-computer", executable: "conduit-windows-x86_64.exe" },
-    { id: "std/aarch64/macos-computer", profileId: "hosted-macos-aarch64", manifest: "hosted-macos-aarch64.json", os: "macos", architecture: "aarch64", machine: "macos-computer", executable: "conduit-macos-aarch64" },
+    {
+      id: "std/x86_64/windows-computer",
+      profileId: "hosted-windows-x86_64",
+      manifest: "hosted-windows-x86_64.json",
+      os: "windows",
+      architecture: "x86_64",
+      machine: "windows-computer",
+      executable: "conduit-windows-x86_64.exe",
+    },
+    {
+      id: "std/aarch64/macos-computer",
+      profileId: "hosted-macos-aarch64",
+      manifest: "hosted-macos-aarch64.json",
+      os: "macos",
+      architecture: "aarch64",
+      machine: "macos-computer",
+      executable: "conduit-macos-aarch64",
+    },
   ];
   for (const [index, profile] of profiles.entries()) {
     const release = await installHostRelease(page, profile.manifest);
@@ -1036,13 +1057,22 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry).toMatchObject({
       target: { id: profile.id, profile_id: profile.profileId },
-      target_profile: { os: profile.os, architecture: profile.architecture, machine: profile.machine, package_id: "hosted-native@1" },
+      target_profile: {
+        os: profile.os,
+        architecture: profile.architecture,
+        machine: profile.machine,
+        package_id: "hosted-native@1",
+      },
     });
     expect(evidence.binding).toMatchObject({
       target_id: profile.id,
       fabrication_package_id: "hosted-native@1",
       image_content_digest: release.bundle_sha256,
-      spore_artifact: { files: expect.arrayContaining([expect.objectContaining({ path: profile.executable, mode: 0o100755 })]) },
+      spore_artifact: {
+        files: expect.arrayContaining([
+          expect.objectContaining({ path: profile.executable, mode: 0o100755 }),
+        ]),
+      },
     });
   }
 });

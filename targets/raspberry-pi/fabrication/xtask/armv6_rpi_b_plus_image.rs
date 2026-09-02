@@ -238,7 +238,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         physical_proof_claimed: false,
         target_id: format!("conduitos/armv6/{}", board.id()),
         fabrication_package_id: "conduit-host-raspberry-pi@1",
-        fabrication_package_revision: 1,
+        fabrication_package_revision: 2,
         output: "sd-image",
         builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1",
         deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",

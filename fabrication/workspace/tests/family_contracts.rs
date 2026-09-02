@@ -93,6 +93,8 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
     for target in [
         "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
         "conduitos/armv6/raspberry-pi-zero-v1",
+        "conduitos/armv6/raspberry-pi-zero-w-v1.1",
+        "conduitos/armv6/raspberry-pi-zero-wh-v1.1",
     ] {
         let descriptor = packages.target_descriptor(target).unwrap();
         assert_eq!(
@@ -120,6 +122,21 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
     assert_eq!(pi_os.default_output, SporeOutputKind::NativeBundle);
     assert_eq!(pi_os.post_build_actions, [PostBuildAction::Launch]);
     assert!(!pi_os.post_build_actions.contains(&PostBuildAction::Flash));
+
+    for target in [
+        "std/aarch64/raspberry-pi-zero-2-w-rev-1.0",
+        "std/aarch64/raspberry-pi-zero-2-wh-rev-1.0",
+    ] {
+        let zero_2 = packages.target_descriptor(target).unwrap();
+        assert_eq!(
+            packages.anchor_for_target(target).unwrap().package_id,
+            "conduit-host-raspberry-pi@1"
+        );
+        assert_eq!(zero_2.architecture, "aarch64");
+        assert_eq!(zero_2.os.as_deref(), Some("raspberry-pi-os-bookworm-64"));
+        assert_eq!(zero_2.default_output, SporeOutputKind::NativeBundle);
+        assert_eq!(zero_2.post_build_actions, [PostBuildAction::Launch]);
+    }
 }
 
 #[test]

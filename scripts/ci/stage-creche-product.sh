@@ -42,7 +42,7 @@ for artifact in avr-promicro-atmega32u4-5v-16mhz.json promicro-atmega32u4-5v-16m
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
-for artifact in orange-pi-5-image.json conduitos-orange-pi-5.img raspios-bookworm-pi4-model-b-rev-1.5-4gb.json conduit-linux-aarch64 rpi-b-plus-image.json conduitos-rpi-b-plus.img; do
+for artifact in orange-pi-5-image.json conduitos-orange-pi-5.img raspios-bookworm-pi4-model-b-rev-1.5-4gb.json raspios-bookworm-zero-2-w-rev-1.0.json raspios-bookworm-zero-2-wh-rev-1.0.json conduit-linux-aarch64 rpi-b-plus-image.json conduitos-rpi-b-plus.img rpi-zero-v1-image.json conduitos-rpi-zero-v1.img rpi-zero-w-v1.1-image.json conduitos-rpi-zero-w-v1.1.img rpi-zero-wh-v1.1-image.json conduitos-rpi-zero-wh-v1.1.img; do
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
@@ -64,5 +64,5 @@ for route in birth first-host physical-host graduate; do
   cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 82
+test "$(find "$destination" -type f | wc -l)" -eq 90
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

@@ -17,18 +17,16 @@ const BARE_METAL_BOUNDS = Object.freeze({
   maximumRetainedEvidenceBytes: 128 * 1024,
 });
 
-export const RASPBERRY_PI_OS_PROFILE = Object.freeze({
+function raspberryPiOsProfile({ id, label, model, machine, manifest }) {
+  return Object.freeze({
   target: Object.freeze({
-    id: "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb",
-    label: "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
-    model_id: "raspberry-pi/pi-4-model-b-rev-1.5-4gb@1",
+    id,
+    label,
+    model_id: `raspberry-pi/${model}@1`,
     profile_id: "raspios-bookworm-64-aarch64",
   }),
-  target_id: "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb",
-  manifest_path: new URL(
-    "../../../artifacts/raspios-bookworm-pi4-model-b-rev-1.5-4gb.json",
-    import.meta.url,
-  ).href,
+  target_id: id,
+  manifest_path: new URL(`../../../artifacts/${manifest}`, import.meta.url).href,
   package_id: "conduit-host-raspberry-pi@1",
   output: "native-bundle",
   builder_adapter: "conduit-host-raspberry-pi/build-raspios-native@1",
@@ -40,7 +38,7 @@ export const RASPBERRY_PI_OS_PROFILE = Object.freeze({
   declaration: Object.freeze({
     schema: "conduit.raspberry-pi/creche-os-profile@1",
     intention: "install-existing",
-    model: "raspberry-pi-4-model-b-rev-1.5-4gb",
+    model: machine,
     architecture: "aarch64",
     os: "raspberry-pi-os-bookworm-64",
     package_id: "conduit-host-raspberry-pi@1",
@@ -49,6 +47,29 @@ export const RASPBERRY_PI_OS_PROFILE = Object.freeze({
     local_helper: "explicit package installer with separately supplied credentials",
     physical_boot_claimed: false,
   }),
+});
+}
+
+export const RASPBERRY_PI_OS_PROFILE = raspberryPiOsProfile({
+  id: "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb",
+  label: "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
+  model: "pi-4-model-b-rev-1.5-4gb",
+  machine: "raspberry-pi-4-model-b-rev-1.5-4gb",
+  manifest: "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json",
+});
+export const RASPBERRY_PI_ZERO_2_W_OS_PROFILE = raspberryPiOsProfile({
+  id: "std/aarch64/raspberry-pi-zero-2-w-rev-1.0",
+  label: "Pi Zero 2 W rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+  model: "zero-2-w-rev-1.0",
+  machine: "raspberry-pi-zero-2-w-rev-1.0",
+  manifest: "raspios-bookworm-zero-2-w-rev-1.0.json",
+});
+export const RASPBERRY_PI_ZERO_2_WH_OS_PROFILE = raspberryPiOsProfile({
+  id: "std/aarch64/raspberry-pi-zero-2-wh-rev-1.0",
+  label: "Pi Zero 2 WH rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+  model: "zero-2-wh-rev-1.0",
+  machine: "raspberry-pi-zero-2-wh-rev-1.0",
+  manifest: "raspios-bookworm-zero-2-wh-rev-1.0.json",
 });
 
 export const RASPBERRY_PI_B_PLUS_PROFILE = Object.freeze({
@@ -68,10 +89,33 @@ export const RASPBERRY_PI_B_PLUS_PROFILE = Object.freeze({
   bootMechanism: "raspberry-pi-videocore-firmware-direct-kernel",
 });
 
-const piOsContribution = Object.freeze({
+function zeroBareMetalProfile({ id, label, model, manifest }) {
+  return Object.freeze({
+    target: Object.freeze({
+      id: `conduitos/armv6/${id}`,
+      label: `${label} · ARMv6 · bare-metal ConduitOS`,
+      model_id: `raspberry-pi/${model}@1`,
+      profile_id: `bcm2835-armv6-${model}-direct-kernel-sd`,
+    }),
+    manifestPath: new URL(`../../../artifacts/${manifest}`, import.meta.url).href,
+    packageId: "conduit-host-raspberry-pi@1",
+    builderAdapter: "conduit-host-raspberry-pi/build-sd-image@1",
+    deploymentAdapter: "conduit-host-raspberry-pi/flash-removable-media@1",
+    architecture: "armv6",
+    machine: "BCM2835/ARM1176JZF-S",
+    board: id,
+    bootMechanism: "raspberry-pi-videocore-firmware-direct-kernel",
+  });
+}
+
+export const RASPBERRY_PI_ZERO_PROFILE = zeroBareMetalProfile({ id: "raspberry-pi-zero-v1", label: "Pi Zero v1", model: "zero-v1", manifest: "rpi-zero-v1-image.json" });
+export const RASPBERRY_PI_ZERO_W_PROFILE = zeroBareMetalProfile({ id: "raspberry-pi-zero-w-v1.1", label: "Pi Zero W v1.1", model: "zero-w-v1.1", manifest: "rpi-zero-w-v1.1-image.json" });
+export const RASPBERRY_PI_ZERO_WH_PROFILE = zeroBareMetalProfile({ id: "raspberry-pi-zero-wh-v1.1", label: "Pi Zero WH v1.1", model: "zero-wh-v1.1", manifest: "rpi-zero-wh-v1.1-image.json" });
+
+function piOsContribution(profile) { return Object.freeze({
   schema: "conduit.creche/physical-host-target-entry@1",
   family: FAMILY,
-  target: RASPBERRY_PI_OS_PROFILE.target,
+  target: profile.target,
   intentions: EXISTING_COMPUTER_MODES,
   fabrication_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed Raspberry Pi OS aarch64 package" }),
@@ -86,17 +130,17 @@ const piOsContribution = Object.freeze({
   }),
   bounds: EXISTING_COMPUTER_BOUNDS,
   expected_join_contract: "conduit.host/native-spawn-observation@1",
-  target_profile: RASPBERRY_PI_OS_PROFILE.declaration,
-  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile: RASPBERRY_PI_OS_PROFILE }),
-});
+  target_profile: profile.declaration,
+  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile }),
+}); }
 
-const bareMetalDeclaration = Object.freeze({
+function bareMetalDeclaration(profile) { return Object.freeze({
   schema: "conduit.raspberry-pi/creche-bare-metal-profile@1",
   intention: "fabricate-new",
-  model: RASPBERRY_PI_B_PLUS_PROFILE.board,
-  architecture: RASPBERRY_PI_B_PLUS_PROFILE.architecture,
-  machine: RASPBERRY_PI_B_PLUS_PROFILE.machine,
-  boot_mechanism: RASPBERRY_PI_B_PLUS_PROFILE.bootMechanism,
+  model: profile.board,
+  architecture: profile.architecture,
+  machine: profile.machine,
+  boot_mechanism: profile.bootMechanism,
   image_format: "mbr-fat32-sd-image",
   boot_files: Object.freeze(["LICENCE.broadcom", "bootcode.bin", "config.txt", "fixup.dat", "kernel.img", "start.elf"]),
   carrier: "removable-sd-card",
@@ -104,15 +148,15 @@ const bareMetalDeclaration = Object.freeze({
   local_helper: "explicit removable-media writer with raw block authority",
   browser_raw_block_authority: false,
   physical_flash_boot_uart_human_gated: true,
-});
+}); }
 
-const bareMetalContribution = Object.freeze({
+function bareMetalContribution(profile) { return Object.freeze({
   schema: "conduit.creche/physical-host-target-entry@1",
   family: FAMILY,
-  target: RASPBERRY_PI_B_PLUS_PROFILE.target,
+  target: profile.target,
   intentions: BARE_METAL_MODES,
   fabrication_strategies: Object.freeze([
-    Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed ConduitOS Model B+ SD image" }),
+    Object.freeze({ id: "reviewed-generic-release-download", label: `Reviewed ConduitOS ${profile.target.label} SD image` }),
   ]),
   carriers: Object.freeze({
     deployment: Object.freeze([
@@ -124,31 +168,34 @@ const bareMetalContribution = Object.freeze({
   }),
   bounds: BARE_METAL_BOUNDS,
   expected_join_contract: "conduit.conduitos/physical-uart-attestation-before-join@1",
-  target_profile: bareMetalDeclaration,
-  createAdapter: ({ host }) => createBareMetalAdapter({ host }),
-});
+  target_profile: bareMetalDeclaration(profile),
+  createAdapter: ({ host }) => createBareMetalAdapter({ host, profile }),
+}); }
 
-export const RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([piOsContribution, bareMetalContribution]);
+export const RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([
+  ...[RASPBERRY_PI_OS_PROFILE, RASPBERRY_PI_ZERO_2_W_OS_PROFILE, RASPBERRY_PI_ZERO_2_WH_OS_PROFILE].map(piOsContribution),
+  ...[RASPBERRY_PI_B_PLUS_PROFILE, RASPBERRY_PI_ZERO_PROFILE, RASPBERRY_PI_ZERO_W_PROFILE, RASPBERRY_PI_ZERO_WH_PROFILE].map(bareMetalContribution),
+]);
 
-export function createBareMetalAdapter({ host, imageWriter } = {}) {
+export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_PI_B_PLUS_PROFILE } = {}) {
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
     note.textContent = mode === "fabricate-new"
-      ? "Conduit downloads the exact reviewed Model B+ SD image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not."
+      ? `Conduit downloads the exact reviewed ${profile.target.label} SD image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not.`
       : "This exact bare-metal substrate is fabricated as a new Host; it is not an existing OS installation or an already-running attachment.";
     return note;
   }
 
   async function obtain({ mode, signal }) {
-    requireMode(mode, "obtain"); requireCurrent(signal, mode, "obtain");
-    const release = await acquireRaspberryPiImage(RASPBERRY_PI_B_PLUS_PROFILE, signal);
+    requireMode(profile, mode, "obtain"); requireCurrent(profile, signal, mode, "obtain");
+    const release = await acquireRaspberryPiImage(profile, signal);
     return Object.freeze({
       resultKind: "artifact",
       private: release,
       evidence: Object.freeze({
         schema: "conduit.raspberry-pi/creche-image-obtainment@1",
-        target_id: RASPBERRY_PI_B_PLUS_PROFILE.target.id,
+        target_id: profile.target.id,
         result_kind: "artifact",
         image_id: release.manifest.image_id,
         source_identity: release.manifest.source_identity,
@@ -164,11 +211,11 @@ export function createBareMetalAdapter({ host, imageWriter } = {}) {
   }
 
   async function bind({ mode, body, obtainment, nowMillis, signal }) {
-    requireMode(mode, "bind"); requireCurrent(signal, mode, "bind");
+    requireMode(profile, mode, "bind"); requireCurrent(profile, signal, mode, "bind");
     const release = obtainment?.private;
-    if (!release?.bytes || release.digest !== obtainment.evidence?.image_sha256) refuse(mode, "bind", "MissingArtifact", "exact SD image truth is missing before Body binding");
+    if (!release?.bytes || release.digest !== obtainment.evidence?.image_sha256) refuse(profile, mode, "bind", "MissingArtifact", "exact SD image truth is missing before Body binding");
     const entropy = crypto.getRandomValues(new Uint8Array(32));
-    const targetBytes = encoder.encode(RASPBERRY_PI_B_PLUS_PROFILE.target.id);
+    const targetBytes = encoder.encode(profile.target.id);
     const digestBytes = encoder.encode(release.digest);
     try {
       const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
@@ -176,12 +223,12 @@ export function createBareMetalAdapter({ host, imageWriter } = {}) {
       const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
       if (code < 0) throw outputError(host.runtime, "Raspberry Pi spore preparation", code);
       const prepared = readOutput(host.runtime);
-      if (prepared.target_id !== RASPBERRY_PI_B_PLUS_PROFILE.target.id || prepared.image_content_digest !== release.digest
-        || prepared.output !== "sd-image" || prepared.fabrication_package_id !== RASPBERRY_PI_B_PLUS_PROFILE.packageId
-        || prepared.deployment_adapter !== RASPBERRY_PI_B_PLUS_PROFILE.deploymentAdapter) {
-        refuse(mode, "bind", "BindingIdentity", "prepared invitation lost exact Model B+, SD image, or writer-adapter truth");
+      if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest
+        || prepared.output !== "sd-image" || prepared.fabrication_package_id !== profile.packageId
+        || prepared.deployment_adapter !== profile.deploymentAdapter) {
+        refuse(profile, mode, "bind", "BindingIdentity", "prepared invitation lost exact Raspberry Pi board, SD image, or writer-adapter truth");
       }
-      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-conduitos-model-b-plus.img`;
+      const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-conduitos-${friendlyFilename(profile.board)}.img`;
       const nativeSpore = await bindBodyProvisionedMedia({
         prepared,
         imageBytes: release.bytes,
@@ -222,11 +269,11 @@ export function createBareMetalAdapter({ host, imageWriter } = {}) {
   }
 
   async function realize({ mode, binding, signal }) {
-    requireMode(mode, "realize"); requireCurrent(signal, mode, "realize");
-    const supplied = imageWriter ? await imageWriter({ profile: RASPBERRY_PI_B_PLUS_PROFILE, binding, signal }) : null;
+    requireMode(profile, mode, "realize"); requireCurrent(profile, signal, mode, "realize");
+    const supplied = imageWriter ? await imageWriter({ profile, binding, signal }) : null;
     let receipt;
-    try { receipt = validateImageWriterEvidence(supplied, RASPBERRY_PI_B_PLUS_PROFILE, binding); }
-    catch (error) { refuse(mode, "realize", error?.code ?? "WriterEvidenceInvalid", error instanceof Error ? error.message : String(error)); }
+    try { receipt = validateImageWriterEvidence(supplied, profile, binding); }
+    catch (error) { refuse(profile, mode, "realize", error?.code ?? "WriterEvidenceInvalid", error instanceof Error ? error.message : String(error)); }
     return Object.freeze({
       terminal: "ImageWritten",
       evidence: Object.freeze({
@@ -241,24 +288,24 @@ export function createBareMetalAdapter({ host, imageWriter } = {}) {
   }
 
   async function observe({ mode }) {
-    requireMode(mode, "observe");
-    refuse(mode, "observe", "BootObservationUnavailable", "physical Model B+ boot and UART observation remain a separate human-gated proof");
+    requireMode(profile, mode, "observe");
+    refuse(profile, mode, "observe", "BootObservationUnavailable", `physical ${profile.target.label} boot and UART observation remain a separate human-gated proof`);
   }
 
   async function cancel({ mode, operation }) {
-    return Object.freeze({ schema: "conduit.raspberry-pi/creche-cancellation@1", target_id: RASPBERRY_PI_B_PLUS_PROFILE.target.id, mode, operation, terminal: "Cancelled" });
+    return Object.freeze({ schema: "conduit.raspberry-pi/creche-cancellation@1", target_id: profile.target.id, mode, operation, terminal: "Cancelled" });
   }
-  return Object.freeze({ schema: "conduit.creche/physical-host-target-adapter@1", target: RASPBERRY_PI_B_PLUS_PROFILE.target, modes: BARE_METAL_MODES, bounds: BARE_METAL_BOUNDS, createOptions, obtain, bind, realize, observe, cancel });
+  return Object.freeze({ schema: "conduit.creche/physical-host-target-adapter@1", target: profile.target, modes: BARE_METAL_MODES, bounds: BARE_METAL_BOUNDS, createOptions, obtain, bind, realize, observe, cancel });
 }
 
-function requireMode(mode, operation) {
+function requireMode(profile, mode, operation) {
   if (mode === "fabricate-new") return;
-  refuse(mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `bare-metal Model B+ target does not offer ${mode}`);
+  refuse(profile, mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `bare-metal ${profile.target.label} target does not offer ${mode}`);
 }
-function requireCurrent(signal, mode, operation) { if (signal?.aborted) refuse(mode, operation, "Cancelled", "Raspberry Pi operation was cancelled"); }
-function refuse(mode, operation, terminal, message) {
+function requireCurrent(profile, signal, mode, operation) { if (signal?.aborted) refuse(profile, mode, operation, "Cancelled", "Raspberry Pi operation was cancelled"); }
+function refuse(profile, mode, operation, terminal, message) {
   const error = new Error(message); error.code = terminal;
-  error.evidence = Object.freeze({ schema: "conduit.raspberry-pi/creche-operation-refusal@1", target_id: RASPBERRY_PI_B_PLUS_PROFILE.target.id, mode, operation, terminal, message, browser_raw_block_authority_claimed: false, external_work_started: false });
+  error.evidence = Object.freeze({ schema: "conduit.raspberry-pi/creche-operation-refusal@1", target_id: profile.target.id, mode, operation, terminal, message, browser_raw_block_authority_claimed: false, external_work_started: false });
   throw error;
 }
 function readOutput(api) { return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len()))); }
