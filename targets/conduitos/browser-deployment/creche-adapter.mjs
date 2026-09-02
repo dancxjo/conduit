@@ -6,7 +6,6 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const FAMILY = Object.freeze({ id: "conduit-target-family/conduitos@1", label: "ConduitOS machines" });
 const PRODUCT_MODES = modes(true);
-const PROOF_ONLY_MODES = modes(false);
 const BOUNDS = Object.freeze({ maximumOperations: 16, maximumOperationEvidenceBytes: 32 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 });
 
 function product({ id, label, architecture, machine, profileId, releaseName, firmware, bootEntry, presenter, bounds }) {
@@ -38,17 +37,35 @@ export const CONDUITOS_AARCH64_PROFILE = product({
   presenter: "presenter/linear-serial@1",
   bounds: { static_memory_bytes: 8_388_608, heap_arena_bytes: 0, queue_items: 64, buffered_bytes: 16_384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64 },
 });
+export const CONDUITOS_IA32_PROFILE = product({
+  id: "conduitos/ia32/pc", label: "IA-32 PC · product Host", architecture: "ia32", machine: "pc",
+  profileId: "conduitos-ia32-headless", releaseName: "ia32-pc", firmware: "OVMF_IA32_CODE.fd", bootEntry: "BOOTIA32.EFI",
+  presenter: "presenter/ia32-linear-debugcon@1",
+  bounds: { static_memory_bytes: 1_048_576, heap_arena_bytes: 0, queue_items: 64, buffered_bytes: 16_384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64 },
+});
+export const CONDUITOS_RISCV64_PROFILE = product({
+  id: "conduitos/riscv64/virt", label: "RISC-V64 virt · product Host", architecture: "riscv64", machine: "virt",
+  profileId: "conduitos-riscv64-headless", releaseName: "riscv64-virt", firmware: "OpenSBI+U-Boot EFI", bootEntry: "BOOTRISCV64.EFI",
+  presenter: "presenter/riscv64-linear-sbi-console@1",
+  bounds: { static_memory_bytes: 1_048_576, heap_arena_bytes: 0, queue_items: 64, buffered_bytes: 16_384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64 },
+});
+export const CONDUITOS_LOONGARCH64_PROFILE = product({
+  id: "conduitos/loongarch64/virt", label: "LoongArch64 virt · product Host", architecture: "loongarch64", machine: "virt",
+  profileId: "conduitos-loongarch64-headless", releaseName: "loongarch64-virt", firmware: "EDK2 QEMU_EFI.fd", bootEntry: "BOOTLOONGARCH64.EFI",
+  presenter: "presenter/loongarch64-linear-uart@1",
+  bounds: { static_memory_bytes: 1_048_576, heap_arena_bytes: 0, queue_items: 64, buffered_bytes: 16_384, active_instances: 16, operation_slots: 8, timer_slots: 4, line_sessions: 1, evidence_items: 64 },
+});
 
-const PRODUCT_PROFILES = Object.freeze([CONDUITOS_X86_64_PROFILE, CONDUITOS_AARCH64_PROFILE]);
-const PROOF_ONLY = Object.freeze([
-  Object.freeze({ id: "conduitos/ia32/pc", label: "IA-32 PC · architecture proof only", architecture: "ia32", machine: "pc", rung: "emulator-boot-proof" }),
-  Object.freeze({ id: "conduitos/riscv64/virt", label: "RISC-V64 virt · architecture proof only", architecture: "riscv64", machine: "virt", rung: "emulator-boot-proof" }),
-  Object.freeze({ id: "conduitos/loongarch64/virt", label: "LoongArch64 virt · architecture proof only", architecture: "loongarch64", machine: "virt", rung: "emulator-boot-proof" }),
+const PRODUCT_PROFILES = Object.freeze([
+  CONDUITOS_X86_64_PROFILE,
+  CONDUITOS_AARCH64_PROFILE,
+  CONDUITOS_IA32_PROFILE,
+  CONDUITOS_RISCV64_PROFILE,
+  CONDUITOS_LOONGARCH64_PROFILE,
 ]);
 
 export const CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([
   ...PRODUCT_PROFILES.map((profile) => productContribution(profile)),
-  ...PROOF_ONLY.map((target) => proofOnlyContribution(target)),
 ]);
 
 function productContribution(profile) {
@@ -73,18 +90,6 @@ function productContribution(profile) {
       physical_boot_claimed: false,
     }),
     createAdapter: ({ host }) => createConduitOsAdapter({ host, profile }),
-  });
-}
-
-function proofOnlyContribution(target) {
-  return Object.freeze({
-    schema: "conduit.creche/physical-host-target-entry@1", family: FAMILY,
-    target: Object.freeze({ id: target.id, label: target.label, model_id: `conduitos/${target.architecture}-${target.machine}@1`, profile_id: `${target.architecture}-${target.machine}-proof-only` }),
-    intentions: PROOF_ONLY_MODES, fabrication_strategies: Object.freeze([]),
-    carriers: Object.freeze({ deployment: Object.freeze([]), installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([]) }),
-    bounds: BOUNDS, expected_join_contract: "conduit.conduitos/no-product-host-join@1",
-    target_profile: Object.freeze({ schema: "conduit.conduitos/creche-proof-only-profile@1", architecture: target.architecture, machine: target.machine, artifact_role: "architecture-proof-appliance", proof_rung: target.rung, expected_offers: Object.freeze([]), supported_carriers: Object.freeze([]), product_host_artifact_available: false, physical_proof_claimed: false }),
-    createAdapter: () => proofOnlyAdapter(target),
   });
 }
 
@@ -142,10 +147,6 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
   return Object.freeze({ schema: "conduit.creche/physical-host-target-adapter@1", target: profile.target, modes: PRODUCT_MODES, bounds: BOUNDS, createOptions, obtain, bind, realize, observe, cancel });
 }
 
-function proofOnlyAdapter(target) {
-  const deny = ({ mode } = {}) => refuse({ target: { id: target.id } }, mode, "obtain", "UnsupportedProductRole", `${target.label} has architecture proof only, not a product Host artifact`);
-  return Object.freeze({ schema: "conduit.creche/physical-host-target-adapter@1", target: Object.freeze({ id: target.id, label: target.label, model_id: `conduitos/${target.architecture}-${target.machine}@1`, profile_id: `${target.architecture}-${target.machine}-proof-only` }), modes: PROOF_ONLY_MODES, bounds: BOUNDS, createOptions: () => document.createElement("p"), obtain: deny, bind: deny, realize: deny, observe: deny, cancel: async () => Object.freeze({ terminal: "Cancelled" }) });
-}
 function modes(fabricate) { return Object.freeze([{ id: "fabricate-new", resultKind: "artifact", supported: fabricate }, { id: "install-existing", resultKind: "installation", supported: false }, { id: "attach-running", resultKind: "attachment", supported: false }].map(Object.freeze)); }
 function requireFabrication(profile, mode, operation) { if (mode !== "fabricate-new") refuse(profile, mode, operation, "UnsupportedCombination", `ConduitOS product target does not offer ${mode}`); }
 function requireCurrent(profile, signal, mode, operation) { if (signal?.aborted) refuse(profile, mode, operation, "Cancelled", "ConduitOS operation was cancelled"); }

@@ -271,6 +271,9 @@ jobs:
         run: |
           cargo +stable xtask host build profiles/hosts/conduitos-native.profile.json --output target/creche-conduitos-build/x86_64 --locked
           cargo +stable xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json --output target/creche-conduitos-build/aarch64 --locked
+          cargo +stable xtask host build profiles/hosts/conduitos-ia32-headless.profile.json --output target/creche-conduitos-build/ia32 --locked
+          cargo +stable xtask host build profiles/hosts/conduitos-riscv64-headless.profile.json --output target/creche-conduitos-build/riscv64 --locked
+          cargo +stable xtask host build profiles/hosts/conduitos-loongarch64-headless.profile.json --output target/creche-conduitos-build/loongarch64 --locked
           node targets/conduitos/fabrication/seal-creche-release.mjs target/creche-conduitos-build target/creche-conduitos-release
       - uses: actions/upload-artifact@v4
         with:

@@ -49,7 +49,7 @@ for artifact in orange-pi-5-image.json conduitos-orange-pi-5.img raspios-bookwor
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
-for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduitos-aarch64-virt-release.json conduitos-aarch64-virt.iso; do
+for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduitos-aarch64-virt-release.json conduitos-aarch64-virt.iso conduitos-ia32-pc-release.json conduitos-ia32-pc.iso conduitos-riscv64-virt-release.json conduitos-riscv64-virt.iso conduitos-loongarch64-virt-release.json conduitos-loongarch64-virt.iso; do
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
@@ -70,5 +70,5 @@ done
 node scripts/ci/build-browser-application-package.mjs \
   targets/browser/host/assets/creche.application.template.json "$destination" creche.application.json
 
-test "$(find "$destination" -type f | wc -l)" -eq 94
+test "$(find "$destination" -type f | wc -l)" -eq 100
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

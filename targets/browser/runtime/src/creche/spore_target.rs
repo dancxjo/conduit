@@ -37,6 +37,9 @@ pub(super) const STD_COMPUTER_TARGET_ID: &str = HOSTED_TARGET_ID;
 pub(super) const BROWSER_PAGE_TARGET_ID: &str = "browser/wasm32/page";
 pub(super) const CONDUITOS_X86_64_TARGET_ID: &str = "conduitos/x86_64/pc";
 pub(super) const CONDUITOS_AARCH64_TARGET_ID: &str = "conduitos/aarch64/virt";
+pub(super) const CONDUITOS_IA32_TARGET_ID: &str = "conduitos/ia32/pc";
+pub(super) const CONDUITOS_RISCV64_TARGET_ID: &str = "conduitos/riscv64/virt";
+pub(super) const CONDUITOS_LOONGARCH64_TARGET_ID: &str = "conduitos/loongarch64/virt";
 
 pub(super) struct PreparedTarget {
     pub(super) body: conduit_body_fabrication::CheckedBodyDescription,
@@ -133,7 +136,11 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     }
     if matches!(
         target_id,
-        CONDUITOS_X86_64_TARGET_ID | CONDUITOS_AARCH64_TARGET_ID
+        CONDUITOS_X86_64_TARGET_ID
+            | CONDUITOS_AARCH64_TARGET_ID
+            | CONDUITOS_IA32_TARGET_ID
+            | CONDUITOS_RISCV64_TARGET_ID
+            | CONDUITOS_LOONGARCH64_TARGET_ID
     ) {
         return conduitos_target(target_id);
     }
@@ -196,16 +203,43 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
         .into_iter()
         .find(|target| target.key() == target_id)
         .ok_or_else(|| format!("ConduitOS package omitted exact product target {target_id:?}"))?;
-    let (configuration_name, source_identity) = if target_id == CONDUITOS_X86_64_TARGET_ID {
-        (
+    let (configuration_name, source_identity, serial_base) = match target_id {
+        CONDUITOS_X86_64_TARGET_ID => (
             "creche-conduitos-x86-64-pc",
             "conduitos/reviewed-x86-64-pc-release@1",
-        )
-    } else {
-        (
+            None,
+        ),
+        CONDUITOS_AARCH64_TARGET_ID => (
             "creche-conduitos-aarch64-virt",
             "conduitos/reviewed-aarch64-virt-release@1",
-        )
+            Some(("serial/text", "conduitos/pl011@1")),
+        ),
+        CONDUITOS_IA32_TARGET_ID => (
+            "creche-conduitos-ia32-pc",
+            "conduitos/reviewed-ia32-pc-release@1",
+            Some(("conduitos/ia32-debugcon-text", "conduitos/ia32-debugcon@1")),
+        ),
+        CONDUITOS_RISCV64_TARGET_ID => (
+            "creche-conduitos-riscv64-virt",
+            "conduitos/reviewed-riscv64-virt-release@1",
+            Some((
+                "conduitos/riscv64-sbi-console-text",
+                "conduitos/riscv64-sbi-console@1",
+            )),
+        ),
+        CONDUITOS_LOONGARCH64_TARGET_ID => (
+            "creche-conduitos-loongarch64-virt",
+            "conduitos/reviewed-loongarch64-virt-release@1",
+            Some((
+                "conduitos/loongarch64-uart-text",
+                "conduitos/loongarch64-uart@1",
+            )),
+        ),
+        _ => {
+            return Err(format!(
+                "unsupported ConduitOS product target {target_id:?}"
+            ))
+        }
     };
     Ok(TargetFacts {
         configuration_name,
@@ -223,15 +257,15 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
                 os: descriptor.os,
                 fabrication_descriptor: None,
             },
-            bases: if target_id == CONDUITOS_AARCH64_TARGET_ID {
-                vec![ConfigurationBase {
-                    kind: "serial/text".into(),
-                    implementation: Some("conduitos/pl011@1".into()),
-                    implementations: Vec::new(),
-                }]
-            } else {
-                Vec::new()
-            },
+            bases: serial_base
+                .map(|(kind, implementation)| {
+                    vec![ConfigurationBase {
+                        kind: kind.into(),
+                        implementation: Some(implementation.into()),
+                        implementations: Vec::new(),
+                    }]
+                })
+                .unwrap_or_default(),
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
@@ -579,19 +613,15 @@ mod tests {
         for (target_id, architecture, machine) in [
             (CONDUITOS_X86_64_TARGET_ID, "x86_64", "pc"),
             (CONDUITOS_AARCH64_TARGET_ID, "aarch64", "virt"),
+            (CONDUITOS_IA32_TARGET_ID, "ia32", "pc"),
+            (CONDUITOS_RISCV64_TARGET_ID, "riscv64", "virt"),
+            (CONDUITOS_LOONGARCH64_TARGET_ID, "loongarch64", "virt"),
         ] {
             let prepared = prepare(&body_id, "invitation/conduitos", target_id).unwrap();
             let profile = prepared.configuration.profile();
             assert_eq!(profile.target.architecture, architecture);
             assert_eq!(profile.target.machine, machine);
             assert_eq!(prepared.output, SporeOutputKind::DiskImage);
-        }
-        for proof_only in [
-            "conduitos/ia32/pc",
-            "conduitos/riscv64/virt",
-            "conduitos/loongarch64/virt",
-        ] {
-            assert!(prepare(&body_id, "invitation/conduitos", proof_only).is_err());
         }
     }
 
