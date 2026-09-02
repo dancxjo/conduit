@@ -18,6 +18,9 @@ const PL011_DRIVER: &str = "conduitos/pl011@1";
 const IA32_DEBUGCON_DRIVER: &str = "conduitos/ia32-debugcon@1";
 const IA32_DEBUGCON_BASE: &str = "conduitos/ia32-debugcon-text";
 const IA32_LINEAR_PRESENTER: &str = "presenter/ia32-linear-debugcon@1";
+const RISCV64_SBI_DRIVER: &str = "conduitos/riscv64-sbi-console@1";
+const RISCV64_SBI_BASE: &str = "conduitos/riscv64-sbi-console-text";
+const RISCV64_LINEAR_PRESENTER: &str = "presenter/riscv64-linear-sbi-console@1";
 const SCRIPTED_KEYBOARD_PROOF: &str = "profile-fragment/conduitos-scripted-keyboard-proof@1";
 const HOTPLUG_PROOF: &str = "profile-fragment/conduitos-hotplug-proof@1";
 
@@ -322,6 +325,54 @@ pub(super) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInput
     })
 }
 
+pub(super) fn lower_riscv64_virt(
+    manifest: &BuildManifest,
+) -> Result<TargetBuildInputs, ConduitosError> {
+    let presenters = manifest.presenters.as_slice();
+    let bases = manifest
+        .base_selections
+        .iter()
+        .map(|item| item.kind.clone())
+        .collect::<Vec<_>>();
+    let drivers = manifest
+        .driver_selections
+        .iter()
+        .map(|item| item.kind.clone())
+        .collect::<Vec<_>>();
+    if presenters != [RISCV64_LINEAR_PRESENTER]
+        || bases != [RISCV64_SBI_BASE]
+        || drivers != [RISCV64_SBI_DRIVER]
+        || manifest.base_selections[0].driver != RISCV64_SBI_DRIVER
+        || manifest.host_operations.as_slice() != [PRESENT_OPERATION]
+        || !manifest.facilities.is_empty()
+        || !manifest.resource_budgets.is_empty()
+        || !manifest.profile_fragments.is_empty()
+    {
+        return Err(refusal(
+            "riscv64-product-closure-mismatch",
+            "RISC-V64 product requires exactly its admitted SBI console presentation closure"
+                .into(),
+        ));
+    }
+    let portable = conduitos::fabrication::IMPL_TIME_TICK
+        | conduitos::fabrication::IMPL_TICK_PRESENTATION
+        | conduitos::fabrication::IMPL_TEXT_LITERAL
+        | conduitos::fabrication::IMPL_TEXT_UPPER
+        | conduitos::fabrication::IMPL_TEXT_PRESENTATION;
+    Ok(TargetBuildInputs {
+        cargo_features: vec!["riscv64-product"],
+        implementations: portable | conduitos::fabrication::IMPL_LINEAR_PRESENTER,
+        facilities: 0,
+        resources: 0,
+        bases: conduitos::fabrication::BASE_SERIAL_TEXT,
+        drivers: conduitos::fabrication::DRIVER_RISCV64_SBI_CONSOLE,
+        presenters: conduitos::fabrication::PRESENTER_LINEAR_SERIAL,
+        proof_instrumentation: 0,
+        presentation_surface_slots: 0,
+        presentation_surface_bytes: 0,
+    })
+}
+
 fn ia32_closure_refusal(class: &str, expected: &str, selected: &[String]) -> ConduitosError {
     refusal(
         "ia32-product-closure-mismatch",
@@ -381,6 +432,29 @@ mod tests {
         assert_eq!(native.presentation_surface_slots, 2);
         assert_eq!(native.presentation_surface_bytes, 4_194_304);
         assert_eq!(native.proof_instrumentation, 0);
+    }
+
+    #[test]
+    fn riscv64_product_profile_lowers_exactly_and_rejects_foreign_bindings() {
+        let mut checked = manifest(include_str!(
+            "../../../../profiles/hosts/conduitos-riscv64-headless.profile.json"
+        ));
+        let lowered = lower(&checked).unwrap();
+        assert_eq!(lowered.cargo_features, ["riscv64-product"]);
+        assert_eq!(
+            lowered.drivers,
+            conduitos::fabrication::DRIVER_RISCV64_SBI_CONSOLE
+        );
+        assert_eq!(lowered.proof_instrumentation, 0);
+
+        checked.presenters[0] = IA32_LINEAR_PRESENTER.into();
+        let error = lower(&checked).unwrap_err().to_string();
+        assert!(error.contains("riscv64-product-closure-mismatch"));
+
+        checked.presenters[0] = RISCV64_LINEAR_PRESENTER.into();
+        checked.driver_selections[0].kind = PL011_DRIVER.into();
+        let error = lower(&checked).unwrap_err().to_string();
+        assert!(error.contains("riscv64-product-closure-mismatch"));
     }
 
     #[test]
