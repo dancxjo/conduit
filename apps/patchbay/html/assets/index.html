@@ -3,17 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="conduit-application-package" content="./patchbay.application.json">
   <title>Conduit Patchbay</title>
-  <link rel="stylesheet" href="/assets/theme.css">
-  <link rel="stylesheet" href="/assets/react-flow.css">
-  <link rel="stylesheet" href="/assets/app.css">
-  <link rel="stylesheet" href="/assets/flow.css">
-  <script src="/assets/react.min.js"></script>
-  <script src="/assets/react-dom.min.js"></script>
-  <script src="/assets/react-flow.min.js"></script>
 </head>
-<body>
-<div id="patchbay-root">
+<body data-application-ready="false">
+<div id="patchbay-root" inert>
   <header class="topbar">
     <div><a class="wordmark" href="/conduit" aria-label="Conduit home">conduit</a><h1>Patchbay</h1></div>
     <nav class="global-nav" aria-label="Primary"><a href="/conduit/book">Book</a><a href="/conduit/creche">Crèche</a><a href="https://github.com/dancxjo/conduit">Source</a></nav>
@@ -120,7 +114,7 @@
     </section>
   </main>
   <noscript>This renderer requires JavaScript to decode the typed snapshot. The server provides no semantic fallback.</noscript>
-  <script type="module" src="/assets/app.js"></script>
+  <script type="module" src="/assets/browser-application-loader.mjs"></script>
 </div>
 </body>
 </html>

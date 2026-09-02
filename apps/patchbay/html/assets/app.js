@@ -3,10 +3,13 @@ import { createApplicationPresentationHost } from "/assets/application-presentat
 import { arrangeFlow, fitFlow, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { installPanelFurniture } from "/assets/panel-furniture.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
+import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
+import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
 const schema = "conduit.patchbay.portable-presentation";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", gearQuery:"", cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
 const applicationPresentation = createApplicationPresentationHost();
+let admittedRuntimeBytes = null;
 let statusRevision = 0;
 function presentStatus(text, component = "status") {
   applicationPresentation.present("patchbay-status", {
@@ -310,16 +313,16 @@ function render(snapshot){
 }
 
 async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
-async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss"),feedback=document.querySelector("#front-door-feedback");button.disabled=true;feedback.textContent="Running the exact split Text Lab until browser loss…";const {base}=await fetch("/api/text-lab-base",{cache:"no-store"}).then(response=>response.json());const {BrowserWebSocketLine}=await import("/assets/websocket-line.mjs"),{instantiateTextLabLive,runTextLabLive}=await import("/assets/text-lab-live-runtime.mjs"),wasm=await fetch("/assets/conduit-browser-runtime.wasm").then(response=>{if(!response.ok)throw new Error("browser runtime unavailable");return response.arrayBuffer();}),openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(wasm,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");feedback.textContent="Browser loss observed; awaiting the native causal receipt.";}
+async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss"),feedback=document.querySelector("#front-door-feedback");button.disabled=true;feedback.textContent="Running the exact split Text Lab until browser loss…";const {base}=await fetch("/api/text-lab-base",{cache:"no-store"}).then(response=>response.json());if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");const openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(admittedRuntimeBytes,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");feedback.textContent="Browser loss observed; awaiting the native causal receipt.";}
 async function joinCurrentBody(){
   const response=await fetch("/api/body-admission",{cache:"no-store"});
   if(response.status===404)return;
   if(!response.ok)throw new Error(`Body admission HTTP ${response.status}`);
   const {url}=await response.json();
-  const wasm=await fetch("/assets/conduit-browser-runtime.wasm",{cache:"no-store"});
-  if(!wasm.ok)throw new Error(`browser Host runtime HTTP ${wasm.status}`);
-  window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:await wasm.arrayBuffer(),onState:()=>load()});
+  if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");
+  window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:admittedRuntimeBytes,onState:()=>load()});
 }
+export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");
 presentStatus("Loading bounded snapshot…");document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
@@ -354,3 +357,5 @@ document.querySelector("#toggle-truth").onclick=async event=>{event.stopPropagat
 document.querySelector("#toggle-inspector").onclick=async event=>{event.stopPropagation();const opening=document.body.dataset.truthOpen==="true"||document.body.dataset.inspectorOpen!=="true";if(opening){state.inspectorOpen=true;state.inspectorDepth=state.inspectorDepth||Boolean(state.snapshot.navigation?.cursor.focus);displaySelection(state.selected);furniture.restore("inspector");focusSurface("inspector");state.inspectorTransition=withFurnitureTransition("inspector",async()=>{await closeSubordinateSurfaces("inspector");if(state.snapshot.navigation?.cursor.focus&&state.snapshot.navigation.cursor.depth!=="Detail")await dispatchNavigation({kind:"disclose",depth:"Detail"});displaySelection(state.selected);},()=>focusSurface("inspector"));try{await state.inspectorTransition;}finally{state.inspectorTransition=null;}}else await dismissFurnitureSurface("inspector");};
 for(const selector of ["#palette","#parts","#inspector","#deep-inspection","#structured-navigator"]){document.querySelector(selector).addEventListener("click",event=>event.stopPropagation());}
 document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;const open=["truth","parts","palette","structured"].find(name=>document.body.dataset[`${name}Open`]==="true");if(open){event.preventDefault();if(open==="truth")document.querySelector("#toggle-truth").click();else toggleDrawer(open);return;}if(state.inspectorOpen){event.preventDefault();dismissFurnitureSurface("inspector");}});
+document.querySelector("#patchbay-root").removeAttribute("inert");document.body.dataset.applicationReady="true";
+}

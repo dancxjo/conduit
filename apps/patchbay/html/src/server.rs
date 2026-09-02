@@ -1,4 +1,5 @@
 use crate::{RendererSnapshot, SnapshotError};
+use conduit_browser_host::application_package;
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
 use patchbay_model::{PatchbayInteraction, PHOSPHOR_THEME};
@@ -26,6 +27,11 @@ use theme::render_theme_css;
 pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
 pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
+const APPLICATION_TEMPLATE: &[u8] = include_bytes!("../assets/patchbay.application.template.json");
+const APPLICATION_LOADER: &[u8] =
+    include_bytes!("../../../../targets/browser/host/assets/browser-application-loader.mjs");
+const APPLICATION_STORAGE: &[u8] =
+    include_bytes!("../../../../targets/browser/host/assets/browser-application-storage.mjs");
 const SCRIPT: &[u8] = include_bytes!("../assets/app.js");
 const FLOW_SCRIPT: &[u8] = include_bytes!("../assets/flow.js");
 const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
@@ -51,6 +57,7 @@ const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
 const REACT_FLOW: &[u8] = include_bytes!("../assets/react-flow.min.js");
 const REACT_FLOW_STYLE: &[u8] = include_bytes!("../assets/react-flow.css");
 const MAX_BROWSER_WASM_BYTES: usize = 3 * 1024 * 1024;
+const EMPTY_BROWSER_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
 #[derive(Debug)]
 pub enum ServerError {
@@ -62,6 +69,7 @@ pub enum ServerError {
     RequestTooLarge,
     InvalidRequest,
     Interaction(String),
+    ApplicationPackage(String),
 }
 
 impl std::fmt::Display for ServerError {
@@ -79,6 +87,9 @@ impl std::fmt::Display for ServerError {
             Self::RequestTooLarge => f.write_str("Patchbay HTTP request exceeds its finite bound"),
             Self::InvalidRequest => f.write_str("Patchbay HTTP request is not valid UTF-8"),
             Self::Interaction(error) => write!(f, "Patchbay interaction error: {error}"),
+            Self::ApplicationPackage(error) => {
+                write!(f, "Patchbay application package error: {error}")
+            }
         }
     }
 }
@@ -128,6 +139,44 @@ pub struct PatchbayHtmlServer {
 }
 
 impl PatchbayHtmlServer {
+    fn application_resource(&self, path: &str) -> Option<&[u8]> {
+        match path {
+            "assets/app.js" => Some(SCRIPT),
+            "assets/browser-membership.js" => Some(MEMBERSHIP_SCRIPT),
+            "assets/body-webrtc-sessions.mjs" => Some(BODY_WEBRTC_SESSIONS_SCRIPT),
+            "assets/body-webrtc-session.mjs" => Some(BODY_WEBRTC_SESSION_SCRIPT),
+            "assets/webrtc-datachannel-line.mjs" => Some(WEBRTC_LINE_SCRIPT),
+            "assets/webrtc-session-runtime.mjs" => Some(WEBRTC_RUNTIME_SCRIPT),
+            "assets/application-presentation.mjs" => Some(APPLICATION_PRESENTATION_SCRIPT),
+            "assets/flow.js" => Some(FLOW_SCRIPT),
+            "assets/flow-scene.js" => Some(FLOW_SCENE_SCRIPT),
+            "assets/flow-layout.js" => Some(FLOW_LAYOUT_SCRIPT),
+            "assets/flow-faceplate.js" => Some(FLOW_FACEPLATE_SCRIPT),
+            "assets/panel-furniture.js" => Some(PANEL_FURNITURE_SCRIPT),
+            "assets/portable-navigation.js" => Some(PORTABLE_NAVIGATION_SCRIPT),
+            "assets/websocket-line.mjs" => Some(WEBSOCKET_LINE_SCRIPT),
+            "assets/text-lab-live-runtime.mjs" => Some(TEXT_LAB_RUNTIME_SCRIPT),
+            "assets/conduit-browser-runtime.wasm" => {
+                Some(self.browser_wasm.as_deref().unwrap_or(EMPTY_BROWSER_WASM))
+            }
+            "assets/theme.css" => Some(&self.theme_css),
+            "assets/app.css" => Some(STYLE),
+            "assets/react-flow.css" => Some(REACT_FLOW_STYLE),
+            "assets/flow.css" => Some(FLOW_STYLE),
+            "assets/react.min.js" => Some(REACT),
+            "assets/react-dom.min.js" => Some(REACT_DOM),
+            "assets/react-flow.min.js" => Some(REACT_FLOW),
+            _ => None,
+        }
+    }
+
+    fn application_manifest(&self) -> Result<Vec<u8>, ServerError> {
+        application_package::build_manifest(APPLICATION_TEMPLATE, |path| {
+            self.application_resource(path)
+        })
+        .map_err(ServerError::ApplicationPackage)
+    }
+
     pub fn bind(address: SocketAddr, snapshot: &RendererSnapshot) -> Result<Self, ServerError> {
         if address.ip() != Ipv4Addr::LOCALHOST {
             return Err(ServerError::NonLoopbackBind);
@@ -411,9 +460,28 @@ impl PatchbayHtmlServer {
         if first == "GET /api/navigation-observation HTTP/1.1" {
             return self.write_navigation_observation(&mut stream);
         }
+        if first == "GET /patchbay.application.json HTTP/1.1" {
+            let manifest = self.application_manifest()?;
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &manifest,
+            );
+        }
         let (status, content_type, body): (&str, &str, &[u8]) = match first {
             "GET / HTTP/1.1" => ("200 OK", "text/html; charset=utf-8", INDEX),
             "GET /assets/app.js HTTP/1.1" => ("200 OK", "text/javascript; charset=utf-8", SCRIPT),
+            "GET /assets/browser-application-loader.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_LOADER,
+            ),
+            "GET /assets/browser-application-storage.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_STORAGE,
+            ),
             "GET /assets/flow.js HTTP/1.1" => {
                 ("200 OK", "text/javascript; charset=utf-8", FLOW_SCRIPT)
             }
@@ -491,16 +559,12 @@ impl PatchbayHtmlServer {
                 "text/javascript; charset=utf-8",
                 WEBRTC_RUNTIME_SCRIPT,
             ),
-            "GET /assets/conduit-browser-runtime.wasm HTTP/1.1" => {
-                self.browser_wasm.as_deref().map_or(
-                    (
-                        "404 Not Found",
-                        "text/plain; charset=utf-8",
-                        b"browser Host runtime unavailable".as_slice(),
-                    ),
-                    |body| ("200 OK", "application/wasm", body),
-                )
-            }
+            "GET /assets/conduit-browser-runtime.wasm HTTP/1.1" => self
+                .browser_wasm
+                .as_deref()
+                .map_or(("200 OK", "application/wasm", EMPTY_BROWSER_WASM), |body| {
+                    ("200 OK", "application/wasm", body)
+                }),
             "GET /api/body-admission HTTP/1.1" => self.body_admission.as_deref().map_or(
                 (
                     "404 Not Found",

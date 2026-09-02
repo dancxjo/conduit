@@ -2655,6 +2655,7 @@ name = "patchbay-html"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-browser-host",
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-body = { path = "../../../architecture/body" }
+conduit-browser-host = { path = "../../../targets/browser/host" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-presentation = { path = "../../../semantics/presentation" }
