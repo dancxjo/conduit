@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::identity::{bind_identity, validate_ids};
 use crate::validation::{validate_new_sign, validate_plan_history, validate_sign};
 use crate::{
-    BodyId, BodyLifecycleEvent, BodyWorkset, BodyWorksetError, ResidentForm, SeedId, WakeId,
-    WakeLifecycleEvent,
+    BodyId, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyWorkset,
+    BodyWorksetError, ResidentForm, SeedId, WakeId, WakeLifecycleEvent,
 };
 
 pub const MAX_BODY_SIGNS: usize = 16;
@@ -361,6 +361,29 @@ impl Wake {
     pub fn plan_ready(&self, plan: &Plan, sign_id: SignId) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
         self.validate_plan(plan)?;
+        self.accept_plan_id(&plan.plan_id, sign_id)
+    }
+
+    pub fn body_plan_ready(
+        &self,
+        plan: &BodyPlan,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        plan.validate_for(self).map_err(|error| match error {
+            BodyPlanError::StaleWorkload | BodyPlanError::WrongBody | BodyPlanError::WrongWake => {
+                BodyLifecycleError::StalePlan
+            }
+            _ => BodyLifecycleError::InvalidPlan,
+        })?;
+        self.accept_plan_id(&plan.plan_id, sign_id)
+    }
+
+    fn accept_plan_id(
+        &self,
+        plan_id: &PlanId,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
         let prior = match self.lifecycle {
             WakeLifecycle::AwaitingPlan if self.plans.is_empty() => None,
             WakeLifecycle::Unsatisfied => self.plans.last().map(|p| &p.plan_id),
@@ -380,7 +403,7 @@ impl Wake {
             }
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
-        if prior == Some(&plan.plan_id) {
+        if prior == Some(plan_id) {
             return Err(BodyLifecycleError::StalePlan);
         }
         if self.plans.len() >= MAX_WAKE_PLANS {
@@ -390,12 +413,12 @@ impl Wake {
         let event = if let Some(prior_plan_id) = prior {
             WakeLifecycleEvent::Replanned {
                 prior_plan_id: prior_plan_id.clone(),
-                replacement_plan_id: plan.plan_id.clone(),
+                replacement_plan_id: plan_id.clone(),
                 sign_id,
             }
         } else {
             WakeLifecycleEvent::PlanReady {
-                plan_id: plan.plan_id.clone(),
+                plan_id: plan_id.clone(),
                 sign_id,
             }
         };
@@ -404,13 +427,28 @@ impl Wake {
             previous.state = WakePlanState::Superseded;
         }
         next.plans.push(WakePlan {
-            plan_id: plan.plan_id.clone(),
+            plan_id: plan_id.clone(),
             active_play_id: None,
             state: WakePlanState::AwaitingPlay,
             hold: None,
         });
         next.lifecycle = WakeLifecycle::AwaitingPlay;
         Ok(next)
+    }
+
+    pub fn body_play_started(
+        &self,
+        plan: &BodyPlan,
+        play: &BodyPlayIdentity,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        plan.validate_for(self)
+            .map_err(|_| BodyLifecycleError::StalePlan)?;
+        if !play.validate_for(plan) {
+            return Err(BodyLifecycleError::StalePlay);
+        }
+        self.start_play_identity(&play.plan_id, &play.active_play_id, sign_id)
     }
 
     pub fn play_started(
@@ -431,17 +469,31 @@ impl Wake {
         if &expected != play || self.plans.last().map(|p| &p.plan_id) != Some(&play.plan_id) {
             return Err(BodyLifecycleError::StalePlay);
         }
+        self.start_play_identity(&play.plan_id, &play.active_play_id, sign_id)
+    }
+
+    fn start_play_identity(
+        &self,
+        plan_id: &PlanId,
+        active_play_id: &ActivePlayId,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        if self.lifecycle != WakeLifecycle::AwaitingPlay
+            || self.plans.last().map(|plan| &plan.plan_id) != Some(plan_id)
+        {
+            return Err(BodyLifecycleError::InvalidTransition);
+        }
         let mut next = self.clone();
         next.push_event(WakeLifecycleEvent::PlayStarted {
-            plan_id: play.plan_id.clone(),
-            active_play_id: play.active_play_id.clone(),
+            plan_id: plan_id.clone(),
+            active_play_id: active_play_id.clone(),
             sign_id,
         })?;
         let current = next
             .plans
             .last_mut()
             .ok_or(BodyLifecycleError::InvalidTransition)?;
-        current.active_play_id = Some(play.active_play_id.clone());
+        current.active_play_id = Some(active_play_id.clone());
         current.state = WakePlanState::Playing;
         next.lifecycle = WakeLifecycle::Playing;
         Ok(next)
@@ -549,9 +601,11 @@ impl Wake {
         if !verify_plan(plan) {
             return Err(BodyLifecycleError::InvalidPlan);
         }
-        if plan.source_document_id != self.source_document_id
-            || plan.checked_form_id != self.checked_form_id
-        {
+        let form = ResidentForm::new(
+            plan.source_document_id.clone(),
+            plan.checked_form_id.clone(),
+        );
+        if self.workset.len() != 1 || !self.workset.contains(&form) {
             return Err(BodyLifecycleError::StalePlan);
         }
         Ok(())

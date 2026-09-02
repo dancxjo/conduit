@@ -25,6 +25,7 @@ mod provenance;
 mod reservations;
 mod space;
 mod validation;
+mod workload_plan;
 mod workset;
 
 #[cfg(feature = "authenticated-admission")]
@@ -48,4 +49,5 @@ pub use presence::*;
 pub use provenance::*;
 pub use reservations::*;
 pub use space::*;
+pub use workload_plan::*;
 pub use workset::*;
