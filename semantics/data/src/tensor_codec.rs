@@ -107,6 +107,7 @@ fn element_tag(element: TensorElement) -> u8 {
         TensorElement::U64 => 7,
         TensorElement::F32 => 8,
         TensorElement::F64 => 9,
+        TensorElement::I24 => 10,
     }
 }
 fn decode_element(tag: u8) -> Result<TensorElement, TensorRefusal> {
@@ -121,6 +122,7 @@ fn decode_element(tag: u8) -> Result<TensorElement, TensorRefusal> {
         7 => TensorElement::U64,
         8 => TensorElement::F32,
         9 => TensorElement::F64,
+        10 => TensorElement::I24,
         _ => return Err(TensorRefusal::UnsupportedElement),
     })
 }
