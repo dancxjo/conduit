@@ -22,6 +22,7 @@ const STATUS_ABSENT: i32 = 1;
 const ERROR_SPORE: i32 = -455;
 const ERROR_ADMISSION: i32 = -456;
 const ERROR_GRADUATION: i32 = -457;
+const ERROR_RESTORE: i32 = -458;
 
 thread_local! {
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
@@ -202,6 +203,38 @@ pub extern "C" fn conduit_creche_biography() -> i32 {
             .unwrap_or(ERROR_OUTPUT),
         None => STATUS_ABSENT,
     }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_creche_durable_snapshot() -> i32 {
+    clear_output();
+    match session::durable_snapshot() {
+        Some(snapshot) => write_output(&snapshot)
+            .map(|()| STATUS_READY)
+            .unwrap_or(ERROR_OUTPUT),
+        None => STATUS_ABSENT,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_creche_restore_durable(snapshot_length: usize) -> i32 {
+    clear_output();
+    if snapshot_length == 0 || snapshot_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = serde_json::from_slice(&input[..snapshot_length])
+            .map_err(|_| "durable Crèche session is malformed".to_string())
+            .and_then(session::restore_durable);
+        input[..snapshot_length].fill(0);
+        match result {
+            Ok(receipt) => write_output(&receipt)
+                .map(|()| STATUS_READY)
+                .unwrap_or(ERROR_OUTPUT),
+            Err(message) => refuse(message, ERROR_RESTORE),
+        }
+    })
 }
 
 #[no_mangle]

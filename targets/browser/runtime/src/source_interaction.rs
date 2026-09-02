@@ -6,21 +6,21 @@ use conduit_human::{
     InteractionCurrentState, InteractionFamily, InteractionProposalPayload, InteractionValue,
     TypedInteractionFlow,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub(super) const SOURCE_INTERACTION_MAXIMUM_BYTES: u32 = 8 * 1_024;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct SourceInteractionEvidence {
-    pub schema: &'static str,
-    pub disposition: &'static str,
-    pub semantic_id: &'static str,
+    pub schema: String,
+    pub disposition: String,
+    pub semantic_id: String,
     pub contract_identity: String,
     pub state_identity: String,
     pub proposal_identity: String,
     pub result_identity: String,
     pub sequence: u64,
-    pub value_kind: &'static str,
+    pub value_kind: String,
     pub value_bytes: u32,
 }
 
@@ -48,15 +48,15 @@ pub(super) fn admit_source(
         })
         .map_err(debug_error)?;
     Ok(SourceInteractionEvidence {
-        schema: "conduit.book/source-interaction@1",
-        disposition: "accepted",
-        semantic_id: "interaction/executable-book-source",
+        schema: "conduit.book/source-interaction@1".into(),
+        disposition: "accepted".into(),
+        semantic_id: "interaction/executable-book-source".into(),
         contract_identity: contract.contract_identity,
         state_identity: current.state_identity,
         proposal_identity: proposal.proposal_identity,
         result_identity: result.result_identity,
         sequence,
-        value_kind: conduit_human::TEXT_INFO_ID,
+        value_kind: conduit_human::TEXT_INFO_ID.into(),
         value_bytes: u32::try_from(source.len()).map_err(|_| "source byte bound overflow")?,
     })
 }

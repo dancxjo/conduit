@@ -1,6 +1,6 @@
 use crate::source_interaction::SourceInteractionEvidence;
 use conduit_body::{Body, BodyMembership};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize)]
 pub(super) struct GraduationReadiness {
@@ -13,22 +13,22 @@ pub(super) struct GraduationReadiness {
     pub(super) ready: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct GraduationReceipt {
-    pub(super) schema: &'static str,
+    pub(super) schema: String,
     pub(super) body_id: String,
     pub(super) sequence: u64,
     pub(super) sign_id: String,
-    pub(super) choice: &'static str,
+    pub(super) choice: String,
     pub(super) patchbay_plan_id: Option<String>,
     pub(super) patchbay_implementation_id: Option<String>,
     pub(super) creche_required: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct BirthReceipt {
-    pub(super) schema: &'static str,
-    pub(super) disposition: &'static str,
+    pub(super) schema: String,
+    pub(super) disposition: String,
     pub(super) source_document_id: String,
     pub(super) checked_form_id: String,
     pub(super) seed_id: String,
@@ -37,7 +37,7 @@ pub(super) struct BirthReceipt {
     pub(super) initial_program: String,
     pub(super) birth_sequence: u64,
     pub(super) birth_sign_id: String,
-    pub(super) state: &'static str,
+    pub(super) state: String,
     pub(super) here_part_id: Option<String>,
     pub(super) host_id: Option<String>,
     pub(super) boot_id: Option<String>,

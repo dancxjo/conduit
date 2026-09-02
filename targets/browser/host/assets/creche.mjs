@@ -27,8 +27,11 @@ const steps = [
 const workspace = document.querySelector("#workspace");
 let presentation;
 let presentationFor;
+let storage;
 const crecheBaseUrl = new URL(".", document.baseURI);
 let host;
+let durableWrite = Promise.resolve();
+let durabilityFailure = null;
 let currentStep = stepIndexForLocation();
 let sequence = 0;
 let presentationRevision = 0;
@@ -50,11 +53,14 @@ export async function startApplication(application) {
  try {
   presentation = application.presentation;
   presentationFor = application.presentationFor;
+  storage = application.storage;
   renderHostStatus("Starting browser Host…", "status");
   host = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
   requireCrecheAbi(host.runtime);
+  await restoreDurableBody();
   renderHostStatus("Crèche ready", "success-status");
   globalThis.__conduitCrecheHost = host;
+  globalThis.__conduitCrecheDurability = Object.freeze({ settled: durabilitySettled });
   renderNavigation();
   renderStep();
   if (isProductRoot()) replaceStepRoute(currentStep);
@@ -93,19 +99,20 @@ function renderStep() {
   workspace.append(heading);
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
     source: MORSE_NETWORK, sourceKey: "standalone-creche", listingId: "creche-seed", host,
-    presentationFor, nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: refreshContext,
+    presentationFor, nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: bodyChanged,
   }));
   if (currentStep === 1) workspace.append(createFirstHostRunner({
     host, presentationFor,
     nextSequence: () => { const admitted = ++sequence; sequence += 1; return admitted; },
-    onBodyChanged: refreshContext,
+    onBodyChanged: bodyChanged,
   }));
   if (currentStep === 2) workspace.append(createPhysicalHostRunner({
     host,
     targetCatalog,
+    onBodyChanged: bodyChanged,
   }));
   if (currentStep === 3) workspace.append(createGraduationRunner({
-    host, presentationFor, nextSequence: () => ++sequence, onBodyChanged: refreshContext,
+    host, presentationFor, nextSequence: () => ++sequence, onBodyChanged: bodyChanged,
     onEnd: renderComplete,
   }));
   refreshContext();
@@ -160,6 +167,57 @@ function refreshContext() {
   });
 }
 
+function bodyChanged() {
+  refreshContext();
+  retainDurableBody();
+}
+
+async function restoreDurableBody() {
+  const snapshot = await storage.readJson("body-session");
+  if (snapshot === null) return;
+  const encoded = new TextEncoder().encode(JSON.stringify(snapshot));
+  const api = host.runtime;
+  if (encoded.length > api.conduit_creche_input_capacity()) {
+    throw new Error("durable Crèche session exceeds the runtime restore bound");
+  }
+  new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), encoded.length).set(encoded);
+  const code = api.conduit_creche_restore_durable(encoded.length);
+  if (code < 0) {
+    const refusal = readAbiOutput(api);
+    throw new Error(refusal.message ?? `durable Crèche restore refused (${code})`);
+  }
+  const restored = readAbiOutput(api);
+  sequence = Math.max(
+    restored.birth_sequence,
+    ...(snapshot.biography?.records ?? []).map((record) => record.sequence),
+  );
+}
+
+function retainDurableBody() {
+  const api = host.runtime;
+  const code = api.conduit_creche_durable_snapshot();
+  if (code === 1) return;
+  if (code < 0) throw new Error(`durable Crèche snapshot refused (${code})`);
+  const snapshot = readAbiOutput(api);
+  durableWrite = durableWrite
+    .then(() => storage.writeJson("body-session", snapshot))
+    .then(() => { durabilityFailure = null; })
+    .catch((error) => {
+      durabilityFailure = error instanceof Error ? error : new Error(String(error));
+      renderHostStatus("Crèche storage refused", "failure-status");
+    });
+}
+
+async function durabilitySettled() {
+  await durableWrite;
+  if (durabilityFailure) throw durabilityFailure;
+}
+
+function readAbiOutput(api) {
+  const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
 function renderComplete(receipt, biography) {
   workspace.replaceChildren();
   const section = document.createElement("section");
@@ -171,7 +229,7 @@ function renderComplete(receipt, biography) {
 }
 
 function requireCrecheAbi(api) {
-  const required = ["memory", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_attach_here", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_admit_physical_spore"];
+  const required = ["memory", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_admit_physical_spore"];
   if (required.some((name) => !(name in api))) throw new Error("Crèche runtime ABI is incomplete");
 }
 
