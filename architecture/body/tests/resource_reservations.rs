@@ -1,11 +1,13 @@
 use conduit_body::{
-    Body, BodyResourceAllowance, BodyResourceEnvelope, BodyResourceReservationError,
-    BodyResourceReservationLedger, PartId, MAX_BODY_RESOURCE_RESERVATIONS,
+    Body, BodyFormPlan, BodyPlan, BodyResourceAllowance, BodyResourceEnvelope,
+    BodyResourceReservationError, BodyResourceReservationLedger, PartId, ResidentForm,
+    MAX_BODY_RESOURCE_RESERVATIONS,
 };
 use conduit_core::{
-    resource_offer, resource_requirement, BootId, CheckedFormId, HostAdvertisement, HostId,
-    HostProfileId, OfferGeneration, PlanId, ResourceBinding, ResourceHealth, ResourceObservation,
-    SignId, SourceDocumentId, PROTOCOL_VERSION,
+    resource_offer, resource_requirement, seal_plan, BootId, CheckedFormId, ExpandedFormId,
+    FormIdentity, HostAdvertisement, HostId, HostProfileId, OfferGeneration, PlanId,
+    ResourceBinding, ResourceHealth, ResourceObservation, SignId, SourceDocumentId,
+    PROTOCOL_VERSION,
 };
 
 fn fixture(
@@ -67,6 +69,75 @@ fn binding(units: u32) -> ResourceBinding {
         protected: None,
         compute: None,
     }
+}
+
+#[test]
+fn body_plan_admission_combines_all_form_demand_before_play() {
+    let seed = ResidentForm::new(
+        SourceDocumentId::from("reservation-source"),
+        CheckedFormId::from("reservation-form"),
+    );
+    let second = ResidentForm::new(
+        SourceDocumentId::from("second-source"),
+        CheckedFormId::from("second-form"),
+    );
+    let body = Body::born(
+        seed.source_document_id.clone(),
+        seed.checked_form_id.clone(),
+        1,
+        SignId::from("body-born"),
+    )
+    .unwrap()
+    .admit_form(second.clone(), SignId::from("second-admitted"))
+    .unwrap();
+    let wake = body.wake(1, SignId::from("body-woke")).unwrap().1;
+    let form_plan = |form: &ResidentForm| {
+        seal_plan(
+            FormIdentity {
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: ExpandedFormId::from(format!(
+                    "expanded/{}",
+                    form.checked_form_id.as_str()
+                )),
+            },
+            vec![],
+        )
+    };
+    let plan = BodyPlan::seal(
+        &wake,
+        vec![
+            BodyFormPlan {
+                form: seed.clone(),
+                plan: form_plan(&seed),
+            },
+            BodyFormPlan {
+                form: second.clone(),
+                plan: form_plan(&second),
+            },
+        ],
+    )
+    .unwrap();
+    let (host, envelope, observation) = fixture(7, 6);
+    assert_eq!(plan.body_id, *envelope.body_id());
+    let requirement = resource_requirement("test/execution", 4);
+    let first = binding(4);
+    let second = binding(4);
+    let mut ledger = BodyResourceReservationLedger::new(&envelope);
+
+    assert_eq!(
+        ledger.reserve_body_plan(
+            &plan,
+            &envelope,
+            &host,
+            core::slice::from_ref(&observation),
+            &[(&requirement, &first), (&requirement, &second)],
+        ),
+        Err(BodyResourceReservationError::Envelope(
+            conduit_body::BodyResourceEnvelopeError::ReservationExceedsAllowance
+        ))
+    );
+    assert!(ledger.reservations().is_empty(), "refusal is atomic");
 }
 
 #[test]

@@ -9,7 +9,7 @@ use conduit_core::{
 };
 use serde::Serialize;
 
-use crate::{BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId};
+use crate::{BodyPlan, BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId};
 
 /// Maximum number of exact Plans concurrently retained by one envelope ledger.
 pub const MAX_BODY_RESOURCE_RESERVATIONS: usize = 64;
@@ -47,6 +47,7 @@ pub enum BodyResourceReservationError {
     Empty,
     CapacityExceeded,
     EnvelopeMismatch,
+    WrongBody,
     DuplicatePlan,
     UnknownPlan,
     MissingObservation,
@@ -172,6 +173,24 @@ impl BodyResourceReservationLedger {
             bindings,
         });
         Ok(())
+    }
+
+    /// Atomically admits the combined resource demand of every Form partition
+    /// in one sealed Body-wide Plan. `requests` is the already-flattened exact
+    /// demand across those partitions; admission is keyed only by the Body
+    /// Plan identity, never by independently admissible constituent Plans.
+    pub fn reserve_body_plan(
+        &mut self,
+        plan: &BodyPlan,
+        envelope: &BodyResourceEnvelope,
+        host: &HostAdvertisement,
+        observations: &[ResourceObservation],
+        requests: &[(&ResourceRequirement, &ResourceBinding)],
+    ) -> Result<(), BodyResourceReservationError> {
+        if plan.body_id != *envelope.body_id() {
+            return Err(BodyResourceReservationError::WrongBody);
+        }
+        self.reserve(plan.plan_id.clone(), envelope, host, observations, requests)
     }
 
     pub fn release(
