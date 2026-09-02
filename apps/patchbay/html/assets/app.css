@@ -149,7 +149,7 @@ body[data-lens="signs"] .flow-faceplate { border-style:double; }
 @media (max-width:720px) {
   .topbar { inset:.5rem .75rem auto; width:auto; max-width:none; max-height:140px; overflow:auto; }
   .topbar #status { max-width:none; white-space:normal; }
-  nav { inset:165px .75rem auto; width:auto; max-width:none; max-height:180px; overflow:auto; justify-content:flex-start; }
+  nav { inset:calc(.5rem + 165px) .75rem auto; width:auto; max-width:none; max-height:180px; overflow:auto; justify-content:flex-start; }
   .shell-launchers,.lens-controls { display:flex; max-width:100%; overflow-x:auto; flex-wrap:nowrap; }
   nav button,nav a { flex:0 0 auto; white-space:nowrap; }
   .canvas-heading { inset:355px .75rem auto; max-width:none; max-height:220px; overflow:auto; flex-direction:column; }
