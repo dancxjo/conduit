@@ -88,6 +88,15 @@ pub(crate) fn boot_profile_image(
         ));
     }
     let arch = arch_for_target(target)?;
+    if arch == ConduitosArch::Ia32 {
+        return super::ia32_product_boot::boot_twice(
+            image,
+            expected_profile_id,
+            expected_build_id,
+            expected_image_binding,
+            opts,
+        );
+    }
     if arch == ConduitosArch::Aarch64 {
         let first = boot_aarch64_product(
             image,

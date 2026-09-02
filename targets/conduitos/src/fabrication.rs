@@ -23,6 +23,7 @@ pub const BASE_HTTP_NETWORK: u16 = 1 << 2;
 pub const DRIVER_LINEAR_FRAMEBUFFER: u16 = 1;
 pub const DRIVER_HTTP_NETWORK: u16 = 1 << 2;
 pub const DRIVER_DW_APB_UART2: u16 = 1 << 3;
+pub const DRIVER_IA32_DEBUGCON_SERIAL: u16 = 1 << 4;
 pub const PRESENTER_NATIVE_GRAPHICAL: u16 = 1;
 pub const BASE_SERIAL_TEXT: u16 = 1 << 1;
 pub const DRIVER_PL011_SERIAL: u16 = 1 << 1;
@@ -112,6 +113,7 @@ impl FabricationRecord {
         if !matches!(
             self.target,
             "conduitos/x86_64/pc"
+                | "conduitos/ia32/pc"
                 | "conduitos/aarch64/virt"
                 | "conduitos/aarch64/orange-pi-5-rk3588s"
         ) {
@@ -126,7 +128,8 @@ impl FabricationRecord {
                 & !(DRIVER_LINEAR_FRAMEBUFFER
                     | DRIVER_PL011_SERIAL
                     | DRIVER_HTTP_NETWORK
-                    | DRIVER_DW_APB_UART2)
+                    | DRIVER_DW_APB_UART2
+                    | DRIVER_IA32_DEBUGCON_SERIAL)
                 != 0
             || self.presenters & !(PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL) != 0
             || self.proof_instrumentation & !ALL_KNOWN_PROOF_INSTRUMENTATION != 0
@@ -145,19 +148,23 @@ impl FabricationRecord {
         {
             return Err(FabricationError::UnknownInventory);
         }
-        let expected_serial_driver = if self.target == "conduitos/aarch64/orange-pi-5-rk3588s" {
-            DRIVER_DW_APB_UART2
-        } else {
-            DRIVER_PL011_SERIAL
+        let expected_serial_driver = match self.target {
+            "conduitos/ia32/pc" => DRIVER_IA32_DEBUGCON_SERIAL,
+            "conduitos/aarch64/orange-pi-5-rk3588s" => DRIVER_DW_APB_UART2,
+            _ => DRIVER_PL011_SERIAL,
         };
         let expected_serial_drivers = if linear { expected_serial_driver } else { 0 };
         if (self.bases & BASE_SERIAL_TEXT != 0) != linear
             || (self.drivers & expected_serial_driver != 0) != linear
-            || self.drivers & (DRIVER_PL011_SERIAL | DRIVER_DW_APB_UART2) != expected_serial_drivers
+            || self.drivers
+                & (DRIVER_PL011_SERIAL | DRIVER_DW_APB_UART2 | DRIVER_IA32_DEBUGCON_SERIAL)
+                != expected_serial_drivers
             || (self.presenters & PRESENTER_LINEAR_SERIAL != 0) != linear
             || (matches!(
                 self.target,
-                "conduitos/aarch64/virt" | "conduitos/aarch64/orange-pi-5-rk3588s"
+                "conduitos/ia32/pc"
+                    | "conduitos/aarch64/virt"
+                    | "conduitos/aarch64/orange-pi-5-rk3588s"
             ) && (native || !linear))
             || (self.target == "conduitos/x86_64/pc" && linear)
         {

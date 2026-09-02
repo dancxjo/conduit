@@ -5,6 +5,7 @@ fn main() {
     println!("cargo:rerun-if-changed=proof-appliances/aarch64/linker/a0.ld");
     println!("cargo:rerun-if-changed=proof-appliances/aarch64/linker/a2.ld");
     println!("cargo:rerun-if-changed=proof-appliances/aarch64/linker/a3.ld");
+    println!("cargo:rerun-if-changed=linker/ia32_product.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_product.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_orange_pi_5.ld");
     println!("cargo:rerun-if-changed=proof-appliances/armv6-rpi-b-plus/linker/a0.ld");
@@ -71,6 +72,13 @@ fn main() {
         );
         println!(
             "cargo:rustc-link-arg-bin=conduitos-aarch64-orange-pi-5=-T{manifest}/linker/aarch64_orange_pi_5.ld"
+        );
+    }
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86")
+        && std::env::var_os("CARGO_FEATURE_IA32_PRODUCT").is_some()
+    {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-ia32-product=-T{manifest}/linker/ia32_product.ld"
         );
     }
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm")

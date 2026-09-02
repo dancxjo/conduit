@@ -23,6 +23,20 @@ pub(crate) struct TargetBackend {
 
 const BACKENDS: &[TargetBackend] = &[
     TargetBackend {
+        target: "conduitos/ia32/pc",
+        arch: ConduitosArch::Ia32,
+        kernel_file: "conduitos-kernel.elf",
+        kernel_role: "freestanding-kernel",
+        image_file: "conduitos-ia32.iso",
+        image_role: "final-bootable-image",
+        architecture: "ia32",
+        machine: "pc",
+        firmware: "OVMF_IA32_CODE.fd",
+        boot_entry: "BOOTIA32.EFI",
+        machine_boot_proof: true,
+        lower: target_lowering::lower_ia32_pc,
+    },
+    TargetBackend {
         target: "conduitos/x86_64/pc",
         arch: ConduitosArch::X86_64,
         kernel_file: "conduitos-kernel.elf",
@@ -178,6 +192,23 @@ mod tests {
 
     #[test]
     fn canonical_backends_pin_existing_artifact_and_boot_truth() {
+        let ia32 = select("conduitos/ia32/pc").unwrap();
+        assert_eq!(
+            (
+                ia32.image_file,
+                ia32.architecture,
+                ia32.machine,
+                ia32.firmware,
+                ia32.boot_entry,
+            ),
+            (
+                "conduitos-ia32.iso",
+                "ia32",
+                "pc",
+                "OVMF_IA32_CODE.fd",
+                "BOOTIA32.EFI",
+            )
+        );
         let x86 = select("conduitos/x86_64/pc").unwrap();
         assert_eq!(
             (

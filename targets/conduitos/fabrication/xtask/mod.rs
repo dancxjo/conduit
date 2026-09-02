@@ -26,6 +26,7 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_product_boot;
 mod image;
 mod journey_proof;
 mod keyboard_proof;

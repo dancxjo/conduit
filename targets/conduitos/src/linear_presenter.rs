@@ -36,6 +36,7 @@ pub struct LinearPresenter {
     host_id: HostId,
     boot_id: BootId,
     implementation_id: ImplementationId,
+    base_id: alloc::string::String,
     last_revision: u64,
 }
 
@@ -56,12 +57,35 @@ impl LinearPresenter {
         profile_id: &str,
         image_id: &str,
     ) -> Result<Self, LinearPresenterError> {
+        Self::prepare_with_realization(
+            host_id,
+            boot_id,
+            generation,
+            profile_id,
+            image_id,
+            IMPLEMENTATION,
+            CAPABILITY,
+            BASE_ID,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_realization(
+        host_id: HostId,
+        boot_id: BootId,
+        generation: OfferGeneration,
+        profile_id: &str,
+        image_id: &str,
+        implementation: &str,
+        capability: &str,
+        base_id: &str,
+    ) -> Result<Self, LinearPresenterError> {
         let mut catalog = ProfileCatalog::new();
         catalog
             .insert(renderer_kind_definition())
             .map_err(|_| LinearPresenterError::Catalog)?;
         let form = parse(FORM, &catalog).map_err(|_| LinearPresenterError::Catalog)?;
-        let implementation_id = ImplementationId::from(IMPLEMENTATION);
+        let implementation_id = ImplementationId::from(implementation);
         let host = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: host_id.clone(),
@@ -70,7 +94,7 @@ impl LinearPresenter {
             profile: HostProfileId::from(profile_id),
             resources: vec![resource_offer(RESOURCE_ID, RESOURCE_CLASS, 1)],
             capabilities: vec![renderer_offer(RendererRealizationOffer {
-                capability_id: CapabilityId::from(CAPABILITY),
+                capability_id: CapabilityId::from(capability),
                 execution_profile_id: ExecutionProfileId::from("conduitos/linear-product@1"),
                 implementation_id: implementation_id.clone(),
                 artifact_id: ArtifactId::from(image_id),
@@ -101,6 +125,7 @@ impl LinearPresenter {
             host_id,
             boot_id,
             implementation_id,
+            base_id: base_id.into(),
             last_revision: 0,
         })
     }
@@ -131,7 +156,7 @@ impl LinearPresenter {
             active,
             self.placement_id.clone(),
             face,
-            BASE_ID.into(),
+            self.base_id.clone(),
             SignId::from("conduitos/linear/manifestation-prepared"),
         )
         .and_then(|value| {
