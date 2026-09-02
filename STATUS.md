@@ -2380,3 +2380,44 @@ versioned vocabulary, claim a USB-to-Wi-Fi physical demonstration, infer
 causality from topology, make observation mandatory for correctness, or claim
 unbounded/full-value capture, authoritative wall-clock timing, distributed
 stop-the-world control, or physical/HIL proof.
+
+The all-target ConduitOS product-Host campaign from #2090 is accepted at exact
+main `6972998a482dab165dc6be00b1338c03c016627c`. Its target-owned slices landed
+through #2099 at `433e349b5c8e8a13a8e586b9dcc4d01954aca82d` for IA-32 PC,
+#2101 at `b71d6e0cb32e07dffb034b8bbb4bc3e52c655033` for RISC-V64 virt,
+and #2120 at `1c0c03272794bd465cb39764b055eb72f12c9bd3` for LoongArch64
+virt. Those slices retain their recorded deterministic conformance, two fresh
+pinned emulator boots, exact PROFILE/BUILD/IMAGE and Host/Boot correlation,
+ordinary checked Form through production Plan/Play, bounded Observatory and
+Patchbay projection, and malformed, foreign, stale, unavailable, exhausted,
+pressure, cancellation, and unsupported refusals. Emulator execution remains
+emulator proof and makes no physical or HIL claim.
+
+Umbrella integration PR #2156 made all five ConduitOS product targets ordinary
+Crèche selections, release artifacts, exact spores, and staged product inputs
+instead of proof-only aliases or refusals. Follow-up PR #2159 preserved one
+durable physically admitted Body across reload and kept the generic browser
+release product-pure under its unchanged 4 MiB admission ceiling. Exact-head
+workflow `33685625127` passed the full selected workspace and ConduitOS proof
+matrix; workflow `33685625134` compiled and sealed all five ConduitOS product
+IMAGEs and every other release carrier, then passed 68 staged-product tests in
+pinned Chromium with one worker and zero retries. Exact-main deployment
+workflow `33686957407` resolved that successful carrier, checked out
+`6972998a482dab165dc6be00b1338c03c016627c`, admitted the carrier against that
+exact merged tree, and deployed it. This integration adds no networking,
+peripheral expansion, SMP, preemption, isolation, physical, or HIL claim.
+
+The Windows x86_64 and macOS arm64 native Host release slice from #2096 is
+accepted at the same exact main commit. Implementation PR #2097 introduced
+distinct package-owned target identities, native `cargo xtask host release`
+selection, sealed manifests and executables, three separate hosted-computer
+Crèche profiles, and Body-bound ZIP preparation. In exact-head product
+workflow `33685625134`, native jobs `host-release-windows-x86_64` and
+`host-release-macos-aarch64` compiled, sealed, and uploaded their exact
+artifacts successfully; the pinned-Chromium aggregate selected each target,
+acquired its sealed manifest, and produced its Body-bound ZIP while preserving
+the existing Linux path. Exact-main workflow `33686957407` admitted the same
+proven carrier against the merged tree. BUILD and download remain distinct
+from installation, launch, Host/Boot truth, join, membership, and Play; this
+acceptance adds no signing, notarization, installer, package-manager,
+automatic-launch, Windows arm64, Intel macOS, or runtime-equivalence claim.
