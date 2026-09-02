@@ -66,10 +66,32 @@ test("the shared shell follows dark and light preferences without changing appli
         background: getComputedStyle(document.documentElement).getPropertyValue(
           location.pathname.endsWith("/conduit/") ? "--conduit-background" : "--paper",
         ).trim(),
+        accent: getComputedStyle(document.querySelector(
+          location.pathname.endsWith("/conduit/") ? ".primary-action" : "h1",
+        ))[location.pathname.endsWith("/conduit/") ? "backgroundColor" : "color"],
       }));
       expect(palette.scheme).toContain(colorScheme);
       expect(palette.background).toBe(colorScheme === "dark" ? "#05070b" : "#eef5f8");
-      await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+      expect(palette.accent).toBe(colorScheme === "dark" ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
+      const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
+      await expect(primaryNavigation).toBeVisible();
+      const hoverTarget = primaryNavigation.getByRole("link", { name: "Source" });
+      await hoverTarget.hover();
+      await expect(hoverTarget).toHaveCSS(
+        "color",
+        path === ""
+          ? colorScheme === "dark" ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)"
+          : colorScheme === "dark" ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)",
+      );
+      const focusTarget = path === ""
+        ? page.getByRole("link", { name: "Learn Conduit" })
+        : primaryNavigation.getByRole("link", { name: path === "/book" ? "Book" : "Crèche" });
+      await page.keyboard.press("Tab");
+      await focusTarget.focus();
+      await expect(focusTarget).toHaveCSS(
+        "outline-color",
+        colorScheme === "dark" ? "rgb(244, 196, 0)" : "rgb(119, 93, 0)",
+      );
     }
   }
 });

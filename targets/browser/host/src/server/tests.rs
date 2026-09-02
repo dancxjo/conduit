@@ -62,14 +62,8 @@ fn product_surfaces_refuse_the_other_products_routes() {
 
 #[test]
 fn book_uses_the_generic_builder_for_every_exact_resource() {
-    let first = application_package::build_manifest(BOOK_APPLICATION_TEMPLATE, |path| {
-        book_application_resource(path, b"runtime-a")
-    })
-    .unwrap();
-    let second = application_package::build_manifest(BOOK_APPLICATION_TEMPLATE, |path| {
-        book_application_resource(path, b"runtime-b")
-    })
-    .unwrap();
+    let first = book_assets::build_manifest(b"runtime-a").unwrap();
+    let second = book_assets::build_manifest(b"runtime-b").unwrap();
     let first: serde_json::Value = serde_json::from_slice(&first).unwrap();
     let second: serde_json::Value = serde_json::from_slice(&second).unwrap();
     assert_eq!(first["resources"].as_array().unwrap().len(), 25);
@@ -82,5 +76,24 @@ fn book_uses_the_generic_builder_for_every_exact_resource() {
     assert_eq!(
         first["state_compatibility"]["identity"],
         "conduit.application/book-reading-state"
+    );
+}
+
+#[test]
+fn creche_uses_the_generic_builder_for_its_exact_executable_graph() {
+    let first = creche_assets::build_manifest(b"runtime-a").unwrap();
+    let second = creche_assets::build_manifest(b"runtime-b").unwrap();
+    let first: serde_json::Value = serde_json::from_slice(&first).unwrap();
+    let second: serde_json::Value = serde_json::from_slice(&second).unwrap();
+    assert_eq!(first["resources"].as_array().unwrap().len(), 39);
+    assert!(first["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|resource| resource["sha256"].as_str().unwrap().starts_with("sha256:")));
+    assert_ne!(first["package_digest"], second["package_digest"]);
+    assert_eq!(
+        first["state_compatibility"]["identity"],
+        "conduit.application/creche-host-state"
     );
 }

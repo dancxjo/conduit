@@ -49,6 +49,28 @@ const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 8] = [
     "xtask/src/commands/ci/impact.rs",
     "xtask/src/commands/ci/impact/tests.rs",
 ];
+const CRECHE_ADMITTED_PACKAGE_SLICE: [&str; 20] = [
+    ".github/workflows/executable-book-deploy.yml",
+    ".github/workflows/executable-book-pages.yml",
+    "proof/browser/browser-application-package.spec.mjs",
+    "scripts/ci/build-browser-application-package.mjs",
+    "scripts/ci/stage-creche-product.sh",
+    "targets/browser/host/assets/browser-application-loader.mjs",
+    "targets/browser/host/assets/creche-graduation.mjs",
+    "targets/browser/host/assets/creche-lifecycle.mjs",
+    "targets/browser/host/assets/creche.application.template.json",
+    "targets/browser/host/assets/creche.html",
+    "targets/browser/host/assets/creche.mjs",
+    "targets/browser/host/src/application_package.rs",
+    "targets/browser/host/src/server.rs",
+    "targets/browser/host/src/server/book_assets.rs",
+    "targets/browser/host/src/server/creche_assets.rs",
+    "targets/browser/host/src/server/existing_computer_assets.rs",
+    "targets/browser/host/src/server/tests.rs",
+    "xtask/src/commands/ci/impact.rs",
+    "xtask/src/commands/ci/impact/tests.rs",
+    "proof/ci/pages-workflow-paths.spec.mjs",
+];
 const HARMLESS_PREFIXES: [&str; 2] = ["docs/", "examples/"];
 const HARMLESS_FILES: [&str; 6] = [
     "README.md",
@@ -376,9 +398,32 @@ fn plan_for_paths(
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/ci/pages-product-run-selection.spec.mjs");
+    let creche_admitted_package_slice = substantive
+        .iter()
+        .all(|path| CRECHE_ADMITTED_PACKAGE_SLICE.contains(&path.as_str()))
+        && [
+            "targets/browser/host/assets/creche.application.template.json",
+            "targets/browser/host/src/server/creche_assets.rs",
+            "proof/browser/browser-application-package.spec.mjs",
+        ]
+        .iter()
+        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
 
     for path in substantive {
         if pages_deploy_resolver_slice {
+            continue;
+        }
+        if creche_admitted_package_slice {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-creche-admitted-package:{path}"));
+            if !path.starts_with("xtask/src/commands/ci/impact") {
+                if let Some(package) = package_for_path(root, path, packages) {
+                    changed_packages.insert(package.to_owned());
+                }
+            }
             continue;
         }
         if creche_presentation_slice {

@@ -1,6 +1,6 @@
 //! Bounded release and native-package assets shared by Crèche targets.
 
-const SPORE_DOWNLOAD: &[u8] = include_bytes!("../../assets/creche-spore-bundle.mjs");
+pub(super) const SPORE_DOWNLOAD: &[u8] = include_bytes!("../../assets/creche-spore-bundle.mjs");
 const NATIVE_ZIP: &[u8] = include_bytes!("../../assets/creche-native-zip.mjs");
 const NATIVE_DISK: &[u8] = include_bytes!("../../assets/creche-native-disk.mjs");
 const RELEASE_BUNDLE: &[u8] = include_bytes!("../../assets/creche-release-bundle.mjs");
@@ -10,6 +10,21 @@ const BROWSER_ADAPTER: &[u8] = include_bytes!("../../browser-deployment/creche-a
 const ORANGE_PI_ADAPTER: &[u8] =
     include_bytes!("../../../../orange-pi/browser-deployment/creche-adapter.mjs");
 const ORANGE_PI_IMAGE: &[u8] = include_bytes!("../../../../orange-pi/browser-deployment/image.mjs");
+
+pub(super) fn resource(path: &str) -> Option<&'static [u8]> {
+    match path {
+        "creche-spore-bundle.mjs" => Some(SPORE_DOWNLOAD),
+        "creche-native-zip.mjs" => Some(NATIVE_ZIP),
+        "creche-native-disk.mjs" => Some(NATIVE_DISK),
+        "creche-release-bundle.mjs" => Some(RELEASE_BUNDLE),
+        "creche-existing-computer.mjs" => Some(EXISTING_COMPUTER),
+        "targets/std/browser-deployment/creche-adapter.mjs" => Some(STD_ADAPTER),
+        "targets/browser/browser-deployment/creche-adapter.mjs" => Some(BROWSER_ADAPTER),
+        "targets/orange-pi/browser-deployment/creche-adapter.mjs" => Some(ORANGE_PI_ADAPTER),
+        "targets/orange-pi/browser-deployment/image.mjs" => Some(ORANGE_PI_IMAGE),
+        _ => None,
+    }
+}
 
 pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static [u8])> {
     let javascript = "text/javascript; charset=utf-8";

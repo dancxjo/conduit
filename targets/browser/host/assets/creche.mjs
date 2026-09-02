@@ -1,5 +1,4 @@
 import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
-import { createApplicationPresentationHost } from "./application-presentation.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
@@ -26,7 +25,8 @@ const steps = [
   { name: "Graduate", slug: "graduate" },
 ];
 const workspace = document.querySelector("#workspace");
-const presentation = createApplicationPresentationHost();
+let presentation;
+let presentationFor;
 const crecheBaseUrl = new URL(".", document.baseURI);
 let host;
 let currentStep = stepIndexForLocation();
@@ -46,18 +46,22 @@ const targetCatalog = createPhysicalHostTargetCatalog({
   ],
 });
 
-try {
+export async function startApplication(application) {
+ try {
+  presentation = application.presentation;
+  presentationFor = application.presentationFor;
   renderHostStatus("Starting browser Host…", "status");
-  host = await initializeBrowserHost();
+  host = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
   requireCrecheAbi(host.runtime);
   renderHostStatus("Crèche ready", "success-status");
   globalThis.__conduitCrecheHost = host;
   renderNavigation();
   renderStep();
   if (isProductRoot()) replaceStepRoute(currentStep);
-} catch (error) {
+ } catch (error) {
   renderHostStatus("Crèche unavailable", "failure-status");
   workspace.textContent = error instanceof Error ? error.message : String(error);
+ }
 }
 
 function renderNavigation() {
@@ -89,10 +93,10 @@ function renderStep() {
   workspace.append(heading);
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
     source: MORSE_NETWORK, sourceKey: "standalone-creche", listingId: "creche-seed", host,
-    nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: refreshContext,
+    presentationFor, nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: refreshContext,
   }));
   if (currentStep === 1) workspace.append(createFirstHostRunner({
-    host,
+    host, presentationFor,
     nextSequence: () => { const admitted = ++sequence; sequence += 1; return admitted; },
     onBodyChanged: refreshContext,
   }));
@@ -101,7 +105,7 @@ function renderStep() {
     targetCatalog,
   }));
   if (currentStep === 3) workspace.append(createGraduationRunner({
-    host, nextSequence: () => ++sequence, onBodyChanged: refreshContext,
+    host, presentationFor, nextSequence: () => ++sequence, onBodyChanged: refreshContext,
     onEnd: renderComplete,
   }));
   refreshContext();
@@ -145,7 +149,7 @@ function refreshContext() {
   context.dataset.crecheContext = "true";
   context.dataset.applicationSlot = "creche-body-context";
   workspace.prepend(context);
-  createApplicationPresentationHost(workspace).present("creche-body-context", {
+  presentation.present("creche-body-context", {
     revision: ++presentationRevision,
     actions: [],
     nodes: [
