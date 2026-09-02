@@ -12,9 +12,9 @@ const PROMOTED = Object.freeze([
 let entrance;
 
 async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--creche", "--no-open"], {
+  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
-    env: { ...process.env, CONDUIT_BROWSER_RUNTIME_WASM: "target/conduit_creche_runtime.wasm" },
+    env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";

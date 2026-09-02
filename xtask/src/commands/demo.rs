@@ -6,6 +6,10 @@ use crate::workspace::workspace_root;
 
 pub fn run_book(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
+    let product = root.join("target/book-product");
+    if product.exists() {
+        std::fs::remove_dir_all(&product)?;
+    }
     run_step(
         &Step::new(
             "demo.book.runtime",
@@ -25,10 +29,32 @@ pub fn run_book(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     )?;
     run_step(
         &Step::new(
+            "demo.book.package",
+            "Stage the exact admitted Book application",
+            "scripts/ci/stage-book-product.sh",
+            &[
+                "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+                "target/book-product",
+            ],
+        ),
+        &root,
+        opts,
+    )?;
+    run_step(
+        &Step::new(
             "demo.book.host",
             "Open the inline executable Conduit book",
             "cargo",
-            &["run", "-p", "conduit-browser-host", "--", "--book"],
+            &[
+                "run",
+                "-p",
+                "conduit-browser-host",
+                "--",
+                "--application",
+                "target/book-product",
+                "--mount",
+                "/book/",
+            ],
         ),
         &root,
         opts,

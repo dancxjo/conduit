@@ -1,37 +1,59 @@
 use super::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-fn runtime_fixture() -> std::path::PathBuf {
+fn unique_path(label: &str) -> std::path::PathBuf {
     let name = format!(
-        "conduit-browser-host-runtime-{}-{}.wasm",
+        "conduit-browser-host-{label}-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     );
-    let path = std::env::temp_dir().join(name);
+    std::env::temp_dir().join(name)
+}
+
+fn runtime_fixture() -> std::path::PathBuf {
+    let path = unique_path("runtime.wasm");
     std::fs::write(&path, b"bounded wasm fixture").unwrap();
     path
 }
 
+fn application_fixture() -> std::path::PathBuf {
+    let path = unique_path("application");
+    std::fs::create_dir(&path).unwrap();
+    std::fs::write(
+        path.join("index.html"),
+        b"<!doctype html><title>fixture</title>",
+    )
+    .unwrap();
+    std::fs::write(path.join("application.mjs"), b"export const exact = true;").unwrap();
+    path
+}
+
 #[test]
-fn simultaneous_entrances_are_distinct_ipv4_loopback_listeners() {
+fn simultaneous_host_and_application_entrances_are_distinct_loopback_listeners() {
     let runtime = runtime_fixture();
-    let first = BrowserHostServer::bind(&runtime, ProductSurface::Book).unwrap();
-    let second = BrowserHostServer::bind(&runtime, ProductSurface::Creche).unwrap();
+    let application = application_fixture();
+    let first = BrowserHostServer::bind(&runtime).unwrap();
+    let second = BrowserHostServer::bind_application(&application, "/fixture/").unwrap();
     let first_address = first.local_addr().unwrap();
     let second_address = second.local_addr().unwrap();
     assert_eq!(first_address.ip(), Ipv4Addr::LOCALHOST);
     assert_eq!(second_address.ip(), Ipv4Addr::LOCALHOST);
     assert_ne!(first_address, second_address);
+    assert_eq!(
+        second.url().unwrap(),
+        format!("http://{second_address}/fixture/")
+    );
     std::fs::remove_file(runtime).unwrap();
+    std::fs::remove_dir_all(application).unwrap();
 }
 
 #[test]
 fn missing_and_oversized_runtime_artifacts_refuse_before_launch() {
-    let missing = std::env::temp_dir().join("conduit-browser-host-absent.wasm");
-    assert!(BrowserHostServer::bind(&missing, ProductSurface::Host)
+    let missing = unique_path("absent.wasm");
+    assert!(BrowserHostServer::bind(&missing)
         .unwrap_err()
         .contains("unavailable"));
 
@@ -41,59 +63,45 @@ fn missing_and_oversized_runtime_artifacts_refuse_before_launch() {
         .open(&runtime)
         .unwrap();
     file.set_len(MAX_RUNTIME_BYTES as u64 + 1).unwrap();
-    assert!(BrowserHostServer::bind(&runtime, ProductSurface::Host)
+    assert!(BrowserHostServer::bind(&runtime)
         .unwrap_err()
         .contains("artifact bound"));
     std::fs::remove_file(runtime).unwrap();
 }
 
 #[test]
-fn product_surfaces_refuse_the_other_products_routes() {
-    assert!(ProductSurface::Book.permits(Some("GET /book/ HTTP/1.1")));
-    assert!(ProductSurface::Book.permits(Some("GET /book/runtime.wasm HTTP/1.1")));
-    assert!(!ProductSurface::Book.permits(Some("GET /creche/ HTTP/1.1")));
-    assert!(!ProductSurface::Book.permits(Some("GET / HTTP/1.1")));
-
-    assert!(ProductSurface::Creche.permits(Some("GET /creche/ HTTP/1.1")));
-    assert!(ProductSurface::Creche.permits(Some("GET /creche/runtime.wasm HTTP/1.1")));
-    assert!(!ProductSurface::Creche.permits(Some("GET /book/ HTTP/1.1")));
-    assert!(!ProductSurface::Creche.permits(Some("GET / HTTP/1.1")));
-}
-
-#[test]
-fn book_uses_the_generic_builder_for_every_exact_resource() {
-    let first = book_assets::build_manifest(b"runtime-a").unwrap();
-    let second = book_assets::build_manifest(b"runtime-b").unwrap();
-    let first: serde_json::Value = serde_json::from_slice(&first).unwrap();
-    let second: serde_json::Value = serde_json::from_slice(&second).unwrap();
-    assert_eq!(first["resources"].as_array().unwrap().len(), 25);
-    assert!(first["resources"]
-        .as_array()
+fn generic_application_delivery_is_mount_scoped_and_bounded() {
+    let directory = application_fixture();
+    let application =
+        application::ApplicationDirectory::admit(&directory, "/products/one/").unwrap();
+    let index = application
+        .response(Some("GET /products/one/ HTTP/1.1"))
         .unwrap()
-        .iter()
-        .all(|resource| resource["sha256"].as_str().unwrap().starts_with("sha256:")));
-    assert_ne!(first["package_digest"], second["package_digest"]);
-    assert_eq!(
-        first["state_compatibility"]["identity"],
-        "conduit.application/book-reading-state"
-    );
-}
-
-#[test]
-fn creche_uses_the_generic_builder_for_its_exact_executable_graph() {
-    let first = creche_assets::build_manifest(b"runtime-a").unwrap();
-    let second = creche_assets::build_manifest(b"runtime-b").unwrap();
-    let first: serde_json::Value = serde_json::from_slice(&first).unwrap();
-    let second: serde_json::Value = serde_json::from_slice(&second).unwrap();
-    assert_eq!(first["resources"].as_array().unwrap().len(), 39);
-    assert!(first["resources"]
-        .as_array()
+        .unwrap();
+    assert_eq!(index.content_type, "text/html; charset=utf-8");
+    let module = application
+        .response(Some("GET /products/one/application.mjs HTTP/1.1"))
         .unwrap()
-        .iter()
-        .all(|resource| resource["sha256"].as_str().unwrap().starts_with("sha256:")));
-    assert_ne!(first["package_digest"], second["package_digest"]);
-    assert_eq!(
-        first["state_compatibility"]["identity"],
-        "conduit.application/creche-host-state"
-    );
+        .unwrap();
+    assert_eq!(module.body, b"export const exact = true;");
+    assert!(application
+        .response(Some("GET /products/two/application.mjs HTTP/1.1"))
+        .unwrap()
+        .is_none());
+    assert!(application
+        .response(Some("GET /products/one/../application.mjs HTTP/1.1"))
+        .unwrap()
+        .is_none());
+    assert!(application::ApplicationDirectory::admit(&directory, "/bad/../mount/").is_err());
+
+    let oversized = directory.join("oversized.bin");
+    std::fs::File::create(&oversized)
+        .unwrap()
+        .set_len(application::MAX_APPLICATION_FILE_BYTES + 1)
+        .unwrap();
+    assert!(application
+        .response(Some("GET /products/one/oversized.bin HTTP/1.1"))
+        .unwrap_err()
+        .contains("delivery bound"));
+    std::fs::remove_dir_all(directory).unwrap();
 }
