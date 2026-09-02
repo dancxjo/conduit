@@ -313,13 +313,13 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.sourceKey = sourceKey;
   runner.dataset.recursive = String(recursive);
   runner.innerHTML = `
+    ${compactPatchbayFrame()}
     <div class="editor">
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable</label>
         <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
         <div data-application-slot="${actionsSlot}"></div>
       </div>
-      ${compactPatchbayFrame()}
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
@@ -363,13 +363,13 @@ function createMultiHostRunner(source, showPlan) {
   runner.dataset.sourceKey = sourceKey;
   runner.dataset.mode = "multi";
   runner.innerHTML = `
+    ${compactPatchbayFrame()}
     <div class="editor">
       <div class="source-editor">
         <label class="editor-label" for="${listingId}">Conduit · editable · unchanged across Hosts</label>
         <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
         <div data-application-slot="${actionsSlot}"></div>
       </div>
-      ${compactPatchbayFrame()}
     </div>
     <div class="result multi-host-result">
       <div class="host-map" aria-label="Two independent browser Hosts">
