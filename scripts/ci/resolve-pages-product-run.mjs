@@ -22,8 +22,7 @@ const query = new URLSearchParams({ event: "pull_request", head_sha: pull.head.s
 const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
 const run = runs.workflow_runs.find((candidate) =>
   candidate.conclusion === "success"
-  && candidate.head_sha === pull.head.sha
-  && candidate.pull_requests?.some((item) => item.number === requestedNumber));
+  && candidate.head_sha === pull.head.sha);
 if (!run) throw new Error(`no successful exact-head Pages product run admits pull request #${requestedNumber}`);
 
 await appendFile(output, [
