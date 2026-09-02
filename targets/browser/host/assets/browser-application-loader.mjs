@@ -134,11 +134,12 @@ export async function loadBrowserApplication(manifestReference) {
   catch { throw new Error("application package manifest is malformed"); }
   const manifest = admitManifest(manifestDocument, manifestUrl);
   const admittedBytes = new Map();
-  for (const resource of manifest.resources) {
+  const admittedResources = await Promise.all(manifest.resources.map(async (resource) => {
     const bytes = await boundedFetch(resource.url, resource.maximumBytes, `application resource ${resource.role}`);
     if (await sha256(bytes) !== resource.sha256) throw new Error(`application resource ${resource.role} changed identity`);
-    admittedBytes.set(resource.role, bytes);
-  }
+    return [resource.role, bytes];
+  }));
+  for (const [role, bytes] of admittedResources) admittedBytes.set(role, bytes);
   if (await sha256(canonicalPackage(manifest)) !== manifest.packageDigest) throw new Error("application package identity changed");
 
   const byRole = new Map(manifest.resources.map((resource) => [resource.role, resource]));
