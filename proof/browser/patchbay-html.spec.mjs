@@ -136,6 +136,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const url=await server.url;
     const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
     await page.goto(url);
+    await expect(page.locator('link[href="/assets/flow.css"]')).toHaveCount(1);
+    await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveCSS("width", "240px");
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
     expect(snapshot.temporal_context).toHaveLength(1);
@@ -222,7 +224,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(inspector.x).toBeGreaterThan(canvas.x);
     await expect(page.getByRole("navigation",{name:"Patchbay workspace"})).toContainText("Linear");
 
-    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.patchbay/phosphor@1"');
+    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.presentation/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
     await page.evaluate(()=>document.fonts.ready);

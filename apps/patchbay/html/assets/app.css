@@ -115,36 +115,9 @@ body:not([data-palette-open="true"]) #palette,body:not([data-parts-open="true"])
 .status-strip { position:fixed; z-index:6; right:.75rem; bottom:6.5rem; margin:0; max-width:min(48rem,calc(100% - 20rem)); background:color-mix(in srgb,var(--patchbay-background) 92%,transparent); }
 #front-door-actions { bottom:.75rem; }
 .react-flow__node { min-width:11rem; padding:.8rem 1rem; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); font-weight:700; }
-.react-flow__node-faceplate { width:15rem; min-width:15rem; padding:0; border:0; background:transparent; font-weight:400; }
-.flow-faceplate { width:15rem; max-width:15rem; overflow:hidden; border:1px solid var(--patchbay-structure-primary); border-radius:.55rem; background:var(--patchbay-surface); color:var(--patchbay-text-primary); }
-.flow-faceplate header { display:grid; grid-template-columns:minmax(0,1.6rem) minmax(0,1fr) minmax(0,4.75rem); gap:.35rem; align-items:center; min-height:2.4rem; padding:.45rem .55rem; overflow:hidden; border-bottom:1px solid var(--patchbay-structure-secondary); }
-.faceplate-icon,.faceplate-title,.faceplate-role,.faceplate-clue,.faceplate-port-name,.faceplate-port code { display:block; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.faceplate-icon { color:var(--patchbay-emphasis); font-weight:800; }
-.faceplate-title { font-weight:750; }
-.faceplate-role { color:var(--patchbay-text-secondary); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; }
-.faceplate-clue { min-height:1.75rem; margin:0; padding:.35rem .55rem; color:var(--patchbay-text-secondary); font-size:.72rem; }
-.faceplate-ports { border-top:1px solid var(--patchbay-structure-secondary); }
-.faceplate-port { position:relative; display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:.35rem; align-items:center; min-height:1.75rem; padding:.25rem .75rem; overflow:hidden; font-size:.7rem; }
-.faceplate-port+.faceplate-port { border-top:1px solid color-mix(in srgb,var(--patchbay-structure-secondary) 55%,transparent); }
-.faceplate-port.outgoing { text-align:right; }
-.faceplate-port code { color:var(--patchbay-text-secondary); font-size:.62rem; }
-.faceplate-handle { width:.72rem; height:.72rem; border:2px solid var(--patchbay-structure-primary); background:var(--patchbay-background); }
-.react-flow__edge-text { fill:var(--patchbay-text-primary); font-size:.66rem; }
-.react-flow__edge-textbg { fill:var(--patchbay-surface); }
 body[data-lens="form"] .flow-faceplate { border-color:var(--patchbay-emphasis); }
 body[data-lens="play"] .flow-faceplate { box-shadow:inset 0 0 0 1px var(--patchbay-success); }
 body[data-lens="signs"] .flow-faceplate { border-style:double; }
-.flow-faceplate.semantic-selected { outline:3px solid var(--patchbay-focus); outline-offset:2px; }
-.react-flow__node.selected { outline:3px solid var(--patchbay-focus); }
-.react-flow__edge-path { stroke:var(--patchbay-structure-primary); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
-.react-flow__edge.cord-semantic .react-flow__edge-path { stroke:var(--patchbay-structure-primary); }
-.react-flow__edge.cord-local .react-flow__edge-path { stroke:var(--patchbay-emphasis); }
-.react-flow__edge.cord-line .react-flow__edge-path { stroke:var(--patchbay-success); }
-.react-flow__edge.cord-pressure-unknown .react-flow__edge-path { stroke:var(--patchbay-warning); }
-.react-flow__edge.cord-pressure-known .react-flow__edge-path { stroke:var(--patchbay-emphasis); }
-.react-flow__edge.animated .react-flow__edge-path { stroke-dasharray:7 5; animation-duration:1.4s; }
-.react-flow__controls { box-shadow:none; border:1px solid var(--patchbay-structure-secondary); }
-.react-flow__controls-button { border-radius:0; padding:0; }
 
 @media (min-width:1001px) {
   body[data-inspector-open="true"]:has(#inspector[data-furniture-dock="right"][data-furniture-collapsed="false"]) #flow-root { right:26.5rem; width:auto; }
@@ -167,4 +140,3 @@ body[data-lens="signs"] .flow-faceplate { border-style:double; }
   #parts,#deep-inspection { width:calc(100% - 1.5rem); }
   .status-strip { display:none; }
 }
-@media (max-width:720px) { .react-flow__node-faceplate,.flow-faceplate { width:13rem; min-width:13rem; max-width:13rem; } }

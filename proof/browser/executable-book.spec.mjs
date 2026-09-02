@@ -200,7 +200,7 @@ test("same-named input and output Ports keep distinct animated Cords", async ({ 
   await expect(patchbay.locator(".react-flow__edge.animated")).toHaveCount(2);
   await expect(patchbay.locator(".react-flow__edge-path").first()).toHaveCSS(
     "animation-name",
-    "book-cord-flow",
+    "conduit-cord-flow",
   );
   await expect(patchbay.locator(".react-flow__edge-text")).toHaveCount(0);
   await expect(patchbay.locator(".compact-patchbay-text")).toContainText(

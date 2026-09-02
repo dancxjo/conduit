@@ -39,6 +39,7 @@ const BODY_WEBRTC_SESSION_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-
 const WEBRTC_LINE_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-datachannel-line.mjs");
 const WEBRTC_RUNTIME_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-session-runtime.mjs");
 const STYLE: &[u8] = include_bytes!("../assets/app.css");
+const FLOW_STYLE: &[u8] = include_bytes!("../assets/flow.css");
 const REACT: &[u8] = include_bytes!("../assets/react.min.js");
 const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
 const REACT_FLOW: &[u8] = include_bytes!("../assets/react-flow.min.js");
@@ -435,6 +436,7 @@ impl PatchbayHtmlServer {
                 |body| ("200 OK", "application/json; charset=utf-8", body),
             ),
             "GET /assets/app.css HTTP/1.1" => ("200 OK", "text/css; charset=utf-8", STYLE),
+            "GET /assets/flow.css HTTP/1.1" => ("200 OK", "text/css; charset=utf-8", FLOW_STYLE),
             "GET /assets/react-flow.css HTTP/1.1" => {
                 ("200 OK", "text/css; charset=utf-8", REACT_FLOW_STYLE)
             }

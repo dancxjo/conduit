@@ -241,6 +241,12 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(application.contains("var(--patchbay-background)"));
     assert!(application.contains("var(--patchbay-focus)"));
     assert!(!application.contains("#08111f"));
+
+    let flow = request("/assets/flow.css", "GET");
+    assert!(flow.contains(".flow-faceplate"));
+    assert!(flow.contains(".react-flow__edge.animated"));
+    assert!(flow.contains("@media (prefers-reduced-motion: reduce)"));
+    assert!(!application.contains(".flow-faceplate header"));
 }
 
 #[test]

@@ -16,6 +16,7 @@
     { "role": "runtime", "kind": "wasm", "path": "runtime.wasm", "maximum_bytes": 4194304, "dependencies": [] },
     { "role": "book-style", "kind": "style", "path": "book.css", "maximum_bytes": 32768, "dependencies": [] },
     { "role": "patchbay-style", "kind": "style", "path": "assets/react-flow.css", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "patchbay-flow-style", "kind": "style", "path": "assets/flow.css", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "react", "kind": "classic-script", "path": "assets/react.min.js", "maximum_bytes": 32768, "dependencies": [] },
     { "role": "react-dom", "kind": "classic-script", "path": "assets/react-dom.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"}] },
     { "role": "react-flow", "kind": "classic-script", "path": "assets/react-flow.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"},{"role":"react-dom","specifier":"global:ReactDOM"}] },
