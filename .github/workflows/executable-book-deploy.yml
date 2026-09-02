@@ -147,10 +147,8 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ steps.resolve.outputs.run_id }}
           github-token: ${{ github.token }}
-      - name: Admit the carrier against the merged tree
-        run: |
-          merged_tree=$(git rev-parse 'HEAD^{tree}')
-          node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$merged_tree"
+      - name: Admit the exact-head carrier
+        run: node scripts/ci/verify-pages-carrier.mjs target/pages-carrier '${{ steps.resolve.outputs.source_tree }}'
       - name: Upload the already-proven Pages carrier
         uses: actions/upload-pages-artifact@v5
         with:

@@ -18,6 +18,10 @@ if (!pull.merged_at || !/^[0-9a-f]{40}$/.test(pull.merge_commit_sha ?? "")
   || !/^[0-9a-f]{40}$/.test(pull.head?.sha ?? "")) {
   throw new Error(`pull request #${requestedNumber} is not an exact merged source`);
 }
+const sourceCommit = await api(`/repos/${repository}/git/commits/${pull.head.sha}`);
+if (!/^[0-9a-f]{40}$/.test(sourceCommit.tree?.sha ?? "")) {
+  throw new Error(`pull request #${requestedNumber} has no exact source tree`);
+}
 
 const query = new URLSearchParams({ event: "pull_request", head_sha: pull.head.sha, per_page: "100" });
 const attempts = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_ATTEMPTS, 80, 1, 120);
@@ -39,6 +43,7 @@ await appendFile(output, [
   `run_id=${run.id}`,
   `merge_commit=${pull.merge_commit_sha}`,
   `source_head=${pull.head.sha}`,
+  `source_tree=${sourceCommit.tree.sha}`,
   `pr_number=${requestedNumber}`,
   "",
 ].join("\n"));
