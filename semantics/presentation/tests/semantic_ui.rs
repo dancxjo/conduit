@@ -171,6 +171,64 @@ fn invalid_progress_availability_and_device_choice_refuse_exactly() {
 }
 
 #[test]
+fn availability_and_warning_severity_survive_semantic_lowering() {
+    let unavailable = SemanticAction {
+        identity: "artifact.download".into(),
+        event: ApplicationEventKind::Activate,
+        label: "Download".into(),
+        availability: ActionAvailability::Unavailable {
+            detail: "artifact absent".into(),
+        },
+    };
+    let busy = SemanticAction {
+        identity: "example.run".into(),
+        event: ApplicationEventKind::Activate,
+        label: "Run".into(),
+        availability: ActionAvailability::Busy {
+            detail: "operation admitted".into(),
+        },
+    };
+    let lowered = SemanticApplicationView {
+        revision: 2,
+        root: node(
+            "panel",
+            PresentationMechanism::Panel {
+                title: "Execution".into(),
+            },
+            vec![
+                node("run", PresentationMechanism::Action(busy), vec![]),
+                node(
+                    "download",
+                    PresentationMechanism::Download(unavailable),
+                    vec![],
+                ),
+                node(
+                    "warning",
+                    PresentationMechanism::Status {
+                        kind: StatusKind::Warning,
+                        title: "Pressure".into(),
+                        detail: "queue nearly full".into(),
+                    },
+                    vec![],
+                ),
+            ],
+        ),
+    }
+    .lower()
+    .unwrap();
+
+    assert_eq!(lowered.nodes[1].state, ApplicationNodeState::Busy);
+    assert_eq!(lowered.nodes[2].state, ApplicationNodeState::Unavailable);
+    assert_eq!(lowered.nodes[1].action, None);
+    assert_eq!(lowered.nodes[2].action, None);
+    assert_eq!(
+        lowered.nodes[3].component,
+        ApplicationComponent::WarningStatus
+    );
+    assert!(lowered.actions.is_empty());
+}
+
+#[test]
 fn select_options_lower_as_finite_children_of_the_exact_field() {
     let choice = FormField {
         label: "Device".into(),

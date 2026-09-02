@@ -1,4 +1,5 @@
-const VERSION = 4;
+const VERSION = 5;
+const RETIRED_VERSION = 4;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 40;
 const MAX_DEPTH = 8;
@@ -51,12 +52,15 @@ const COMPONENTS = Object.freeze({
   20: ["output", "success-status"], 21: ["output", "failure-status"],
   22: ["option", "option"],
   23: ["summary", "summary"],
+  24: ["output", "warning-status"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
   Object.entries(COMPONENTS).map(([identity, [, kind]]) => [kind, Number(identity)]),
 ));
 const EVENT_IDENTITIES = Object.freeze({ activate: 1, change: 2, input: 3, toggle: 4, submit: 5 });
+const NODE_STATES = Object.freeze({ 1: "ready", 2: "busy", 3: "unavailable" });
+const NODE_STATE_IDENTITIES = Object.freeze({ ready: 1, busy: 2, unavailable: 3 });
 const THEME_ROLES = Object.freeze([
   "background", "reading-paper", "workbench-canvas", "bootstrap-surface", "surface",
   "structure-primary", "structure-secondary", "text-primary", "text-secondary", "emphasis",
@@ -107,6 +111,7 @@ export function decodeApplicationView(input) {
     const rawParent = cursor.byte();
     const parent = rawParent === 255 ? null : rawParent;
     const component = cursor.byte();
+    const stateIdentity = cursor.byte();
     const rawAction = cursor.byte();
     const action = rawAction === 255 ? null : rawAction;
     const keyLength = cursor.byte();
@@ -114,12 +119,16 @@ export function decodeApplicationView(input) {
     const valueLength = cursor.u32();
     const valueCapacity = cursor.u32();
     if (!(component in COMPONENTS)) refuse("unknown-component");
+    if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
+    const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
     const hasValue = component === 15 || component === 16 || component === 17 || component === 22;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
       || (!hasValue && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
+    const stateful = component === 8 || component === 15 || component === 16 || component === 17;
+    if (state !== "ready" && (!stateful || action !== null)) refuse("invalid-node-state");
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
     const value = cursor.text(valueLength);
@@ -128,7 +137,7 @@ export function decodeApplicationView(input) {
     const depth = parent === null ? 1 : depths[parent] + 1;
     if (depth > MAX_DEPTH) refuse("too-deep");
     depths.push(depth);
-    return Object.freeze({ parent, component, action, key, text, value, valueCapacity });
+    return Object.freeze({ parent, component, state, action, key, text, value, valueCapacity });
   });
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
@@ -156,6 +165,8 @@ export function encodeApplicationView(view) {
   for (const node of view.nodes) {
     const component = COMPONENT_IDENTITIES[node?.component];
     if (!component) refuse("unknown-component");
+    const state = NODE_STATE_IDENTITIES[node?.state ?? "ready"];
+    if (!state) refuse("malformed-encoding");
     const parent = node.parent === null ? 255 : node.parent;
     const action = node.action === null ? 255 : node.action;
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
@@ -168,11 +179,13 @@ export function encodeApplicationView(view) {
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
       || (!hasValue && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
-    const nodeHeader = new Uint8Array(14);
-    nodeHeader.set([parent, component, action, key.length, content.length & 0xff, content.length >>> 8]);
+    const stateful = component === 8 || component === 15 || component === 16 || component === 17;
+    if (state !== NODE_STATE_IDENTITIES.ready && (!stateful || action !== 255)) refuse("invalid-node-state");
+    const nodeHeader = new Uint8Array(15);
+    nodeHeader.set([parent, component, state, action, key.length, content.length & 0xff, content.length >>> 8]);
     const headerView = new DataView(nodeHeader.buffer);
-    headerView.setUint32(6, value.length, true);
-    headerView.setUint32(10, valueCapacity, true);
+    headerView.setUint32(7, value.length, true);
+    headerView.setUint32(11, valueCapacity, true);
     chunks.push(nodeHeader, key, content, value);
   }
   const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
@@ -219,19 +232,70 @@ export function manifestApplicationView(input, root, options = {}) {
   let lastRefusal = null;
   const fragment = document.createDocumentFragment();
   const elements = [];
+  const nodesByKey = new Map();
+  const requestAction = (node, value = "") => {
+    if (node.state === "busy") {
+      lastRefusal = "action-busy";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    if (node.state === "unavailable" || node.action === null) {
+      lastRefusal = "unavailable-action";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    const action = view.actions[node.action];
+    const encodedValue = typeof value === "string" ? new TextEncoder().encode(value) : value;
+    if (!(encodedValue instanceof Uint8Array)) refuse("malformed-encoding");
+    if (encodedValue.length > MAX_EVENT_BYTES) {
+      lastRefusal = "event-too-large";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    if (encodedValue.length > node.valueCapacity) {
+      lastRefusal = "invalid-control-value";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + encodedValue.length;
+    if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
+      lastRefusal = "queue-pressure";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: encodedValue };
+    const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
+    queue.push(event);
+    queuedBytes += event.encoded.length;
+    options.onEvent?.(event);
+    return event;
+  };
   for (const node of view.nodes) {
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
-    element.textContent = node.text;
+    if (node.component === 10) {
+      const summary = document.createElement("summary");
+      summary.textContent = node.text;
+      summary.dataset.applicationDisclosureSummary = node.key;
+      element.append(summary);
+    } else {
+      element.textContent = node.text;
+    }
+    if (node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17) {
+      element.dataset.applicationAvailability = node.state;
+    }
     if (node.component === 15 || node.component === 16 || node.component === 17) {
       element.setAttribute("aria-label", node.text);
       element.value = node.value;
       if (node.component !== 16) element.maxLength = node.valueCapacity;
     }
     if (node.component === 22) element.value = node.value;
-    if (node.component === 9 || node.component === 20 || node.component === 21) {
+    if (node.component === 9 || node.component === 20 || node.component === 21 || node.component === 24) {
+      const severity = node.component === 20 ? "success" : node.component === 21 ? "failure" : node.component === 24 ? "warning" : "ordinary";
+      element.dataset.applicationStatus = severity;
+      element.setAttribute("role", node.component === 21 ? "alert" : "status");
       element.setAttribute("aria-live", node.component === 21 ? "assertive" : "polite");
     }
     if (node.component === 11) element.dataset.renderer = "patchbay";
@@ -239,33 +303,14 @@ export function manifestApplicationView(input, root, options = {}) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;
       element.addEventListener(action.event, (browserEvent) => {
-        const value = new TextEncoder().encode(eventValue(browserEvent));
-        if (value.length > MAX_EVENT_BYTES) {
-          lastRefusal = "event-too-large";
-          options.onRefusal?.(lastRefusal);
-          return;
-        }
-        if (value.length > node.valueCapacity) {
-          lastRefusal = "invalid-control-value";
-          options.onRefusal?.(lastRefusal);
-          return;
-        }
-        const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + value.length;
-        if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
-          lastRefusal = "queue-pressure";
-          options.onRefusal?.(lastRefusal);
-          return;
-        }
-        const pending = { revision: view.revision, action: action.id, kind: action.kind, value };
-        const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
-        queue.push(event);
-        queuedBytes += event.encoded.length;
-        options.onEvent?.(event);
+        requestAction(node, eventValue(browserEvent));
       });
     }
+    if (node.state === "busy") element.setAttribute("aria-busy", "true");
     if ((node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17)
-      && node.action === null) element.disabled = true;
+      && (node.action === null || node.state !== "ready")) element.disabled = true;
     elements.push(element);
+    nodesByKey.set(node.key, node);
     if (node.parent === null) fragment.append(element);
     else elements[node.parent].append(element);
   }
@@ -287,6 +332,11 @@ export function manifestApplicationView(input, root, options = {}) {
     queuedEvents() { return queue.length; },
     queuedEventBytes() { return queuedBytes; },
     lastRefusal() { return lastRefusal; },
+    requestAction(key, value = "") {
+      const node = nodesByKey.get(key);
+      if (!node) refuse("unknown-component");
+      return requestAction(node, value);
+    },
   });
 }
 
@@ -307,8 +357,6 @@ export function createApplicationPresentationHost(scope = document) {
       const view = decodeApplicationView(encoded);
       const previous = revisions.get(slot) ?? 0;
       if (view.revision <= previous) refuse("stale-revision");
-      revisions.set(slot, view.revision);
-      refusals.delete(slot);
       const manifestation = manifestApplicationView(encoded, rootFor(slot), {
         eventCapacity: options.eventCapacity,
         eventByteCapacity: options.eventByteCapacity,
@@ -323,6 +371,8 @@ export function createApplicationPresentationHost(scope = document) {
         },
         onRefusal(code) { refusals.set(slot, code); options.onRefusal?.(code); },
       });
+      revisions.set(slot, view.revision);
+      refusals.delete(slot);
       manifestations.set(slot, manifestation);
       return Object.freeze({ revision: view.revision });
     },
@@ -334,6 +384,7 @@ export function createApplicationPresentationHost(scope = document) {
 }
 
 export const applicationPresentationLimits = Object.freeze({
+  version: VERSION, retiredVersion: RETIRED_VERSION,
   bytes: MAX_BYTES, nodes: MAX_NODES, depth: MAX_DEPTH, textBytes: MAX_TEXT_BYTES,
   actions: MAX_ACTIONS, resources: 0, controlValueBytes: MAX_CONTROL_VALUE_BYTES,
   eventBytes: MAX_EVENT_BYTES, eventQueue: MAX_EVENT_QUEUE, eventQueueBytes: MAX_EVENT_QUEUE_BYTES,

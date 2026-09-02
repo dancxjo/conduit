@@ -5,10 +5,13 @@
 //! concrete manifestation of the resulting finite `ApplicationView`.
 
 use crate::{
-    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationView,
-    ApplicationViewNode, ApplicationViewRefusal,
+    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
+    ApplicationView, ApplicationViewNode, ApplicationViewRefusal,
 };
 use alloc::{format, string::String, vec::Vec};
+
+mod mechanism_lowering;
+use mechanism_lowering::{action_node, field_node, titled};
 
 /// Stable identities for the shared application-presentation vocabulary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -244,6 +247,7 @@ fn lower_node(
         value: lowered.value,
         value_capacity: lowered.value_capacity,
         action: lowered.action,
+        state: lowered.state,
     });
     if let PresentationMechanism::FormField(FormField {
         kind: FieldKind::Select { options },
@@ -263,6 +267,7 @@ fn lower_node(
                 value: option.clone(),
                 value_capacity: u32::try_from(option.len()).unwrap_or(u32::MAX).max(1),
                 action: None,
+                state: ApplicationNodeState::Ready,
             });
         }
     }
@@ -278,6 +283,7 @@ struct LoweredMechanism {
     value: String,
     value_capacity: u32,
     action: Option<u8>,
+    state: ApplicationNodeState,
 }
 
 fn lower_mechanism(
@@ -285,19 +291,30 @@ fn lower_mechanism(
     actions: &mut Vec<ApplicationAction>,
 ) -> Result<LoweredMechanism, SemanticPresentationRefusal> {
     let empty = String::new();
-    let (component, text, value, value_capacity, action) = match mechanism {
-        PresentationMechanism::Shell => {
-            (ApplicationComponent::Shell, empty, String::new(), 0, None)
-        }
-        PresentationMechanism::Workbench => {
-            (ApplicationComponent::Grid, empty, String::new(), 0, None)
-        }
+    let (component, text, value, value_capacity, action, state) = match mechanism {
+        PresentationMechanism::Shell => (
+            ApplicationComponent::Shell,
+            empty,
+            String::new(),
+            0,
+            None,
+            ApplicationNodeState::Ready,
+        ),
+        PresentationMechanism::Workbench => (
+            ApplicationComponent::Grid,
+            empty,
+            String::new(),
+            0,
+            None,
+            ApplicationNodeState::Ready,
+        ),
         PresentationMechanism::Panel { title } => (
             ApplicationComponent::Panel,
             title.clone(),
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::ActionGroup => (
             ApplicationComponent::ActionGroup,
@@ -305,6 +322,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::Action(action) => {
             action_node(action, ApplicationComponent::Button, actions)?
@@ -315,11 +333,19 @@ fn lower_mechanism(
             detail,
         } => {
             let component = match kind {
-                StatusKind::Ordinary | StatusKind::Warning => ApplicationComponent::Status,
+                StatusKind::Ordinary => ApplicationComponent::Status,
+                StatusKind::Warning => ApplicationComponent::WarningStatus,
                 StatusKind::Failure => ApplicationComponent::FailureStatus,
                 StatusKind::Success => ApplicationComponent::SuccessStatus,
             };
-            (component, titled(title, detail), String::new(), 0, None)
+            (
+                component,
+                titled(title, detail),
+                String::new(),
+                0,
+                None,
+                ApplicationNodeState::Ready,
+            )
         }
         PresentationMechanism::Disclosure { summary } => (
             ApplicationComponent::Disclosure,
@@ -327,6 +353,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::Evidence { title }
         | PresentationMechanism::DefinitionTable { title } => (
@@ -335,6 +362,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::Definition { term, value } => (
             ApplicationComponent::Grid,
@@ -342,6 +370,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::CodeBlock { language, code } => (
             ApplicationComponent::Code,
@@ -349,6 +378,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::FormField(field) => field_node(field, actions, false)?,
         PresentationMechanism::Navigation { label } | PresentationMechanism::Stepper { label } => (
@@ -357,6 +387,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::Progress {
             title,
@@ -372,6 +403,7 @@ fn lower_mechanism(
                 String::new(),
                 0,
                 None,
+                ApplicationNodeState::Ready,
             )
         }
         PresentationMechanism::Artifact {
@@ -384,6 +416,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
         PresentationMechanism::Download(action) => {
             action_node(action, ApplicationComponent::Button, actions)?
@@ -395,6 +428,7 @@ fn lower_mechanism(
             String::new(),
             0,
             None,
+            ApplicationNodeState::Ready,
         ),
     };
     Ok(LoweredMechanism {
@@ -403,86 +437,6 @@ fn lower_mechanism(
         value,
         value_capacity,
         action,
+        state,
     })
-}
-
-fn action_node(
-    action: &SemanticAction,
-    component: ApplicationComponent,
-    actions: &mut Vec<ApplicationAction>,
-) -> Result<(ApplicationComponent, String, String, u32, Option<u8>), SemanticPresentationRefusal> {
-    let (label, enabled) = availability_label(action)?;
-    let index = enabled.then(|| admit_action(action, actions)).transpose()?;
-    Ok((component, label, String::new(), 0, index))
-}
-
-fn field_node(
-    field: &FormField,
-    actions: &mut Vec<ApplicationAction>,
-    device: bool,
-) -> Result<(ApplicationComponent, String, String, u32, Option<u8>), SemanticPresentationRefusal> {
-    let component = match &field.kind {
-        FieldKind::Text if !device => ApplicationComponent::TextInput,
-        FieldKind::TextArea if !device => ApplicationComponent::TextArea,
-        FieldKind::Select { options } if !options.is_empty() => ApplicationComponent::Select,
-        _ if device => return Err(SemanticPresentationRefusal::InvalidDeviceChoice),
-        _ => return Err(SemanticPresentationRefusal::InvalidField),
-    };
-    let (label, enabled) = availability_label(&field.input_action)?;
-    let text = titled(&field.label, &label);
-    let index = enabled
-        .then(|| admit_action(&field.input_action, actions))
-        .transpose()?;
-    Ok((
-        component,
-        text,
-        field.value.clone(),
-        field.value_capacity,
-        index,
-    ))
-}
-
-fn availability_label(
-    action: &SemanticAction,
-) -> Result<(String, bool), SemanticPresentationRefusal> {
-    match &action.availability {
-        ActionAvailability::Available => Ok((action.label.clone(), true)),
-        ActionAvailability::Busy { detail } if !detail.is_empty() => {
-            Ok((format!("{} — busy: {detail}", action.label), false))
-        }
-        ActionAvailability::Unavailable { detail } if !detail.is_empty() => {
-            Ok((format!("{} — unavailable: {detail}", action.label), false))
-        }
-        _ => Err(SemanticPresentationRefusal::InvalidActionAvailability),
-    }
-}
-
-fn admit_action(
-    action: &SemanticAction,
-    actions: &mut Vec<ApplicationAction>,
-) -> Result<u8, SemanticPresentationRefusal> {
-    if let Some(index) = actions
-        .iter()
-        .position(|candidate| candidate.id == action.identity && candidate.event == action.event)
-    {
-        return Ok(index as u8);
-    }
-    let index = u8::try_from(actions.len()).map_err(|_| {
-        SemanticPresentationRefusal::ApplicationView(ApplicationViewRefusal::TooManyActions)
-    })?;
-    actions.push(ApplicationAction {
-        id: action.identity.clone(),
-        event: action.event,
-    });
-    Ok(index)
-}
-
-fn titled(title: &str, detail: &str) -> String {
-    if title.is_empty() {
-        detail.into()
-    } else if detail.is_empty() {
-        title.into()
-    } else {
-        format!("{title} — {detail}")
-    }
 }

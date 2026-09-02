@@ -16,6 +16,7 @@ fn view() -> ApplicationView {
                 value: String::new(),
                 value_capacity: 0,
                 action: None,
+                state: ApplicationNodeState::Ready,
             },
             ApplicationViewNode {
                 parent: Some(0),
@@ -25,6 +26,7 @@ fn view() -> ApplicationView {
                 value: String::new(),
                 value_capacity: 0,
                 action: None,
+                state: ApplicationNodeState::Ready,
             },
             ApplicationViewNode {
                 parent: Some(0),
@@ -34,6 +36,7 @@ fn view() -> ApplicationView {
                 value: String::new(),
                 value_capacity: 0,
                 action: Some(0),
+                state: ApplicationNodeState::Ready,
             },
         ],
     }
@@ -61,6 +64,7 @@ fn application_view_round_trip_is_exact_and_finite() {
 fn status_outcomes_remain_renderer_neutral_and_round_trip_exactly() {
     for component in [
         ApplicationComponent::Status,
+        ApplicationComponent::WarningStatus,
         ApplicationComponent::SuccessStatus,
         ApplicationComponent::FailureStatus,
     ] {
@@ -71,6 +75,38 @@ fn status_outcomes_remain_renderer_neutral_and_round_trip_exactly() {
             Ok(status)
         );
     }
+}
+
+#[test]
+fn action_availability_state_round_trips_and_refuses_inconsistent_actions() {
+    for state in [
+        ApplicationNodeState::Ready,
+        ApplicationNodeState::Busy,
+        ApplicationNodeState::Unavailable,
+    ] {
+        let mut candidate = view();
+        candidate.nodes[2].state = state;
+        if state != ApplicationNodeState::Ready {
+            candidate.nodes[2].action = None;
+        }
+        assert_eq!(
+            ApplicationView::decode(&candidate.encode().unwrap()),
+            Ok(candidate)
+        );
+    }
+
+    let mut inconsistent = view();
+    inconsistent.nodes[2].state = ApplicationNodeState::Busy;
+    assert_eq!(
+        inconsistent.validate(),
+        Err(ApplicationViewRefusal::InvalidNodeState)
+    );
+    inconsistent.nodes[2].action = None;
+    inconsistent.nodes[2].component = ApplicationComponent::Panel;
+    assert_eq!(
+        inconsistent.validate(),
+        Err(ApplicationViewRefusal::InvalidNodeState)
+    );
 }
 
 #[test]
@@ -87,7 +123,7 @@ fn malformed_oversized_and_noncanonical_views_refuse() {
         Err(ApplicationViewRefusal::MalformedEncoding)
     );
     let mut wrong_version = encoded;
-    wrong_version[0] = 2;
+    wrong_version[0] = RETIRED_APPLICATION_VIEW_VERSION;
     assert_eq!(
         ApplicationView::decode(&wrong_version),
         Err(ApplicationViewRefusal::UnsupportedVersion)
@@ -122,6 +158,7 @@ fn duplicate_keys_unknown_actions_and_depth_refuse() {
             value: String::new(),
             value_capacity: 0,
             action: None,
+            state: ApplicationNodeState::Ready,
         });
     }
     assert_eq!(deep.validate(), Err(ApplicationViewRefusal::TooDeep));
@@ -178,6 +215,7 @@ fn controls_keep_labels_values_and_capacities_distinct() {
         value: "gear source".into(),
         value_capacity: MAX_APPLICATION_CONTROL_VALUE_BYTES as u32,
         action: None,
+        state: ApplicationNodeState::Ready,
     });
     let encoded = controlled.encode().unwrap();
     assert_eq!(ApplicationView::decode(&encoded), Ok(controlled.clone()));
@@ -205,6 +243,7 @@ fn select_options_carry_finite_exact_values() {
         value: "morse-network@1".into(),
         value_capacity: 64,
         action: None,
+        state: ApplicationNodeState::Ready,
     });
     selection.nodes.push(ApplicationViewNode {
         parent: Some(3),
@@ -214,6 +253,7 @@ fn select_options_carry_finite_exact_values() {
         value: "morse-network@1".into(),
         value_capacity: 64,
         action: None,
+        state: ApplicationNodeState::Ready,
     });
     assert_eq!(
         ApplicationView::decode(&selection.encode().unwrap()),
@@ -232,6 +272,7 @@ fn maximum_book_editor_value_round_trips_without_truncation() {
         value: "x".repeat(MAX_APPLICATION_CONTROL_VALUE_BYTES),
         value_capacity: MAX_APPLICATION_CONTROL_VALUE_BYTES as u32,
         action: None,
+        state: ApplicationNodeState::Ready,
     });
     let encoded = controlled.encode().unwrap();
     assert!(encoded.len() <= MAX_APPLICATION_VIEW_BYTES);

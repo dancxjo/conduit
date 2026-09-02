@@ -11,8 +11,8 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_presentation::{
-    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationView,
-    ApplicationViewNode, GraphicsScene, LayoutFrame, PresentationComposition,
+    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
+    ApplicationView, ApplicationViewNode, GraphicsScene, LayoutFrame, PresentationComposition,
     MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
 };
 use std::collections::BTreeMap;
@@ -142,6 +142,7 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 value: String::new(),
                 value_capacity: 0,
                 action: None,
+                state: ApplicationNodeState::Ready,
             },
             ApplicationViewNode {
                 parent: Some(0),
@@ -151,6 +152,7 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 value: String::new(),
                 value_capacity: 0,
                 action: None,
+                state: ApplicationNodeState::Ready,
             },
             ApplicationViewNode {
                 parent: Some(0),
@@ -160,6 +162,7 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 value: String::new(),
                 value_capacity: 0,
                 action: None,
+                state: ApplicationNodeState::Ready,
             },
             ApplicationViewNode {
                 parent: Some(0),
@@ -169,6 +172,7 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 value: String::new(),
                 value_capacity: 0,
                 action: Some(0),
+                state: ApplicationNodeState::Ready,
             },
         ],
     };
