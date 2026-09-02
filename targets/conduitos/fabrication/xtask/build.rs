@@ -6,7 +6,7 @@ use conduit_host_fabrication::{build_default_host_image, BuildInputs, BuildManif
 use crate::cli::GlobalOpts;
 
 use super::{
-    aarch64_a0, armv6_rpi_b_plus_a0, ia32_a2, loongarch64_a0,
+    aarch64_a0, armv6_rpi_b_plus_a0, ia32_a0, ia32_a2, loongarch64_a0,
     profile::{Paths, COMMON_BACKBONE_TARGETS},
     report::{git_head, sha256_file, ArtifactRole, BuildRecord},
     riscv64_a0, target_lowering, ConduitosArch, ConduitosError,
@@ -185,7 +185,7 @@ fn execute_with_features(
     artifact_role: ArtifactRole,
     product_artifact: Option<ConduitOsProductArtifact>,
 ) -> Result<BuildRecord, ConduitosError> {
-    if arch == ConduitosArch::Ia32 {
+    if arch == ConduitosArch::Ia32 && product_artifact.is_none() {
         return ia32_a2::execute(opts);
     }
     if arch == ConduitosArch::Aarch64 && fabrication.is_none() {
@@ -235,9 +235,22 @@ fn execute_with_features(
             "--release",
         ])
         .current_dir(&paths.root)
-        .env("RUSTFLAGS", "-C relocation-model=static -C panic=abort")
         .env("CONDUITOS_BUILD_ID", build_id)
         .env("CONDUITOS_IMAGE_ID", image_binding);
+    if arch == ConduitosArch::Ia32 {
+        let linker = ia32_a0::rust_lld(&paths.root)?;
+        let script = paths.root.join("targets/conduitos/linker/ia32_product.ld");
+        command.env(
+            "RUSTFLAGS",
+            format!(
+                "-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
+                linker.display(),
+                script.display()
+            ),
+        );
+    } else {
+        command.env("RUSTFLAGS", "-C relocation-model=static -C panic=abort");
+    }
     if let Some(fabrication) = fabrication {
         command.env("CONDUITOS_FABRICATION_RECORD", fabrication.generated);
     }
@@ -267,14 +280,18 @@ fn execute_with_features(
         .join(binary);
     fs::copy(&built, &paths.kernel)
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
-    assert_elf(&paths)?;
+    assert_elf(arch, &paths)?;
     let record = BuildRecord {
         schema: "conduit.conduitos.build/v2",
         artifact_role,
         base_commit,
         architecture: arch.as_str(),
         rust_target: target,
-        limine_crate: "0.5.0",
+        limine_crate: if arch == ConduitosArch::Ia32 {
+            "not-linked-multiboot1"
+        } else {
+            "0.5.0"
+        },
         elf_sha256: sha256_file(&paths.kernel)?,
     };
     write_json(&paths.target.join("build.json"), &record)?;
@@ -322,7 +339,7 @@ fn check_common_backbone(paths: &Paths, opts: &GlobalOpts) -> Result<(), Conduit
     Ok(())
 }
 
-fn assert_elf(paths: &Paths) -> Result<(), ConduitosError> {
+fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> {
     let kernel = paths.kernel.to_str().ok_or_else(|| {
         ConduitosError::refusal("build-output-unavailable", "non-UTF-8 kernel path")
     })?;
@@ -353,10 +370,15 @@ fn assert_elf(paths: &Paths) -> Result<(), ConduitosError> {
         &paths.root,
         "readelf-unavailable",
     )?;
-    if !String::from_utf8_lossy(&sections.stdout).contains(".requests") {
+    let required_section = if arch == ConduitosArch::Ia32 {
+        ".multiboot"
+    } else {
+        ".requests"
+    };
+    if !String::from_utf8_lossy(&sections.stdout).contains(required_section) {
         return Err(ConduitosError::refusal(
-            "missing-limine-requests",
-            ".requests was not retained",
+            "missing-boot-contract",
+            format!("{required_section} was not retained"),
         ));
     }
     Ok(())
@@ -375,6 +397,7 @@ fn dry_record(
     artifact_role: ArtifactRole,
 ) -> Result<BuildRecord, ConduitosError> {
     let rust_target = match arch {
+        ConduitosArch::Ia32 => "i686-unknown-linux-gnu",
         ConduitosArch::X86_64 => "x86_64-unknown-none",
         ConduitosArch::Aarch64 => "aarch64-unknown-none",
         _ => {
@@ -390,7 +413,11 @@ fn dry_record(
         base_commit: git_head(&paths.root)?,
         architecture: arch.as_str(),
         rust_target,
-        limine_crate: "0.5.0",
+        limine_crate: if arch == ConduitosArch::Ia32 {
+            "not-linked-multiboot1"
+        } else {
+            "0.5.0"
+        },
         elf_sha256: "dry-run".into(),
     })
 }
