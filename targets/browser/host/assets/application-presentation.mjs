@@ -270,16 +270,19 @@ export function manifestApplicationView(input, root, options = {}) {
     options.onEvent?.(event);
     return event;
   };
-  for (const node of view.nodes) {
+  for (const [nodeIndex, node] of view.nodes.entries()) {
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
     if (node.component === 10) {
-      const summary = document.createElement("summary");
-      summary.textContent = node.text;
-      summary.dataset.applicationDisclosureSummary = node.key;
-      element.append(summary);
+      const hasSummary = view.nodes.some((child) => child.parent === nodeIndex && child.component === 23);
+      if (!hasSummary) {
+        const summary = document.createElement("summary");
+        summary.textContent = node.text;
+        summary.dataset.applicationDisclosureSummary = node.key;
+        element.append(summary);
+      }
     } else {
       element.textContent = node.text;
     }
