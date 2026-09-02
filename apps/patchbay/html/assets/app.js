@@ -1,10 +1,20 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
+import { createApplicationPresentationHost } from "/assets/application-presentation.mjs";
 import { arrangeFlow, fitFlow, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { installPanelFurniture } from "/assets/panel-furniture.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 
 const schema = "conduit.patchbay.portable-presentation";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", gearQuery:"", cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
+const applicationPresentation = createApplicationPresentationHost();
+let statusRevision = 0;
+function presentStatus(text, component = "status") {
+  applicationPresentation.present("patchbay-status", {
+    revision: ++statusRevision,
+    actions: [],
+    nodes: [{ parent: null, component, key: "renderer-status", text, action: null }],
+  });
+}
 
 function requireSnapshot(value) {
   const presentation=value?.presentation;
@@ -285,7 +295,7 @@ function render(snapshot){
   const entering=state.snapshot===null;state.snapshot=snapshot;state.projected=projectCurrent(snapshot);const p=snapshot.presentation,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation,cursor=snapshot.navigation?.cursor;if(entering&&!cursor)state.lens=({World:"world",Intent:"form",Realization:"plan"})[snapshot.entrance.layer]??state.lens;if(cursor)state.lens=lensForCursor(cursor);document.body.dataset.lens=state.lens;document.body.dataset.place=cursor?.place??"Canonical";document.body.dataset.aspect=cursor?.aspect??"Canonical";document.body.dataset.depth=cursor?.depth??"Canonical";
   document.body.dataset.embodied=String(b.body_id!==null);
   const unbodied=b.body_id===null,atEntrance=cursor?.place==="Entrance",authoring=Boolean(snapshot.authoring);document.querySelector("#toggle-palette").textContent=authoring?"Gears":atEntrance?"Seeds":"Navigate";document.querySelector("#palette-title").textContent=authoring?"Gears":atEntrance?"Seeds":"Navigate";document.querySelector("#seed-palette").hidden=!atEntrance||authoring;document.querySelector("#gear-palette").hidden=!authoring;document.querySelector("#structure-title").textContent=cursor?`${cursor.place} ${cursor.aspect}`:(unbodied?"World context":"Program structure");renderNavigationControls();document.querySelector("#lens-label").textContent=cursor?`${cursor.place.toUpperCase()} · ${cursor.aspect.toUpperCase()}`:`${state.lens.toUpperCase()} LENS`;document.querySelector("#canvas-title").textContent=cursor?.place==="Entrance"&&!authoring?"Entrance choices":cursor?.place==="Body"?"Body topology":"Program structure";
-  document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · ${snapshot.authoring?"canonical authoring":"read-only"}`;
+  presentStatus(`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · ${snapshot.authoring?"canonical authoring":"read-only"}`);
   document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
   document.querySelector("#ordinary-summary").textContent=subjects("Info").flatMap(subject=>texts(subject.identity)).join(" · ");
   document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;const lossAction=p.actions.find(action=>action.intent==="conduit.intent/observe-line-loss@1"),lossButton=document.querySelector("#text-lab-loss");lossButton.hidden=!lossAction;lossButton.disabled=lossAction?.availability!=="Available";
@@ -299,7 +309,7 @@ function render(snapshot){
   fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",state.projected.text.map(item=>item.text));displaySelection(cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
 
-async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){document.querySelector("#status").textContent=state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`;}}
+async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
 async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss"),feedback=document.querySelector("#front-door-feedback");button.disabled=true;feedback.textContent="Running the exact split Text Lab until browser loss…";const {base}=await fetch("/api/text-lab-base",{cache:"no-store"}).then(response=>response.json());const {BrowserWebSocketLine}=await import("/assets/websocket-line.mjs"),{instantiateTextLabLive,runTextLabLive}=await import("/assets/text-lab-live-runtime.mjs"),wasm=await fetch("/assets/conduit-browser-runtime.wasm").then(response=>{if(!response.ok)throw new Error("browser runtime unavailable");return response.arrayBuffer();}),openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(wasm,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");feedback.textContent="Browser loss observed; awaiting the native causal receipt.";}
 async function joinCurrentBody(){
   const response=await fetch("/api/body-admission",{cache:"no-store"});
@@ -310,7 +320,7 @@ async function joinCurrentBody(){
   if(!wasm.ok)throw new Error(`browser Host runtime HTTP ${wasm.status}`);
   window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:await wasm.arrayBuffer(),onState:()=>load()});
 }
-document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{document.querySelector("#status").textContent=`Browser Host admission unavailable: ${error.message}`;});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
+presentStatus("Loading bounded snapshot…");document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);

@@ -25,6 +25,8 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
 
     await page.goto(url);
+    await expect(page.locator("#status")).toHaveAttribute("data-application-revision", /^\d+$/);
+    await expect(page.locator("#status [data-application-component='status']")).toContainText("Presentation revision");
     await page.locator("#toggle-palette").click();
     const subject = page.locator(`#subjects button[data-subject="${cord}"]`);
     await subject.focus();
