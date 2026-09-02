@@ -4,12 +4,18 @@
 <p id="result">running</p>
 <main id="nucleus" aria-label="Gear Face"></main>
 <section id="controls" aria-label="Bounded controls"></section>
+<section data-application-slot="semantic" aria-label="Semantic mechanisms"></section>
 <script type="module">
 import {
   instantiatePresentationNucleus,
   manifestPresentationNucleus,
 } from "./presentation-nucleus-runtime.mjs";
-import { encodeApplicationView, manifestApplicationView } from "../../targets/browser/host/assets/application-presentation.mjs";
+import {
+  applicationPresentationLimits,
+  createApplicationPresentationHost,
+  encodeApplicationView,
+  manifestApplicationView,
+} from "../../targets/browser/host/assets/application-presentation.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -92,6 +98,55 @@ try {
   }
   assert(malformedRefusal === "unsupported-version", "unsupported application view version refuses distinctly");
   assert(root.innerHTML === acceptedMarkup, "refused application view does not partially mutate the DOM");
+  const semanticHost = createApplicationPresentationHost();
+  const semanticEvents = [];
+  const semanticView = {
+    revision: 4,
+    actions: [{ id: "semantic.run", event: "activate" }],
+    nodes: [
+      { parent: null, component: "panel", action: null, key: "panel", text: "Execution" },
+      { parent: 0, component: "button", state: "ready", action: 0, key: "ready", text: "Run" },
+      { parent: 0, component: "button", state: "busy", action: null, key: "busy", text: "Run — busy: operation admitted" },
+      { parent: 0, component: "button", state: "unavailable", action: null, key: "unavailable", text: "Download — unavailable: artifact absent" },
+      { parent: 0, component: "status", action: null, key: "ordinary", text: "Ready" },
+      { parent: 0, component: "warning-status", action: null, key: "warning", text: "Pressure — queue nearly full" },
+      { parent: 0, component: "success-status", action: null, key: "success", text: "Complete" },
+      { parent: 0, component: "failure-status", action: null, key: "failure", text: "Failed" },
+      { parent: 0, component: "disclosure", action: null, key: "details", text: "Exact evidence" },
+      { parent: 8, component: "paragraph", action: null, key: "evidence", text: "Plan P7" },
+    ],
+  };
+  semanticHost.present("semantic", semanticView, { onEvent: (event) => semanticEvents.push(event.action) });
+  const semanticRoot = document.querySelector("[data-application-slot=semantic]");
+  const ready = semanticRoot.querySelector("[data-application-key=ready]");
+  const busy = semanticRoot.querySelector("[data-application-key=busy]");
+  const unavailable = semanticRoot.querySelector("[data-application-key=unavailable]");
+  ready.click();
+  assert(semanticHost.nextEvent("semantic").action === "semantic.run", "ready action dispatches its exact identity");
+  assert(semanticEvents.join(",") === "semantic.run", "Host receives only the exact ready action");
+  assert(busy.disabled && busy.getAttribute("aria-busy") === "true", "busy action is disabled and announced as busy");
+  assert(unavailable.disabled && unavailable.dataset.applicationAvailability === "unavailable", "unavailable action remains distinct from busy");
+  const manifestation = manifestApplicationView(encodeApplicationView({ ...semanticView, revision: 5 }), document.createElement("section"));
+  manifestation.requestAction("busy");
+  const busyRefusal = manifestation.lastRefusal();
+  manifestation.requestAction("unavailable");
+  const unavailableRefusal = manifestation.lastRefusal();
+  assert(busyRefusal === "action-busy" && unavailableRefusal === "unavailable-action", "busy and unavailable attempts refuse distinctly");
+  const warning = semanticRoot.querySelector("[data-application-key=warning]");
+  const failure = semanticRoot.querySelector("[data-application-key=failure]");
+  assert(warning.dataset.applicationStatus === "warning" && warning.getAttribute("role") === "status", "warning severity drives accessible status");
+  assert(failure.dataset.applicationStatus === "failure" && failure.getAttribute("role") === "alert", "failure severity drives an assertive alert");
+  const disclosure = semanticRoot.querySelector("[data-application-key=details]");
+  assert(disclosure.querySelector(":scope > summary").textContent === "Exact evidence", "disclosure owns one accessible summary");
+  disclosure.open = true;
+  disclosure.dispatchEvent(new Event("toggle"));
+  assert(semanticHost.queuedEvents("semantic") === 0, "local disclosure state does not invent an application event");
+  let staleRefusal = "";
+  try { semanticHost.present("semantic", semanticView); } catch (error) { staleRefusal = error.code; }
+  assert(staleRefusal === "stale-revision", "stale presentation refuses distinctly");
+  let retiredRefusal = "";
+  try { manifestApplicationView(Uint8Array.of(applicationPresentationLimits.retiredVersion), semanticRoot); } catch (error) { retiredRefusal = error.code; }
+  assert(retiredRefusal === "unsupported-version", "retired low-level protocol refuses explicitly");
   let missingContext = false;
   try {
     manifestPresentationNucleus(api, null);
@@ -117,6 +172,20 @@ try {
       controlValue: source.value,
       controlLabel: source.getAttribute("aria-label"),
       controlBytePressureRefusal: controls.lastRefusal(),
+      semantic: {
+        panelTag: semanticRoot.querySelector("[data-application-key=panel]").tagName,
+        busy: busy.dataset.applicationAvailability,
+        busyRefusal,
+        unavailable: unavailable.dataset.applicationAvailability,
+        unavailableRefusal,
+        warning: warning.dataset.applicationStatus,
+        failureRole: failure.getAttribute("role"),
+        disclosureOpen: disclosure.open,
+        disclosureEvents: semanticHost.queuedEvents("semantic"),
+        staleRefusal,
+        retiredVersion: applicationPresentationLimits.retiredVersion,
+        retiredRefusal,
+      },
     },
     missingContext,
   };

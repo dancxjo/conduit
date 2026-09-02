@@ -2,7 +2,9 @@
 
 use alloc::{string::String, vec::Vec};
 
-pub const APPLICATION_VIEW_VERSION: u8 = 4;
+pub const APPLICATION_VIEW_VERSION: u8 = 5;
+/// Version 4 omitted exact action availability and warning severity.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 4;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -45,6 +47,17 @@ pub enum ApplicationComponent {
     FailureStatus = 21,
     Option = 22,
     Summary = 23,
+    WarningStatus = 24,
+}
+
+/// Renderer-neutral state for an interactive presentation node.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[repr(u8)]
+pub enum ApplicationNodeState {
+    #[default]
+    Ready = 1,
+    Busy = 2,
+    Unavailable = 3,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -72,6 +85,7 @@ pub struct ApplicationViewNode {
     pub value: String,
     pub value_capacity: u32,
     pub action: Option<u8>,
+    pub state: ApplicationNodeState,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -94,6 +108,7 @@ pub enum ApplicationViewRefusal {
     ActionIdTooLong,
     DuplicateAction,
     UnknownAction,
+    InvalidNodeState,
     MalformedEncoding,
     OversizedEncoding,
     UnsupportedVersion,
@@ -158,6 +173,18 @@ impl ApplicationView {
             {
                 return Err(ApplicationViewRefusal::UnknownAction);
             }
+            if node.state != ApplicationNodeState::Ready
+                && (node.action.is_some()
+                    || !matches!(
+                        node.component,
+                        ApplicationComponent::Button
+                            | ApplicationComponent::TextInput
+                            | ApplicationComponent::Select
+                            | ApplicationComponent::TextArea
+                    ))
+            {
+                return Err(ApplicationViewRefusal::InvalidNodeState);
+            }
         }
         for (index, action) in self.actions.iter().enumerate() {
             if action.id.is_empty() || action.id.len() > MAX_APPLICATION_ACTION_ID_BYTES {
@@ -205,6 +232,7 @@ impl ApplicationView {
         for node in &self.nodes {
             out.push(node.parent.unwrap_or(u8::MAX));
             out.push(node.component as u8);
+            out.push(node.state as u8);
             out.push(node.action.unwrap_or(u8::MAX));
             out.push(node.key.len() as u8);
             out.extend_from_slice(&(node.text.len() as u16).to_le_bytes());
@@ -253,6 +281,7 @@ impl ApplicationView {
                 value => Some(value),
             };
             let component = decode_component(cursor.byte()?)?;
+            let state = decode_node_state(cursor.byte()?)?;
             let action = match cursor.byte()? {
                 u8::MAX => None,
                 value => Some(value),
@@ -266,6 +295,7 @@ impl ApplicationView {
                 parent,
                 component,
                 action,
+                state,
                 key: cursor.text(key_length)?.into(),
                 text: cursor.text(text_length)?.into(),
                 value: cursor.text(value_length)?.into(),
@@ -368,6 +398,16 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         21 => Ok(ApplicationComponent::FailureStatus),
         22 => Ok(ApplicationComponent::Option),
         23 => Ok(ApplicationComponent::Summary),
+        24 => Ok(ApplicationComponent::WarningStatus),
+        _ => Err(ApplicationViewRefusal::MalformedEncoding),
+    }
+}
+
+fn decode_node_state(value: u8) -> Result<ApplicationNodeState, ApplicationViewRefusal> {
+    match value {
+        1 => Ok(ApplicationNodeState::Ready),
+        2 => Ok(ApplicationNodeState::Busy),
+        3 => Ok(ApplicationNodeState::Unavailable),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }
