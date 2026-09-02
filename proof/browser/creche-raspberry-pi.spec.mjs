@@ -180,7 +180,10 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   ].sort());
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-conduitos-model-b-plus\.img$/);
+  await expect(runner.locator(".download-spore")).toHaveAttribute(
+    "download",
+    /-conduitos-raspberry-pi-model-b-plus-v1-2\.img$/,
+  );
   await expect(runner.locator(".download-spore")).toContainText("Download IMG");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
