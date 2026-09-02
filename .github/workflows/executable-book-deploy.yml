@@ -1,0 +1,92 @@
+name: book-and-creche-pages
+
+on:
+  pull_request_target:
+    types: [closed]
+    paths:
+      - .github/workflows/executable-book-pages.yml
+      - .github/workflows/executable-book-deploy.yml
+      - README.md
+      - site/**
+      - scripts/ci/**
+      - tour/book/**
+      - targets/browser/**
+      - targets/avr/**
+      - targets/esp32/**
+      - targets/orange-pi/**
+      - targets/raspberry-pi/**
+      - targets/std/**
+      - targets/conduitos/**
+      - profiles/host-configurations/**
+      - profiles/hosts/**
+      - fabrication/host/**
+      - fabrication/workspace/**
+      - semantics/text/src/**
+      - semantics/catalog/src/value_primitives.rs
+      - architecture/form/src/back_catalog.rs
+      - architecture/form/src/checked_syntax.rs
+      - apps/patchbay/html/**
+      - proof/browser/**
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged pull request whose successful product carrier should be promoted
+        required: true
+        type: number
+
+concurrency:
+  group: book-and-creche-pages
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out trusted merged workflow machinery
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Resolve the exact successful PR product run
+        id: resolve
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/resolve-pages-product-run.mjs
+      - name: Check out the exact merged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.resolve.outputs.merge_commit }}
+          fetch-depth: 0
+      - name: Download the already-proven Pages carrier
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-pages-carrier
+          path: target/pages-carrier
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.resolve.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Admit the carrier against the merged tree
+        run: |
+          merged_tree=$(git rev-parse 'HEAD^{tree}')
+          node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$merged_tree"
+      - name: Upload the already-proven Pages carrier
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/pages-carrier/site
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy Conduit Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

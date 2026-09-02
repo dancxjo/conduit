@@ -1,18 +1,20 @@
-name: book-and-creche-pages
+name: book-and-creche-products
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  pull_request:
     paths: &product-paths
       - .github/workflows/executable-book-pages.yml
+      - .github/workflows/executable-book-deploy.yml
       - README.md
       - site/**
       - scripts/ci/stage-pages-root.sh
       - scripts/ci/stage-book-product.sh
       - scripts/ci/build-browser-application-package.mjs
       - scripts/ci/stage-creche-product.sh
+      - scripts/ci/seal-pages-carrier.mjs
+      - scripts/ci/verify-pages-carrier.mjs
+      - scripts/ci/resolve-pages-product-run.mjs
       - tour/book/**
       - targets/browser/host/assets/book.html
       - targets/browser/host/assets/book.css
@@ -99,8 +101,8 @@ on:
       - package.json
       - package-lock.json
 concurrency:
-  group: book-and-creche-pages
-  cancel-in-progress: false
+  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   avr-release:
@@ -328,6 +330,8 @@ jobs:
       NPM_CONFIG_FUND: "false"
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Install the native Rust linker
         run: |
           apt-get update
@@ -399,139 +403,25 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
-
-  products:
-    needs: [products-proof, avr-release, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-      - name: Download the reviewed generic ESP32 release IMAGEs
-        uses: actions/download-artifact@v6
-        with:
-          pattern: conduit-esp32-release-*
-          merge-multiple: true
-          path: target/creche-release-artifacts
-      - name: Download the reviewed generic existing-computer releases
-        uses: actions/download-artifact@v6
-        with:
-          pattern: conduit-existing-computer-releases-*
-          merge-multiple: true
-          path: target/creche-release-artifacts
-      - name: Download the reviewed generic Pro Micro release
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-avr-promicro-release
-          path: target/creche-release-artifacts
-      - name: Download the reviewed Raspberry Pi bare-metal release
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-raspberry-pi-release
-          path: target/creche-release-artifacts
-      - name: Download the reviewed Orange Pi bare-metal release
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-orange-pi-release
-          path: target/creche-release-artifacts
-      - name: Download the reviewed ConduitOS product Host releases
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-conduitos-releases
-          path: target/creche-release-artifacts
-      - name: Build the independent Book and Crèche runtimes
+      - name: Seal the already-proven Pages carrier
         run: |
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_creche_runtime.wasm
-      - name: Stage independent product trees
-        run: |
-          rm -rf target/pages-root target/book-product target/creche-product
-          scripts/ci/stage-pages-root.sh target/pages-root
-          scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
-          scripts/ci/stage-creche-product.sh target/conduit_creche_runtime.wasm target/creche-product target/creche-release-artifacts
-      - name: Upload the independent Pages root artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conduit-pages-root
-          path: target/pages-root
-          if-no-files-found: error
-          retention-days: 7
-      - name: Upload the independent Book artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conduit-book-product
-          path: target/book-product
-          if-no-files-found: error
-          retention-days: 7
-      - name: Upload the independent Crèche artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conduit-creche-product
-          path: target/creche-product
-          if-no-files-found: error
-          retention-days: 7
-
-  pages:
-    needs: products
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      actions: read
-      contents: read
-    steps:
-      - name: Download the independent Pages root artifact
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-pages-root
-          path: target/pages-site
-      - name: Download the independent Book artifact
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-book-product
-          path: target/pages-site/book
-      - name: Download the independent Crèche artifact
-        uses: actions/download-artifact@v6
-        with:
-          name: conduit-creche-product
-          path: target/pages-site/creche
-      - name: Verify the combined Pages carrier
-        run: |
+          rm -rf target/pages-site target/pages-carrier
+          mkdir -p target/pages-site/book target/pages-site/creche
+          cp -a target/pages-root/. target/pages-site/
+          cp -a target/book-product/. target/pages-site/book/
+          cp -a target/creche-product/. target/pages-site/creche/
+          touch target/pages-site/.nojekyll
           test -f target/pages-site/book/book.application.json
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/runtime.wasm
-          actual=$(find target/pages-site -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)
-          expected=$(printf '%s\n' book creche index.html site.css | LC_ALL=C sort)
-          test "$actual" = "$expected"
-          touch target/pages-site/.nojekyll
-      - name: Upload the combined Pages carrier
-        uses: actions/upload-pages-artifact@v5
+          source_commit=$(git rev-parse HEAD)
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
+          node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
+      - name: Retain the immutable Pages carrier for post-merge promotion
+        uses: actions/upload-artifact@v4
         with:
-          path: target/pages-site
-
-  deploy:
-    needs: pages
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      actions: read
-      contents: read
-      pages: write
-      id-token: write
-    steps:
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
-      - name: Deploy Conduit Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          name: conduit-pages-carrier
+          path: target/pages-carrier
+          if-no-files-found: error
+          retention-days: 14
