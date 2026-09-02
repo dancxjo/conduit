@@ -16,6 +16,12 @@ rows have a textual `>` marker, HTML selected graph nodes retain their selected 
 stroke, and HTML keyboard focus retains a visible outline. Text remains legible without glow or
 animation. A high-contrast browser option changes presentation only.
 
+The public Conduit home, Book, Crèche, and browser Patchbay share the same shell vocabulary and
+phosphor cyan/blue/amber roles. Dark is the reference palette; browser surfaces provide a restrained
+light realization through the user's color-scheme preference, preserving the same role distinctions,
+focus cues, and semantic behavior. The shell carries the same Home, Book, Crèche, and Source routes;
+application workflow controls remain separate from those global destinations.
+
 Theme values are decorative inputs after semantic planning. They do not participate in Form,
 Body, Wake, Plan, Play, Host, Line, Sign, renderer-plan, or presentation identity. Tests verify
 the exact shared mapping, native finite clipping, browser computed colors and focus/selection

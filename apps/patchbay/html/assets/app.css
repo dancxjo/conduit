@@ -160,3 +160,26 @@ body[data-lens="signs"] .flow-faceplate { border-style:double; }
   #parts,#deep-inspection { width:calc(100% - 1.5rem); }
   .status-strip { display:none; }
 }
+
+/* Shared Conduit shell: the application keeps its own controls in the adjacent workspace nav. */
+.topbar { width:min(40rem,calc(100% - 1.5rem)); }
+.topbar>div:first-child { display:flex; align-items:baseline; gap:.65rem; }
+.topbar .wordmark { color:var(--patchbay-structure-primary); font:700 .82rem/1 ui-monospace,monospace; letter-spacing:.08em; text-decoration:none; }
+.topbar .global-nav { position:static; width:auto; max-width:none; margin-left:auto; padding:0; border:0; background:transparent; }
+.topbar .global-nav a { padding:.2rem .15rem; border:0; color:var(--patchbay-text-secondary); background:transparent; }
+.topbar .global-nav a:hover { color:var(--patchbay-text-primary); }
+
+@media (prefers-color-scheme:light) {
+  :root { color-scheme:light; }
+  body:not(.high-contrast) {
+    --patchbay-background:#e5eff4; --patchbay-surface:#ffffff; --patchbay-structure-primary:#00758c;
+    --patchbay-structure-secondary:#9ab8d1; --patchbay-text-primary:#17364d; --patchbay-text-secondary:#496b82;
+    --patchbay-emphasis:#9a5b00; --patchbay-focus:#775d00; --patchbay-warning:#8a5200;
+    --patchbay-failure:#a32d37; --patchbay-success:#08784e; --patchbay-muted:#7b654f;
+  }
+}
+
+@media (max-width:720px) {
+  .topbar { max-height:165px; }
+  .topbar .global-nav { order:3; width:100%; }
+}
