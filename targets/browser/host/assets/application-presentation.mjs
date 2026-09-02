@@ -1,4 +1,4 @@
-const VERSION = 1;
+const VERSION = 2;
 const MAX_BYTES = 16_384;
 const MAX_NODES = 32;
 const MAX_DEPTH = 8;
@@ -46,6 +46,7 @@ const COMPONENTS = Object.freeze({
   12: ["nav", "navigation"], 13: ["code", "code"], 14: ["div", "action-group"],
   15: ["input", "text-input"], 16: ["select", "select"], 17: ["textarea", "textarea"],
   18: ["table", "table"], 19: ["div", "grid"],
+  20: ["output", "success-status"], 21: ["output", "failure-status"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -201,7 +202,9 @@ export function manifestApplicationView(input, root, options = {}) {
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
     element.textContent = node.text;
-    if (node.component === 9) element.setAttribute("aria-live", "polite");
+    if (node.component === 9 || node.component === 20 || node.component === 21) {
+      element.setAttribute("aria-live", node.component === 21 ? "assertive" : "polite");
+    }
     if (node.component === 11) element.dataset.renderer = "patchbay";
     if (node.action !== null) {
       const action = view.actions[node.action];

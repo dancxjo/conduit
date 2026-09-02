@@ -3,7 +3,7 @@
 use alloc::collections::VecDeque;
 use alloc::{string::String, vec::Vec};
 
-pub const APPLICATION_VIEW_VERSION: u8 = 1;
+pub const APPLICATION_VIEW_VERSION: u8 = 2;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -40,6 +40,8 @@ pub enum ApplicationComponent {
     TextArea = 17,
     Table = 18,
     Grid = 19,
+    SuccessStatus = 20,
+    FailureStatus = 21,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -440,6 +442,8 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         17 => Ok(ApplicationComponent::TextArea),
         18 => Ok(ApplicationComponent::Table),
         19 => Ok(ApplicationComponent::Grid),
+        20 => Ok(ApplicationComponent::SuccessStatus),
+        21 => Ok(ApplicationComponent::FailureStatus),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

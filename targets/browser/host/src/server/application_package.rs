@@ -170,6 +170,7 @@ fn resource_bytes<'a>(path: &str, runtime: &'a [u8]) -> Option<&'a [u8]> {
         "browser-host-membership.mjs" => Some(super::HOST_MEMBERSHIP),
         "book-state.mjs" => Some(super::BOOK_STATE),
         "book-navigation.mjs" => Some(super::BOOK_NAVIGATION),
+        "book-runner-presentation.mjs" => Some(super::BOOK_RUNNER_PRESENTATION),
         "assets/flow.js" => Some(super::book_assets::FLOW),
         "assets/flow-scene.js" => Some(super::book_assets::FLOW_SCENE),
         "assets/flow-layout.js" => Some(super::book_assets::FLOW_LAYOUT),
@@ -203,7 +204,7 @@ mod tests {
         let second: serde_json::Value =
             serde_json::from_slice(&book_manifest(b"runtime-b").unwrap()).unwrap();
         assert_ne!(first["package_digest"], second["package_digest"]);
-        assert_eq!(first["resources"].as_array().unwrap().len(), 22);
+        assert_eq!(first["resources"].as_array().unwrap().len(), 23);
         assert!(first["resources"]
             .as_array()
             .unwrap()

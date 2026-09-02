@@ -52,6 +52,22 @@ fn application_view_round_trip_is_exact_and_finite() {
 }
 
 #[test]
+fn status_outcomes_remain_renderer_neutral_and_round_trip_exactly() {
+    for component in [
+        ApplicationComponent::Status,
+        ApplicationComponent::SuccessStatus,
+        ApplicationComponent::FailureStatus,
+    ] {
+        let mut status = view();
+        status.nodes[1].component = component;
+        assert_eq!(
+            ApplicationView::decode(&status.encode().unwrap()),
+            Ok(status)
+        );
+    }
+}
+
+#[test]
 fn malformed_oversized_and_noncanonical_views_refuse() {
     let encoded = view().encode().unwrap();
     assert_eq!(
@@ -65,7 +81,7 @@ fn malformed_oversized_and_noncanonical_views_refuse() {
         Err(ApplicationViewRefusal::MalformedEncoding)
     );
     let mut wrong_version = encoded;
-    wrong_version[0] = 2;
+    wrong_version[0] = 3;
     assert_eq!(
         ApplicationView::decode(&wrong_version),
         Err(ApplicationViewRefusal::UnsupportedVersion)

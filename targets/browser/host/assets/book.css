@@ -8,6 +8,7 @@
   --green: #176b50;
   --green-dark: #0c4937;
   --amber: #ffbf47;
+  --failure: #8b2f26;
   --patchbay-background: #17221d;
   --patchbay-surface: #203129;
   --patchbay-structure-primary: #68ae8d;
@@ -125,7 +126,9 @@ button:disabled { cursor: default; opacity: .45; }
 .indicator.on { background: var(--amber); box-shadow: 0 0 2.8rem #ffba34, inset 0 0 0 1px #e29300; }
 .result h2 { margin: 0; }
 .morse { min-height: 2rem; margin: .6rem 0 0; color: var(--green); font: 750 1.25rem/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
-.play-status { min-height: 1.4rem; margin: .7rem auto 0; color: var(--muted); font-size: .88rem; }
+[data-application-key="play-status"] { display: block; min-height: 1.4rem; margin: .7rem auto 0; color: var(--muted); font-size: .88rem; }
+[data-application-component="success-status"] { color: var(--green-dark); }
+[data-application-component="failure-status"] { color: var(--failure); font-weight: 650; }
 .multi-host-result { justify-content: flex-start; }
 .host-map { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .65rem; align-items: center; margin-bottom: 1.5rem; }
 .host-card { min-width: 0; padding: .8rem; border: 1px solid var(--line); border-radius: 10px; text-align: left; background: #f3f8f4; }

@@ -1288,21 +1288,21 @@ test("the first Gear, explicit branch, and Face pages execute in order", async (
   await expect(runner.locator(".run, .stop")).toHaveCount(0);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
-  await expect(runner.locator(".play-status")).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByRole("heading", { name: "Branch a Cord" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("true");
-  await expect(runner.locator(".play-status")).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByRole("heading", { name: "Meet the Face" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("3.000000");
-  await expect(runner.locator(".play-status")).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
@@ -1332,7 +1332,7 @@ test("the Face plate flips open its checked Back without replacing the runner", 
 
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
-  await expect(runner.locator(".play-status")).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
   await back.getByRole("button", { name: "Return to Face" }).click();
   await expect(back).toBeHidden();
   await expect(listing).toHaveValue(source);
@@ -1362,7 +1362,7 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
     source > result
   }`);
   await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".play-status")).toContainText(
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
     "refused before Play · missing-implementation-or-placement",
   );
   await listing.fill(`form wrong-type {
@@ -1372,9 +1372,13 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
     source > invert > result
   }`);
   await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".play-status")).toContainText(
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
     "refused before Play · type-or-source",
   );
+  await expect(runner.locator('[data-application-key="play-status"]'))
+    .toHaveAttribute("data-application-component", "failure-status");
+  await expect(runner.locator('[data-application-key="play-status"]'))
+    .toHaveAttribute("aria-live", "assertive");
   await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
 });
 
@@ -1385,15 +1389,16 @@ test("state over time presents startup and current count through four admitted b
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
   await expect(runner.locator(".morse")).toHaveText("4");
-  await expect(runner.locator(".play-status")).toContainText(
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
     "4 planned ticks, 5 presentations",
   );
-  await expect(runner.locator(".play-status")).toHaveAttribute("data-timer-completions", "4");
-  await expect(runner.locator(".play-status")).toHaveAttribute(
-    "data-manifestation-completions",
-    "5",
-  );
-  await expect(runner.locator(".run-identities dd")).toHaveCount(12);
+  await expect(runner.locator('[data-application-key="play-status"]'))
+    .toHaveAttribute("data-application-component", "success-status");
+  await expect(runner.locator('[data-application-key="play-status"]'))
+    .toHaveAttribute("aria-live", "polite");
+  await expect(runner.locator(".run-identities")).toContainText("Timer completions4");
+  await expect(runner.locator(".run-identities")).toContainText("Manifestation completions5");
+  await expect(runner.locator(".run-identities dd")).toHaveCount(15);
 });
 
 test("stopping state over time cancels the pending timer without a late completion", async ({ page }) => {
@@ -1402,10 +1407,10 @@ test("stopping state over time cancels the pending timer without a late completi
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
   await runner.getByRole("button", { name: "Stop" }).click();
-  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
   await page.waitForTimeout(650);
-  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
-  await expect(runner.locator(".play-status")).not.toHaveAttribute("data-receipt", /.+/);
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator(".run-identities")).not.toContainText("Terminal Sign");
   await expect(runner.locator(".morse")).toHaveText("0");
 });
 
@@ -1437,7 +1442,7 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   const source = await runner.locator("textarea").inputValue();
   expect(source).not.toMatch(/HostId|BootId|browser\/|iframe|DOM|socket|address/);
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
-  await expect(runner.locator(".play-status")).toContainText(
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
     "one immutable Plan, two independent Plays, one delivered cross-Host value",
   );
   await expect(runner.locator(".morse")).toHaveText("hello across one Cord");
@@ -1451,8 +1456,8 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   expect(identities.a.bootId).not.toBe(identities.b.bootId);
   await expect(page.locator("iframe")).toHaveCount(0);
   await expect(runner.locator(".projected-cord")).toContainText("1 item");
-  await expect(runner.locator(".play-status")).toHaveAttribute("data-source-receipt", /.+/);
-  await expect(runner.locator(".play-status")).toHaveAttribute("data-sink-receipt", /.+/);
+  await expect(runner.locator(".run-identities")).toContainText("Terminal source receipt");
+  await expect(runner.locator(".run-identities")).toContainText("Terminal sink receipt");
 });
 
 test("Plans and Plays compact and raw views project the same exact immutable Plan", async ({ page }) => {
@@ -1461,7 +1466,7 @@ test("Plans and Plays compact and raw views project the same exact immutable Pla
   const runner = page.locator(".multi-host-runner");
   await expect(runner.locator(".plan-view-details")).not.toHaveAttribute("open", "");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
-  await expect(runner.locator(".play-status")).toContainText("Completed");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
   const projectedPlanId = await runner.locator(".projected-plan-id").textContent();
   const rawPlan = JSON.parse(await runner.locator(".raw-plan code").textContent());
   expect(rawPlan.plan_id).toBe(projectedPlanId);
@@ -1629,11 +1634,11 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
   await openStep(page, 8);
   const runner = page.locator(".multi-host-runner");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
-  await expect(runner.locator(".play-status")).toContainText("Host A offered one value");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Host A offered one value");
   await runner.getByRole("button", { name: "Stop" }).click();
-  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
   await page.evaluate(() => globalThis.__releaseBookAnimationFrame());
-  await expect(runner.locator(".play-status")).toHaveText("Stopped. The Play was cancelled.");
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
   await expect(runner.locator(".morse")).toHaveText("ready");
-  await expect(runner.locator(".play-status")).not.toHaveAttribute("data-source-receipt", /.+/);
+  await expect(runner.locator(".run-identities")).not.toContainText("Terminal source receipt");
 });
