@@ -401,6 +401,8 @@ jobs:
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
           chmod 755 target/debug/conduit-browser-host
+          cp target/browser-product-runtimes/book-runtime.wasm target/conduit_book_runtime.wasm
+          cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/book-product target/creche-product
           scripts/ci/stage-pages-root.sh target/pages-root
           scripts/ci/stage-book-product.sh target/browser-product-runtimes/book-runtime.wasm target/book-product
