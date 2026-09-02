@@ -821,9 +821,9 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     "Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
     "x86_64 PC · product Host",
     "AArch64 virt · product Host",
-    "IA-32 PC · architecture proof only",
-    "RISC-V64 virt · architecture proof only",
-    "LoongArch64 virt · architecture proof only",
+    "IA-32 PC · product Host",
+    "RISC-V64 virt · product Host",
+    "LoongArch64 virt · product Host",
   ]);
   await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
 
