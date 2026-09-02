@@ -41,11 +41,11 @@ pub fn project_body_biography(
             BodyBiographyRecordKind::Born { seed_id } => (
                 "Born",
                 format!(
-                    "{} became Body {} from Seed {} with initial program {}.",
+                    "{} became Body {} from Seed {} (Form {}).",
                     evidence.friendly_name,
                     evidence.body_id.as_str(),
                     seed_id.as_str(),
-                    evidence.initial_program
+                    evidence.seed_form_label()
                 ),
             ),
             BodyBiographyRecordKind::PartAdmitted { part_id, .. } => (
@@ -67,6 +67,30 @@ pub fn project_body_biography(
                     part_id.as_str(),
                     host_id.as_str(),
                     boot_id.as_str()
+                ),
+            ),
+            BodyBiographyRecordKind::FormAdmitted {
+                checked_form_id,
+                workload_revision,
+                ..
+            } => (
+                "Form admitted",
+                format!(
+                    "Form {} joined the Body workset at revision {}.",
+                    checked_form_id.as_str(),
+                    workload_revision
+                ),
+            ),
+            BodyBiographyRecordKind::FormRemoved {
+                checked_form_id,
+                workload_revision,
+                ..
+            } => (
+                "Form stopped",
+                format!(
+                    "Form {} left the Body workset at revision {} without deleting the Body.",
+                    checked_form_id.as_str(),
+                    workload_revision
                 ),
             ),
             BodyBiographyRecordKind::Graduated {

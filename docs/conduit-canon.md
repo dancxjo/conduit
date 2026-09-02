@@ -52,7 +52,7 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 
 ```text
 KIND   reusable semantic behavior such as text/upper
-FORM   authored composition of semantic work
+FORM   authored composition of semantic work; the program Conduit runs
 GEAR   one configured occurrence of a kind in a form
 PORT   typed directional point through which Info enters or leaves
 CORD   typed semantic connection between compatible ports on gears
@@ -63,7 +63,7 @@ BACK   form that implements a face in Conduit terms
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers
-PLAN   exact immutable realization of a form
+PLAN   exact immutable realization of an admitted workload
 PLAY   one active execution of a plan
 ```
 
@@ -232,14 +232,32 @@ BODY  durable top-level realization of a form
 SOUL  durable continuity and recoverable identity of a body
 ```
 
-A Body is not a Host, planner scope, transport, address, coordinator process, or UI document. A Part is not a Host or Boot: it records an explicitly admitted durable relationship. Current authenticated Host/Boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current Boot. Current offers remain Host-advertisement truth rather than durable Part properties. Admission and revocation carry exact bounded event and Sign provenance; membership alone grants no authority, placement, Line, or execution.
+A Body is not a Host, transport, address, coordinator process, or UI document. A Part is not a Host or Boot: it records an explicitly admitted durable relationship. Current authenticated Host/Boot presence may attach to that relationship and later disappear without deleting membership or retaining a fake current Boot. Current offers remain Host-advertisement truth rather than durable Part properties. Admission and revocation carry exact bounded event and Sign provenance; membership alone grants no authority, placement, Line, or execution.
+
+A Body is one logical computer. It may contain one machine or many, and it may
+run many Forms. One Body scheduler plans all of that work together; one Play is
+the Body's current running realization. The same Body/Plan/Play model covers a
+single Host, multiple cores, and multiple Hosts; distribution does not create a
+second scheduler or execution ontology.
 
 A Body is a **continuant**. An explicit attributable human/operator action
 **BIRTHs** it from one exact opened checked Seed and records distinct birth
-event/Sign evidence. The newborn Body is LULLED; BIRTH creates no implicit
+event/Sign evidence. That Seed is birth provenance, not the Body's eternal or
+singular program. In Conduit vocabulary a program is a Form; there is no
+separate Program identity. The newborn Body is LULLED; BIRTH creates no implicit
 Wake, Plan, or Play. Thereafter changes in Parts, Hosts and Boots, Lines,
-Wake/Lull episodes, Plans, Plays, and manifestations are events in the history
+the bounded current Form workset, Wake/Lull episodes, Plans, Plays, and manifestations are events in the history
 of the same Body rather than replacement Body identities.
+
+The Form workset may contain zero, one, or many exact checked Forms. Adding or
+removing a Form advances bounded workload truth without replacing the Body.
+During one Wake, one Body-wide immutable Plan covers the complete current
+workset, globally admits its resources, and may have at most one active Play.
+Forms inside that Play may progress concurrently under the one kernel. A
+workset change retires the current Plan and Play and requires a replacement
+Body-wide Plan before execution resumes; it never starts a second scheduler.
+Legacy single-Form Body evidence is interpreted as a one-Form workset whose
+member is the historical Seed.
 
 Absence is not death. Offline Parts, unreachable Hosts, lost Boots or Lines,
 Lull, stale or missing Plans, terminated Plays, and even loss of all current
@@ -249,7 +267,12 @@ the durable Body and membership evidence. Any future irreversible destruction
 protocol requires its own explicit authority and semantics; it is not an
 ordinary `delete Body` operation.
 
-A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Plan binds each Gear to exact implementation, Part, Host, Boot, Base, authority, resource, route, and bound facts. A Play starts that Plan. A later Soul policy may prove continuity across restarts without pretending a restarted Boot is the same execution session or changing what Part membership means.
+A Form contains configured Gears and may require Roles. A Cast binds Roles to exact capabilities. A Body-wide Plan binds every Form's Gears to exact implementation, Part, Host, Boot, Base, authority, resource, route, and bound facts. A Play starts that complete Plan. A later Soul policy may prove continuity across restarts without pretending a restarted Boot is the same execution session or changing what Part membership means.
+
+ConduitOS is a native Host substrate for this same admitted Plan and kernel. It
+does not supply an alternate scheduler or kernel semantics. Current ConduitOS
+proof is one cooperative execution lane; it does not yet prove SMP,
+preemption, or physical parallel execution.
 
 Membership, reachability, authority, capability, placement, and link state remain separate.
 
@@ -314,7 +337,7 @@ These are valuable directions waiting on named prerequisites:
 - live std-browser and std-Pico links;
 - Zenoh as a later connection base, not an architectural foundation;
 - the small executable standard catalog;
-- BODY/PART/CAPABILITY/ROLE/CAST/LINK/SOUL;
+- later SOUL continuity policy beyond current Body lifecycle evidence;
 - a real Host Observatory over authoritative reports;
 - Copy a file as the first unfamiliar-user task;
 - the Workbench as an authoring client of forms and the runtime;
