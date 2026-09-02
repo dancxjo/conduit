@@ -69,6 +69,30 @@ pub fn project_body_biography(
                     boot_id.as_str()
                 ),
             ),
+            BodyBiographyRecordKind::FormAdmitted {
+                checked_form_id,
+                workload_revision,
+                ..
+            } => (
+                "Form admitted",
+                format!(
+                    "Form {} joined the Body workset at revision {}.",
+                    checked_form_id.as_str(),
+                    workload_revision
+                ),
+            ),
+            BodyBiographyRecordKind::FormRemoved {
+                checked_form_id,
+                workload_revision,
+                ..
+            } => (
+                "Form stopped",
+                format!(
+                    "Form {} left the Body workset at revision {} without deleting the Body.",
+                    checked_form_id.as_str(),
+                    workload_revision
+                ),
+            ),
             BodyBiographyRecordKind::Graduated {
                 choice: BodyGraduationChoice::HostedPatchbay,
                 patchbay_plan_id,

@@ -1,5 +1,7 @@
 use alloc::{string::String, vec, vec::Vec};
-use conduit_core::{BootId, HostId, ImplementationId, PlanId, SignId};
+use conduit_core::{
+    BootId, CheckedFormId, HostId, ImplementationId, PlanId, SignId, SourceDocumentId,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -41,6 +43,16 @@ pub enum BodyBiographyRecordKind {
         part_id: PartId,
         host_id: HostId,
         boot_id: BootId,
+    },
+    FormAdmitted {
+        source_document_id: SourceDocumentId,
+        checked_form_id: CheckedFormId,
+        workload_revision: u64,
+    },
+    FormRemoved {
+        source_document_id: SourceDocumentId,
+        checked_form_id: CheckedFormId,
+        workload_revision: u64,
     },
     Graduated {
         choice: BodyGraduationChoice,
@@ -182,6 +194,69 @@ impl BodyBiographyEvidence {
         Ok(())
     }
 
+    /// Appends exact biography records for Body workload changes and replaces
+    /// current Body truth atomically. `events` pairs each workload event Sign
+    /// with its monotonically increasing biography sequence.
+    pub fn append_body_workload_events(
+        &mut self,
+        body: Body,
+        events: &[(SignId, u64)],
+    ) -> Result<(), BodyBiographyError> {
+        self.can_append(events.len())?;
+        if body.body_id != self.body_id {
+            return Err(BodyBiographyError::WrongBody);
+        }
+        let mut candidate = self.clone();
+        candidate.body = body;
+        for (sign_id, sequence) in events {
+            if *sequence <= candidate.last_sequence()
+                || candidate
+                    .records
+                    .iter()
+                    .any(|record| &record.sign_id == sign_id)
+            {
+                return Err(BodyBiographyError::InvalidSequence);
+            }
+            let event = candidate
+                .body
+                .events
+                .iter()
+                .find(|event| event.sign_id() == sign_id)
+                .ok_or(BodyBiographyError::InvalidEvidence)?;
+            let kind = match event {
+                BodyLifecycleEvent::FormAdmitted {
+                    source_document_id,
+                    checked_form_id,
+                    workload_revision,
+                    ..
+                } => BodyBiographyRecordKind::FormAdmitted {
+                    source_document_id: source_document_id.clone(),
+                    checked_form_id: checked_form_id.clone(),
+                    workload_revision: *workload_revision,
+                },
+                BodyLifecycleEvent::FormRemoved {
+                    source_document_id,
+                    checked_form_id,
+                    workload_revision,
+                    ..
+                } => BodyBiographyRecordKind::FormRemoved {
+                    source_document_id: source_document_id.clone(),
+                    checked_form_id: checked_form_id.clone(),
+                    workload_revision: *workload_revision,
+                },
+                _ => return Err(BodyBiographyError::InvalidEvidence),
+            };
+            candidate.records.push(BodyBiographyRecord {
+                sequence: *sequence,
+                sign_id: sign_id.clone(),
+                kind,
+            });
+        }
+        candidate.validate()?;
+        *self = candidate;
+        Ok(())
+    }
+
     pub fn graduate(&mut self, evidence: BodyGraduationEvidence) -> Result<(), BodyBiographyError> {
         self.can_append(1)?;
         if self.graduation.is_some()
@@ -285,6 +360,54 @@ impl BodyBiographyEvidence {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }
                 }
+                BodyBiographyRecordKind::FormAdmitted {
+                    source_document_id,
+                    checked_form_id,
+                    workload_revision,
+                }
+                | BodyBiographyRecordKind::FormRemoved {
+                    source_document_id,
+                    checked_form_id,
+                    workload_revision,
+                } => {
+                    let event = self.body.events.iter().find(|event| {
+                        event.sign_id() == &record.sign_id
+                            && match event {
+                                BodyLifecycleEvent::FormAdmitted {
+                                    source_document_id: source,
+                                    checked_form_id: checked,
+                                    workload_revision: revision,
+                                    ..
+                                } if matches!(
+                                    record.kind,
+                                    BodyBiographyRecordKind::FormAdmitted { .. }
+                                ) =>
+                                {
+                                    source == source_document_id
+                                        && checked == checked_form_id
+                                        && revision == workload_revision
+                                }
+                                BodyLifecycleEvent::FormRemoved {
+                                    source_document_id: source,
+                                    checked_form_id: checked,
+                                    workload_revision: revision,
+                                    ..
+                                } if matches!(
+                                    record.kind,
+                                    BodyBiographyRecordKind::FormRemoved { .. }
+                                ) =>
+                                {
+                                    source == source_document_id
+                                        && checked == checked_form_id
+                                        && revision == workload_revision
+                                }
+                                _ => false,
+                            }
+                    });
+                    if event.is_none() {
+                        return Err(BodyBiographyError::InvalidEvidence);
+                    }
+                }
                 BodyBiographyRecordKind::Graduated {
                     choice,
                     patchbay_plan_id,
@@ -319,7 +442,31 @@ impl BodyBiographyEvidence {
                 )
             })
             .count();
+        let workload_records = self
+            .records
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    BodyBiographyRecordKind::FormAdmitted { .. }
+                        | BodyBiographyRecordKind::FormRemoved { .. }
+                )
+            })
+            .count();
+        let workload_events = self
+            .body
+            .events
+            .iter()
+            .filter(|event| {
+                matches!(
+                    event,
+                    BodyLifecycleEvent::FormAdmitted { .. }
+                        | BodyLifecycleEvent::FormRemoved { .. }
+                )
+            })
+            .count();
         if membership_records != self.membership.events.len()
+            || workload_records != workload_events
             || self.graduation.is_some()
                 != self
                     .records

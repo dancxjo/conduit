@@ -443,36 +443,44 @@ mod tests {
 
     fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
         let basis = &snapshot.presentation.basis;
-        let body = Body::born(
+        let born_body = Body::born(
             basis.source_document_id.clone().unwrap(),
             basis.checked_form_id.clone().unwrap(),
             1,
             SignId::from("patchbay/bornd"),
         )
-        .unwrap()
-        .admit_form(
-            conduit_body::ResidentForm::new(
-                conduit_core::SourceDocumentId::from("source/recorder"),
-                conduit_core::CheckedFormId::from("checked/recorder"),
-            ),
-            SignId::from("patchbay/recorder-admitted"),
-        )
-        .unwrap()
-        .wake(1, SignId::from("patchbay/woke"))
-        .unwrap()
-        .0;
-        assert_eq!(basis.body_id.as_ref(), Some(&body.body_id));
+        .unwrap();
+        let membership = BodyMembership::new(born_body.body_id.clone()).unwrap();
         let mut evidence = BodyBiographyEvidence::born(
-            body.clone(),
-            BodyMembership::new(body.body_id.clone()).unwrap(),
+            born_body.clone(),
+            membership,
             "Roseau".into(),
             "hello@1".into(),
         )
         .unwrap();
+        let body = born_body
+            .admit_form(
+                conduit_body::ResidentForm::new(
+                    conduit_core::SourceDocumentId::from("source/recorder"),
+                    conduit_core::CheckedFormId::from("checked/recorder"),
+                ),
+                SignId::from("patchbay/recorder-admitted"),
+            )
+            .unwrap()
+            .wake(1, SignId::from("patchbay/woke"))
+            .unwrap()
+            .0;
+        assert_eq!(basis.body_id.as_ref(), Some(&body.body_id));
+        evidence
+            .append_body_workload_events(
+                body.clone(),
+                &[(SignId::from("patchbay/recorder-admitted"), 2)],
+            )
+            .unwrap();
         evidence
             .graduate(BodyGraduationEvidence {
                 body_id: body.body_id,
-                sequence: 2,
+                sequence: 3,
                 sign_id: SignId::from("sign/roseau/graduated"),
                 choice: BodyGraduationChoice::ExternalReader,
                 patchbay_plan_id: None,
@@ -496,7 +504,7 @@ mod tests {
         let workbench = attached.body_workbench.as_ref().unwrap();
         assert_eq!(workbench.encoded_evidence, bytes);
         assert_eq!(workbench.current["friendly_name"], "Roseau");
-        assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 2);
+        assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 3);
         let mut stale = workbench.clone();
         stale.body_id.push_str("-stale");
         assert!(validate_body_workbench(&stale, &snapshot.presentation).is_err());
