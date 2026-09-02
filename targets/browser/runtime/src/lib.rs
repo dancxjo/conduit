@@ -45,6 +45,7 @@ mod installed_browser;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+#[cfg(any(feature = "book-surface", feature = "creche-surface"))]
 mod source_interaction;
 mod structured_offers;
 mod text_lab_live;
