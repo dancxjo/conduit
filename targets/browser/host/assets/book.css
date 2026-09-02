@@ -64,6 +64,12 @@ p { max-width: 43rem; color: #344139; line-height: 1.65; }
   white-space: pre-wrap; overflow-wrap: normal;
   font: 500 .91rem/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
+.syntax-example {
+  max-width: 43rem; margin: 1.5rem 0; padding: 1.25rem; overflow: auto;
+  border: 1px solid #52655b; border-radius: 10px; color: #e9f1ec; background: #17221d;
+  white-space: pre; font: 500 .86rem/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
+}
+.syntax-example:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .syntax-comment { color: #91aa9d; font-style: italic; }
 .syntax-keyword { color: #ffcf70; font-weight: 750; }
 .syntax-name { color: #e9f1ec; }

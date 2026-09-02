@@ -25,21 +25,33 @@ export function attachBookSyntaxEditor(textarea, runtime) {
   return Object.freeze({ render });
 }
 
-function renderSyntax(source, target, textarea, runtime) {
+export function createBookSyntaxExample(source, runtime) {
+  if (typeof source !== "string" || source.length === 0) throw new TypeError("Book syntax example requires source");
+  const example = document.createElement("pre");
+  example.className = "syntax-example";
+  example.setAttribute("aria-label", "Read-only Conduit example");
+  example.tabIndex = 0;
+  const code = document.createElement("code");
+  example.append(code);
+  renderSyntax(source, code, example, runtime);
+  return example;
+}
+
+function renderSyntax(source, target, owner, runtime) {
   if (source.length === 0) {
     target.replaceChildren();
-    textarea.dataset.syntaxDisposition = "empty";
+    owner.dataset.syntaxDisposition = "empty";
     return;
   }
   const bytes = encoder.encode(source);
   if (bytes.length > runtime.conduit_book_input_capacity()) {
-    renderPlain(source, target, textarea, "refused");
+    renderPlain(source, target, owner, "refused");
     return;
   }
   new Uint8Array(runtime.memory.buffer, runtime.conduit_book_input_ptr(), bytes.length).set(bytes);
   const status = runtime.conduit_book_project_syntax(bytes.length);
   if (status < 0 || runtime.conduit_book_output_len() === 0) {
-    renderPlain(source, target, textarea, "refused");
+    renderPlain(source, target, owner, "refused");
     return;
   }
   let projection;
@@ -52,7 +64,7 @@ function renderSyntax(source, target, textarea, runtime) {
     projection = JSON.parse(decoder.decode(output));
     validateProjection(projection, bytes);
   } catch {
-    renderPlain(source, target, textarea, "refused");
+    renderPlain(source, target, owner, "refused");
     return;
   }
   const fragment = document.createDocumentFragment();
@@ -63,7 +75,7 @@ function renderSyntax(source, target, textarea, runtime) {
     fragment.append(span);
   }
   target.replaceChildren(fragment);
-  textarea.dataset.syntaxDisposition = "accepted";
+  owner.dataset.syntaxDisposition = "accepted";
 }
 
 function validateProjection(projection, sourceBytes) {
@@ -89,7 +101,7 @@ function validateProjection(projection, sourceBytes) {
   if (cursor !== sourceBytes.length) throw new TypeError("Book syntax projection is not lossless");
 }
 
-function renderPlain(source, target, textarea, disposition) {
+function renderPlain(source, target, owner, disposition) {
   target.replaceChildren(document.createTextNode(source));
-  textarea.dataset.syntaxDisposition = disposition;
+  owner.dataset.syntaxDisposition = disposition;
 }
