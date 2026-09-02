@@ -166,6 +166,37 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
 });
 
+test("the Book navigation remains legible and interactive in both theme modes", async ({ page }) => {
+  for (const colorScheme of ["dark", "light"]) {
+    await page.emulateMedia({ colorScheme });
+    await page.goto(entrance.url);
+    await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+    await page.getByRole("button", { name: "Next" }).click();
+
+    const navigation = page.locator('[data-application-slot="book-navigation"]');
+    const progress = navigation.locator('[data-application-key="progress"]');
+    const previous = navigation.getByRole("button", { name: "Previous" });
+    const next = navigation.getByRole("button", { name: "Next" });
+    const dark = colorScheme === "dark";
+
+    await expect(navigation.locator('[data-application-component="navigation"]')).toHaveCSS(
+      "background-color",
+      dark ? "rgb(12, 18, 28)" : "rgb(255, 255, 255)",
+    );
+    await expect(progress).toHaveCSS("color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
+    await expect(previous).toHaveCSS("background-color", dark ? "rgb(5, 7, 11)" : "rgb(238, 245, 248)");
+    await expect(previous).toHaveCSS("color", dark ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)");
+    await expect(next).toHaveCSS("background-color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
+    await expect(next).toHaveCSS("color", dark ? "rgb(5, 7, 11)" : "rgb(238, 245, 248)");
+
+    await previous.hover();
+    await expect(previous).toHaveCSS("border-color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
+    await page.keyboard.press("Tab");
+    await previous.focus();
+    await expect(previous).toHaveCSS("outline-color", dark ? "rgb(244, 196, 0)" : "rgb(119, 93, 0)");
+  }
+});
+
 test("every executable listing uses the real Patchbay renderer for checked Form truth", async ({ page }) => {
   let projectedListings = 0;
   for (let pageIndex = 0; pageIndex < 7; pageIndex += 1) {

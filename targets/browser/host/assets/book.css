@@ -173,10 +173,10 @@ details dt { color: var(--ink); font-weight: 700; }
 [data-application-slot="book-navigation"] [data-application-component="navigation"] {
   position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: .55rem;
   margin-top: 2rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 12px 12px 0 0;
-  background: rgb(255 253 247 / 96%); box-shadow: 0 -10px 30px rgb(43 54 47 / 8%);
+  background: var(--panel); box-shadow: 0 -10px 30px color-mix(in srgb,var(--ink) 8%,transparent);
   backdrop-filter: blur(8px);
 }
-[data-application-key="progress"] { margin-right: auto; color: var(--green-dark); font-size: .78rem; font-weight: 750; }
+[data-application-key="progress"] { margin-right: auto; color: var(--amber); font-size: .78rem; font-weight: 750; }
 .creche-handoff { display: grid; gap: .7rem; margin: 1.6rem 0; padding: 1rem 1.15rem; border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 10px; background: var(--panel); }
 .creche-handoff p { margin: 0; }
 .creche-handoff a { justify-self: start; padding: .65rem 1rem; border-radius: 8px; color: white; background: var(--green); font-weight: 750; text-decoration: none; }
@@ -224,8 +224,10 @@ details dt { color: var(--ink); font-weight: 700; }
 .physical-actions button { border: 1px solid var(--line); background: white; color: var(--ink); }
 .physical-status { min-height: 1.4rem; margin: 1rem 0 0; font-size: .88rem; }
 .physical-host-runner pre { max-height: 26rem; overflow: auto; padding: .75rem; border-radius: 8px; color: var(--patchbay-text-primary); background: var(--patchbay-background); font-size: .68rem; }
-[data-application-slot="book-navigation"] button { border: 1px solid var(--line); padding: .55rem .85rem; background: white; color: var(--ink); }
-[data-application-slot="book-navigation"] button:last-child { border-color: var(--green); background: var(--green); color: white; }
+[data-application-slot="book-navigation"] button { border: 1px solid var(--line); padding: .55rem .85rem; background: var(--paper); color: var(--ink); }
+[data-application-slot="book-navigation"] button:not(:disabled):hover { border-color: var(--amber); color: var(--amber); }
+[data-application-slot="book-navigation"] button[data-application-key="next"] { border-color: var(--amber); background: var(--amber); color: var(--paper); }
+[data-application-slot="book-navigation"] button[data-application-key="next"]:not(:disabled):hover { border-color: var(--patchbay-focus); background: var(--patchbay-focus); color: var(--paper); }
 .error { color: #a02828; }
 @media (max-width: 760px) {
   #chapter { grid-template-columns: minmax(0, 1fr); }
