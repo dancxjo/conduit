@@ -98,6 +98,9 @@
 .react-flow__edge.cord-line .react-flow__edge-path { stroke: var(--patchbay-success); }
 .react-flow__edge.cord-pressure-unknown .react-flow__edge-path { stroke: var(--patchbay-warning); }
 .react-flow__edge.cord-pressure-known .react-flow__edge-path { stroke: var(--patchbay-emphasis); }
+.flow-faceplate.diagnostic-error { border-color: #ff776d; box-shadow: 0 0 0 2px color-mix(in srgb,#ff776d 35%,transparent); }
+.faceplate-port.diagnostic-error { color: #ffd2ce; background: color-mix(in srgb,#ff776d 18%,transparent); }
+.react-flow__edge.diagnostic-error .react-flow__edge-path { stroke: #ff776d; stroke-width: 4; animation: none; }
 .react-flow__edge.animated .react-flow__edge-path {
   stroke-dasharray: 7 5;
   animation: conduit-cord-flow 1.4s linear infinite;
