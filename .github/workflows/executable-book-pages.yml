@@ -332,10 +332,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Install the native Rust linker
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends build-essential
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -378,7 +374,6 @@ jobs:
           path: target/creche-release-artifacts
       - name: Build the exact browser Host and product runtimes
         run: |
-          cargo build --locked -p conduit-browser-host
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
