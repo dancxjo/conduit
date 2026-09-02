@@ -428,7 +428,7 @@ jobs:
           cp -a target/pages-root/. target/pages-site/
           cp -a target/book-product/. target/pages-site/book/
           cp -a target/creche-product/. target/pages-site/creche/
-          touch target/pages-site/.nojekyll
+          echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/book/book.application.json
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/runtime.wasm
