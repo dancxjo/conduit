@@ -307,6 +307,12 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     assert!(index.contains("Here and membership"));
     assert!(index.contains("Wants to join"));
     assert!(index.contains("Exact truth and accessibility"));
+    let package = request("/patchbay.application.json", "GET");
+    assert!(package.starts_with("HTTP/1.1 200 OK"));
+    let manifest: serde_json::Value =
+        serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(manifest["application_id"], "conduit.application/patchbay");
+    assert_eq!(manifest["resources"].as_array().unwrap().len(), 23);
     let navigation = request("/assets/portable-navigation.js", "GET");
     assert!(navigation.starts_with("HTTP/1.1 200 OK"));
     assert!(navigation.contains("projectCurrent"));

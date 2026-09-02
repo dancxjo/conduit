@@ -25,6 +25,16 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
 
     await page.goto(url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    const admitted = await page.evaluate(() => ({
+      application: globalThis.__conduitBrowserApplication.manifest.applicationId,
+      packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
+      resources: globalThis.__conduitBrowserApplication.manifest.resources.length,
+    }));
+    expect(admitted.application).toBe("conduit.application/patchbay");
+    expect(admitted.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(admitted.resources).toBe(23);
+    await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
     await expect(page.locator("#status")).toHaveAttribute("data-application-revision", /^\d+$/);
     await expect(page.locator("#status [data-application-component='status']")).toContainText("Presentation revision");
     await page.locator("#toggle-palette").click();
@@ -46,6 +56,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     expect(afterAdd.presentation).toEqual(initial.presentation);
     expect(afterAdd.watches.watches).toHaveLength(1);
     await page.reload();
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     const afterReload = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterReload.watches.watches.map(item => item.subject)).toEqual([cord]);
     await page.locator("#toggle-palette").click();
@@ -73,6 +84,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     const port = initial.watches.eligible_subjects.find(([, role]) => role === "port")[0];
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await page.locator("#toggle-palette").click();
     await page.locator(`#subjects button[data-subject="${cord}"]`).click();
     await page.getByRole("button", { name: "Watch", exact: true }).click();
@@ -116,6 +128,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await page.locator("#toggle-palette").click();
     await page.locator(`#subjects button[data-subject="${gear}"]`).click();
     await page.getByRole("button", { name: "Watch", exact: true }).click();
@@ -145,6 +158,23 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(4);
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
+  } finally {
+    server.lines.close();
+    server.child.kill("SIGTERM");
+  }
+});
+
+test("Patchbay refuses code bytes that differ from its admitted package", async ({ page }) => {
+  const server = startServer();
+  try {
+    const url = await server.url;
+    await page.route("**/assets/app.js", async route => {
+      const response = await route.fetch();
+      await route.fulfill({ response, body: `${await response.text()}\n// changed after admission\n` });
+    });
+    await page.goto(url);
+    await expect(page.locator("body")).toContainText("application resource application-module changed identity");
+    await expect(page.locator("#patchbay-root")).toHaveCount(0);
   } finally {
     server.lines.close();
     server.child.kill("SIGTERM");

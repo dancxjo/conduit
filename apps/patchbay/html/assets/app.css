@@ -2,6 +2,7 @@
 * { box-sizing:border-box; }
 html { scroll-padding-top:5rem; }
 body { margin:0; background:var(--patchbay-background); color:var(--patchbay-text-primary); }
+body[data-application-ready="false"] #patchbay-root { pointer-events:none; }
 .body-workbench { position:fixed; z-index:8; top:5rem; left:.75rem; width:min(34rem,calc(100% - 1.5rem)); max-height:calc(100vh - 5.75rem); overflow:auto; padding:1rem; border:1px solid var(--patchbay-structure-secondary); border-left:4px solid var(--patchbay-emphasis); border-radius:.55rem; background:var(--patchbay-surface); box-shadow:0 1rem 4rem #0008; }
 .body-workbench-hero,.body-workbench-tabs { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
 .body-workbench-tabs { position:static; z-index:auto; padding:0; border:0; background:transparent; }
