@@ -70,6 +70,20 @@ const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
     "proof/browser/patchbay-debugger-watch.spec.mjs",
     "proof/browser/patchbay-html.spec.mjs",
 ];
+const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
+    ".github/workflows/executable-book-pages.yml",
+    "fabrication/workspace/tests/family_contracts.rs",
+    "proof/browser/executable-book.spec.mjs",
+    "scripts/ci/stage-creche-product.sh",
+    "targets/browser/runtime/src/creche/spore_target.rs",
+    "targets/raspberry-pi/browser-deployment/creche-adapter.mjs",
+    "targets/raspberry-pi/browser-deployment/image.mjs",
+    "targets/raspberry-pi/fabrication-package/src/lib.rs",
+    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_image.rs",
+    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_board.rs",
+    "targets/std/browser-deployment/creche-adapter.mjs",
+    "xtask/src/commands/host_release.rs",
+];
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
@@ -288,8 +302,31 @@ fn plan_for_paths(
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
+    let pi_zero_creche_slice = substantive
+        .iter()
+        .all(|path| PI_ZERO_CRECHE_SLICE.contains(&path.as_str()))
+        && [
+            ".github/workflows/executable-book-pages.yml",
+            "proof/browser/executable-book.spec.mjs",
+            "scripts/ci/stage-creche-product.sh",
+            "targets/browser/runtime/src/creche/spore_target.rs",
+            "targets/raspberry-pi/fabrication-package/src/lib.rs",
+        ]
+        .iter()
+        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
 
     for path in substantive {
+        if pi_zero_creche_slice {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-pi-zero-creche:{path}"));
+            if let Some(package) = package_for_path(root, path, packages) {
+                changed_packages.insert(package.to_owned());
+            }
+            continue;
+        }
         if FOCUSED_WORKFLOW_FILES.contains(&path.as_str()) {
             selected.insert("browser".to_owned(), true);
             reasons
