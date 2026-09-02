@@ -179,4 +179,16 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::InvalidIdentity)
     );
+    value = serde_json::from_slice(&bytes).unwrap();
+    value["timeline"]["retained_bytes"] = 1.into();
+    assert_eq!(
+        RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
+        Err(SnapshotError::InvalidIdentity)
+    );
+    value = serde_json::from_slice(&bytes).unwrap();
+    value["timeline_projection"]["cursor_sequence"] = 999.into();
+    assert_eq!(
+        RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
+        Err(SnapshotError::InvalidIdentity)
+    );
 }

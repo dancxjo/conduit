@@ -78,6 +78,35 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
         .map_err(|error| error.to_string())?;
     snapshot
         .attach_watches(watches)
+        .map_err(|error| error.to_string())?;
+    let events: Vec<patchbay_model::DebuggerTimelineEvent> = serde_json::from_value(
+        serde_json::json!([
+            { "execution": execution, "sequence": 39, "host_sequence": 39, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "41", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null },
+            { "execution": execution, "sequence": 40, "host_sequence": 40, "host": 1, "form": 1, "subject": gear, "related_subject": null, "event": "fault", "value": null, "fault_code": 17 },
+            { "execution": execution, "sequence": 41, "host_sequence": 41, "host": 1, "form": 1, "subject": port, "related_subject": null, "event": "value-received", "value": { "kind": "text", "summary": "\"hello watch\"", "type_identity": 11, "total_bytes": 11, "truncated": false }, "fault_code": null },
+            { "execution": execution, "sequence": 42, "host_sequence": 42, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "42", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null }
+        ]),
+    )
+    .map_err(|error| error.to_string())?;
+    let retained_bytes: usize = events
+        .iter()
+        .map(patchbay_model::DebuggerTimelineEvent::retained_bytes)
+        .sum();
+    let timeline: patchbay_model::DebuggerTimeline = serde_json::from_value(serde_json::json!({
+        "schema": patchbay_model::DEBUGGER_TIMELINE_SCHEMA,
+        "revision": 4,
+        "mode": "live",
+        "cursor": 3,
+        "selected_event": null,
+        "subject_filter": null,
+        "events": events,
+        "retained_bytes": retained_bytes,
+        "evicted_events": 0,
+        "gap": { "dropped_records": 2, "first_retained_sequence": 39 }
+    }))
+    .map_err(|error| error.to_string())?;
+    snapshot
+        .attach_timeline(timeline)
         .map_err(|error| error.to_string())
 }
 

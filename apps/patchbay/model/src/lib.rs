@@ -21,6 +21,9 @@ mod current_body_frame;
 mod debugger_presentation;
 #[cfg(test)]
 mod debugger_presentation_tests;
+mod debugger_timeline;
+#[cfg(test)]
+mod debugger_timeline_tests;
 mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
@@ -127,6 +130,12 @@ pub use debugger_presentation::{
     DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
     DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
     RECENT_ACTIVITY_TICKS,
+};
+pub use debugger_timeline::{
+    DebuggerTimeline, DebuggerTimelineBinding, DebuggerTimelineError, DebuggerTimelineEvent,
+    DebuggerTimelineMode, DebuggerTimelineProjection, DebuggerTimelineSubjectState,
+    DebuggerTimelineWatchState, DEBUGGER_TIMELINE_SCHEMA, MAX_DEBUGGER_TIMELINE_BYTES,
+    MAX_DEBUGGER_TIMELINE_EVENTS,
 };
 pub use debugger_watch::{
     DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,

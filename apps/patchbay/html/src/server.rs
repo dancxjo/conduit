@@ -14,6 +14,7 @@ mod observation;
 mod parts;
 mod text_lab_loss;
 mod theme;
+mod timeline;
 mod transition;
 mod watches;
 
@@ -322,6 +323,26 @@ impl PatchbayHtmlServer {
                         "400 Bad Request",
                         "text/plain; charset=utf-8",
                         b"invalid debugger Watch request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
+        if first == "POST /api/debugger-timeline HTTP/1.1" {
+            let body = match self.apply_debugger_timeline(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid debugger timeline request",
                     );
                 }
                 Err(error) => return Err(error),

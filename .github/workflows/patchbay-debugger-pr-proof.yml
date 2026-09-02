@@ -10,14 +10,12 @@ on:
       - apps/patchbay/html/src/demo.rs
       - apps/patchbay/html/src/main.rs
       - apps/patchbay/html/src/server.rs
-      - apps/patchbay/html/src/server/watches.rs
+      - apps/patchbay/html/src/server/*.rs
       - apps/patchbay/html/src/snapshot.rs
       - apps/patchbay/html/src/transport_types.rs
       - apps/patchbay/html/tests/server.rs
       - apps/patchbay/html/tests/snapshot.rs
-      - apps/patchbay/model/src/debugger_presentation.rs
-      - apps/patchbay/model/src/debugger_watch.rs
-      - apps/patchbay/model/src/debugger_watch_tests.rs
+      - apps/patchbay/model/src/debugger_*.rs
       - apps/patchbay/model/src/lib.rs
       - proof/browser/patchbay-debugger-watch.spec.mjs
       - proof/browser/patchbay-debugger.config.mjs
@@ -55,8 +53,8 @@ jobs:
         run: npm ci --ignore-scripts --prefer-offline
       - name: Build only the Patchbay browser product
         run: cargo build --locked -p patchbay-html
-      - name: Prove the finite Watch model
-        run: cargo test --locked -p patchbay-model debugger_watch
+      - name: Prove the finite debugger model
+        run: cargo test --locked -p patchbay-model debugger_
       - name: Prove one exact finite Watch interaction
         run: >-
           npx playwright test

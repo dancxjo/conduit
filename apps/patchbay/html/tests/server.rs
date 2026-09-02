@@ -78,6 +78,62 @@ fn post_debugger_watch(snapshot: patchbay_html::RendererSnapshot, body: &[u8]) -
     response
 }
 
+fn post_debugger_timeline(snapshot: patchbay_html::RendererSnapshot, body: &[u8]) -> String {
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(1));
+    let mut stream = TcpStream::connect(address).unwrap();
+    write!(
+        stream,
+        "POST /api/debugger-timeline HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+        body.len()
+    )
+    .unwrap();
+    stream.write_all(body).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    worker.join().unwrap().unwrap();
+    response
+}
+
+#[test]
+fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let presentation = snapshot.presentation.clone();
+    let timeline_revision = snapshot.timeline.as_ref().unwrap().revision;
+    let response = post_debugger_timeline(
+        snapshot,
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": presentation.identity.as_str(),
+            "presentation_revision": presentation.revision,
+            "timeline_revision": timeline_revision,
+            "action": "select-event",
+            "index": 0,
+        }))
+        .unwrap(),
+    );
+    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    let selected = patchbay_html::RendererSnapshot::decode(
+        response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        presentation.revision,
+    )
+    .unwrap();
+    assert_eq!(selected.presentation, presentation);
+    assert_eq!(selected.timeline.as_ref().unwrap().selected_event, Some(0));
+    assert_eq!(
+        selected
+            .timeline_projection
+            .as_ref()
+            .unwrap()
+            .cursor_sequence,
+        Some(39)
+    );
+    assert_eq!(
+        selected.timeline_projection.as_ref().unwrap().mode,
+        patchbay_model::DebuggerTimelineMode::Replay
+    );
+}
+
 #[test]
 fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
     let snapshot = demonstration_snapshot().unwrap();

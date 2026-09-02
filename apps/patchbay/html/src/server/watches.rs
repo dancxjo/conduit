@@ -53,6 +53,11 @@ impl PatchbayHtmlServer {
             DebuggerWatchAction::ClearHistory => watches.clear_history(&request.subject),
         };
         result.map_err(|error| ServerError::Interaction(format!("debugger Watch: {error:?}")))?;
+        self.snapshot.timeline_projection = self
+            .snapshot
+            .timeline
+            .as_ref()
+            .map(|timeline| timeline.project(self.snapshot.watches.as_ref()));
         self.encoded_snapshot = self.snapshot.encode()?;
         Ok(self.encoded_snapshot.clone())
     }
