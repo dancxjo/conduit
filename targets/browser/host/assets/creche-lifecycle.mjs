@@ -1,3 +1,5 @@
+import { nameFor, NAMING_SYSTEM_OPTIONS } from "./creche-names.mjs";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -19,52 +21,109 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
   const presentation = presentationFor(runner);
   const state = {
     revision: 0,
-    friendlyName: generatedFriendlyName(),
+    friendlyName: "Choosing a persona…",
+    namingSystem: "surprise",
+    namingLabel: "Surprise me",
+    personaUuid: crypto.randomUUID(),
+    variation: 0,
+    namingRequest: 0,
+    pending: true,
     initialProgram: "morse-network@1",
     source: draft ?? source,
     status: "Edit the Seed, then explicitly birth one Body.",
     outcome: "status",
     terminal: false,
   };
-  presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth() {
-    birth(runner, host, state, nextSequence(), onBodyChanged, { presentation, listingId, onDraft });
-  } });
-
   const current = readCurrent(host.runtime);
-  if (current) renderReceipt(runner, current, true, state, { presentation, listingId, onDraft });
+  const controls = { presentation, listingId, onDraft, onBirth() {
+    birth(runner, host, state, nextSequence(), onBodyChanged, controls);
+  } };
+  if (current) {
+    state.pending = false;
+    renderReceipt(runner, current, true, state, controls);
+  } else {
+    void suggestName(runner, state, controls);
+  }
   return runner;
 }
 
 function presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth = () => {} }) {
-  const actions = state.terminal ? [] : [
+  const interactive = !state.terminal && !state.pending;
+  const actions = interactive ? [
     { id: "program.change", event: "change" },
     { id: "name.input", event: "input" },
+    { id: "name-system.change", event: "change" },
+    { id: "name.refresh", event: "activate" },
     { id: "source.input", event: "input" },
     { id: "birth.activate", event: "activate" },
-  ];
+  ] : [];
   presentation.present("birth-controls", {
     revision: ++state.revision,
     actions,
-    nodes: [
-      { parent: null, component: "stack", action: null, key: "birth-editor", text: "" },
-      { parent: 0, component: "select", action: state.terminal ? null : 0, key: "body-program", text: "Initial program", value: state.initialProgram, valueCapacity: 64 },
-      { parent: 1, component: "option", action: null, key: "morse-program", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
-      { parent: 0, component: "text-input", action: state.terminal ? null : 1, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
-      { parent: 0, component: "disclosure", action: null, key: "seed-source", text: "" },
-      { parent: 4, component: "summary", action: null, key: "seed-summary", text: "Reviewed program source" },
-      { parent: 4, component: "textarea", action: state.terminal ? null : 2, key: listingId, text: "Conduit Seed source", value: state.source, valueCapacity: 65_536 },
-      { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" },
-      { parent: 7, component: "button", action: state.terminal ? null : 3, key: "birth", text: "Birth Body" },
-      { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
-    ],
+    nodes: birthControlNodes(state, listingId),
   }, { onEvent(event) {
     presentation.nextEvent("birth-controls");
     const value = decoder.decode(event.value);
     if (event.action === "program.change") state.initialProgram = value;
     if (event.action === "name.input") state.friendlyName = value;
+    if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
+    if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
     if (event.action === "source.input") { state.source = value; onDraft(value); }
     if (event.action === "birth.activate") onBirth();
   } });
+}
+
+function birthControlNodes(state, listingId) {
+  const interactive = !state.terminal && !state.pending;
+  const nodes = [
+      { parent: null, component: "stack", action: null, key: "birth-editor", text: "" },
+      { parent: 0, component: "select", action: interactive ? 0 : null, key: "body-program", text: "Initial program", value: state.initialProgram, valueCapacity: 64 },
+      { parent: 1, component: "option", action: null, key: "morse-program", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
+      { parent: 0, component: "text-input", action: interactive ? 1 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
+      { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
+      { parent: 0, component: "select", action: interactive ? 2 : null, key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
+  ];
+  for (const option of NAMING_SYSTEM_OPTIONS) {
+    nodes.push({ parent: 5, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
+  }
+  nodes.push({ parent: 0, component: "button", action: interactive ? 3 : null, key: "another-name", text: "Suggest another name" });
+  const disclosure = nodes.length;
+  nodes.push({ parent: 0, component: "disclosure", action: null, key: "seed-source", text: "" });
+  nodes.push({ parent: disclosure, component: "summary", action: null, key: "seed-summary", text: "Reviewed program source" });
+  nodes.push({ parent: disclosure, component: "textarea", action: interactive ? 4 : null, key: listingId, text: "Conduit Seed source", value: state.source, valueCapacity: 65_536 });
+  const actions = nodes.length;
+  nodes.push({ parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" });
+  nodes.push({ parent: actions, component: "button", action: interactive ? 5 : null, key: "birth", text: "Birth Body" });
+  nodes.push({ parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status });
+  return nodes;
+}
+
+async function suggestName(runner, state, controls) {
+  const request = ++state.namingRequest;
+  state.pending = true;
+  state.status = "Deriving a stable persona suggestion from the persona seed UUID…";
+  state.outcome = "status";
+  presentBirthControls(runner, state, controls);
+  try {
+    const suggestion = await nameFor(state.personaUuid, state.namingSystem, state.variation);
+    if (request !== state.namingRequest || state.terminal) return;
+    state.friendlyName = suggestion.name;
+    state.namingLabel = suggestion.system_label;
+    state.pending = false;
+    state.status = "Edit the suggestion or the Seed, then explicitly birth one Body.";
+    presentBirthControls(runner, state, controls);
+  } catch (error) {
+    if (request !== state.namingRequest || state.terminal) return;
+    state.pending = false;
+    state.outcome = "failure-status";
+    state.status = `Persona suggestion refused: ${error instanceof Error ? error.message : String(error)}`;
+    presentBirthControls(runner, state, controls);
+  }
+}
+
+function nameOriginText(state) {
+  if (state.terminal) return "This persisted friendly name is metadata; the Body ID remains distinct.";
+  return `${state.namingLabel} · persona seed ${state.personaUuid.slice(0, 8)} · variation ${state.variation}. The seed chooses a suggestion; it is not the Body ID.`;
 }
 
 function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
@@ -254,14 +313,6 @@ function renderAttachedHost(runner, presentation, receipt, state) {
     description.textContent = value;
     list.append(term, description);
   }
-}
-
-function generatedFriendlyName() {
-  const adjectives = ["brisk", "calm", "clever", "gentle", "lively", "steady"];
-  const nouns = ["beacon", "finch", "lantern", "otter", "sparrow", "willow"];
-  const bytes = new Uint8Array(2);
-  crypto.getRandomValues(bytes);
-  return `${adjectives[bytes[0] % adjectives.length]} ${nouns[bytes[1] % nouns.length]}`;
 }
 
 function readOutput(api) {

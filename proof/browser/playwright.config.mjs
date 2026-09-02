@@ -27,6 +27,7 @@ export default defineConfig({
     "creche-conduitos.spec.mjs",
     "creche-native-zip.spec.mjs",
     "creche-native-disk.spec.mjs",
+    "creche-naming.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-device-base.spec.mjs",
     "browser-usb-device-base.spec.mjs",
