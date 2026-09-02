@@ -138,6 +138,13 @@ bench = false
 required-features = ["loongarch64-a0"]
 
 [[bin]]
+name = "conduitos-loongarch64-product"
+path = "src/bin/loongarch64_product.rs"
+test = false
+bench = false
+required-features = ["loongarch64-product"]
+
+[[bin]]
 name = "conduitos-loongarch64-a2"
 path = "proof-appliances/loongarch64/a2.rs"
 test = false
@@ -190,6 +197,7 @@ loongarch64-a0 = []
 loongarch64-a2 = []
 loongarch64-a3 = []
 loongarch64-a4 = []
+loongarch64-product = []
 
 [dependencies]
 conduit-audio = { path = "../../semantics/audio" }

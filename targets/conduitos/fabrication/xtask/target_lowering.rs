@@ -5,6 +5,8 @@ use conduit_host_fabrication::BuildManifest;
 use super::ConduitosError;
 
 mod http;
+mod loongarch64;
+pub(super) use loongarch64::lower_loongarch64_virt;
 
 const NATIVE_PRESENTER: &str = "presenter/native-graphical@1";
 const NATIVE_COMPOSITOR: &str = "compositor/native@1";

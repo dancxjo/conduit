@@ -154,6 +154,14 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
 }
 
 pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String, ConduitosError> {
+    boot_until_image(paths, &paths.iso, terminal_prefix)
+}
+
+pub(super) fn boot_until_image(
+    paths: &Paths,
+    image: &Path,
+    terminal_prefix: &str,
+) -> Result<String, ConduitosError> {
     if !paths.limine.join("BOOTLOONGARCH64.EFI").is_file() {
         return Err(refusal(
             "missing-loongarch64-bootloader-artifact",
@@ -190,7 +198,7 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
         ])
         .arg(firmware)
         .arg("-cdrom")
-        .arg(&paths.iso)
+        .arg(image)
         .args(["-boot", "d"])
         .current_dir(&paths.root)
         .stdin(Stdio::null())

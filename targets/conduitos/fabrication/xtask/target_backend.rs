@@ -23,6 +23,20 @@ pub(crate) struct TargetBackend {
 
 const BACKENDS: &[TargetBackend] = &[
     TargetBackend {
+        target: "conduitos/loongarch64/virt",
+        arch: ConduitosArch::Loongarch64,
+        kernel_file: "conduitos-kernel.elf",
+        kernel_role: "freestanding-kernel",
+        image_file: "conduitos-loongarch64.iso",
+        image_role: "final-bootable-image",
+        architecture: "loongarch64",
+        machine: "virt",
+        firmware: "EDK2 QEMU_EFI.fd",
+        boot_entry: "BOOTLOONGARCH64.EFI",
+        machine_boot_proof: true,
+        lower: target_lowering::lower_loongarch64_virt,
+    },
+    TargetBackend {
         target: "conduitos/riscv64/virt",
         arch: ConduitosArch::Riscv64,
         kernel_file: "conduitos-kernel.elf",
@@ -257,6 +271,23 @@ mod tests {
                 "virt",
                 "QEMU_EFI.fd",
                 "BOOTAA64.EFI",
+            )
+        );
+        let loongarch64 = select("conduitos/loongarch64/virt").unwrap();
+        assert_eq!(
+            (
+                loongarch64.image_file,
+                loongarch64.architecture,
+                loongarch64.machine,
+                loongarch64.firmware,
+                loongarch64.boot_entry,
+            ),
+            (
+                "conduitos-loongarch64.iso",
+                "loongarch64",
+                "virt",
+                "EDK2 QEMU_EFI.fd",
+                "BOOTLOONGARCH64.EFI",
             )
         );
     }
