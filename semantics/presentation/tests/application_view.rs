@@ -195,6 +195,33 @@ fn controls_keep_labels_values_and_capacities_distinct() {
 }
 
 #[test]
+fn select_options_carry_finite_exact_values() {
+    let mut selection = view();
+    selection.nodes.push(ApplicationViewNode {
+        parent: Some(0),
+        component: ApplicationComponent::Select,
+        key: "program".into(),
+        text: "Initial program".into(),
+        value: "morse-network@1".into(),
+        value_capacity: 64,
+        action: None,
+    });
+    selection.nodes.push(ApplicationViewNode {
+        parent: Some(3),
+        component: ApplicationComponent::Option,
+        key: "morse-program".into(),
+        text: "Morse Network".into(),
+        value: "morse-network@1".into(),
+        value_capacity: 64,
+        action: None,
+    });
+    assert_eq!(
+        ApplicationView::decode(&selection.encode().unwrap()),
+        Ok(selection)
+    );
+}
+
+#[test]
 fn maximum_book_editor_value_round_trips_without_truncation() {
     let mut controlled = view();
     controlled.nodes.push(ApplicationViewNode {
