@@ -5,10 +5,14 @@ on:
     types: [closed]
     paths:
       - .github/workflows/executable-book-pages.yml
-      - .github/workflows/executable-book-deploy.yml
       - README.md
       - site/**
-      - scripts/ci/**
+      - scripts/ci/stage-pages-root.sh
+      - scripts/ci/stage-book-product.sh
+      - scripts/ci/build-browser-application-package.mjs
+      - scripts/ci/stage-creche-product.sh
+      - scripts/ci/seal-pages-carrier.mjs
+      - scripts/ci/verify-pages-carrier.mjs
       - tour/book/**
       - targets/browser/**
       - targets/avr/**

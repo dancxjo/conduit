@@ -266,6 +266,26 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         );
     }
 
+    let pages_deploy_resolver = plan_for_paths(
+        &root,
+        PAGES_DEPLOY_RESOLVER_SLICE
+            .iter()
+            .map(|path| (*path).to_owned())
+            .collect(),
+        &packages,
+    )
+    .unwrap();
+    assert!(!pages_deploy_resolver.full_fallback);
+    assert!(!pages_deploy_resolver.browser_required);
+    assert!(!pages_deploy_resolver.esp32_required);
+    assert!(!pages_deploy_resolver.conduitos_required);
+    assert!(pages_deploy_resolver.workspace_shards["lint"]);
+    assert!(pages_deploy_resolver
+        .workspace_shards
+        .iter()
+        .filter(|(shard, _)| shard.as_str() != "lint")
+        .all(|(_, required)| !required));
+
     let unknown =
         plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();
     assert!(unknown.full_fallback);
