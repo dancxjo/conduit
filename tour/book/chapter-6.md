@@ -1,13 +1,27 @@
-# Give the Body a Host
+# Many Forms, one Body-wide realization
 
-A newborn Body begins **LULLED**. It exists, but no machinery has been silently attached and no work has started.
+In Conduit, **Program = Form**.
 
-The Crèche can admit an ordinary browser or computer as its first Host.
+A Seed is the Form that started the Body, but a Body may later carry additional Forms and run several Forms concurrently without changing Body identity.
 
-<!-- conduit-first-host -->
+```text
+Body Roseau
+  Forms:
+    Patchbay
+    music player
+    background sync
 
-Physical deployment is another explicit path. Writing an artifact and admitting the resulting Host are different steps.
+Host:
+  8 CPU lanes
+  memory
+  display
+  network
+```
 
-<!-- conduit-physical-host -->
+One logical scheduler sees the whole Body workload. One Wake is Body-wide. One current immutable Plan admits and places all currently carried Forms together against all current resources. At most one Body-wide Play is active at once, while many Gear instances from many Forms may execute concurrently inside that Play.
 
-Raw receipts matter here because attribution and admission are the subject. They remain secondary to the next action the reader can take.
+That is why two Forms cannot independently reserve the same last CPU lane or device. Admission is shared because realization is shared.
+
+Adding a Pico later changes topology, not ontology: a replacement Body-wide Plan may move compatible work there while the same Body and Form set continue.
+
+For the one-machine case, ConduitOS is the OS-shaped freestanding Host substrate. It offers processor lanes, memory, storage, and devices as finite truthful resources; Body scheduling still plans ordinary Forms against those offers. Current proof remains explicit: ConduitOS currently proves one cooperative execution lane, not yet SMP or preemption.

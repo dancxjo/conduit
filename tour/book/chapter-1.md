@@ -1,8 +1,12 @@
-# Meet one Gear
+# A Form you can run
 
-A **Gear** does one piece of work. Here, `change` turns text into uppercase.
+Conduit lets you make **one logical computer — a Body — from one or many physical or virtual computers**. One Body might be a single multicore machine; another might combine a browser, laptop, VM, and microcontroller. The point of this chapter is smaller: build one Form you can run and read.
 
-Change the quoted words, then Run. Watch the value move from the first Gear, through `change`, to the result.
+## Gear, Port, Cord, Form
+
+A **Form** is a program made from connected **Gears**. Each Gear has typed directional **Ports**, and each **Cord** names one exact connection between an output Port and an input Port.
+
+Start with one tiny Form:
 
 ```conduit run
 form meet-one-gear {
@@ -14,27 +18,11 @@ form meet-one-gear {
 }
 ```
 
-That is enough for a useful start: a small operation you can see, edit, and run.
+Run it, then inspect the graph. The source and the Patchbay show the same Form from different views. The Patchbay **projects** checked Form truth; it is not the Form itself.
 
-# Connect Gears
+## Edit one Gear without rewriting its neighbors
 
-Gears become a Form when **Cords** connect their typed Ports. This one carries text into a Morse encoder, then carries the pattern to an indicator.
-
-```conduit run
-form connect-gears {
-    message: text/literal("E")
-    morse: text/morse(40)
-    light: presentation/indicator
-
-    message > morse > light
-}
-```
-
-Run it once. The Patchbay is the Form: Gears are the plates and Cords are the lines between them.
-
-# Edit one Gear
-
-The listing and Patchbay describe the same Form. Edit the literal without rebuilding the rest of the graph.
+Because the surrounding Cords and Ports stay compatible, you can change one Gear and keep the rest of the Form intact.
 
 ```conduit run
 form edit-one-gear {
@@ -46,4 +34,21 @@ form edit-one-gear {
 }
 ```
 
-The neighboring Gears do not need to know how the words changed. They only need compatible Ports.
+## Branch one output explicitly
+
+Fan-out is explicit: one output Port can feed multiple downstream inputs when each Cord is named.
+
+```conduit run
+form branch-a-cord {
+    source: text/literal("sos")
+    loud: text/upper
+    show: presentation/text
+    morse: text/morse(80)
+    light: presentation/indicator
+
+    source > loud > show
+    source > morse > light
+}
+```
+
+If you try an incompatible connection, the refusal is local and typed: this Form fails admission before Play, and nearby Forms are unaffected.

@@ -1,16 +1,12 @@
-# Meet the Host
+# Hosts make Forms real
 
-A **Host** is a running environment that truthfully offers implementations and resources. The browser running this page is one Host.
-
-Every example so far used its actual offers. Open the inventory only when you want to inspect what is available here.
-
-<!-- conduit-host-inventory -->
+A **Host** is a current running environment with finite truthful offers: implementations, resources, and effects. The browser running this Book is itself a real Host.
 
 The Form says what should happen. The Host says what machinery is available now.
 
-# State over time
+<!-- conduit-host-inventory -->
 
-A Host can also offer bounded effects such as a monotonic timer. State and time remain visible Gears rather than hidden page behavior.
+Hosts also provide effects over time. This example uses a timer and state Gear so time remains explicit in the Form rather than hidden in page behavior.
 
 ```conduit run
 form count-over-time {
@@ -23,4 +19,4 @@ form count-over-time {
 }
 ```
 
-Run it and watch one finite Play count from 0 to 4.
+A **Plan** is one exact admitted realization against current Host offers and resources. A **Play** is execution of that Plan. Here the workload happens to contain one Form, but that is the smallest case of a later Body-wide model, not a separate permanent Plan/Play universe per Form.

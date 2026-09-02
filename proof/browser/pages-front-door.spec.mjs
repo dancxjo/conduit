@@ -40,7 +40,7 @@ test("Conduit home, Book, and Crèche are stable sibling endpoints", async ({ pa
   await page.goto(book);
   await expect(page).toHaveURL(book);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "Meet one Gear" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
 
   await page.goto(creche);

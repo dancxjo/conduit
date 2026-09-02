@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <script>
-    const routedPage = /\/(?:meet-one-gear|connect-gears|edit-one-gear|branch-a-cord|meet-the-face|same-face-different-implementation|meet-the-host|state-over-time|use-two-hosts|plans-and-plays|keep-one-body-through-change|birth-belongs-in-the-creche|give-the-body-a-host|graduate-from-the-creche)\/(?:index\.html)?$/.test(location.pathname);
+    const routedPage = /\/(?:a-form-you-can-run|faces-backs-and-implementation|hosts-make-forms-real|one-form-across-several-hosts|the-body-one-computer-one-machine-or-many|many-forms-one-body-wide-realization|birth-spores-and-the-creche)\/(?:index\.html)?$/.test(location.pathname);
     const unslashedEntrance = /\/book$/.test(location.pathname);
     const bookRoot = new URL(routedPage ? "../" : unslashedEntrance ? "./book/" : "./", location.href).href;
     document.write(`<base href="${bookRoot}">`);
   </script>
   <meta name="conduit-creche-url" content="../creche/">
   <meta name="conduit-application-package" content="./book.application.json">
-  <title>Meet one Gear · The Book</title>
+  <title>A Form you can run · The Book</title>
 </head>
 <body>
   <header class="masthead">

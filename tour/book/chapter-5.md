@@ -1,22 +1,13 @@
-# Keep one Body through change
+# The Body: one computer, one machine or many
 
-Hosts reboot, disconnect, and get replaced. A **Body** is the durable computer whose intention continues while that machinery changes.
+Hosts reboot, disconnect, and get replaced. The **Body** is the logical computer the user means to keep through that change.
 
-The Body is not a hidden process in this Book. It is retained identity and history that compatible tools can read while new Plans and Plays come and go.
+A Body may consist of one Host or many. One multicore computer is a valid Body. A distributed collection of unlike Hosts is also a valid Body. Current Hosts and Boots are machinery, not Body identity.
 
-This is why Conduit needs a Body: not for the first Gear, but for the computer you want to keep.
+Body identity is not a friendly name, one Host, one Boot, one Plan, or one Play. It is durable continuity carried through changing admitted Parts and realizations.
 
-# Birth belongs in the Crèche
+This is also the operating-system insight:
 
-The **Crèche** helps a Body begin. Birth comes after Gears, Forms, and Hosts because it preserves a computer made from those ideas; it is not required to understand them.
+Scheduling work across eight cores of one machine and scheduling work across several machines are the same Conduit problem at different topology and cost scales.
 
-```conduit birth
-form morse-network {
-    message: text/literal("SOS")
-    morse: text/morse(120)
-    light: presentation/indicator
-    message > morse > light
-}
-```
-
-The Crèche owns this stateful step. The Book remains a place to learn.
+Wake and lull become useful here because they describe Body-wide continuity and activity boundaries while machinery comes and goes.

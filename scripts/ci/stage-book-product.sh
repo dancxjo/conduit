@@ -38,20 +38,13 @@ printf '%s\n' "$chapters" | while IFS= read -r chapter; do
     cp "tour/book/$chapter" "$destination/$chapter"
 done
 
-page_routes='meet-one-gear
-connect-gears
-edit-one-gear
-branch-a-cord
-meet-the-face
-same-face-different-implementation
-meet-the-host
-state-over-time
-use-two-hosts
-plans-and-plays
-keep-one-body-through-change
-birth-belongs-in-the-creche
-give-the-body-a-host
-graduate-from-the-creche'
+page_routes='a-form-you-can-run
+faces-backs-and-implementation
+hosts-make-forms-real
+one-form-across-several-hosts
+the-body-one-computer-one-machine-or-many
+many-forms-one-body-wide-realization
+birth-spores-and-the-creche'
 printf '%s\n' "$page_routes" | while IFS= read -r route; do
     mkdir "$destination/$route"
     cp targets/browser/host/assets/book.html "$destination/$route/index.html"
@@ -60,5 +53,5 @@ done
 node scripts/ci/build-browser-application-package.mjs \
     targets/browser/host/assets/book.application.template.json "$destination"
 
-test "$(find "$destination" -type f | wc -l)" -eq 44
+test "$(find "$destination" -type f | wc -l)" -eq 37
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
