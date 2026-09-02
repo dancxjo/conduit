@@ -1,4 +1,5 @@
 import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
+import { createApplicationPresentationHost } from "./application-presentation.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
@@ -25,11 +26,12 @@ const steps = [
   { name: "Graduate", slug: "graduate" },
 ];
 const workspace = document.querySelector("#workspace");
-const navigation = document.querySelector(".creche-steps");
+const presentation = createApplicationPresentationHost();
 const crecheBaseUrl = new URL(".", document.baseURI);
 let host;
 let currentStep = stepIndexForLocation();
 let sequence = 0;
+let presentationRevision = 0;
 const targetCatalog = createPhysicalHostTargetCatalog({
   generation: 1,
   contributions: [
@@ -45,27 +47,38 @@ const targetCatalog = createPhysicalHostTargetCatalog({
 });
 
 try {
+  renderHostStatus("Starting browser Host…", "status");
   host = await initializeBrowserHost();
   requireCrecheAbi(host.runtime);
-  document.querySelector("#host-state").textContent = "Crèche ready";
+  renderHostStatus("Crèche ready", "success-status");
   globalThis.__conduitCrecheHost = host;
   renderNavigation();
   renderStep();
   if (isProductRoot()) replaceStepRoute(currentStep);
 } catch (error) {
-  document.querySelector("#host-state").textContent = "Crèche unavailable";
+  renderHostStatus("Crèche unavailable", "failure-status");
   workspace.textContent = error instanceof Error ? error.message : String(error);
 }
 
 function renderNavigation() {
-  navigation.replaceChildren();
+  const actions = steps.map((_, index) => ({ id: `step-${index}`, event: "activate" }));
+  const nodes = [{ parent: null, component: "navigation", action: null, key: "workflow", text: "" }];
   steps.forEach(({ name }, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = `${index + 1}. ${name}`;
-    button.setAttribute("aria-current", index === currentStep ? "step" : "false");
-    button.addEventListener("click", () => navigateToStep(index));
-    navigation.append(button);
+    nodes.push({ parent: 0, component: "button", action: index === currentStep ? null : index, key: `step-${index}`, text: `${index + 1}. ${name}` });
+  });
+  presentation.present("creche-navigation", { revision: ++presentationRevision, actions, nodes }, {
+    onEvent(event) {
+      const index = Number(event.action.slice("step-".length));
+      if (Number.isInteger(index) && index >= 0 && index < steps.length) navigateToStep(index);
+    },
+  });
+}
+
+function renderHostStatus(text, component) {
+  presentation.present("creche-host-status", {
+    revision: ++presentationRevision,
+    actions: [],
+    nodes: [{ parent: null, component, action: null, key: "host-status", text }],
   });
 }
 
@@ -124,13 +137,23 @@ addEventListener("popstate", () => {
 });
 
 function refreshContext() {
-  workspace.querySelector(".creche-body-context")?.remove();
+  workspace.querySelector('[data-creche-context="true"]')?.remove();
   const body = readBodyProjection(host.runtime);
   if (!body) return;
   const context = document.createElement("aside");
   context.className = "creche-body-context";
-  context.innerHTML = `<strong>${escapeText(body.friendly_name)}</strong><code>${escapeText(body.body_id)}</code>`;
+  context.dataset.crecheContext = "true";
+  context.dataset.applicationSlot = "creche-body-context";
   workspace.prepend(context);
+  createApplicationPresentationHost(workspace).present("creche-body-context", {
+    revision: ++presentationRevision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "panel", action: null, key: "body-context", text: "" },
+      { parent: 0, component: "paragraph", action: null, key: "body-name", text: body.friendly_name },
+      { parent: 0, component: "code", action: null, key: "body-id", text: body.body_id },
+    ],
+  });
 }
 
 function renderComplete(receipt, biography) {
@@ -140,7 +163,7 @@ function renderComplete(receipt, biography) {
   section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><section class="body-biography" aria-label="Body biography"><h3>Body biography · compatible reader</h3><ol></ol></section>`;
   renderBiography(section.querySelector(".body-biography"), biography);
   workspace.append(section);
-  navigation.remove();
+  document.querySelector('[data-application-slot="creche-navigation"]')?.remove();
 }
 
 function requireCrecheAbi(api) {

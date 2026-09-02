@@ -450,6 +450,11 @@ impl BrowserHostServer {
             Some("GET /creche/creche.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", CRECHE_STYLE)
             }
+            Some("GET /creche/application-presentation.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_PRESENTATION,
+            ),
             Some("GET /creche/artifacts/pico-w-signal-pico-local.json HTTP/1.1") => (
                 "200 OK",
                 "application/json; charset=utf-8",
