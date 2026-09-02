@@ -37,6 +37,11 @@ impl ConduitOsProductArtifact {
                 binary: "conduitos-riscv64-product",
                 rust_target: "riscv64gc-unknown-none-elf",
             }),
+            "conduitos/loongarch64/virt" => Some(Self {
+                target: "conduitos/loongarch64/virt",
+                binary: "conduitos-loongarch64-product",
+                rust_target: "loongarch64-unknown-none",
+            }),
             _ => None,
         }
     }
@@ -88,6 +93,16 @@ fn package_catalog() -> PackageCatalogContribution {
                     ],
                 },
             ),
+            (
+                "presenter/loongarch64-linear-uart@1".into(),
+                PresenterMetadata {
+                    targets: vec!["conduitos/loongarch64/virt".into()],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Base("conduitos/loongarch64-uart-text".into()),
+                    ],
+                },
+            ),
         ]),
         dependencies: BTreeMap::from([
             (
@@ -136,18 +151,19 @@ fn target(label: &str, architecture: &str, machine: &str) -> TargetDescriptor {
         board: None,
         os: None,
         host_core: "host-core/conduitos@1".into(),
-        presenter: matches!(architecture, "ia32" | "aarch64" | "riscv64").then(|| {
-            TargetPresenter {
+        presenter: matches!(architecture, "ia32" | "aarch64" | "riscv64" | "loongarch64").then(
+            || TargetPresenter {
                 id: "presenter/main".into(),
                 implementation_id: match architecture {
                     "ia32" => "presenter/ia32-linear-debugcon@1".into(),
                     "riscv64" => "presenter/riscv64-linear-sbi-console@1".into(),
+                    "loongarch64" => "presenter/loongarch64-linear-uart@1".into(),
                     _ => "presenter/linear-serial@1".into(),
                 },
                 interactive: false,
-            }
-        }),
-        host_operations: matches!(architecture, "ia32" | "aarch64" | "riscv64")
+            },
+        ),
+        host_operations: matches!(architecture, "ia32" | "aarch64" | "riscv64" | "loongarch64")
             .then(|| "conduit.host/present@1".into())
             .into_iter()
             .collect(),
@@ -211,6 +227,14 @@ impl HostFabricationPackage for ConduitOsFabricationPackage {
                     build_feature: None,
                 },
                 ImplementationOffer {
+                    base_kind: "conduitos/loongarch64-uart-text".into(),
+                    implementation_id: "conduitos/loongarch64-uart@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec!["conduitos/loongarch64/virt".into()],
+                    prerequisites: Vec::new(),
+                    build_feature: None,
+                },
+                ImplementationOffer {
                     base_kind: "network/ipv4-tcp".into(),
                     implementation_id: "conduitos/deterministic-ipv4-tcp@1".into(),
                     implementation_revision: 1,
@@ -237,11 +261,16 @@ mod tests {
         let riscv64 = ConduitOsProductArtifact::for_target("conduitos/riscv64/virt").unwrap();
         assert_eq!(riscv64.binary, "conduitos-riscv64-product");
         assert_eq!(riscv64.rust_target, "riscv64gc-unknown-none-elf");
+        let loongarch64 =
+            ConduitOsProductArtifact::for_target("conduitos/loongarch64/virt").unwrap();
+        assert_eq!(loongarch64.binary, "conduitos-loongarch64-product");
+        assert_eq!(loongarch64.rust_target, "loongarch64-unknown-none");
         for proof_identity in [
             "conduitos/aarch64/a0-proof",
             "conduitos/aarch64/a3-proof",
             "conduitos-aarch64-a3",
             "conduitos-riscv64-a4",
+            "conduitos-loongarch64-a4",
         ] {
             assert!(ConduitOsProductArtifact::for_target(proof_identity).is_none());
         }

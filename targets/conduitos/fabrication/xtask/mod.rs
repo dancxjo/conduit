@@ -40,6 +40,7 @@ mod loongarch64_a2;
 #[allow(dead_code)]
 mod loongarch64_a3;
 mod loongarch64_a4;
+mod loongarch64_product_boot;
 mod opl2_proof;
 #[path = "../../../orange-pi/fabrication/xtask/orange_pi_5_image.rs"]
 mod orange_pi_5_image;
