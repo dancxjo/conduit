@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::identity::{bind_identity, validate_ids};
 use crate::validation::{validate_new_sign, validate_plan_history, validate_sign};
-use crate::{BodyId, BodyLifecycleEvent, SeedId, WakeId, WakeLifecycleEvent};
+use crate::{
+    BodyId, BodyLifecycleEvent, BodyWorkset, BodyWorksetError, ResidentForm, SeedId, WakeId,
+    WakeLifecycleEvent,
+};
 
 pub const MAX_BODY_SIGNS: usize = 16;
 pub const MAX_WAKE_SIGNS: usize = 32;
@@ -25,6 +28,12 @@ pub struct Body {
     pub seed_id: SeedId,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
+    /// Exact current Form workload. Empty with revision zero is the explicit
+    /// compatibility encoding for pre-workset single-Form Body evidence.
+    #[serde(default)]
+    pub workset: BodyWorkset,
+    #[serde(default)]
+    pub workload_revision: u64,
     pub birth_sequence: u64,
     pub state: BodyState,
     pub sign_ids: Vec<SignId>,
@@ -69,6 +78,10 @@ pub struct Wake {
     pub seed_id: SeedId,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
+    #[serde(default)]
+    pub workset: BodyWorkset,
+    #[serde(default)]
+    pub workload_revision: u64,
     pub wake_sequence: u64,
     pub lifecycle: WakeLifecycle,
     pub plans: Vec<WakePlan>,
@@ -93,11 +106,27 @@ pub enum BodyLifecycleError {
     AuthorityDenied,
     HoldRequired,
     MismatchedWake,
+    DuplicateForm,
+    FormAbsent,
+    FormCapacityExhausted,
+    FormIdentityBytesExhausted,
 }
 
 impl core::fmt::Display for BodyLifecycleError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "invalid Body lifecycle transition: {self:?}")
+    }
+}
+
+impl From<BodyWorksetError> for BodyLifecycleError {
+    fn from(value: BodyWorksetError) -> Self {
+        match value {
+            BodyWorksetError::InvalidFormIdentity => Self::InvalidIdentity,
+            BodyWorksetError::DuplicateForm => Self::DuplicateForm,
+            BodyWorksetError::FormAbsent => Self::FormAbsent,
+            BodyWorksetError::FormCapacityExhausted => Self::FormCapacityExhausted,
+            BodyWorksetError::IdentityBytesExhausted => Self::FormIdentityBytesExhausted,
+        }
     }
 }
 
@@ -123,16 +152,92 @@ impl Body {
             ],
             birth_sequence,
         ));
+        let workset = BodyWorkset::seed(ResidentForm::new(
+            source_document_id.clone(),
+            checked_form_id.clone(),
+        ))?;
         Ok(Self {
             body_id,
             seed_id,
             source_document_id,
             checked_form_id,
+            workset,
+            workload_revision: 1,
             birth_sequence,
             state: BodyState::Lulled,
             sign_ids: vec![sign_id.clone()],
             events: vec![BodyLifecycleEvent::Born { sign_id }],
         })
+    }
+
+    /// Returns current workload truth, migrating legacy revision-zero evidence
+    /// to its historical single Seed Form interpretation without changing the
+    /// already-bound Body identity.
+    pub fn effective_workset(&self) -> Result<BodyWorkset, BodyLifecycleError> {
+        if self.workload_revision == 0 {
+            if !self.workset.is_empty() {
+                return Err(BodyLifecycleError::InvalidIdentity);
+            }
+            return BodyWorkset::seed(ResidentForm::new(
+                self.source_document_id.clone(),
+                self.checked_form_id.clone(),
+            ))
+            .map_err(Into::into);
+        }
+        self.workset.validate()?;
+        Ok(self.workset.clone())
+    }
+
+    pub fn admit_form(
+        &self,
+        form: ResidentForm,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
+        let mut next = self.clone();
+        next.workset = self.effective_workset()?;
+        next.workset.add(form.clone())?;
+        next.workload_revision = self
+            .workload_revision
+            .max(1)
+            .checked_add(1)
+            .ok_or(BodyLifecycleError::InvalidTransition)?;
+        next.sign_ids.push(sign_id.clone());
+        next.events.push(BodyLifecycleEvent::FormAdmitted {
+            source_document_id: form.source_document_id,
+            checked_form_id: form.checked_form_id,
+            workload_revision: next.workload_revision,
+            sign_id,
+        });
+        next.validate()?;
+        Ok(next)
+    }
+
+    pub fn remove_form(
+        &self,
+        form: &ResidentForm,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        validate_new_sign(&self.sign_ids, &sign_id, MAX_BODY_SIGNS)?;
+        let mut next = self.clone();
+        next.workset = self.effective_workset()?;
+        next.workset.remove(form)?;
+        next.workload_revision = self
+            .workload_revision
+            .max(1)
+            .checked_add(1)
+            .ok_or(BodyLifecycleError::InvalidTransition)?;
+        next.sign_ids.push(sign_id.clone());
+        next.events.push(BodyLifecycleEvent::FormRemoved {
+            source_document_id: form.source_document_id.clone(),
+            checked_form_id: form.checked_form_id.clone(),
+            workload_revision: next.workload_revision,
+            sign_id,
+        });
+        next.validate()?;
+        Ok(next)
     }
 
     pub fn wake(
@@ -165,6 +270,8 @@ impl Body {
             seed_id: self.seed_id.clone(),
             source_document_id: self.source_document_id.clone(),
             checked_form_id: self.checked_form_id.clone(),
+            workset: self.effective_workset()?,
+            workload_revision: self.workload_revision.max(1),
             wake_sequence,
             lifecycle: WakeLifecycle::AwaitingPlan,
             plans: Vec::new(),
@@ -210,7 +317,18 @@ impl Body {
             self.checked_form_id.as_str(),
         ])?;
         validate_sign(&self.sign_ids, MAX_BODY_SIGNS)?;
-        crate::events::validate_body_events(&self.events, &self.sign_ids, &self.state)?;
+        let effective_workset = self.effective_workset()?;
+        crate::events::validate_body_events(
+            &self.events,
+            &self.sign_ids,
+            &self.state,
+            ResidentForm::new(
+                self.source_document_id.clone(),
+                self.checked_form_id.clone(),
+            ),
+            &effective_workset,
+            self.workload_revision.max(1),
+        )?;
         if self.seed_id != SeedId::bind(&self.source_document_id, &self.checked_form_id)
             || self.body_id.as_str()
                 != bind_identity(
@@ -233,6 +351,8 @@ impl Body {
             && self.seed_id == wake.seed_id
             && self.source_document_id == wake.source_document_id
             && self.checked_form_id == wake.checked_form_id
+            && self.effective_workset().ok().as_ref() == Some(&wake.workset)
+            && self.workload_revision.max(1) == wake.workload_revision
             && matches!(&self.state, BodyState::Awake { wake_id } if wake_id == &wake.wake_id)
     }
 }
@@ -407,6 +527,7 @@ impl Wake {
             self.checked_form_id.as_str(),
         ])?;
         validate_sign(&self.sign_ids, MAX_WAKE_SIGNS)?;
+        self.workset.validate()?;
         crate::events::validate_wake_events(
             &self.events,
             &self.sign_ids,
@@ -417,6 +538,7 @@ impl Wake {
             || self.wake_id.as_str()
                 != bind_identity("wake", &[self.body_id.as_str()], self.wake_sequence)
             || self.plans.len() > MAX_WAKE_PLANS
+            || self.workload_revision == 0
         {
             return Err(BodyLifecycleError::InvalidIdentity);
         }

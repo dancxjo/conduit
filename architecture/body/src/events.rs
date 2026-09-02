@@ -1,22 +1,44 @@
-use conduit_core::{ActivePlayId, PlanId, SignId};
+use conduit_core::{ActivePlayId, CheckedFormId, PlanId, SignId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    hold::validate_planning_basis_signs, BodyLifecycleError, BodyState, HoldPolicy, WakeId,
-    WakeLifecycle, WakePlan,
+    hold::validate_planning_basis_signs, BodyLifecycleError, BodyState, BodyWorkset, HoldPolicy,
+    ResidentForm, WakeId, WakeLifecycle, WakePlan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyLifecycleEvent {
-    Born { sign_id: SignId },
-    Woke { wake_id: WakeId, sign_id: SignId },
-    LullRetained { wake_id: WakeId, sign_id: SignId },
+    Born {
+        sign_id: SignId,
+    },
+    FormAdmitted {
+        source_document_id: SourceDocumentId,
+        checked_form_id: CheckedFormId,
+        workload_revision: u64,
+        sign_id: SignId,
+    },
+    FormRemoved {
+        source_document_id: SourceDocumentId,
+        checked_form_id: CheckedFormId,
+        workload_revision: u64,
+        sign_id: SignId,
+    },
+    Woke {
+        wake_id: WakeId,
+        sign_id: SignId,
+    },
+    LullRetained {
+        wake_id: WakeId,
+        sign_id: SignId,
+    },
 }
 
 impl BodyLifecycleEvent {
     pub fn sign_id(&self) -> &SignId {
         match self {
             Self::Born { sign_id }
+            | Self::FormAdmitted { sign_id, .. }
+            | Self::FormRemoved { sign_id, .. }
             | Self::Woke { sign_id, .. }
             | Self::LullRetained { sign_id, .. } => sign_id,
         }
@@ -97,6 +119,9 @@ pub(crate) fn validate_body_events(
     events: &[BodyLifecycleEvent],
     sign: &[SignId],
     state: &BodyState,
+    seed_form: ResidentForm,
+    workset: &BodyWorkset,
+    workload_revision: u64,
 ) -> Result<(), BodyLifecycleError> {
     if events.len() != sign.len()
         || events
@@ -108,8 +133,49 @@ pub(crate) fn validate_body_events(
         return Err(BodyLifecycleError::InvalidTransition);
     }
     let mut replayed = BodyState::Lulled;
+    let mut replayed_workset = BodyWorkset::seed(seed_form)?;
+    let mut replayed_workload_revision = 1u64;
     for event in events.iter().skip(1) {
+        match event {
+            BodyLifecycleEvent::FormAdmitted {
+                source_document_id,
+                checked_form_id,
+                workload_revision,
+                ..
+            } => {
+                replayed_workload_revision = replayed_workload_revision
+                    .checked_add(1)
+                    .ok_or(BodyLifecycleError::InvalidTransition)?;
+                if *workload_revision != replayed_workload_revision {
+                    return Err(BodyLifecycleError::InvalidTransition);
+                }
+                replayed_workset.add(ResidentForm::new(
+                    source_document_id.clone(),
+                    checked_form_id.clone(),
+                ))?;
+            }
+            BodyLifecycleEvent::FormRemoved {
+                source_document_id,
+                checked_form_id,
+                workload_revision,
+                ..
+            } => {
+                replayed_workload_revision = replayed_workload_revision
+                    .checked_add(1)
+                    .ok_or(BodyLifecycleError::InvalidTransition)?;
+                if *workload_revision != replayed_workload_revision {
+                    return Err(BodyLifecycleError::InvalidTransition);
+                }
+                replayed_workset.remove(&ResidentForm::new(
+                    source_document_id.clone(),
+                    checked_form_id.clone(),
+                ))?;
+            }
+            _ => {}
+        }
         replayed = match (&replayed, event) {
+            (state, BodyLifecycleEvent::FormAdmitted { .. })
+            | (state, BodyLifecycleEvent::FormRemoved { .. }) => state.clone(),
             (BodyState::Lulled, BodyLifecycleEvent::Woke { wake_id, .. }) => BodyState::Awake {
                 wake_id: wake_id.clone(),
             },
@@ -122,7 +188,10 @@ pub(crate) fn validate_body_events(
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
     }
-    if &replayed == state {
+    if &replayed == state
+        && &replayed_workset == workset
+        && replayed_workload_revision == workload_revision
+    {
         Ok(())
     } else {
         Err(BodyLifecycleError::InvalidTransition)
