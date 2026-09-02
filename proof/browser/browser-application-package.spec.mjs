@@ -137,7 +137,7 @@ test("Book navigation is one finite Host-manifested view with stale and pressure
     malformedRefusal: "too-many-nodes",
     unchangedAfterRefusal: true,
     pressureRefusal: "queue-pressure",
-    event: { action: "proof.activate", revision: 1_000, encodedBytes: 23 },
+    event: { action: "proof.activate", revision: 1_000, encodedBytes: 25 },
   });
 });
 
