@@ -16,6 +16,7 @@ pub mod debug_observation;
 pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
+pub mod state_delay;
 pub mod static_merge;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

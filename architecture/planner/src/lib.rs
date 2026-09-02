@@ -86,6 +86,7 @@ mod recursive_recovery;
 mod replanning;
 mod requirements;
 mod startup;
+pub mod state_delay;
 #[cfg(test)]
 use startup::startup_order;
 mod style;
