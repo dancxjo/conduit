@@ -230,6 +230,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.presentation/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
+    expect(await page.locator(".faceplate-title").first().evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
+    const seedsButton=page.getByRole("button",{name:"Seeds"});
+    await seedsButton.hover();
+    await expect(seedsButton).toHaveCSS("border-color","rgb(233, 163, 37)");
+    await page.keyboard.press("Tab");
+    await seedsButton.focus();
+    await expect(seedsButton).toHaveCSS("outline-color","rgb(244, 196, 0)");
     await page.evaluate(()=>document.fonts.ready);
     if(canonical) {
       expect(await page.evaluate(()=>document.fonts.check('16px "DejaVu Sans"'))).toBe(true);

@@ -35,6 +35,7 @@ on:
       - apps/patchbay/html/assets/flow-faceplate.js
       - apps/patchbay/html/assets/portable-navigation.js
       - targets/browser/host/assets/creche.html
+      - targets/browser/host/assets/creche.application.template.json
       - targets/browser/host/assets/creche.css
       - targets/browser/host/assets/creche*.mjs
       - targets/browser/host/browser-deployment/**

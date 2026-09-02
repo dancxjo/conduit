@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 
-const [templatePath, destination] = process.argv.slice(2);
-if (!templatePath || !destination) throw new Error("usage: build-browser-application-package TEMPLATE DESTINATION");
+const [templatePath, destination, outputName = "book.application.json"] = process.argv.slice(2);
+if (!templatePath || !destination) throw new Error("usage: build-browser-application-package TEMPLATE DESTINATION [OUTPUT]");
+if (!/^[a-z0-9][a-z0-9.-]*\.application\.json$/.test(outputName)) throw new Error("application package output name is invalid");
 
 const template = JSON.parse(await readFile(templatePath, "utf8"));
 if (template.schema !== "conduit.browser/application-package-template@1") throw new Error("unsupported application package template");
@@ -32,7 +33,7 @@ const manifest = {
   state_compatibility: template.state_compatibility,
   resources,
 };
-await writeFile(resolve(destination, "book.application.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+await writeFile(resolve(destination, outputName), `${JSON.stringify(manifest, null, 2)}\n`);
 
 function packageCanonical(applicationId, stateCompatibility, entries) {
   const lines = [

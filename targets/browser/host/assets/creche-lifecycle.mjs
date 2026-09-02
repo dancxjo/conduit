@@ -1,9 +1,7 @@
-import { createApplicationPresentationHost } from "./application-presentation.mjs";
-
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBodyBirthRunner({ source, sourceKey, listingId, host, draft, onDraft, nextSequence, onBodyChanged }) {
+export function createBodyBirthRunner({ source, sourceKey, listingId, host, presentationFor, draft, onDraft, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -18,6 +16,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
       <dl class="body-identities"></dl>
       <details class="body-raw"><summary>Raw Body and membership evidence</summary><pre><code></code></pre></details>
     </div>`;
+  const presentation = presentationFor(runner);
   const state = {
     revision: 0,
     friendlyName: generatedFriendlyName(),
@@ -27,8 +26,8 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
     outcome: "status",
     terminal: false,
   };
-  presentBirthControls(runner, state, { listingId, onDraft, onBirth() {
-    birth(runner, host, state, nextSequence(), onBodyChanged, { listingId, onDraft });
+  presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth() {
+    birth(runner, host, state, nextSequence(), onBodyChanged, { presentation, listingId, onDraft });
   } });
 
   const current = readCurrent(host.runtime);
@@ -36,8 +35,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
   return runner;
 }
 
-function presentBirthControls(runner, state, { listingId, onDraft, onBirth = () => {} }) {
-  const presentation = createApplicationPresentationHost(runner);
+function presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth = () => {} }) {
   const actions = state.terminal ? [] : [
     { id: "program.change", event: "change" },
     { id: "name.input", event: "input" },
@@ -177,7 +175,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   }, null, 2);
 }
 
-export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
+export function createFirstHostRunner({ host, presentationFor, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner first-host-runner";
   runner.innerHTML = `
@@ -185,6 +183,7 @@ export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
     <div class="result">
       <dl class="host-identities"></dl>
     </div>`;
+  const presentation = presentationFor(runner);
   const state = {
     revision: 0,
     status: "The Body is still LULLED with no admitted Host.",
@@ -195,14 +194,14 @@ export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
   if (!current) {
     state.terminal = true;
     state.status = "Birth the Body on page zero first.";
-    presentFirstHostControls(runner, state, () => {});
+    presentFirstHostControls(runner, presentation, state, () => {});
     return runner;
   }
   if (current.here_part_id) {
-    renderAttachedHost(runner, current, state);
+    renderAttachedHost(runner, presentation, current, state);
     return runner;
   }
-  presentFirstHostControls(runner, state, () => {
+  presentFirstHostControls(runner, presentation, state, () => {
     const api = host.runtime;
     const hostBytes = encoder.encode(host.hostId);
     const bootBytes = encoder.encode(host.bootId);
@@ -214,17 +213,16 @@ export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
       const refusal = readOutput(api);
       state.status = `Host admission refused: ${refusal.message ?? code}`;
       state.outcome = "failure-status";
-      presentFirstHostControls(runner, state, () => {});
+      presentFirstHostControls(runner, presentation, state, () => {});
       return;
     }
-    renderAttachedHost(runner, readOutput(api), state);
+    renderAttachedHost(runner, presentation, readOutput(api), state);
     onBodyChanged?.();
   });
   return runner;
 }
 
-function presentFirstHostControls(runner, state, onAttach) {
-  const presentation = createApplicationPresentationHost(runner);
+function presentFirstHostControls(runner, presentation, state, onAttach) {
   presentation.present("first-host-controls", {
     revision: ++state.revision,
     actions: state.terminal ? [] : [{ id: "host.attach", event: "activate" }],
@@ -241,11 +239,11 @@ function presentFirstHostControls(runner, state, onAttach) {
   } });
 }
 
-function renderAttachedHost(runner, receipt, state) {
+function renderAttachedHost(runner, presentation, receipt, state) {
   state.terminal = true;
   state.outcome = "success-status";
   state.status = `${receipt.friendly_name} now has one admitted browser Host and remains LULLED.`;
-  presentFirstHostControls(runner, state, () => {});
+  presentFirstHostControls(runner, presentation, state, () => {});
   const values = [["Body", receipt.body_id], ["Part", receipt.here_part_id], ["Host", receipt.host_id], ["Boot", receipt.boot_id]];
   const list = runner.querySelector(".host-identities");
   list.replaceChildren();

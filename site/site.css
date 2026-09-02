@@ -69,7 +69,7 @@ a:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; 
 }
 nav { display: flex; gap: 1.35rem; flex-wrap: wrap; }
 nav a { text-decoration: none; color: var(--conduit-text-secondary); font-size: .94rem; }
-nav a:hover { color: var(--conduit-text-primary); }
+nav a:hover { color: var(--conduit-emphasis); }
 
 main { width: 100%; }
 .hero {
@@ -111,9 +111,12 @@ h1 {
   text-decoration: none;
   font-weight: 700;
 }
-.primary-action { background: var(--conduit-structure-primary); color: #021017; }
+.primary-action { background: var(--conduit-emphasis); color: var(--conduit-background); }
 .secondary-action { border: 1px solid color-mix(in srgb, var(--conduit-text-primary) 28%, transparent); background: color-mix(in srgb, var(--conduit-surface) 72%, transparent); }
 .hero-actions a:hover { transform: translateY(-1px); }
+.primary-action:hover { background: var(--conduit-focus); }
+.secondary-action:hover { border-color: var(--conduit-emphasis); color: var(--conduit-emphasis); }
+.hero-actions a:active { transform: translateY(0); }
 
 .body-contrast,
 .model,
@@ -136,6 +139,7 @@ h2 { margin: 0; color: color-mix(in srgb, var(--conduit-text-primary) 72%, white
 }
 .body-card header { display: flex; gap: 1rem; align-items: flex-start; }
 .body-mark { color: var(--conduit-structure-primary); font-size: 1.5rem; line-height: 1; margin-top: .1rem; }
+.body-card:nth-child(even) .body-mark { color: var(--conduit-emphasis); }
 .card-kicker { margin: 0 0 .35rem; color: var(--conduit-text-secondary); font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; }
 h3 { margin: 0; color: color-mix(in srgb, var(--conduit-text-primary) 72%, white); font-size: 1.45rem; }
 .body-card > p { color: var(--conduit-text-secondary); line-height: 1.65; margin: 1.4rem 0 0; }
@@ -147,8 +151,9 @@ h3 { margin: 0; color: color-mix(in srgb, var(--conduit-text-primary) 72%, white
 .machine-grid span { padding: .7rem .8rem; border-radius: .45rem; background: color-mix(in srgb, var(--conduit-structure-secondary) 25%, transparent); color: var(--conduit-text-primary); font: 600 .86rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
 .concepts { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
-.concepts div { padding: 1.25rem; border-top: 2px solid var(--conduit-structure-secondary); background: color-mix(in srgb, var(--conduit-surface) 65%, transparent); }
-.concepts dt { color: var(--conduit-structure-primary); font: 700 .9rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.concepts div { padding: 1.25rem; border-top: 2px solid var(--conduit-structure-primary); background: color-mix(in srgb, var(--conduit-surface) 65%, transparent); }
+.concepts div:nth-child(even) { border-top-color: var(--conduit-emphasis); }
+.concepts dt { color: var(--conduit-emphasis); font: 700 .9rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .concepts dd { margin: .65rem 0 0; color: var(--conduit-text-secondary); line-height: 1.5; }
 .model-copy { max-width: 60rem; color: var(--conduit-text-secondary); line-height: 1.7; font-size: 1.05rem; margin: 1.6rem 0 0; }
 
@@ -162,7 +167,7 @@ h3 { margin: 0; color: color-mix(in srgb, var(--conduit-text-primary) 72%, white
   text-decoration: none;
   transition: border-color .15s ease, transform .15s ease, background .15s ease;
 }
-.door:hover { border-color: color-mix(in srgb, var(--conduit-structure-primary) 55%, transparent); background: color-mix(in srgb, var(--conduit-reading-paper) 92%, transparent); transform: translateY(-2px); }
+.door:hover { border-color: color-mix(in srgb, var(--conduit-emphasis) 70%, transparent); background: color-mix(in srgb, var(--conduit-reading-paper) 92%, transparent); transform: translateY(-2px); }
 .door > span { display: block; color: var(--conduit-emphasis); font: 700 .72rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; letter-spacing: .14em; }
 .door strong { display: block; color: color-mix(in srgb, var(--conduit-text-primary) 72%, white); font-size: 1.2rem; margin-top: .7rem; }
 .door p { color: var(--conduit-text-secondary); line-height: 1.55; margin: .7rem 0 0; }

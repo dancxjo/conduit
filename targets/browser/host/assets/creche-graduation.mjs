@@ -1,8 +1,6 @@
-import { createApplicationPresentationHost } from "./application-presentation.mjs";
-
 const decoder = new TextDecoder();
 
-export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEnd }) {
+export function createGraduationRunner({ host, presentationFor, nextSequence, onBodyChanged, onEnd }) {
   const runner = document.createElement("section");
   runner.className = "graduation-runner";
   runner.innerHTML = `
@@ -13,6 +11,7 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
       <ol></ol>
     </section>
     <details><summary>Raw graduation evidence</summary><pre><code></code></pre></details>`;
+  const presentation = presentationFor(runner);
   const state = { revision: 0, readiness: null, graduated: false, status: "", outcome: "status" };
   try {
     state.readiness = call(host.runtime, "conduit_creche_graduation_readiness");
@@ -23,7 +22,7 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
     state.status = error.message;
     state.outcome = "failure-status";
   }
-  const present = () => presentGraduationControls(runner, state, {
+  const present = () => presentGraduationControls(runner, presentation, state, {
     onChoice(choice) {
       const receipt = call(host.runtime, "conduit_creche_graduate", choice, BigInt(nextSequence()));
       renderGraduation(runner, receipt, host.runtime, state, present);
@@ -37,7 +36,7 @@ export function createGraduationRunner({ host, nextSequence, onBodyChanged, onEn
   return runner;
 }
 
-function presentGraduationControls(runner, state, { onChoice, onEnd }) {
+function presentGraduationControls(runner, presentation, state, { onChoice, onEnd }) {
   const ready = state.readiness?.ready === true;
   const choiceActions = ready && !state.graduated;
   const actions = [
@@ -48,7 +47,6 @@ function presentGraduationControls(runner, state, { onChoice, onEnd }) {
   const choiceTwo = choiceActions ? 1 : null;
   const endAction = state.graduated ? actions.length - 1 : null;
   const readiness = state.readiness ?? {};
-  const presentation = createApplicationPresentationHost(runner);
   presentation.present("graduation-controls", {
     revision: ++state.revision,
     actions,

@@ -286,6 +286,31 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         .filter(|(shard, _)| shard.as_str() != "lint")
         .all(|(_, required)| !required));
 
+    let creche_package = plan_for_paths(
+        &root,
+        CRECHE_ADMITTED_PACKAGE_SLICE
+            .iter()
+            .map(|path| (*path).to_owned())
+            .collect(),
+        &packages,
+    )
+    .unwrap();
+    assert!(!creche_package.full_fallback);
+    assert!(creche_package.browser_required);
+    assert!(!creche_package.esp32_required);
+    assert!(!creche_package.conduitos_required);
+    assert!(creche_package.workspace_shards["lint"]);
+    assert!(creche_package.workspace_shards["test-hosts"]);
+    assert!(
+        creche_package
+            .workspace_shards
+            .iter()
+            .filter(|(shard, _)| !matches!(shard.as_str(), "lint" | "test-hosts"))
+            .all(|(_, required)| !required),
+        "{:?}",
+        creche_package.workspace_shards
+    );
+
     let unknown =
         plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();
     assert!(unknown.full_fallback);

@@ -12,7 +12,7 @@
     }
   </script>
   <title>Conduit Crèche</title>
-  <link rel="stylesheet" href="./creche.css">
+  <meta name="conduit-application-package" content="./creche.application.json">
 </head>
 <body>
   <header class="masthead site-header"><a class="wordmark" href="/conduit" aria-label="Conduit home">conduit</a><nav aria-label="Primary"><a href="/conduit/book">Book</a><a href="/conduit/creche" aria-current="page">Crèche</a><a href="https://github.com/dancxjo/conduit">Source</a></nav><span id="host-state" data-application-slot="creche-host-status"></span></header>
@@ -22,6 +22,6 @@
     <section id="workspace" aria-live="polite"></section>
   </main>
   <noscript>The Crèche requires JavaScript and WebAssembly.</noscript>
-  <script type="module" src="./creche.mjs"></script>
+  <script type="module" src="./browser-application-loader.mjs"></script>
 </body>
 </html>
