@@ -37,12 +37,23 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   expect(admission.paths).toContain("book-runner-presentation.mjs");
+  expect(admission.paths).toContain("assets/flow.css");
   for (const path of admission.paths) {
     const pathname = new URL(path, admission.baseUri).pathname;
     expect(requests.filter((request) => request === pathname), path).toHaveLength(1);
   }
   await expect(page.locator('script[data-application-resource="react"]')).toHaveAttribute("src", /^blob:/);
   await expect(page.locator('style[data-application-resource="book-style"]')).toHaveCount(1);
+  await expect(page.locator('style[data-application-resource="patchbay-flow-style"]')).toHaveCount(1);
+  const separatedStyles = await page.evaluate(() => {
+    const application = globalThis.__conduitBrowserApplication;
+    const decode = (role) => new TextDecoder().decode(application.bytes(role));
+    return { book: decode("book-style"), flow: decode("patchbay-flow-style") };
+  });
+  expect(separatedStyles.book).not.toContain(".flow-faceplate header");
+  expect(separatedStyles.book).not.toContain(".react-flow__edge-path");
+  expect(separatedStyles.flow).toContain(".flow-faceplate header");
+  expect(separatedStyles.flow).toContain(".react-flow__edge.animated");
   const runnerStatus = page.locator('[data-application-key="play-status"]');
   await expect(runnerStatus).toHaveAttribute("data-application-component", "status");
   await expect(runnerStatus).toHaveText("Edit the message or timing, then run it.");

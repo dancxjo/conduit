@@ -8,6 +8,8 @@ pub(super) const REACT_FLOW: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/react-flow.min.js");
 pub(super) const REACT_FLOW_STYLE: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/react-flow.css");
+pub(super) const FLOW_STYLE: &[u8] =
+    include_bytes!("../../../../../apps/patchbay/html/assets/flow.css");
 pub(super) const FLOW: &[u8] = include_bytes!("../../../../../apps/patchbay/html/assets/flow.js");
 pub(super) const FLOW_SCENE: &[u8] =
     include_bytes!("../../../../../apps/patchbay/html/assets/flow-scene.js");
@@ -34,6 +36,7 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
         "GET /book/assets/react-flow.css HTTP/1.1" => {
             Some(("text/css; charset=utf-8", REACT_FLOW_STYLE))
         }
+        "GET /book/assets/flow.css HTTP/1.1" => Some(("text/css; charset=utf-8", FLOW_STYLE)),
         _ => None,
     }
 }

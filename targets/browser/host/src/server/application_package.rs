@@ -178,6 +178,7 @@ fn resource_bytes<'a>(path: &str, runtime: &'a [u8]) -> Option<&'a [u8]> {
         "assets/portable-navigation.js" => Some(super::book_assets::PORTABLE_NAVIGATION),
         "book.css" => Some(super::BOOK_STYLE),
         "assets/react-flow.css" => Some(super::book_assets::REACT_FLOW_STYLE),
+        "assets/flow.css" => Some(super::book_assets::FLOW_STYLE),
         "assets/react.min.js" => Some(super::book_assets::REACT),
         "assets/react-dom.min.js" => Some(super::book_assets::REACT_DOM),
         "assets/react-flow.min.js" => Some(super::book_assets::REACT_FLOW),
@@ -204,7 +205,7 @@ mod tests {
         let second: serde_json::Value =
             serde_json::from_slice(&book_manifest(b"runtime-b").unwrap()).unwrap();
         assert_ne!(first["package_digest"], second["package_digest"]);
-        assert_eq!(first["resources"].as_array().unwrap().len(), 23);
+        assert_eq!(first["resources"].as_array().unwrap().len(), 24);
         assert!(first["resources"]
             .as_array()
             .unwrap()

@@ -19,6 +19,7 @@ on:
       - targets/browser/host/assets/book.mjs
       - targets/browser/host/assets/book-state.mjs
       - targets/browser/host/assets/book-navigation.mjs
+      - targets/browser/host/assets/book-runner-presentation.mjs
       - targets/browser/host/assets/book.application.template.json
       - targets/browser/host/assets/browser-application-loader.mjs
       - targets/browser/host/assets/browser-application-storage.mjs
@@ -27,6 +28,7 @@ on:
       - apps/patchbay/html/assets/react-dom.min.js
       - apps/patchbay/html/assets/react-flow.min.js
       - apps/patchbay/html/assets/react-flow.css
+      - apps/patchbay/html/assets/flow.css
       - apps/patchbay/html/assets/flow.js
       - apps/patchbay/html/assets/flow-scene.js
       - apps/patchbay/html/assets/flow-layout.js
@@ -440,7 +442,7 @@ jobs:
           path: target/pages-site/creche
       - name: Verify the combined Pages carrier
         run: |
-          test "$(find target/pages-site/book -type f | wc -l)" -eq 43
+          test "$(find target/pages-site/book -type f | wc -l)" -eq 44
           test "$(find target/pages-site/creche -type f | wc -l)" -eq 74
           actual=$(find target/pages-site -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)
           expected=$(printf '%s\n' book creche index.html site.css | LC_ALL=C sort)
