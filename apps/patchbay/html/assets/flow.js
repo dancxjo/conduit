@@ -102,7 +102,7 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
       return next.nodes;
     });
     setEdges(presentEdges(projected.edges));
-  }, [projected.workspaceIdentity, projected.lens, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision]);
+  }, [projected.workspaceIdentity, projected.lens, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision]);
   arrangeCurrent = () => {
     const next = reconcileFlowScene(projected);
     setNodes(next.nodes);
@@ -113,9 +113,14 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
     ...node,
     data: { ...node.data, onActivate: onSelect, onOpenBack },
   }));
+  const liveSummary = (snapshot.debugger?.activities || [])
+    .slice(-8)
+    .map((activity) => `${activity.subject}: ${activity.latest_kind}${activity.latest_value ? ` ${activity.latest_value.summary}` : ""}`)
+    .join("; ");
   return e(
-    ReactFlow,
-    {
+    React.Fragment,
+    null,
+    e(ReactFlow, {
       nodes: presentedNodes,
       edges,
       nodeTypes,
@@ -158,6 +163,8 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
     },
     e(Flow.Background, { gap: 24, size: 1 }),
     e(Flow.Controls, { position: "bottom-right", showInteractive: false }),
+    ),
+    e("p", { className: "debugger-live-region", "aria-live": "polite", "aria-atomic": "true" }, liveSummary),
   );
 }
 

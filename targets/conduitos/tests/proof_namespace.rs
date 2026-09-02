@@ -12,14 +12,22 @@ fn architecture_rung_entrypoints_are_proof_owned() {
 
     assert_eq!(
         ordinary_bins,
-        ["aarch64_orange_pi_5.rs".into(), "aarch64_product.rs".into()].into()
+        [
+            "aarch64_orange_pi_5.rs".into(),
+            "aarch64_product.rs".into(),
+            "ia32_product.rs".into(),
+            "riscv64_product.rs".into(),
+        ]
+        .into()
     );
 
     let manifest = fs::read_to_string(root.join("Cargo.toml")).expect("ConduitOS manifest");
     assert_eq!(manifest.matches("path = \"proof-appliances/").count(), 17);
-    assert_eq!(manifest.matches("path = \"src/bin/").count(), 2);
+    assert_eq!(manifest.matches("path = \"src/bin/").count(), 4);
     assert!(manifest.contains("path = \"src/bin/aarch64_orange_pi_5.rs\""));
     assert!(manifest.contains("path = \"src/bin/aarch64_product.rs\""));
+    assert!(manifest.contains("path = \"src/bin/ia32_product.rs\""));
+    assert!(manifest.contains("path = \"src/bin/riscv64_product.rs\""));
 
     let ordinary_linkers = fs::read_dir(root.join("linker"))
         .expect("ordinary ConduitOS linker directory")
@@ -31,6 +39,8 @@ fn architecture_rung_entrypoints_are_proof_owned() {
         [
             "aarch64_orange_pi_5.ld".into(),
             "aarch64_product.ld".into(),
+            "ia32_product.ld".into(),
+            "riscv64_product.ld".into(),
             "x86_64.ld".into(),
         ]
         .into()

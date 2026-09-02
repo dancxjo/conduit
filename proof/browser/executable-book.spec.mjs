@@ -323,6 +323,21 @@ test("Book Patchbay shows an invalid Form, marks its broken Cord, and explains t
   await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("Gear bound exceeded");
 });
 
+test("read-only Conduit prose examples use the admitted canonical syntax projection", async ({ page }) => {
+  await openStep(page, 6);
+  const example = page.locator('.syntax-example[aria-label="Read-only Conduit example"]');
+  await expect(example).toHaveCount(1);
+  await expect(example).toHaveAttribute("data-syntax-disposition", "accepted");
+  await expect(example.locator(".syntax-keyword")).toHaveText("form");
+  await expect(example.locator(".syntax-name").first()).toHaveText("morse-network");
+  await expect(example.locator(".syntax-identity").first()).toHaveText("text/literal");
+  await expect(example).toContainText("message > morse > light");
+
+  await openStep(page, 5);
+  await expect(page.locator(".concept-diagram")).toHaveCount(1);
+  await expect(page.locator(".concept-diagram [class^=syntax-]")).toHaveCount(0);
+});
+
 test("Book Patchbay keeps branching explicit and opens one reviewed Back beneath its Face", async ({ page }) => {
   await openStep(page, 0);
   const fanout = page.locator(".runner").nth(2).locator(".compact-patchbay");

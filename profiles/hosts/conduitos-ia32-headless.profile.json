@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.host/profile@1",
+  "name": "conduitos-ia32-headless",
+  "target": { "family": "conduitos", "architecture": "ia32", "machine": "pc", "build_profile": "release" },
+  "host_core": "host-core/conduitos@1",
+  "fragments": [],
+  "capabilities": [],
+  "host_operations": ["conduit.host/present@1"],
+  "resources": [],
+  "bases": [{ "id": "serial/main", "kind": "conduitos/ia32-debugcon-text", "driver": "conduitos/ia32-debugcon@1" }],
+  "drivers": [{ "id": "driver/serial", "kind": "conduitos/ia32-debugcon@1" }],
+  "lines": [],
+  "presenters": [{ "id": "presenter/main", "implementation": "presenter/ia32-linear-debugcon@1", "interactive": false }],
+  "facilities": [],
+  "exclusions": ["presenter/native-graphical@1", "presenter/browser-dom-svg@1", "compositor/native@1"],
+  "policy": { "authority_profile": "authority/explicit@1", "trust_profile": "trust/local-explicit@1", "update_profile": "update/rebuild@1", "ambient_defaults": false },
+  "bounds": { "static_memory_bytes": 1048576, "heap_arena_bytes": 0, "queue_items": 64, "buffered_bytes": 16384, "active_instances": 16, "operation_slots": 8, "timer_slots": 4, "line_sessions": 1, "evidence_items": 64 }
+}

@@ -1,10 +1,20 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
+import { createApplicationPresentationHost } from "/assets/application-presentation.mjs";
 import { arrangeFlow, fitFlow, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { installPanelFurniture } from "/assets/panel-furniture.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 
 const schema = "conduit.patchbay.portable-presentation";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", gearQuery:"", cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
+const applicationPresentation = createApplicationPresentationHost();
+let statusRevision = 0;
+function presentStatus(text, component = "status") {
+  applicationPresentation.present("patchbay-status", {
+    revision: ++statusRevision,
+    actions: [],
+    nodes: [{ parent: null, component, key: "renderer-status", text, action: null }],
+  });
+}
 
 function requireSnapshot(value) {
   const presentation=value?.presentation;
@@ -14,6 +24,9 @@ function requireSnapshot(value) {
   for(const action of presentation.actions){if(typeof action.identity!=="string"||typeof action.target!=="string"||typeof action.label!=="string"||!(action.availability==="Available"||action.availability?.Unavailable||action.availability?.Refused))throw new Error("malformed semantic action");}
   if(value.parts&&(!Array.isArray(value.parts.parts)||!Array.isArray(value.parts.wants_to_join)||!Array.isArray(value.parts.actions)||value.parts.body_id!==presentation.basis.body_id||!value.parts.truth_explanation||Object.values(value.parts.truth_explanation).some(explanation=>typeof explanation!=="string")))throw new Error("malformed canonical Parts projection");
   if(value.authoring&&(!Array.isArray(value.authoring.palette)||value.authoring.palette.length>69||typeof value.authoring.source_document_id!=="string"||typeof value.authoring.expanded_form_id!=="string"||!Number.isSafeInteger(value.authoring.source_revision)))throw new Error("malformed bounded authoring projection");
+  if(value.watches&&(!Array.isArray(value.watches.eligible_subjects)||!Array.isArray(value.watches.watches)||value.watches.watches.length>8||!Number.isSafeInteger(value.watches.revision)))throw new Error("malformed bounded debugger Watches");
+  if((value.timeline&&!value.timeline_projection)||(!value.timeline&&value.timeline_projection)||value.timeline&&(!Array.isArray(value.timeline.events)||value.timeline.events.length>128||value.timeline.retained_bytes>65536||!Number.isSafeInteger(value.timeline.revision)||!Array.isArray(value.timeline_projection.states)||!Array.isArray(value.timeline_projection.watch_states)))throw new Error("malformed bounded debugger timeline");
+  if(value.debugger_control&&(!Array.isArray(value.debugger_control.eligible_subjects)||value.debugger_control.eligible_subjects.length>16||!Number.isSafeInteger(value.debugger_control.revision)))throw new Error("malformed bounded debugger execution control");
   for (const property of presentation.properties) {
     const base=property.value?.BaseImplementationId;
     if (base!==undefined && (typeof base!=="string" || base.length===0)) throw new Error("malformed Base implementation identity");
@@ -67,7 +80,7 @@ function displaySelection(identity){
   const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection"),exactFacts=exact.querySelector("dl");summary.replaceChildren();exactFacts.replaceChildren();
   document.querySelector("#clear-selection").hidden=!subject;
   document.querySelector("#center-flow").disabled=!subject;
-  if(!subject){document.querySelector("#semantic-actions").replaceChildren();document.querySelector("#authoring-actions").replaceChildren();exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
+  if(!subject){document.querySelector("#semantic-actions").replaceChildren();document.querySelector("#authoring-actions").replaceChildren();renderTimeline(null);renderWatches(null);exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
   const depth=state.projected.cursor?.depth??"Exact";exact.hidden=!(["Detail","Exact"].includes(depth));document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;term(summary,"Meaning",subject.label);term(summary,"Subject",subject.role);
   const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name,full=propertyText(item.value);term(summary,name,summaryText(item.value),full);}
   if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));term(summary,"Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below");}
@@ -76,7 +89,44 @@ function displaySelection(identity){
   if(depth==="Exact"){const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);}
   renderSemanticActions(identity);
   renderAuthoringActions(subject);
+  renderTimeline(subject);
+  renderWatches(subject);
   if(focusedAction)document.querySelector(`#semantic-actions [data-semantic-action="${CSS.escape(focusedAction)}"]`)?.focus();
+}
+
+function watchValue(entry){
+  if(!entry)return "No retained observation";
+  if(entry.fault_code!==null&&entry.fault_code!==undefined)return `Fault ${entry.fault_code}`;
+  return entry.value?.summary??entry.event;
+}
+function renderTimeline(subject){
+  renderExecutionControl(subject);
+  const section=document.querySelector("#debugger-timeline"),status=section.querySelector(".timeline-status"),controls=section.querySelector(".timeline-controls"),gap=section.querySelector(".timeline-gap"),list=section.querySelector(".timeline-events"),timeline=state.snapshot?.timeline,projection=state.snapshot?.timeline_projection;controls.replaceChildren();list.replaceChildren();section.hidden=!timeline;if(!timeline||!projection){status.textContent="No retained observations available.";gap.textContent="";return;}
+  const control=(label,action,disabled=false)=>{const item=editButton(label,()=>dispatchTimeline(action));item.disabled=disabled;controls.append(item);};
+  control(projection.mode==="live"?"Pause visualization":"Visualization paused","pause",projection.mode!=="live");control("Previous event","previous",projection.cursor==null||projection.cursor===0);control("Next event","next",projection.cursor==null||projection.cursor===timeline.events.length-1);control("Jump live","jump-live",projection.mode==="live");
+  const hasSubject=subject&&timeline.events.some(event=>event.subject===subject.identity||event.related_subject===subject.identity);if(hasSubject)controls.append(editButton("Focus events for exact subject",()=>dispatchTimeline("filter-subject",{subject:subject.identity})));if(timeline.subject_filter)controls.append(editButton("Show all events",()=>dispatchTimeline("clear-filter")));if(projection.cursor!=null){controls.append(editButton("Trace upstream",()=>dispatchTimeline("trace-upstream")),editButton("Trace downstream",()=>dispatchTimeline("trace-downstream")));}if(timeline.trace)controls.append(editButton("Clear causal trace",()=>dispatchTimeline("clear-trace")));
+  status.textContent=`${projection.mode==="live"?"Following live observations":"Debugger replay paused; execution is not paused"} · ${timeline.events.length} of 128 events · cursor ${projection.cursor_sequence??"none"} · ${timeline.retained_bytes} of 65536 bytes`;
+  const traceGap=timeline.trace?.missing_parent_sequences?.length?` Causal history unavailable for parent sequence ${timeline.trace.missing_parent_sequences.join(", ")}; no topology edge was substituted.`:"";gap.textContent=(timeline.gap?`Replay is incomplete: ${timeline.gap.dropped_records} observations lost before sequence ${timeline.gap.first_retained_sequence}. Exact reconstruction across this gap is unavailable.`:timeline.evicted_events?`${timeline.evicted_events} oldest events evicted; available range begins at sequence ${timeline.events[0]?.sequence}.`:"")+traceGap;
+  const traceSteps=new Map((timeline.trace?.steps??[]).map((step,position)=>[step.event_index,position+1]));timeline.events.forEach((event,index)=>{if(timeline.subject_filter&&event.subject!==timeline.subject_filter&&event.related_subject!==timeline.subject_filter)return;const row=document.createElement("li"),selectEvent=document.createElement("button"),context=document.createElement("div"),traceNumber=traceSteps.get(index);row.setAttribute("aria-current",String(projection.cursor===index));row.dataset.causalTrace=traceNumber?"exact":"unrelated";selectEvent.type="button";selectEvent.textContent=`${traceNumber?`trace ${traceNumber} · `:""}seq ${event.sequence} · ${event.event} · ${event.subject} · ${watchValue(event)}`;selectEvent.onclick=()=>dispatchTimeline("select-event",{index});context.className="timeline-event-context";context.textContent=`Host ${event.host} · Form ${event.form} · Body ${event.execution.body.join("")} · Plan ${event.execution.plan.join("")} · Play ${event.execution.play.join("")}${event.invocation_sequence!=null?` · Invocation ${event.invocation_sequence}`:""}`;row.append(selectEvent,context);list.append(row);});
+}
+function renderExecutionControl(subject){
+  const section=document.querySelector("#debugger-control"),status=section.querySelector(".control-status"),actions=section.querySelector(".control-actions"),control=state.snapshot?.debugger_control;actions.replaceChildren();section.hidden=!control;if(!control){status.textContent="Execution control unavailable.";return;}const selected=subject?.identity,eligible=control.eligible_subjects.includes(selected);if(control.state==="suspended"){status.textContent=`Execution actually suspended before Gear start at ${control.suspended_subject}. This is runtime suspension, not visualization replay pause.`;actions.append(editButton("Resume execution",()=>dispatchDebuggerControl("resume")));}else if(control.state==="running"){status.textContent="Execution running. Pausing the timeline does not suspend this Play.";if(eligible)actions.append(editButton("Break here",()=>dispatchDebuggerControl("break-here",selected)));}else status.textContent=`Execution control ${control.state}: ${control.reason??"the exact execution context is unavailable"}`;
+}
+function renderWatches(subject){
+  const section=document.querySelector("#debugger-watches"),status=section.querySelector(".watch-status"),actions=section.querySelector(".watch-actions"),list=section.querySelector(".watch-list"),set=state.snapshot?.watches;actions.replaceChildren();list.replaceChildren();section.hidden=!set;if(!set){status.textContent="No debugger Watches available.";return;}
+  const selected=subject?.identity,eligible=set.eligible_subjects.some(([identity])=>identity===selected),current=set.watches.find(watch=>watch.subject===selected);
+  if(eligible&&selected){
+    if(current){actions.append(editButton("Remove Watch",()=>dispatchWatch("remove",selected)),editButton("Clear Watch history",()=>dispatchWatch("clear-history",selected)));}
+    else actions.append(editButton("Watch",()=>dispatchWatch("add",selected)));
+  }
+  status.textContent=`${set.watches.length} of 8 Watches · sequence-domain rates only`;
+  for(const watch of set.watches){
+    const replay=state.snapshot.timeline_projection?.watch_states.find(candidate=>candidate.subject===watch.subject),shown=replay?.historical?{...watch,latest:replay.latest}:watch;
+    const item=document.createElement("li"),card=document.createElement("article"),focus=document.createElement("button"),facts=document.createElement("dl"),history=document.createElement("ol");card.className="watch-card";card.setAttribute("aria-current",String(set.focused_subject===watch.subject));focus.type="button";focus.textContent=`Watch ${watch.subject}`;focus.onclick=()=>dispatchWatch("focus",watch.subject).then(()=>select(watch.subject));card.append(focus);term(facts,"State",replay?.historical?"historical replay":watch.lifecycle);term(facts,"Latest",watchValue(shown.latest));term(facts,"Kind",shown.latest?.value?.kind??(shown.latest?.fault_code!=null?"fault":shown.latest?.event));term(facts,"Type",shown.latest?.value?.type_identity);if(shown.latest?.value?.truncated)term(facts,"Preview",`Truncated bounded preview of ${shown.latest.value.total_bytes} bytes`);term(facts,"Updates",watch.update_count);term(facts,"Latest sequence",shown.latest?.sequence);term(facts,"Rate",replay?.historical?"Historical cursor; live rate not shown":watch.rate?`${watch.rate.updates} updates / ${watch.rate.sequence_span} sequence steps`:"Unavailable without an authoritative time basis");card.append(facts);
+    if(watch.lifecycle!=="current"){const stale=document.createElement("p");stale.className="watch-stale";stale.textContent=watch.lifecycle==="missing"?"Exact watched subject is no longer present.":"Historical Watch from a replaced execution; not current.";card.append(stale);}
+    if(watch.telemetry_gap){const gap=document.createElement("p");gap.className="watch-gap";gap.textContent=`History incomplete: ${watch.telemetry_gap.dropped_records} observations lost before sequence ${watch.telemetry_gap.first_retained_sequence}.`;card.append(gap);}
+    history.className="watch-history";history.setAttribute("aria-label",`Recent observations for ${watch.subject}`);for(const entry of watch.history){const row=document.createElement("li"),detail=document.createElement("details"),label=document.createElement("summary"),exact=document.createElement("dl");label.textContent=`seq ${entry.sequence} · ${entry.event} · ${watchValue(entry)}`;term(exact,"Exact subject",watch.subject);term(exact,"Execution",`Body ${watch.execution.body.join("")} · Plan ${watch.execution.plan.join("")} · Play ${watch.execution.play.join("")}`);term(exact,"Sequence",entry.sequence);term(exact,"Event",entry.event);detail.append(label,exact);row.append(detail);history.append(row);}card.append(history);item.append(card);list.append(item);
+  }
 }
 
 function editButton(label,run){const button=document.createElement("button");button.type="button";button.textContent=label;button.onclick=run;return button;}
@@ -109,6 +159,16 @@ async function dispatchNavigation(operation){
   const response=await fetch("/api/navigation",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});
   if(!response.ok)throw new Error(`navigation delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
+}
+async function dispatchWatch(action,subject){
+  const watches=state.snapshot.watches;if(!watches)throw new Error("debugger Watches are unavailable");const response=await fetch("/api/debugger-watch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,watch_revision:watches.revision,action,subject})});if(!response.ok)throw new Error(`debugger Watch HTTP ${response.status}`);const next=requireSnapshot(await response.json());render(next);return next;
+}
+let timelineDispatch=Promise.resolve();
+function dispatchTimeline(action,extra={}){
+  const run=timelineDispatch.then(async()=>{const timeline=state.snapshot.timeline;if(!timeline)throw new Error("debugger timeline is unavailable");const response=await fetch("/api/debugger-timeline",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,timeline_revision:timeline.revision,action,...extra})});if(!response.ok)throw new Error(`debugger timeline HTTP ${response.status}`);const next=requireSnapshot(await response.json());render(next);return next;});timelineDispatch=run.catch(()=>{});return run;
+}
+async function dispatchDebuggerControl(action,subject){
+  const control=state.snapshot.debugger_control;if(!control)throw new Error("runtime debugger control is unavailable");const response=await fetch("/api/debugger-control",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,control_revision:control.revision,action,...(subject?{subject}: {})})});if(!response.ok)throw new Error(`debugger control HTTP ${response.status}`);const next=requireSnapshot(await response.json());render(next);return next;
 }
 async function closeSubordinateSurfaces(except){
   const closeTruth=except!=="truth"&&document.body.dataset.truthOpen==="true";
@@ -235,7 +295,7 @@ function render(snapshot){
   const entering=state.snapshot===null;state.snapshot=snapshot;state.projected=projectCurrent(snapshot);const p=snapshot.presentation,b=p.basis,renderer=snapshot.renderer,manifestation=renderer.manifestation,cursor=snapshot.navigation?.cursor;if(entering&&!cursor)state.lens=({World:"world",Intent:"form",Realization:"plan"})[snapshot.entrance.layer]??state.lens;if(cursor)state.lens=lensForCursor(cursor);document.body.dataset.lens=state.lens;document.body.dataset.place=cursor?.place??"Canonical";document.body.dataset.aspect=cursor?.aspect??"Canonical";document.body.dataset.depth=cursor?.depth??"Canonical";
   document.body.dataset.embodied=String(b.body_id!==null);
   const unbodied=b.body_id===null,atEntrance=cursor?.place==="Entrance",authoring=Boolean(snapshot.authoring);document.querySelector("#toggle-palette").textContent=authoring?"Gears":atEntrance?"Seeds":"Navigate";document.querySelector("#palette-title").textContent=authoring?"Gears":atEntrance?"Seeds":"Navigate";document.querySelector("#seed-palette").hidden=!atEntrance||authoring;document.querySelector("#gear-palette").hidden=!authoring;document.querySelector("#structure-title").textContent=cursor?`${cursor.place} ${cursor.aspect}`:(unbodied?"World context":"Program structure");renderNavigationControls();document.querySelector("#lens-label").textContent=cursor?`${cursor.place.toUpperCase()} · ${cursor.aspect.toUpperCase()}`:`${state.lens.toUpperCase()} LENS`;document.querySelector("#canvas-title").textContent=cursor?.place==="Entrance"&&!authoring?"Entrance choices":cursor?.place==="Body"?"Body topology":"Program structure";
-  document.querySelector("#status").textContent=`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · ${snapshot.authoring?"canonical authoring":"read-only"}`;
+  presentStatus(`Presentation revision ${p.revision} · content ${p.identity} · Manifestation ${manifestation.lifecycle} · ${snapshot.authoring?"canonical authoring":"read-only"}`);
   document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
   document.querySelector("#ordinary-summary").textContent=subjects("Info").flatMap(subject=>texts(subject.identity)).join(" · ");
   document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;const lossAction=p.actions.find(action=>action.intent==="conduit.intent/observe-line-loss@1"),lossButton=document.querySelector("#text-lab-loss");lossButton.hidden=!lossAction;lossButton.disabled=lossAction?.availability!=="Available";
@@ -249,7 +309,7 @@ function render(snapshot){
   fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",state.projected.text.map(item=>item.text));displaySelection(cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
 
-async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){document.querySelector("#status").textContent=state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`;}}
+async function load(){try{const response=await fetch("/api/snapshot",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
 async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss"),feedback=document.querySelector("#front-door-feedback");button.disabled=true;feedback.textContent="Running the exact split Text Lab until browser loss…";const {base}=await fetch("/api/text-lab-base",{cache:"no-store"}).then(response=>response.json());const {BrowserWebSocketLine}=await import("/assets/websocket-line.mjs"),{instantiateTextLabLive,runTextLabLive}=await import("/assets/text-lab-live-runtime.mjs"),wasm=await fetch("/assets/conduit-browser-runtime.wasm").then(response=>{if(!response.ok)throw new Error("browser runtime unavailable");return response.arrayBuffer();}),openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(wasm,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");feedback.textContent="Browser loss observed; awaiting the native causal receipt.";}
 async function joinCurrentBody(){
   const response=await fetch("/api/body-admission",{cache:"no-store"});
@@ -260,7 +320,7 @@ async function joinCurrentBody(){
   if(!wasm.ok)throw new Error(`browser Host runtime HTTP ${wasm.status}`);
   window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:await wasm.arrayBuffer(),onState:()=>load()});
 }
-document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{document.querySelector("#status").textContent=`Browser Host admission unavailable: ${error.message}`;});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
+presentStatus("Loading bounded snapshot…");document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);

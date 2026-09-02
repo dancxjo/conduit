@@ -1,12 +1,13 @@
 use patchbay_html::{
     body_workbench_fixture_snapshot, body_workbench_snapshot, cross_host_demonstration_snapshot,
-    llm_documentary_snapshot, llm_embodiment_snapshot, load_seed_sources, text_lab_split_snapshot,
-    BrowserBodyWorkbenchEntrance, PatchbayHtmlServer, SeedSource,
+    demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot, load_seed_sources,
+    text_lab_split_snapshot, BrowserBodyWorkbenchEntrance, PatchbayHtmlServer, SeedSource,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Arguments {
     documentary_fixture: bool,
+    debugger_watch_fixture: bool,
     llm_documentary_fixture: bool,
     llm_embodiment_fixture: Option<usize>,
     text_lab_split: Option<String>,
@@ -21,8 +22,12 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
     let mut parsed = Arguments::default();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
+            "--debugger-watch-fixture" if parsed == Arguments::default() => {
+                parsed.debugger_watch_fixture = true;
+            }
             "--documentary-fixture"
-                if !parsed.documentary_fixture
+                if !parsed.debugger_watch_fixture
+                    && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
@@ -31,7 +36,8 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                 parsed.documentary_fixture = true;
             }
             "--llm-documentary-fixture"
-                if !parsed.documentary_fixture
+                if !parsed.debugger_watch_fixture
+                    && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
@@ -40,7 +46,8 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                 parsed.llm_documentary_fixture = true;
             }
             "--llm-embodiment-fixture"
-                if !parsed.documentary_fixture
+                if !parsed.debugger_watch_fixture
+                    && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
@@ -55,7 +62,8 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                 );
             }
             "--text-lab-split"
-                if !parsed.documentary_fixture
+                if !parsed.debugger_watch_fixture
+                    && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
@@ -68,7 +76,8 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                 );
             }
             "--seed"
-                if !parsed.documentary_fixture
+                if !parsed.debugger_watch_fixture
+                    && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none() =>
@@ -84,6 +93,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             "--body-evidence"
                 if parsed.body_evidence.is_none()
                     && parsed.body_workbench_fixture.is_none()
+                    && !parsed.debugger_watch_fixture
                     && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
@@ -100,6 +110,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             "--body-workbench-fixture"
                 if parsed.body_workbench_fixture.is_none()
                     && parsed.body_evidence.is_none()
+                    && !parsed.debugger_watch_fixture
                     && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
@@ -141,7 +152,10 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
 
 fn main() -> Result<(), String> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
-    let server = if let Some(hosted) = arguments.body_workbench_fixture {
+    let server = if arguments.debugger_watch_fixture {
+        let snapshot = demonstration_snapshot()?;
+        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+    } else if let Some(hosted) = arguments.body_workbench_fixture {
         let snapshot =
             body_workbench_fixture_snapshot(hosted).map_err(|error| error.to_string())?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?

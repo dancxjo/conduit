@@ -18,6 +18,18 @@ mod candidate_form;
 mod control;
 mod cross_host_renderer;
 mod current_body_frame;
+mod debugger_control;
+#[cfg(test)]
+mod debugger_control_tests;
+mod debugger_presentation;
+#[cfg(test)]
+mod debugger_presentation_tests;
+mod debugger_timeline;
+#[cfg(test)]
+mod debugger_timeline_tests;
+mod debugger_watch;
+#[cfg(test)]
+mod debugger_watch_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
@@ -114,6 +126,29 @@ pub use current_body_frame::{
     CurrentBodyFrame, CurrentBodyFrameError, CurrentBodyFrameSlot, CurrentBodyHost,
     CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
     CurrentBodyPhysicalHostSummary, CurrentBodyProgram, CurrentBodyTransition,
+};
+pub use debugger_control::{
+    DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
+    MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,
+};
+pub use debugger_presentation::{
+    DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerGapPresentation,
+    DebuggerPresentation, DebuggerPresentationError, DebuggerSubjectActivity,
+    DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
+    DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
+    RECENT_ACTIVITY_TICKS,
+};
+pub use debugger_timeline::{
+    DebuggerCausalTrace, DebuggerTimeline, DebuggerTimelineBinding, DebuggerTimelineError,
+    DebuggerTimelineEvent, DebuggerTimelineMode, DebuggerTimelineProjection,
+    DebuggerTimelineSubjectState, DebuggerTimelineWatchState, DebuggerTraceDirection,
+    DebuggerTraceStep, DEBUGGER_TIMELINE_SCHEMA, MAX_DEBUGGER_TIMELINE_BYTES,
+    MAX_DEBUGGER_TIMELINE_EVENTS,
+};
+pub use debugger_watch::{
+    DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
+    DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
+    DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
 };
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,

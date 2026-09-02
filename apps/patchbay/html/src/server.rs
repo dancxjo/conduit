@@ -6,6 +6,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
 mod browser_membership;
+mod debug_control;
 mod front_door;
 mod http;
 mod interaction;
@@ -14,8 +15,11 @@ mod observation;
 mod parts;
 mod text_lab_loss;
 mod theme;
+mod timeline;
 mod transition;
+mod watches;
 
+use debug_control::DocumentaryDebuggerRuntime;
 use http::{read_request, write_response};
 use theme::render_theme_css;
 
@@ -30,6 +34,8 @@ const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js
 const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
 const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
+const APPLICATION_PRESENTATION_SCRIPT: &[u8] =
+    include_bytes!("../../../../targets/browser/host/assets/application-presentation.mjs");
 const TEXT_LAB_RUNTIME_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/text-lab-live-runtime.mjs");
 const WEBSOCKET_LINE_SCRIPT: &[u8] =
@@ -118,6 +124,7 @@ pub struct PatchbayHtmlServer {
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
+    debug_runtime: Option<DocumentaryDebuggerRuntime>,
 }
 
 impl PatchbayHtmlServer {
@@ -134,6 +141,7 @@ impl PatchbayHtmlServer {
         if theme_css.len() > MAX_THEME_CSS_BYTES {
             return Err(ServerError::ThemeCssTooLarge);
         }
+        let debug_runtime = DocumentaryDebuggerRuntime::from_snapshot(&snapshot)?;
         Ok(Self {
             listener,
             snapshot,
@@ -149,6 +157,7 @@ impl PatchbayHtmlServer {
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
+            debug_runtime,
         })
     }
 
@@ -312,6 +321,66 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
+        if first == "POST /api/debugger-watch HTTP/1.1" {
+            let body = match self.apply_debugger_watch(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid debugger Watch request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
+        if first == "POST /api/debugger-timeline HTTP/1.1" {
+            let body = match self.apply_debugger_timeline(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid debugger timeline request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
+        if first == "POST /api/debugger-control HTTP/1.1" {
+            let body = match self.apply_debugger_control(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid debugger control request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
         if first == "POST /api/navigation HTTP/1.1" {
             let body = match self.apply_navigation(&request.body) {
                 Ok(body) => body,
@@ -386,6 +455,11 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 MEMBERSHIP_SCRIPT,
+            ),
+            "GET /assets/application-presentation.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_PRESENTATION_SCRIPT,
             ),
             "GET /assets/text-lab-live-runtime.mjs HTTP/1.1" => (
                 "200 OK",

@@ -12,6 +12,7 @@ extern crate alloc;
 
 use core::mem::size_of;
 
+pub mod debug_observation;
 pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
@@ -765,6 +766,12 @@ pub trait SignSink {
     ) -> Result<KernelEvent, SignError>;
 
     fn ensure_remote_capacity(&self, additional: u16) -> Result<(), SignError>;
+
+    /// Offers optional debugger telemetry beside mandatory execution Signs.
+    /// Implementations must never turn debugger pressure or detachment into an
+    /// execution error. The default detached observer deliberately does
+    /// nothing.
+    fn observe_debug(&mut self, _event: debug_observation::DebugRuntimeEvent<'_>) {}
 }
 
 pub trait SignQuery {

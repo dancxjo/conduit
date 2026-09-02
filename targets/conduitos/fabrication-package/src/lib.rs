@@ -27,6 +27,16 @@ impl ConduitOsProductArtifact {
                 binary: "conduitos-aarch64-product",
                 rust_target: "aarch64-unknown-none",
             }),
+            "conduitos/ia32/pc" => Some(Self {
+                target: "conduitos/ia32/pc",
+                binary: "conduitos-ia32-product",
+                rust_target: "i686-unknown-linux-gnu",
+            }),
+            "conduitos/riscv64/virt" => Some(Self {
+                target: "conduitos/riscv64/virt",
+                binary: "conduitos-riscv64-product",
+                rust_target: "riscv64gc-unknown-none-elf",
+            }),
             _ => None,
         }
     }
@@ -47,16 +57,38 @@ fn package_catalog() -> PackageCatalogContribution {
                 ],
             },
         )]),
-        presenters: BTreeMap::from([(
-            "presenter/linear-serial@1".into(),
-            PresenterMetadata {
-                targets: vec!["conduitos/aarch64/virt".into()],
-                prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
-                    PrerequisiteNode::Base("serial/text".into()),
-                ],
-            },
-        )]),
+        presenters: BTreeMap::from([
+            (
+                "presenter/linear-serial@1".into(),
+                PresenterMetadata {
+                    targets: vec!["conduitos/aarch64/virt".into()],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Base("serial/text".into()),
+                    ],
+                },
+            ),
+            (
+                "presenter/ia32-linear-debugcon@1".into(),
+                PresenterMetadata {
+                    targets: vec!["conduitos/ia32/pc".into()],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Base("conduitos/ia32-debugcon-text".into()),
+                    ],
+                },
+            ),
+            (
+                "presenter/riscv64-linear-sbi-console@1".into(),
+                PresenterMetadata {
+                    targets: vec!["conduitos/riscv64/virt".into()],
+                    prerequisites: vec![
+                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::Base("conduitos/riscv64-sbi-console-text".into()),
+                    ],
+                },
+            ),
+        ]),
         dependencies: BTreeMap::from([
             (
                 PrerequisiteNode::Base("serial/text".into()),
@@ -89,7 +121,7 @@ fn package_catalog() -> PackageCatalogContribution {
 
 fn target(label: &str, architecture: &str, machine: &str) -> TargetDescriptor {
     let rust_target = match architecture {
-        "ia32" => "i686-unknown-none",
+        "ia32" => "i686-unknown-linux-gnu-object+rust-lld-elf_i386",
         "riscv64" => "riscv64gc-unknown-none-elf",
         "loongarch64" => "loongarch64-unknown-none",
         "aarch64" => "aarch64-unknown-none",
@@ -104,12 +136,18 @@ fn target(label: &str, architecture: &str, machine: &str) -> TargetDescriptor {
         board: None,
         os: None,
         host_core: "host-core/conduitos@1".into(),
-        presenter: (architecture == "aarch64").then(|| TargetPresenter {
-            id: "presenter/main".into(),
-            implementation_id: "presenter/linear-serial@1".into(),
-            interactive: false,
+        presenter: matches!(architecture, "ia32" | "aarch64" | "riscv64").then(|| {
+            TargetPresenter {
+                id: "presenter/main".into(),
+                implementation_id: match architecture {
+                    "ia32" => "presenter/ia32-linear-debugcon@1".into(),
+                    "riscv64" => "presenter/riscv64-linear-sbi-console@1".into(),
+                    _ => "presenter/linear-serial@1".into(),
+                },
+                interactive: false,
+            }
         }),
-        host_operations: (architecture == "aarch64")
+        host_operations: matches!(architecture, "ia32" | "aarch64" | "riscv64")
             .then(|| "conduit.host/present@1".into())
             .into_iter()
             .collect(),
@@ -157,6 +195,22 @@ impl HostFabricationPackage for ConduitOsFabricationPackage {
                     build_feature: Some("base-pl011".into()),
                 },
                 ImplementationOffer {
+                    base_kind: "conduitos/ia32-debugcon-text".into(),
+                    implementation_id: "conduitos/ia32-debugcon@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec!["conduitos/ia32/pc".into()],
+                    prerequisites: Vec::new(),
+                    build_feature: Some("base-ia32-debugcon".into()),
+                },
+                ImplementationOffer {
+                    base_kind: "conduitos/riscv64-sbi-console-text".into(),
+                    implementation_id: "conduitos/riscv64-sbi-console@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec!["conduitos/riscv64/virt".into()],
+                    prerequisites: Vec::new(),
+                    build_feature: None,
+                },
+                ImplementationOffer {
                     base_kind: "network/ipv4-tcp".into(),
                     implementation_id: "conduitos/deterministic-ipv4-tcp@1".into(),
                     implementation_revision: 1,
@@ -177,10 +231,17 @@ mod tests {
     fn product_registry_has_no_architecture_proof_aliases() {
         let product = ConduitOsProductArtifact::for_target("conduitos/aarch64/virt").unwrap();
         assert_eq!(product.binary, "conduitos-aarch64-product");
+        let ia32 = ConduitOsProductArtifact::for_target("conduitos/ia32/pc").unwrap();
+        assert_eq!(ia32.binary, "conduitos-ia32-product");
+        assert_eq!(ia32.rust_target, "i686-unknown-linux-gnu");
+        let riscv64 = ConduitOsProductArtifact::for_target("conduitos/riscv64/virt").unwrap();
+        assert_eq!(riscv64.binary, "conduitos-riscv64-product");
+        assert_eq!(riscv64.rust_target, "riscv64gc-unknown-none-elf");
         for proof_identity in [
             "conduitos/aarch64/a0-proof",
             "conduitos/aarch64/a3-proof",
             "conduitos-aarch64-a3",
+            "conduitos-riscv64-a4",
         ] {
             assert!(ConduitOsProductArtifact::for_target(proof_identity).is_none());
         }

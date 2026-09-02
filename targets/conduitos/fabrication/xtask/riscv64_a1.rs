@@ -140,6 +140,14 @@ fn boot_once(paths: &Paths) -> Result<EntrySign, ConduitosError> {
 }
 
 pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String, ConduitosError> {
+    boot_until_image(paths, &paths.iso, terminal_prefix)
+}
+
+pub(super) fn boot_until_image(
+    paths: &Paths,
+    image: &std::path::Path,
+    terminal_prefix: &str,
+) -> Result<String, ConduitosError> {
     if !paths.limine.join("BOOTRISCV64.EFI").is_file() {
         return Err(refusal(
             "missing-riscv64-bootloader-artifact",
@@ -182,7 +190,7 @@ pub(super) fn boot_until(paths: &Paths, terminal_prefix: &str) -> Result<String,
         .arg("-drive")
         .arg(format!(
             "if=virtio,format=raw,readonly=on,file={}",
-            paths.iso.display()
+            image.display()
         ))
         .current_dir(&paths.root)
         .stdin(Stdio::null())

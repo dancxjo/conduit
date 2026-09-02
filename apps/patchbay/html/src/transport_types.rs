@@ -2,7 +2,8 @@
 
 use conduit_presentation::{ModelTemporalContextFact, Presentation};
 use patchbay_model::{
-    PartsView, PatchbayEntranceState, PatchbayNavigationProjection, RendererSelfInspection,
+    DebuggerPresentation, PartsView, PatchbayEntranceState, PatchbayNavigationProjection,
+    RendererSelfInspection,
 };
 use serde::{Deserialize, Serialize};
 
@@ -67,6 +68,16 @@ pub struct RendererSnapshot {
     pub authoring: Option<BrowserAuthoring>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_workbench: Option<BrowserBodyWorkbench>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub debugger: Option<DebuggerPresentation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub watches: Option<patchbay_model::DebuggerWatchSet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeline: Option<patchbay_model::DebuggerTimeline>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeline_projection: Option<patchbay_model::DebuggerTimelineProjection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub debugger_control: Option<patchbay_model::DebuggerExecutionControl>,
     pub interaction: HtmlInteractionState,
 }
 

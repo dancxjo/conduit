@@ -3,7 +3,7 @@ import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 import { createBookRunnerStatus } from "./book-runner-presentation.mjs";
-import { attachBookSyntaxEditor } from "./book-syntax-editor.mjs";
+import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -157,8 +157,10 @@ function renderMarkdown(markdown) {
     const line = lines[index];
     if (line === "```conduit birth") {
       flush();
+      const source = [];
       index += 1;
-      while (index < lines.length && lines[index] !== "```") index += 1;
+      while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
+      copy.append(createBookSyntaxExample(source.join("\n"), host.runtime));
       chapter.append(createCrecheCallToAction());
       copy = appendCopy();
     } else if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {

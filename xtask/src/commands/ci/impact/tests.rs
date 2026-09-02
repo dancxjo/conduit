@@ -108,28 +108,55 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     );
     assert!(kernel.conduitos_aarch64_product_required);
 
+    let debugger_kernel = plan_for_paths(
+        &root,
+        DEBUGGER_KERNEL_SLICE
+            .iter()
+            .map(|path| (*path).to_owned())
+            .collect(),
+        &packages,
+    )
+    .unwrap();
+    assert!(!debugger_kernel.full_fallback);
+    assert!(!debugger_kernel.esp32_required);
+    assert!(debugger_kernel.browser_required);
+    assert!(!debugger_kernel.conduitos_required);
+
+    let scheduler_alone = plan_for_paths(
+        &root,
+        vec!["architecture/kernel/src/scheduler.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(scheduler_alone.esp32_required);
+    assert!(scheduler_alone.conduitos_required);
+
     for path in ["Cargo.lock", ".github/workflows/check.yml"] {
         let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert!(global.full_fallback, "{path}");
         assert!(global.workspace_shards.values().all(|required| *required));
     }
 
-    let pages_workflow = plan_for_paths(
-        &root,
-        vec![".github/workflows/executable-book-pages.yml".to_owned()],
-        &packages,
-    )
-    .unwrap();
-    assert!(!pages_workflow.full_fallback);
-    assert!(!pages_workflow.esp32_required);
-    assert!(pages_workflow.browser_required);
-    assert!(!pages_workflow.conduitos_required);
-    assert!(pages_workflow.workspace_shards["lint"]);
-    assert!(pages_workflow
-        .workspace_shards
-        .iter()
-        .filter(|(shard, _)| shard.as_str() != "lint")
-        .all(|(_, required)| !required));
+    for path in [
+        ".github/workflows/book-pr-proof.yml",
+        ".github/workflows/executable-book-pages.yml",
+        ".github/workflows/patchbay-debugger-pr-proof.yml",
+    ] {
+        let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(!focused_workflow.full_fallback, "{path}");
+        assert!(!focused_workflow.esp32_required, "{path}");
+        assert!(focused_workflow.browser_required, "{path}");
+        assert!(!focused_workflow.conduitos_required, "{path}");
+        assert!(focused_workflow.workspace_shards["lint"], "{path}");
+        assert!(
+            focused_workflow
+                .workspace_shards
+                .iter()
+                .filter(|(shard, _)| shard.as_str() != "lint")
+                .all(|(_, required)| !required),
+            "{path}"
+        );
+    }
 
     let unknown =
         plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();

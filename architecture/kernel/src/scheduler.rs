@@ -1,6 +1,10 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 use crate::{
+    debug_observation::{
+        DebugBreakpoint, DebugControlRefusal, DebugEventKind, DebugObservationRefusal,
+        DebugObserverControl, DebugRuntimeControl, DebugRuntimeEvent, DebugSuspension,
+    },
     BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
     HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
     Operation, OperationAction, OperationInput, PortId, ProtocolError, RemoteEndpointId, RequestId,
@@ -8,8 +12,10 @@ use crate::{
 };
 
 mod active_capacity;
+mod debug_control;
 mod derived_value;
 use active_capacity::validate_active_capacity;
+use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -818,6 +824,7 @@ pub enum SchedulerError {
     RemoteDeliveryRejected,
     ValueOwnershipViolation,
     Cancelled,
+    DebugSuspended,
     Storage(StorageError),
     Sign(SignError),
     Routing(ProtocolError),
@@ -899,6 +906,7 @@ pub struct FixedScheduler<
     decisions: u32,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
+    debug_control: DebugControlState,
 }
 
 impl<
@@ -992,6 +1000,7 @@ where
             decisions: 0,
             last_host_request: [None; NODES],
             cancelled: false,
+            debug_control: DebugControlState::new(),
         })
     }
 
@@ -1057,6 +1066,9 @@ where
         if self.cancelled {
             return Ok(SchedulerStatus::Cancelled);
         }
+        if self.debug_control.suspension().is_some() {
+            return Err(SchedulerError::DebugSuspended);
+        }
         let Some(node) = self.next_ready() else {
             return if self.completed[..self.active_nodes]
                 .iter()
@@ -1070,12 +1082,24 @@ where
                 Ok(SchedulerStatus::Idle)
             };
         };
+        if self.debug_control.suspend_before(NodeId(as_u16(node)?)) {
+            return Err(SchedulerError::DebugSuspended);
+        }
         self.decisions = self
             .decisions
             .checked_add(1)
             .ok_or(SchedulerError::DecisionLimitExceeded)?;
         self.signs
             .record(NodeId(as_u16(node)?), None, None, KernelEventKind::Decision)?;
+        self.signs.observe_debug(DebugRuntimeEvent {
+            node: NodeId(as_u16(node)?),
+            port: None,
+            cord: None,
+            kind: DebugEventKind::GearStarted,
+            type_identity: None,
+            value: None,
+            fault_code: None,
+        });
 
         let mut io = self.context(node)?;
         let mut current_input_bytes = [None; PORTS];
@@ -1141,6 +1165,54 @@ where
 
     pub fn signs(&self) -> &E {
         &self.signs
+    }
+
+    /// Attaches a debugger projection without exposing mutable mandatory Signs.
+    pub fn attach_debug_observer(
+        &mut self,
+        history: E::History,
+    ) -> Result<(), DebugObservationRefusal>
+    where
+        E: DebugObserverControl,
+    {
+        self.signs.attach_debug_observer(history)
+    }
+
+    /// Detaches the debugger projection while authoritative execution continues.
+    pub fn detach_debug_observer(&mut self) -> Result<E::History, DebugObservationRefusal>
+    where
+        E: DebugObserverControl,
+    {
+        self.signs.detach_debug_observer()
+    }
+
+    /// Arms one exact unconditional breakpoint for this scheduler-owned Play.
+    pub fn request_debug_breakpoint(
+        &mut self,
+        breakpoint: DebugBreakpoint,
+    ) -> Result<(), DebugControlRefusal>
+    where
+        E: DebugRuntimeControl,
+    {
+        let node = self.signs.validate_breakpoint(breakpoint)?;
+        if usize::from(node.0) >= self.active_nodes || self.completed[usize::from(node.0)] {
+            return Err(DebugControlRefusal::UnknownSubject);
+        }
+        self.debug_control.arm(breakpoint, node)
+    }
+
+    /// Resumes the exact suspension. The armed v1 breakpoint is one-shot.
+    pub fn resume_debug_suspension(
+        &mut self,
+        suspension: DebugSuspension,
+    ) -> Result<(), DebugControlRefusal> {
+        let node = self.debug_control.resume(suspension)?;
+        self.cursor = usize::from(node.0);
+        Ok(())
+    }
+
+    pub const fn debug_suspension(&self) -> Option<DebugSuspension> {
+        self.debug_control.suspension()
     }
 
     pub fn cord_usage(&self, cord: CordId) -> Result<(u16, u32), SchedulerError> {
@@ -1738,7 +1810,18 @@ where
             StepOutcome::Yield if staged || io.work != io.maximum_work => {
                 return Err(SchedulerError::FalseProgress);
             }
-            StepOutcome::Fail(code) => return Err(SchedulerError::OperationFailed(code)),
+            StepOutcome::Fail(code) => {
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: None,
+                    cord: None,
+                    kind: DebugEventKind::Fault,
+                    type_identity: None,
+                    value: None,
+                    fault_code: Some(code),
+                });
+                return Err(SchedulerError::OperationFailed(code));
+            }
             _ => {}
         }
 
@@ -1808,6 +1891,15 @@ where
                     None,
                     KernelEventKind::OperationCompleted,
                 )?;
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: None,
+                    cord: None,
+                    kind: DebugEventKind::GearCompleted,
+                    type_identity: None,
+                    value: None,
+                    fault_code: None,
+                });
             }
             StepOutcome::Fail(_) => unreachable!(),
         }
@@ -1884,6 +1976,15 @@ where
                 None,
                 KernelEventKind::ValueConsumed,
             )?;
+            self.signs.observe_debug(DebugRuntimeEvent {
+                node: NodeId(as_u16(node)?),
+                port: Some(PortId(as_u16(port)?)),
+                cord: Some(cord),
+                kind: DebugEventKind::ValueReceived,
+                type_identity: None,
+                value: Some(self.values.get(value)?),
+                fault_code: None,
+            });
         }
 
         let consumed_host_value = if consumed_host_completion {
@@ -2031,6 +2132,15 @@ where
                     None,
                     KernelEventKind::ValueRouted,
                 )?;
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: Some(PortId(as_u16(port)?)),
+                    cord: Some(target.cord),
+                    kind: DebugEventKind::ValueSent,
+                    type_identity: None,
+                    value: Some(self.values.get(value)?),
+                    fault_code: None,
+                });
             }
         }
         Ok(())

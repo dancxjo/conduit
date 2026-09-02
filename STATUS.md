@@ -39,6 +39,7 @@ adapter or physical proof.
 | Observatory | versioned neutral host/capability/Base/link/plan/Play/pressure/current-and-historical-Sign/retention reports with exact identity and bound validation; sealed boot provenance remains distinct from live offers and Bases | synthetic fleet retained only as an explicitly labeled integration test | actual std execution can write a bounded report artifact; the read-only `observatory-report` command validates and renders complete structured tables without runtime control; native Patchbay validates and linearly renders the same ordinary snapshot exported by ConduitOS | no browser UI or browser-owned runtime truth | no firmware-side inspector or report store; the accepted ConduitOS export is freestanding-emulator proof | no new transport; observed links are report facts only | no new physical/HIL claim |
 | Durable system continuity | allocator-free realization record over explicit membership, complete checked-face role requirements, exact host+boot assignments, observed links, boot-scoped authority, Plan, Play, and Sign identities | accepted std/browser/Pico replacement vector consumes a validated current-model snapshot, separates request acceptance/old-boot terminal/new-boot observation, and requires explicit replanning with new Plan/Plays and no stale grant inheritance | no execution engine; the layer consumes current reports and exact plans without owning scheduling, placement, bases, or authority issuance | no new browser adapter or UI claim | no firmware change; the accepted Pico arrangement is consumed as already-proven input | no new transport; link observation remains distinct from membership and authority | no new physical/HIL run or claim |
 | One durable multi-Host Body | one bounded canonical Body keeps explicit Part membership separate from renewable current Host/Boot presence, offers, Lines, authority, immutable Plan selection, Play, and Signs; Birth explicitly admits Here, while ambient discovery remains inert and Body-directed invitations are finite, single-use, and authenticated | deterministic hostile, malformed, replay, bounds, disconnect, stale-Boot, presence-expiry/session-loss, return-atomicity, offline, active-Plan join, and explicit-replan vectors preserve exact state distinctions; refusal paths fail closed without Form, durable membership, authority, immutable Plan, or execution mutation; exact selected-Host loss changes current availability and typed Play/Wake satisfaction while leaving Form, durable membership, authority, and immutable Plan unchanged | native Patchbay derives the human-first Parts view from canonical presence plus membership, owns finite admitted browser sessions, returns one same-incarnation browser only after exact signed continuity and atomic presence preflight, projects loss/expiry offline, and executes the accepted R1 Plan through the existing planner, lowering, and production kernel | three independent Chromium Hosts prove ambient explicit admission, Body-directed admission, distinct Host/Boot identities, bounded renewal, graceful close, half-open expiry, one same-incarnation return with a fresh session/newer sequence, offline retention, immutable active-Plan join, and explicit replacement planning; browser scheduling is explicitly best-effort with no background-realtime or reload-persistence claim | the already-provisioned R1 Pico advertises and is explicitly admitted without this slice implementing provisioning or flashing | truthful WebSocket and USB CDC Lines carry the accepted Plans; browser rendezvous presence remains distinct from Ready Line truth, and real Wi-Fi loss changes Line availability rather than membership or Form meaning | exact-main physical proof retains one Body with local std, two attached browser Parts, and one Pico Part across WebSocket Plan A, explicit USB Plan B recovery, and same-Plan/same-Play Plan C USB continuation with verified physical LED receipts; browser-presence acceptance at `58a5a86e` adds deterministic, live-loopback, and pinned-Chromium evidence but no new physical/HIL claim |
+| Body-wide multi-Form scheduling | Program is Form; Seed is immutable birth provenance while one canonical finite workset holds zero, one, or many exact checked Forms without replacing Body identity; one Wake owns one immutable complete Plan and at most one active Play for the whole current workset | deterministic duplicate/count/identity-byte bounds, legacy single-Form migration, add/remove/empty continuity, complete-workset sealing, stale replacement, one-active-Play, and atomic global resource-overcommit refusal vectors fail closed | two Forms progress concurrently through one production `conduit-kernel` scheduler inside one Body Play; workload change replaces Plan/Play under the same Wake, and the same Plan model contains local and two-Host distributed Form partitions | browser Patchbay projects every current Form separately beneath one Body, marks only the historical Seed, and retains one current Body Plan/Play rather than inventing per-Form execution universes | ConduitOS remains the same Host/kernel substrate and still proves only one cooperative execution lane; this slice claims no SMP, preemption, or physical parallelism | distributed Plan partitions preserve exact Host/Line facts without creating Host-local schedulers or false global time | deterministic hosted/model proof merged as `aba1cf9a9c9ed80e5c7e2d087a6bf34b1865657f`, exact-head workflow `33582881663`; no new live-browser, firmware, emulator, physical/HIL, SMP, or preemption claim |
 | Composable human-facing browser Hosts | portable camera, microphone, typed human interaction, text Presentation, graphics-scene Presentation, and Line contracts remain separate finite meanings; permission-gated acquisition seals request authority and semantic constraints before browser interaction, while exact opaque resource truth and use authority become inputs only to a later immutable Plan | deterministic offer/state, authority, permission/refusal, unsupported-constraint, capacity, pressure, cancellation, closure, loss, stale-identity, pre-resource unrealizability, exact-resource selection, and unchanged-Form replan vectors fail closed | `cargo xtask host browser` binds one independent ephemeral loopback entrance per invocation and launches a fresh page/WASM Host; a native bounded Body coordinator explicitly admits two browser Parts, seals the post-acquisition camera Plan, and invalidates its exact binding on Host loss without a second planner or scheduler | pinned Chromium proves distinct Host/Boot/WASM identity and reload replacement, real browser camera and microphone API mechanics, denial/dismissal/constraint refusals, one exact acquired camera resource selected by a later Plan, one bounded camera value over the selected WebRTC Cord, pressure refusal, and source-Host loss; fake media devices establish browser mechanics, not physical input | no firmware claim | one finite planned WebRTC DataChannel Line carries only the selected typed camera Cord; page reachability, membership, permission, acquisition, authority, resource truth, and Line readiness remain distinct | exact-main `7e351676b955e8b18e297a86604f2b609d52ec7b`, required workflow `32685791138`, and visual-evidence workflow `32685791180`; no physical camera/microphone observation, browser-process identity, persistence continuity, background-realtime, or HIL claim |
 | PROFILE-built Host IMAGEs and cross-Host Manifestations | versioned bounded PROFILEs resolve through a finite prerequisite graph into deterministic BUILD manifests and exact IMAGE/artifact identities; runtime offers require both exact IMAGE inclusion and current Boot facts; FACE, Presentation, Presenter, Manifestation, and admitted placement remain distinct exact identities | deterministic BUILD, budget, dependency, artifact-binding, stale Boot/generation, missing-live-prerequisite, headless-placement, cross-wiring, Manifestation bound, and immutable-Plan vectors fail closed; `cargo xtask host capstone` retains a bounded exact-identity receipt for three materially different checked PROFILEs joined to one Body | one checked native ConduitOS PROFILE includes the optional finite compositor/scanout stack, while one checked headless ConduitOS PROFILE omits all graphical machinery; the capstone uses the shared fabrication, Body, planner, Presentation, and Manifestation contracts without adding an execution kernel | the checked browser-page PROFILE BUILDs an IMAGE whose DOM/SVG Presenter is offered only with the exact manifest and live DOM/surface facts; one semantic action through the native Manifestation becomes Body truth and both native and browser independently consume the revised Presentation, with no renderer mirroring | no new firmware execution claim; the smaller checked ConduitOS Pico-W PROFILE proves intentional headless IMAGE composition and truthful graphical omission | no new transport claim; reachability remains separate from membership, authority, and Presenter placement | exact-main deterministic composition/conformance proof at `56f6ddcbeac997aecfb089851c5a62f65eceeea6`; no new live-browser, emulator, firmware, physical/HIL, or pixel-parity claim |
 | Host fabrication packages | one finite deterministic package set contributes exact target descriptors, Base implementation offers, package-owned toolchain and maximum bounds, artifact kinds, and target-appropriate post-build actions; anchor and extension packages remain distinct, and PROFILE/BUILD/IMAGE/spore identities seal exact package and implementation provenance | duplicate packages, targets, offers, missing anchors, mismatched extensions, unavailable toolchains, unsupported targets, excessive bounds, and caller attempts to substitute package-owned facts refuse before fabrication; an external RP2040 PIO-audio extension passes the ordinary resolution and build path without editing generic fabrication | native/std owns BUILD → native bundle → LAUNCH through its family package | browser owns BUILD → browser bundle → LOAD/LAUNCH through its family package; the existing pinned Chromium execution remains a separate proof class | ConduitOS owns distinct x86_64, IA-32, AArch64, RISC-V64, and LoongArch64 IMAGE/BOOT targets; Pico owns UF2/FLASH/BOOT; Raspberry Pi owns exact B+ and Zero descriptors plus SD-image/FLASH/BOOT mechanics; ESP32 owns its existing exact firmware family and IMAGE/FLASH/BOOT mechanics | no new transport claim; deployment actions do not create membership, reachability, trust, or authority | exact-main `89d72639d40c238aaaf2bbe7da23f764c29c5402`, workflow `32924122237`; real firmware and emulator jobs remain the proof classes they actually ran, with no new physical/HIL claim |
@@ -2167,3 +2168,215 @@ This acceptance establishes bounded deterministic contracts, native semantic
 composition, pinned browser execution, and the deployed Book and Crèche
 carrier. It adds no new semantic feature or event family, renderer-owned truth,
 realtime/background guarantee, physical device execution, or HIL claim.
+
+The Patchbay debugger P0 observation protocol from #2084 merged through PR
+#2104 as exact main `0bec7d0252e912cdaac29c628740d2627ba4392e`.
+Exact-head workflow `33607221717` passed after one infrastructure-only retry:
+the first ConduitOS tool-bundle preparation timed out while downloading Ubuntu
+packages, while the retry restored the completed exact bundle and passed every
+selected workspace, firmware, ConduitOS architecture, product, and x86 proof.
+The focused `conduit-kernel` suite also passed again on the merged commit.
+
+The production kernel now offers a versioned optional debugger projection
+beside mandatory Signs. Its fixed-capacity records bind observations to exact
+Body, Plan, Play, Host, Form, Gear, Port, Cord, and plan-lowered type identities;
+retain collector and per-Host monotonic sequences without inventing wall-clock
+time; and bound both retained records and value previews. Small values remain
+inspectable, while larger values expose exact byte length, truncation, and a
+bounded preview. Unsupported schemas and event kinds, stale execution identity,
+malformed previews, and nonmonotonic Host input refuse distinctly.
+
+The v1 event vocabulary is Gear started/completed, Value sent/received, and
+Fault. Debugger overload overwrites only the oldest optional history and records
+an exact loss gap; it cannot stall or fail ordinary execution. One observer may
+attach to or detach from a live scheduler through a narrow lifecycle contract
+that does not expose mutable mandatory Signs. Deterministic tests prove the
+same execution result with or without observation, including faults, and prove
+one Body-wide Play containing work from multiple Forms.
+
+This acceptance adds no Patchbay animation, Watch or timeline UI, replay,
+breakpoints, transport, global event store, scheduler policy, arbitrary
+full-value capture, authoritative timestamp, or physical/HIL claim. Those
+remain downstream slices of #2083.
+
+The Patchbay debugger P1 live projection from #2085 merged through PR #2106 as
+exact main `cce3614ed9e447fe50f95c329bc06736d5bc2962`. Exact-head workflows
+`33612616806` and `33612616816` passed the affected workspace lint, Host and
+product shards plus the focused pinned-Chromium Book/Patchbay proof in at most
+2m23s; ESP32, ConduitOS, and browser-Host matrices were correctly unselected.
+Exact-main deployment workflow `33612918224` then passed all release builds,
+staged-product Chromium proofs, artifact assembly, and Pages deployment. The
+focused model, HTML, native, and deterministic JavaScript projection suites
+also passed again on the merged commit.
+
+One finite renderer-neutral debugger presentation consumes the P0 kernel
+records and binds activity to exact current execution and admitted Gear, Port,
+Cord, Host, and optional Line subjects. It refuses stale Play identity,
+unknown subjects, Host drift, unsupported events, and nonmonotonic sequences
+without replacing current debugger state. A 10,000-record stream coalesces by
+exact subject while retaining observed/coalesced counts, latest bounded typed
+preview, and an explicit telemetry-loss gap. Active, recent, inactive, and
+retained-fault states remain distinct; decay is presentation policy, and fault
+codes remain inspectable until explicitly cleared or the execution context is
+replaced.
+
+Browser and native Patchbay consume the same serialized semantic state over
+the canonical graph. Gear and Port faces and exact Cord paths receive live
+annotations; bounded scalar/text previews, counts, fault details, and
+authoritative Host/Line bindings remain textual as well as visual. Browser
+motion occurs only for observed active execution, respects reduced-motion
+state, and has a bounded live region. Native rendering proves the same exact
+subject consumption without pixel-parity claims. Detaching the overlay leaves
+canonical topology and execution byte-identical.
+
+This acceptance adds no Watch history, timeline/replay, breakpoint or resume
+control, causal trace, invented reroute, independent scheduler, Book-only fake
+execution, authoritative wall-clock time, transport, or physical/HIL claim.
+Those remain #2086, #2087, and #2088 under #2083.
+
+The Patchbay debugger P2 Watch interaction from #2086 merged through PR #2108
+as exact main `558c70faf84a5c18d7e70a377cedd041c4e45707`. Exact-head workflow
+`33617687965` passed every selected workspace, ESP32, ConduitOS architecture,
+product, and x86 proof because the PR also taught the impact planner about its
+new focused workflow. Focused pinned-Chromium workflow `33617687947` passed in
+2m23s. The same model, Host endpoint, JavaScript syntax, and one-worker,
+zero-retry Chromium Watch proof passed again from the merged commit; the model
+cases themselves completed in 0.01s and the browser interaction in 1.8s.
+
+One renderer-neutral finite Watch set now lives beside canonical Presentation
+and Form truth. Up to eight Watches bind exact Gear, Port, or Cord presentation
+subjects to one exact Body/Plan/Play debugger execution. Each retains at most
+32 ordered observation entries with latest value or state, event kind, planned
+type identity, update count, honest sequence-domain density, explicit eviction,
+and telemetry-gap evidence. Replacement execution and disappeared subject
+lifecycles remain distinct, and neither friendly labels nor replacement graph
+subjects can silently retarget retained state.
+
+The Host-owned browser interaction accepts add, focus, clear-history, and
+remove actions only against exact Presentation and Watch revisions. Scalar,
+bounded/truncated text, bytes/opaque, and fault projections remain readable as
+text; each retained event exposes its exact subject, execution, sequence, and
+event detail. Keyboard creation, focus, clearing, removal, and same-server
+browser reload retention are proven through the production Patchbay surface.
+Clearing or removing debugger state leaves the canonical Presentation and
+execution topology byte-for-byte unchanged.
+
+The focused `patchbay-debugger-pr-proof` gate builds only Patchbay, runs five
+deterministic model cases, and exercises one Chromium scenario with one worker
+and zero retries. The impact planner now classifies that workflow as focused,
+with regression assertions that ordinary debugger workflow changes select
+lint/browser only and do not select ESP32 or ConduitOS. This acceptance adds no
+timeline/replay, breakpoint or runtime resume control, causal tracing,
+unbounded history, authoritative wall-clock rate, or physical/HIL claim. Those
+remain #2087 and #2088 under #2083.
+
+The Patchbay debugger P3 observation replay from #2087 merged through PR #2110
+as exact main `d7476d72388b6e057596b2695045de1936b34715`. Exact-head workflow
+`33620077102` passed only the affected workspace lint, Host, and product shards;
+ESP32, every ConduitOS architecture and image/tool lane, browser Host, and
+browser-tool lanes were correctly unselected. Focused pinned-Chromium workflow
+`33620077191` passed in 2m48s. From the merged commit, 14 debugger model cases,
+the complete Patchbay HTML/server suite, strict focused clippy, JavaScript
+syntax, and both one-worker, zero-retry Chromium debugger scenarios passed
+again; the model cases completed in 0.01s and the browser scenarios in 3.8s.
+
+One finite renderer-neutral observation timeline now retains at most 128 exact
+events and 64 KiB. Each event binds its Body, Plan, Play, Host, Form, subject,
+optional related subject, event kind, typed bounded value or fault, global
+sequence, and Host sequence. Live and replay use the same projection. Pausing
+the visualization fixes only its cursor while new observations continue to be
+admitted; previous, next, explicit event selection, and jump-live never suspend
+or mutate execution. The projection reconstructs subject activity and the
+latest Watch value at or before the selected cursor within one exact execution
+context.
+
+Event-to-graph selection and exact graph-subject filtering are two-way through
+the existing Host-owned semantic navigation. Event rows expose their exact
+execution and subject identities, and Watches remain readable while scrubbing.
+Keyboard controls require no drag gesture, reduced motion preserves all textual
+truth, and the UI explicitly distinguishes replay pause from execution pause.
+Replacement execution contexts remain separate and the prior context stays
+inspectable rather than being silently retargeted.
+
+Overflow eviction, observer telemetry loss, and incomplete historical
+reconstruction are explicit. Unknown subjects, stale revisions, invalid
+cursors, unsupported events, and nonmonotonic input refuse without replacing
+the accepted timeline. This acceptance adds no runtime suspension or resume,
+breakpoint expression, causal ancestry or descendants, speculative topology
+trace, distributed control, authoritative wall-clock time, or physical/HIL
+claim. Those remain #2088 under #2083.
+
+The Patchbay debugger P4 breakpoint and causal-trace slice from #2088 merged
+through PR #2112 as exact main
+`734613dd9a83d15e66da486cb8e4ac73d90eddbb`. Its prerequisite impact-planner
+correction merged separately through PR #2113 as
+`340b6ae199c922d6036449ce058d7dad499aa5a1`: a complete recognizable debugger
+kernel change selects the focused proof, while an incomplete scheduler-only
+change remains conservatively broad. At the final implementation head,
+general workflow `33625057308` passed only workspace lint, Host tests, and
+product tests in at most 2m28s; ESP32, all ConduitOS architecture/image/tool
+lanes, browser Host, and browser tools were correctly unselected. Focused
+pinned-Chromium workflow `33625057264` passed in 2m02s and Book browser workflow
+`33625057408` passed in 1m55s.
+
+The production fixed scheduler now owns one exact unconditional
+before-Gear-start breakpoint and suspended execution state. Suspension occurs
+before a scheduling decision, repeated steps remain suspended without
+advancing execution, and an exact one-shot resume makes that same Gear the next
+decision. Breakpoint and resume requests bind exact Body, Plan, Play, and Gear
+identities; replacement execution is stale rather than label-retargeted, and
+unsupported multi-Host distributed suspension refuses explicitly. The
+Patchbay Host exercises these production kernel contracts rather than a
+visualization-only pause or a second scheduler, including one Body-wide Play
+whose work may belong to multiple Forms.
+
+Observation schema v2 records exact invocation and causal-parent sequences.
+The production scheduler links a value send to its emitting Gear invocation,
+a receive to the exact prior send on its planned Cord, and completion or fault
+to the latest event in that invocation. The finite timeline derives upstream
+ancestry and exact observed descendants only from those identities; it does
+not substitute graph reachability, and evicted or absent parents remain an
+explicit history gap. Trace selection, ordered textual steps, graph emphasis,
+Watches, and fault origin share one Host-owned atomic projection. Running,
+visualization replay pause, runtime suspension, stale control, and unsupported
+control remain distinct renderer-neutral states.
+
+From exact main, seven kernel observation/control cases, 16 focused debugger
+model cases, the complete Patchbay HTML/server suite, and all three pinned
+Chromium interactions passed again. Chromium used one worker, zero retries,
+and completed in 6.0s. The browser proof includes exact Watch reload retention,
+timeline/graph synchronization, real suspension and resume, and exact causal
+fault tracing. This acceptance adds no conditional breakpoint language,
+arbitrary memory inspection, unbounded history, invented causal inference,
+distributed stop-the-world protocol, authoritative wall-clock time, or
+physical/HIL claim.
+
+The parent Patchbay realtime-debugger outcome from #2083 is accepted through
+the five ordered P0-P4 slices recorded above: #2084, #2085, #2086, #2087, and
+#2088 are closed, and their production paths share one finite
+renderer-neutral observation/debug model. P0 supplies exact versioned runtime
+observations, finite retention, explicit loss, stale-execution refusal, and
+non-mutating observer lifecycle. P1 projects those observations over the
+canonical Gear/Port/Cord/Host/Line graph with typed transient values, bounded
+coalescing, activity decay, retained faults, reduced-motion truth, and common
+native/browser semantics. P2 adds exact type-sensitive Watches with finite
+history. P3 makes live and replay one projection with bounded scrubbing and
+two-way event/graph selection. P4 adds real kernel suspension/resume and
+causal-parent tracing rather than renderer-authored control or graph guesses.
+
+Together these slices answer the parent product question from a visible bad
+value: its exact subject and typed bounded value remain spatially visible; its
+ordered event and retained Watch history establish when it occurred; exact
+invocation/send/receive parent identities establish where it came from and the
+path actually observed; and missing telemetry remains an explicit gap rather
+than a fabricated explanation. Cross-Host and optional planned-Line subjects
+use the same exact presentation identity, while a carrier or route change is
+shown only when authoritative Plan/Play observations establish it. Detaching
+the debugger, replaying history, clearing Watches, and selecting traces do not
+mutate canonical Body, Form, Plan, Play, or topology truth.
+
+This parent acceptance does not add route/retry event kinds beyond the initial
+versioned vocabulary, claim a USB-to-Wi-Fi physical demonstration, infer
+causality from topology, make observation mandatory for correctness, or claim
+unbounded/full-value capture, authoritative wall-clock timing, distributed
+stop-the-world control, or physical/HIL proof.

@@ -26,6 +26,7 @@ mod hotplug_qmp;
 mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
+mod ia32_product_boot;
 mod image;
 mod journey_proof;
 mod keyboard_proof;
@@ -59,6 +60,7 @@ mod riscv64_a2;
 #[allow(dead_code)]
 mod riscv64_a3;
 mod riscv64_a4;
+mod riscv64_product_boot;
 mod run;
 mod std_gap;
 pub(crate) mod target_backend;

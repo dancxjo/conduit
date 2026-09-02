@@ -82,6 +82,11 @@ impl RendererSnapshot {
             parts: None,
             authoring: None,
             body_workbench: None,
+            debugger: None,
+            watches: None,
+            timeline: None,
+            timeline_projection: None,
+            debugger_control: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -144,6 +149,39 @@ impl RendererSnapshot {
         workbench: crate::BrowserBodyWorkbench,
     ) -> Result<(), SnapshotError> {
         self.body_workbench = Some(workbench);
+        self.validate()
+    }
+
+    pub fn attach_debugger(
+        &mut self,
+        debugger: patchbay_model::DebuggerPresentation,
+    ) -> Result<(), SnapshotError> {
+        self.debugger = Some(debugger);
+        self.validate()
+    }
+
+    pub fn attach_watches(
+        &mut self,
+        watches: patchbay_model::DebuggerWatchSet,
+    ) -> Result<(), SnapshotError> {
+        self.watches = Some(watches);
+        self.validate()
+    }
+
+    pub fn attach_timeline(
+        &mut self,
+        timeline: patchbay_model::DebuggerTimeline,
+    ) -> Result<(), SnapshotError> {
+        self.timeline_projection = Some(timeline.project(self.watches.as_ref()));
+        self.timeline = Some(timeline);
+        self.validate()
+    }
+
+    pub fn attach_debugger_control(
+        &mut self,
+        control: patchbay_model::DebuggerExecutionControl,
+    ) -> Result<(), SnapshotError> {
+        self.debugger_control = Some(control);
         self.validate()
     }
 
@@ -212,6 +250,145 @@ impl RendererSnapshot {
         let invalid_workbench = self.body_workbench.as_ref().is_some_and(|workbench| {
             crate::body_workbench::validate_body_workbench(workbench, &self.presentation).is_err()
         });
+        let invalid_debugger = self.debugger.as_ref().is_some_and(|debugger| {
+            debugger.schema != patchbay_model::DEBUGGER_PRESENTATION_SCHEMA
+                || debugger.activities.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
+                || debugger.activities.iter().any(|activity| {
+                    !self
+                        .presentation
+                        .subjects
+                        .iter()
+                        .any(|subject| subject.identity == activity.subject)
+                        || activity.line_subject.as_ref().is_some_and(|line| {
+                            !self
+                                .presentation
+                                .subjects
+                                .iter()
+                                .any(|subject| &subject.identity == line)
+                        })
+                })
+        });
+        let invalid_watches = self.watches.as_ref().is_some_and(|watches| {
+            watches.schema != patchbay_model::DEBUGGER_WATCH_SCHEMA
+                || watches.watches.len() > patchbay_model::MAX_DEBUGGER_WATCHES
+                || watches.eligible_subjects.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
+                || self.debugger.as_ref().map(|debugger| &debugger.execution)
+                    != Some(&watches.execution)
+                || watches.focused_subject.as_ref().is_some_and(|focused| {
+                    !watches
+                        .watches
+                        .iter()
+                        .any(|watch| &watch.subject == focused)
+                })
+                || watches.watches.iter().any(|watch| {
+                    watch.history.len() > patchbay_model::MAX_WATCH_HISTORY_RECORDS
+                        || watch.execution != watches.execution
+                        || !self.presentation.subjects.iter().any(|subject| {
+                            subject.identity == watch.subject
+                                && subject.role
+                                    == match watch.role {
+                                        patchbay_model::DebuggerWatchSubjectRole::Gear => {
+                                            conduit_presentation::PresentationRole::Gear
+                                        }
+                                        patchbay_model::DebuggerWatchSubjectRole::Port => {
+                                            conduit_presentation::PresentationRole::Port
+                                        }
+                                        patchbay_model::DebuggerWatchSubjectRole::Cord => {
+                                            conduit_presentation::PresentationRole::Cord
+                                        }
+                                    }
+                        })
+                        || watch.latest.as_ref() != watch.history.last()
+                })
+        });
+        let invalid_timeline = match (&self.timeline, &self.timeline_projection) {
+            (None, None) => false,
+            (Some(timeline), Some(projection)) => {
+                timeline.schema != patchbay_model::DEBUGGER_TIMELINE_SCHEMA
+                    || timeline.events.len() > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                    || timeline.retained_bytes > patchbay_model::MAX_DEBUGGER_TIMELINE_BYTES
+                    || timeline.retained_bytes
+                        != timeline
+                            .events
+                            .iter()
+                            .map(patchbay_model::DebuggerTimelineEvent::retained_bytes)
+                            .sum::<usize>()
+                    || timeline
+                        .cursor
+                        .is_some_and(|cursor| cursor >= timeline.events.len())
+                    || timeline
+                        .selected_event
+                        .is_some_and(|cursor| cursor >= timeline.events.len())
+                    || timeline.subject_filter.as_ref().is_some_and(|subject| {
+                        !timeline.events.iter().any(|event| {
+                            &event.subject == subject
+                                || event.related_subject.as_ref() == Some(subject)
+                        })
+                    })
+                    || timeline.events.iter().any(|event| {
+                        !self
+                            .presentation
+                            .subjects
+                            .iter()
+                            .any(|subject| subject.identity == event.subject)
+                            || event.value.as_ref().is_some_and(|value| {
+                                value.summary.len() > patchbay_model::MAX_DEBUGGER_SUMMARY_BYTES
+                            })
+                            || event.related_subject.as_ref().is_some_and(|related| {
+                                !self
+                                    .presentation
+                                    .subjects
+                                    .iter()
+                                    .any(|subject| &subject.identity == related)
+                            })
+                    })
+                    || timeline.trace.as_ref().is_some_and(|trace| {
+                        trace.steps.len() > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                            || trace.missing_parent_sequences.len()
+                                > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                            || trace.steps.iter().any(|step| {
+                                timeline.events.get(step.event_index).is_none_or(|event| {
+                                    event.execution != trace.execution
+                                        || event.sequence != step.sequence
+                                        || event.subject != step.subject
+                                        || event.event != step.event
+                                })
+                            })
+                    })
+                    || &timeline.project(self.watches.as_ref()) != projection
+            }
+            _ => true,
+        };
+        let invalid_debugger_control = self.debugger_control.as_ref().is_some_and(|control| {
+            control.schema != patchbay_model::DEBUGGER_CONTROL_SCHEMA
+                || control.eligible_subjects.is_empty()
+                || control.eligible_subjects.len()
+                    > patchbay_model::MAX_DEBUGGER_BREAKPOINT_SUBJECTS
+                || (control.state != patchbay_model::DebuggerExecutionControlState::Stale
+                    && self.debugger.as_ref().map(|debugger| &debugger.execution)
+                        != Some(&control.execution))
+                || control.eligible_subjects.iter().any(|identity| {
+                    !self.presentation.subjects.iter().any(|subject| {
+                        &subject.identity == identity
+                            && subject.role == conduit_presentation::PresentationRole::Gear
+                    })
+                })
+                || control.reason.as_ref().is_some_and(|reason| {
+                    reason.len() > patchbay_model::MAX_DEBUGGER_CONTROL_REASON_BYTES
+                })
+                || control
+                    .breakpoint_subject
+                    .as_ref()
+                    .is_some_and(|subject| !control.eligible_subjects.contains(subject))
+                || control
+                    .suspended_subject
+                    .as_ref()
+                    .is_some_and(|subject| !control.eligible_subjects.contains(subject))
+                || (control.state == patchbay_model::DebuggerExecutionControlState::Suspended)
+                    != control.suspended_subject.is_some()
+                || (control.state == patchbay_model::DebuggerExecutionControlState::Stale
+                    && control.reason.is_none())
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -226,6 +403,10 @@ impl RendererSnapshot {
             || invalid_authoring
             || invalid_temporal_context
             || invalid_workbench
+            || invalid_debugger
+            || invalid_watches
+            || invalid_timeline
+            || invalid_debugger_control
         {
             return Err(SnapshotError::InvalidIdentity);
         }

@@ -140,6 +140,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveCSS("width", "240px");
     await expect(page.locator("#status")).toContainText("Presentation revision 1");
     await expect(page.locator("#status")).toContainText("Manifestation Available");
+    await expect(page.locator("#status")).toHaveAttribute("data-application-revision", /^\d+$/);
     expect(snapshot.temporal_context).toHaveLength(1);
     expect(snapshot.temporal_context[0].subject).toMatch(/^part\//);
     expect(snapshot.temporal_context[0].relative_time).toMatch(/seconds ago$/);
