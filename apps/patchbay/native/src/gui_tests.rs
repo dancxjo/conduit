@@ -1,5 +1,8 @@
 use crate::{
-    gui::{draw_patchbay, GuiAction, LifecycleContext, PatchbayViewContext},
+    gui::{
+        draw_patchbay, draw_patchbay_with_debugger, GuiAction, LifecycleContext,
+        PatchbayViewContext,
+    },
     icon::Icon,
     render::BACKGROUND,
 };
@@ -23,6 +26,63 @@ fn composition_graph() -> PatchbayGraph {
     .unwrap()
     .patchbay_graph_for_authoring("default-welcome")
     .unwrap()
+}
+
+#[test]
+fn native_renderer_consumes_exact_shared_debugger_activity_without_topology_mutation() {
+    let graph = graph();
+    let subject = graph.gears[0].identity.clone();
+    let debugger: patchbay_model::DebuggerPresentation =
+        serde_json::from_value(serde_json::json!({
+            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
+            "revision": 1,
+            "tick": 0,
+            "reduced_motion": true,
+            "gap": null,
+            "activities": [{
+                "subject": subject,
+                "line_subject": null,
+                "host": 7,
+                "phase": "active",
+                "latest_kind": "gear-started",
+                "latest_sequence": 1,
+                "observed_count": 1,
+                "coalesced_count": 0,
+                "last_activity_tick": 0,
+                "latest_value": null,
+                "retained_fault_code": null
+            }]
+        }))
+        .unwrap();
+    let before = graph.clone();
+    let mut pixels = vec![BACKGROUND; 1100 * 720];
+    draw_patchbay_with_debugger(
+        &mut pixels,
+        1100,
+        720,
+        &graph,
+        PatchbayViewContext {
+            selected: None,
+            breadcrumb: "",
+            lifecycle: &LifecycleContext::default(),
+            palette: &Default::default(),
+            forms: &[],
+            form_selection: 0,
+            form_scroll: 0,
+            exact_identity_open: false,
+            face_control_focus: 0,
+            presentation_layout: &Default::default(),
+            realization_plan: None,
+            realization_hosts: &[],
+            status: None,
+            gesture: Default::default(),
+            viewport: &Default::default(),
+        },
+        Some(&debugger),
+    );
+    assert_eq!(graph, before);
+    assert!(pixels.contains(&PHOSPHOR_THEME.focus.packed_rgb()));
 }
 
 #[test]

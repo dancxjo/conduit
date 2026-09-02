@@ -87,8 +87,25 @@ pub(super) fn draw_debugger_overlay<D: DrawTarget<Color = Rgb888>>(
 }
 
 fn activity_label(activity: &DebuggerSubjectActivity) -> String {
-    activity.latest_value.as_ref().map_or_else(
-        || activity.latest_kind.clone(),
-        |value| format!("{}  {}", activity.latest_kind, value.summary),
-    )
+    let core = if activity.phase == DebuggerActivityPhase::Faulted {
+        format!(
+            "fault {}",
+            activity
+                .retained_fault_code
+                .map_or_else(|| "unknown".to_owned(), |code| code.to_string())
+        )
+    } else {
+        activity.latest_value.as_ref().map_or_else(
+            || format!("{}  {}", activity.latest_kind, activity.observed_count),
+            |value| {
+                format!(
+                    "{}  {}  {}",
+                    activity.latest_kind, value.summary, activity.observed_count
+                )
+            },
+        )
+    };
+    activity.line_subject.as_ref().map_or(core.clone(), |line| {
+        format!("{core}  h{} {line}", activity.host)
+    })
 }

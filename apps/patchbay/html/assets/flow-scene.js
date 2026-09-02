@@ -48,6 +48,14 @@ function debuggerValue(activity) {
   return typeof value?.summary === "string" ? value.summary.slice(0, 96) : null;
 }
 
+function debuggerLabel(activity) {
+  if (!activity) return null;
+  const route = activity.line_subject ? ` · Host ${activity.host} via ${activity.line_subject}` : "";
+  if (activity.phase === "faulted") return `Fault ${activity.retained_fault_code ?? "unknown"}${route}`;
+  const latest = debuggerValue(activity);
+  return `${latest ? `${latest} · ` : `${activity.latest_kind} · `}${activity.observed_count} observed${route}`;
+}
+
 function compactClue(role, properties, lens) {
   if (lens === "form") return properties.get("kind-id") || [...properties.entries()].find(([name]) => name.startsWith("authored-control-"))?.[1] || "checked intent";
   if (lens === "plan") return properties.get("host-id") || properties.get("realization-layer") || "not realized";
@@ -180,7 +188,7 @@ export function projectFlowScene(snapshot, lens = "world") {
     const propertiesMap = subjectProperties.get(cord.identity) || new Map();
     const visual = cordVisual(propertiesMap, lens);
     const activity = debuggerActivity.get(cord.identity);
-    const latest = debuggerValue(activity);
+    const activityLabel = debuggerLabel(activity);
     if (source && target) edges.push({
       id: cord.identity,
       source,
@@ -188,7 +196,7 @@ export function projectFlowScene(snapshot, lens = "world") {
       sourceHandle: sourcePort,
       targetHandle: sinkPort,
       type: "simplebezier",
-      label: latest ? `${latest} · ${activity.observed_count} observed` : visual.label,
+      label: activityLabel || visual.label,
       className: `${visual.className}${activity ? ` debugger-${activity.phase}` : ""}${snapshot.debugger?.gap ? " debugger-gap" : ""}`,
       animated: activity ? activity.phase === "active" && !reducedMotion : visual.animated,
       style: { strokeWidth: visual.strokeWidth },
