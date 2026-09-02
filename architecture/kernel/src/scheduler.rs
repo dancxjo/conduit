@@ -1,6 +1,9 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 use crate::{
+    debug_observation::{
+        DebugEventKind, DebugObservationRefusal, DebugObserverControl, DebugRuntimeEvent,
+    },
     BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
     HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
     Operation, OperationAction, OperationInput, PortId, ProtocolError, RemoteEndpointId, RequestId,
@@ -1076,6 +1079,15 @@ where
             .ok_or(SchedulerError::DecisionLimitExceeded)?;
         self.signs
             .record(NodeId(as_u16(node)?), None, None, KernelEventKind::Decision)?;
+        self.signs.observe_debug(DebugRuntimeEvent {
+            node: NodeId(as_u16(node)?),
+            port: None,
+            cord: None,
+            kind: DebugEventKind::GearStarted,
+            type_identity: None,
+            value: None,
+            fault_code: None,
+        });
 
         let mut io = self.context(node)?;
         let mut current_input_bytes = [None; PORTS];
@@ -1141,6 +1153,25 @@ where
 
     pub fn signs(&self) -> &E {
         &self.signs
+    }
+
+    /// Attaches a debugger projection without exposing mutable mandatory Signs.
+    pub fn attach_debug_observer(
+        &mut self,
+        history: E::History,
+    ) -> Result<(), DebugObservationRefusal>
+    where
+        E: DebugObserverControl,
+    {
+        self.signs.attach_debug_observer(history)
+    }
+
+    /// Detaches the debugger projection while authoritative execution continues.
+    pub fn detach_debug_observer(&mut self) -> Result<E::History, DebugObservationRefusal>
+    where
+        E: DebugObserverControl,
+    {
+        self.signs.detach_debug_observer()
     }
 
     pub fn cord_usage(&self, cord: CordId) -> Result<(u16, u32), SchedulerError> {
@@ -1738,7 +1769,18 @@ where
             StepOutcome::Yield if staged || io.work != io.maximum_work => {
                 return Err(SchedulerError::FalseProgress);
             }
-            StepOutcome::Fail(code) => return Err(SchedulerError::OperationFailed(code)),
+            StepOutcome::Fail(code) => {
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: None,
+                    cord: None,
+                    kind: DebugEventKind::Fault,
+                    type_identity: None,
+                    value: None,
+                    fault_code: Some(code),
+                });
+                return Err(SchedulerError::OperationFailed(code));
+            }
             _ => {}
         }
 
@@ -1808,6 +1850,15 @@ where
                     None,
                     KernelEventKind::OperationCompleted,
                 )?;
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: None,
+                    cord: None,
+                    kind: DebugEventKind::GearCompleted,
+                    type_identity: None,
+                    value: None,
+                    fault_code: None,
+                });
             }
             StepOutcome::Fail(_) => unreachable!(),
         }
@@ -1884,6 +1935,15 @@ where
                 None,
                 KernelEventKind::ValueConsumed,
             )?;
+            self.signs.observe_debug(DebugRuntimeEvent {
+                node: NodeId(as_u16(node)?),
+                port: Some(PortId(as_u16(port)?)),
+                cord: Some(cord),
+                kind: DebugEventKind::ValueReceived,
+                type_identity: None,
+                value: Some(self.values.get(value)?),
+                fault_code: None,
+            });
         }
 
         let consumed_host_value = if consumed_host_completion {
@@ -2031,6 +2091,15 @@ where
                     None,
                     KernelEventKind::ValueRouted,
                 )?;
+                self.signs.observe_debug(DebugRuntimeEvent {
+                    node: NodeId(as_u16(node)?),
+                    port: Some(PortId(as_u16(port)?)),
+                    cord: Some(target.cord),
+                    kind: DebugEventKind::ValueSent,
+                    type_identity: None,
+                    value: Some(self.values.get(value)?),
+                    fault_code: None,
+                });
             }
         }
         Ok(())
