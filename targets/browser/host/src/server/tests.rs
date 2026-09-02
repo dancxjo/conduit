@@ -59,3 +59,28 @@ fn product_surfaces_refuse_the_other_products_routes() {
     assert!(!ProductSurface::Creche.permits(Some("GET /book/ HTTP/1.1")));
     assert!(!ProductSurface::Creche.permits(Some("GET / HTTP/1.1")));
 }
+
+#[test]
+fn book_uses_the_generic_builder_for_every_exact_resource() {
+    let first = application_package::build_manifest(BOOK_APPLICATION_TEMPLATE, |path| {
+        book_application_resource(path, b"runtime-a")
+    })
+    .unwrap();
+    let second = application_package::build_manifest(BOOK_APPLICATION_TEMPLATE, |path| {
+        book_application_resource(path, b"runtime-b")
+    })
+    .unwrap();
+    let first: serde_json::Value = serde_json::from_slice(&first).unwrap();
+    let second: serde_json::Value = serde_json::from_slice(&second).unwrap();
+    assert_eq!(first["resources"].as_array().unwrap().len(), 25);
+    assert!(first["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|resource| resource["sha256"].as_str().unwrap().starts_with("sha256:")));
+    assert_ne!(first["package_digest"], second["package_digest"]);
+    assert_eq!(
+        first["state_compatibility"]["identity"],
+        "conduit.application/book-reading-state"
+    );
+}

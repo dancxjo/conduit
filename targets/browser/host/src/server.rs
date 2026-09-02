@@ -4,10 +4,10 @@ use std::io::{Read, Write};
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::Path;
 
-mod application_package;
 mod book_assets;
 mod existing_computer_assets;
 mod surface;
+use conduit_browser_host::application_package;
 use surface::ProductDocument;
 pub use surface::ProductSurface;
 
@@ -46,6 +46,7 @@ const ESP32_SLIP: &[u8] = include_bytes!("../../../esp32/browser-deployment/slip
 const ESP32_CRECHE_ADAPTER: &[u8] =
     include_bytes!("../../../esp32/browser-deployment/creche-adapter.mjs");
 const BOOK: &[u8] = include_bytes!("../assets/book.html");
+const BOOK_APPLICATION_TEMPLATE: &[u8] = include_bytes!("../assets/book.application.template.json");
 const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_STATE: &[u8] = include_bytes!("../assets/book-state.mjs");
 const BOOK_NAVIGATION: &[u8] = include_bytes!("../assets/book-navigation.mjs");
@@ -81,6 +82,37 @@ const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
 
+fn book_application_resource<'a>(path: &str, runtime: &'a [u8]) -> Option<&'a [u8]> {
+    match path {
+        "book.mjs" => Some(BOOK_SCRIPT),
+        "browser-host-membership.mjs" => Some(HOST_MEMBERSHIP),
+        "book-state.mjs" => Some(BOOK_STATE),
+        "book-navigation.mjs" => Some(BOOK_NAVIGATION),
+        "book-runner-presentation.mjs" => Some(BOOK_RUNNER_PRESENTATION),
+        "book-syntax-editor.mjs" => Some(BOOK_SYNTAX_EDITOR),
+        "assets/flow.js" => Some(book_assets::FLOW),
+        "assets/flow-scene.js" => Some(book_assets::FLOW_SCENE),
+        "assets/flow-layout.js" => Some(book_assets::FLOW_LAYOUT),
+        "assets/flow-faceplate.js" => Some(book_assets::FLOW_FACEPLATE),
+        "assets/portable-navigation.js" => Some(book_assets::PORTABLE_NAVIGATION),
+        "book.css" => Some(BOOK_STYLE),
+        "assets/react-flow.css" => Some(book_assets::REACT_FLOW_STYLE),
+        "assets/flow.css" => Some(book_assets::FLOW_STYLE),
+        "assets/react.min.js" => Some(book_assets::REACT),
+        "assets/react-dom.min.js" => Some(book_assets::REACT_DOM),
+        "assets/react-flow.min.js" => Some(book_assets::REACT_FLOW),
+        "chapter-1.md" => Some(BOOK_CHAPTER_ONE),
+        "chapter-2.md" => Some(BOOK_CHAPTER_TWO),
+        "chapter-3.md" => Some(BOOK_CHAPTER_THREE),
+        "chapter-4.md" => Some(BOOK_CHAPTER_FOUR),
+        "chapter-5.md" => Some(BOOK_CHAPTER_FIVE),
+        "chapter-6.md" => Some(BOOK_CHAPTER_SIX),
+        "chapter-8.md" => Some(BOOK_CHAPTER_EIGHT),
+        "runtime.wasm" => Some(runtime),
+        _ => None,
+    }
+}
+
 #[derive(Debug)]
 pub struct BrowserHostServer {
     listener: TcpListener,
@@ -105,7 +137,10 @@ impl BrowserHostServer {
         }
         let runtime = std::fs::read(runtime_path)
             .map_err(|error| format!("cannot read browser Host runtime: {error}"))?;
-        let book_application = application_package::book_manifest(&runtime)?;
+        let book_application =
+            application_package::build_manifest(BOOK_APPLICATION_TEMPLATE, |path| {
+                book_application_resource(path, &runtime)
+            })?;
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
             .map_err(|error| format!("cannot bind ephemeral browser Host entrance: {error}"))?;
         Ok(Self {
