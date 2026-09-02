@@ -4,13 +4,11 @@ use clap::ValueEnum;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::cli::GlobalOpts;
-
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
-pub(super) enum ReleasePlatform {
+pub(crate) enum ReleasePlatform {
     Linux,
     Windows,
     Macos,
@@ -37,11 +35,16 @@ struct ReleaseFile {
     media_type: &'static str,
 }
 
-pub(super) fn run(
+pub(crate) struct ReleaseOptions {
+    pub(crate) json: bool,
+    pub(crate) quiet: bool,
+}
+
+pub(crate) fn run(
     output: &Path,
     platform: ReleasePlatform,
     source_identity: &str,
-    opts: &GlobalOpts,
+    opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match platform {
         ReleasePlatform::Linux => build_linux_set(output, source_identity)?,

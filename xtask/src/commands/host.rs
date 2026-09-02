@@ -290,7 +290,15 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
-            host_release::run(&output, platform, &source_identity, opts)
+            host_release::run(
+                &output,
+                platform,
+                &source_identity,
+                &host_release::ReleaseOptions {
+                    json: opts.json,
+                    quiet: opts.quiet,
+                },
+            )
         }
         HostCommand::Capstone {
             output,

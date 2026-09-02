@@ -56,8 +56,9 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
   await openStandaloneCreche(page);
   const birth = page.locator(".body-birth-runner");
   if (sourceVariant) {
-    await birth.locator(".seed-source summary").click();
-    const source = birth.locator("textarea");
+    const sourceDisclosure = birth.locator('[data-application-key="seed-source"]');
+    await sourceDisclosure.locator("summary").click();
+    const source = sourceDisclosure.getByRole("textbox", { name: "Conduit Seed source" });
     await source.fill((await source.inputValue()).replace('"SOS"', `"SOS ${sourceVariant}"`));
   }
   await birth.getByRole("button", { name: "Birth Body" }).click();
@@ -792,6 +793,8 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     "ESP32-S3",
     "ESP32-WROOM-32 · HW-463",
     "Hosted computer · Linux · x86_64",
+    "Hosted computer · Windows · x86_64",
+    "Hosted computer · macOS · arm64",
     "Browser page Host",
     "Orange Pi 5 · RK3588S · bare-metal ConduitOS",
     "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
@@ -1704,7 +1707,12 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   const { bodyId } = await birthStandaloneBody(page, { attachFirstHost: true });
   await page.getByRole("button", { name: "4. Graduate" }).click();
   const runner = page.locator(".graduation-runner");
-  await expect(runner.locator(".graduation-criteria li.ready")).toHaveCount(3);
+  const criteria = runner.locator('[data-application-key="graduation-criteria"]');
+  await expect(criteria.locator('[data-application-component="panel"]')).toHaveText([
+    "Durable Body identity · ready",
+    "Bound BIRTH evidence · ready",
+    "Current admitted Part · ready",
+  ]);
   await runner.getByRole("button", { name: "Host Patchbay on this Body" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
   await expect(runner.locator(".graduation-evidence")).toContainText("browser/patchbay-surface@1");
