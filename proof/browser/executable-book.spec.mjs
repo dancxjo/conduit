@@ -702,6 +702,21 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   expect(selectAppearance).toBe("none");
 });
 
+test("the standalone Crèche physical Host selects use only the custom dropdown arrow", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startCreche();
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await birthStandaloneBody(page);
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  const selects = page.locator(".physical-host-runner .physical-mode, .physical-host-runner .physical-target");
+  await expect(selects).toHaveCount(2);
+  const appearances = await selects.evaluateAll(
+    (elements) => elements.map((element) => getComputedStyle(element).appearance),
+  );
+  expect(appearances).toEqual(["none", "none"]);
+});
+
 test("two Bodies seal distinct spores against the same verified packaged Pico IMAGE", async ({ page }) => {
   const prepareOne = async (variant) => {
     const birth = await birthStandaloneBody(page, { sourceVariant: variant });
