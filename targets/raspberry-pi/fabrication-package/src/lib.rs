@@ -183,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn zero_family_offers_do_not_cross_the_bcm2835_and_rp3a0_boundary() {
+    fn zero_family_offers_do_not_cross_the_bcm2835_and_rp3a_zero_boundary() {
         let FabricationContribution::Anchor(anchor) = RaspberryPiFabricationPackage.contribution()
         else {
             panic!("Raspberry Pi fabrication package must be an anchor");
