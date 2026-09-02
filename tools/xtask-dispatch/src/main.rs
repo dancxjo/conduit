@@ -6,6 +6,9 @@
 
 use std::path::PathBuf;
 
+#[path = "../../../xtask/src/commands/host_release.rs"]
+mod host_release;
+
 mod proof {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum ProofClass {
@@ -143,6 +146,15 @@ fn parse(arguments: &[String]) -> Result<Arguments, String> {
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.first().map(String::as_str) == Some("host")
+        && arguments.get(1).map(String::as_str) == Some("release")
+    {
+        if let Err(error) = run_host_release(&arguments) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if arguments.first().map(String::as_str) != Some("ci")
         || arguments.get(1).map(String::as_str) != Some("plan")
     {
@@ -172,4 +184,75 @@ fn main() {
         eprintln!("xtask error: {error}");
         std::process::exit(1);
     }
+}
+
+fn run_host_release(arguments: &[String]) -> Result<(), String> {
+    let mut values = arguments.iter().skip(2);
+    let mut output = None;
+    let mut platform = None;
+    let mut source_identity = None;
+    let mut json = false;
+    let mut quiet = false;
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--json" => json = true,
+            "--quiet" => quiet = true,
+            "--output" => {
+                output = Some(PathBuf::from(values.next().ok_or("missing --output path")?));
+            }
+            "--platform" => {
+                platform = Some(match values.next().map(String::as_str) {
+                    Some("linux") => host_release::ReleasePlatform::Linux,
+                    Some("windows") => host_release::ReleasePlatform::Windows,
+                    Some("macos") => host_release::ReleasePlatform::Macos,
+                    Some(other) => return Err(format!("unsupported release platform: {other}")),
+                    None => return Err("missing --platform value".into()),
+                });
+            }
+            "--source-identity" => {
+                source_identity = Some(
+                    values
+                        .next()
+                        .cloned()
+                        .ok_or("missing --source-identity value")?,
+                );
+            }
+            other => return Err(format!("unsupported host release argument: {other}")),
+        }
+    }
+    let output = output.ok_or("host release requires --output")?;
+    let platform = platform.ok_or("host release requires --platform")?;
+    let source_identity = match source_identity {
+        Some(identity) => identity,
+        None => command_identity("git", &["rev-parse", "HEAD"])?,
+    };
+    host_release::run(
+        &output,
+        platform,
+        &source_identity,
+        &host_release::ReleaseOptions { json, quiet },
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn command_identity(program: &str, arguments: &[&str]) -> Result<String, String> {
+    let output = std::process::Command::new(program)
+        .args(arguments)
+        .output()
+        .map_err(|error| format!("cannot execute {program}: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "cannot derive exact identity from {program}: {}",
+            output.status
+        ));
+    }
+    let identity = String::from_utf8(output.stdout)
+        .map_err(|error| format!("{program} identity is not UTF-8: {error}"))?
+        .trim()
+        .to_owned();
+    if identity.is_empty() {
+        return Err(format!("{program} returned an empty identity"));
+    }
+    Ok(identity)
 }
