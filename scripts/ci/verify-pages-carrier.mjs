@@ -41,7 +41,7 @@ async function visit(root, relative, files, maximumFileBytes) {
     if (!entry.isFile()) throw new Error(`Pages carrier refuses non-file ${portable}`);
     const absolute = path.join(root, child);
     const metadata = await lstat(absolute);
-    if (metadata.size <= 0 || metadata.size > maximumFileBytes) {
+    if (metadata.size > maximumFileBytes) {
       throw new Error(`Pages carrier file ${portable} violates its finite byte bound`);
     }
     files.push({

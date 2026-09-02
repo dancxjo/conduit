@@ -60,7 +60,7 @@ async function visit(root, relative, files) {
     if (!entry.isFile()) throw new Error(`Pages carrier refuses non-file ${portable}`);
     const absolute = path.join(root, child);
     const metadata = await lstat(absolute);
-    if (metadata.size <= 0 || metadata.size > MAXIMUM_FILE_BYTES) {
+    if (metadata.size > MAXIMUM_FILE_BYTES) {
       throw new Error(`Pages carrier file ${portable} violates its finite byte bound`);
     }
     const bytes = await readFile(absolute);
