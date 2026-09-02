@@ -2,18 +2,20 @@
 
 use alloc::{string::String, vec::Vec};
 
-pub const APPLICATION_VIEW_VERSION: u8 = 2;
+pub const APPLICATION_VIEW_VERSION: u8 = 3;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
 pub const MAX_APPLICATION_VIEW_TEXT_BYTES: usize = 256;
 pub const MAX_APPLICATION_ACTIONS: usize = 16;
 pub const MAX_APPLICATION_ACTION_ID_BYTES: usize = 48;
-pub const MAX_APPLICATION_EVENT_BYTES: usize = 512;
+pub const MAX_APPLICATION_CONTROL_VALUE_BYTES: usize = 65_536;
+pub const MAX_APPLICATION_EVENT_BYTES: usize = MAX_APPLICATION_CONTROL_VALUE_BYTES;
 pub const MAX_APPLICATION_EVENT_ENCODED_BYTES: usize =
-    9 + MAX_APPLICATION_ACTION_ID_BYTES + MAX_APPLICATION_EVENT_BYTES;
+    11 + MAX_APPLICATION_ACTION_ID_BYTES + MAX_APPLICATION_EVENT_BYTES;
 pub const MAX_APPLICATION_EVENT_QUEUE: usize = 8;
-pub const MAX_APPLICATION_VIEW_BYTES: usize = 16_384;
+pub const MAX_APPLICATION_EVENT_QUEUE_BYTES: usize = 131_072;
+pub const MAX_APPLICATION_VIEW_BYTES: usize = 131_072;
 /// Phase-one views admit no application-selected external resources.
 pub const MAX_APPLICATION_VIEW_RESOURCES: usize = 0;
 
@@ -65,6 +67,8 @@ pub struct ApplicationViewNode {
     pub component: ApplicationComponent,
     pub key: String,
     pub text: String,
+    pub value: String,
+    pub value_capacity: u32,
     pub action: Option<u8>,
 }
 
@@ -83,6 +87,7 @@ pub enum ApplicationViewRefusal {
     DuplicateKey,
     UnknownParent,
     TextTooLong,
+    InvalidControlValue,
     TooManyActions,
     ActionIdTooLong,
     DuplicateAction,
@@ -112,6 +117,22 @@ impl ApplicationView {
                 || node.text.len() > MAX_APPLICATION_VIEW_TEXT_BYTES
             {
                 return Err(ApplicationViewRefusal::TextTooLong);
+            }
+            let is_control = matches!(
+                node.component,
+                ApplicationComponent::TextInput
+                    | ApplicationComponent::Select
+                    | ApplicationComponent::TextArea
+            );
+            let value_capacity = usize::try_from(node.value_capacity)
+                .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
+            if is_control
+                && (value_capacity == 0
+                    || value_capacity > MAX_APPLICATION_CONTROL_VALUE_BYTES
+                    || node.value.len() > value_capacity)
+                || (!is_control && (value_capacity != 0 || !node.value.is_empty()))
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             if self.nodes[..index]
                 .iter()
@@ -184,8 +205,11 @@ impl ApplicationView {
             out.push(node.action.unwrap_or(u8::MAX));
             out.push(node.key.len() as u8);
             out.extend_from_slice(&(node.text.len() as u16).to_le_bytes());
+            out.extend_from_slice(&(node.value.len() as u32).to_le_bytes());
+            out.extend_from_slice(&node.value_capacity.to_le_bytes());
             out.extend_from_slice(node.key.as_bytes());
             out.extend_from_slice(node.text.as_bytes());
+            out.extend_from_slice(node.value.as_bytes());
         }
         if out.len() > MAX_APPLICATION_VIEW_BYTES {
             return Err(ApplicationViewRefusal::OversizedEncoding);
@@ -232,12 +256,17 @@ impl ApplicationView {
             };
             let key_length = usize::from(cursor.byte()?);
             let text_length = usize::from(cursor.u16()?);
+            let value_length = usize::try_from(cursor.u32()?)
+                .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
+            let value_capacity = cursor.u32()?;
             nodes.push(ApplicationViewNode {
                 parent,
                 component,
                 action,
                 key: cursor.text(key_length)?.into(),
                 text: cursor.text(text_length)?.into(),
+                value: cursor.text(value_length)?.into(),
+                value_capacity,
             });
         }
         if !cursor.complete() {

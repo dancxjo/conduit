@@ -139,6 +139,8 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 component: ApplicationComponent::Shell,
                 key: "nucleus".into(),
                 text: String::new(),
+                value: String::new(),
+                value_capacity: 0,
                 action: None,
             },
             ApplicationViewNode {
@@ -146,6 +148,8 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 component: ApplicationComponent::Heading,
                 key: "heading".into(),
                 text: "Browser Host presentation".into(),
+                value: String::new(),
+                value_capacity: 0,
                 action: None,
             },
             ApplicationViewNode {
@@ -153,6 +157,8 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 component: ApplicationComponent::Paragraph,
                 key: "explanation".into(),
                 text: "A finite application view, not raw HTML.".into(),
+                value: String::new(),
+                value_capacity: 0,
                 action: None,
             },
             ApplicationViewNode {
@@ -160,6 +166,8 @@ fn tiny_application_view() -> Result<ApplicationView, String> {
                 component: ApplicationComponent::Button,
                 key: "continue".into(),
                 text: "Continue".into(),
+                value: String::new(),
+                value_capacity: 0,
                 action: Some(0),
             },
         ],
