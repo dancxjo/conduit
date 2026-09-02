@@ -1,0 +1,22 @@
+name: pages-deploy-pr-proof
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/executable-book-deploy.yml
+      - .github/workflows/pages-deploy-pr-proof.yml
+      - scripts/ci/pages-product-run-selection.mjs
+      - scripts/ci/resolve-pages-product-run.mjs
+      - proof/ci/pages-product-run-selection.spec.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  resolver:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prove bounded exact-head carrier selection
+        run: node --test proof/ci/pages-product-run-selection.spec.mjs

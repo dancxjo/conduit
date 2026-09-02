@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { appendFile, readFile } from "node:fs/promises";
+import { selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
 
 const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
 const repository = process.env.GITHUB_REPOSITORY;
@@ -20,10 +21,7 @@ if (!pull.merged_at || !/^[0-9a-f]{40}$/.test(pull.merge_commit_sha ?? "")
 
 const query = new URLSearchParams({ event: "pull_request", head_sha: pull.head.sha, status: "success", per_page: "100" });
 const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
-const run = runs.workflow_runs.find((candidate) =>
-  candidate.conclusion === "success"
-  && candidate.head_sha === pull.head.sha
-  && candidate.pull_requests?.some((item) => item.number === requestedNumber));
+const run = selectExactSuccessfulRun(runs.workflow_runs, pull.head.sha);
 if (!run) throw new Error(`no successful exact-head Pages product run admits pull request #${requestedNumber}`);
 
 await appendFile(output, [
