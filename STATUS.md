@@ -2305,3 +2305,48 @@ the accepted timeline. This acceptance adds no runtime suspension or resume,
 breakpoint expression, causal ancestry or descendants, speculative topology
 trace, distributed control, authoritative wall-clock time, or physical/HIL
 claim. Those remain #2088 under #2083.
+
+The Patchbay debugger P4 breakpoint and causal-trace slice from #2088 merged
+through PR #2112 as exact main
+`734613dd9a83d15e66da486cb8e4ac73d90eddbb`. Its prerequisite impact-planner
+correction merged separately through PR #2113 as
+`340b6ae199c922d6036449ce058d7dad499aa5a1`: a complete recognizable debugger
+kernel change selects the focused proof, while an incomplete scheduler-only
+change remains conservatively broad. At the final implementation head,
+general workflow `33625057308` passed only workspace lint, Host tests, and
+product tests in at most 2m28s; ESP32, all ConduitOS architecture/image/tool
+lanes, browser Host, and browser tools were correctly unselected. Focused
+pinned-Chromium workflow `33625057264` passed in 2m02s and Book browser workflow
+`33625057408` passed in 1m55s.
+
+The production fixed scheduler now owns one exact unconditional
+before-Gear-start breakpoint and suspended execution state. Suspension occurs
+before a scheduling decision, repeated steps remain suspended without
+advancing execution, and an exact one-shot resume makes that same Gear the next
+decision. Breakpoint and resume requests bind exact Body, Plan, Play, and Gear
+identities; replacement execution is stale rather than label-retargeted, and
+unsupported multi-Host distributed suspension refuses explicitly. The
+Patchbay Host exercises these production kernel contracts rather than a
+visualization-only pause or a second scheduler, including one Body-wide Play
+whose work may belong to multiple Forms.
+
+Observation schema v2 records exact invocation and causal-parent sequences.
+The production scheduler links a value send to its emitting Gear invocation,
+a receive to the exact prior send on its planned Cord, and completion or fault
+to the latest event in that invocation. The finite timeline derives upstream
+ancestry and exact observed descendants only from those identities; it does
+not substitute graph reachability, and evicted or absent parents remain an
+explicit history gap. Trace selection, ordered textual steps, graph emphasis,
+Watches, and fault origin share one Host-owned atomic projection. Running,
+visualization replay pause, runtime suspension, stale control, and unsupported
+control remain distinct renderer-neutral states.
+
+From exact main, seven kernel observation/control cases, 16 focused debugger
+model cases, the complete Patchbay HTML/server suite, and all three pinned
+Chromium interactions passed again. Chromium used one worker, zero retries,
+and completed in 6.0s. The browser proof includes exact Watch reload retention,
+timeline/graph synchronization, real suspension and resume, and exact causal
+fault tracing. This acceptance adds no conditional breakpoint language,
+arbitrary memory inspection, unbounded history, invented causal inference,
+distributed stop-the-world protocol, authoritative wall-clock time, or
+physical/HIL claim.
