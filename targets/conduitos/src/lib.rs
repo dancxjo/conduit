@@ -17,6 +17,7 @@ mod execution_region;
 #[cfg(any(
     test,
     target_arch = "x86_64",
+    feature = "ia32-product",
     feature = "aarch64-product",
     feature = "aarch64-orange-pi-5",
     feature = "hosted-tools"
@@ -25,6 +26,7 @@ pub mod fabrication;
 #[cfg(any(
     test,
     target_arch = "x86_64",
+    feature = "ia32-product",
     feature = "aarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
@@ -60,6 +62,7 @@ pub mod offer;
 #[cfg(any(
     test,
     target_arch = "x86_64",
+    feature = "ia32-product",
     feature = "aarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
@@ -85,11 +88,12 @@ pub mod pc_speaker_play;
 pub mod planned_kernel;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
-// Product entrances remain out of A0-A4 proof appliances. AArch64 admits
-// these modules only through its distinct PROFILE-selected product feature.
+// Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
+// admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(
     test,
     target_arch = "x86_64",
+    feature = "ia32-product",
     feature = "aarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
@@ -99,6 +103,7 @@ pub mod presentation_nucleus;
 #[cfg(any(
     test,
     target_arch = "x86_64",
+    feature = "ia32-product",
     feature = "aarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
@@ -108,6 +113,7 @@ pub mod product_front_door;
 #[cfg(any(
     test,
     target_arch = "x86_64",
+    feature = "ia32-product",
     feature = "aarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]

@@ -469,7 +469,7 @@ fn reject_dry_run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
 }
 
-fn firmware_paths(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
+pub(super) fn firmware_paths(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
     [
         PathBuf::from("/usr/share/OVMF"),
         paths.root.join("target/conduitos/toolchain/ovmf-ia32"),
