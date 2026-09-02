@@ -57,6 +57,33 @@ const DEBUGGER_KERNEL_SLICE: [&str; 7] = [
     "architecture/kernel/src/scheduler/debug_control.rs",
     "architecture/kernel/tests/debug_observation.rs",
 ];
+const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
+    "Cargo.lock",
+    "apps/patchbay/html/Cargo.toml",
+    "apps/patchbay/html/assets/app.css",
+    "apps/patchbay/html/assets/app.js",
+    "apps/patchbay/html/assets/index.html",
+    "apps/patchbay/html/assets/patchbay.application.template.json",
+    "apps/patchbay/html/src/server.rs",
+    "apps/patchbay/html/src/server/http.rs",
+    "apps/patchbay/html/tests/server.rs",
+    "proof/browser/patchbay-debugger-watch.spec.mjs",
+    "proof/browser/patchbay-html.spec.mjs",
+];
+const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
+    ".github/workflows/executable-book-pages.yml",
+    "fabrication/workspace/tests/family_contracts.rs",
+    "proof/browser/executable-book.spec.mjs",
+    "scripts/ci/stage-creche-product.sh",
+    "targets/browser/runtime/src/creche/spore_target.rs",
+    "targets/raspberry-pi/browser-deployment/creche-adapter.mjs",
+    "targets/raspberry-pi/browser-deployment/image.mjs",
+    "targets/raspberry-pi/fabrication-package/src/lib.rs",
+    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_image.rs",
+    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_board.rs",
+    "targets/std/browser-deployment/creche-adapter.mjs",
+    "xtask/src/commands/host_release.rs",
+];
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
@@ -263,8 +290,43 @@ fn plan_for_paths(
         && substantive
             .iter()
             .any(|path| path.as_str() == "architecture/kernel/src/scheduler.rs");
+    let patchbay_package_slice = substantive
+        .iter()
+        .all(|path| PATCHBAY_PACKAGE_SLICE.contains(&path.as_str()))
+        && [
+            "Cargo.lock",
+            "apps/patchbay/html/Cargo.toml",
+            "apps/patchbay/html/assets/patchbay.application.template.json",
+            "apps/patchbay/html/assets/index.html",
+            "apps/patchbay/html/src/server.rs",
+        ]
+        .iter()
+        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
+    let pi_zero_creche_slice = substantive
+        .iter()
+        .all(|path| PI_ZERO_CRECHE_SLICE.contains(&path.as_str()))
+        && [
+            ".github/workflows/executable-book-pages.yml",
+            "proof/browser/executable-book.spec.mjs",
+            "scripts/ci/stage-creche-product.sh",
+            "targets/browser/runtime/src/creche/spore_target.rs",
+            "targets/raspberry-pi/fabrication-package/src/lib.rs",
+        ]
+        .iter()
+        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
 
     for path in substantive {
+        if pi_zero_creche_slice {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-pi-zero-creche:{path}"));
+            if let Some(package) = package_for_path(root, path, packages) {
+                changed_packages.insert(package.to_owned());
+            }
+            continue;
+        }
         if FOCUSED_WORKFLOW_FILES.contains(&path.as_str()) {
             selected.insert("browser".to_owned(), true);
             reasons
@@ -279,6 +341,14 @@ fn plan_for_paths(
                 .get_mut("browser")
                 .expect("known suite")
                 .push(format!("focused-debugger-kernel:{path}"));
+            continue;
+        }
+        if patchbay_package_slice && path.as_str() == "Cargo.lock" {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push("focused-patchbay-package:Cargo.lock".to_owned());
             continue;
         }
         if GLOBAL_FILES.contains(&path.as_str()) || starts_with_any(path, &GLOBAL_PREFIXES) {
