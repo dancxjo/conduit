@@ -6,7 +6,7 @@ const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createPhysicalHostRunner({ host, targetCatalog }) {
+export function createPhysicalHostRunner({ host, targetCatalog, onBodyChanged }) {
   const catalog = requireTargetCatalog(targetCatalog);
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
@@ -77,7 +77,7 @@ export function createPhysicalHostRunner({ host, targetCatalog }) {
   runner.querySelector(".bind").addEventListener("click", () => bindInvitation(runner, host, state));
   runner.querySelector(".realize").addEventListener("click", () => realizeHost(runner, host, state));
   runner.querySelector(".observe").addEventListener("click", () => observeJoin(runner, host, state));
-  runner.querySelector(".admit").addEventListener("click", () => admitPart(runner, host, state));
+  runner.querySelector(".admit").addEventListener("click", () => admitPart(runner, host, state, onBodyChanged));
   runner.querySelector(".cancel").addEventListener("click", () => cancelActive(runner, state, true));
   selectTarget(runner, host, state, catalog.entries[0].target.id);
   return runner;
@@ -237,13 +237,14 @@ function observeJoin(runner, host, state) {
   });
 }
 
-function admitPart(runner, host, state) {
+function admitPart(runner, host, state, onBodyChanged) {
   void operate(runner, state, "admit", () => Promise.resolve(admitObservation(host.runtime, state.observation.join)), (result) => {
     state.admission = { evidence: result };
     state.phase = "admitted";
     completeStage(runner, "admit", `revision ${result.membership_revision}`);
     setButtons(runner, null);
     status(runner, `Physical Part admitted; ${result.offer_count} current offers are ready. No Plan or Play was created.`);
+    onBodyChanged?.();
   });
 }
 

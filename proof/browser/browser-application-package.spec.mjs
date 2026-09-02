@@ -15,6 +15,24 @@ async function mutatePackage(page, mutate) {
   }, { times: 1 });
 }
 
+async function deleteStoredApplicationRecord(page, applicationIdentity, version, key) {
+  await page.evaluate(async ({ applicationIdentity, version, key }) => {
+    const request = indexedDB.open("conduit-browser-host-applications", 1);
+    const database = await new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction("application-state", "readwrite");
+    transaction.objectStore("application-state").delete(`${applicationIdentity}@${version}\u0000${key}`);
+    await new Promise((resolve, reject) => {
+      transaction.addEventListener("complete", resolve, { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, { applicationIdentity, version, key });
+}
+
 test("Book drafts and an open reviewed Back endure a same-browser reload", async ({ page }) => {
   entrance.child.kill();
   entrance = await startStaticProduct("target/book-product", "/conduit/book/");
@@ -110,6 +128,64 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
     expect(requests.filter((request) => request === pathname), path).toHaveLength(1);
   }
   await expect(page.locator('style[data-application-resource="creche-style"]')).toHaveCount(1);
+});
+
+test("Crèche restores one validated Body session across same-browser reloads", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByRole("button", { name: "Birth Body" }).click();
+  const bodyId = await birth.getAttribute("data-body-id");
+  await page.getByRole("button", { name: "2. First Host" }).click();
+  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
+
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator('[data-application-key="body-id"]')).toHaveText(bodyId);
+  await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toContainText("one admitted browser Host");
+  const restored = await page.evaluate(() => {
+    const api = globalThis.__conduitCrecheHost.runtime;
+    const code = api.conduit_creche_current();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
+    return { code, receipt: JSON.parse(new TextDecoder().decode(bytes)) };
+  });
+  expect(restored.code).toBe(0);
+  expect(restored.receipt.body_id).toBe(bodyId);
+  expect(restored.receipt.membership_revision).toBe(2);
+
+  await page.getByRole("button", { name: "4. Graduate" }).click();
+  await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
+  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator('[data-application-key="graduation-status"]')).toContainText("Graduated");
+  await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
+});
+
+test("Crèche refuses changed durable Body evidence before restoring authority", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await page.getByRole("button", { name: "Birth Body" }).click();
+  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
+  await page.evaluate(async () => {
+    const storage = globalThis.__conduitBrowserApplication.storage;
+    const snapshot = await storage.readJson("body-session");
+    snapshot.receipt.body_id += "-changed";
+    await storage.writeJson("body-session", snapshot);
+  });
+
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Crèche unavailable");
+  await expect(page.locator("#workspace")).toHaveText("durable Crèche session identities disagree");
+  expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
+  await deleteStoredApplicationRecord(page, "conduit.application/creche-host-state", 1, "body-session");
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
 });
 
 test("Crèche refuses changed admitted code before application manifestation", async ({ page }) => {
