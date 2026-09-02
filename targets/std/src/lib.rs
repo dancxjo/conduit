@@ -66,8 +66,10 @@ pub use run_control::{
     RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,
     RunControlRequestId,
 };
+#[cfg(unix)]
 pub mod pico_admission;
 pub mod pico_control_source;
+#[cfg(unix)]
 pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;

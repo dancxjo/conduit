@@ -27,49 +27,49 @@ const PINNED_BOOTLOADER_NAME: &str = "Limine";
 const PINNED_BOOTLOADER_VERSION: &str = "12.5.2";
 
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 #[cfg(target_arch = "aarch64")]
 static BASE_REVISION: BaseRevision = BaseRevision::with_revision(6);
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 #[cfg(not(target_arch = "aarch64"))]
 static BASE_REVISION: BaseRevision = BaseRevision::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static BOOTLOADER_INFO: BootloaderInfoRequest = BootloaderInfoRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static FIRMWARE: FirmwareTypeRequest = FirmwareTypeRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static MEMORY_MAP: MemoryMapRequest = MemoryMapRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static HHDM: HhdmRequest = HhdmRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static EXECUTABLE_ADDRESS: ExecutableAddressRequest = ExecutableAddressRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static EXECUTABLE_FILE: ExecutableFileRequest = ExecutableFileRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static MODULES: ModuleRequest = ModuleRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static FRAMEBUFFERS: FramebufferRequest = FramebufferRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static DATE_AT_BOOT: DateAtBootRequest = DateAtBootRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 static EXECUTABLE_CMDLINE: ExecutableCmdlineRequest = ExecutableCmdlineRequest::new();
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 #[cfg(target_arch = "aarch64")]
 static AARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
 #[used]
-#[unsafe(link_section = ".requests")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 #[cfg(target_arch = "riscv64")]
 static RISCV64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
 #[used]

@@ -4,7 +4,9 @@
 //! and generic `Read + Write` streams.
 
 use std::io::{Read, Write};
+#[cfg(unix)]
 use std::path::Path;
+#[cfg(unix)]
 use std::time::{Duration, Instant};
 
 use conduit_wire::stream_framing::{encode_stream_frame, StreamFrameDecoder, StreamFrameError};
