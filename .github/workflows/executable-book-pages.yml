@@ -114,9 +114,11 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - name: Build the exact Book and Crèche runtimes
+      - name: Build the exact browser Host, Book runtime, and Crèche runtime
         run: |
           mkdir -p target/browser-product-runtimes
+          cargo build --locked -p conduit-browser-host
+          cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/book-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
@@ -396,6 +398,9 @@ jobs:
           path: target/creche-release-artifacts
       - name: Stage the exact browser products
         run: |
+          mkdir -p target/debug
+          cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          chmod 755 target/debug/conduit-browser-host
           rm -rf target/pages-root target/book-product target/creche-product
           scripts/ci/stage-pages-root.sh target/pages-root
           scripts/ci/stage-book-product.sh target/browser-product-runtimes/book-runtime.wasm target/book-product
