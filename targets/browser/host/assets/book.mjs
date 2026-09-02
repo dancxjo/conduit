@@ -2,6 +2,7 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
+import { createBookRunnerStatus } from "./book-runner-presentation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -304,6 +305,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
+  const statusSlot = `book-runner-status-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner";
   runner.dataset.sourceKey = sourceKey;
@@ -321,7 +323,7 @@ function createRunner(source, recursive = false, presentation = {}) {
       <div class="indicator" role="img" aria-label="Indicator off"></div>
       <h2>Planned result</h2>
       <output class="morse" aria-label="Planned result">ready</output>
-      <p class="play-status" role="status">Edit the message or timing, then run it.</p>
+      <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence"><summary>Inspect exact evidence</summary>
         <h3>Checked Form</h3><dl class="exact-projection"></dl>
         <h3>Latest run</h3><dl class="run-identities"></dl><div class="expansion"></div>
@@ -339,6 +341,9 @@ function createRunner(source, recursive = false, presentation = {}) {
     hostPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
   );
+  runner.playStatus = createBookRunnerStatus(
+    hostPresentation, statusSlot, "Edit the message or timing, then run it.",
+  );
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
@@ -349,6 +354,7 @@ function createMultiHostRunner(source, showPlan) {
   const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
+  const statusSlot = `book-runner-status-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner multi-host-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -370,7 +376,7 @@ function createMultiHostRunner(source, showPlan) {
       </div>
       <h2>Planned result on Host B</h2>
       <output class="morse" aria-label="Planned result">ready</output>
-      <p class="play-status" role="status">Run the Form to start two independent browser Hosts.</p>
+      <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
         <h3>Checked Form</h3><dl class="exact-projection"></dl>
         <h3>Latest run</h3><dl class="run-identities"></dl><div class="expansion"></div>
@@ -388,6 +394,9 @@ function createMultiHostRunner(source, showPlan) {
   runner.actionControls = createBookRunnerActions(
     hostPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),
+  );
+  runner.playStatus = createBookRunnerStatus(
+    hostPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
   );
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, false);
@@ -669,13 +678,11 @@ async function ensurePeerHost() {
 async function runMultiHostListing(runner, source) {
   if (running && activeRunner) stopListing(activeRunner);
   const current = ++generation;
-  const status = runner.querySelector(".play-status");
   running = true;
   activeRunner = runner;
   setNavigationDisabled(true);
   runner.actionControls.render(true);
-  status.classList.remove("error");
-  status.textContent = "Starting an independent second browser Host…";
+  runner.playStatus.ordinary("Starting an independent second browser Host…");
   try {
     const peer = await ensurePeerHost();
     if (current !== generation) return;
@@ -702,7 +709,7 @@ async function runMultiHostListing(runner, source) {
     );
     activeMemoryLine = line;
     renderHostCard(runner, "a", host, "offered one typed value");
-    status.textContent = "Host A offered one value on the exact planned Cord…";
+    runner.playStatus.ordinary("Host A offered one value on the exact planned Cord…");
     if (!await nextPaint(current)) return;
     const presentation = line.transfer(sourceProgress.frame, peer.runtime);
     if (presentation.effect_kind !== "manifestation") {
@@ -717,7 +724,7 @@ async function runMultiHostListing(runner, source) {
     runner.querySelector(".morse").textContent = presentation.manifestation.text;
     renderIdentities(runner, presentation.manifestation);
     renderPlanProjection(runner, presentation.plan_projection);
-    status.textContent = "Host B observed the planned presentation; acknowledging delivery…";
+    runner.playStatus.ordinary("Host B observed the planned presentation; acknowledging delivery…");
     if (!await nextPaint(current)) return;
     const completion = peer.runtime.conduit_book_multi_complete();
     if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
@@ -730,15 +737,15 @@ async function runMultiHostListing(runner, source) {
     }
     renderHostCard(runner, "a", host, "completed");
     renderHostCard(runner, "b", peer, "completed");
-    status.textContent = "Completed — one immutable Plan, two independent Plays, one delivered cross-Host value.";
-    status.dataset.planId = plan.plan_id;
-    status.dataset.sourceReceipt = sourceReceipt.receipt.terminal_sign_id;
-    status.dataset.sinkReceipt = terminal.receipt.terminal_sign_id;
+    runner.playStatus.success("Completed — one immutable Plan, two independent Plays, one delivered cross-Host value.");
+    appendRunEvidence(runner, [
+      ["Terminal source receipt", sourceReceipt.receipt.terminal_sign_id],
+      ["Terminal sink receipt", terminal.receipt.terminal_sign_id],
+    ]);
     finishRun(runner);
   } catch (error) {
     cancelMultiSessions();
-    status.textContent = error instanceof Error ? error.message : String(error);
-    status.classList.add("error");
+    runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     finishRun(runner);
   }
 }
@@ -917,10 +924,8 @@ async function runListing(runner, source, recursive) {
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const total = hostBytes.length + bootBytes.length + sourceBytes.length;
-  const status = runner.querySelector(".play-status");
   if (total > api.conduit_book_input_capacity()) {
-    status.textContent = "The listing exceeds the admitted input bound.";
-    status.classList.add("error");
+    runner.playStatus.failure("The listing exceeds the admitted input bound.");
     return;
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_book_input_ptr(), total);
@@ -936,10 +941,9 @@ async function runListing(runner, source, recursive) {
   );
   if (interaction < 0) {
     const refusal = api.conduit_book_output_len() > 0 ? readOutput(api) : null;
-    status.textContent = refusal?.message
+    runner.playStatus.failure(refusal?.message
       ? `The edit was refused · ${refusal.category}: ${refusal.message}`
-      : `The edit was refused (${interaction}).`;
-    status.classList.add("error");
+      : `The edit was refused (${interaction}).`);
     return;
   }
   input.set(hostBytes);
@@ -949,26 +953,24 @@ async function runListing(runner, source, recursive) {
   const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current));
   if (code < 0) {
     const refusal = api.conduit_book_output_len() > 0 ? readOutput(api) : null;
-    status.textContent = refusal?.message
+    runner.playStatus.failure(refusal?.message
       ? `The Form was refused before Play · ${refusal.category}: ${refusal.message}`
-      : `The Form was refused before Play (${code}).`;
-    status.classList.add("error");
+      : `The Form was refused before Play (${code}).`);
     return;
   }
   let progress = readOutput(api);
   running = true;
   activeRunner = runner;
   setNavigationDisabled(true);
-  status.classList.remove("error");
-  status.textContent = "Playing through this browser Host…";
+  runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
     while (progress.effect_kind) {
       if (progress.effect_kind === "timer") {
-        status.textContent = `Waiting for planned tick · ${progress.duration_millis} ms`;
+        runner.playStatus.ordinary(`Waiting for planned tick · ${progress.duration_millis} ms`);
         if (!await delay(progress.duration_millis, current)) return;
       } else if (progress.effect_kind === "key-event") {
-        status.textContent = "Waiting for one admitted keyboard transition…";
+        runner.playStatus.ordinary("Waiting for one admitted keyboard transition…");
         const encoded = await nextKeyEvent(current);
         if (!encoded) return;
         new Uint8Array(api.memory.buffer, api.conduit_book_input_ptr(), encoded.length).set(encoded);
@@ -986,7 +988,7 @@ async function runListing(runner, source, recursive) {
           if (!await delay(segment.units * progress.unit_millis, current)) return;
         }
         setIndicator(runner, false);
-        status.textContent = "Observed planned presentation; continuing the same Play…";
+        runner.playStatus.ordinary("Observed planned presentation; continuing the same Play…");
       } else {
         throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
       }
@@ -995,19 +997,20 @@ async function runListing(runner, source, recursive) {
       if (completion < 0) throw new Error(`completion refused (${completion})`);
       progress = readOutput(api);
     }
-    status.textContent = progress.timer_completions > 0
+    runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
-      : "Completed — one bounded Play, one planned manifestation.";
-    status.dataset.receipt = progress.terminal_sign_id;
-    status.dataset.timerCompletions = String(progress.timer_completions);
-    status.dataset.manifestationCompletions = String(progress.manifestation_completions);
+      : "Completed — one bounded Play, one planned manifestation.");
+    appendRunEvidence(runner, [
+      ["Terminal Sign", progress.terminal_sign_id],
+      ["Timer completions", String(progress.timer_completions)],
+      ["Manifestation completions", String(progress.manifestation_completions)],
+    ]);
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
     runner.actionControls.render(false);
   } catch (error) {
-    status.textContent = error instanceof Error ? error.message : String(error);
-    status.classList.add("error");
+    runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     running = false;
     activeRunner = null;
     setNavigationDisabled(false);
@@ -1026,7 +1029,7 @@ function stopListing(runner) {
   setNavigationDisabled(false);
   setIndicator(runner, false);
   runner.actionControls.render(false);
-  runner.querySelector(".play-status").textContent = "Stopped. The Play was cancelled.";
+  runner.playStatus.ordinary("Stopped. The Play was cancelled.");
 }
 
 function cancelMultiSessions() {
@@ -1140,6 +1143,17 @@ function renderIdentities(runner, effect) {
     gears.append(item);
   }
   expansion.append(heading, gears);
+}
+
+function appendRunEvidence(runner, entries) {
+  const list = runner.querySelector(".run-identities");
+  for (const [label, identity] of entries) {
+    const term = document.createElement("dt");
+    const value = document.createElement("dd");
+    term.textContent = label;
+    value.textContent = identity;
+    list.append(term, value);
+  }
 }
 
 function delay(milliseconds, expectedGeneration) {

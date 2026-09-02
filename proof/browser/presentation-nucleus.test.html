@@ -47,7 +47,7 @@ try {
   const acceptedMarkup = root.innerHTML;
   let malformedRefusal = "";
   try {
-    manifestApplicationView(Uint8Array.of(2), root);
+    manifestApplicationView(Uint8Array.of(3), root);
   } catch (error) {
     malformedRefusal = error.code;
   }
