@@ -84,6 +84,8 @@ impl RendererSnapshot {
             body_workbench: None,
             debugger: None,
             watches: None,
+            timeline: None,
+            timeline_projection: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -162,6 +164,15 @@ impl RendererSnapshot {
         watches: patchbay_model::DebuggerWatchSet,
     ) -> Result<(), SnapshotError> {
         self.watches = Some(watches);
+        self.validate()
+    }
+
+    pub fn attach_timeline(
+        &mut self,
+        timeline: patchbay_model::DebuggerTimeline,
+    ) -> Result<(), SnapshotError> {
+        self.timeline_projection = Some(timeline.project(self.watches.as_ref()));
+        self.timeline = Some(timeline);
         self.validate()
     }
 
@@ -281,6 +292,51 @@ impl RendererSnapshot {
                         || watch.latest.as_ref() != watch.history.last()
                 })
         });
+        let invalid_timeline = match (&self.timeline, &self.timeline_projection) {
+            (None, None) => false,
+            (Some(timeline), Some(projection)) => {
+                timeline.schema != patchbay_model::DEBUGGER_TIMELINE_SCHEMA
+                    || timeline.events.len() > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                    || timeline.retained_bytes > patchbay_model::MAX_DEBUGGER_TIMELINE_BYTES
+                    || timeline.retained_bytes
+                        != timeline
+                            .events
+                            .iter()
+                            .map(patchbay_model::DebuggerTimelineEvent::retained_bytes)
+                            .sum::<usize>()
+                    || timeline
+                        .cursor
+                        .is_some_and(|cursor| cursor >= timeline.events.len())
+                    || timeline
+                        .selected_event
+                        .is_some_and(|cursor| cursor >= timeline.events.len())
+                    || timeline.subject_filter.as_ref().is_some_and(|subject| {
+                        !timeline.events.iter().any(|event| {
+                            &event.subject == subject
+                                || event.related_subject.as_ref() == Some(subject)
+                        })
+                    })
+                    || timeline.events.iter().any(|event| {
+                        !self
+                            .presentation
+                            .subjects
+                            .iter()
+                            .any(|subject| subject.identity == event.subject)
+                            || event.value.as_ref().is_some_and(|value| {
+                                value.summary.len() > patchbay_model::MAX_DEBUGGER_SUMMARY_BYTES
+                            })
+                            || event.related_subject.as_ref().is_some_and(|related| {
+                                !self
+                                    .presentation
+                                    .subjects
+                                    .iter()
+                                    .any(|subject| &subject.identity == related)
+                            })
+                    })
+                    || &timeline.project(self.watches.as_ref()) != projection
+            }
+            _ => true,
+        };
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -297,6 +353,7 @@ impl RendererSnapshot {
             || invalid_workbench
             || invalid_debugger
             || invalid_watches
+            || invalid_timeline
         {
             return Err(SnapshotError::InvalidIdentity);
         }

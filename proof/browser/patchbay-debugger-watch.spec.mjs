@@ -61,3 +61,46 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     server.child.kill("SIGTERM");
   }
 });
+
+test("timeline replay and exact event rows stay linked to the graph and Watch", async ({ page }) => {
+  const server = startServer();
+  try {
+    const url = await server.url;
+    const initial = await (await fetch(`${url}/api/snapshot`)).json();
+    const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
+    const port = initial.watches.eligible_subjects.find(([, role]) => role === "port")[0];
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(url);
+    await page.locator("#toggle-palette").click();
+    await page.locator(`#subjects button[data-subject="${cord}"]`).click();
+    await page.getByRole("button", { name: "Watch", exact: true }).click();
+
+    await expect(page.locator(".timeline-status")).toContainText("Following live observations");
+    await expect(page.locator(".timeline-status")).toContainText("cursor 42");
+    await expect(page.locator(".timeline-gap")).toContainText("Exact reconstruction across this gap is unavailable");
+    await page.getByRole("button", { name: "Pause visualization" }).press("Enter");
+    await expect(page.locator(".timeline-status")).toContainText("execution is not paused");
+    await page.getByRole("button", { name: "Previous event" }).click();
+    await expect(page.locator(".timeline-status")).toContainText("cursor 41");
+    const watch = page.locator(".watch-card");
+    await expect(watch).toContainText("historical replay");
+    await expect(watch).toContainText("Latest41");
+
+    await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
+    await expect(page.locator(".exact-selection dl")).toContainText(port);
+    await page.locator("#toggle-palette").click();
+    await page.locator(`#subjects button[data-subject="${cord}"]`).click();
+    await page.getByRole("button", { name: "Focus events for exact subject" }).click();
+    await expect(page.getByRole("list", { name: "Exact retained debugger events" }).getByRole("listitem")).toHaveCount(2);
+    await page.getByRole("button", { name: "Show all events" }).click();
+    await expect(page.getByRole("list", { name: "Exact retained debugger events" }).getByRole("listitem")).toHaveCount(4);
+    await page.getByRole("button", { name: "Jump live" }).press("Enter");
+    await expect(page.locator(".timeline-status")).toContainText("Following live observations");
+    await expect(watch).toContainText("Latest42");
+    const final = await (await fetch(`${url}/api/snapshot`)).json();
+    expect(final.presentation).toEqual(initial.presentation);
+  } finally {
+    server.lines.close();
+    server.child.kill("SIGTERM");
+  }
+});

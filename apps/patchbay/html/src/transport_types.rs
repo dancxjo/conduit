@@ -72,6 +72,10 @@ pub struct RendererSnapshot {
     pub debugger: Option<DebuggerPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub watches: Option<patchbay_model::DebuggerWatchSet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeline: Option<patchbay_model::DebuggerTimeline>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeline_projection: Option<patchbay_model::DebuggerTimelineProjection>,
     pub interaction: HtmlInteractionState,
 }
 

@@ -80,6 +80,12 @@ body[data-embodied="false"] .canvas-heading [role="toolbar"] { display:none; }
 .watch-card dt { color:var(--patchbay-text-secondary); }
 .watch-history { max-height:9rem; overflow:auto; padding-left:1.25rem; }
 .watch-gap,.watch-stale { color:var(--patchbay-failure); font-weight:700; }
+.timeline-controls { display:flex; flex-wrap:wrap; gap:.35rem; margin:.45rem 0; }
+.timeline-events { max-height:13rem; overflow:auto; padding-left:1.4rem; }
+.timeline-events button { width:100%; text-align:left; }
+.timeline-events li[aria-current="true"] button { outline:2px solid var(--patchbay-focus); }
+.timeline-gap { color:var(--patchbay-failure); font-weight:700; }
+.timeline-event-context { color:var(--patchbay-text-secondary); font-size:.78rem; }
 .exact-selection[hidden] { display:none; }
 .status-strip { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; min-height:2.75rem; margin:.75rem 0; padding:.55rem .8rem; border:1px solid var(--patchbay-structure-secondary); border-left:5px solid var(--patchbay-success); background:var(--patchbay-surface); }
 .status-strip span { color:var(--patchbay-text-secondary); }
