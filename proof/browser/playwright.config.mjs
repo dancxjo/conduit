@@ -20,6 +20,7 @@ export default defineConfig({
     "browser-host-entrance.spec.mjs",
     "executable-book.spec.mjs",
     "browser-application-package.spec.mjs",
+    "pages-front-door.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",
     "creche-raspberry-pi.spec.mjs",

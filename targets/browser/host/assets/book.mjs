@@ -114,7 +114,11 @@ function pageRoute(markdown) {
 
 function pageIndexForLocation() {
   if (isProductRoot()) return 0;
-  const index = pageRoutes.indexOf(location.pathname);
+  const legacyRoutes = new Map([
+    [new URL("meet-one-gear/", document.baseURI).pathname, 0],
+    [new URL("same-face-different-implementation/", document.baseURI).pathname, 1],
+  ]);
+  const index = legacyRoutes.get(location.pathname) ?? pageRoutes.indexOf(location.pathname);
   if (index === -1) throw new Error("this Book page does not exist");
   return index;
 }
