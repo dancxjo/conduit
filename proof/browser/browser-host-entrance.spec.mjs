@@ -37,6 +37,28 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
+test("shows bounded startup suspense until the browser Host is ready", async ({ browser }) => {
+  const entrance = await startEntrance();
+  const page = await browser.newPage();
+  let releaseRuntime;
+  const runtimeReleased = new Promise((resolve) => { releaseRuntime = resolve; });
+  await page.route("**/runtime.wasm", async (route) => {
+    await runtimeReleased;
+    await route.continue();
+  });
+
+  await page.goto(entrance.url, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#suspense")).toBeVisible();
+  await expect(page.locator("#suspense")).toHaveAttribute("aria-busy", "true");
+  await expect(page.locator("#starting-status")).toHaveText("Preparing one fresh, bounded WebAssembly incarnation.");
+  await expect(page.locator("#host")).toBeHidden();
+
+  releaseRuntime();
+  await expect(page.locator("#suspense")).toBeHidden();
+  await expect(page.locator("#host")).toBeVisible();
+  await expect(page.locator("#status")).toHaveText("Current and independently initialized");
+});
+
 test("independent entrances and reload own fresh page WASM Host truth", async ({ browser }) => {
   const firstEntrance = await startEntrance();
   const secondEntrance = await startEntrance();
