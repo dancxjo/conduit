@@ -569,6 +569,7 @@ dependencies = [
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-host-hosted",
+ "conduit-host-orange-pi",
  "conduit-host-raspberry-pi",
  "conduit-host-rp2040",
  "conduit-human",
@@ -713,6 +714,13 @@ dependencies = [
  "conduit-host-fabrication",
  "conduit-semantic-catalog",
  "conduit-std-offers",
+]
+
+[[package]]
+name = "conduit-host-orange-pi"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-fabrication",
 ]
 
 [[package]]
@@ -1104,6 +1112,7 @@ dependencies = [
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
  "conduit-host-hosted",
+ "conduit-host-orange-pi",
  "conduit-host-raspberry-pi",
  "conduit-host-rp2040",
  "conduit-linear-framebuffer-fabrication",

@@ -6,6 +6,7 @@ fn main() {
     println!("cargo:rerun-if-changed=proof-appliances/aarch64/linker/a2.ld");
     println!("cargo:rerun-if-changed=proof-appliances/aarch64/linker/a3.ld");
     println!("cargo:rerun-if-changed=linker/aarch64_product.ld");
+    println!("cargo:rerun-if-changed=linker/aarch64_orange_pi_5.ld");
     println!("cargo:rerun-if-changed=proof-appliances/armv6-rpi-b-plus/linker/a0.ld");
     println!("cargo:rerun-if-changed=proof-appliances/armv6-rpi-b-plus/linker/a2.ld");
     println!("cargo:rerun-if-changed=proof-appliances/armv6-rpi-b-plus/linker/a3.ld");
@@ -25,15 +26,27 @@ fn main() {
             env::var("CONDUITOS_BUILD_ID").unwrap_or_else(|_| "build:proof-appliance".into());
         let image_binding =
             env::var("CONDUITOS_IMAGE_ID").unwrap_or_else(|_| "image:proof-appliance".into());
-        let proof_instrumentation = u16::from(env::var_os("CARGO_FEATURE_HOTPLUG_PROOF").is_some())
-            | (u16::from(env::var_os("CARGO_FEATURE_SCRIPTED_KEYBOARD_PROOF").is_some()) << 1);
-        fs::write(
-            output,
-            format!(
-                "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: FABRICATION_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 2, presentation_surface_bytes: 4194304, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
-            ),
-        )
-        .expect("write fallback fabrication record");
+        if env::var_os("CARGO_FEATURE_AARCH64_ORANGE_PI_5").is_some() {
+            fs::write(
+                output,
+                format!(
+                    "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: FABRICATION_SCHEMA, profile_id: \"profile:conduitos-orange-pi-5-rk3588s-v1\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/aarch64/orange-pi-5-rk3588s\", implementations: IMPL_TIME_TICK | IMPL_TICK_PRESENTATION | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_PRESENTATION | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: DRIVER_DW_APB_UART2, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, presentation_surface_slots: 0, presentation_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                ),
+            )
+            .expect("write Orange Pi 5 fabrication record");
+        } else {
+            let proof_instrumentation =
+                u16::from(env::var_os("CARGO_FEATURE_HOTPLUG_PROOF").is_some())
+                    | (u16::from(env::var_os("CARGO_FEATURE_SCRIPTED_KEYBOARD_PROOF").is_some())
+                        << 1);
+            fs::write(
+                output,
+                format!(
+                    "pub const EMBEDDED_FABRICATION: FabricationRecord = FabricationRecord {{ schema: FABRICATION_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 2, presentation_surface_bytes: 4194304, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                ),
+            )
+            .expect("write fallback fabrication record");
+        }
     }
     let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("Cargo sets manifest directory");
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64")
@@ -55,6 +68,9 @@ fn main() {
         );
         println!(
             "cargo:rustc-link-arg-bin=conduitos-aarch64-product=-T{manifest}/linker/aarch64_product.ld"
+        );
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-aarch64-orange-pi-5=-T{manifest}/linker/aarch64_orange_pi_5.ld"
         );
     }
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm")

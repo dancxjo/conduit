@@ -21,6 +21,7 @@ export default defineConfig({
     "executable-book.spec.mjs",
     "browser-application-package.spec.mjs",
     "creche-avr.spec.mjs",
+    "creche-orange-pi.spec.mjs",
     "creche-raspberry-pi.spec.mjs",
     "creche-conduitos.spec.mjs",
     "creche-native-zip.spec.mjs",

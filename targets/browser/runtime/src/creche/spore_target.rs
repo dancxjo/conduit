@@ -20,6 +20,9 @@ use conduit_host_fabrication::{
     HostConfiguration, HostFabricationPackage, SporeOutputKind,
 };
 use conduit_host_hosted::{HostedFabricationPackage, HOSTED_TARGET_ID};
+use conduit_host_orange_pi::{
+    OrangePiFabricationPackage, ORANGE_PI_5_TARGET, PACKAGE_ID as ORANGE_PI_PACKAGE_ID,
+};
 use conduit_host_raspberry_pi::{
     RaspberryPiFabricationPackage, B_PLUS_TARGET, RASPBERRY_PI_OS_TARGET,
 };
@@ -107,6 +110,9 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     if target_id == AVR_TARGET_ID {
         return avr_target();
     }
+    if target_id == ORANGE_PI_5_TARGET {
+        return orange_pi_target();
+    }
     if matches!(target_id, RASPBERRY_PI_OS_TARGET | B_PLUS_TARGET) {
         return raspberry_pi_target(target_id);
     }
@@ -121,6 +127,47 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
         .find(|candidate| candidate.target_descriptor().key() == target_id)
         .ok_or_else(|| format!("unsupported exact Crèche physical Host target {target_id:?}"))?;
     esp32_target(family)
+}
+
+fn orange_pi_target() -> Result<TargetFacts, String> {
+    let package = OrangePiFabricationPackage;
+    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
+    else {
+        return Err("Orange Pi fabrication package is not an anchor".into());
+    };
+    let descriptor = anchor
+        .targets
+        .into_iter()
+        .find(|target| target.key() == ORANGE_PI_5_TARGET)
+        .ok_or_else(|| "Orange Pi package omitted the exact Orange Pi 5 target".to_string())?;
+    let configuration_name = "creche-conduitos-orange-pi-5-rk3588s";
+    Ok(TargetFacts {
+        configuration_name,
+        host_name: configuration_name,
+        source_identity: "conduitos/reviewed-orange-pi-5-rk3588s-sd-image@1",
+        deployment_destination: Some("operator/removable-sd-writer"),
+        output: descriptor.default_output,
+        configuration: HostConfiguration {
+            schema: 1,
+            name: configuration_name.into(),
+            target: ConfigurationTarget {
+                architecture: descriptor.architecture,
+                machine: descriptor.machine,
+                board: descriptor.board,
+                os: descriptor.os,
+                fabrication_descriptor: None,
+            },
+            bases: vec![ConfigurationBase {
+                kind: "serial/text".into(),
+                implementation: Some("orange-pi/dw-apb-uart2@1".into()),
+                implementations: Vec::new(),
+            }],
+            resources: Vec::new(),
+            limits: descriptor.maxima,
+        },
+        packages: FabricationPackageSet::compose(&[&OrangePiFabricationPackage])
+            .map_err(|error| format!("compose {ORANGE_PI_PACKAGE_ID}: {error:?}"))?,
+    })
 }
 
 fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
@@ -553,6 +600,40 @@ mod tests {
                 Err(error) => error,
             };
             assert!(error.contains("unsupported exact"));
+        }
+    }
+
+    #[test]
+    fn orange_pi_5_is_exact_aarch64_conduitos_machinery_not_loongarch() {
+        let body_id = "e".repeat(64);
+        let prepared = prepare(&body_id, "invitation/orange-pi-5", ORANGE_PI_5_TARGET).unwrap();
+        let profile = prepared.configuration.profile();
+        assert_eq!(profile.target.key(), ORANGE_PI_5_TARGET);
+        assert_eq!(profile.target.architecture, "aarch64");
+        assert_eq!(profile.target.machine, "orange-pi-5-rk3588s");
+        assert_eq!(prepared.output, SporeOutputKind::SdImage);
+        let descriptor = prepared
+            .packages
+            .target_descriptor(ORANGE_PI_5_TARGET)
+            .unwrap();
+        assert_eq!(descriptor.board.as_deref(), Some("orange-pi-5"));
+        assert_eq!(descriptor.os, None);
+        assert_eq!(descriptor.family, "conduitos");
+        assert_eq!(
+            prepared
+                .packages
+                .anchor_for_target(ORANGE_PI_5_TARGET)
+                .unwrap()
+                .package_id,
+            ORANGE_PI_PACKAGE_ID
+        );
+        for unsupported in [
+            "conduitos/loongarch64/orange-pi-5-rk3588s",
+            "std/aarch64/orange-pi-5-rk3588s",
+            "conduitos/aarch64/orange-pi-5b-rk3588s",
+            "conduitos/aarch64/orange-pi-5-plus-rk3588",
+        ] {
+            assert!(prepare(&body_id, "invitation/orange-pi", unsupported).is_err());
         }
     }
 }

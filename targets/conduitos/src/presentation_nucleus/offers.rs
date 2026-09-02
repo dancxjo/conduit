@@ -1,6 +1,6 @@
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
-use alloc::format;
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{format, string::String};
+use alloc::{vec, vec::Vec};
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 use conduit_core::{ArtifactId, ExecutionProfileId, ImplementationId};
 use conduit_core::{
