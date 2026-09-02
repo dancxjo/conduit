@@ -4,8 +4,9 @@ use crate::{
 };
 
 use super::{
-    DebugEventKind, DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer,
-    DebugObservationInput, DebugObservationRefusal, DebugRuntimeEvent, DebugSubject,
+    DebugBreakpoint, DebugControlRefusal, DebugEventKind, DebugExecutionIdentity, DebugNodeBinding,
+    DebugObservationBuffer, DebugObservationInput, DebugObservationRefusal, DebugRuntimeControl,
+    DebugRuntimeEvent, DebugSubject, DEBUG_CONTROL_SCHEMA_VERSION,
 };
 
 /// Narrow lifecycle control for an optional debugger projection.
@@ -33,6 +34,9 @@ where
     observations: Option<DebugObservationBuffer<RECORDS>>,
     started: [bool; NODES],
     next_host_sequences: [Option<(u16, u64)>; NODES],
+    invocation_sequences: [Option<u64>; NODES],
+    latest_node_sequences: [Option<u64>; NODES],
+    latest_sent_sequences: [Option<(crate::CordId, u64)>; RECORDS],
 }
 
 impl<E, const NODES: usize, const PORTS: usize, const RECORDS: usize>
@@ -54,6 +58,9 @@ where
             observations: None,
             started: [false; NODES],
             next_host_sequences: [None; NODES],
+            invocation_sequences: [None; NODES],
+            latest_node_sequences: [None; NODES],
+            latest_sent_sequences: [None; RECORDS],
         }
     }
 
@@ -140,8 +147,22 @@ where
                     .flatten()
             })
         });
+        let causal_parent_sequence = match event.kind {
+            DebugEventKind::ValueReceived => event.cord.and_then(|cord| {
+                self.latest_sent_sequences
+                    .iter()
+                    .flatten()
+                    .find(|(known, _)| *known == cord)
+                    .map(|(_, sequence)| *sequence)
+            }),
+            DebugEventKind::ValueSent | DebugEventKind::GearCompleted | DebugEventKind::Fault => {
+                self.latest_node_sequences[node]
+            }
+            DebugEventKind::GearStarted | DebugEventKind::Unsupported(_) => None,
+        };
+        let invocation_sequence = self.invocation_sequences[node];
         if let Some(observations) = &mut self.observations {
-            let _ = observations.admit(DebugObservationInput {
+            if let Ok(record) = observations.admit(DebugObservationInput {
                 execution: self.execution,
                 host_sequence,
                 host: binding.host,
@@ -152,8 +173,66 @@ where
                 type_identity,
                 value: event.value,
                 fault_code: event.fault_code,
-            });
+                causal_parent_sequence,
+                invocation_sequence,
+            }) {
+                if event.kind == DebugEventKind::GearStarted {
+                    self.invocation_sequences[node] = Some(record.sequence);
+                }
+                self.latest_node_sequences[node] = Some(record.sequence);
+                if event.kind == DebugEventKind::ValueSent {
+                    if let Some(cord) = event.cord {
+                        if let Some((_, sequence)) = self
+                            .latest_sent_sequences
+                            .iter_mut()
+                            .flatten()
+                            .find(|(known, _)| *known == cord)
+                        {
+                            *sequence = record.sequence;
+                        } else if let Some(slot) = self
+                            .latest_sent_sequences
+                            .iter_mut()
+                            .find(|slot| slot.is_none())
+                        {
+                            *slot = Some((cord, record.sequence));
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+impl<E, const NODES: usize, const PORTS: usize, const RECORDS: usize> DebugRuntimeControl
+    for ObservedSignSink<E, NODES, PORTS, RECORDS>
+where
+    E: SignSink,
+{
+    fn validate_breakpoint(
+        &self,
+        breakpoint: DebugBreakpoint,
+    ) -> Result<NodeId, DebugControlRefusal> {
+        if breakpoint.schema_version != DEBUG_CONTROL_SCHEMA_VERSION {
+            return Err(DebugControlRefusal::UnsupportedSchemaVersion);
+        }
+        if breakpoint.execution != self.execution {
+            return Err(DebugControlRefusal::StaleExecution);
+        }
+        let DebugSubject::Gear(node) = breakpoint.subject else {
+            return Err(DebugControlRefusal::UnsupportedBreakpoint);
+        };
+        if usize::from(node.0) >= NODES {
+            return Err(DebugControlRefusal::UnknownSubject);
+        }
+        let first_host = self.node_bindings.first().map(|binding| binding.host);
+        if self
+            .node_bindings
+            .iter()
+            .any(|binding| Some(binding.host) != first_host)
+        {
+            return Err(DebugControlRefusal::DistributedSuspensionUnsupported);
+        }
+        Ok(node)
     }
 }
 

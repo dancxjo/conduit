@@ -130,3 +130,6 @@
 .debugger-status { margin: .35rem .55rem; font-size: .75rem; color: var(--patchbay-text-primary); }
 .debugger-value { margin-inline-start: auto; max-width: 7rem; overflow: hidden; text-overflow: ellipsis; color: var(--patchbay-text-primary); }
 .debugger-live-region { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.react-flow__node.causal-trace-exact { box-shadow:0 0 0 3px var(--patchbay-active); }
+.react-flow__node.causal-trace-unrelated, .react-flow__edge.causal-trace-unrelated { opacity:.35; }
+.react-flow__edge.causal-trace-exact path { stroke:var(--patchbay-active); stroke-width:4; }

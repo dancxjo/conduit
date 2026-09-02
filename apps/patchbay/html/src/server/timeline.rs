@@ -26,6 +26,9 @@ enum DebuggerTimelineAction {
     SelectEvent,
     FilterSubject,
     ClearFilter,
+    TraceUpstream,
+    TraceDownstream,
+    ClearTrace,
 }
 
 impl PatchbayHtmlServer {
@@ -45,6 +48,7 @@ impl PatchbayHtmlServer {
         if request.timeline_revision != timeline.revision {
             return Err(ServerError::InvalidRequest);
         }
+        let mut selected_subject = None;
         let result = match request.action {
             DebuggerTimelineAction::Pause => {
                 timeline.pause();
@@ -58,7 +62,9 @@ impl PatchbayHtmlServer {
             }
             DebuggerTimelineAction::SelectEvent => timeline
                 .select_event(request.index.ok_or(ServerError::InvalidRequest)?)
-                .map(|_| ()),
+                .map(|subject| {
+                    selected_subject = Some(subject.to_owned());
+                }),
             DebuggerTimelineAction::FilterSubject => timeline.filter_subject(Some(
                 request
                     .subject
@@ -66,10 +72,29 @@ impl PatchbayHtmlServer {
                     .ok_or(ServerError::InvalidRequest)?,
             )),
             DebuggerTimelineAction::ClearFilter => timeline.filter_subject(None),
+            DebuggerTimelineAction::TraceUpstream => timeline.trace_upstream(
+                request
+                    .index
+                    .or(timeline.cursor)
+                    .ok_or(ServerError::InvalidRequest)?,
+            ),
+            DebuggerTimelineAction::TraceDownstream => timeline.trace_downstream(
+                request
+                    .index
+                    .or(timeline.cursor)
+                    .ok_or(ServerError::InvalidRequest)?,
+            ),
+            DebuggerTimelineAction::ClearTrace => {
+                timeline.clear_trace();
+                Ok(())
+            }
         };
         result
             .map_err(|error| ServerError::Interaction(format!("debugger timeline: {error:?}")))?;
         self.snapshot.timeline_projection = Some(timeline.project(self.snapshot.watches.as_ref()));
+        if let Some(subject) = selected_subject {
+            self.focus_debugger_subject(&subject)?;
+        }
         self.encoded_snapshot = self.snapshot.encode()?;
         Ok(self.encoded_snapshot.clone())
     }

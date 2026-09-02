@@ -81,9 +81,12 @@ body[data-embodied="false"] .canvas-heading [role="toolbar"] { display:none; }
 .watch-history { max-height:9rem; overflow:auto; padding-left:1.25rem; }
 .watch-gap,.watch-stale { color:var(--patchbay-failure); font-weight:700; }
 .timeline-controls { display:flex; flex-wrap:wrap; gap:.35rem; margin:.45rem 0; }
+.control-actions { display:flex; flex-wrap:wrap; gap:.35rem; margin:.45rem 0; }
 .timeline-events { max-height:13rem; overflow:auto; padding-left:1.4rem; }
 .timeline-events button { width:100%; text-align:left; }
 .timeline-events li[aria-current="true"] button { outline:2px solid var(--patchbay-focus); }
+.timeline-events li[data-causal-trace="exact"] button { border-left:4px solid var(--patchbay-active); }
+.timeline-events:has(li[data-causal-trace="exact"]) li[data-causal-trace="unrelated"] { opacity:.48; }
 .timeline-gap { color:var(--patchbay-failure); font-weight:700; }
 .timeline-event-context { color:var(--patchbay-text-secondary); font-size:.78rem; }
 .exact-selection[hidden] { display:none; }

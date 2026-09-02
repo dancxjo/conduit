@@ -155,6 +155,8 @@ impl<const RECORDS: usize> DebugObservationBuffer<RECORDS> {
             preview_truncated: preview_len < value.len(),
             preview,
             fault_code: input.fault_code,
+            causal_parent_sequence: input.causal_parent_sequence,
+            invocation_sequence: input.invocation_sequence,
         };
         record.validate_for(self.execution, self.maximum_preview_bytes)?;
         self.push(record);

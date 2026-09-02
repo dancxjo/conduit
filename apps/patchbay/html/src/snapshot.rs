@@ -86,6 +86,7 @@ impl RendererSnapshot {
             watches: None,
             timeline: None,
             timeline_projection: None,
+            debugger_control: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -173,6 +174,14 @@ impl RendererSnapshot {
     ) -> Result<(), SnapshotError> {
         self.timeline_projection = Some(timeline.project(self.watches.as_ref()));
         self.timeline = Some(timeline);
+        self.validate()
+    }
+
+    pub fn attach_debugger_control(
+        &mut self,
+        control: patchbay_model::DebuggerExecutionControl,
+    ) -> Result<(), SnapshotError> {
+        self.debugger_control = Some(control);
         self.validate()
     }
 
@@ -333,10 +342,53 @@ impl RendererSnapshot {
                                     .any(|subject| &subject.identity == related)
                             })
                     })
+                    || timeline.trace.as_ref().is_some_and(|trace| {
+                        trace.steps.len() > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                            || trace.missing_parent_sequences.len()
+                                > patchbay_model::MAX_DEBUGGER_TIMELINE_EVENTS
+                            || trace.steps.iter().any(|step| {
+                                timeline.events.get(step.event_index).is_none_or(|event| {
+                                    event.execution != trace.execution
+                                        || event.sequence != step.sequence
+                                        || event.subject != step.subject
+                                        || event.event != step.event
+                                })
+                            })
+                    })
                     || &timeline.project(self.watches.as_ref()) != projection
             }
             _ => true,
         };
+        let invalid_debugger_control = self.debugger_control.as_ref().is_some_and(|control| {
+            control.schema != patchbay_model::DEBUGGER_CONTROL_SCHEMA
+                || control.eligible_subjects.is_empty()
+                || control.eligible_subjects.len()
+                    > patchbay_model::MAX_DEBUGGER_BREAKPOINT_SUBJECTS
+                || (control.state != patchbay_model::DebuggerExecutionControlState::Stale
+                    && self.debugger.as_ref().map(|debugger| &debugger.execution)
+                        != Some(&control.execution))
+                || control.eligible_subjects.iter().any(|identity| {
+                    !self.presentation.subjects.iter().any(|subject| {
+                        &subject.identity == identity
+                            && subject.role == conduit_presentation::PresentationRole::Gear
+                    })
+                })
+                || control.reason.as_ref().is_some_and(|reason| {
+                    reason.len() > patchbay_model::MAX_DEBUGGER_CONTROL_REASON_BYTES
+                })
+                || control
+                    .breakpoint_subject
+                    .as_ref()
+                    .is_some_and(|subject| !control.eligible_subjects.contains(subject))
+                || control
+                    .suspended_subject
+                    .as_ref()
+                    .is_some_and(|subject| !control.eligible_subjects.contains(subject))
+                || (control.state == patchbay_model::DebuggerExecutionControlState::Suspended)
+                    != control.suspended_subject.is_some()
+                || (control.state == patchbay_model::DebuggerExecutionControlState::Stale
+                    && control.reason.is_none())
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -354,6 +406,7 @@ impl RendererSnapshot {
             || invalid_debugger
             || invalid_watches
             || invalid_timeline
+            || invalid_debugger_control
         {
             return Err(SnapshotError::InvalidIdentity);
         }

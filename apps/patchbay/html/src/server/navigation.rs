@@ -71,6 +71,34 @@ impl From<NavigationInputOperation> for NavigationOperation {
 }
 
 impl PatchbayHtmlServer {
+    pub(super) fn focus_debugger_subject(&mut self, subject: &str) -> Result<(), ServerError> {
+        let Some(navigation) = self.snapshot.navigation.as_mut() else {
+            return Err(ServerError::Interaction(
+                "debugger subject navigation unavailable".into(),
+            ));
+        };
+        let Some(state) = self.navigation.as_mut() else {
+            return Err(ServerError::Interaction(
+                "debugger subject navigation state unavailable".into(),
+            ));
+        };
+        let cursor = state
+            .navigate(
+                &self.snapshot.presentation,
+                &navigation.navigation,
+                self.snapshot.presentation.revision,
+                NavigationOperation::FocusAndDisclose(
+                    subject.to_owned(),
+                    PresentationDepth::Detail,
+                ),
+            )
+            .map_err(|error| ServerError::Interaction(format!("debugger focus: {error:?}")))?;
+        navigation.cursor = cursor.clone();
+        self.snapshot.interaction.revision = self.snapshot.interaction.revision.saturating_add(1);
+        self.snapshot.interaction.last_disposition = Some("Succeeded(DebuggerFocus)".into());
+        Ok(())
+    }
+
     pub(super) fn apply_navigation(&mut self, bytes: &[u8]) -> Result<Vec<u8>, ServerError> {
         let input: NavigationInput =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;

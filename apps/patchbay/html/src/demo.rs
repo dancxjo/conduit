@@ -73,6 +73,7 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
         "watches": []
     }))
     .map_err(|error| error.to_string())?;
+    let debugger_execution = debugger.execution.clone();
     snapshot
         .attach_debugger(debugger)
         .map_err(|error| error.to_string())?;
@@ -81,10 +82,10 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
         .map_err(|error| error.to_string())?;
     let events: Vec<patchbay_model::DebuggerTimelineEvent> = serde_json::from_value(
         serde_json::json!([
-            { "execution": execution, "sequence": 39, "host_sequence": 39, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "41", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null },
-            { "execution": execution, "sequence": 40, "host_sequence": 40, "host": 1, "form": 1, "subject": gear, "related_subject": null, "event": "fault", "value": null, "fault_code": 17 },
-            { "execution": execution, "sequence": 41, "host_sequence": 41, "host": 1, "form": 1, "subject": port, "related_subject": null, "event": "value-received", "value": { "kind": "text", "summary": "\"hello watch\"", "type_identity": 11, "total_bytes": 11, "truncated": false }, "fault_code": null },
-            { "execution": execution, "sequence": 42, "host_sequence": 42, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "42", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null }
+            { "execution": execution, "sequence": 39, "host_sequence": 39, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "41", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": null, "invocation_sequence": 39 },
+            { "execution": execution, "sequence": 40, "host_sequence": 40, "host": 1, "form": 1, "subject": gear, "related_subject": null, "event": "fault", "value": null, "fault_code": 17, "causal_parent_sequence": 39, "invocation_sequence": 39 },
+            { "execution": execution, "sequence": 41, "host_sequence": 41, "host": 1, "form": 1, "subject": port, "related_subject": null, "event": "value-received", "value": { "kind": "text", "summary": "\"hello watch\"", "type_identity": 11, "total_bytes": 11, "truncated": false }, "fault_code": null, "causal_parent_sequence": 39, "invocation_sequence": 39 },
+            { "execution": execution, "sequence": 42, "host_sequence": 42, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "42", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": 41, "invocation_sequence": 39 }
         ]),
     )
     .map_err(|error| error.to_string())?;
@@ -107,6 +108,12 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
     .map_err(|error| error.to_string())?;
     snapshot
         .attach_timeline(timeline)
+        .map_err(|error| error.to_string())?;
+    snapshot
+        .attach_debugger_control(patchbay_model::DebuggerExecutionControl::new(
+            debugger_execution,
+            vec![gear],
+        ))
         .map_err(|error| error.to_string())
 }
 

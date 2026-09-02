@@ -96,6 +96,20 @@ fn post_debugger_timeline(snapshot: patchbay_html::RendererSnapshot, body: &[u8]
     response
 }
 
+fn post_to(address: std::net::SocketAddr, path: &str, body: &[u8]) -> String {
+    let mut stream = TcpStream::connect(address).unwrap();
+    write!(
+        stream,
+        "POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+        body.len()
+    )
+    .unwrap();
+    stream.write_all(body).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    response
+}
+
 #[test]
 fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
     let snapshot = demonstration_snapshot().unwrap();
@@ -132,6 +146,107 @@ fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
         selected.timeline_projection.as_ref().unwrap().mode,
         patchbay_model::DebuggerTimelineMode::Replay
     );
+}
+
+#[test]
+fn debugger_trace_uses_exact_causal_parent_and_not_graph_reachability() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let presentation = snapshot.presentation.clone();
+    let response = post_debugger_timeline(
+        snapshot.clone(),
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": presentation.identity.as_str(),
+            "presentation_revision": presentation.revision,
+            "timeline_revision": snapshot.timeline.as_ref().unwrap().revision,
+            "action": "trace-upstream",
+            "index": 1,
+        }))
+        .unwrap(),
+    );
+    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    let traced = patchbay_html::RendererSnapshot::decode(
+        response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        presentation.revision,
+    )
+    .unwrap();
+    assert_eq!(
+        traced
+            .timeline
+            .as_ref()
+            .unwrap()
+            .trace
+            .as_ref()
+            .unwrap()
+            .steps
+            .iter()
+            .map(|step| step.sequence)
+            .collect::<Vec<_>>(),
+        vec![39, 40]
+    );
+    assert_eq!(traced.presentation, presentation);
+}
+
+#[test]
+fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let presentation = snapshot.presentation.clone();
+    let control = snapshot.debugger_control.as_ref().unwrap();
+    let subject = control.eligible_subjects[0].clone();
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(2));
+    let suspended_response = post_to(
+        address,
+        "/api/debugger-control",
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": presentation.identity.as_str(),
+            "presentation_revision": presentation.revision,
+            "control_revision": control.revision,
+            "action": "break-here",
+            "subject": subject,
+        }))
+        .unwrap(),
+    );
+    let suspended = patchbay_html::RendererSnapshot::decode(
+        suspended_response
+            .split("\r\n\r\n")
+            .nth(1)
+            .unwrap()
+            .as_bytes(),
+        presentation.revision,
+    )
+    .unwrap();
+    assert_eq!(
+        suspended.debugger_control.as_ref().unwrap().state,
+        patchbay_model::DebuggerExecutionControlState::Suspended
+    );
+    assert_eq!(suspended.presentation, presentation);
+    let resumed_response = post_to(
+        address,
+        "/api/debugger-control",
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": presentation.identity.as_str(),
+            "presentation_revision": presentation.revision,
+            "control_revision": suspended.debugger_control.as_ref().unwrap().revision,
+            "action": "resume",
+        }))
+        .unwrap(),
+    );
+    let resumed = patchbay_html::RendererSnapshot::decode(
+        resumed_response
+            .split("\r\n\r\n")
+            .nth(1)
+            .unwrap()
+            .as_bytes(),
+        presentation.revision,
+    )
+    .unwrap();
+    assert_eq!(
+        resumed.debugger_control.as_ref().unwrap().state,
+        patchbay_model::DebuggerExecutionControlState::Running
+    );
+    assert_eq!(resumed.presentation, presentation);
+    worker.join().unwrap().unwrap();
 }
 
 #[test]

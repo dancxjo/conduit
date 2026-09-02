@@ -104,3 +104,47 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     server.child.kill("SIGTERM");
   }
 });
+
+test("real breakpoint control and exact causal fault tracing remain distinct from replay", async ({ page }) => {
+  const server = startServer();
+  try {
+    const url = await server.url;
+    const initial = await (await fetch(`${url}/api/snapshot`)).json();
+    const gear = initial.debugger_control.eligible_subjects[0];
+    const cord = initial.watches.eligible_subjects.find(([, role]) => role === "cord")[0];
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(url);
+    await page.locator("#toggle-palette").click();
+    await page.locator(`#subjects button[data-subject="${gear}"]`).click();
+    await page.getByRole("button", { name: "Watch", exact: true }).click();
+    await page.getByRole("button", { name: "Break here", exact: true }).click();
+    await expect(page.locator(".control-status")).toContainText("Execution actually suspended");
+    await expect(page.locator(".timeline-status")).toContainText("Following live observations");
+    await page.getByRole("button", { name: "Pause visualization" }).click();
+    await expect(page.locator(".timeline-status")).toContainText("execution is not paused");
+    await expect(page.locator(".control-status")).toContainText("Execution actually suspended");
+    await page.getByRole("button", { name: "Resume execution" }).click();
+    await expect(page.locator(".control-status")).toContainText("Execution running");
+
+    await page.locator(".timeline-events button").filter({ hasText: "seq 40" }).click();
+    await page.getByRole("button", { name: "Trace upstream" }).click();
+    const exact = page.locator('.timeline-events li[data-causal-trace="exact"]');
+    await expect(exact).toHaveCount(2);
+    await expect(exact.nth(0)).toContainText("trace 1 · seq 39");
+    await expect(exact.nth(1)).toContainText("trace 2 · seq 40");
+    await expect(page.locator(".watch-card")).toContainText("Fault 17");
+    await expect(page.locator(".causal-trace-exact")).toHaveCount(2);
+    await exact.nth(0).getByRole("button").click();
+    await expect(page.locator(".exact-selection dl")).toContainText(cord);
+    await page.getByRole("button", { name: "Clear causal trace" }).click();
+    await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(0);
+    await page.locator(".timeline-events button").filter({ hasText: "seq 39" }).click();
+    await page.getByRole("button", { name: "Trace downstream" }).click();
+    await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(4);
+    const final = await (await fetch(`${url}/api/snapshot`)).json();
+    expect(final.presentation).toEqual(initial.presentation);
+  } finally {
+    server.lines.close();
+    server.child.kill("SIGTERM");
+  }
+});

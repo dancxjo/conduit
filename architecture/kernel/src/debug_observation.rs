@@ -8,12 +8,17 @@
 use crate::{CordId, NodeId, PortId};
 
 mod buffer;
+mod control;
 mod sink;
 
 pub use buffer::DebugObservationBuffer;
+pub use control::{
+    DebugBreakpoint, DebugBreakpointKind, DebugControlRefusal, DebugRuntimeControl,
+    DebugSuspension, DEBUG_CONTROL_SCHEMA_VERSION,
+};
 pub use sink::{DebugObserverControl, ObservedSignSink};
 
-pub const DEBUG_OBSERVATION_SCHEMA_VERSION: u16 = 1;
+pub const DEBUG_OBSERVATION_SCHEMA_VERSION: u16 = 2;
 pub const MAX_DEBUG_VALUE_PREVIEW_BYTES: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -76,6 +81,10 @@ pub struct DebugObservationRecord {
     pub preview_truncated: bool,
     pub preview: [u8; MAX_DEBUG_VALUE_PREVIEW_BYTES],
     pub fault_code: Option<u16>,
+    /// Exact retained observation sequence that directly caused this event.
+    pub causal_parent_sequence: Option<u64>,
+    /// Gear-lifetime observation identity containing this event.
+    pub invocation_sequence: Option<u64>,
 }
 
 impl DebugObservationRecord {
@@ -117,6 +126,15 @@ impl DebugObservationRecord {
         if self.kind == DebugEventKind::Fault && self.fault_code.is_none() {
             return Err(DebugObservationRefusal::InvalidFault);
         }
+        if self
+            .causal_parent_sequence
+            .is_some_and(|parent| parent >= self.sequence)
+            || self
+                .invocation_sequence
+                .is_some_and(|invocation| invocation > self.sequence)
+        {
+            return Err(DebugObservationRefusal::InvalidCausalIdentity);
+        }
         Ok(())
     }
 }
@@ -139,6 +157,7 @@ pub enum DebugObservationRefusal {
     InvalidPreview,
     InvalidValueObservation,
     InvalidFault,
+    InvalidCausalIdentity,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -153,4 +172,6 @@ pub struct DebugObservationInput<'a> {
     pub type_identity: Option<u16>,
     pub value: Option<&'a [u8]>,
     pub fault_code: Option<u16>,
+    pub causal_parent_sequence: Option<u64>,
+    pub invocation_sequence: Option<u64>,
 }
