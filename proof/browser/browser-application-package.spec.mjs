@@ -120,7 +120,8 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
   expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
-  expect(admission.paths).toHaveLength(39);
+  expect(admission.paths).toHaveLength(40);
+  expect(admission.paths).toContain("creche-names.mjs");
   expect(admission.paths).toContain("targets/esp32/browser-deployment/rom-loader.mjs");
   expect(admission.paths).toContain("targets/rp2040/browser-deployment/picoboot.mjs");
   for (const [index, path] of admission.paths.entries()) {
@@ -226,7 +227,7 @@ test("Book navigation is one finite Host-manifested view with stale and pressure
       presentation.present("book-navigation", {
         revision: 999,
         actions: [],
-        nodes: Array.from({ length: 33 }, (_, index) => ({
+        nodes: Array.from({ length: 41 }, (_, index) => ({
           parent: index === 0 ? null : 0,
           component: "paragraph",
           key: `oversized-${index}`,
