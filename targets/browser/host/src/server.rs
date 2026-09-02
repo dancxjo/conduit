@@ -239,6 +239,11 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 APPLICATION_PRESENTATION,
             ),
+            Some("GET /assets/application-presentation.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_PRESENTATION,
+            ),
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)
             }

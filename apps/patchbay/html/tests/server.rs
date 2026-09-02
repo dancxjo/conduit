@@ -343,6 +343,10 @@ fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
     for (path, marker) in [
         ("/assets/browser-membership.js", "BodyWebRtcSessions"),
         (
+            "/assets/application-presentation.mjs",
+            "createApplicationPresentationHost",
+        ),
+        (
             "/assets/body-webrtc-sessions.mjs",
             "class BodyWebRtcSessions",
         ),

@@ -34,6 +34,8 @@ const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js
 const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
 const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
+const APPLICATION_PRESENTATION_SCRIPT: &[u8] =
+    include_bytes!("../../../../targets/browser/host/assets/application-presentation.mjs");
 const TEXT_LAB_RUNTIME_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/text-lab-live-runtime.mjs");
 const WEBSOCKET_LINE_SCRIPT: &[u8] =
@@ -453,6 +455,11 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 MEMBERSHIP_SCRIPT,
+            ),
+            "GET /assets/application-presentation.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_PRESENTATION_SCRIPT,
             ),
             "GET /assets/text-lab-live-runtime.mjs HTTP/1.1" => (
                 "200 OK",
