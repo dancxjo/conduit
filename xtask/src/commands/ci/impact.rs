@@ -48,6 +48,15 @@ const HARMLESS_FILES: [&str; 6] = [
     "justfile",
     "Justfile",
 ];
+const DEBUGGER_KERNEL_SLICE: [&str; 7] = [
+    "architecture/kernel/src/debug_observation.rs",
+    "architecture/kernel/src/debug_observation/buffer.rs",
+    "architecture/kernel/src/debug_observation/control.rs",
+    "architecture/kernel/src/debug_observation/sink.rs",
+    "architecture/kernel/src/scheduler.rs",
+    "architecture/kernel/src/scheduler/debug_control.rs",
+    "architecture/kernel/tests/debug_observation.rs",
+];
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
@@ -237,6 +246,24 @@ fn plan_for_paths(
         ));
     }
 
+    // The scheduler façade is normally a whole-platform dependency. Admit the
+    // narrower classification only for the complete, recognizable debugger
+    // control slice; a scheduler.rs change by itself still selects every
+    // dependent platform.
+    let debugger_kernel_slice = substantive
+        .iter()
+        .filter(|path| path.starts_with("architecture/kernel/"))
+        .all(|path| DEBUGGER_KERNEL_SLICE.contains(&path.as_str()))
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "architecture/kernel/src/debug_observation/control.rs")
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "architecture/kernel/src/scheduler/debug_control.rs")
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "architecture/kernel/src/scheduler.rs");
+
     for path in substantive {
         if FOCUSED_WORKFLOW_FILES.contains(&path.as_str()) {
             selected.insert("browser".to_owned(), true);
@@ -244,6 +271,14 @@ fn plan_for_paths(
                 .get_mut("browser")
                 .expect("known suite")
                 .push(format!("focused-workflow:{path}"));
+            continue;
+        }
+        if debugger_kernel_slice && DEBUGGER_KERNEL_SLICE.contains(&path.as_str()) {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-debugger-kernel:{path}"));
             continue;
         }
         if GLOBAL_FILES.contains(&path.as_str()) || starts_with_any(path, &GLOBAL_PREFIXES) {
