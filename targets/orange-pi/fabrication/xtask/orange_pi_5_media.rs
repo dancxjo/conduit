@@ -212,7 +212,9 @@ pub(super) fn read_fat_file(image: &Path, name: [u8; 11]) -> Result<Vec<u8>, Con
     .and_then(|_| std::io::Read::read_exact(&mut file, &mut directory))
     .map_err(|error| refusal("image-verification-failed", error))?;
     let entry = directory
-        .chunks_exact(32)
+        .as_chunks::<32>()
+        .0
+        .iter()
         .take_while(|entry| entry[0] != 0)
         .find(|entry| entry[..11] == name)
         .ok_or_else(|| refusal("image-verification-failed", "FAT root file is absent"))?;
