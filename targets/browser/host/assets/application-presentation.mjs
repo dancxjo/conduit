@@ -50,6 +50,7 @@ const COMPONENTS = Object.freeze({
   18: ["table", "table"], 19: ["div", "grid"],
   20: ["output", "success-status"], 21: ["output", "failure-status"],
   22: ["option", "option"],
+  23: ["summary", "summary"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -262,7 +263,8 @@ export function manifestApplicationView(input, root, options = {}) {
         options.onEvent?.(event);
       });
     }
-    if (node.component === 8 && node.action === null) element.disabled = true;
+    if ((node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17)
+      && node.action === null) element.disabled = true;
     elements.push(element);
     if (node.parent === null) fragment.append(element);
     else elements[node.parent].append(element);
