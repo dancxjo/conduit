@@ -67,6 +67,22 @@ try {
   source.dispatchEvent(new Event("input"));
   source.dispatchEvent(new Event("input"));
   assert(controls.lastRefusal() === "queue-pressure", "aggregate event byte pressure refuses distinctly");
+  const selectRoot = document.createElement("section");
+  document.body.append(selectRoot);
+  const selectView = encodeApplicationView({
+    revision: 3,
+    actions: [{ id: "program.change", event: "change" }],
+    nodes: [
+      { parent: null, component: "select", action: 0, key: "program", text: "Initial program", value: "morse-network@1", valueCapacity: 64 },
+      { parent: 0, component: "option", action: null, key: "morse", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
+    ],
+  });
+  const selection = manifestApplicationView(selectView, selectRoot);
+  const program = selectRoot.querySelector("select");
+  assert(program.value === "morse-network@1", "select realizes the exact admitted option value");
+  assert(program.options.length === 1 && program.options[0].textContent === "Morse Network", "option label remains renderer-neutral text");
+  program.dispatchEvent(new Event("change"));
+  assert(new TextDecoder().decode(selection.nextEvent().value) === "morse-network@1", "select event returns the exact option value");
   const acceptedMarkup = root.innerHTML;
   let malformedRefusal = "";
   try {

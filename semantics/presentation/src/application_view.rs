@@ -2,7 +2,7 @@
 
 use alloc::{string::String, vec::Vec};
 
-pub const APPLICATION_VIEW_VERSION: u8 = 3;
+pub const APPLICATION_VIEW_VERSION: u8 = 4;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -43,6 +43,7 @@ pub enum ApplicationComponent {
     Grid = 19,
     SuccessStatus = 20,
     FailureStatus = 21,
+    Option = 22,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -118,19 +119,20 @@ impl ApplicationView {
             {
                 return Err(ApplicationViewRefusal::TextTooLong);
             }
-            let is_control = matches!(
+            let has_value = matches!(
                 node.component,
                 ApplicationComponent::TextInput
                     | ApplicationComponent::Select
                     | ApplicationComponent::TextArea
+                    | ApplicationComponent::Option
             );
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
-            if is_control
+            if has_value
                 && (value_capacity == 0
                     || value_capacity > MAX_APPLICATION_CONTROL_VALUE_BYTES
                     || node.value.len() > value_capacity)
-                || (!is_control && (value_capacity != 0 || !node.value.is_empty()))
+                || (!has_value && (value_capacity != 0 || !node.value.is_empty()))
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
@@ -363,6 +365,7 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         19 => Ok(ApplicationComponent::Grid),
         20 => Ok(ApplicationComponent::SuccessStatus),
         21 => Ok(ApplicationComponent::FailureStatus),
+        22 => Ok(ApplicationComponent::Option),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

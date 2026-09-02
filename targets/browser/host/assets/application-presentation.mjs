@@ -1,4 +1,4 @@
-const VERSION = 3;
+const VERSION = 4;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 32;
 const MAX_DEPTH = 8;
@@ -49,6 +49,7 @@ const COMPONENTS = Object.freeze({
   15: ["input", "text-input"], 16: ["select", "select"], 17: ["textarea", "textarea"],
   18: ["table", "table"], 19: ["div", "grid"],
   20: ["output", "success-status"], 21: ["output", "failure-status"],
+  22: ["option", "option"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -113,9 +114,9 @@ export function decodeApplicationView(input) {
     const valueCapacity = cursor.u32();
     if (!(component in COMPONENTS)) refuse("unknown-component");
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const isControl = component === 15 || component === 16 || component === 17;
-    if ((isControl && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
-      || (!isControl && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22;
+    if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
+      || (!hasValue && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
     const key = cursor.text(keyLength);
@@ -162,10 +163,10 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const isControl = component === 15 || component === 16 || component === 17;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
-      || (isControl && (valueCapacity === 0 || value.length > valueCapacity))
-      || (!isControl && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
+      || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
+      || (!hasValue && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
     const nodeHeader = new Uint8Array(14);
     nodeHeader.set([parent, component, action, key.length, content.length & 0xff, content.length >>> 8]);
     const headerView = new DataView(nodeHeader.buffer);
@@ -228,6 +229,7 @@ export function manifestApplicationView(input, root, options = {}) {
       element.value = node.value;
       if (node.component !== 16) element.maxLength = node.valueCapacity;
     }
+    if (node.component === 22) element.value = node.value;
     if (node.component === 9 || node.component === 20 || node.component === 21) {
       element.setAttribute("aria-live", node.component === 21 ? "assertive" : "polite");
     }
