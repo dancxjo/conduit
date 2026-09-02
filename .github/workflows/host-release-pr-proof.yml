@@ -1,0 +1,36 @@
+name: hosted-release-pr-proof
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/host-release-pr-proof.yml
+      - apps/conduit/**
+      - targets/conduitos/**
+      - targets/std/**
+      - Cargo.toml
+      - Cargo.lock
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: hosted-release-${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macos-aarch64
+          - runner: windows-2025
+            platform: windows-x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Compile the hosted release entrance
+        run: cargo +stable build --locked --release -p conduit
