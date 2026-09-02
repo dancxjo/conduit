@@ -61,6 +61,9 @@ enum HostCommand {
     Release {
         #[arg(long, default_value = "target/creche-host-releases")]
         output: PathBuf,
+        /// Native platform to compile on this runner.
+        #[arg(long, value_enum, default_value_t = host_release::ReleasePlatform::Linux)]
+        platform: host_release::ReleasePlatform,
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
@@ -281,12 +284,13 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         }
         HostCommand::Release {
             output,
+            platform,
             source_identity,
         } => {
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
-            host_release::run(&output, &source_identity, opts)
+            host_release::run(&output, platform, &source_identity, opts)
         }
         HostCommand::Capstone {
             output,

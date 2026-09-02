@@ -28,7 +28,9 @@ export async function createBodyBoundZip({ prepared, release, filename }) {
   const entries = release.payloads.map(({ path, bytes, media_type: mediaType }) => ({
     path,
     bytes: bytesOf(bytes),
-    mode: mediaType === "application/vnd.conduit.host+executable" ? 0o100755 : 0o100644,
+    mode: ["application/vnd.conduit.host+executable", "application/vnd.microsoft.portable-executable"].includes(mediaType)
+      ? 0o100755
+      : 0o100644,
   }));
   entries.push({ path: PROVISION_PATH, bytes: provision, mode: 0o100644 });
   const bytes = writeZip(entries);

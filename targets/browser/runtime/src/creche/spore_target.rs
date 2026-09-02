@@ -19,7 +19,10 @@ use conduit_host_fabrication::{
     ConfigurationBase, ConfigurationTarget, FabricationCatalog, FabricationPackageSet, HostBounds,
     HostConfiguration, HostFabricationPackage, SporeOutputKind,
 };
-use conduit_host_hosted::{HostedFabricationPackage, HOSTED_TARGET_ID};
+use conduit_host_hosted::{
+    HostedFabricationPackage, HOSTED_MACOS_AARCH64_TARGET_ID, HOSTED_TARGET_ID,
+    HOSTED_WINDOWS_X86_64_TARGET_ID,
+};
 use conduit_host_orange_pi::{
     OrangePiFabricationPackage, ORANGE_PI_5_TARGET, PACKAGE_ID as ORANGE_PI_PACKAGE_ID,
 };
@@ -100,7 +103,9 @@ pub(super) fn prepare(
 
 fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
     match target_id {
-        STD_COMPUTER_TARGET_ID => return hosted_target(),
+        STD_COMPUTER_TARGET_ID
+        | HOSTED_WINDOWS_X86_64_TARGET_ID
+        | HOSTED_MACOS_AARCH64_TARGET_ID => return hosted_target(target_id),
         BROWSER_PAGE_TARGET_ID => return browser_target(),
         _ => {}
     }
@@ -321,8 +326,22 @@ fn avr_target() -> Result<TargetFacts, String> {
     })
 }
 
-fn hosted_target() -> Result<TargetFacts, String> {
-    let configuration_name = "creche-hosted-linux-x86-64";
+fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
+    let (configuration_name, source_identity) = match target_id {
+        STD_COMPUTER_TARGET_ID => (
+            "creche-hosted-linux-x86-64",
+            "conduit/reviewed-hosted-linux-release@1",
+        ),
+        HOSTED_WINDOWS_X86_64_TARGET_ID => (
+            "creche-hosted-windows-x86-64",
+            "conduit/reviewed-hosted-windows-release@1",
+        ),
+        HOSTED_MACOS_AARCH64_TARGET_ID => (
+            "creche-hosted-macos-aarch64",
+            "conduit/reviewed-hosted-macos-release@1",
+        ),
+        _ => return Err(format!("unsupported hosted target {target_id:?}")),
+    };
     let package = HostedFabricationPackage;
     let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
     else {
@@ -331,12 +350,12 @@ fn hosted_target() -> Result<TargetFacts, String> {
     let descriptor = anchor
         .targets
         .into_iter()
-        .find(|target| target.key() == STD_COMPUTER_TARGET_ID)
-        .ok_or_else(|| "hosted fabrication package omitted its canonical computer".to_string())?;
+        .find(|target| target.key() == target_id)
+        .ok_or_else(|| format!("hosted fabrication package omitted exact target {target_id:?}"))?;
     Ok(TargetFacts {
         configuration_name,
         host_name: configuration_name,
-        source_identity: "conduit/reviewed-hosted-linux-release@1",
+        source_identity,
         deployment_destination: Some("operator/local-download"),
         output: SporeOutputKind::NativeBundle,
         configuration: HostConfiguration {
@@ -512,6 +531,18 @@ mod tests {
                 STD_COMPUTER_TARGET_ID,
                 "x86_64",
                 "computer",
+                SporeOutputKind::NativeBundle,
+            ),
+            (
+                HOSTED_WINDOWS_X86_64_TARGET_ID,
+                "x86_64",
+                "windows-computer",
+                SporeOutputKind::NativeBundle,
+            ),
+            (
+                HOSTED_MACOS_AARCH64_TARGET_ID,
+                "aarch64",
+                "macos-computer",
                 SporeOutputKind::NativeBundle,
             ),
             (
