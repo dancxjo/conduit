@@ -2198,3 +2198,38 @@ This acceptance adds no Patchbay animation, Watch or timeline UI, replay,
 breakpoints, transport, global event store, scheduler policy, arbitrary
 full-value capture, authoritative timestamp, or physical/HIL claim. Those
 remain downstream slices of #2083.
+
+The Patchbay debugger P1 live projection from #2085 merged through PR #2106 as
+exact main `cce3614ed9e447fe50f95c329bc06736d5bc2962`. Exact-head workflows
+`33612616806` and `33612616816` passed the affected workspace lint, Host and
+product shards plus the focused pinned-Chromium Book/Patchbay proof in at most
+2m23s; ESP32, ConduitOS, and browser-Host matrices were correctly unselected.
+Exact-main deployment workflow `33612918224` then passed all release builds,
+staged-product Chromium proofs, artifact assembly, and Pages deployment. The
+focused model, HTML, native, and deterministic JavaScript projection suites
+also passed again on the merged commit.
+
+One finite renderer-neutral debugger presentation consumes the P0 kernel
+records and binds activity to exact current execution and admitted Gear, Port,
+Cord, Host, and optional Line subjects. It refuses stale Play identity,
+unknown subjects, Host drift, unsupported events, and nonmonotonic sequences
+without replacing current debugger state. A 10,000-record stream coalesces by
+exact subject while retaining observed/coalesced counts, latest bounded typed
+preview, and an explicit telemetry-loss gap. Active, recent, inactive, and
+retained-fault states remain distinct; decay is presentation policy, and fault
+codes remain inspectable until explicitly cleared or the execution context is
+replaced.
+
+Browser and native Patchbay consume the same serialized semantic state over
+the canonical graph. Gear and Port faces and exact Cord paths receive live
+annotations; bounded scalar/text previews, counts, fault details, and
+authoritative Host/Line bindings remain textual as well as visual. Browser
+motion occurs only for observed active execution, respects reduced-motion
+state, and has a bounded live region. Native rendering proves the same exact
+subject consumption without pixel-parity claims. Detaching the overlay leaves
+canonical topology and execution byte-identical.
+
+This acceptance adds no Watch history, timeline/replay, breakpoint or resume
+control, causal trace, invented reroute, independent scheduler, Book-only fake
+execution, authoritative wall-clock time, transport, or physical/HIL claim.
+Those remain #2086, #2087, and #2088 under #2083.
