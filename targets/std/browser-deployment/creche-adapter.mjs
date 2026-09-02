@@ -10,9 +10,33 @@ const PLATFORM_VARIANTS = Object.freeze([
 ]);
 
 const PROFILES = Object.freeze([
-  profile({ id: "std/x86_64/computer", label: "Hosted computer · Linux · x86_64", profileId: "hosted-linux-x86_64", manifest: "hosted-linux-x86_64.json", os: "linux", architecture: "x86_64", machine: "computer" }),
-  profile({ id: "std/x86_64/windows-computer", label: "Hosted computer · Windows · x86_64", profileId: "hosted-windows-x86_64", manifest: "hosted-windows-x86_64.json", os: "windows", architecture: "x86_64", machine: "windows-computer" }),
-  profile({ id: "std/aarch64/macos-computer", label: "Hosted computer · macOS · arm64", profileId: "hosted-macos-aarch64", manifest: "hosted-macos-aarch64.json", os: "macos", architecture: "aarch64", machine: "macos-computer" }),
+  profile({
+    id: "std/x86_64/computer",
+    label: "Hosted computer · Linux · x86_64",
+    profileId: "hosted-linux-x86_64",
+    manifest: "hosted-linux-x86_64.json",
+    os: "linux",
+    architecture: "x86_64",
+    machine: "computer",
+  }),
+  profile({
+    id: "std/x86_64/windows-computer",
+    label: "Hosted computer · Windows · x86_64",
+    profileId: "hosted-windows-x86_64",
+    manifest: "hosted-windows-x86_64.json",
+    os: "windows",
+    architecture: "x86_64",
+    machine: "windows-computer",
+  }),
+  profile({
+    id: "std/aarch64/macos-computer",
+    label: "Hosted computer · macOS · arm64",
+    profileId: "hosted-macos-aarch64",
+    manifest: "hosted-macos-aarch64.json",
+    os: "macos",
+    architecture: "aarch64",
+    machine: "macos-computer",
+  }),
 ]);
 
 export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((targetProfile) => Object.freeze({

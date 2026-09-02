@@ -134,6 +134,31 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
             "application/vnd.conduit.host+executable",
         )],
     )?;
+    for (manifest, target_id) in [
+        (
+            "raspios-bookworm-zero-2-w-rev-1.0.json",
+            "std/aarch64/raspberry-pi-zero-2-w-rev-1.0",
+        ),
+        (
+            "raspios-bookworm-zero-2-wh-rev-1.0.json",
+            "std/aarch64/raspberry-pi-zero-2-wh-rev-1.0",
+        ),
+    ] {
+        seal(
+            output,
+            manifest,
+            target_id,
+            "conduit-host-raspberry-pi@1",
+            "native-bundle",
+            "conduit-host-raspberry-pi/build-raspios-native@1",
+            "conduit-host-raspberry-pi/install-raspios-package@1",
+            source_identity,
+            &[(
+                "conduit-linux-aarch64",
+                "application/vnd.conduit.host+executable",
+            )],
+        )?;
+    }
 
     let browser_files = [
         (

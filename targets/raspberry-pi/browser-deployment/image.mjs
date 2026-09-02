@@ -39,7 +39,7 @@ export function validateRaspberryPiImageManifest(manifest, profile) {
     refuse("WrongArchitecture", "reviewed Raspberry Pi image does not name the selected ARMv6 architecture");
   }
   if (manifest?.target_id !== profile.target.id || manifest.board !== profile.board || manifest.machine !== profile.machine) {
-    refuse("WrongModel", "reviewed Raspberry Pi image does not name the exact Model B+ v1.2 substrate");
+    refuse("WrongModel", "reviewed Raspberry Pi image does not name the selected exact Raspberry Pi substrate");
   }
   const files = Array.isArray(manifest.boot_files) ? manifest.boot_files : [];
   const paths = new Set(files.map((file) => file?.path));
@@ -49,7 +49,7 @@ export function validateRaspberryPiImageManifest(manifest, profile) {
   }
   if (manifest.schema !== "conduit.conduitos.armv6-rpi-image/v1"
     || manifest.fabrication_package_id !== profile.packageId
-    || manifest.fabrication_package_revision !== 1
+    || manifest.fabrication_package_revision !== 2
     || manifest.output !== "sd-image"
     || manifest.builder_adapter !== profile.builderAdapter
     || manifest.deployment_adapter !== profile.deploymentAdapter

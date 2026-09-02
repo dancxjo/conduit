@@ -181,12 +181,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends dosfstools mtools
-      - name: Compile and seal the exact ARMv6 Model B+ SD image
+      - name: Compile and seal the exact ARMv6 Raspberry Pi SD images
         run: |
-          cargo +stable xtask host rpi --board rpi-b-plus-v1.2 image --locked
           mkdir -p target/creche-rpi-release
-          cp target/conduitos/armv6/conduitos-rpi-b-plus.img target/creche-rpi-release/
-          cp target/conduitos/armv6/rpi-b-plus-image.json target/creche-rpi-release/
+          for board in rpi-b-plus-v1.2 rpi-zero-v1 rpi-zero-w-v1.1 rpi-zero-wh-v1.1; do
+            cargo +stable xtask host rpi --board "$board" image --locked
+          done
+          cp target/conduitos/armv6/conduitos-rpi-*.img target/creche-rpi-release/
+          cp target/conduitos/armv6/rpi-*-image.json target/creche-rpi-release/
       - uses: actions/upload-artifact@v4
         with:
           name: conduit-raspberry-pi-release
