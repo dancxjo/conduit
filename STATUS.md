@@ -2350,3 +2350,33 @@ fault tracing. This acceptance adds no conditional breakpoint language,
 arbitrary memory inspection, unbounded history, invented causal inference,
 distributed stop-the-world protocol, authoritative wall-clock time, or
 physical/HIL claim.
+
+The parent Patchbay realtime-debugger outcome from #2083 is accepted through
+the five ordered P0-P4 slices recorded above: #2084, #2085, #2086, #2087, and
+#2088 are closed, and their production paths share one finite
+renderer-neutral observation/debug model. P0 supplies exact versioned runtime
+observations, finite retention, explicit loss, stale-execution refusal, and
+non-mutating observer lifecycle. P1 projects those observations over the
+canonical Gear/Port/Cord/Host/Line graph with typed transient values, bounded
+coalescing, activity decay, retained faults, reduced-motion truth, and common
+native/browser semantics. P2 adds exact type-sensitive Watches with finite
+history. P3 makes live and replay one projection with bounded scrubbing and
+two-way event/graph selection. P4 adds real kernel suspension/resume and
+causal-parent tracing rather than renderer-authored control or graph guesses.
+
+Together these slices answer the parent product question from a visible bad
+value: its exact subject and typed bounded value remain spatially visible; its
+ordered event and retained Watch history establish when it occurred; exact
+invocation/send/receive parent identities establish where it came from and the
+path actually observed; and missing telemetry remains an explicit gap rather
+than a fabricated explanation. Cross-Host and optional planned-Line subjects
+use the same exact presentation identity, while a carrier or route change is
+shown only when authoritative Plan/Play observations establish it. Detaching
+the debugger, replaying history, clearing Watches, and selecting traces do not
+mutate canonical Body, Form, Plan, Play, or topology truth.
+
+This parent acceptance does not add route/retry event kinds beyond the initial
+versioned vocabulary, claim a USB-to-Wi-Fi physical demonstration, infer
+causality from topology, make observation mandatory for correctness, or claim
+unbounded/full-value capture, authoritative wall-clock timing, distributed
+stop-the-world control, or physical/HIL proof.
