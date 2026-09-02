@@ -5,6 +5,7 @@ mod compact_patchbay;
 mod engine;
 mod multihost;
 mod protocol;
+mod syntax_projection;
 
 use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
 use conduit_core::{
