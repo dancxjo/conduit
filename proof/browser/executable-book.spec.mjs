@@ -151,6 +151,8 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(new RegExp(`/book/${bookPages.at(-2)[0]}/$`));
 
   await openStandaloneCreche(page);
+  await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Crèche ready");
+  await expect(page.locator('.creche-steps [data-application-component="navigation"]')).toBeVisible();
   const steps = ["birth", "first-host", "physical-host", "graduate"];
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
   for (let index = 1; index < steps.length; index += 1) {
@@ -643,6 +645,7 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await birth.getByRole("button", { name: "Birth Body" }).click();
   const bodyId = await birth.getAttribute("data-body-id");
   expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
+  await expect(page.locator('.creche-body-context [data-application-component="panel"]')).toContainText("standalone firefly");
   await page.getByRole("button", { name: "2. First Host" }).click();
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
   await page.getByRole("button", { name: "4. Graduate" }).click();

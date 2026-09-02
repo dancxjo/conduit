@@ -6,7 +6,7 @@ const MAXIMUM_FAMILIES = 16;
 const MAXIMUM_ENTRIES = 64;
 const MAXIMUM_STRATEGIES_PER_ENTRY = 8;
 const MAXIMUM_CARRIERS_PER_CLASS = 8;
-const MAXIMUM_CATALOG_BYTES = 64 * 1024;
+const MAXIMUM_CATALOG_BYTES = 128 * 1024;
 const encoder = new TextEncoder();
 
 export const PHYSICAL_HOST_INTENTIONS = Object.freeze([
