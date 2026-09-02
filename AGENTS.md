@@ -46,7 +46,7 @@ Parallel work is encouraged only when ownership is clear.
 - Reserve integration files such as `README.md`, `STATUS.md`, `docs/reuse-ledger.md`, root manifests, the `justfile`, and workflow files for the integration owner unless a sidecar issue explicitly owns them.
 - Sidecar PRs should add isolated tests, fixtures, scripts, or documents without opportunistic refactors.
 - Do not edit another agent's branch, rewrite its history, or absorb its issue without an explicit handoff.
-- Rebase or merge current `main` before final acceptance and rerun the relevant proof at the resulting exact head.
+- A green exact-PR-head proof remains valid when `main` advances through changes that are disjoint from the PR's owned files, dependencies, proof inputs, and governing contracts and GitHub still computes a clean merge. Record that disjointness check; do not rebase or rerun merely to refresh ancestry. Rebase or merge current `main` and rerun only when the intervening changes overlap one of those surfaces, alter the prospective merge, or make the prior proof materially stale.
 
 ## Change discipline
 
