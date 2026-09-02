@@ -3,6 +3,7 @@ import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 import { createBookRunnerStatus } from "./book-runner-presentation.mjs";
+import { attachBookSyntaxEditor } from "./book-syntax-editor.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -67,6 +68,7 @@ function requireBookAbi(api) {
     "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_complete_with_output", "conduit_book_cancel",
     "conduit_book_inventory", "conduit_book_admit_source_interaction",
     "conduit_book_project_patchbay", "conduit_book_project_patchbay_recursive",
+    "conduit_book_project_syntax",
     "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
     "conduit_book_multi_output_ptr", "conduit_book_multi_output_len",
     "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
@@ -332,6 +334,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.faceBack = String(presentation.faceBack === true);
   const textarea = runner.querySelector("textarea");
   textarea.value = readingState.drafts.get(sourceKey) ?? source;
+  attachBookSyntaxEditor(textarea, host.runtime);
   textarea.addEventListener("input", () => {
     readingState.drafts.set(sourceKey, textarea.value);
     persistBookState();
@@ -386,6 +389,7 @@ function createMultiHostRunner(source, showPlan) {
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
   const textarea = runner.querySelector("textarea");
   textarea.value = readingState.drafts.get(sourceKey) ?? source;
+  attachBookSyntaxEditor(textarea, host.runtime);
   textarea.addEventListener("input", () => {
     readingState.drafts.set(sourceKey, textarea.value);
     persistBookState();
