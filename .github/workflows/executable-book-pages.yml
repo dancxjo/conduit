@@ -442,4 +442,5 @@ jobs:
           name: conduit-pages-carrier
           path: target/pages-carrier
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 14
