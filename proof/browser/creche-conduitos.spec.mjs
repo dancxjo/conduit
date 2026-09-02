@@ -4,7 +4,11 @@ import { expect, test } from "@playwright/test";
 
 const X86 = "conduitos/x86_64/pc";
 const AARCH64 = "conduitos/aarch64/virt";
-const PROOF_ONLY = ["conduitos/ia32/pc", "conduitos/riscv64/virt", "conduitos/loongarch64/virt"];
+const PROMOTED = Object.freeze([
+  Object.freeze({ id: "conduitos/ia32/pc", manifest: "conduitos-ia32-pc-release.json", architecture: "ia32", machine: "pc", firmware: "OVMF_IA32_CODE.fd", bootEntry: "BOOTIA32.EFI", deployment: "conduit-host-conduitos/boot-ia32@1" }),
+  Object.freeze({ id: "conduitos/riscv64/virt", manifest: "conduitos-riscv64-virt-release.json", architecture: "riscv64", machine: "virt", firmware: "OpenSBI+U-Boot EFI", bootEntry: "BOOTRISCV64.EFI", deployment: "conduit-host-conduitos/boot-riscv64@1" }),
+  Object.freeze({ id: "conduitos/loongarch64/virt", manifest: "conduitos-loongarch64-virt-release.json", architecture: "loongarch64", machine: "virt", firmware: "EDK2 QEMU_EFI.fd", bootEntry: "BOOTLOONGARCH64.EFI", deployment: "conduit-host-conduitos/boot-loongarch64@1" }),
+]);
 let entrance;
 
 async function startCreche() {
@@ -113,25 +117,53 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
 });
 
-test("catalog separates product Hosts, proof appliances, ARMv6 ownership, and unsupported carriers", async ({ page }) => {
+test("catalog exposes every reviewed ConduitOS product Host and keeps carriers exact", async ({ page }) => {
   await installRelease(page, "conduitos-aarch64-virt-release.json");
   const runner = await birthBody(page);
-  for (const target of [X86, AARCH64, ...PROOF_ONLY, "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"]) {
+  for (const target of [X86, AARCH64, ...PROMOTED.map(({ id }) => id), "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"]) {
     await expect(runner.locator(`.physical-target option[value="${target}"]`)).toHaveCount(1);
   }
   await expect(runner.locator('.physical-target option[value="conduitos/generic"]')).toHaveCount(0);
   await runner.locator(".physical-target").selectOption(AARCH64);
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
-  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry.target_profile).toMatchObject({ architecture: "aarch64", machine: "virt", artifact_role: "product-host", firmware: "QEMU_EFI.fd", boot_entry: "BOOTAA64.EFI", supported_carriers: ["downloadable-disk-image"], unavailable_carriers: ["browser-raw-disk-writer", "browser-vm-launcher", "network-boot"] });
-  for (const target of PROOF_ONLY) {
-    await runner.locator(".physical-target").selectOption(target);
-    await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
-    evidence = JSON.parse(await runner.locator("details code").textContent());
-    expect(evidence.target_entry.target_profile).toMatchObject({ artifact_role: "architecture-proof-appliance", product_host_artifact_available: false, supported_carriers: [] });
-    expect(evidence).toMatchObject({ obtainment: null, binding: null, realization: null, observation: null, admission: null });
-  }
 });
+
+for (const target of PROMOTED) {
+  test(`${target.architecture} product IMAGE is selectable and Body-bound with exact target truth`, async ({ page }) => {
+    const release = await installRelease(page, target.manifest);
+    const runner = await birthBody(page);
+    await runner.locator(".physical-target").selectOption(target.id);
+    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    const evidence = JSON.parse(await runner.locator("details code").textContent());
+    expect(evidence.target_entry.target_profile).toMatchObject({
+      architecture: target.architecture,
+      machine: target.machine,
+      artifact_role: "product-host",
+      firmware: target.firmware,
+      boot_entry: target.bootEntry,
+      supported_carriers: ["downloadable-disk-image"],
+    });
+    expect(evidence.obtainment).toMatchObject({ target_id: target.id, artifact_role: "product-host" });
+    await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.iso$/);
+    const bound = JSON.parse(await runner.locator("details code").textContent());
+    expect(bound.binding).toMatchObject({
+      target_id: target.id,
+      output: "disk-image",
+      deployment_adapter: target.deployment,
+      image_content_digest: release.manifest.artifact.sha256,
+      spore_artifact: {
+        format: "iso",
+        image_content_digest: release.manifest.artifact.sha256,
+        image_bytes: release.manifest.artifact.bytes,
+        provision_bytes: 4096,
+      },
+    });
+  });
+}
 
 test("architecture, machine, firmware, bootloader, role, stale IMAGE, and absent loader refusals remain distinct", async ({ page }) => {
   const { manifest } = await installRelease(page, "conduitos-x86_64-pc-release.json");

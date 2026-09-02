@@ -203,19 +203,26 @@ pub(super) fn prepare_selected_for_target(
 
 pub(super) fn admit(observation: JoinObservation) -> Result<AdmissionReceipt, String> {
     session::with_session(|session| {
-        let pending = session
-            .pending_spore
-            .as_ref()
-            .ok_or_else(|| "no prepared physical spore awaits a join request".to_string())?;
-        if observation.spore_id != pending.spore_id {
-            return Err("join request names the wrong spore".into());
-        }
-        if observation.image_id != pending.image_id {
-            return Err("join request names the wrong IMAGE".into());
-        }
-        if observation.invitation_id.as_str() != pending.invitation_id {
-            return Err("join request names the wrong invitation".into());
-        }
+        let (pending_spore_id, pending_image_id, pending_invitation_id) = {
+            let pending = session
+                .pending_spore
+                .as_ref()
+                .ok_or_else(|| "no prepared physical spore awaits a join request".to_string())?;
+            if observation.spore_id != pending.spore_id {
+                return Err("join request names the wrong spore".into());
+            }
+            if observation.image_id != pending.image_id {
+                return Err("join request names the wrong IMAGE".into());
+            }
+            if observation.invitation_id.as_str() != pending.invitation_id {
+                return Err("join request names the wrong invitation".into());
+            }
+            (
+                pending.spore_id.clone(),
+                pending.image_id.clone(),
+                pending.invitation_id.clone(),
+            )
+        };
         if observation.host_id != observation.advertisement.host_id
             || observation.boot_id != observation.advertisement.boot_id
         {
@@ -233,29 +240,70 @@ pub(super) fn admit(observation: JoinObservation) -> Result<AdmissionReceipt, St
             nonce: observation.nonce,
             signature,
         };
-        let credential = session
-            .admission
-            .complete_spawn(
-                &mut session.receipt.raw_membership,
-                &observation.advertisement,
-                &proof,
-                observation.observed_at_millis,
-                AdmissionSigns {
-                    part_admitted: SignId::from(format!("{}/part-admitted", pending.spore_id)),
-                    host_attached: SignId::from(format!("{}/host-attached", pending.spore_id)),
-                    candidate_admitted: SignId::from(format!("{}/join-consumed", pending.spore_id)),
-                },
-            )
-            .map_err(|error| format!("admit physical spore: {error:?}"))?;
+        let first_biography_sequence = session
+            .biography
+            .records
+            .last()
+            .ok_or_else(|| "Body biography omitted its BIRTH record".to_string())?
+            .sequence
+            .checked_add(1)
+            .ok_or_else(|| "Body biography sequence overflow".to_string())?;
+        let second_biography_sequence = first_biography_sequence
+            .checked_add(1)
+            .ok_or_else(|| "Body biography sequence overflow".to_string())?;
+        session
+            .biography
+            .can_append(2)
+            .map_err(|error| format!("admit physical-spore biography records: {error:?}"))?;
+
+        let prior_event_count = session.receipt.raw_membership.events.len();
+        let mut next_admission = session.admission.clone();
+        let mut next_membership = session.receipt.raw_membership.clone();
+        let credential = match next_admission.complete_spawn(
+            &mut next_membership,
+            &observation.advertisement,
+            &proof,
+            observation.observed_at_millis,
+            AdmissionSigns {
+                part_admitted: SignId::from(format!("{pending_spore_id}/part-admitted")),
+                host_attached: SignId::from(format!("{pending_spore_id}/host-attached")),
+                candidate_admitted: SignId::from(format!("{pending_spore_id}/join-consumed")),
+            },
+        ) {
+            Ok(credential) => credential,
+            Err(error) => {
+                session.admission = next_admission;
+                return Err(format!("admit physical spore: {error:?}"));
+            }
+        };
+        let new_events = next_membership
+            .events
+            .get(prior_event_count..)
+            .ok_or_else(|| "physical-spore admission lost membership events".to_string())?;
+        if new_events.len() != 2 {
+            return Err("physical-spore admission produced an unexpected event count".into());
+        }
+        let biography_events = [
+            (new_events[0].change_id.clone(), first_biography_sequence),
+            (new_events[1].change_id.clone(), second_biography_sequence),
+        ];
+        let mut next_biography = session.biography.clone();
+        next_biography
+            .append_membership_events(next_membership.clone(), &biography_events)
+            .map_err(|error| format!("record physical-spore membership biography: {error:?}"))?;
+
+        session.admission = next_admission;
+        session.receipt.raw_membership = next_membership;
         session.receipt.membership_revision = session.receipt.raw_membership.revision.0;
+        session.biography = next_biography;
         let offer_count = observation.advertisement.capabilities.len();
         let receipt = AdmissionReceipt {
             schema: "conduit.book/physical-spore-admission@1",
             disposition: "admitted",
             body_id: session.receipt.body_id.clone(),
-            spore_id: pending.spore_id.clone(),
-            image_id: pending.image_id.clone(),
-            invitation_id: pending.invitation_id.clone(),
+            spore_id: pending_spore_id,
+            image_id: pending_image_id,
+            invitation_id: pending_invitation_id,
             part_id: credential.part_id.as_str().into(),
             membership_credential_id: credential.credential_id.as_str().into(),
             membership_revision: session.receipt.membership_revision,
@@ -473,6 +521,14 @@ mod tests {
         assert!(receipt.offers_observed);
         assert!(receipt.ready);
         assert_eq!(session::current().unwrap().raw_membership.parts.len(), 1);
+        let snapshot = session::durable_snapshot().unwrap();
+        assert_eq!(
+            snapshot.receipt.raw_membership,
+            snapshot.biography.membership
+        );
+        session::clear_for_test();
+        let restored = session::restore_durable(snapshot).unwrap();
+        assert_eq!(restored.membership_revision, 2);
         assert!(prepare([14; 32], 3_002).is_ok());
     }
 

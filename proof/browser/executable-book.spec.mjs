@@ -449,7 +449,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     for (const artifact of ["orange-pi-5-image.json", "conduitos-orange-pi-5.img", "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json", "raspios-bookworm-zero-2-w-rev-1.0.json", "raspios-bookworm-zero-2-wh-rev-1.0.json", "conduit-linux-aarch64", "rpi-b-plus-image.json", "conduitos-rpi-b-plus.img", "rpi-zero-v1-image.json", "conduitos-rpi-zero-v1.img", "rpi-zero-w-v1.1-image.json", "conduitos-rpi-zero-w-v1.1.img", "rpi-zero-wh-v1.1-image.json", "conduitos-rpi-zero-wh-v1.1.img"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
-    for (const artifact of ["conduitos-x86_64-pc-release.json", "conduitos-x86_64-pc.iso", "conduitos-aarch64-virt-release.json", "conduitos-aarch64-virt.iso"]) {
+    for (const artifact of ["conduitos-x86_64-pc-release.json", "conduitos-x86_64-pc.iso", "conduitos-aarch64-virt-release.json", "conduitos-aarch64-virt.iso", "conduitos-ia32-pc-release.json", "conduitos-ia32-pc.iso", "conduitos-riscv64-virt-release.json", "conduitos-riscv64-virt.iso", "conduitos-loongarch64-virt-release.json", "conduitos-loongarch64-virt.iso"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
     const birth = page.locator(".body-birth-runner");
@@ -854,9 +854,9 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     "Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
     "x86_64 PC · product Host",
     "AArch64 virt · product Host",
-    "IA-32 PC · architecture proof only",
-    "RISC-V64 virt · architecture proof only",
-    "LoongArch64 virt · architecture proof only",
+    "IA-32 PC · product Host",
+    "RISC-V64 virt · product Host",
+    "LoongArch64 virt · product Host",
   ]);
   await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
 
