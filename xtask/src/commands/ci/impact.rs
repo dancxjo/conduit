@@ -84,6 +84,18 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     "targets/std/browser-deployment/creche-adapter.mjs",
     "xtask/src/commands/host_release.rs",
 ];
+const SHARED_BROWSER_THEME_SLICE: [&str; 10] = [
+    "apps/patchbay/html/assets/app.css",
+    "apps/patchbay/html/assets/index.html",
+    "proof/browser/pages-front-door.spec.mjs",
+    "proof/browser/patchbay-html.spec.mjs",
+    "site/index.html",
+    "site/site.css",
+    "targets/browser/host/assets/book.css",
+    "targets/browser/host/assets/book.html",
+    "targets/browser/host/assets/creche.css",
+    "targets/browser/host/assets/creche.html",
+];
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
@@ -314,8 +326,32 @@ fn plan_for_paths(
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
+    let shared_browser_theme_slice = substantive
+        .iter()
+        .all(|path| SHARED_BROWSER_THEME_SLICE.contains(&path.as_str()))
+        && [
+            "apps/patchbay/html/assets/app.css",
+            "apps/patchbay/html/assets/index.html",
+            "proof/browser/pages-front-door.spec.mjs",
+            "site/site.css",
+            "targets/browser/host/assets/book.css",
+            "targets/browser/host/assets/creche.css",
+        ]
+        .iter()
+        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
 
     for path in substantive {
+        if shared_browser_theme_slice {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-shared-browser-theme:{path}"));
+            if let Some(package) = package_for_path(root, path, packages) {
+                changed_packages.insert(package.to_owned());
+            }
+            continue;
+        }
         if pi_zero_creche_slice {
             selected.insert("browser".to_owned(), true);
             reasons
