@@ -454,6 +454,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     }
     const birth = page.locator(".body-birth-runner");
     await birth.getByRole("button", { name: "Birth Body" }).click();
+    const stagedBodyId = await birth.getAttribute("data-body-id");
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
@@ -512,7 +513,8 @@ test("the staged Book and Crèche each boot with only their own product tree", a
 
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
+    await expect(page.locator(".body-birth-runner")).toHaveAttribute("data-body-id", stagedBodyId);
+    await expect(page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" })).toBeDisabled();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const conduitosRunner = page.locator(".physical-host-runner");
     await conduitosRunner.locator(".physical-target").selectOption("conduitos/x86_64/pc");

@@ -76,6 +76,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
             "--release",
             "-p",
             "conduit-browser-runtime",
+            "--no-default-features",
             "--target",
             "wasm32-unknown-unknown",
         ]),
