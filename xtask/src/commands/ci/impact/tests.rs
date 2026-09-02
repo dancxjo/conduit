@@ -108,6 +108,29 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     );
     assert!(kernel.conduitos_aarch64_product_required);
 
+    let debugger_kernel = plan_for_paths(
+        &root,
+        DEBUGGER_KERNEL_SLICE
+            .iter()
+            .map(|path| (*path).to_owned())
+            .collect(),
+        &packages,
+    )
+    .unwrap();
+    assert!(!debugger_kernel.full_fallback);
+    assert!(!debugger_kernel.esp32_required);
+    assert!(debugger_kernel.browser_required);
+    assert!(!debugger_kernel.conduitos_required);
+
+    let scheduler_alone = plan_for_paths(
+        &root,
+        vec!["architecture/kernel/src/scheduler.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(scheduler_alone.esp32_required);
+    assert!(scheduler_alone.conduitos_required);
+
     for path in ["Cargo.lock", ".github/workflows/check.yml"] {
         let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert!(global.full_fallback, "{path}");
