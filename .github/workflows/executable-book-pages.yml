@@ -5,7 +5,6 @@ on:
   pull_request:
     paths: &product-paths
       - .github/workflows/executable-book-pages.yml
-      - .github/workflows/executable-book-deploy.yml
       - README.md
       - site/**
       - scripts/ci/stage-pages-root.sh
@@ -14,7 +13,6 @@ on:
       - scripts/ci/stage-creche-product.sh
       - scripts/ci/seal-pages-carrier.mjs
       - scripts/ci/verify-pages-carrier.mjs
-      - scripts/ci/resolve-pages-product-run.mjs
       - tour/book/**
       - targets/browser/host/assets/book.html
       - targets/browser/host/assets/book.css
