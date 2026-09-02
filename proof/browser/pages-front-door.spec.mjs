@@ -36,16 +36,40 @@ test("Conduit home, Book, and Crèche are stable sibling endpoints", async ({ pa
   await expect(page.getByRole("link", { name: "Birth a Body" })).toHaveAttribute("href", "/conduit/creche");
   await expect(page.getByText("One physical computer")).toBeVisible();
   await expect(page.getByText("Several unlike computers")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link")).toHaveCount(3);
 
   await page.goto(book);
   await expect(page).toHaveURL(book);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
+  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Book" })).toHaveAttribute("aria-current", "page");
 
   await page.goto(creche);
   await expect(page).toHaveURL(creche);
   await expect(page).toHaveTitle("Conduit Crèche");
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
+  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Crèche" })).toHaveAttribute("aria-current", "page");
+});
+
+test("the shared shell follows dark and light preferences without changing application behavior", async ({ page }) => {
+  const home = entrance.url.replace(/\/$/, "");
+  for (const colorScheme of ["dark", "light"]) {
+    await page.emulateMedia({ colorScheme });
+    for (const path of ["", "/book", "/creche"]) {
+      await page.goto(`${home}${path}`);
+      if (path === "/book") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+      if (path === "/creche") await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+      const palette = await page.evaluate(() => ({
+        scheme: getComputedStyle(document.documentElement).colorScheme,
+        background: getComputedStyle(document.documentElement).getPropertyValue(
+          location.pathname.endsWith("/conduit/") ? "--conduit-background" : "--paper",
+        ).trim(),
+      }));
+      expect(palette.scheme).toContain(colorScheme);
+      expect(palette.background).toBe(colorScheme === "dark" ? "#05070b" : "#eef5f8");
+      await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+    }
+  }
 });
