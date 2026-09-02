@@ -1,0 +1,63 @@
+name: patchbay-debugger-pr-proof
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/patchbay-debugger-pr-proof.yml
+      - apps/patchbay/html/assets/app.css
+      - apps/patchbay/html/assets/app.js
+      - apps/patchbay/html/assets/index.html
+      - apps/patchbay/html/src/demo.rs
+      - apps/patchbay/html/src/main.rs
+      - apps/patchbay/html/src/server.rs
+      - apps/patchbay/html/src/server/watches.rs
+      - apps/patchbay/html/src/snapshot.rs
+      - apps/patchbay/html/src/transport_types.rs
+      - apps/patchbay/html/tests/server.rs
+      - apps/patchbay/html/tests/snapshot.rs
+      - apps/patchbay/model/src/debugger_presentation.rs
+      - apps/patchbay/model/src/debugger_watch.rs
+      - apps/patchbay/model/src/debugger_watch_tests.rs
+      - apps/patchbay/model/src/lib.rs
+      - proof/browser/patchbay-debugger-watch.spec.mjs
+      - proof/browser/playwright.config.mjs
+      - package-lock.json
+      - package.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: patchbay-debugger-pr-proof-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  watch-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install the pinned browser proof dependency
+        run: npm ci --ignore-scripts --prefer-offline
+      - name: Build only the Patchbay browser product
+        run: cargo build --locked -p patchbay-html
+      - name: Prove the finite Watch model
+        run: cargo test --locked -p patchbay-model debugger_watch
+      - name: Prove one exact finite Watch interaction
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/patchbay-debugger-watch.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0

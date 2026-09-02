@@ -21,26 +21,10 @@ on:
       - apps/patchbay/html/assets/flow.css
       - apps/patchbay/html/assets/flow.js
       - apps/patchbay/html/assets/flow-*.js
-      - apps/patchbay/html/assets/app.css
-      - apps/patchbay/html/assets/app.js
-      - apps/patchbay/html/assets/index.html
       - apps/patchbay/html/assets/portable-navigation.js
       - apps/patchbay/html/assets/react*.js
       - apps/patchbay/html/assets/react-flow.css
-      - apps/patchbay/html/src/demo.rs
-      - apps/patchbay/html/src/main.rs
-      - apps/patchbay/html/src/server.rs
-      - apps/patchbay/html/src/server/watches.rs
-      - apps/patchbay/html/src/snapshot.rs
-      - apps/patchbay/html/src/transport_types.rs
-      - apps/patchbay/html/tests/server.rs
-      - apps/patchbay/html/tests/snapshot.rs
-      - apps/patchbay/model/src/debugger_presentation.rs
-      - apps/patchbay/model/src/debugger_watch.rs
-      - apps/patchbay/model/src/debugger_watch_tests.rs
-      - apps/patchbay/model/src/lib.rs
       - proof/browser/executable-book.spec.mjs
-      - proof/browser/patchbay-debugger-watch.spec.mjs
       - proof/browser/patchbay-debugger-projection.test.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/playwright.config.mjs
@@ -81,23 +65,12 @@ jobs:
       - name: Build and stage only the admitted Book product
         run: |
           cargo build --locked -p conduit-browser-host
-          cargo build --locked -p patchbay-html
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
           rm -rf target/book-product
           scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
       - name: Prove exact live-debugger projection
-        run: |
-          node --test proof/browser/patchbay-debugger-projection.test.mjs
-          cargo test --locked -p patchbay-model debugger_watch
-      - name: Prove one exact finite Watch interaction
-        run: >-
-          npx playwright test
-          --config proof/browser/playwright.config.mjs
-          proof/browser/patchbay-debugger-watch.spec.mjs
-          --project chromium
-          --workers 1
-          --retries 0
+        run: node --test proof/browser/patchbay-debugger-projection.test.mjs
       - name: Prove the real Book Patchbay and interactive workspace
         run: >-
           npx playwright test
