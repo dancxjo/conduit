@@ -16,10 +16,10 @@ const systemIds = PERSONA_SYSTEMS.map(({ id }) => id);
 const romanizedName = /^[\p{Script=Latin}\p{Mark} .'-]+$/u;
 
 test("the versioned catalog retains its declared systems, stock order, and counts", () => {
-  assert.equal(PERSONA_CATALOG_VERSION, 6);
+  assert.equal(PERSONA_CATALOG_VERSION, 7);
   assert.deepEqual(systemIds, ["roman", "chinese", "american", "mexican", "icelandic", "japanese", "arabic", "french", "british", "classic-anglophone", "korean", "vietnamese", "yoruba", "ukrainian", "ancient-hebrew", "amharic", "portuguese", "tamil", "indonesian", "welsh", "kurmanji", "targus", "elvish"]);
   assert.deepEqual(NAMING_SYSTEM_OPTIONS.map(({ id }) => id), ["surprise", ...systemIds]);
-  assert.ok(NAME_NAMESPACE_SIZE > 28_000_000n, `${NAME_NAMESPACE_SIZE} combinations is too small`);
+  assert.ok(NAME_NAMESPACE_SIZE > 15_000_000n, `${NAME_NAMESPACE_SIZE} combinations is too small`);
   assert.deepEqual(Object.keys(PERSONA_SYSTEM_COUNTS), systemIds);
   assert.deepEqual(PERSONA_SYSTEMS[0].stocks[0].entries.slice(0, 3), ["Aulus", "Appius", "Decimus"]);
   assert.deepEqual(PERSONA_SYSTEMS[1].stocks[0].entries.slice(0, 3), ["Wáng", "Li", "Zhang"]);
@@ -65,10 +65,10 @@ test("same UUID, requested system, version, and variation reproduce name and ind
 test("variations produce stable additional candidates without changing the UUID", async () => {
   const actual = await Promise.all(Array.from({ length: 4 }, (_, variation) => nameFor(UUID, "surprise", variation)));
   assert.deepEqual(actual.map(({ name, system_id }) => [name, system_id]), [
-    ["Lesia Polishchuk", "ukrainian"],
-    ["Farida Winata", "indonesian"],
-    ["Jimena Isabel Salazar Muñoz", "mexican"],
-    ["Amelia Watson-Marshall", "british"],
+    ["Gonçalo Pacheco Guerreiro", "portuguese"],
+    ["Đoàn Hồng Dũng", "vietnamese"],
+    ["Caeluil Glenlight", "elvish"],
+    ["Matvii Pavlenko", "ukrainian"],
   ]);
 });
 
@@ -76,35 +76,50 @@ test("each naming system has a reviewable snapshot with its declared grammar", a
   const actual = {};
   for (const systemId of systemIds) actual[systemId] = (await nameFor(UUID, systemId, 0)).name;
   assert.deepEqual(actual, {
-    roman: "Lucius Lucretius Lepidus",
-    chinese: "Shi Huaijin",
-    american: "Emerson H. Turner",
-    mexican: "Gabriel Raúl Pacheco Vega",
-    icelandic: "Embla Svövudóttir",
-    japanese: "Ueda Itsuki",
-    arabic: "Nadia bint Salim al-Tahir",
-    french: "Lou Masson Leclerc",
-    british: "Rupert Bell-Campbell",
-    "classic-anglophone": "Diane Sue Allen",
-    korean: "Jang Hyeon-ji",
-    vietnamese: "Hoàng Thành Hải",
-    yoruba: "Dáyọ̀ Ọmọ́táyọ̀",
-    ukrainian: "Bohdana Symonenko",
-    "ancient-hebrew": "Yonah ben Ovadyah",
-    amharic: "Birhanu Betelhem Haile",
-    portuguese: "Santiago Carolina Ribeiro Pacheco",
-    tamil: "Kavitha Yogeswaran",
-    indonesian: "Budi Utami",
-    welsh: "Gethin Owens",
-    kurmanji: "Serdar Barzanî",
+    roman: "Lucius Livius Lentulus",
+    chinese: "Feng Mingyu",
+    american: "Ellis W. Henderson",
+    mexican: "Manuel Enrique Gutiérrez Rojas",
+    icelandic: "Davíð Margrétardóttir",
+    japanese: "Takahashi Mei",
+    arabic: "Amin ibn Nadir Rahman",
+    french: "Claude Barbier Perrin",
+    british: "Theo John Owen",
+    "classic-anglophone": "Janet Rose Lewis",
+    korean: "Cho Seung-hyeon",
+    vietnamese: "Đinh Gia Nga",
+    yoruba: "Fọláṣadé Ọní",
+    ukrainian: "Roksolana Zozulia",
+    "ancient-hebrew": "Avner ben Yehuda",
+    amharic: "Nahom Alula Tsehay",
+    portuguese: "Rafael Luís Azevedo Machado",
+    tamil: "Devan Murugan",
+    indonesian: "Nur Rahayu",
+    welsh: "Elin Walters",
+    kurmanji: "Zozan Silêmanî",
     targus: "TARGUS TARGUS",
-    elvish: "Lionor Starshade",
+    elvish: "Arvar Brightheart",
   });
 });
 
 test("classic Anglophone variations explicitly retain Bob and Susan", async () => {
-  assert.equal((await nameFor(UUID, "classic-anglophone", 74)).name, "Bob Jean Price");
-  assert.equal((await nameFor(UUID, "classic-anglophone", 70)).name, "Susan Grace Wallace");
+  assert.equal((await nameFor(UUID, "classic-anglophone", 62)).name, "Bob Joseph Young");
+  assert.equal((await nameFor(UUID, "classic-anglophone", 105)).name, "Susan Irene Lewis");
+});
+
+test("multi-given Western forms use coherent traditional pairing tracks", () => {
+  for (const systemId of ["mexican", "british", "classic-anglophone", "portuguese"]) {
+    const system = PERSONA_SYSTEMS.find(({ id }) => id === systemId);
+    const pairedForms = system.forms.filter(({ slots }) => slots.filter((slot) => /given|middle|additional/.test(slot)).length > 1);
+    assert.ok(pairedForms.length >= 2, `${systemId} lost its paired forms`);
+    for (const form of pairedForms) {
+      const track = form.id.includes("masculine") ? "masculine" : form.id.includes("feminine") ? "feminine" : null;
+      assert.ok(track, `${form.id} has no explicit pairing track`);
+      for (const slot of form.slots.filter((id) => /given|middle|additional/.test(id))) {
+        assert.ok(slot.includes(track), `${form.id} crosses its ${track} pairing track through ${slot}`);
+      }
+    }
+  }
 });
 
 test("the TARGUS family has exactly one possible name", async () => {
