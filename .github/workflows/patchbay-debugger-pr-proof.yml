@@ -20,7 +20,7 @@ on:
       - apps/patchbay/model/src/debugger_watch_tests.rs
       - apps/patchbay/model/src/lib.rs
       - proof/browser/patchbay-debugger-watch.spec.mjs
-      - proof/browser/playwright.config.mjs
+      - proof/browser/patchbay-debugger.config.mjs
       - package-lock.json
       - package.json
 
@@ -60,7 +60,7 @@ jobs:
       - name: Prove one exact finite Watch interaction
         run: >-
           npx playwright test
-          --config proof/browser/playwright.config.mjs
+          --config proof/browser/patchbay-debugger.config.mjs
           proof/browser/patchbay-debugger-watch.spec.mjs
           --project chromium
           --workers 1
