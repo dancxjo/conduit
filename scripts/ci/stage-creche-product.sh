@@ -64,5 +64,5 @@ for route in birth first-host physical-host graduate; do
   cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 74
+test "$(find "$destination" -type f | wc -l)" -eq 78
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"
