@@ -46,8 +46,22 @@ fn enter_patchbay(host: cli::PatchbayHost) -> Result<(), String> {
 
 fn enter_creche() -> Result<(), String> {
     let executable = "conduit-browser-host";
+    let conduit = std::env::current_exe()
+        .map_err(|error| format!("cannot locate the installed Conduit entrance ({error})"))?;
+    let application = conduit
+        .parent()
+        .ok_or("the installed Conduit entrance has no parent directory")?
+        .join("conduit-creche");
+    if !application.join("index.html").is_file() {
+        return Err(format!(
+            "the admitted Crèche application is unavailable at {}; install it alongside the Conduit executables",
+            application.display()
+        ));
+    }
     let status = std::process::Command::new(executable)
-        .arg("--creche")
+        .arg("--application")
+        .arg(application)
+        .args(["--mount", "/creche/"])
         .status()
         .map_err(|error| {
             format!(
