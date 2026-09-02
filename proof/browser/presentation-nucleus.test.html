@@ -3,12 +3,13 @@
 <title>Conduit browser presentation nucleus proof</title>
 <p id="result">running</p>
 <main id="nucleus" aria-label="Gear Face"></main>
+<section id="controls" aria-label="Bounded controls"></section>
 <script type="module">
 import {
   instantiatePresentationNucleus,
   manifestPresentationNucleus,
 } from "./presentation-nucleus-runtime.mjs";
-import { manifestApplicationView } from "../../targets/browser/host/assets/application-presentation.mjs";
+import { encodeApplicationView, manifestApplicationView } from "../../targets/browser/host/assets/application-presentation.mjs";
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -44,10 +45,32 @@ try {
   for (let index = 0; index < 9; index += 1) continueButton.click();
   assert(proof.application.lastRefusal() === "queue-pressure", "browser event pressure refuses distinctly");
   while (proof.application.nextEvent()) {}
+  const controlRoot = document.querySelector("#controls");
+  const controlView = encodeApplicationView({
+    revision: 2,
+    actions: [{ id: "source.input", event: "input" }],
+    nodes: [
+      { parent: null, component: "shell", action: null, key: "control-shell", text: "" },
+      {
+        parent: 0, component: "textarea", action: 0, key: "source", text: "Form source",
+        value: "gear source", valueCapacity: 65_536,
+      },
+    ],
+  });
+  const controls = manifestApplicationView(controlView, controlRoot, { eventByteCapacity: 40 });
+  const source = controlRoot.querySelector("[data-application-key='source']");
+  assert(source.value === "gear source", "control value remains distinct from its label");
+  assert(source.getAttribute("aria-label") === "Form source", "control label remains explicit");
+  source.value = "gear edited";
+  source.dispatchEvent(new Event("input"));
+  assert(controls.queuedEventBytes() === controls.nextEvent().encoded.length, "queue reports exact encoded-byte pressure");
+  source.dispatchEvent(new Event("input"));
+  source.dispatchEvent(new Event("input"));
+  assert(controls.lastRefusal() === "queue-pressure", "aggregate event byte pressure refuses distinctly");
   const acceptedMarkup = root.innerHTML;
   let malformedRefusal = "";
   try {
-    manifestApplicationView(Uint8Array.of(3), root);
+    manifestApplicationView(Uint8Array.of(2), root);
   } catch (error) {
     malformedRefusal = error.code;
   }
@@ -75,6 +98,9 @@ try {
       pressureRefusal: proof.application.lastRefusal(),
       malformedRefusal,
       unchangedAfterRefusal: root.innerHTML === acceptedMarkup,
+      controlValue: source.value,
+      controlLabel: source.getAttribute("aria-label"),
+      controlBytePressureRefusal: controls.lastRefusal(),
     },
     missingContext,
   };
