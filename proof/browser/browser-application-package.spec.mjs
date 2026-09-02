@@ -31,7 +31,7 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
     storageIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
     storagePackageDigest: globalThis.__conduitBrowserApplication.storage.packageDigest,
     paths: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.path),
-    baseUri: document.baseURI,
+    resourceUrls: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.url.href),
   }));
   expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
@@ -39,8 +39,8 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   expect(admission.paths).toContain("book-runner-presentation.mjs");
   expect(admission.paths).toContain("book-syntax-editor.mjs");
   expect(admission.paths).toContain("assets/flow.css");
-  for (const path of admission.paths) {
-    const pathname = new URL(path, admission.baseUri).pathname;
+  for (const [index, path] of admission.paths.entries()) {
+    const pathname = new URL(admission.resourceUrls[index]).pathname;
     expect(requests.filter((request) => request === pathname), path).toHaveLength(1);
   }
   await expect(page.locator('script[data-application-resource="react"]')).toHaveAttribute("src", /^blob:/);
@@ -73,10 +73,55 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   await expect(page.locator("textarea")).toHaveValue(edited);
   await expect(page.locator(".gear-back-expansion")).toBeVisible();
   await expect(page.locator(".gear-back-flow")).toHaveAttribute("data-renderer", "react-flow");
-  for (const path of admission.paths) {
-    const pathname = new URL(path, admission.baseUri).pathname;
+  for (const [index, path] of admission.paths.entries()) {
+    const pathname = new URL(admission.resourceUrls[index]).pathname;
     expect(requests.filter((request) => request === pathname), path).toHaveLength(2);
   }
+});
+
+test("Crèche launches its exact admitted graph through bounded Host context", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  const requests = [];
+  page.on("request", (request) => {
+    if (request.url().startsWith("http:")) requests.push(new URL(request.url()).pathname);
+  });
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.getByRole("heading", { name: "Birth a Body" })).toBeVisible();
+  const admission = await page.evaluate(() => ({
+    applicationId: globalThis.__conduitBrowserApplication.manifest.applicationId,
+    packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
+    stateIdentity: globalThis.__conduitBrowserApplication.manifest.stateCompatibility.identity,
+    storageIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
+    storagePackageDigest: globalThis.__conduitBrowserApplication.storage.packageDigest,
+    paths: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.path),
+    resourceUrls: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.url.href),
+  }));
+  expect(admission.applicationId).toBe("conduit.application/creche");
+  expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+  expect(admission.storageIdentity).toBe(admission.stateIdentity);
+  expect(admission.storagePackageDigest).toBe(admission.packageDigest);
+  expect(admission.paths).toHaveLength(39);
+  expect(admission.paths).toContain("targets/esp32/browser-deployment/rom-loader.mjs");
+  expect(admission.paths).toContain("targets/rp2040/browser-deployment/picoboot.mjs");
+  for (const [index, path] of admission.paths.entries()) {
+    const pathname = new URL(admission.resourceUrls[index]).pathname;
+    expect(requests.filter((request) => request === pathname), path).toHaveLength(1);
+  }
+  await expect(page.locator('style[data-application-resource="creche-style"]')).toHaveCount(1);
+});
+
+test("Crèche refuses changed admitted code before application manifestation", async ({ page }) => {
+  entrance.child.kill();
+  entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  await page.route("**/creche.mjs", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, body: `${await response.text()}\n// changed after packaging` });
+  }, { times: 1 });
+  await page.goto(entrance.url);
+  await expect(page.locator("body")).toHaveText("application resource application-module changed identity");
+  expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
 });
 
 test("Book navigation is one finite Host-manifested view with stale and pressure refusal", async ({ page }) => {
@@ -146,7 +191,7 @@ test("browser Host refuses malformed and escaping application packages before la
   for (const [mutate, refusal] of [
     [(manifest) => { manifest.schema = "wrong"; }, "browser application package schema is unsupported"],
     [(manifest) => { manifest.resources[0].path = "https://example.com/book.mjs"; }, "application resource path escapes the application package"],
-    [(manifest) => { manifest.resources.push(...Array.from({ length: 12 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
+    [(manifest) => { manifest.resources.push(...Array.from({ length: 40 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
   ]) {
     await mutatePackage(page, mutate);
     await page.goto(entrance.url);

@@ -6,7 +6,8 @@ use std::collections::BTreeSet;
 
 const TEMPLATE_SCHEMA: &str = "conduit.browser/application-package-template@1";
 const PACKAGE_SCHEMA: &str = "conduit.browser/application-package@1";
-const MAXIMUM_RESOURCES: usize = 32;
+const MAXIMUM_RESOURCES: usize = 64;
+const MAXIMUM_DEPENDENCIES: usize = 16;
 const MAXIMUM_RESOURCE_BYTES: usize = 16 * 1024 * 1024;
 const MAXIMUM_TOTAL_RESOURCE_BYTES: usize = 32 * 1024 * 1024;
 
@@ -86,6 +87,7 @@ pub fn build_manifest<'a>(
             || !paths.insert(declaration.path.clone())
             || declaration.maximum_bytes == 0
             || declaration.maximum_bytes > MAXIMUM_RESOURCE_BYTES
+            || declaration.dependencies.len() > MAXIMUM_DEPENDENCIES
         {
             return Err("browser application resource declaration is invalid".into());
         }

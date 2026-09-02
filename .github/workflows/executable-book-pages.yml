@@ -35,6 +35,7 @@ on:
       - apps/patchbay/html/assets/flow-faceplate.js
       - apps/patchbay/html/assets/portable-navigation.js
       - targets/browser/host/assets/creche.html
+      - targets/browser/host/assets/creche.application.template.json
       - targets/browser/host/assets/creche.css
       - targets/browser/host/assets/creche*.mjs
       - targets/browser/host/browser-deployment/**
@@ -431,6 +432,7 @@ jobs:
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/book/book.application.json
           test -f target/pages-site/creche/index.html
+          test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/creche/runtime.wasm
           source_commit="$GITHUB_SHA"
           source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
