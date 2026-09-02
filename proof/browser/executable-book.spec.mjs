@@ -653,7 +653,10 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
   await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
   await page.getByRole("button", { name: "4. Graduate" }).click();
+  await expect(page.locator('[data-application-key="without-patchbay"]')).toHaveAttribute("data-application-action", "graduate.without-patchbay");
   await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
+  await expect(page.locator('[data-application-key="graduation-status"]')).toHaveAttribute("data-application-component", "success-status");
+  await expect(page.locator('[data-application-key="end-creche"]')).toHaveAttribute("data-application-action", "graduate.end");
   await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
   await expect(page.locator(".body-biography li")).toHaveCount(4);
   const durable = await page.evaluate(() => {
