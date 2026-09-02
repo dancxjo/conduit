@@ -414,8 +414,8 @@ jobs:
           test -f target/pages-site/book/book.application.json
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/runtime.wasm
-          source_commit=$(git rev-parse HEAD)
-          source_tree=$(git rev-parse 'HEAD^{tree}')
+          source_commit="$GITHUB_SHA"
+          source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
           node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
           node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
       - name: Retain the immutable Pages carrier for post-merge promotion
