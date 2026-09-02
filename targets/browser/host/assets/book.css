@@ -99,6 +99,11 @@ textarea::selection { background: rgb(119 218 168 / 32%); }
 .compact-patchbay figcaption strong { overflow-wrap: anywhere; font: 750 .9rem/1.2 Georgia, serif; }
 .book-flow-root { position: relative; width: 100%; height: clamp(18rem, 32vh, 24rem); overflow: hidden; border: 1px solid var(--patchbay-structure-secondary); border-radius: .55rem; background: var(--patchbay-background); }
 .compact-patchbay-refusal { margin: 0; color: #ffb2a9; font-size: .72rem; }
+.compact-patchbay-diagnostic { margin: 0 0 .7rem; padding: .65rem .75rem; border: 1px solid #ff776d; border-radius: .45rem; color: #ffd2ce; background: #481f20; font-size: .72rem; }
+.compact-patchbay-diagnostic p { margin: .35rem 0 0; color: #fff0ed; }
+.flow-faceplate.diagnostic-error { border-color: #ff776d; box-shadow: 0 0 0 2px color-mix(in srgb,#ff776d 35%,transparent); }
+.faceplate-port.diagnostic-error { color: #ffd2ce; background: color-mix(in srgb,#ff776d 18%,transparent); }
+.react-flow__edge.diagnostic-error .react-flow__edge-path { stroke: #ff776d; stroke-width: 4; animation: none; }
 .gear-back-expansion { margin-top: .8rem; padding: .8rem; border: 1px solid var(--patchbay-emphasis); border-radius: .55rem; background: var(--patchbay-background); }
 .gear-back-expansion[hidden] { display: none; }
 .gear-back-expansion > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }

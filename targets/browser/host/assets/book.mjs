@@ -464,12 +464,26 @@ function renderCompactPatchbayRefusal(figure, message) {
 
 function renderCompactPatchbayProjection(figure, projection) {
   figure.faceProjection = projection;
-  figure.dataset.disposition = "accepted";
+  const invalid = projection.diagnostics.length > 0;
+  figure.dataset.disposition = invalid ? "invalid" : "accepted";
   figure.dataset.sourceDocumentId = projection.source_document_id;
   figure.dataset.checkedFormId = projection.checked_form_id;
   figure.dataset.expandedFormId = projection.realization_expanded_form_id;
-  figure.querySelector("figcaption strong").textContent = projection.form_name;
+  figure.querySelector("figcaption strong").textContent = invalid ? `${projection.form_name} · needs repair` : projection.form_name;
   const visual = figure.querySelector(".book-flow-root");
+  figure.querySelector(".compact-patchbay-diagnostic")?.remove();
+  if (invalid) {
+    const panel = document.createElement("section");
+    panel.className = "compact-patchbay-diagnostic";
+    panel.setAttribute("role", "alert");
+    const diagnostic = projection.diagnostics[0];
+    const heading = document.createElement("strong");
+    heading.textContent = `${diagnostic.code} · ${diagnostic.message}`;
+    const fix = document.createElement("p");
+    fix.textContent = `How to fix: ${diagnostic.fix}`;
+    panel.append(heading, fix);
+    visual.before(panel);
+  }
   const runner = figure.closest(".runner");
   const expanded = figure.dataset.backExpanded === "true";
   renderFlow(patchbaySnapshot(projection, {
@@ -568,9 +582,11 @@ function patchbaySnapshot(projection, options = {}) {
   const cords = options.realizationTopology ? projection.realization_cords : projection.cords;
   const addProperty = (subject, name, value) => properties.push({ subject, name, value: { Text: value } });
   const portIdentity = (gearId, direction, portId) => `${gearId}.${direction}:${portId}`;
+  const diagnosticSubjects = new Set(projection.diagnostics.flatMap((diagnostic) => diagnostic.subjects));
   for (const gear of gears) {
     subjects.push({ identity: gear.gear_id, role: "Gear", label: gear.gear_id, accessibility_name: `Gear ${gear.gear_id}` });
     addProperty(gear.gear_id, "kind-id", gear.kind_id);
+    if (diagnosticSubjects.has(gear.gear_id)) addProperty(gear.gear_id, "diagnostic-state", "error");
     if (options.reviewedBack && gear.kind_id === "text/morse") {
       addProperty(gear.gear_id, "reviewed-back", "available");
       addProperty(gear.gear_id, "back-expanded", String(options.backExpanded === true));
@@ -587,6 +603,7 @@ function patchbaySnapshot(projection, options = {}) {
         addProperty(identity, "direction", direction);
         addProperty(identity, "value-kind", port.info_kind);
         addProperty(identity, "temporal", port.temporal);
+        if (diagnosticSubjects.has(identity)) addProperty(identity, "diagnostic-state", "error");
       }
     }
   }
@@ -600,10 +617,11 @@ function patchbaySnapshot(projection, options = {}) {
     // presented as evidence that a Play delivered an item.
     addProperty(identity, "flow-animation", "directional");
     addProperty(identity, "flow-label", "");
+    if (cord.invalid || diagnosticSubjects.has(identity)) addProperty(identity, "diagnostic-state", "error");
   }
   return {
     presentation: {
-      identity: projection.visible_expanded_form_id,
+      identity: projection.visible_expanded_form_id || projection.source_proposal_id,
       revision: projection.sequence,
       basis: { source_document_id: projection.source_document_id, checked_form_id: projection.checked_form_id },
       subjects, relationships, properties, text: [], actions: [], disclosures: [],
@@ -618,8 +636,8 @@ function appendExactProjection(list, projection) {
   for (const [name, value] of [
     ["Source", projection.source_document_id],
     ["Checked Form", projection.checked_form_id],
-    ["Visible expansion", projection.visible_expanded_form_id],
-    ["Realization expansion", projection.realization_expanded_form_id],
+    ["Visible expansion", projection.visible_expanded_form_id || "not available — source is invalid"],
+    ["Realization expansion", projection.realization_expanded_form_id || "not available — source is invalid"],
     ["Realization", projection.realization],
     ["Opened Backs", projection.realization_backs.length],
   ]) {

@@ -283,9 +283,9 @@ test("Book tour pairs narrative with Patchbay above source and output, then stac
   expect(interaction.scroll).toBeLessThanOrEqual(interaction.viewport);
 });
 
-test("Book Patchbay replaces stale topology with local refusal and the latest accepted edit", async ({ page }) => {
+test("Book Patchbay shows an invalid Form, marks its broken Cord, and explains the repair", async ({ page }) => {
   await openStep(page, 0);
-  const runner = page.locator(".runner").nth(1);
+  const runner = page.locator(".runner").first();
   const listing = runner.locator("textarea");
   const patchbay = runner.locator(".compact-patchbay");
   const original = await listing.inputValue();
@@ -303,10 +303,19 @@ test("Book Patchbay replaces stale topology with local refusal and the latest ac
   await expect(patchbay.locator(".flow-faceplate")).toHaveCount(0);
   await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("parse compact Book Patchbay");
 
-  await listing.fill(original.replace('"make this loud"', '"latest"'));
+  await listing.fill(original.replace("change: text/upper", "change: text/morse(80)"));
+  await expect(patchbay).toHaveAttribute("data-disposition", "invalid");
+  await expect(patchbay.locator(".flow-faceplate")).toHaveCount(3);
+  await expect(patchbay.locator(".flow-faceplate.diagnostic-error")).toHaveCount(2);
+  await expect(patchbay.locator(".react-flow__edge.diagnostic-error")).toHaveCount(1);
+  await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("CND-FRM-045");
+  await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("How to fix:");
+  await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("value/text@1");
+
+  await listing.fill(original.replace('"hello"', '"latest"'));
   await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
   await expect(patchbay).not.toHaveAttribute("data-source-document-id", originalSource);
-  await expect(patchbay.locator("figcaption strong")).toHaveText("edit-one-gear");
+  await expect(patchbay.locator("figcaption strong")).toHaveText("meet-one-gear");
 
   const oversized = `form oversized {\n${Array.from({ length: 17 }, (_, index) => `g${index}: text/literal("x")`).join("\n")}\n}`;
   await listing.fill(oversized);

@@ -26,6 +26,7 @@ pub(super) struct CompactPatchbayProjection {
     pub(super) realization_gears: Vec<CompactGear>,
     pub(super) realization_cords: Vec<CompactCord>,
     pub(super) realization_backs: Vec<CompactBack>,
+    pub(super) diagnostics: Vec<CompactDiagnostic>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -51,6 +52,15 @@ pub(super) struct CompactCord {
     pub(super) sink_port_id: String,
     pub(super) info_kind: String,
     pub(super) temporal: &'static str,
+    pub(super) invalid: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(super) struct CompactDiagnostic {
+    pub(super) code: &'static str,
+    pub(super) message: String,
+    pub(super) fix: String,
+    pub(super) subjects: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -86,8 +96,20 @@ pub(super) fn project(
     // The visible graph is authored meaning. A recursive realization may have a
     // different expanded identity and Back evidence, but it cannot replace the
     // checked Gear/Port/Cord face shown beside the source.
-    let visible = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
-        .map_err(|error| format!("expand compact Book Patchbay: {error:?}"))?;
+    let visible = match conduit_form::expand_canonical_form(&checked, &entry, &catalog) {
+        Ok(visible) => visible,
+        Err(error) if error.code == "CND-FRM-045" => {
+            return project_incompatible_cord(
+                interaction.proposal_identity,
+                sequence,
+                &checked,
+                &entry,
+                &catalog,
+                error,
+            )
+        }
+        Err(error) => return Err(format!("expand compact Book Patchbay: {error:?}")),
+    };
     admit_topology(&visible)?;
     let realized = recursive
         .then(|| {
@@ -133,6 +155,7 @@ pub(super) fn project(
                 sink_port_id: cord.sink_port_id.as_str().into(),
                 info_kind: cord.value_kind.as_str().into(),
                 temporal: cord.temporal.as_str(),
+                invalid: false,
             })
             .collect(),
         realization_gears: realization
@@ -155,6 +178,7 @@ pub(super) fn project(
                 sink_port_id: cord.sink_port_id.as_str().into(),
                 info_kind: cord.value_kind.as_str().into(),
                 temporal: cord.temporal.as_str(),
+                invalid: false,
             })
             .collect(),
         realization_backs: realization
@@ -166,7 +190,136 @@ pub(super) fn project(
                 checked_form_id: back.checked_form_id.as_str().into(),
             })
             .collect(),
+        diagnostics: Vec::new(),
     })
+}
+
+fn project_incompatible_cord(
+    source_proposal_id: String,
+    sequence: u64,
+    checked: &conduit_form::CheckedSyntaxDocument,
+    entry: &str,
+    catalog: &conduit_form::ProfileCatalog,
+    error: conduit_form::CanonicalExpansionDiagnostic,
+) -> Result<CompactPatchbayProjection, String> {
+    let form = checked
+        .forms
+        .iter()
+        .find(|form| form.name == entry)
+        .ok_or_else(|| "compact Book Patchbay checked Form disappeared".to_owned())?;
+    let prefix = format!("{entry}/");
+    let mut gears = Vec::new();
+    for gear in &form.gears {
+        let name = gear
+            .name
+            .as_deref()
+            .ok_or_else(|| "invalid compact Patchbay draft contains an inline Gear".to_owned())?;
+        let definition = catalog
+            .get(&conduit_core::KindId::new(gear.kind.clone()))
+            .ok_or_else(|| format!("invalid compact Patchbay Kind '{}' disappeared", gear.kind))?;
+        gears.push(CompactGear {
+            gear_id: format!("{prefix}{name}"),
+            kind_id: gear.kind.clone(),
+            inputs: definition.inputs.iter().map(port).collect(),
+            outputs: definition.outputs.iter().map(port).collect(),
+        });
+    }
+    let mut cords = Vec::new();
+    let mut diagnostic = None;
+    for cord in &form.cords {
+        for pair in cord.stages.windows(2) {
+            let [conduit_form::CheckedCordStage::Reference(source_name), conduit_form::CheckedCordStage::Reference(sink_name)] =
+                pair
+            else {
+                return Err(
+                    "invalid compact Patchbay draft contains a non-reference Cord stage".into(),
+                );
+            };
+            let source = gears
+                .iter()
+                .find(|gear| gear.gear_id == format!("{prefix}{source_name}"))
+                .ok_or_else(|| {
+                    format!("invalid compact Patchbay source Gear '{source_name}' disappeared")
+                })?;
+            let sink = gears
+                .iter()
+                .find(|gear| gear.gear_id == format!("{prefix}{sink_name}"))
+                .ok_or_else(|| {
+                    format!("invalid compact Patchbay sink Gear '{sink_name}' disappeared")
+                })?;
+            let output = source
+                .outputs
+                .first()
+                .ok_or_else(|| format!("Gear '{source_name}' has no output"))?;
+            let input = sink
+                .inputs
+                .first()
+                .ok_or_else(|| format!("Gear '{sink_name}' has no input"))?;
+            let invalid = output.info_kind != input.info_kind || output.temporal != input.temporal;
+            let cord_index = cords.len();
+            cords.push(CompactCord {
+                source_gear_id: source.gear_id.clone(),
+                source_port_id: output.port_id.clone(),
+                sink_gear_id: sink.gear_id.clone(),
+                sink_port_id: input.port_id.clone(),
+                info_kind: output.info_kind.clone(),
+                temporal: output.temporal,
+                invalid,
+            });
+            if invalid && diagnostic.is_none() {
+                diagnostic = Some(CompactDiagnostic {
+                    code: error.code,
+                    message: error.message.clone(),
+                    fix: format!(
+                        "Replace '{sink_name}' with a Gear whose input is {} ({}) or change '{source_name}' to emit {} ({}).",
+                        output.info_kind, output.temporal, input.info_kind, input.temporal
+                    ),
+                    subjects: vec![
+                        format!("cord:{cord_index}:{}.{}->{}.{}", source.gear_id, output.port_id, sink.gear_id, input.port_id),
+                        source.gear_id.clone(),
+                        format!("{}.emitting:{}", source.gear_id, output.port_id),
+                        sink.gear_id.clone(),
+                        format!("{}.receiving:{}", sink.gear_id, input.port_id),
+                    ],
+                });
+            }
+        }
+    }
+    let diagnostic =
+        diagnostic.ok_or_else(|| format!("expand compact Book Patchbay: {error:?}"))?;
+    admit_draft_topology(&gears, &cords)?;
+    Ok(CompactPatchbayProjection {
+        schema: "conduit.book/compact-patchbay@1",
+        sequence,
+        source_proposal_id,
+        source_document_id: checked.source_document_id.as_str().into(),
+        checked_form_id: form.checked_form_id.as_str().into(),
+        visible_expanded_form_id: String::new(),
+        realization_expanded_form_id: String::new(),
+        form_name: form.name.clone(),
+        realization: "invalid-source-proposal",
+        realization_gears: gears.clone(),
+        realization_cords: cords.clone(),
+        gears,
+        cords,
+        realization_backs: Vec::new(),
+        diagnostics: vec![diagnostic],
+    })
+}
+
+fn admit_draft_topology(gears: &[CompactGear], cords: &[CompactCord]) -> Result<(), String> {
+    if gears.len() > MAXIMUM_BROWSER_GEARS || cords.len() > MAXIMUM_BROWSER_CORDS {
+        return Err("invalid compact Patchbay draft exceeds its topology bound".into());
+    }
+    let ports = gears.iter().try_fold(0usize, |count, gear| {
+        count
+            .checked_add(gear.inputs.len())?
+            .checked_add(gear.outputs.len())
+    });
+    if ports.is_none_or(|count| count > MAXIMUM_COMPACT_PORTS) {
+        return Err("invalid compact Patchbay draft exceeds its Port bound".into());
+    }
+    Ok(())
 }
 
 fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
@@ -255,7 +408,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_and_topology_bounds_refuse_without_a_projection() {
+    fn invalid_cord_projects_the_draft_and_topology_bounds_still_refuse() {
         assert!(project("form nope {", 1, false)
             .unwrap_err()
             .starts_with("parse compact Book Patchbay"));
@@ -264,9 +417,17 @@ mod tests {
     light: presentation/indicator
     text > light
 }"#;
-        assert!(project(wrong_type, 2, false)
-            .unwrap_err()
-            .contains("compact Book Patchbay"));
+        let invalid = project(wrong_type, 2, false).unwrap();
+        assert_eq!(invalid.realization, "invalid-source-proposal");
+        assert!(invalid.visible_expanded_form_id.is_empty());
+        assert_eq!(invalid.gears.len(), 2);
+        assert_eq!(invalid.cords.len(), 1);
+        assert!(invalid.cords[0].invalid);
+        assert_eq!(invalid.diagnostics[0].code, "CND-FRM-045");
+        assert!(invalid.diagnostics[0].fix.contains("value/text@1"));
+        assert!(invalid.diagnostics[0]
+            .subjects
+            .contains(&"wrong/light.receiving:pattern".to_owned()));
 
         let mut oversized = String::from("form oversized {\n");
         for index in 0..=MAXIMUM_BROWSER_GEARS {
