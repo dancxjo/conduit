@@ -14,7 +14,7 @@ function PortRow({ port, onActivate }) {
     "data-port-id": port.id,
     "data-port-direction": port.direction,
   });
-  return e("div", { className: `faceplate-port ${port.direction}`, "data-port-id": port.id, onClick:event=>{event.stopPropagation();onActivate(port.id);} },
+  return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}`, "data-port-id": port.id, onClick:event=>{event.stopPropagation();onActivate(port.id);} },
     receiving && handle,
     e("span", { className: "faceplate-port-name", title: port.accessibilityName }, port.label),
     e("code", { title: port.valueKind }, port.valueKind),
@@ -25,7 +25,7 @@ function PortRow({ port, onActivate }) {
 export function FaceplateNode({ data }) {
   const title = data.role === "Gear" ? data.label.slice(data.label.lastIndexOf("/") + 1) : data.label;
   return e("article", {
-    className: `flow-faceplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}`,
+    className: `flow-faceplate role-${data.role.toLowerCase()}${data.semanticSelected ? " semantic-selected" : ""}${data.diagnosticError ? " diagnostic-error" : ""}`,
     "data-subject": data.subjectIdentity,
     "data-subject-id": data.subjectIdentity,
     "data-lens": data.lens,
