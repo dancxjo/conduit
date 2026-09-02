@@ -172,6 +172,7 @@ test("the Book navigation remains legible and interactive in both theme modes", 
     await page.goto(entrance.url);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await page.getByRole("button", { name: "Next" }).click();
+    await page.mouse.move(0, 0);
 
     const navigation = page.locator('[data-application-slot="book-navigation"]');
     const progress = navigation.locator('[data-application-key="progress"]');
@@ -507,6 +508,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     expect(artifact.magic).not.toBe("CNDSPOR1");
     expect(artifact.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
     expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
+    await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
 
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
