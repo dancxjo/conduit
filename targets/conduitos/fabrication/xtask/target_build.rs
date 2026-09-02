@@ -97,6 +97,15 @@ pub(crate) fn boot_profile_image(
             opts,
         );
     }
+    if arch == ConduitosArch::Riscv64 {
+        return super::riscv64_product_boot::boot_twice(
+            image,
+            expected_profile_id,
+            expected_build_id,
+            expected_image_binding,
+            opts,
+        );
+    }
     if arch == ConduitosArch::Aarch64 {
         let first = boot_aarch64_product(
             image,

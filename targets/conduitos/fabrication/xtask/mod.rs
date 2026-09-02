@@ -60,6 +60,7 @@ mod riscv64_a2;
 #[allow(dead_code)]
 mod riscv64_a3;
 mod riscv64_a4;
+mod riscv64_product_boot;
 mod run;
 mod std_gap;
 pub(crate) mod target_backend;
