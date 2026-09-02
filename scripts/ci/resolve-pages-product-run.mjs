@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { appendFile, readFile } from "node:fs/promises";
-import { selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
+import { selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
 
 const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
 const repository = process.env.GITHUB_REPOSITORY;
@@ -19,10 +19,21 @@ if (!pull.merged_at || !/^[0-9a-f]{40}$/.test(pull.merge_commit_sha ?? "")
   throw new Error(`pull request #${requestedNumber} is not an exact merged source`);
 }
 
-const query = new URLSearchParams({ event: "pull_request", head_sha: pull.head.sha, status: "success", per_page: "100" });
-const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
-const run = selectExactSuccessfulRun(runs.workflow_runs, pull.head.sha);
-if (!run) throw new Error(`no successful exact-head Pages product run admits pull request #${requestedNumber}`);
+const query = new URLSearchParams({ event: "pull_request", head_sha: pull.head.sha, per_page: "100" });
+const attempts = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_ATTEMPTS, 80, 1, 120);
+const intervalMilliseconds = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_INTERVAL_MS, 15_000, 0, 60_000);
+let run;
+for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
+  const candidate = selectExactRun(runs.workflow_runs, pull.head.sha);
+  run = selectExactSuccessfulRun(runs.workflow_runs, pull.head.sha);
+  if (run) break;
+  if (candidate?.status === "completed") {
+    throw new Error(`exact-head Pages product run ${candidate.id} concluded ${candidate.conclusion ?? "without a conclusion"}`);
+  }
+  if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, intervalMilliseconds));
+}
+if (!run) throw new Error(`exact-head Pages product run did not complete successfully for pull request #${requestedNumber} within the bounded wait`);
 
 await appendFile(output, [
   `run_id=${run.id}`,
@@ -42,4 +53,13 @@ async function api(endpoint) {
   });
   if (!response.ok) throw new Error(`GitHub API ${endpoint} refused with ${response.status}`);
   return response.json();
+}
+
+function boundedInteger(value, fallback, minimum, maximum) {
+  if (value === undefined) return fallback;
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < minimum || number > maximum) {
+    throw new Error("Pages product run wait configuration is outside its admitted bound");
+  }
+  return number;
 }
