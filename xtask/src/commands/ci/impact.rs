@@ -34,9 +34,10 @@ const GLOBAL_FILES: [&str; 4] = [
     "rust-toolchain",
     "rust-toolchain.toml",
 ];
-const FOCUSED_WORKFLOW_FILES: [&str; 2] = [
+const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
     ".github/workflows/book-pr-proof.yml",
     ".github/workflows/executable-book-pages.yml",
+    ".github/workflows/patchbay-debugger-pr-proof.yml",
 ];
 const HARMLESS_PREFIXES: [&str; 2] = ["docs/", "examples/"];
 const HARMLESS_FILES: [&str; 6] = [

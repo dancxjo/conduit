@@ -117,6 +117,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     for path in [
         ".github/workflows/book-pr-proof.yml",
         ".github/workflows/executable-book-pages.yml",
+        ".github/workflows/patchbay-debugger-pr-proof.yml",
     ] {
         let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert!(!focused_workflow.full_fallback, "{path}");
