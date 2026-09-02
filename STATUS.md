@@ -2233,3 +2233,39 @@ This acceptance adds no Watch history, timeline/replay, breakpoint or resume
 control, causal trace, invented reroute, independent scheduler, Book-only fake
 execution, authoritative wall-clock time, transport, or physical/HIL claim.
 Those remain #2086, #2087, and #2088 under #2083.
+
+The Patchbay debugger P2 Watch interaction from #2086 merged through PR #2108
+as exact main `558c70faf84a5c18d7e70a377cedd041c4e45707`. Exact-head workflow
+`33617687965` passed every selected workspace, ESP32, ConduitOS architecture,
+product, and x86 proof because the PR also taught the impact planner about its
+new focused workflow. Focused pinned-Chromium workflow `33617687947` passed in
+2m23s. The same model, Host endpoint, JavaScript syntax, and one-worker,
+zero-retry Chromium Watch proof passed again from the merged commit; the model
+cases themselves completed in 0.01s and the browser interaction in 1.8s.
+
+One renderer-neutral finite Watch set now lives beside canonical Presentation
+and Form truth. Up to eight Watches bind exact Gear, Port, or Cord presentation
+subjects to one exact Body/Plan/Play debugger execution. Each retains at most
+32 ordered observation entries with latest value or state, event kind, planned
+type identity, update count, honest sequence-domain density, explicit eviction,
+and telemetry-gap evidence. Replacement execution and disappeared subject
+lifecycles remain distinct, and neither friendly labels nor replacement graph
+subjects can silently retarget retained state.
+
+The Host-owned browser interaction accepts add, focus, clear-history, and
+remove actions only against exact Presentation and Watch revisions. Scalar,
+bounded/truncated text, bytes/opaque, and fault projections remain readable as
+text; each retained event exposes its exact subject, execution, sequence, and
+event detail. Keyboard creation, focus, clearing, removal, and same-server
+browser reload retention are proven through the production Patchbay surface.
+Clearing or removing debugger state leaves the canonical Presentation and
+execution topology byte-for-byte unchanged.
+
+The focused `patchbay-debugger-pr-proof` gate builds only Patchbay, runs five
+deterministic model cases, and exercises one Chromium scenario with one worker
+and zero retries. The impact planner now classifies that workflow as focused,
+with regression assertions that ordinary debugger workflow changes select
+lint/browser only and do not select ESP32 or ConduitOS. This acceptance adds no
+timeline/replay, breakpoint or runtime resume control, causal tracing,
+unbounded history, authoritative wall-clock rate, or physical/HIL claim. Those
+remain #2087 and #2088 under #2083.
