@@ -51,8 +51,16 @@ printf '%s\n' "$page_routes" | while IFS= read -r route; do
     cp targets/browser/host/assets/book.html "$destination/$route/index.html"
 done
 
+# Preserve the two public chapter URLs published before the chapter-title refresh.
+legacy_page_routes='meet-one-gear
+same-face-different-implementation'
+printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
+    mkdir "$destination/$route"
+    cp targets/browser/host/assets/book.html "$destination/$route/index.html"
+done
+
 node scripts/ci/build-browser-application-package.mjs \
     targets/browser/host/assets/book.application.template.json "$destination"
 
-test "$(find "$destination" -type f | wc -l)" -eq 38
+test "$(find "$destination" -type f | wc -l)" -eq 40
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
