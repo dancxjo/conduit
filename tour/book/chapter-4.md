@@ -1,27 +1,27 @@
-# Use two Hosts
+# One Form across several Hosts
 
-One Form can use more than one Host. Here one browser Host produces the text and another presents it.
+Now keep the same Form semantics but realize it across two Hosts.
 
 ```conduit run two-host
 form hello-across {
     message: text/literal("hello across one Cord")
     show: presentation/text
+
     message > show
 }
 ```
 
-Run it. The Form does not split into a client program and a server program; Conduit places its Gears and carries the typed value across one admitted Line.
+A cross-Host connection keeps its semantic Cord identity. The current connectivity chosen to realize that cross-Host Cord is a **Line**.
 
-# Plans and Plays
-
-The Form is the durable question. A **Plan** is one exact answer for the Hosts and Lines available now. A **Play** executes that answer.
+This is not "client code plus server code". It is one unchanged Form with Gear placement decisions in an exact realization.
 
 ```conduit run two-host plan
 form hello-across {
     message: text/literal("hello across one Cord")
     show: presentation/text
+
     message > show
 }
 ```
 
-Run the same Form again. The friendly view shows the two placements and their Cord. Exact identities and the complete Plan remain available under **Inspect exact evidence**.
+Inspect exact evidence to see placement, Line facts, and resource admission identities. Those exact IDs are intentionally secondary until evidence itself is the topic.

@@ -128,20 +128,13 @@ test.afterEach(() => entrance?.child.kill());
 
 test("every Book page and Crèche step has a direct, history-aware route", async ({ page }) => {
   const bookPages = [
-    ["meet-one-gear", "Meet one Gear"],
-    ["connect-gears", "Connect Gears"],
-    ["edit-one-gear", "Edit one Gear"],
-    ["branch-a-cord", "Branch a Cord"],
-    ["meet-the-face", "Meet the Face"],
-    ["same-face-different-implementation", "Same Face, different implementation"],
-    ["meet-the-host", "Meet the Host"],
-    ["state-over-time", "State over time"],
-    ["use-two-hosts", "Use two Hosts"],
-    ["plans-and-plays", "Plans and Plays"],
-    ["keep-one-body-through-change", "Keep one Body through change"],
-    ["birth-belongs-in-the-creche", "Birth belongs in the Crèche"],
-    ["give-the-body-a-host", "Give the Body a Host"],
-    ["graduate-from-the-creche", "Graduate from the Crèche"],
+    ["a-form-you-can-run", "A Form you can run"],
+    ["faces-backs-and-implementation", "Faces, Backs, and implementation"],
+    ["hosts-make-forms-real", "Hosts make Forms real"],
+    ["one-form-across-several-hosts", "One Form across several Hosts"],
+    ["the-body-one-computer-one-machine-or-many", "The Body: one computer, one machine or many"],
+    ["many-forms-one-body-wide-realization", "Many Forms, one Body-wide realization"],
+    ["birth-spores-and-the-creche", "Birth, spores, and the Crèche"],
   ];
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
@@ -152,7 +145,8 @@ test("every Book page and Crèche step has a direct, history-aware route", async
     if (index + 1 < bookPages.length) await page.getByRole("button", { name: "Next" }).click();
   }
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: bookPages.at(-1)[1] })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/book/${bookPages.at(-1)[0]}/$`));
+  await expect(page.locator("#chapter")).toContainText("Birth, spores, and the Cr");
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/book/${bookPages.at(-2)[0]}/$`));
 
@@ -171,7 +165,7 @@ test("every Book page and Crèche step has a direct, history-aware route", async
 
 test("every executable listing uses the real Patchbay renderer for checked Form truth", async ({ page }) => {
   let projectedListings = 0;
-  for (let pageIndex = 0; pageIndex < 14; pageIndex += 1) {
+  for (let pageIndex = 0; pageIndex < 7; pageIndex += 1) {
     await openStep(page, pageIndex);
     const runners = page.locator(".runner");
     const count = await runners.count();
@@ -189,7 +183,7 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
       await expect(patchbay).not.toContainText("Implementation");
     }
   }
-  expect(projectedListings).toBe(9);
+  expect(projectedListings).toBe(7);
 });
 
 test("same-named input and output Ports keep distinct animated Cords", async ({ page }) => {
@@ -218,7 +212,7 @@ test("same-named input and output Ports keep distinct animated Cords", async ({ 
 test("reading measure stays narrow while the Patchbay workbench uses wide and narrow viewports", async ({ page }) => {
   for (const width of [1440, 1600]) {
     await page.setViewportSize({ width, height: 1000 });
-    await openStep(page, 5);
+    await openStep(page, 1);
     const measures = await page.evaluate(() => ({
       copy: document.querySelector(".chapter-copy").getBoundingClientRect().width,
       workbench: document.querySelector(".book-workbench").getBoundingClientRect().width,
@@ -233,7 +227,7 @@ test("reading measure stays narrow while the Patchbay workbench uses wide and na
   }
 
   await page.setViewportSize({ width: 700, height: 1000 });
-  await openStep(page, 5);
+  await openStep(page, 1);
   const narrow = await page.evaluate(() => {
     const source = document.querySelector(".source-editor").getBoundingClientRect();
     const patchbay = document.querySelector(".compact-patchbay").getBoundingClientRect();
@@ -249,8 +243,8 @@ test("reading measure stays narrow while the Patchbay workbench uses wide and na
 });
 
 test("Book Patchbay replaces stale topology with local refusal and the latest accepted edit", async ({ page }) => {
-  await openStep(page, 2);
-  const runner = page.locator(".runner");
+  await openStep(page, 0);
+  const runner = page.locator(".runner").nth(1);
   const listing = runner.locator("textarea");
   const patchbay = runner.locator(".compact-patchbay");
   const original = await listing.inputValue();
@@ -273,13 +267,13 @@ test("Book Patchbay replaces stale topology with local refusal and the latest ac
 });
 
 test("Book Patchbay keeps branching explicit and opens one reviewed Back beneath its Face", async ({ page }) => {
-  await openStep(page, 3);
-  const fanout = page.locator(".compact-patchbay");
-  await expect(fanout.locator(".react-flow__edge")).toHaveCount(5);
-  await expect(fanout.locator(".compact-patchbay-text")).toContainText("branch-a-cord/source output value to branch-a-cord/double input in");
-  await expect(fanout.locator(".compact-patchbay-text")).toContainText("branch-a-cord/source output value to branch-a-cord/quiet input in");
+  await openStep(page, 0);
+  const fanout = page.locator(".runner").nth(2).locator(".compact-patchbay");
+  await expect(fanout.locator(".react-flow__edge")).toHaveCount(4);
+  await expect(fanout.locator(".compact-patchbay-text")).toContainText("branch-a-cord/source output text to branch-a-cord/loud input text");
+  await expect(fanout.locator(".compact-patchbay-text")).toContainText("branch-a-cord/source output text to branch-a-cord/morse input text");
 
-  await openStep(page, 5);
+  await openStep(page, 1);
   const runner = page.locator(".runner");
   const patchbay = runner.locator(".compact-patchbay");
   const sourceBefore = await runner.locator("textarea").inputValue();
@@ -303,7 +297,7 @@ test("Book Patchbay keeps branching explicit and opens one reviewed Back beneath
 test("the staged Book and Crèche each boot with only their own product tree", async ({ page }) => {
   const book = await startStaticProduct("target/book-product");
   try {
-    await page.goto(`${book.url}meet-one-gear/`);
+    await page.goto(`${book.url}a-form-you-can-run/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
@@ -531,23 +525,25 @@ test("the Book renders admitted Markdown emphasis semantically and leaves raw HT
   expect(await page.evaluate(() => globalThis.__rawHtmlRan)).toBeUndefined();
 });
 
-test("the Book opens with one Gear and defers Body and Crèche until after Host lessons", async ({ page }) => {
+test("the Book opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "Meet one Gear" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
   await expect(page).toHaveTitle(/The Book$/);
-  await expect(page.locator('.chapter-copy strong', { hasText: /^Gear$/ })).toHaveCount(1);
-  await expect(page.locator("#chapter")).not.toContainText(/Body|Crèche|birth|admission/i);
+  await expect(page.locator("#chapter")).toContainText("one logical computer");
+  await expect(page.locator("#chapter")).toContainText("one or many physical or virtual computers");
+  await expect(page.locator("#chapter")).toContainText("Gear, Port, Cord, Form");
+  await expect(page.locator("#chapter")).not.toContainText(/Crèche/i);
   await expect(page.locator(".body-birth-runner, .first-host-runner, .physical-host-runner, .graduation-runner")).toHaveCount(0);
   await expect(page.locator(".gear-inventory")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Birth a Body" })).toHaveCount(0);
 
-  await openStep(page, 5);
-  await expect(page.getByRole("heading", { name: "Same Face, different implementation" })).toBeVisible();
+  await openStep(page, 1);
+  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   await expect(page.locator("#chapter")).not.toContainText(/birth|admission/i);
 
-  await openStep(page, 11);
+  await openStep(page, 6);
   const handoff = page.getByRole("link", { name: "Birth a Body" });
   await expect(handoff).toHaveAttribute("href", "../creche/");
   await expect(handoff).toHaveJSProperty("href", new URL("../creche/", entrance.url).href);
@@ -558,7 +554,7 @@ test("the Book opens with one Gear and defers Body and Crèche until after Host 
   expect((await page.request.get(new URL("/book/creche-lifecycle.mjs", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.includes("creche-lifecycle") || path.includes("creche-physical") || path.includes("creche-graduation"))).toBe(false);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Birth belongs in the Crèche" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Birth, spores, and the Crèche" })).toBeVisible();
   await expect(page.locator(".body-birth-runner")).toHaveCount(0);
 });
 
@@ -1252,38 +1248,32 @@ test("the physical workflow cancels one bounded catalog operation without accept
 });
 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {
-  const anchors = [
-    "does one piece of work",
-    "Cords connect their typed Ports",
-    "Edit the literal",
-    "feed more than one Gear",
-    "see its Face",
-    "Some Gears open",
-    "running environment",
-    "bounded effects",
-    "use more than one Host",
-    "durable question",
-    "durable computer",
-    "helps a Body begin",
-    "newborn Body begins",
-    "temporary nursery can step away",
+  const chapterChecks = [
+    { title: "A Form you can run", anchor: "Patchbay projects checked Form truth" },
+    { title: "Faces, Backs, and implementation", anchor: "open the reviewed Back" },
+    { title: "Hosts make Forms real", anchor: "smallest case of a later Body-wide model" },
+    { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
+    { title: "The Body: one computer, one machine or many", anchor: "same Conduit problem at different topology and cost scales" },
+    { title: "Many Forms, one Body-wide realization", anchor: "Program = Form" },
+    { title: "Birth, spores, and the Crèche", anchor: "initial Form and birth provenance" },
   ];
   await openStep(page, 0);
-  for (let step = 0; step < anchors.length; step += 1) {
-    await expect(page.locator("#chapter")).toContainText(anchors[step]);
+  for (let step = 0; step < chapterChecks.length; step += 1) {
+    await expect(page.getByRole("heading", { name: chapterChecks[step].title })).toBeVisible();
+    await expect(page.locator("#chapter")).toContainText(chapterChecks[step].anchor);
     await expect(page.getByRole("heading", { name: "Conduit idea" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "What the run proves" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Payoff" })).toHaveCount(0);
     const firstParagraph = page.locator(".chapter-copy").first().locator("p").first();
     await expect(firstParagraph).toBeVisible();
-    if (step < anchors.length - 1) await page.getByRole("button", { name: "Next" }).click();
+    if (step < chapterChecks.length - 1) await page.getByRole("button", { name: "Next" }).click();
   }
 });
 
-test("the first Gear, explicit branch, and Face pages execute in order", async ({ page }) => {
-  await openStep(page, 2);
+test("the first chapter builds from one Gear to branch, then hands off to Face/Back", async ({ page }) => {
+  await openStep(page, 0);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
-  let runner = page.locator(".runner");
+  let runner = page.locator(".runner").nth(1);
   await expect(runner.locator('[data-application-component="action-group"]')).toHaveCount(1);
   await expect(runner.getByRole("button", { name: "Run" })).toHaveAttribute("data-application-action", "book.run");
   await expect(runner.getByRole("button", { name: "Stop" })).toBeDisabled();
@@ -1292,24 +1282,23 @@ test("the first Gear, explicit branch, and Face pages execute in order", async (
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
-  await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Branch a Cord" })).toBeVisible();
-  runner = page.locator(".runner");
+  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  runner = page.locator(".runner").nth(2);
   await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".morse")).toHaveText("true");
+  await expect(runner.locator(".morse")).toHaveText("··· ——— ···");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Meet the Face" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
-  await expect(runner.locator(".morse")).toHaveText("3.000000");
+  await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
 });
 
 test("the Face plate flips open its checked Back without replacing the runner", async ({ page }) => {
-  await openStep(page, 5);
+  await openStep(page, 1);
   const runner = page.locator(".runner");
   await expect(runner).toHaveCount(1);
   const listing = runner.locator("textarea");
@@ -1341,21 +1330,22 @@ test("the Face plate flips open its checked Back without replacing the runner", 
 });
 
 test("Book navigation preserves executable drafts without owning lifecycle controls", async ({ page }) => {
-  await openStep(page, 2);
+  await openStep(page, 0);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
-  const edited = (await page.locator("textarea").inputValue()).replace('"hello"', '"reader"');
-  await page.locator("textarea").fill(edited);
+  const listing = page.locator(".runner").nth(1).locator("textarea");
+  const edited = (await listing.inputValue()).replace('"make this loud"', '"reader-ready"');
+  await listing.fill(edited);
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Previous" }).click();
-  await expect(page.locator("textarea")).toHaveValue(edited);
+  await expect(page.locator(".runner").nth(1).locator("textarea")).toHaveValue(edited);
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
   await expect(page.getByRole("button", { name: "Reset this page" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Revisit birth page" })).toHaveCount(0);
 });
 
 test("unsupported capability and type mismatch remain ordinary pre-Play refusals", async ({ page }) => {
-  await openStep(page, 2);
-  const runner = page.locator(".runner");
+  await openStep(page, 0);
+  const runner = page.locator(".runner").nth(1);
   const listing = runner.locator("textarea");
   await listing.fill(`form unavailable {
     source: text/literal("still planned")
@@ -1385,8 +1375,8 @@ test("unsupported capability and type mismatch remain ordinary pre-Play refusals
 });
 
 test("state over time presents startup and current count through four admitted browser ticks", async ({ page }) => {
-  await openStep(page, 7);
-  await expect(page.getByRole("heading", { name: "State over time" })).toBeVisible();
+  await openStep(page, 2);
+  await expect(page.getByRole("heading", { name: "Hosts make Forms real" })).toBeVisible();
   const runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
@@ -1404,7 +1394,7 @@ test("state over time presents startup and current count through four admitted b
 });
 
 test("stopping state over time cancels the pending timer without a late completion", async ({ page }) => {
-  await openStep(page, 7);
+  await openStep(page, 2);
   const runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("0");
@@ -1416,9 +1406,9 @@ test("stopping state over time cancels the pending timer without a late completi
   await expect(runner.locator(".morse")).toHaveText("0");
 });
 
-test("Meet the Host shows the exact installed offers from the planning advertisement", async ({ page }) => {
-  await openStep(page, 6);
-  await expect(page.getByRole("heading", { name: "Meet the Host" })).toBeVisible();
+test("Hosts chapter shows the exact installed offers from the planning advertisement", async ({ page }) => {
+  await openStep(page, 2);
+  await expect(page.getByRole("heading", { name: "Hosts make Forms real" })).toBeVisible();
   const inventory = page.locator(".gear-inventory");
   await expect(inventory).toHaveCount(1);
   const visibleInstalled = await inventory.locator("li.available code").allTextContents();
@@ -1438,9 +1428,9 @@ test("Meet the Host shows the exact installed offers from the planning advertise
 });
 
 test("Two browser Hosts executes one unchanged Form across independent Hosts", async ({ page }) => {
-  await openStep(page, 8);
-  await expect(page.getByRole("heading", { name: "Use two Hosts" })).toBeVisible();
-  const runner = page.locator(".multi-host-runner");
+  await openStep(page, 3);
+  await expect(page.getByRole("heading", { name: "One Form across several Hosts" })).toBeVisible();
+  const runner = page.locator(".multi-host-runner").first();
   const source = await runner.locator("textarea").inputValue();
   expect(source).not.toMatch(/HostId|BootId|browser\/|iframe|DOM|socket|address/);
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
@@ -1463,9 +1453,9 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
 });
 
 test("Plans and Plays compact and raw views project the same exact immutable Plan", async ({ page }) => {
-  await openStep(page, 9);
-  await expect(page.getByRole("heading", { name: "Plans and Plays" })).toBeVisible();
-  const runner = page.locator(".multi-host-runner");
+  await openStep(page, 3);
+  await expect(page.getByRole("heading", { name: "One Form across several Hosts" })).toBeVisible();
+  const runner = page.locator(".multi-host-runner").nth(1);
   await expect(runner.locator(".plan-view-details")).not.toHaveAttribute("open", "");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
@@ -1633,8 +1623,8 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
       for (const callback of callbacks.splice(0)) callback(performance.now());
     };
   });
-  await openStep(page, 8);
-  const runner = page.locator(".multi-host-runner");
+  await openStep(page, 3);
+  const runner = page.locator(".multi-host-runner").first();
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Host A offered one value");
   await runner.getByRole("button", { name: "Stop" }).click();

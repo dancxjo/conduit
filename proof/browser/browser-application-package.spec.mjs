@@ -22,9 +22,9 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   page.on("request", (request) => {
     if (request.url().startsWith("http:")) requests.push(new URL(request.url()).pathname);
   });
-  await page.goto(`${entrance.url}same-face-different-implementation/`);
+  await page.goto(`${entrance.url}faces-backs-and-implementation/`);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "Same Face, different implementation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   const admission = await page.evaluate(() => ({
     packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
     stateIdentity: globalThis.__conduitBrowserApplication.manifest.stateCompatibility.identity,
@@ -59,7 +59,7 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   await expect(runnerStatus).toHaveText("Edit the message or timing, then run it.");
   await expect(page.locator(".play-status")).toHaveCount(0);
   const listing = page.locator("textarea");
-  const edited = (await listing.inputValue()).replace('"hello"', '"durable"');
+  const edited = (await listing.inputValue()).replace('"HELLO"', '"DURABLE"');
   await listing.fill(edited);
   const patchbay = page.locator(".compact-patchbay");
   await patchbay.getByRole("button", { name: "Open reviewed Back for same-morse-caller/morse" }).click();
@@ -68,7 +68,7 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
 
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "Same Face, different implementation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   await expect(page.locator("textarea")).toHaveValue(edited);
   await expect(page.locator(".gear-back-expansion")).toBeVisible();
   await expect(page.locator(".gear-back-flow")).toHaveAttribute("data-renderer", "react-flow");
@@ -83,7 +83,7 @@ test("Book navigation is one finite Host-manifested view with stale and pressure
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const navigation = page.locator('[data-application-slot="book-navigation"]');
   await expect(navigation.locator('[data-application-component="navigation"]')).toHaveCount(1);
-  await expect(navigation.locator('[data-application-key="progress"]')).toHaveText("Page 1 of 14");
+  await expect(navigation.locator('[data-application-key="progress"]')).toHaveText("Page 1 of 7");
   await expect(navigation.getByRole("button", { name: "Previous" })).toBeDisabled();
   await expect(navigation.getByRole("button", { name: "Next" })).toBeEnabled();
 
@@ -91,10 +91,10 @@ test("Book navigation is one finite Host-manifested view with stale and pressure
     globalThis.__staleBookNavigationButton = document.querySelector('[data-application-key="next"]');
     globalThis.__staleBookNavigationButton.click();
   });
-  await expect(page.getByRole("heading", { name: "Connect Gears" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   await page.evaluate(() => globalThis.__staleBookNavigationButton.click());
   expect(await page.evaluate(() => globalThis.__conduitBrowserApplication.presentation.lastRefusal("book-navigation"))).toBe("stale-revision");
-  await expect(page.getByRole("heading", { name: "Connect Gears" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
 
   const presentationEvidence = await page.evaluate(() => {
     const presentation = globalThis.__conduitBrowserApplication.presentation;

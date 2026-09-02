@@ -14,20 +14,13 @@ pub(super) enum ProductDocument {
 
 const BOOK_DOCUMENT_PATHS: &[&str] = &[
     "/book/",
-    "/book/meet-one-gear/",
-    "/book/connect-gears/",
-    "/book/edit-one-gear/",
-    "/book/branch-a-cord/",
-    "/book/meet-the-face/",
-    "/book/same-face-different-implementation/",
-    "/book/meet-the-host/",
-    "/book/state-over-time/",
-    "/book/use-two-hosts/",
-    "/book/plans-and-plays/",
-    "/book/keep-one-body-through-change/",
-    "/book/birth-belongs-in-the-creche/",
-    "/book/give-the-body-a-host/",
-    "/book/graduate-from-the-creche/",
+    "/book/a-form-you-can-run/",
+    "/book/faces-backs-and-implementation/",
+    "/book/hosts-make-forms-real/",
+    "/book/one-form-across-several-hosts/",
+    "/book/the-body-one-computer-one-machine-or-many/",
+    "/book/many-forms-one-body-wide-realization/",
+    "/book/birth-spores-and-the-creche/",
 ];
 
 const CRECHE_DOCUMENT_PATHS: &[&str] = &[

@@ -1,44 +1,6 @@
-# Branch a Cord
+# Faces, Backs, and implementation
 
-One value can feed more than one Gear. Draw that choice explicitly and the whole branch stays visible.
-
-```conduit run
-form branch-a-cord {
-    source: scalar/literal(0.5)
-    double: math/scale(2.0)
-    quiet: math/deadband(0.6)
-    compare: logic/compare("gt")
-    result: presentation/bool-value
-
-    source > double > compare.left
-    source > quiet > compare.right
-    compare.out > result
-}
-```
-
-Both branches begin at the same output Port and meet again at `compare`.
-
-# Meet the Face
-
-Look at a Gear from the outside and you see its **Face**: its meaning and typed Ports. A caller can connect to that contract without knowing how the Gear is implemented.
-
-```conduit run
-form meet-the-face {
-    source: scalar/literal(1.5)
-    scale: math/scale(2.0)
-    result: presentation/scalar
-
-    source > scale > result
-}
-```
-
-`scale` receives a scalar and emits a scalar. That public shape is enough to compose it here and somewhere entirely different.
-
-# Same Face, different implementation
-
-Some Gears open. `text/morse` has a reviewed Form **Back** made from smaller Gears.
-
-Use **Open Back** on the `morse` faceplate. The original Gear stays put while its checked internal topology opens beneath it. Return to the Face whenever you like; the source listing does not change.
+When one Gear calls another, it depends on the called Gear's **Face**: meaning plus typed Port contract. It does not need the callee's implementation details.
 
 ```conduit compare
 form same-morse-caller {
@@ -50,4 +12,8 @@ form same-morse-caller {
 }
 ```
 
-A rich Host may use a direct Morse implementation. A smaller Host may open this Back until it reaches Gears it can provide. The caller still sees the same Face.
+In Patchbay, open the reviewed Back for `same-morse-caller/morse`. The caller stays unchanged while you inspect a checked internal Form made of smaller Gears. Close the Back and you are back at the same Face.
+
+That distinction matters: the caller composes against stable semantics, while Hosts can realize the inside differently. A rich Host might provide `text/morse` directly. A smaller Host can keep opening reviewed Backs until remaining leaves match machinery it can actually provide.
+
+So the next question is unavoidable: who can realize those leaves right now?
