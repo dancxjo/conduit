@@ -80,6 +80,14 @@ pub enum WakeLifecycleEvent {
         plan_id: PlanId,
         sign_id: SignId,
     },
+    WorkloadChanged {
+        prior_plan_id: PlanId,
+        prior_workload_revision: u64,
+        prior_workset: BodyWorkset,
+        replacement_workload_revision: u64,
+        replacement_workset: BodyWorkset,
+        sign_id: SignId,
+    },
     Replanned {
         prior_plan_id: PlanId,
         replacement_plan_id: PlanId,
@@ -107,6 +115,7 @@ impl WakeLifecycleEvent {
             | Self::HeldPlanInvalidated { sign_id, .. }
             | Self::PlayStarted { sign_id, .. }
             | Self::BecameUnsatisfied { sign_id, .. }
+            | Self::WorkloadChanged { sign_id, .. }
             | Self::Replanned { sign_id, .. }
             | Self::SamePlanObserved { sign_id, .. }
             | Self::Lulled { sign_id }
@@ -203,6 +212,8 @@ pub(crate) fn validate_wake_events(
     sign: &[SignId],
     lifecycle: WakeLifecycle,
     plans: &[WakePlan],
+    workset: &BodyWorkset,
+    workload_revision: u64,
 ) -> Result<(), BodyLifecycleError> {
     if events.len() != sign.len()
         || events
@@ -215,6 +226,7 @@ pub(crate) fn validate_wake_events(
     }
     let mut replayed = WakeLifecycle::AwaitingPlan;
     let mut plan_index = 0usize;
+    let mut replayed_workload: Option<(BodyWorkset, u64)> = None;
     for event in events.iter().skip(1) {
         replayed = match (replayed, event) {
             (WakeLifecycle::AwaitingPlan, WakeLifecycleEvent::PlanReady { plan_id, .. })
@@ -301,6 +313,31 @@ pub(crate) fn validate_wake_events(
                 WakeLifecycle::Unsatisfied
             }
             (
+                WakeLifecycle::Playing,
+                WakeLifecycleEvent::WorkloadChanged {
+                    prior_plan_id,
+                    prior_workload_revision,
+                    prior_workset,
+                    replacement_workload_revision,
+                    replacement_workset,
+                    ..
+                },
+            ) if plans
+                .get(plan_index - 1)
+                .is_some_and(|plan| &plan.plan_id == prior_plan_id)
+                && prior_workset.validate().is_ok()
+                && replacement_workset.validate().is_ok()
+                && prior_workset != replacement_workset
+                && replacement_workload_revision > prior_workload_revision
+                && replayed_workload.as_ref().is_none_or(|(prior, revision)| {
+                    prior == prior_workset && revision == prior_workload_revision
+                }) =>
+            {
+                replayed_workload =
+                    Some((replacement_workset.clone(), *replacement_workload_revision));
+                WakeLifecycle::Unsatisfied
+            }
+            (
                 WakeLifecycle::Unsatisfied,
                 WakeLifecycleEvent::Replanned {
                     prior_plan_id,
@@ -369,7 +406,13 @@ pub(crate) fn validate_wake_events(
             _ => return Err(BodyLifecycleError::InvalidTransition),
         };
     }
-    if replayed == lifecycle && plan_index == plans.len() {
+    let workload_matches =
+        replayed_workload
+            .as_ref()
+            .is_none_or(|(replayed_workset, replayed_revision)| {
+                replayed_workset == workset && *replayed_revision == workload_revision
+            });
+    if replayed == lifecycle && plan_index == plans.len() && workload_matches {
         Ok(())
     } else {
         Err(BodyLifecycleError::InvalidTransition)

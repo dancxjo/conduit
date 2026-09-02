@@ -160,3 +160,98 @@ fn legacy_single_plan_validation_uses_current_workset_not_seed_provenance() {
     )
     .unwrap();
 }
+
+#[test]
+fn workload_change_replaces_the_plan_and_play_without_replacing_the_wake() {
+    let seed = resident("dashboard");
+    let service = resident("service");
+    let (awake_body, wake) = Body::born(
+        seed.source_document_id.clone(),
+        seed.checked_form_id.clone(),
+        1,
+        SignId::from("sign/born"),
+    )
+    .unwrap()
+    .admit_form(service.clone(), SignId::from("sign/admit-service"))
+    .unwrap()
+    .wake(1, SignId::from("sign/woke"))
+    .unwrap();
+    let initial_plan = BodyPlan::seal(
+        &wake,
+        vec![
+            BodyFormPlan {
+                form: seed.clone(),
+                plan: plan(&seed, "dashboard"),
+            },
+            BodyFormPlan {
+                form: service.clone(),
+                plan: plan(&service, "service"),
+            },
+        ],
+    )
+    .unwrap();
+    let initial_play = BodyPlayIdentity::bind(&initial_plan, 1);
+    let playing = wake
+        .body_plan_ready(&initial_plan, SignId::from("sign/initial-plan"))
+        .unwrap()
+        .body_play_started(
+            &initial_plan,
+            &initial_play,
+            SignId::from("sign/initial-play"),
+        )
+        .unwrap();
+
+    let recorder = resident("recorder");
+    let changed_body = awake_body
+        .admit_form(recorder.clone(), SignId::from("sign/admit-recorder"))
+        .unwrap();
+    let changed = playing
+        .workload_changed(&changed_body, SignId::from("sign/workload-changed"))
+        .unwrap();
+    assert_eq!(changed.wake_id, wake.wake_id);
+    assert_eq!(changed.lifecycle, WakeLifecycle::Unsatisfied);
+    assert_eq!(
+        initial_plan.validate_for(&changed),
+        Err(BodyPlanError::StaleWorkload)
+    );
+
+    let replacement = BodyPlan::seal(
+        &changed,
+        vec![
+            BodyFormPlan {
+                form: seed.clone(),
+                plan: plan(&seed, "dashboard-2"),
+            },
+            BodyFormPlan {
+                form: service.clone(),
+                plan: plan(&service, "service-2"),
+            },
+            BodyFormPlan {
+                form: recorder.clone(),
+                plan: plan(&recorder, "recorder"),
+            },
+        ],
+    )
+    .unwrap();
+    let replacement_play = BodyPlayIdentity::bind(&replacement, 2);
+    let replaced = changed
+        .body_plan_ready(&replacement, SignId::from("sign/replacement-plan"))
+        .unwrap()
+        .body_play_started(
+            &replacement,
+            &replacement_play,
+            SignId::from("sign/replacement-play"),
+        )
+        .unwrap();
+    assert_eq!(replaced.wake_id, wake.wake_id);
+    assert_eq!(replaced.lifecycle, WakeLifecycle::Playing);
+    assert_eq!(replaced.plans.len(), 2);
+    assert_eq!(
+        replaced.plans[0].state,
+        conduit_body::WakePlanState::Superseded
+    );
+    assert_eq!(
+        replaced.plans[1].state,
+        conduit_body::WakePlanState::Playing
+    );
+}
