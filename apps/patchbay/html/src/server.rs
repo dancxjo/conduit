@@ -6,6 +6,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
 mod browser_membership;
+mod debug_control;
 mod front_door;
 mod http;
 mod interaction;
@@ -18,6 +19,7 @@ mod timeline;
 mod transition;
 mod watches;
 
+use debug_control::DocumentaryDebuggerRuntime;
 use http::{read_request, write_response};
 use theme::render_theme_css;
 
@@ -120,6 +122,7 @@ pub struct PatchbayHtmlServer {
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
+    debug_runtime: Option<DocumentaryDebuggerRuntime>,
 }
 
 impl PatchbayHtmlServer {
@@ -136,6 +139,7 @@ impl PatchbayHtmlServer {
         if theme_css.len() > MAX_THEME_CSS_BYTES {
             return Err(ServerError::ThemeCssTooLarge);
         }
+        let debug_runtime = DocumentaryDebuggerRuntime::from_snapshot(&snapshot)?;
         Ok(Self {
             listener,
             snapshot,
@@ -151,6 +155,7 @@ impl PatchbayHtmlServer {
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
+            debug_runtime,
         })
     }
 
@@ -343,6 +348,26 @@ impl PatchbayHtmlServer {
                         "400 Bad Request",
                         "text/plain; charset=utf-8",
                         b"invalid debugger timeline request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
+        if first == "POST /api/debugger-control HTTP/1.1" {
+            let body = match self.apply_debugger_control(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid debugger control request",
                     );
                 }
                 Err(error) => return Err(error),

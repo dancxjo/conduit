@@ -6,6 +6,9 @@ on:
       - .github/workflows/patchbay-debugger-pr-proof.yml
       - apps/patchbay/html/assets/app.css
       - apps/patchbay/html/assets/app.js
+      - apps/patchbay/html/assets/flow-scene.js
+      - apps/patchbay/html/assets/flow.css
+      - apps/patchbay/html/assets/flow.js
       - apps/patchbay/html/assets/index.html
       - apps/patchbay/html/src/demo.rs
       - apps/patchbay/html/src/main.rs
@@ -17,6 +20,11 @@ on:
       - apps/patchbay/html/tests/snapshot.rs
       - apps/patchbay/model/src/debugger_*.rs
       - apps/patchbay/model/src/lib.rs
+      - architecture/kernel/src/debug_observation.rs
+      - architecture/kernel/src/debug_observation/*.rs
+      - architecture/kernel/src/scheduler.rs
+      - architecture/kernel/src/scheduler/debug_control.rs
+      - architecture/kernel/tests/debug_observation.rs
       - proof/browser/patchbay-debugger-watch.spec.mjs
       - proof/browser/patchbay-debugger.config.mjs
       - package-lock.json
@@ -55,7 +63,9 @@ jobs:
         run: cargo build --locked -p patchbay-html
       - name: Prove the finite debugger model
         run: cargo test --locked -p patchbay-model debugger_
-      - name: Prove one exact finite Watch interaction
+      - name: Prove bounded kernel debugger control and causality
+        run: cargo test --locked -p conduit-kernel --test debug_observation
+      - name: Prove the focused Patchbay debugger interactions
         run: >-
           npx playwright test
           --config proof/browser/patchbay-debugger.config.mjs

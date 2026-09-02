@@ -102,7 +102,7 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
       return next.nodes;
     });
     setEdges(presentEdges(projected.edges));
-  }, [projected.workspaceIdentity, projected.lens, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision, snapshot.debugger?.revision]);
+  }, [projected.workspaceIdentity, projected.lens, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision]);
   arrangeCurrent = () => {
     const next = reconcileFlowScene(projected);
     setNodes(next.nodes);

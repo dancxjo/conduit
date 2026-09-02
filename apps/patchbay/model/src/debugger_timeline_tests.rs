@@ -41,6 +41,8 @@ fn record(
         preview_truncated: false,
         preview,
         fault_code: None,
+        causal_parent_sequence: None,
+        invocation_sequence: None,
     }
 }
 
@@ -59,6 +61,11 @@ fn timeline(executions: &[DebugExecutionIdentity]) -> DebuggerTimeline {
                         execution: *execution,
                         runtime_subject: DebugSubject::Cord(CordId(1)),
                         visible_subject: format!("cord/{}", execution.body[0]),
+                    },
+                    DebuggerTimelineBinding {
+                        execution: *execution,
+                        runtime_subject: DebugSubject::Cord(CordId(2)),
+                        visible_subject: format!("branch/{}", execution.body[0]),
                     },
                 ]
             })
@@ -190,5 +197,54 @@ fn stale_unknown_and_nonmonotonic_inputs_refuse() {
     assert_eq!(
         timeline.move_cursor(99),
         Err(DebuggerTimelineError::InvalidCursor)
+    );
+}
+
+#[test]
+fn causal_trace_follows_exact_observed_parents_and_exposes_missing_history() {
+    let identity = execution(12);
+    let mut timeline = timeline(&[identity]);
+    let mut admit = |sequence, subject, parent| {
+        let mut event = record(identity, sequence, subject, "42");
+        event.causal_parent_sequence = parent;
+        timeline.observe(&event).unwrap();
+    };
+    admit(0, DebugSubject::Gear(NodeId(1)), None);
+    admit(1, DebugSubject::Cord(CordId(1)), Some(0));
+    admit(2, DebugSubject::Gear(NodeId(1)), Some(1));
+    admit(3, DebugSubject::Cord(CordId(1)), Some(2));
+    // A structurally possible sibling is not a descendant of event 1.
+    admit(4, DebugSubject::Cord(CordId(2)), Some(0));
+
+    timeline.trace_upstream(3).unwrap();
+    let upstream = timeline.trace.as_ref().unwrap();
+    assert_eq!(
+        upstream
+            .steps
+            .iter()
+            .map(|step| step.sequence)
+            .collect::<Vec<_>>(),
+        vec![0, 1, 2, 3]
+    );
+    assert!(!upstream.steps.iter().any(|step| step.sequence == 4));
+
+    timeline.trace_downstream(1).unwrap();
+    let downstream = timeline.trace.as_ref().unwrap();
+    assert_eq!(
+        downstream
+            .steps
+            .iter()
+            .map(|step| step.sequence)
+            .collect::<Vec<_>>(),
+        vec![1, 2, 3]
+    );
+
+    let mut missing = record(identity, 5, DebugSubject::Cord(CordId(1)), "fault");
+    missing.causal_parent_sequence = Some(99);
+    timeline.observe(&missing).unwrap();
+    timeline.trace_upstream(5).unwrap();
+    assert_eq!(
+        timeline.trace.as_ref().unwrap().missing_parent_sequences,
+        vec![99]
     );
 }

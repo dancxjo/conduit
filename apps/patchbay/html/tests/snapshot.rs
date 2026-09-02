@@ -52,6 +52,9 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
 fn host_owned_snapshot_carries_bounded_debugger_state_for_an_exact_subject() {
     let mut snapshot = demonstration_snapshot().unwrap();
     snapshot.watches = None;
+    snapshot.timeline = None;
+    snapshot.timeline_projection = None;
+    snapshot.debugger_control = None;
     let subject = snapshot.presentation.subjects[0].identity.clone();
     let debugger: patchbay_model::DebuggerPresentation =
         serde_json::from_value(serde_json::json!({

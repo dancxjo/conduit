@@ -123,6 +123,8 @@ export function projectFlowScene(snapshot, lens = "world") {
   // those admitted subjects (for example Port direction and Cord endpoints).
   const subjectProperties = propertiesBySubject(snapshot.presentation);
   const debuggerActivity = debuggerBySubject(snapshot);
+  const causalTrace = new Set((snapshot.timeline?.trace?.steps || []).map((step) => step.subject));
+  const tracing = causalTrace.size > 0;
   const reducedMotion = snapshot.debugger?.reduced_motion === true;
   const allSubjects = new Map(presentation.subjects.map((subject) => [subject.identity, subject]));
   const children = new Map();
@@ -149,6 +151,8 @@ export function projectFlowScene(snapshot, lens = "world") {
       backExpanded: subjectProperties.get(subject.identity)?.get("back-expanded") === "true",
       diagnosticError: subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error",
       debugger: debuggerActivity.get(subject.identity) || null,
+      causalTrace: causalTrace.has(subject.identity),
+      causalUnrelated: tracing && !causalTrace.has(subject.identity),
       reducedMotion,
       lens,
       ports: (children.get(subject.identity) || []).map((identity) => allSubjects.get(identity)).filter((item) => item?.role === "Port").map((port) => {
@@ -162,11 +166,12 @@ export function projectFlowScene(snapshot, lens = "world") {
           temporal: properties.get("temporal") || "",
           diagnosticError: properties.get("diagnostic-state") === "error",
           debugger: debuggerActivity.get(port.identity) || null,
+          causalTrace: causalTrace.has(port.identity),
         };
       }).sort((left, right) => left.direction.localeCompare(right.direction) || left.id.localeCompare(right.id)),
       semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === subject.identity,
     },
-    className: `flow-subject flow-${subject.role.toLowerCase()}${subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error" ? " diagnostic-error" : ""}`,
+    className: `flow-subject flow-${subject.role.toLowerCase()}${subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error" ? " diagnostic-error" : ""}${causalTrace.has(subject.identity) ? " causal-trace-exact" : tracing ? " causal-trace-unrelated" : ""}`,
     ariaLabel: subject.accessibility_name,
   })).sort(compareIdentity);
   const nodeIds = new Set(nodes.map((node) => node.id));
@@ -197,7 +202,7 @@ export function projectFlowScene(snapshot, lens = "world") {
       targetHandle: sinkPort,
       type: "simplebezier",
       label: activityLabel || visual.label,
-      className: `${visual.className}${activity ? ` debugger-${activity.phase}` : ""}${snapshot.debugger?.gap ? " debugger-gap" : ""}`,
+      className: `${visual.className}${activity ? ` debugger-${activity.phase}` : ""}${snapshot.debugger?.gap ? " debugger-gap" : ""}${causalTrace.has(cord.identity) ? " causal-trace-exact" : tracing ? " causal-trace-unrelated" : ""}`,
       animated: activity ? activity.phase === "active" && !reducedMotion : visual.animated,
       style: { strokeWidth: visual.strokeWidth },
       data: {

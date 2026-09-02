@@ -1,9 +1,10 @@
 use core::mem::size_of;
 
 use conduit_kernel::debug_observation::{
-    DebugEventKind, DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer,
-    DebugObservationInput, DebugObservationRecord, DebugObservationRefusal, DebugSubject,
-    ObservedSignSink, DEBUG_OBSERVATION_SCHEMA_VERSION, MAX_DEBUG_VALUE_PREVIEW_BYTES,
+    DebugBreakpoint, DebugBreakpointKind, DebugControlRefusal, DebugEventKind,
+    DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer, DebugObservationInput,
+    DebugObservationRecord, DebugObservationRefusal, DebugSubject, ObservedSignSink,
+    DEBUG_CONTROL_SCHEMA_VERSION, DEBUG_OBSERVATION_SCHEMA_VERSION, MAX_DEBUG_VALUE_PREVIEW_BYTES,
 };
 use conduit_kernel::scheduler::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
@@ -174,6 +175,17 @@ fn production_scheduler_emits_exact_bounded_start_value_and_completion_observati
             && record.form == 4
             && record.host == 8
     }));
+    let sent = records
+        .iter()
+        .find(|record| record.kind == DebugEventKind::ValueSent)
+        .unwrap();
+    let received = records
+        .iter()
+        .find(|record| record.kind == DebugEventKind::ValueReceived)
+        .unwrap();
+    assert_eq!(received.causal_parent_sequence, Some(sent.sequence));
+    assert!(sent.invocation_sequence.is_some());
+    assert!(received.invocation_sequence.is_some());
     assert!(records.iter().any(|record| {
         record.kind == DebugEventKind::ValueReceived
             && record.subject == DebugSubject::Cord(CordId(0))
@@ -224,6 +236,8 @@ fn pressure_overwrites_only_debug_history_and_exposes_the_exact_gap() {
                 type_identity: Some(12),
                 value: Some(b"abcdef"),
                 fault_code: None,
+                causal_parent_sequence: None,
+                invocation_sequence: None,
             })
             .unwrap();
     }
@@ -260,6 +274,8 @@ fn stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_hist
             type_identity: None,
             value: None,
             fault_code: None,
+            causal_parent_sequence: None,
+            invocation_sequence: None,
         })
         .unwrap();
 
@@ -274,6 +290,8 @@ fn stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_hist
         type_identity: None,
         value: None,
         fault_code: None,
+        causal_parent_sequence: None,
+        invocation_sequence: None,
     };
     assert_eq!(
         observations.admit(input(
@@ -461,4 +479,162 @@ fn invalid_record_and_preview_budgets_refuse_before_attachment() {
         ),
         Err(DebugObservationRefusal::InvalidBounds)
     ));
+}
+
+#[test]
+fn exact_gear_breakpoint_suspends_real_execution_and_resume_is_one_shot() {
+    let execution = execution_identity(60);
+    let mut values = FixedValueStore::<2, 8>::new(16).unwrap();
+    let value = values.store(b"42").unwrap();
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: conduit_kernel::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs = FixedSignLog::<32>::new(sign_bytes(32)).unwrap();
+    let mut observed = ObservedSignSink::<_, 2, PORTS, 16>::detached(
+        signs,
+        execution,
+        [
+            DebugNodeBinding { form: 4, host: 8 },
+            DebugNodeBinding { form: 9, host: 8 },
+        ],
+        [[Some(12)], [Some(12)]],
+    );
+    observed.attach(buffer(execution, 16, 8)).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 2, 2, 1>::new(
+        [
+            NodeSpec {
+                input_cords: [None],
+                maximum_step_work: 2,
+            },
+            NodeSpec {
+                input_cords: [Some(CordId(0))],
+                maximum_step_work: 2,
+            },
+        ],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), PortId(0)),
+            (NodeId(1), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 2,
+                byte_capacity: 8,
+            },
+        )],
+        routes,
+        [
+            Driver::Source { value, sent: false },
+            Driver::Sink { received: false },
+        ],
+        values,
+        observed,
+    )
+    .unwrap();
+    let breakpoint = DebugBreakpoint {
+        schema_version: DEBUG_CONTROL_SCHEMA_VERSION,
+        execution,
+        subject: DebugSubject::Gear(NodeId(0)),
+        kind: DebugBreakpointKind::BeforeGearStart,
+    };
+    scheduler.request_debug_breakpoint(breakpoint).unwrap();
+
+    assert_eq!(scheduler.step(), Err(SchedulerError::DebugSuspended));
+    assert_eq!(scheduler.decisions(), 0);
+    let suspension = scheduler.debug_suspension().unwrap();
+    assert_eq!(suspension.subject, DebugSubject::Gear(NodeId(0)));
+    assert_eq!(scheduler.step(), Err(SchedulerError::DebugSuspended));
+    assert_eq!(scheduler.decisions(), 0);
+    let mut stale = suspension;
+    stale.execution = execution_identity(61);
+    assert_eq!(
+        scheduler.resume_debug_suspension(stale),
+        Err(DebugControlRefusal::StaleSuspension)
+    );
+    scheduler.resume_debug_suspension(suspension).unwrap();
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        conduit_kernel::scheduler::SchedulerStatus::Progress { node: NodeId(0) }
+    ));
+    assert_eq!(scheduler.decisions(), 1);
+    scheduler.run(16).unwrap();
+}
+
+#[test]
+fn stale_and_distributed_breakpoints_refuse_before_execution_control() {
+    let execution = execution_identity(70);
+    let signs = FixedSignLog::<4>::new(sign_bytes(4)).unwrap();
+    let observed = ObservedSignSink::<_, 2, PORTS, 4>::detached(
+        signs,
+        execution,
+        [
+            DebugNodeBinding { form: 1, host: 2 },
+            DebugNodeBinding { form: 2, host: 3 },
+        ],
+        [[None], [None]],
+    );
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: conduit_kernel::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+        [
+            NodeSpec {
+                input_cords: [None],
+                maximum_step_work: 1,
+            },
+            NodeSpec {
+                input_cords: [Some(CordId(0))],
+                maximum_step_work: 1,
+            },
+        ],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), PortId(0)),
+            (NodeId(1), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 1,
+            },
+        )],
+        routes,
+        [Driver::Fault, Driver::Sink { received: false }],
+        FixedValueStore::<1, 1>::new(1).unwrap(),
+        observed,
+    )
+    .unwrap();
+    let request = |execution| DebugBreakpoint {
+        schema_version: DEBUG_CONTROL_SCHEMA_VERSION,
+        execution,
+        subject: DebugSubject::Gear(NodeId(0)),
+        kind: DebugBreakpointKind::BeforeGearStart,
+    };
+    assert_eq!(
+        scheduler.request_debug_breakpoint(request(execution_identity(71))),
+        Err(DebugControlRefusal::StaleExecution)
+    );
+    assert_eq!(
+        scheduler.request_debug_breakpoint(request(execution)),
+        Err(DebugControlRefusal::DistributedSuspensionUnsupported)
+    );
+    assert_eq!(scheduler.decisions(), 0);
 }

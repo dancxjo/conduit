@@ -41,6 +41,36 @@ pub struct DebuggerTimelineEvent {
     pub event: String,
     pub value: Option<DebuggerValuePresentation>,
     pub fault_code: Option<u16>,
+    #[serde(default)]
+    pub causal_parent_sequence: Option<u64>,
+    #[serde(default)]
+    pub invocation_sequence: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DebuggerTraceDirection {
+    Upstream,
+    Downstream,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DebuggerTraceStep {
+    pub event_index: usize,
+    pub sequence: u64,
+    pub subject: String,
+    pub event: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DebuggerCausalTrace {
+    pub direction: DebuggerTraceDirection,
+    pub execution: DebuggerExecutionIdentity,
+    pub origin_sequence: u64,
+    pub steps: Vec<DebuggerTraceStep>,
+    pub missing_parent_sequences: Vec<u64>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -86,6 +116,8 @@ pub struct DebuggerTimeline {
     pub retained_bytes: usize,
     pub evicted_events: u64,
     pub gap: Option<DebuggerGapPresentation>,
+    #[serde(default)]
+    pub trace: Option<DebuggerCausalTrace>,
     #[serde(skip)]
     bindings: Vec<DebuggerTimelineBinding>,
 }
@@ -127,6 +159,7 @@ impl DebuggerTimeline {
             retained_bytes: 0,
             evicted_events: 0,
             gap: None,
+            trace: None,
             bindings,
         })
     }
@@ -166,6 +199,8 @@ impl DebuggerTimeline {
             event: event_name(record.kind).to_owned(),
             value: value_presentation(record),
             fault_code: record.fault_code,
+            causal_parent_sequence: record.causal_parent_sequence,
+            invocation_sequence: record.invocation_sequence,
         };
         self.retained_bytes = self.retained_bytes.saturating_add(event.retained_bytes());
         self.events.push(event);
@@ -252,6 +287,79 @@ impl DebuggerTimeline {
         self.revision = self.revision.saturating_add(1);
     }
 
+    pub fn trace_upstream(&mut self, index: usize) -> Result<(), DebuggerTimelineError> {
+        let origin = self
+            .events
+            .get(index)
+            .ok_or(DebuggerTimelineError::InvalidCursor)?;
+        let execution = origin.execution.clone();
+        let origin_sequence = origin.sequence;
+        let mut steps = Vec::new();
+        let mut missing_parent_sequences = Vec::new();
+        let mut current = index;
+        loop {
+            let event = &self.events[current];
+            steps.push(trace_step(current, event));
+            let Some(parent) = event.causal_parent_sequence else {
+                break;
+            };
+            let Some(parent_index) = self.events.iter().position(|candidate| {
+                candidate.execution == execution && candidate.sequence == parent
+            }) else {
+                missing_parent_sequences.push(parent);
+                break;
+            };
+            current = parent_index;
+        }
+        steps.reverse();
+        self.trace = Some(DebuggerCausalTrace {
+            direction: DebuggerTraceDirection::Upstream,
+            execution,
+            origin_sequence,
+            steps,
+            missing_parent_sequences,
+        });
+        self.subject_filter = None;
+        self.move_cursor(index)?;
+        Ok(())
+    }
+
+    pub fn trace_downstream(&mut self, index: usize) -> Result<(), DebuggerTimelineError> {
+        let origin = self
+            .events
+            .get(index)
+            .ok_or(DebuggerTimelineError::InvalidCursor)?;
+        let execution = origin.execution.clone();
+        let origin_sequence = origin.sequence;
+        let mut known = vec![origin_sequence];
+        let mut steps = vec![trace_step(index, origin)];
+        for (candidate_index, candidate) in self.events.iter().enumerate().skip(index + 1) {
+            if candidate.execution == execution
+                && candidate
+                    .causal_parent_sequence
+                    .is_some_and(|parent| known.contains(&parent))
+            {
+                known.push(candidate.sequence);
+                steps.push(trace_step(candidate_index, candidate));
+            }
+        }
+        self.trace = Some(DebuggerCausalTrace {
+            direction: DebuggerTraceDirection::Downstream,
+            execution,
+            origin_sequence,
+            steps,
+            missing_parent_sequences: Vec::new(),
+        });
+        self.subject_filter = None;
+        self.move_cursor(index)?;
+        Ok(())
+    }
+
+    pub fn clear_trace(&mut self) {
+        self.trace = None;
+        self.revision = self.revision.saturating_add(1);
+    }
+
     pub fn visible_events(&self) -> impl Iterator<Item = (usize, &DebuggerTimelineEvent)> {
         self.events.iter().enumerate().filter(|(_, event)| {
             self.subject_filter.as_ref().is_none_or(|subject| {
@@ -328,6 +436,15 @@ impl DebuggerTimeline {
             .find(|binding| binding.execution == execution && binding.runtime_subject == subject)
             .map(|binding| binding.visible_subject.as_str())
             .ok_or(DebuggerTimelineError::UnknownSubject)
+    }
+}
+
+fn trace_step(index: usize, event: &DebuggerTimelineEvent) -> DebuggerTraceStep {
+    DebuggerTraceStep {
+        event_index: index,
+        sequence: event.sequence,
+        subject: event.subject.clone(),
+        event: event.event.clone(),
     }
 }
 

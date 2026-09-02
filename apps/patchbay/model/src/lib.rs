@@ -18,6 +18,9 @@ mod candidate_form;
 mod control;
 mod cross_host_renderer;
 mod current_body_frame;
+mod debugger_control;
+#[cfg(test)]
+mod debugger_control_tests;
 mod debugger_presentation;
 #[cfg(test)]
 mod debugger_presentation_tests;
@@ -124,6 +127,10 @@ pub use current_body_frame::{
     CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
     CurrentBodyPhysicalHostSummary, CurrentBodyProgram, CurrentBodyTransition,
 };
+pub use debugger_control::{
+    DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
+    MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,
+};
 pub use debugger_presentation::{
     DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerGapPresentation,
     DebuggerPresentation, DebuggerPresentationError, DebuggerSubjectActivity,
@@ -132,9 +139,10 @@ pub use debugger_presentation::{
     RECENT_ACTIVITY_TICKS,
 };
 pub use debugger_timeline::{
-    DebuggerTimeline, DebuggerTimelineBinding, DebuggerTimelineError, DebuggerTimelineEvent,
-    DebuggerTimelineMode, DebuggerTimelineProjection, DebuggerTimelineSubjectState,
-    DebuggerTimelineWatchState, DEBUGGER_TIMELINE_SCHEMA, MAX_DEBUGGER_TIMELINE_BYTES,
+    DebuggerCausalTrace, DebuggerTimeline, DebuggerTimelineBinding, DebuggerTimelineError,
+    DebuggerTimelineEvent, DebuggerTimelineMode, DebuggerTimelineProjection,
+    DebuggerTimelineSubjectState, DebuggerTimelineWatchState, DebuggerTraceDirection,
+    DebuggerTraceStep, DEBUGGER_TIMELINE_SCHEMA, MAX_DEBUGGER_TIMELINE_BYTES,
     MAX_DEBUGGER_TIMELINE_EVENTS,
 };
 pub use debugger_watch::{

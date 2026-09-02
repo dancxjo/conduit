@@ -74,6 +74,8 @@ fn record(
         preview_truncated: length < value.len(),
         preview,
         fault_code: (kind == DebugEventKind::Fault).then_some(17),
+        causal_parent_sequence: None,
+        invocation_sequence: None,
     }
 }
 
