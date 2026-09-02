@@ -91,7 +91,7 @@ function cordVisual(properties, lens) {
   };
   return {
     label: properties.has("flow-label") ? properties.get("flow-label") : valueKind,
-    className: "cord-semantic",
+    className: properties.get("diagnostic-state") === "error" ? "cord-semantic diagnostic-error" : "cord-semantic",
     animated: properties.get("flow-animation") === "directional",
     strokeWidth: capacity.items === null ? 3 : capacity.strokeWidth,
   };
@@ -126,6 +126,7 @@ export function projectFlowScene(snapshot, lens = "world") {
       clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
       reviewedBack: subjectProperties.get(subject.identity)?.get("reviewed-back") === "available",
       backExpanded: subjectProperties.get(subject.identity)?.get("back-expanded") === "true",
+      diagnosticError: subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error",
       lens,
       ports: (children.get(subject.identity) || []).map((identity) => allSubjects.get(identity)).filter((item) => item?.role === "Port").map((port) => {
         const properties = subjectProperties.get(port.identity) || new Map();
@@ -136,11 +137,12 @@ export function projectFlowScene(snapshot, lens = "world") {
           direction: properties.get("direction"),
           valueKind: properties.get("value-kind") || "typed value",
           temporal: properties.get("temporal") || "",
+          diagnosticError: properties.get("diagnostic-state") === "error",
         };
       }).sort((left, right) => left.direction.localeCompare(right.direction) || left.id.localeCompare(right.id)),
       semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === subject.identity,
     },
-    className: `flow-subject flow-${subject.role.toLowerCase()}`,
+    className: `flow-subject flow-${subject.role.toLowerCase()}${subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error" ? " diagnostic-error" : ""}`,
     ariaLabel: subject.accessibility_name,
   })).sort(compareIdentity);
   const nodeIds = new Set(nodes.map((node) => node.id));
