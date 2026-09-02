@@ -5,6 +5,13 @@ pub(super) fn require_fabrication_target(
     board: Option<Armv6RpiBoard>,
 ) -> Result<(), ConduitosError> {
     let packages = conduit_workspace_fabrication::package_set();
+    let expected_machine = match arch {
+        ConduitosArch::Ia32 | ConduitosArch::X86_64 => Some("pc"),
+        ConduitosArch::Aarch64 | ConduitosArch::Riscv64 | ConduitosArch::Loongarch64 => {
+            Some("virt")
+        }
+        ConduitosArch::Armv6 => None,
+    };
     let candidates = packages
         .target_descriptors()
         .into_iter()
@@ -13,6 +20,7 @@ pub(super) fn require_fabrication_target(
                 && target.architecture == arch.as_str()
                 && (arch != ConduitosArch::Armv6
                     || target.board.as_deref() == Some(board.unwrap_or_default().id()))
+                && expected_machine.is_none_or(|machine| target.machine == machine)
         })
         .collect::<Vec<_>>();
     let [target] = candidates.as_slice() else {

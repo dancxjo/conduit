@@ -40,6 +40,13 @@ bench = false
 required-features = ["aarch64-product"]
 
 [[bin]]
+name = "conduitos-aarch64-orange-pi-5"
+path = "src/bin/aarch64_orange_pi_5.rs"
+test = false
+bench = false
+required-features = ["aarch64-orange-pi-5"]
+
+[[bin]]
 name = "conduitos-armv6-rpi-b-plus-a0"
 path = "proof-appliances/armv6-rpi-b-plus/a0.rs"
 test = false
@@ -152,6 +159,7 @@ aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []
 aarch64-product = []
+aarch64-orange-pi-5 = []
 armv6-rpi-b-plus-a0 = []
 armv6-rpi-b-plus-a2 = []
 armv6-rpi-b-plus-a3 = []

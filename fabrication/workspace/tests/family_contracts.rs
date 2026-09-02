@@ -123,6 +123,34 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
 }
 
 #[test]
+fn orange_pi_5_is_exact_aarch64_conduitos_machinery() {
+    let packages = conduit_workspace_fabrication::package_set();
+    let target = "conduitos/aarch64/orange-pi-5-rk3588s";
+    let descriptor = packages.target_descriptor(target).unwrap();
+    assert_eq!(
+        packages.anchor_for_target(target).unwrap().package_id,
+        "conduit-host-orange-pi@1"
+    );
+    assert_eq!(descriptor.family, "conduitos");
+    assert_eq!(descriptor.architecture, "aarch64");
+    assert_eq!(descriptor.machine, "orange-pi-5-rk3588s");
+    assert_eq!(descriptor.board.as_deref(), Some("orange-pi-5"));
+    assert_eq!(descriptor.os, None);
+    assert_eq!(descriptor.host_core, "host-core/conduitos@1");
+    assert_eq!(descriptor.default_output, SporeOutputKind::SdImage);
+    assert_eq!(
+        descriptor.post_build_actions,
+        [PostBuildAction::Flash, PostBuildAction::Boot]
+    );
+    assert!(packages
+        .target_descriptor("conduitos/loongarch64/orange-pi-5-rk3588s")
+        .is_none());
+    assert!(packages
+        .target_descriptor("std/aarch64/orange-pi-5-rk3588s")
+        .is_none());
+}
+
+#[test]
 fn exact_pro_micro_is_intel_hex_without_an_implemented_browser_flasher() {
     let packages = conduit_workspace_fabrication::package_set();
     let target = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";

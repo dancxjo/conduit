@@ -58,6 +58,7 @@ on:
       - targets/avr/fabrication/**
       - targets/avr/firmware/**
       - targets/esp32/browser-deployment/**
+      - targets/orange-pi/**
       - targets/std/browser-deployment/**
       - targets/std/fabrication-package/**
       - profiles/host-configurations/**
@@ -90,6 +91,7 @@ on:
       - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
+      - proof/browser/creche-orange-pi.spec.mjs
       - proof/browser/creche-raspberry-pi.spec.mjs
       - proof/browser/creche-conduitos.spec.mjs
       - proof/browser/playwright.config.mjs
@@ -173,6 +175,35 @@ jobs:
         with:
           name: conduit-raspberry-pi-release
           path: target/creche-rpi-release
+          if-no-files-found: error
+          retention-days: 7
+
+  orange-pi-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-none
+          components: rust-src
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install the deterministic SD image tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dosfstools
+      - name: Compile and seal the exact Orange Pi 5 ConduitOS SD image
+        run: |
+          cargo +stable xtask --locked conduitos orange-pi5-image
+          mkdir -p target/creche-orange-pi-release
+          cp target/conduitos/aarch64/orange-pi-5/conduitos-orange-pi-5.img target/creche-orange-pi-release/
+          cp target/conduitos/aarch64/orange-pi-5/orange-pi-5-image.json target/creche-orange-pi-release/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conduit-orange-pi-release
+          path: target/creche-orange-pi-release
           if-no-files-found: error
           retention-days: 7
 
@@ -268,7 +299,7 @@ jobs:
           retention-days: 7
 
   products-proof:
-    needs: [avr-release, esp32-release-images, host-releases, raspberry-pi-release, conduitos-releases]
+    needs: [avr-release, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -312,6 +343,11 @@ jobs:
         with:
           name: conduit-raspberry-pi-release
           path: target/creche-release-artifacts
+      - name: Download the reviewed Orange Pi bare-metal release
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-orange-pi-release
+          path: target/creche-release-artifacts
       - name: Download the reviewed ConduitOS product Host releases
         uses: actions/download-artifact@v6
         with:
@@ -336,6 +372,7 @@ jobs:
           proof/browser/browser-application-package.spec.mjs
           proof/browser/pages-front-door.spec.mjs
           proof/browser/creche-avr.spec.mjs
+          proof/browser/creche-orange-pi.spec.mjs
           proof/browser/creche-raspberry-pi.spec.mjs
           proof/browser/creche-conduitos.spec.mjs
           proof/browser/creche-native-zip.spec.mjs
@@ -345,7 +382,7 @@ jobs:
           --retries 0
 
   products:
-    needs: [products-proof, avr-release, esp32-release-images, host-releases, raspberry-pi-release, conduitos-releases]
+    needs: [products-proof, avr-release, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -376,6 +413,11 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: conduit-raspberry-pi-release
+          path: target/creche-release-artifacts
+      - name: Download the reviewed Orange Pi bare-metal release
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-orange-pi-release
           path: target/creche-release-artifacts
       - name: Download the reviewed ConduitOS product Host releases
         uses: actions/download-artifact@v6
@@ -443,7 +485,7 @@ jobs:
       - name: Verify the combined Pages carrier
         run: |
           test "$(find target/pages-site/book -type f | wc -l)" -eq 44
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 74
+          test "$(find target/pages-site/creche -type f | wc -l)" -eq 78
           actual=$(find target/pages-site -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)
           expected=$(printf '%s\n' book creche index.html site.css | LC_ALL=C sort)
           test "$actual" = "$expected"

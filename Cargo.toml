@@ -62,6 +62,7 @@ members = [
 	"targets/conduitos",
 	"targets/conduitos/fabrication-package",
 	"targets/esp32/fabrication",
+	"targets/orange-pi/fabrication-package",
 	"targets/raspberry-pi/fabrication-package",
 	"targets/rp2040/fabrication",
 	"targets/rp2040/network-realization",

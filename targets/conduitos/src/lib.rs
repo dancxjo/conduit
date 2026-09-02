@@ -18,10 +18,16 @@ mod execution_region;
     test,
     target_arch = "x86_64",
     feature = "aarch64-product",
+    feature = "aarch64-orange-pi-5",
     feature = "hosted-tools"
 ))]
 pub mod fabrication;
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 pub mod front_door;
 pub mod functional_offers;
 #[cfg(target_arch = "x86_64")]
@@ -51,7 +57,12 @@ pub mod machine;
 pub mod native_compositor;
 pub mod observatory;
 pub mod offer;
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 pub mod offer_fabrication;
 #[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod opl2_offer;
@@ -76,15 +87,30 @@ pub mod planned_kernel;
 mod presentation_offers;
 // Product entrances remain out of A0-A4 proof appliances. AArch64 admits
 // these modules only through its distinct PROFILE-selected product feature.
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 pub mod linear_presenter;
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod presentation_nucleus;
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 mod product_bindings;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 pub mod product_front_door;
-#[cfg(any(test, target_arch = "x86_64", feature = "aarch64-product"))]
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "aarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 pub mod product_journey;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;

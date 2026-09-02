@@ -23,6 +23,7 @@ package_test_shard!(
         "conduit-host-conduitos-fabrication",
         "conduit-host-esp32-fabrication",
         "conduit-host-hosted",
+        "conduit-host-orange-pi",
         "conduit-host-raspberry-pi",
         "conduit-host-rp2040",
         "conduit-linear-framebuffer-fabrication",

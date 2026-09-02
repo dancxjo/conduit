@@ -40,6 +40,10 @@ mod loongarch64_a2;
 mod loongarch64_a3;
 mod loongarch64_a4;
 mod opl2_proof;
+#[path = "../../../orange-pi/fabrication/xtask/orange_pi_5_image.rs"]
+mod orange_pi_5_image;
+#[path = "../../../orange-pi/fabrication/xtask/orange_pi_5_media.rs"]
+mod orange_pi_5_media;
 mod pc_speaker_proof;
 mod prepared_proof_image;
 mod product_readiness_matrix;
@@ -88,6 +92,8 @@ enum ConduitosCommand {
     Build(TargetArgs),
     /// Package one bounded architecture proof appliance into its pinned boot image.
     Image(TargetArgs),
+    /// Build one exact bare-metal ConduitOS Orange Pi 5 RK3588S SD image.
+    OrangePi5Image,
     /// Erase, write, and byte-verify one explicitly confirmed removable device.
     Flash(FlashArgs),
     /// Capture and validate one exact physical BCM2835 Raspberry Pi UART boot.
@@ -370,6 +376,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 image::execute_architecture_proof(target.arch, opts).map(|_| ())
             }
         }
+        ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
         ConduitosCommand::Flash(flash) => {
             require_fabrication_target(flash.arch, flash.board)?;
             if flash.arch == ConduitosArch::Armv6 {

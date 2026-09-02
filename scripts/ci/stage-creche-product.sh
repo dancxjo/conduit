@@ -7,7 +7,7 @@ release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEAS
 
 test -f "$runtime"
 test ! -e "$destination"
-mkdir -p "$destination/artifacts" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
+mkdir -p "$destination/artifacts" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/orange-pi/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
 
 cp targets/browser/host/assets/creche.html "$destination/index.html"
 cp targets/browser/host/assets/creche.css "$destination/creche.css"
@@ -42,7 +42,7 @@ for artifact in avr-promicro-atmega32u4-5v-16mhz.json promicro-atmega32u4-5v-16m
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
-for artifact in raspios-bookworm-pi4-model-b-rev-1.5-4gb.json conduit-linux-aarch64 rpi-b-plus-image.json conduitos-rpi-b-plus.img; do
+for artifact in orange-pi-5-image.json conduitos-orange-pi-5.img raspios-bookworm-pi4-model-b-rev-1.5-4gb.json conduit-linux-aarch64 rpi-b-plus-image.json conduitos-rpi-b-plus.img; do
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
@@ -55,6 +55,7 @@ cp targets/rp2040/browser-deployment/*.mjs "$destination/targets/rp2040/browser-
 cp targets/esp32/browser-deployment/*.mjs "$destination/targets/esp32/browser-deployment/"
 cp targets/std/browser-deployment/*.mjs "$destination/targets/std/browser-deployment/"
 cp targets/browser/host/browser-deployment/*.mjs "$destination/targets/browser/browser-deployment/"
+cp targets/orange-pi/browser-deployment/*.mjs "$destination/targets/orange-pi/browser-deployment/"
 cp targets/raspberry-pi/browser-deployment/*.mjs "$destination/targets/raspberry-pi/browser-deployment/"
 cp targets/conduitos/browser-deployment/*.mjs "$destination/targets/conduitos/browser-deployment/"
 
@@ -63,5 +64,5 @@ for route in birth first-host physical-host graduate; do
   cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
 done
 
-test "$(find "$destination" -type f | wc -l)" -eq 74
+test "$(find "$destination" -type f | wc -l)" -eq 78
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"
