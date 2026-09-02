@@ -105,6 +105,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  browser-runtimes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the exact Book and Crèche runtimes
+        run: |
+          mkdir -p target/browser-product-runtimes
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/book-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
+          if-no-files-found: error
+          retention-days: 7
+
   avr-release:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -319,7 +342,7 @@ jobs:
           retention-days: 7
 
   products-proof:
-    needs: [avr-release, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
+    needs: [avr-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -332,14 +355,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline
+      - name: Download the reviewed browser product runtimes
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
       - name: Download the reviewed generic ESP32 release IMAGEs
         uses: actions/download-artifact@v6
         with:
@@ -372,16 +394,12 @@ jobs:
         with:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
-      - name: Build the exact browser Host and product runtimes
+      - name: Stage the exact browser products
         run: |
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/book-product target/creche-product
           scripts/ci/stage-pages-root.sh target/pages-root
-          scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
-          scripts/ci/stage-creche-product.sh target/conduit_creche_runtime.wasm target/creche-product target/creche-release-artifacts
+          scripts/ci/stage-book-product.sh target/browser-product-runtimes/book-runtime.wasm target/book-product
+          scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
       - name: Prove the Pages products independently and together in pinned Chromium
         run: >-
           npx playwright test
