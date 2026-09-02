@@ -61,6 +61,8 @@ pub struct BodyBiographyEvidence {
     pub schema: String,
     pub body_id: BodyId,
     pub friendly_name: String,
+    /// Historical display label for the Seed Form at BIRTH. This is not the
+    /// current workload and does not create a distinct Program identity.
     pub initial_program: String,
     pub body: Body,
     pub membership: BodyMembership,
@@ -80,6 +82,10 @@ pub enum BodyBiographyError {
 }
 
 impl BodyBiographyEvidence {
+    pub fn seed_form_label(&self) -> &str {
+        &self.initial_program
+    }
+
     pub fn born(
         body: Body,
         membership: BodyMembership,

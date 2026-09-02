@@ -41,11 +41,11 @@ pub fn project_body_biography(
             BodyBiographyRecordKind::Born { seed_id } => (
                 "Born",
                 format!(
-                    "{} became Body {} from Seed {} with initial program {}.",
+                    "{} became Body {} from Seed {} (Form {}).",
                     evidence.friendly_name,
                     evidence.body_id.as_str(),
                     seed_id.as_str(),
-                    evidence.initial_program
+                    evidence.seed_form_label()
                 ),
             ),
             BodyBiographyRecordKind::PartAdmitted { part_id, .. } => (

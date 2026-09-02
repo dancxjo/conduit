@@ -250,44 +250,69 @@ fn workbench_presentation(
 ) -> Result<Presentation, BodyWorkbenchError> {
     let evidence = attachment.evidence();
     let body_identity = format!("body/{}", evidence.body_id.as_str());
-    let program_identity = format!("form/{}", evidence.body.checked_form_id.as_str());
-    let mut subjects = vec![
-        PresentationSubject {
-            identity: program_identity.clone(),
-            role: PresentationRole::Form,
-            label: evidence.initial_program.clone(),
-            accessibility_name: format!("Program {}", evidence.initial_program),
-        },
-        PresentationSubject {
-            identity: body_identity.clone(),
-            role: PresentationRole::Body,
-            label: evidence.friendly_name.clone(),
-            accessibility_name: format!("Body {}", evidence.friendly_name),
-        },
-    ];
-    let mut relationships = vec![PresentationRelationship {
-        source: body_identity.clone(),
-        target: program_identity.clone(),
-        kind: PresentationRelationshipKind::Realizes,
+    let workset = evidence
+        .body
+        .effective_workset()
+        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
+    let mut subjects = vec![PresentationSubject {
+        identity: body_identity.clone(),
+        role: PresentationRole::Body,
+        label: evidence.friendly_name.clone(),
+        accessibility_name: format!("Body {}", evidence.friendly_name),
     }];
-    let mut properties = vec![
-        identity_property(&body_identity, "body-id", evidence.body_id.as_str()),
-        identity_property(
-            &program_identity,
+    let mut relationships = Vec::new();
+    let mut properties = vec![identity_property(
+        &body_identity,
+        "body-id",
+        evidence.body_id.as_str(),
+    )];
+    let mut form_identities = Vec::with_capacity(workset.len());
+    for form in workset.forms() {
+        let form_identity = format!("form/{}", form.checked_form_id.as_str());
+        let is_seed = form.source_document_id == evidence.body.source_document_id
+            && form.checked_form_id == evidence.body.checked_form_id;
+        let label = if is_seed {
+            evidence.seed_form_label().to_owned()
+        } else {
+            form.checked_form_id.as_str().to_owned()
+        };
+        subjects.push(PresentationSubject {
+            identity: form_identity.clone(),
+            role: PresentationRole::Form,
+            label: label.clone(),
+            accessibility_name: format!("Form {label}"),
+        });
+        relationships.push(PresentationRelationship {
+            source: body_identity.clone(),
+            target: form_identity.clone(),
+            kind: PresentationRelationshipKind::Realizes,
+        });
+        properties.push(identity_property(
+            &form_identity,
             "source-document-id",
-            evidence.body.source_document_id.as_str(),
-        ),
-        identity_property(
-            &program_identity,
+            form.source_document_id.as_str(),
+        ));
+        properties.push(identity_property(
+            &form_identity,
             "checked-form-id",
-            evidence.body.checked_form_id.as_str(),
-        ),
-    ];
+            form.checked_form_id.as_str(),
+        ));
+        if is_seed {
+            properties.push(PresentationProperty {
+                subject: form_identity.clone(),
+                name: "birth-seed".into(),
+                value: PresentationPropertyValue::Text("true".into()),
+            });
+        }
+        form_identities.push(form_identity);
+    }
     let mut text = vec![PresentationText {
         subject: body_identity.clone(),
         text: format!(
-            "{} is a durable Body whose initial Program is {}.",
-            evidence.friendly_name, evidence.initial_program
+            "{} is a durable Body running {} current Form(s); its birth Seed was {}.",
+            evidence.friendly_name,
+            workset.len(),
+            evidence.seed_form_label()
         ),
     }];
     for part in &evidence.membership.parts {
@@ -382,16 +407,20 @@ fn workbench_presentation(
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![
-            PresentationDisclosure {
-                subject: body_identity,
-                level: PresentationDisclosureLevel::Primary,
-            },
-            PresentationDisclosure {
-                subject: program_identity,
-                level: PresentationDisclosureLevel::Context,
-            },
-        ],
+        vec![PresentationDisclosure {
+            subject: body_identity,
+            level: PresentationDisclosureLevel::Primary,
+        }]
+        .into_iter()
+        .chain(
+            form_identities
+                .into_iter()
+                .map(|subject| PresentationDisclosure {
+                    subject,
+                    level: PresentationDisclosureLevel::Context,
+                }),
+        )
+        .collect(),
     )
     .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))
 }
@@ -419,6 +448,14 @@ mod tests {
             basis.checked_form_id.clone().unwrap(),
             1,
             SignId::from("patchbay/bornd"),
+        )
+        .unwrap()
+        .admit_form(
+            conduit_body::ResidentForm::new(
+                conduit_core::SourceDocumentId::from("source/recorder"),
+                conduit_core::CheckedFormId::from("checked/recorder"),
+            ),
+            SignId::from("patchbay/recorder-admitted"),
         )
         .unwrap()
         .wake(1, SignId::from("patchbay/woke"))
@@ -460,7 +497,6 @@ mod tests {
         assert_eq!(workbench.encoded_evidence, bytes);
         assert_eq!(workbench.current["friendly_name"], "Roseau");
         assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 2);
-
         let mut stale = workbench.clone();
         stale.body_id.push_str("-stale");
         assert!(validate_body_workbench(&stale, &snapshot.presentation).is_err());
@@ -468,6 +504,17 @@ mod tests {
         let entrance =
             body_workbench_snapshot(1, &bytes, BrowserBodyWorkbenchEntrance::ExternalReader)
                 .unwrap();
+        let forms = entrance
+            .presentation
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == PresentationRole::Form)
+            .collect::<Vec<_>>();
+        assert_eq!(forms.len(), 2);
+        assert!(forms.iter().any(|subject| subject.label == "hello@1"));
+        assert!(forms
+            .iter()
+            .any(|subject| subject.label == "checked/recorder"));
         assert_eq!(
             entrance.presentation.basis.body_id,
             snapshot.presentation.basis.body_id
