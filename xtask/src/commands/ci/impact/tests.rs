@@ -209,6 +209,36 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     .unwrap();
     assert!(incomplete_shared_browser_theme.full_fallback);
 
+    let creche_presentation = plan_for_paths(
+        &root,
+        vec![
+            "proof/browser/executable-book.spec.mjs".to_owned(),
+            "scripts/ci/stage-creche-product.sh".to_owned(),
+            "targets/browser/host/assets/creche-target-catalog.mjs".to_owned(),
+            "targets/browser/host/assets/creche.css".to_owned(),
+            "targets/browser/host/assets/creche.html".to_owned(),
+            "targets/browser/host/assets/creche.mjs".to_owned(),
+            "targets/browser/host/src/server.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(!creche_presentation.full_fallback);
+    assert!(!creche_presentation.esp32_required);
+    assert!(creche_presentation.browser_required);
+    assert!(!creche_presentation.conduitos_required);
+    assert!(creche_presentation.workspace_shards["lint"]);
+    assert!(creche_presentation.workspace_shards["test-hosts"]);
+
+    let unproved_creche_presentation = plan_for_paths(
+        &root,
+        vec!["targets/browser/host/assets/creche.mjs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!unproved_creche_presentation.full_fallback);
+    assert!(unproved_creche_presentation.browser_required);
+
     for path in ["Cargo.lock", ".github/workflows/check.yml"] {
         let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert!(global.full_fallback, "{path}");

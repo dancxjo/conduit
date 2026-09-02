@@ -97,6 +97,15 @@ const SHARED_BROWSER_THEME_SLICE: [&str; 10] = [
     "targets/browser/host/assets/creche.html",
 ];
 
+fn is_creche_presentation_path(path: &str) -> bool {
+    path == "proof/browser/executable-book.spec.mjs"
+        || path == "scripts/ci/stage-creche-product.sh"
+        || path == "targets/browser/host/src/server.rs"
+        || path == "targets/browser/host/src/server/tests.rs"
+        || path == "targets/browser/host/assets/application-presentation.mjs"
+        || path.starts_with("targets/browser/host/assets/creche")
+}
+
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
     esp32_required: bool,
@@ -339,8 +348,28 @@ fn plan_for_paths(
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
+    let creche_presentation_slice = substantive
+        .iter()
+        .all(|path| is_creche_presentation_path(path))
+        && substantive
+            .iter()
+            .any(|path| path.starts_with("targets/browser/host/assets/creche"))
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "proof/browser/executable-book.spec.mjs");
 
     for path in substantive {
+        if creche_presentation_slice {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-creche-presentation:{path}"));
+            if let Some(package) = package_for_path(root, path, packages) {
+                changed_packages.insert(package.to_owned());
+            }
+            continue;
+        }
         if shared_browser_theme_slice {
             selected.insert("browser".to_owned(), true);
             reasons
