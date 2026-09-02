@@ -24,7 +24,7 @@ main { width:min(70rem, calc(100% - 2rem)); margin:2rem auto 5rem; }
 .birth-presentation select, .birth-presentation input, .birth-presentation textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
 .select-field { position:relative; min-width:0; }
 .select-field::after { content:""; position:absolute; right:.85rem; top:50%; width:.5rem; height:.5rem; border-right:2px solid var(--green-dark); border-bottom:2px solid var(--green-dark); transform:translateY(-65%) rotate(45deg); pointer-events:none; }
-.birth-presentation select { appearance:none; padding-right:2.5rem; }
+.birth-presentation select, .select-field select { appearance:none; padding-right:2.5rem; }
 .birth-presentation textarea { min-height:11rem; resize:vertical; font-family:ui-monospace, monospace; }
 .birth-presentation [data-application-key="seed-source"] summary { margin:.25rem 0 .65rem; cursor:pointer; }
 .birth-presentation [data-application-component="action-group"] { display:flex; flex-wrap:wrap; gap:.55rem; }

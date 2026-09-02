@@ -8,6 +8,7 @@ on:
       - scripts/ci/pages-product-run-selection.mjs
       - scripts/ci/resolve-pages-product-run.mjs
       - proof/ci/pages-product-run-selection.spec.mjs
+      - proof/ci/pages-workflow-paths.spec.mjs
 
 permissions:
   contents: read
@@ -19,4 +20,4 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Prove bounded exact-head carrier selection
-        run: node --test proof/ci/pages-product-run-selection.spec.mjs
+        run: node --test proof/ci/pages-product-run-selection.spec.mjs proof/ci/pages-workflow-paths.spec.mjs
