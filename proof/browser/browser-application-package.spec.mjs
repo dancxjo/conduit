@@ -15,6 +15,24 @@ async function mutatePackage(page, mutate) {
   }, { times: 1 });
 }
 
+async function deleteStoredApplicationRecord(page, applicationIdentity, version, key) {
+  await page.evaluate(async ({ applicationIdentity, version, key }) => {
+    const request = indexedDB.open("conduit-browser-host-applications", 1);
+    const database = await new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction("application-state", "readwrite");
+    transaction.objectStore("application-state").delete(`${applicationIdentity}@${version}\u0000${key}`);
+    await new Promise((resolve, reject) => {
+      transaction.addEventListener("complete", resolve, { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, { applicationIdentity, version, key });
+}
+
 test("Book drafts and an open reviewed Back endure a same-browser reload", async ({ page }) => {
   entrance.child.kill();
   entrance = await startStaticProduct("target/book-product", "/conduit/book/");
@@ -165,6 +183,9 @@ test("Crèche refuses changed durable Body evidence before restoring authority",
   await expect(page.locator("#host-state")).toHaveText("Crèche unavailable");
   await expect(page.locator("#workspace")).toHaveText("durable Crèche session identities disagree");
   expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
+  await deleteStoredApplicationRecord(page, "conduit.application/creche-host-state", 1, "body-session");
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
 });
 
 test("Crèche refuses changed admitted code before application manifestation", async ({ page }) => {
