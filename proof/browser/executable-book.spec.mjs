@@ -393,7 +393,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     for (const artifact of ["avr-promicro-atmega32u4-5v-16mhz.json", "promicro-atmega32u4-5v-16mhz.hex"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
-    for (const artifact of ["hosted-linux-x86_64.json", "conduit-linux-x86_64", "browser-page.json", "runtime.wasm", "index.html", "host.mjs"]) {
+    for (const artifact of ["hosted-linux-x86_64.json", "conduit-linux-x86_64", "hosted-windows-x86_64.json", "conduit-windows-x86_64.exe", "hosted-macos-aarch64.json", "conduit-macos-aarch64", "browser-page.json", "runtime.wasm", "index.html", "host.mjs"]) {
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
     for (const artifact of ["orange-pi-5-image.json", "conduitos-orange-pi-5.img", "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json", "conduit-linux-aarch64", "rpi-b-plus-image.json", "conduitos-rpi-b-plus.img"]) {
@@ -952,8 +952,8 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   expect(evidence.target_entry.target_profile.platform_variants).toEqual([
     expect.objectContaining({ os: "linux", architecture: "x86_64", status: "supported" }),
     expect.objectContaining({ os: "linux", architecture: "aarch64", status: "planned" }),
-    expect.objectContaining({ os: "windows", architecture: "x86_64", status: "planned" }),
-    expect.objectContaining({ os: "macos", architecture: "aarch64", status: "planned" }),
+    expect.objectContaining({ os: "windows", architecture: "x86_64", status: "supported" }),
+    expect.objectContaining({ os: "macos", architecture: "aarch64", status: "supported" }),
   ]);
   expect(evidence.binding).toMatchObject({
     target_id: "std/x86_64/computer",
@@ -1002,6 +1002,34 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
     external_work_started: false,
     unavailable_carriers: ["explicit-helper", "ssh", "package-manager", "container"],
   });
+});
+
+test("Windows and macOS native releases are exact selectable Crèche targets", async ({ page }) => {
+  const profiles = [
+    { id: "std/x86_64/windows-computer", profileId: "hosted-windows-x86_64", manifest: "hosted-windows-x86_64.json", os: "windows", architecture: "x86_64", machine: "windows-computer", executable: "conduit-windows-x86_64.exe" },
+    { id: "std/aarch64/macos-computer", profileId: "hosted-macos-aarch64", manifest: "hosted-macos-aarch64.json", os: "macos", architecture: "aarch64", machine: "macos-computer", executable: "conduit-macos-aarch64" },
+  ];
+  for (const [index, profile] of profiles.entries()) {
+    const release = await installHostRelease(page, profile.manifest);
+    await birthStandaloneBody(page, { sourceVariant: `native-${profile.os}-${index}` });
+    await page.getByRole("button", { name: "3. Physical Host" }).click();
+    const runner = page.locator(".physical-host-runner");
+    await runner.locator(".physical-target").selectOption(profile.id);
+    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+    await expect(runner.locator(".download-spore")).toHaveAttribute("download", new RegExp(`-${profile.profileId}\\.zip$`));
+    const evidence = JSON.parse(await runner.locator("details code").textContent());
+    expect(evidence.target_entry).toMatchObject({
+      target: { id: profile.id, profile_id: profile.profileId },
+      target_profile: { os: profile.os, architecture: profile.architecture, machine: profile.machine, package_id: "hosted-native@1" },
+    });
+    expect(evidence.binding).toMatchObject({
+      target_id: profile.id,
+      fabrication_package_id: "hosted-native@1",
+      image_content_digest: release.bundle_sha256,
+      spore_artifact: { files: expect.arrayContaining([expect.objectContaining({ path: profile.executable, mode: 0o100755 })]) },
+    });
+  }
 });
 
 test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters without widening the family", async ({ page }) => {

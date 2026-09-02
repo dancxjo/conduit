@@ -1,5 +1,6 @@
 use std::{fs, path::Path, process::Command};
 
+use clap::ValueEnum;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -7,6 +8,13 @@ use crate::cli::GlobalOpts;
 
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub(super) enum ReleasePlatform {
+    Linux,
+    Windows,
+    Macos,
+}
 
 #[derive(Serialize)]
 struct ReleaseManifest<'a> {
@@ -31,9 +39,28 @@ struct ReleaseFile {
 
 pub(super) fn run(
     output: &Path,
+    platform: ReleasePlatform,
     source_identity: &str,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    match platform {
+        ReleasePlatform::Linux => build_linux_set(output, source_identity)?,
+        ReleasePlatform::Windows => build_windows(output, source_identity)?,
+        ReleasePlatform::Macos => build_macos(output, source_identity)?,
+    }
+
+    if opts.json {
+        println!("{{\"schema\":\"conduit.release/host-bundle-set@1\",\"output\":{:?},\"source_identity\":{:?}}}", output.display().to_string(), source_identity);
+    } else if !opts.quiet {
+        println!(
+            "SEALED existing-computer Host releases in {}",
+            output.display()
+        );
+    }
+    Ok(())
+}
+
+fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
         Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
         "compile hosted Linux release",
@@ -166,15 +193,59 @@ pub(super) fn run(
         &browser_manifest_files,
     )?;
 
-    if opts.json {
-        println!("{{\"schema\":\"conduit.release/host-bundle-set@1\",\"output\":{:?},\"source_identity\":{:?}}}", output.display().to_string(), source_identity);
-    } else if !opts.quiet {
-        println!(
-            "SEALED existing-computer Host releases in {}",
-            output.display()
-        );
-    }
     Ok(())
+}
+
+fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
+    require_success(
+        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
+        "compile hosted Windows x86_64 release",
+    )?;
+    fs::create_dir_all(output)?;
+    copy(
+        "target/release/conduit.exe",
+        &output.join("conduit-windows-x86_64.exe"),
+    )?;
+    seal(
+        output,
+        "hosted-windows-x86_64.json",
+        "std/x86_64/windows-computer",
+        "hosted-native@1",
+        "native-bundle",
+        "conduit-host-hosted/build-native@1",
+        "conduit-host-hosted/launch@1",
+        source_identity,
+        &[(
+            "conduit-windows-x86_64.exe",
+            "application/vnd.microsoft.portable-executable",
+        )],
+    )
+}
+
+fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
+    require_success(
+        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
+        "compile hosted macOS aarch64 release",
+    )?;
+    fs::create_dir_all(output)?;
+    copy(
+        "target/release/conduit",
+        &output.join("conduit-macos-aarch64"),
+    )?;
+    seal(
+        output,
+        "hosted-macos-aarch64.json",
+        "std/aarch64/macos-computer",
+        "hosted-native@1",
+        "native-bundle",
+        "conduit-host-hosted/build-native@1",
+        "conduit-host-hosted/launch@1",
+        source_identity,
+        &[(
+            "conduit-macos-aarch64",
+            "application/vnd.conduit.host+executable",
+        )],
+    )
 }
 
 #[allow(clippy::too_many_arguments)]

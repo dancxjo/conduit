@@ -129,23 +129,39 @@ jobs:
           retention-days: 7
 
   host-releases:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            artifact: linux
+          - runner: windows-2025
+            platform: windows
+            artifact: windows-x86_64
+          - runner: macos-15
+            platform: macos
+            artifact: macos-aarch64
+    name: host-release-${{ matrix.artifact }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown,aarch64-unknown-linux-gnu
       - uses: Swatinem/rust-cache@v2
+      - name: Install the Linux cross targets
+        if: matrix.platform == 'linux'
+        run: rustup target add wasm32-unknown-unknown aarch64-unknown-linux-gnu
       - name: Install the Raspberry Pi OS cross linker
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
       - name: Compile and seal the reviewed generic existing-computer releases
-        run: cargo +stable xtask host release --output target/creche-host-releases
+        run: cargo +stable xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - uses: actions/upload-artifact@v4
         with:
-          name: conduit-existing-computer-releases
+          name: conduit-existing-computer-releases-${{ matrix.artifact }}
           path: target/creche-host-releases
           if-no-files-found: error
           retention-days: 7
@@ -331,7 +347,8 @@ jobs:
       - name: Download the reviewed generic existing-computer releases
         uses: actions/download-artifact@v6
         with:
-          name: conduit-existing-computer-releases
+          pattern: conduit-existing-computer-releases-*
+          merge-multiple: true
           path: target/creche-release-artifacts
       - name: Download the reviewed generic Pro Micro release
         uses: actions/download-artifact@v6
@@ -402,7 +419,8 @@ jobs:
       - name: Download the reviewed generic existing-computer releases
         uses: actions/download-artifact@v6
         with:
-          name: conduit-existing-computer-releases
+          pattern: conduit-existing-computer-releases-*
+          merge-multiple: true
           path: target/creche-release-artifacts
       - name: Download the reviewed generic Pro Micro release
         uses: actions/download-artifact@v6
