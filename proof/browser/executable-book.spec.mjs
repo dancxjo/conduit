@@ -1208,6 +1208,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
 });
 
 test("an unavailable generic ESP32 release refuses before device authority or spore creation", async ({ page }) => {
+  await page.route("**/artifacts/esp32-c3-generic-release.json", (route) => route.fulfill({ status: 404 }));
   await birthStandaloneBody(page, { sourceVariant: "esp32-release-absent" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");

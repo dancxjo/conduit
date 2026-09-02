@@ -286,6 +286,8 @@ test("browser Host refuses changed resource bytes and a changed aggregate packag
   await expect(page.locator("#chapter")).toHaveText("application resource application-module changed identity");
   expect(await page.evaluate(() => globalThis.__conduitBookHost)).toBeUndefined();
 
+  entrance.child.kill();
+  entrance = await startBook();
   await mutatePackage(page, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser application refused");
