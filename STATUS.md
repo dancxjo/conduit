@@ -2168,3 +2168,33 @@ This acceptance establishes bounded deterministic contracts, native semantic
 composition, pinned browser execution, and the deployed Book and Crèche
 carrier. It adds no new semantic feature or event family, renderer-owned truth,
 realtime/background guarantee, physical device execution, or HIL claim.
+
+The Patchbay debugger P0 observation protocol from #2084 merged through PR
+#2104 as exact main `0bec7d0252e912cdaac29c628740d2627ba4392e`.
+Exact-head workflow `33607221717` passed after one infrastructure-only retry:
+the first ConduitOS tool-bundle preparation timed out while downloading Ubuntu
+packages, while the retry restored the completed exact bundle and passed every
+selected workspace, firmware, ConduitOS architecture, product, and x86 proof.
+The focused `conduit-kernel` suite also passed again on the merged commit.
+
+The production kernel now offers a versioned optional debugger projection
+beside mandatory Signs. Its fixed-capacity records bind observations to exact
+Body, Plan, Play, Host, Form, Gear, Port, Cord, and plan-lowered type identities;
+retain collector and per-Host monotonic sequences without inventing wall-clock
+time; and bound both retained records and value previews. Small values remain
+inspectable, while larger values expose exact byte length, truncation, and a
+bounded preview. Unsupported schemas and event kinds, stale execution identity,
+malformed previews, and nonmonotonic Host input refuse distinctly.
+
+The v1 event vocabulary is Gear started/completed, Value sent/received, and
+Fault. Debugger overload overwrites only the oldest optional history and records
+an exact loss gap; it cannot stall or fail ordinary execution. One observer may
+attach to or detach from a live scheduler through a narrow lifecycle contract
+that does not expose mutable mandatory Signs. Deterministic tests prove the
+same execution result with or without observation, including faults, and prove
+one Body-wide Play containing work from multiple Forms.
+
+This acceptance adds no Patchbay animation, Watch or timeline UI, replay,
+breakpoints, transport, global event store, scheduler policy, arbitrary
+full-value capture, authoritative timestamp, or physical/HIL claim. Those
+remain downstream slices of #2083.
