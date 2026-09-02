@@ -208,3 +208,39 @@ fn graduation_requires_a_current_part_and_preserves_body_identity_for_both_choic
         }
     ));
 }
+
+#[test]
+fn durable_snapshot_restores_exact_validated_body_truth_but_not_transient_work() {
+    session::clear_for_test();
+    let born = birth(71);
+    session::attach_here("browser/creche", "browser-boot/creche", 72).unwrap();
+    let graduated = super::graduation::graduate(2, 74).unwrap();
+    let snapshot = session::durable_snapshot().unwrap();
+    let encoded = serde_json::to_vec(&snapshot).unwrap();
+    assert!(encoded.len() <= 32 * 1_024);
+
+    session::clear_for_test();
+    let decoded = serde_json::from_slice(&encoded).unwrap();
+    let restored = session::restore_durable(decoded).unwrap();
+    assert_eq!(restored, graduated);
+    assert_eq!(restored.body_id, born.body_id);
+    assert_eq!(session::biography().unwrap(), snapshot.biography);
+    assert!(super::graduation::readiness().unwrap().ready);
+
+    assert!(session::restore_durable(snapshot)
+        .unwrap_err()
+        .contains("already has a Body"));
+}
+
+#[test]
+fn changed_durable_identity_refuses_atomically() {
+    session::clear_for_test();
+    birth(81);
+    let mut changed = session::durable_snapshot().unwrap();
+    changed.receipt.body_id.push_str("-changed");
+    session::clear_for_test();
+    assert!(session::restore_durable(changed)
+        .unwrap_err()
+        .contains("identities disagree"));
+    assert!(session::current().is_none());
+}

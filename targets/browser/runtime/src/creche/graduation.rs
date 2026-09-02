@@ -105,11 +105,11 @@ pub(super) fn graduate(
             .graduate(durable)
             .map_err(|error| format!("record Body graduation biography: {error:?}"))?;
         body.receipt.graduation = Some(GraduationReceipt {
-            schema: "conduit.creche/graduation@1",
+            schema: "conduit.creche/graduation@1".into(),
             body_id: body.receipt.body_id.clone(),
             sequence,
             sign_id: sign.sign_id.as_str().into(),
-            choice: choice_name,
+            choice: choice_name.into(),
             patchbay_plan_id: plan_id,
             patchbay_implementation_id: implementation_id,
             creche_required: false,
