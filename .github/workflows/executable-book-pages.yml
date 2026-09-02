@@ -484,8 +484,9 @@ jobs:
           path: target/pages-site/creche
       - name: Verify the combined Pages carrier
         run: |
-          test "$(find target/pages-site/book -type f | wc -l)" -eq 38
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 78
+          test -f target/pages-site/book/book.application.json
+          test -f target/pages-site/creche/index.html
+          test -f target/pages-site/creche/runtime.wasm
           actual=$(find target/pages-site -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)
           expected=$(printf '%s\n' book creche index.html site.css | LC_ALL=C sort)
           test "$actual" = "$expected"

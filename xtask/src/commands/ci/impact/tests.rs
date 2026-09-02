@@ -114,6 +114,23 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         assert!(global.workspace_shards.values().all(|required| *required));
     }
 
+    let pages_workflow = plan_for_paths(
+        &root,
+        vec![".github/workflows/executable-book-pages.yml".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!pages_workflow.full_fallback);
+    assert!(!pages_workflow.esp32_required);
+    assert!(pages_workflow.browser_required);
+    assert!(!pages_workflow.conduitos_required);
+    assert!(pages_workflow.workspace_shards["lint"]);
+    assert!(pages_workflow
+        .workspace_shards
+        .iter()
+        .filter(|(shard, _)| shard.as_str() != "lint")
+        .all(|(_, required)| !required));
+
     let unknown =
         plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();
     assert!(unknown.full_fallback);
