@@ -103,6 +103,13 @@ bench = false
 required-features = ["riscv64-a0"]
 
 [[bin]]
+name = "conduitos-riscv64-product"
+path = "src/bin/riscv64_product.rs"
+test = false
+bench = false
+required-features = ["riscv64-product"]
+
+[[bin]]
 name = "conduitos-riscv64-a2"
 path = "proof-appliances/riscv64/a2.rs"
 test = false
@@ -178,6 +185,7 @@ riscv64-a0 = []
 riscv64-a2 = []
 riscv64-a3 = []
 riscv64-a4 = []
+riscv64-product = []
 loongarch64-a0 = []
 loongarch64-a2 = []
 loongarch64-a3 = []

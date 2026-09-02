@@ -23,6 +23,20 @@ pub(crate) struct TargetBackend {
 
 const BACKENDS: &[TargetBackend] = &[
     TargetBackend {
+        target: "conduitos/riscv64/virt",
+        arch: ConduitosArch::Riscv64,
+        kernel_file: "conduitos-kernel.elf",
+        kernel_role: "freestanding-kernel",
+        image_file: "conduitos-riscv64.iso",
+        image_role: "final-bootable-image",
+        architecture: "riscv64",
+        machine: "virt",
+        firmware: "OpenSBI+U-Boot EFI",
+        boot_entry: "BOOTRISCV64.EFI",
+        machine_boot_proof: true,
+        lower: target_lowering::lower_riscv64_virt,
+    },
+    TargetBackend {
         target: "conduitos/ia32/pc",
         arch: ConduitosArch::Ia32,
         kernel_file: "conduitos-kernel.elf",

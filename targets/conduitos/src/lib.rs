@@ -19,6 +19,7 @@ mod execution_region;
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
+    feature = "riscv64-product",
     feature = "aarch64-orange-pi-5",
     feature = "hosted-tools"
 ))]
@@ -28,6 +29,7 @@ pub mod fabrication;
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
+    feature = "riscv64-product",
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod front_door;
@@ -64,6 +66,7 @@ pub mod offer;
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
+    feature = "riscv64-product",
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod offer_fabrication;
@@ -95,6 +98,7 @@ mod presentation_offers;
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
+    feature = "riscv64-product",
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod linear_presenter;
@@ -105,6 +109,7 @@ pub mod presentation_nucleus;
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
+    feature = "riscv64-product",
     feature = "aarch64-orange-pi-5"
 ))]
 mod product_bindings;
@@ -115,6 +120,7 @@ pub mod product_front_door;
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
+    feature = "riscv64-product",
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod product_journey;

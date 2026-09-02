@@ -194,7 +194,7 @@ fn execute_with_features(
     if arch == ConduitosArch::Armv6 {
         return armv6_rpi_b_plus_a0::execute(Default::default(), opts);
     }
-    if arch == ConduitosArch::Riscv64 {
+    if arch == ConduitosArch::Riscv64 && product_artifact.is_none() {
         return riscv64_a0::execute(opts);
     }
     if arch == ConduitosArch::Loongarch64 {
@@ -248,6 +248,12 @@ fn execute_with_features(
                 script.display()
             ),
         );
+    } else if arch == ConduitosArch::Riscv64 {
+        let linker = riscv64_a0::rust_lld(&paths.root)?;
+        let script = paths
+            .root
+            .join("targets/conduitos/linker/riscv64_product.ld");
+        command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else {
         command.env("RUSTFLAGS", "-C relocation-model=static -C panic=abort");
     }
