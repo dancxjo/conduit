@@ -5,6 +5,7 @@ use conduit_body::{
     MembershipProofId, PartId,
 };
 use conduit_core::{bind_sign, BootId, HostId, OfferGeneration};
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
 thread_local! {
@@ -16,6 +17,13 @@ pub(super) struct BodySession {
     pub(super) biography: BodyBiographyEvidence,
     pub(super) admission: AdmissionManager,
     pub(super) pending_spore: Option<super::spore::PendingSpore>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub(super) struct DurableBodySession {
+    pub(super) schema: String,
+    pub(super) receipt: BirthReceipt,
+    pub(super) biography: BodyBiographyEvidence,
 }
 
 pub(super) fn birth(
@@ -77,8 +85,8 @@ pub(super) fn birth(
         .map_err(|error| format!("validate Body membership: {error:?}"))?;
 
     let receipt = BirthReceipt {
-        schema: "conduit.creche/body-birth@1",
-        disposition: "born",
+        schema: "conduit.creche/body-birth@1".into(),
+        disposition: "born".into(),
         source_document_id: body.source_document_id.as_str().into(),
         checked_form_id: body.checked_form_id.as_str().into(),
         seed_id: body.seed_id.as_str().into(),
@@ -87,7 +95,7 @@ pub(super) fn birth(
         initial_program: initial_program.into(),
         birth_sequence,
         birth_sign_id: birth_sign.sign_id.as_str().into(),
-        state: "LULLED",
+        state: "LULLED".into(),
         here_part_id: None,
         host_id: None,
         boot_id: None,
@@ -200,6 +208,112 @@ pub(super) fn biography() -> Option<BodyBiographyEvidence> {
             .as_ref()
             .map(|session| session.biography.clone())
     })
+}
+
+pub(super) fn durable_snapshot() -> Option<DurableBodySession> {
+    BODY.with(|slot| {
+        slot.borrow().as_ref().map(|session| DurableBodySession {
+            schema: "conduit.creche/durable-session@1".into(),
+            receipt: session.receipt.clone(),
+            biography: session.biography.clone(),
+        })
+    })
+}
+
+pub(super) fn restore_durable(snapshot: DurableBodySession) -> Result<BirthReceipt, String> {
+    if current().is_some() {
+        return Err("this Crèche session already has a Body; durable restore was refused".into());
+    }
+    validate_durable(&snapshot)?;
+    let admission = AdmissionManager::new(snapshot.receipt.raw_body.body_id.clone())
+        .map_err(|error| format!("restore Body admission manager: {error:?}"))?;
+    let receipt = snapshot.receipt;
+    BODY.with(|slot| {
+        *slot.borrow_mut() = Some(BodySession {
+            receipt: receipt.clone(),
+            biography: snapshot.biography,
+            admission,
+            pending_spore: None,
+        });
+    });
+    Ok(receipt)
+}
+
+fn validate_durable(snapshot: &DurableBodySession) -> Result<(), String> {
+    let receipt = &snapshot.receipt;
+    if snapshot.schema != "conduit.creche/durable-session@1"
+        || receipt.schema != "conduit.creche/body-birth@1"
+        || receipt.disposition != "born"
+        || receipt.state != "LULLED"
+        || receipt.initial_program != "morse-network@1"
+        || receipt.source_interaction.schema != "conduit.book/source-interaction@1"
+        || receipt.source_interaction.disposition != "accepted"
+        || receipt.source_interaction.semantic_id != "interaction/executable-book-source"
+        || receipt.source_interaction.value_kind != conduit_human::TEXT_INFO_ID
+    {
+        return Err("durable Crèche session metadata is invalid".into());
+    }
+    receipt
+        .raw_body
+        .validate()
+        .map_err(|error| format!("validate restored Body: {error:?}"))?;
+    receipt
+        .raw_membership
+        .validate()
+        .map_err(|error| format!("validate restored membership: {error:?}"))?;
+    snapshot
+        .biography
+        .validate()
+        .map_err(|error| format!("validate restored biography: {error:?}"))?;
+    if receipt.body_id != receipt.raw_body.body_id.as_str()
+        || receipt.seed_id != receipt.raw_body.seed_id.as_str()
+        || receipt.source_document_id != receipt.raw_body.source_document_id.as_str()
+        || receipt.checked_form_id != receipt.raw_body.checked_form_id.as_str()
+        || receipt.birth_sequence != receipt.raw_body.birth_sequence
+        || receipt.membership_revision != receipt.raw_membership.revision.0
+        || receipt.raw_body != snapshot.biography.body
+        || receipt.raw_membership != snapshot.biography.membership
+        || receipt.body_id != snapshot.biography.body_id.as_str()
+        || receipt.friendly_name != snapshot.biography.friendly_name
+        || receipt.initial_program != snapshot.biography.initial_program
+    {
+        return Err("durable Crèche session identities disagree".into());
+    }
+    let graduation_matches = match (&receipt.graduation, &snapshot.biography.graduation) {
+        (None, None) => true,
+        (Some(receipt), Some(biography)) => {
+            receipt.schema == "conduit.creche/graduation@1"
+                && receipt.body_id == biography.body_id.as_str()
+                && receipt.sequence == biography.sequence
+                && receipt.sign_id == biography.sign_id.as_str()
+                && receipt.patchbay_plan_id.as_deref()
+                    == biography
+                        .patchbay_plan_id
+                        .as_ref()
+                        .map(|value| value.as_str())
+                && receipt.patchbay_implementation_id.as_deref()
+                    == biography
+                        .patchbay_implementation_id
+                        .as_ref()
+                        .map(|value| value.as_str())
+                && matches!(
+                    (receipt.choice.as_str(), &biography.choice),
+                    (
+                        "host-patchbay",
+                        conduit_body::BodyGraduationChoice::HostedPatchbay
+                    ) | (
+                        "external-reader",
+                        conduit_body::BodyGraduationChoice::ExternalReader
+                    )
+                )
+                && !receipt.creche_required
+        }
+        _ => false,
+    };
+    if !graduation_matches {
+        return Err("durable Crèche graduation evidence disagrees".into());
+    }
+    Ok(())
 }
 
 pub(super) fn with_session<T>(
