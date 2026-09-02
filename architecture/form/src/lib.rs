@@ -32,6 +32,7 @@ mod surface_lex;
 mod surface_parser;
 pub mod syntax;
 mod syntax_check;
+mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
 mod value_type;
@@ -42,6 +43,7 @@ pub use checked_syntax::*;
 pub use diagnostic::*;
 pub use structured_startup::*;
 pub use syntax::*;
+pub use syntax_highlight::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
