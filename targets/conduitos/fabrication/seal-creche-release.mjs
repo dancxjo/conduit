@@ -7,6 +7,9 @@ import { pathToFileURL } from "node:url";
 const PRODUCTS = Object.freeze({
   "conduitos/x86_64/pc": Object.freeze({ architecture: "x86_64", machine: "q35", output: "conduitos-x86_64-pc.iso", manifest: "conduitos-x86_64-pc-release.json", builder: "conduit-host-conduitos/build-x86_64@1", deployment: "conduit-host-conduitos/boot-x86_64@1" }),
   "conduitos/aarch64/virt": Object.freeze({ architecture: "aarch64", machine: "virt", output: "conduitos-aarch64-virt.iso", manifest: "conduitos-aarch64-virt-release.json", builder: "conduit-host-conduitos/build-aarch64@1", deployment: "conduit-host-conduitos/boot-aarch64@1" }),
+  "conduitos/ia32/pc": Object.freeze({ architecture: "ia32", machine: "pc", output: "conduitos-ia32-pc.iso", manifest: "conduitos-ia32-pc-release.json", builder: "conduit-host-conduitos/build-ia32@1", deployment: "conduit-host-conduitos/boot-ia32@1" }),
+  "conduitos/riscv64/virt": Object.freeze({ architecture: "riscv64", machine: "virt", output: "conduitos-riscv64-virt.iso", manifest: "conduitos-riscv64-virt-release.json", builder: "conduit-host-conduitos/build-riscv64@1", deployment: "conduit-host-conduitos/boot-riscv64@1" }),
+  "conduitos/loongarch64/virt": Object.freeze({ architecture: "loongarch64", machine: "virt", output: "conduitos-loongarch64-virt.iso", manifest: "conduitos-loongarch64-virt-release.json", builder: "conduit-host-conduitos/build-loongarch64@1", deployment: "conduit-host-conduitos/boot-loongarch64@1" }),
 });
 
 export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
