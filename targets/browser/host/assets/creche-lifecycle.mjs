@@ -1,3 +1,5 @@
+import { createApplicationPresentationHost } from "./application-presentation.mjs";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -6,72 +8,86 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, draf
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
-    <div class="editor birth-editor">
-      <div class="birth-field program-field">
-        <label class="editor-label" for="body-program">Initial program</label>
-        <div class="select-field"><select id="body-program" aria-label="Initial program"><option value="morse-network@1">Morse Network</option></select></div>
-      </div>
-      <div class="birth-field name-field">
-        <label class="editor-label" for="body-friendly-name">Friendly name · editable later</label>
-        <input id="body-friendly-name" maxlength="64" aria-label="Friendly Body name">
-      </div>
-      <details class="seed-source"><summary>Reviewed program source</summary>
-        <label class="editor-label" for="${listingId}">Conduit Seed</label>
-        <textarea id="${listingId}" spellcheck="false" aria-label="Conduit Seed source"></textarea>
-      </details>
-      <div class="actions"><button class="birth" type="button">Birth Body</button></div>
-    </div>
+    <div class="birth-presentation" data-application-slot="birth-controls"></div>
     <div class="result body-birth-result">
       <div class="body-chain" aria-label="Seed to Body lifecycle">
         <article><span>checked Seed</span><code class="seed-id">not born</code></article>
         <b aria-hidden="true">BIRTH →</b>
         <article><span>durable Body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
-      <p class="birth-status" role="status">Edit the Seed, then explicitly birth one Body.</p>
       <dl class="body-identities"></dl>
       <details class="body-raw"><summary>Raw Body and membership evidence</summary><pre><code></code></pre></details>
     </div>`;
-  const textarea = runner.querySelector("textarea");
-  const friendlyName = runner.querySelector("#body-friendly-name");
-  const button = runner.querySelector(".birth");
-  textarea.value = draft ?? source;
-  friendlyName.value = generatedFriendlyName();
-  textarea.addEventListener("input", () => onDraft(textarea.value));
-  button.addEventListener("click", () => birth(
-    runner,
-    host,
-    friendlyName.value,
-    runner.querySelector("#body-program").value,
-    textarea.value,
-    nextSequence(),
-    onBodyChanged,
-  ));
+  const state = {
+    revision: 0,
+    friendlyName: generatedFriendlyName(),
+    initialProgram: "morse-network@1",
+    source: draft ?? source,
+    status: "Edit the Seed, then explicitly birth one Body.",
+    outcome: "status",
+    terminal: false,
+  };
+  presentBirthControls(runner, state, { listingId, onDraft, onBirth() {
+    birth(runner, host, state, nextSequence(), onBodyChanged, { listingId, onDraft });
+  } });
 
   const current = readCurrent(host.runtime);
-  if (current) renderReceipt(runner, current, true);
+  if (current) renderReceipt(runner, current, true, state, { listingId, onDraft });
   return runner;
 }
 
-function birth(runner, host, friendlyName, initialProgram, source, sequence, onBodyChanged) {
+function presentBirthControls(runner, state, { listingId, onDraft, onBirth = () => {} }) {
+  const presentation = createApplicationPresentationHost(runner);
+  const actions = state.terminal ? [] : [
+    { id: "program.change", event: "change" },
+    { id: "name.input", event: "input" },
+    { id: "source.input", event: "input" },
+    { id: "birth.activate", event: "activate" },
+  ];
+  presentation.present("birth-controls", {
+    revision: ++state.revision,
+    actions,
+    nodes: [
+      { parent: null, component: "stack", action: null, key: "birth-editor", text: "" },
+      { parent: 0, component: "select", action: state.terminal ? null : 0, key: "body-program", text: "Initial program", value: state.initialProgram, valueCapacity: 64 },
+      { parent: 1, component: "option", action: null, key: "morse-program", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
+      { parent: 0, component: "text-input", action: state.terminal ? null : 1, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
+      { parent: 0, component: "disclosure", action: null, key: "seed-source", text: "" },
+      { parent: 4, component: "summary", action: null, key: "seed-summary", text: "Reviewed program source" },
+      { parent: 4, component: "textarea", action: state.terminal ? null : 2, key: listingId, text: "Conduit Seed source", value: state.source, valueCapacity: 65_536 },
+      { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" },
+      { parent: 7, component: "button", action: state.terminal ? null : 3, key: "birth", text: "Birth Body" },
+      { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
+    ],
+  }, { onEvent(event) {
+    presentation.nextEvent("birth-controls");
+    const value = decoder.decode(event.value);
+    if (event.action === "program.change") state.initialProgram = value;
+    if (event.action === "name.input") state.friendlyName = value;
+    if (event.action === "source.input") { state.source = value; onDraft(value); }
+    if (event.action === "birth.activate") onBirth();
+  } });
+}
+
+function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
   const api = host.runtime;
-  const sourceBytes = encoder.encode(source);
+  const sourceBytes = encoder.encode(state.source);
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
-  const nameBytes = encoder.encode(friendlyName.trim());
-  const programBytes = encoder.encode(initialProgram);
+  const nameBytes = encoder.encode(state.friendlyName.trim());
+  const programBytes = encoder.encode(state.initialProgram);
   const total = hostBytes.length + bootBytes.length + nameBytes.length + programBytes.length + sourceBytes.length;
-  const status = runner.querySelector(".birth-status");
-  status.classList.remove("error");
   if (total > api.conduit_creche_input_capacity()) {
-    status.textContent = "The Seed and exact Host identities exceed the admitted BIRTH input bound.";
-    status.classList.add("error");
+    state.status = "The Seed and exact Host identities exceed the admitted BIRTH input bound.";
+    state.outcome = "failure-status";
+    presentBirthControls(runner, state, presentationOptions);
     return;
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), total);
   input.set(sourceBytes);
   const admitted = api.conduit_creche_admit_source_interaction(sourceBytes.length, BigInt(sequence));
   if (admitted < 0) {
-    renderRefusal(runner, api, admitted);
+    renderRefusal(runner, api, admitted, state, presentationOptions);
     return;
   }
   input.set(hostBytes);
@@ -88,10 +104,10 @@ function birth(runner, host, friendlyName, initialProgram, source, sequence, onB
     BigInt(sequence),
   );
   if (code < 0) {
-    renderRefusal(runner, api, code);
+    renderRefusal(runner, api, code, state, presentationOptions);
     return;
   }
-  renderReceipt(runner, readOutput(api), false);
+  renderReceipt(runner, readOutput(api), false, state, presentationOptions);
   onBodyChanged?.();
 }
 
@@ -106,28 +122,29 @@ export function readBodyProjection(api) {
   return readCurrent(api);
 }
 
-function renderRefusal(runner, api, code) {
+function renderRefusal(runner, api, code, state, presentationOptions) {
   const refusal = api.conduit_creche_output_len() > 0 ? readOutput(api) : null;
-  const status = runner.querySelector(".birth-status");
-  status.textContent = refusal?.message
+  state.status = refusal?.message
     ? `BIRTH refused · ${refusal.category}: ${refusal.message}`
     : `BIRTH refused (${code}).`;
-  status.classList.add("error");
+  state.outcome = "failure-status";
+  presentBirthControls(runner, state, presentationOptions);
 }
 
-function renderReceipt(runner, receipt, retained) {
+function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   runner.dataset.bodyId = receipt.body_id;
   runner.dataset.birthSignId = receipt.birth_sign_id;
-  runner.querySelector("textarea").disabled = true;
-  runner.querySelector("#body-friendly-name").disabled = true;
-  runner.querySelector("#body-program").disabled = true;
-  runner.querySelector(".birth").disabled = true;
+  state.terminal = true;
+  state.friendlyName = receipt.friendly_name;
+  state.initialProgram = receipt.initial_program;
   runner.querySelector(".seed-id").textContent = receipt.seed_id;
   runner.querySelector(".body-id").textContent = receipt.body_id;
   runner.querySelector(".body-state").textContent = receipt.state;
-  runner.querySelector(".birth-status").textContent = retained
+  state.status = retained
     ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
     : "Born — one checked Seed now has one LULLED Body; no Wake, Plan, or Play exists.";
+  state.outcome = "success-status";
+  presentBirthControls(runner, state, presentationOptions);
   const identities = [
     ["Friendly name", receipt.friendly_name],
     ["Initial program", receipt.initial_program],
@@ -164,22 +181,28 @@ export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner first-host-runner";
   runner.innerHTML = `
-    <div class="editor">
-      <p>This browser is available, but availability is not membership.</p>
-      <div class="actions"><button class="attach-host" type="button">Give this Body its first Host</button></div>
-    </div>
+    <div data-application-slot="first-host-controls"></div>
     <div class="result">
-      <p class="host-admission-status" role="status">The Body is still LULLED with no admitted Host.</p>
       <dl class="host-identities"></dl>
     </div>`;
+  const state = {
+    revision: 0,
+    status: "The Body is still LULLED with no admitted Host.",
+    outcome: "status",
+    terminal: false,
+  };
   const current = readCurrent(host.runtime);
   if (!current) {
-    runner.querySelector(".attach-host").disabled = true;
-    runner.querySelector(".host-admission-status").textContent = "Birth the Body on page zero first.";
+    state.terminal = true;
+    state.status = "Birth the Body on page zero first.";
+    presentFirstHostControls(runner, state, () => {});
     return runner;
   }
-  if (current.here_part_id) renderAttachedHost(runner, current);
-  runner.querySelector(".attach-host").addEventListener("click", () => {
+  if (current.here_part_id) {
+    renderAttachedHost(runner, current, state);
+    return runner;
+  }
+  presentFirstHostControls(runner, state, () => {
     const api = host.runtime;
     const hostBytes = encoder.encode(host.hostId);
     const bootBytes = encoder.encode(host.bootId);
@@ -189,20 +212,40 @@ export function createFirstHostRunner({ host, nextSequence, onBodyChanged }) {
     const code = api.conduit_creche_attach_here(hostBytes.length, bootBytes.length, BigInt(nextSequence()));
     if (code < 0) {
       const refusal = readOutput(api);
-      const status = runner.querySelector(".host-admission-status");
-      status.textContent = `Host admission refused: ${refusal.message ?? code}`;
-      status.classList.add("error");
+      state.status = `Host admission refused: ${refusal.message ?? code}`;
+      state.outcome = "failure-status";
+      presentFirstHostControls(runner, state, () => {});
       return;
     }
-    renderAttachedHost(runner, readOutput(api));
+    renderAttachedHost(runner, readOutput(api), state);
     onBodyChanged?.();
   });
   return runner;
 }
 
-function renderAttachedHost(runner, receipt) {
-  runner.querySelector(".attach-host").disabled = true;
-  runner.querySelector(".host-admission-status").textContent = `${receipt.friendly_name} now has one admitted browser Host and remains LULLED.`;
+function presentFirstHostControls(runner, state, onAttach) {
+  const presentation = createApplicationPresentationHost(runner);
+  presentation.present("first-host-controls", {
+    revision: ++state.revision,
+    actions: state.terminal ? [] : [{ id: "host.attach", event: "activate" }],
+    nodes: [
+      { parent: null, component: "stack", action: null, key: "first-host", text: "" },
+      { parent: 0, component: "paragraph", action: null, key: "availability", text: "This browser is available, but availability is not membership." },
+      { parent: 0, component: "action-group", action: null, key: "host-actions", text: "" },
+      { parent: 2, component: "button", action: state.terminal ? null : 0, key: "attach-host", text: "Give this Body its first Host" },
+      { parent: 0, component: state.outcome, action: null, key: "host-status", text: state.status },
+    ],
+  }, { onEvent() {
+    presentation.nextEvent("first-host-controls");
+    onAttach();
+  } });
+}
+
+function renderAttachedHost(runner, receipt, state) {
+  state.terminal = true;
+  state.outcome = "success-status";
+  state.status = `${receipt.friendly_name} now has one admitted browser Host and remains LULLED.`;
+  presentFirstHostControls(runner, state, () => {});
   const values = [["Body", receipt.body_id], ["Part", receipt.here_part_id], ["Host", receipt.host_id], ["Boot", receipt.boot_id]];
   const list = runner.querySelector(".host-identities");
   list.replaceChildren();

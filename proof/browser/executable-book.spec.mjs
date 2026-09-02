@@ -641,13 +641,17 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page).toHaveTitle("Conduit Crèche");
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
+  await expect(birth.locator('[data-application-key="body-program"]')).toHaveAttribute("data-application-component", "select");
+  await expect(birth.locator('[data-application-key="morse-program"]')).toHaveAttribute("data-application-component", "option");
   await birth.getByLabel("Friendly Body name").fill("standalone firefly");
   await birth.getByRole("button", { name: "Birth Body" }).click();
   const bodyId = await birth.getAttribute("data-body-id");
   expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
   await expect(page.locator('.creche-body-context [data-application-component="panel"]')).toContainText("standalone firefly");
   await page.getByRole("button", { name: "2. First Host" }).click();
+  await expect(page.locator('[data-application-key="attach-host"]')).toHaveAttribute("data-application-action", "host.attach");
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
+  await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
   await page.getByRole("button", { name: "4. Graduate" }).click();
   await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
@@ -676,8 +680,8 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   const [program, name, source, editor] = await Promise.all([
     runner.getByLabel("Initial program").boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
-    runner.locator(".seed-source").boundingBox(),
-    runner.locator(".birth-editor").boundingBox(),
+    runner.locator('[data-application-key="seed-source"]').boundingBox(),
+    runner.locator('[data-application-key="birth-editor"]').boundingBox(),
   ]);
   for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
   expect(program.y + program.height).toBeLessThanOrEqual(name.y);
@@ -686,8 +690,8 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
     expect(control.x).toBeGreaterThanOrEqual(editor.x);
     expect(control.x + control.width).toBeLessThanOrEqual(editor.x + editor.width);
   }
-  await runner.locator(".seed-source summary").click();
-  await expect(runner.locator(".seed-source textarea")).toBeVisible();
+  await runner.locator('[data-application-key="seed-source"] summary').click();
+  await expect(runner.locator('[data-application-key="seed-source"] textarea')).toBeVisible();
   const selectAppearance = await runner.getByLabel("Initial program").evaluate(
     (element) => getComputedStyle(element).appearance,
   );
