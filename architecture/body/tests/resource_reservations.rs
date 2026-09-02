@@ -1,7 +1,7 @@
 use conduit_body::{
-    Body, BodyFormPlan, BodyPlan, BodyResourceAllowance, BodyResourceEnvelope,
-    BodyResourceReservationError, BodyResourceReservationLedger, PartId, ResidentForm,
-    MAX_BODY_RESOURCE_RESERVATIONS,
+    Body, BodyFormPlan, BodyFormResourceRequests, BodyPlan, BodyResourceAllowance,
+    BodyResourceEnvelope, BodyResourceReservationError, BodyResourceReservationLedger, PartId,
+    ResidentForm, MAX_BODY_RESOURCE_RESERVATIONS,
 };
 use conduit_core::{
     resource_offer, resource_requirement, seal_plan, BootId, CheckedFormId, ExpandedFormId,
@@ -122,7 +122,7 @@ fn body_plan_admission_combines_all_form_demand_before_play() {
     assert_eq!(plan.body_id, *envelope.body_id());
     let requirement = resource_requirement("test/execution", 4);
     let first = binding(4);
-    let second = binding(4);
+    let second_binding = binding(4);
     let mut ledger = BodyResourceReservationLedger::new(&envelope);
 
     assert_eq!(
@@ -131,13 +131,35 @@ fn body_plan_admission_combines_all_form_demand_before_play() {
             &envelope,
             &host,
             core::slice::from_ref(&observation),
-            &[(&requirement, &first), (&requirement, &second)],
+            &[
+                BodyFormResourceRequests {
+                    form: &seed,
+                    requests: &[(&requirement, &first)],
+                },
+                BodyFormResourceRequests {
+                    form: &second,
+                    requests: &[(&requirement, &second_binding)],
+                },
+            ],
         ),
         Err(BodyResourceReservationError::Envelope(
             conduit_body::BodyResourceEnvelopeError::ReservationExceedsAllowance
         ))
     );
     assert!(ledger.reservations().is_empty(), "refusal is atomic");
+    assert_eq!(
+        ledger.reserve_body_plan(
+            &plan,
+            &envelope,
+            &host,
+            core::slice::from_ref(&observation),
+            &[BodyFormResourceRequests {
+                form: &seed,
+                requests: &[(&requirement, &first)],
+            }],
+        ),
+        Err(BodyResourceReservationError::WorksetMismatch)
+    );
 }
 
 #[test]

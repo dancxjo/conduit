@@ -9,10 +9,19 @@ use conduit_core::{
 };
 use serde::Serialize;
 
-use crate::{BodyPlan, BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId};
+use crate::{
+    BodyPlan, BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId, ResidentForm,
+};
 
 /// Maximum number of exact Plans concurrently retained by one envelope ledger.
 pub const MAX_BODY_RESOURCE_RESERVATIONS: usize = 64;
+pub const MAX_BODY_RESOURCE_BINDINGS: usize = 256;
+
+#[derive(Debug, Clone, Copy)]
+pub struct BodyFormResourceRequests<'a> {
+    pub form: &'a ResidentForm,
+    pub requests: &'a [(&'a ResourceRequirement, &'a ResourceBinding)],
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BodyResourceReservation {
@@ -48,6 +57,7 @@ pub enum BodyResourceReservationError {
     CapacityExceeded,
     EnvelopeMismatch,
     WrongBody,
+    WorksetMismatch,
     DuplicatePlan,
     UnknownPlan,
     MissingObservation,
@@ -103,6 +113,9 @@ impl BodyResourceReservationLedger {
     ) -> Result<(), BodyResourceReservationError> {
         if requests.is_empty() {
             return Err(BodyResourceReservationError::Empty);
+        }
+        if requests.len() > MAX_BODY_RESOURCE_BINDINGS {
+            return Err(BodyResourceReservationError::CapacityExceeded);
         }
         if self.envelope_id != *envelope.envelope_id() {
             return Err(BodyResourceReservationError::EnvelopeMismatch);
@@ -176,21 +189,49 @@ impl BodyResourceReservationLedger {
     }
 
     /// Atomically admits the combined resource demand of every Form partition
-    /// in one sealed Body-wide Plan. `requests` is the already-flattened exact
-    /// demand across those partitions; admission is keyed only by the Body
-    /// Plan identity, never by independently admissible constituent Plans.
+    /// in one sealed Body-wide Plan. Every Plan Form occurs exactly once,
+    /// including Forms with no requests, before demand is flattened and keyed
+    /// by the Body Plan identity.
     pub fn reserve_body_plan(
         &mut self,
         plan: &BodyPlan,
         envelope: &BodyResourceEnvelope,
         host: &HostAdvertisement,
         observations: &[ResourceObservation],
-        requests: &[(&ResourceRequirement, &ResourceBinding)],
+        form_requests: &[BodyFormResourceRequests<'_>],
     ) -> Result<(), BodyResourceReservationError> {
         if plan.body_id != *envelope.body_id() {
             return Err(BodyResourceReservationError::WrongBody);
         }
-        self.reserve(plan.plan_id.clone(), envelope, host, observations, requests)
+        if form_requests.len() != plan.forms.len()
+            || form_requests
+                .iter()
+                .any(|partition| !plan.workset.contains(partition.form))
+            || form_requests
+                .windows(2)
+                .any(|pair| pair[0].form >= pair[1].form)
+        {
+            return Err(BodyResourceReservationError::WorksetMismatch);
+        }
+        let request_count = form_requests.iter().try_fold(0usize, |total, partition| {
+            total.checked_add(partition.requests.len())
+        });
+        let Some(request_count) =
+            request_count.filter(|count| *count <= MAX_BODY_RESOURCE_BINDINGS)
+        else {
+            return Err(BodyResourceReservationError::CapacityExceeded);
+        };
+        let mut requests = Vec::with_capacity(request_count);
+        for partition in form_requests {
+            requests.extend_from_slice(partition.requests);
+        }
+        self.reserve(
+            plan.plan_id.clone(),
+            envelope,
+            host,
+            observations,
+            &requests,
+        )
     }
 
     pub fn release(
