@@ -25,6 +25,7 @@ on:
       - apps/patchbay/html/assets/react*.js
       - apps/patchbay/html/assets/react-flow.css
       - proof/browser/executable-book.spec.mjs
+      - proof/browser/patchbay-debugger-projection.test.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/playwright.config.mjs
       - package-lock.json
@@ -68,6 +69,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
           rm -rf target/book-product
           scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
+      - name: Prove exact live-debugger projection
+        run: node --test proof/browser/patchbay-debugger-projection.test.mjs
       - name: Prove the real Book Patchbay and interactive workspace
         run: >-
           npx playwright test

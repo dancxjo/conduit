@@ -114,3 +114,19 @@
 @media (max-width: 720px) {
   .react-flow__node-faceplate,.flow-faceplate { width: 13rem; min-width: 13rem; max-width: 13rem; }
 }
+.flow-faceplate.debugger-active,
+.faceplate-port.debugger-active {
+  border-color: var(--patchbay-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb,var(--patchbay-focus) 45%,transparent);
+}
+.flow-faceplate.debugger-recent,
+.faceplate-port.debugger-recent { border-color: var(--patchbay-structure-secondary); }
+.flow-faceplate.debugger-faulted,
+.faceplate-port.debugger-faulted { border-color: #ff776d; }
+.react-flow__edge.debugger-active .react-flow__edge-path { stroke: var(--patchbay-focus); }
+.react-flow__edge.debugger-recent .react-flow__edge-path { stroke: var(--patchbay-structure-secondary); }
+.react-flow__edge.debugger-faulted .react-flow__edge-path { stroke: #ff776d; }
+.react-flow__edge.debugger-gap .react-flow__edge-path { stroke-dasharray: 7 5; }
+.debugger-status { margin: .35rem .55rem; font-size: .75rem; color: var(--patchbay-text-primary); }
+.debugger-value { margin-inline-start: auto; max-width: 7rem; overflow: hidden; text-overflow: ellipsis; color: var(--patchbay-text-primary); }
+.debugger-live-region { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

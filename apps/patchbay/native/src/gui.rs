@@ -25,7 +25,9 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
-use patchbay_model::{PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME};
+use patchbay_model::{
+    DebuggerPresentation, PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME,
+};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 
@@ -114,6 +116,17 @@ pub fn draw_patchbay(
     height: usize,
     graph: &PatchbayGraph,
     view: PatchbayViewContext<'_>,
+) -> Vec<HitTarget> {
+    draw_patchbay_with_debugger(pixels, width, height, graph, view, None)
+}
+
+pub fn draw_patchbay_with_debugger(
+    pixels: &mut [u32],
+    width: usize,
+    height: usize,
+    graph: &PatchbayGraph,
+    view: PatchbayViewContext<'_>,
+    debugger: Option<&DebuggerPresentation>,
 ) -> Vec<HitTarget> {
     let PatchbayViewContext {
         selected,
@@ -287,6 +300,16 @@ pub fn draw_patchbay(
                     &mut targets,
                 );
             }
+            if let Some(debugger) = debugger {
+                crate::gui_debugger::draw_debugger_overlay(
+                    &mut canvas,
+                    graph,
+                    (&layouts, &compositions, &boundaries),
+                    (presentation_layout, viewport),
+                    debugger,
+                    theme,
+                );
+            }
             draw_gesture(
                 &mut canvas,
                 graph,
@@ -385,28 +408,10 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     theme: &PatchbayTheme,
     targets: &mut Vec<HitTarget>,
 ) {
-    let (presentation_layout, viewport) = presentation;
-    let (layouts, compositions, boundaries) = layout;
     for cord in &graph.cords {
-        let Some(source) = find_port(layouts, compositions, boundaries, &cord.source_port) else {
+        let Some(points) = cord_route_points(cord, layout, presentation) else {
             continue;
         };
-        let Some(sink) = find_port(layouts, compositions, boundaries, &cord.sink_port) else {
-            continue;
-        };
-        let default_x = source.x + (sink.x - source.x) / 2;
-        let (bend_x, bend_y) = presentation_layout
-            .cord_route(&cord.source_port, &cord.sink_port)
-            .and_then(|(x, y)| viewport.world_to_screen(Point::new(x, y)).ok())
-            .map(|point| (point.x, point.y))
-            .unwrap_or((default_x, source.y + (sink.y - source.y) / 2));
-        let points = [
-            source,
-            Point::new(bend_x, source.y),
-            Point::new(bend_x, bend_y),
-            Point::new(sink.x, bend_y),
-            sink,
-        ];
         let color = if selected == Some(cord.identity.as_str()) {
             theme.focus
         } else {
@@ -422,6 +427,34 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     }
 }
 
+pub(super) fn cord_route_points(
+    cord: &patchbay_model::PatchbayCord,
+    layout: (
+        &[GearLayout<'_>],
+        &[CompositionLayout<'_>],
+        &[BoundaryLayout],
+    ),
+    presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
+) -> Option<[Point; 5]> {
+    let (layouts, compositions, boundaries) = layout;
+    let (presentation_layout, viewport) = presentation;
+    let source = find_port(layouts, compositions, boundaries, &cord.source_port)?;
+    let sink = find_port(layouts, compositions, boundaries, &cord.sink_port)?;
+    let default_x = source.x + (sink.x - source.x) / 2;
+    let (bend_x, bend_y) = presentation_layout
+        .cord_route(&cord.source_port, &cord.sink_port)
+        .and_then(|(x, y)| viewport.world_to_screen(Point::new(x, y)).ok())
+        .map(|point| (point.x, point.y))
+        .unwrap_or((default_x, source.y + (sink.y - source.y) / 2));
+    Some([
+        source,
+        Point::new(bend_x, source.y),
+        Point::new(bend_x, bend_y),
+        Point::new(sink.x, bend_y),
+        sink,
+    ])
+}
+
 fn select_action(graph: &PatchbayGraph, identity: &str) -> GuiAction {
     GuiAction::SelectSubject(
         graph
@@ -430,7 +463,7 @@ fn select_action(graph: &PatchbayGraph, identity: &str) -> GuiAction {
     )
 }
 
-fn find_port(
+pub(super) fn find_port(
     layouts: &[GearLayout<'_>],
     compositions: &[CompositionLayout<'_>],
     boundaries: &[BoundaryLayout],

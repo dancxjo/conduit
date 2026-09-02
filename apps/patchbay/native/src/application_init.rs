@@ -142,6 +142,7 @@ impl PatchbayApplication {
             graphical_form: workspace.graphical_form,
             body_workbench: Default::default(),
             layout: workspace.layout,
+            debugger: None,
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             entrance: None,
             zero_body_front_door: None,

@@ -2,7 +2,7 @@
 
 use super::{
     draw_document,
-    gui::{draw_patchbay, LifecycleContext, PatchbayViewContext},
+    gui::{draw_patchbay_with_debugger, LifecycleContext, PatchbayViewContext},
     PatchbayApplication, BACKGROUND,
 };
 use conduit_core::SignId;
@@ -250,7 +250,7 @@ impl PatchbayApplication {
                 );
                 Vec::new()
             } else {
-                draw_patchbay(
+                draw_patchbay_with_debugger(
                     &mut buffer,
                     size.width as usize,
                     size.height as usize,
@@ -272,6 +272,7 @@ impl PatchbayApplication {
                         gesture,
                         viewport: &self.canvas_viewport,
                     },
+                    self.debugger.as_ref(),
                 )
             }
         } else {

@@ -49,6 +49,40 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
 }
 
 #[test]
+fn host_owned_snapshot_carries_bounded_debugger_state_for_an_exact_subject() {
+    let mut snapshot = demonstration_snapshot().unwrap();
+    let subject = snapshot.presentation.subjects[0].identity.clone();
+    let debugger: patchbay_model::DebuggerPresentation =
+        serde_json::from_value(serde_json::json!({
+            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
+            "revision": 1,
+            "tick": 0,
+            "reduced_motion": false,
+            "gap": null,
+            "activities": [{
+                "subject": subject,
+                "line_subject": null,
+                "host": 7,
+                "phase": "active",
+                "latest_kind": "gear-started",
+                "latest_sequence": 1,
+                "observed_count": 1,
+                "coalesced_count": 0,
+                "last_activity_tick": 0,
+                "latest_value": null,
+                "retained_fault_code": null
+            }]
+        }))
+        .unwrap();
+    snapshot.attach_debugger(debugger).unwrap();
+    let bytes = snapshot.encode().unwrap();
+    let decoded = RendererSnapshot::decode(&bytes, snapshot.revision).unwrap();
+    assert_eq!(decoded.debugger, snapshot.debugger);
+    assert_eq!(decoded.presentation, snapshot.presentation);
+}
+
+#[test]
 fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
     let mut snapshot = demonstration_snapshot().unwrap();
     let source_identity = snapshot.presentation.identity.clone();

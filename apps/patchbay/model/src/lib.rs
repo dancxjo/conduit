@@ -18,6 +18,9 @@ mod candidate_form;
 mod control;
 mod cross_host_renderer;
 mod current_body_frame;
+mod debugger_presentation;
+#[cfg(test)]
+mod debugger_presentation_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
@@ -114,6 +117,13 @@ pub use current_body_frame::{
     CurrentBodyFrame, CurrentBodyFrameError, CurrentBodyFrameSlot, CurrentBodyHost,
     CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
     CurrentBodyPhysicalHostSummary, CurrentBodyProgram, CurrentBodyTransition,
+};
+pub use debugger_presentation::{
+    DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerGapPresentation,
+    DebuggerPresentation, DebuggerPresentationError, DebuggerSubjectActivity,
+    DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
+    DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
+    RECENT_ACTIVITY_TICKS,
 };
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,

@@ -49,6 +49,7 @@ mod front_door_keyboard;
 mod front_door_tests;
 mod gui;
 mod gui_composition;
+mod gui_debugger;
 mod gui_face_controls;
 mod gui_gear;
 mod gui_gear_layout;
@@ -129,6 +130,7 @@ struct PatchbayApplication {
     graphical_form: Option<patchbay_model::PatchbayGraph>,
     body_workbench: native_body_workbench::NativeBodyWorkbenchSlot,
     layout: patchbay_model::PatchbayLayout,
+    debugger: Option<patchbay_model::DebuggerPresentation>,
     interaction: Option<PatchbayInteraction>,
     entrance: Option<front_door::NativeFrontDoorPresentation>,
     zero_body_front_door: Option<patchbay_model::ZeroBodyFrontDoor>,

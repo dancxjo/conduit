@@ -82,6 +82,7 @@ impl RendererSnapshot {
             parts: None,
             authoring: None,
             body_workbench: None,
+            debugger: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -144,6 +145,14 @@ impl RendererSnapshot {
         workbench: crate::BrowserBodyWorkbench,
     ) -> Result<(), SnapshotError> {
         self.body_workbench = Some(workbench);
+        self.validate()
+    }
+
+    pub fn attach_debugger(
+        &mut self,
+        debugger: patchbay_model::DebuggerPresentation,
+    ) -> Result<(), SnapshotError> {
+        self.debugger = Some(debugger);
         self.validate()
     }
 
@@ -212,6 +221,24 @@ impl RendererSnapshot {
         let invalid_workbench = self.body_workbench.as_ref().is_some_and(|workbench| {
             crate::body_workbench::validate_body_workbench(workbench, &self.presentation).is_err()
         });
+        let invalid_debugger = self.debugger.as_ref().is_some_and(|debugger| {
+            debugger.schema != patchbay_model::DEBUGGER_PRESENTATION_SCHEMA
+                || debugger.activities.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
+                || debugger.activities.iter().any(|activity| {
+                    !self
+                        .presentation
+                        .subjects
+                        .iter()
+                        .any(|subject| subject.identity == activity.subject)
+                        || activity.line_subject.as_ref().is_some_and(|line| {
+                            !self
+                                .presentation
+                                .subjects
+                                .iter()
+                                .any(|subject| &subject.identity == line)
+                        })
+                })
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -226,6 +253,7 @@ impl RendererSnapshot {
             || invalid_authoring
             || invalid_temporal_context
             || invalid_workbench
+            || invalid_debugger
         {
             return Err(SnapshotError::InvalidIdentity);
         }
