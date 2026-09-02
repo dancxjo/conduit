@@ -43,6 +43,10 @@ jobs:
       NPM_CONFIG_FUND: "false"
     steps:
       - uses: actions/checkout@v7
+      - name: Install the native Rust linker
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
