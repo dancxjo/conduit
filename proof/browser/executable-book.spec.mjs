@@ -249,8 +249,15 @@ test("Book Patchbay replaces stale topology with local refusal and the latest ac
   const patchbay = runner.locator(".compact-patchbay");
   const original = await listing.inputValue();
   const originalSource = await patchbay.getAttribute("data-source-document-id");
+  const highlight = runner.locator(".syntax-highlight");
+  await expect(listing).toHaveAttribute("data-syntax-disposition", "accepted");
+  await expect(highlight.locator(".syntax-keyword").first()).toHaveText("form");
+  await expect(highlight.locator(".syntax-identity").first()).not.toBeEmpty();
+  await expect(highlight).toHaveCSS("color", "rgb(233, 241, 236)");
 
-  await listing.fill("form unfinished {");
+  await listing.fill('form unfinished { value=text/literal("still typing');
+  await expect(listing).toHaveAttribute("data-syntax-disposition", "accepted");
+  await expect(highlight.locator(".syntax-string")).toHaveText('"still typing');
   await expect(patchbay).toHaveAttribute("data-disposition", "refused");
   await expect(patchbay.locator(".flow-faceplate")).toHaveCount(0);
   await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("parse compact Book Patchbay");

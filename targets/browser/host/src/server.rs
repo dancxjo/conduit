@@ -50,6 +50,7 @@ const BOOK_SCRIPT: &[u8] = include_bytes!("../assets/book.mjs");
 const BOOK_STATE: &[u8] = include_bytes!("../assets/book-state.mjs");
 const BOOK_NAVIGATION: &[u8] = include_bytes!("../assets/book-navigation.mjs");
 const BOOK_RUNNER_PRESENTATION: &[u8] = include_bytes!("../assets/book-runner-presentation.mjs");
+const BOOK_SYNTAX_EDITOR: &[u8] = include_bytes!("../assets/book-syntax-editor.mjs");
 const CRECHE: &[u8] = include_bytes!("../assets/creche.html");
 const CRECHE_SCRIPT: &[u8] = include_bytes!("../assets/creche.mjs");
 const CRECHE_LIFECYCLE_SCRIPT: &[u8] = include_bytes!("../assets/creche-lifecycle.mjs");
@@ -355,6 +356,11 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 BOOK_RUNNER_PRESENTATION,
+            ),
+            Some("GET /book/book-syntax-editor.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BOOK_SYNTAX_EDITOR,
             ),
             Some("GET /creche/creche-lifecycle.mjs HTTP/1.1") => (
                 "200 OK",

@@ -37,6 +37,7 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   expect(admission.paths).toContain("book-runner-presentation.mjs");
+  expect(admission.paths).toContain("book-syntax-editor.mjs");
   expect(admission.paths).toContain("assets/flow.css");
   for (const path of admission.paths) {
     const pathname = new URL(path, admission.baseUri).pathname;

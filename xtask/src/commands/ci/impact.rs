@@ -34,6 +34,7 @@ const GLOBAL_FILES: [&str; 4] = [
     "rust-toolchain",
     "rust-toolchain.toml",
 ];
+const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/executable-book-pages.yml"];
 const HARMLESS_PREFIXES: [&str; 2] = ["docs/", "examples/"];
 const HARMLESS_FILES: [&str; 6] = [
     "README.md",
@@ -233,6 +234,14 @@ fn plan_for_paths(
     }
 
     for path in substantive {
+        if FOCUSED_WORKFLOW_FILES.contains(&path.as_str()) {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-workflow:{path}"));
+            continue;
+        }
         if GLOBAL_FILES.contains(&path.as_str()) || starts_with_any(path, &GLOBAL_PREFIXES) {
             return Ok(full_plan(format!("global-change:{path}"), paths));
         }
