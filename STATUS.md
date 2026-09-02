@@ -2269,3 +2269,39 @@ lint/browser only and do not select ESP32 or ConduitOS. This acceptance adds no
 timeline/replay, breakpoint or runtime resume control, causal tracing,
 unbounded history, authoritative wall-clock rate, or physical/HIL claim. Those
 remain #2087 and #2088 under #2083.
+
+The Patchbay debugger P3 observation replay from #2087 merged through PR #2110
+as exact main `d7476d72388b6e057596b2695045de1936b34715`. Exact-head workflow
+`33620077102` passed only the affected workspace lint, Host, and product shards;
+ESP32, every ConduitOS architecture and image/tool lane, browser Host, and
+browser-tool lanes were correctly unselected. Focused pinned-Chromium workflow
+`33620077191` passed in 2m48s. From the merged commit, 14 debugger model cases,
+the complete Patchbay HTML/server suite, strict focused clippy, JavaScript
+syntax, and both one-worker, zero-retry Chromium debugger scenarios passed
+again; the model cases completed in 0.01s and the browser scenarios in 3.8s.
+
+One finite renderer-neutral observation timeline now retains at most 128 exact
+events and 64 KiB. Each event binds its Body, Plan, Play, Host, Form, subject,
+optional related subject, event kind, typed bounded value or fault, global
+sequence, and Host sequence. Live and replay use the same projection. Pausing
+the visualization fixes only its cursor while new observations continue to be
+admitted; previous, next, explicit event selection, and jump-live never suspend
+or mutate execution. The projection reconstructs subject activity and the
+latest Watch value at or before the selected cursor within one exact execution
+context.
+
+Event-to-graph selection and exact graph-subject filtering are two-way through
+the existing Host-owned semantic navigation. Event rows expose their exact
+execution and subject identities, and Watches remain readable while scrubbing.
+Keyboard controls require no drag gesture, reduced motion preserves all textual
+truth, and the UI explicitly distinguishes replay pause from execution pause.
+Replacement execution contexts remain separate and the prior context stays
+inspectable rather than being silently retargeted.
+
+Overflow eviction, observer telemetry loss, and incomplete historical
+reconstruction are explicit. Unknown subjects, stale revisions, invalid
+cursors, unsupported events, and nonmonotonic input refuse without replacing
+the accepted timeline. This acceptance adds no runtime suspension or resume,
+breakpoint expression, causal ancestry or descendants, speculative topology
+trace, distributed control, authoritative wall-clock time, or physical/HIL
+claim. Those remain #2088 under #2083.
