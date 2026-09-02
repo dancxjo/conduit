@@ -114,6 +114,8 @@ try {
       { parent: 0, component: "failure-status", action: null, key: "failure", text: "Failed" },
       { parent: 0, component: "disclosure", action: null, key: "details", text: "Exact evidence" },
       { parent: 8, component: "paragraph", action: null, key: "evidence", text: "Plan P7" },
+      { parent: 0, component: "disclosure", action: null, key: "reviewed", text: "" },
+      { parent: 10, component: "summary", action: null, key: "reviewed-summary", text: "Reviewed source" },
     ],
   };
   semanticHost.present("semantic", semanticView, { onEvent: (event) => semanticEvents.push(event.action) });
@@ -138,6 +140,8 @@ try {
   assert(failure.dataset.applicationStatus === "failure" && failure.getAttribute("role") === "alert", "failure severity drives an assertive alert");
   const disclosure = semanticRoot.querySelector("[data-application-key=details]");
   assert(disclosure.querySelector(":scope > summary").textContent === "Exact evidence", "disclosure owns one accessible summary");
+  const reviewed = semanticRoot.querySelector("[data-application-key=reviewed]");
+  assert(reviewed.querySelectorAll(":scope > summary").length === 1 && reviewed.querySelector("summary").textContent === "Reviewed source", "explicit disclosure summary is not duplicated");
   disclosure.open = true;
   disclosure.dispatchEvent(new Event("toggle"));
   assert(semanticHost.queuedEvents("semantic") === 0, "local disclosure state does not invent an application event");
