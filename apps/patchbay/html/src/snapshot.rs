@@ -83,6 +83,7 @@ impl RendererSnapshot {
             authoring: None,
             body_workbench: None,
             debugger: None,
+            watches: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -153,6 +154,14 @@ impl RendererSnapshot {
         debugger: patchbay_model::DebuggerPresentation,
     ) -> Result<(), SnapshotError> {
         self.debugger = Some(debugger);
+        self.validate()
+    }
+
+    pub fn attach_watches(
+        &mut self,
+        watches: patchbay_model::DebuggerWatchSet,
+    ) -> Result<(), SnapshotError> {
+        self.watches = Some(watches);
         self.validate()
     }
 
@@ -239,6 +248,39 @@ impl RendererSnapshot {
                         })
                 })
         });
+        let invalid_watches = self.watches.as_ref().is_some_and(|watches| {
+            watches.schema != patchbay_model::DEBUGGER_WATCH_SCHEMA
+                || watches.watches.len() > patchbay_model::MAX_DEBUGGER_WATCHES
+                || watches.eligible_subjects.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
+                || self.debugger.as_ref().map(|debugger| &debugger.execution)
+                    != Some(&watches.execution)
+                || watches.focused_subject.as_ref().is_some_and(|focused| {
+                    !watches
+                        .watches
+                        .iter()
+                        .any(|watch| &watch.subject == focused)
+                })
+                || watches.watches.iter().any(|watch| {
+                    watch.history.len() > patchbay_model::MAX_WATCH_HISTORY_RECORDS
+                        || watch.execution != watches.execution
+                        || !self.presentation.subjects.iter().any(|subject| {
+                            subject.identity == watch.subject
+                                && subject.role
+                                    == match watch.role {
+                                        patchbay_model::DebuggerWatchSubjectRole::Gear => {
+                                            conduit_presentation::PresentationRole::Gear
+                                        }
+                                        patchbay_model::DebuggerWatchSubjectRole::Port => {
+                                            conduit_presentation::PresentationRole::Port
+                                        }
+                                        patchbay_model::DebuggerWatchSubjectRole::Cord => {
+                                            conduit_presentation::PresentationRole::Cord
+                                        }
+                                    }
+                        })
+                        || watch.latest.as_ref() != watch.history.last()
+                })
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -254,6 +296,7 @@ impl RendererSnapshot {
             || invalid_temporal_context
             || invalid_workbench
             || invalid_debugger
+            || invalid_watches
         {
             return Err(SnapshotError::InvalidIdentity);
         }

@@ -70,6 +70,8 @@ pub struct RendererSnapshot {
     pub body_workbench: Option<BrowserBodyWorkbench>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debugger: Option<DebuggerPresentation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub watches: Option<patchbay_model::DebuggerWatchSet>,
     pub interaction: HtmlInteractionState,
 }
 

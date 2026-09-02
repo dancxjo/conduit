@@ -303,7 +303,7 @@ impl DebuggerPresentation {
     }
 }
 
-fn event_name(kind: DebugEventKind) -> &'static str {
+pub(crate) fn event_name(kind: DebugEventKind) -> &'static str {
     match kind {
         DebugEventKind::GearStarted => "gear-started",
         DebugEventKind::GearCompleted => "gear-completed",
@@ -314,7 +314,9 @@ fn event_name(kind: DebugEventKind) -> &'static str {
     }
 }
 
-fn value_presentation(record: &DebugObservationRecord) -> Option<DebuggerValuePresentation> {
+pub(crate) fn value_presentation(
+    record: &DebugObservationRecord,
+) -> Option<DebuggerValuePresentation> {
     if !matches!(
         record.kind,
         DebugEventKind::ValueSent | DebugEventKind::ValueReceived

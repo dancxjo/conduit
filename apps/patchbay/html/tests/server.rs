@@ -60,6 +60,71 @@ fn post_parts_interaction(snapshot: patchbay_html::RendererSnapshot, body: &[u8]
     response
 }
 
+fn post_debugger_watch(snapshot: patchbay_html::RendererSnapshot, body: &[u8]) -> String {
+    let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = std::thread::spawn(move || server.serve_count(1));
+    let mut stream = TcpStream::connect(address).unwrap();
+    write!(
+        stream,
+        "POST /api/debugger-watch HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
+        body.len()
+    )
+    .unwrap();
+    stream.write_all(body).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    worker.join().unwrap().unwrap();
+    response
+}
+
+#[test]
+fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
+    let snapshot = demonstration_snapshot().unwrap();
+    let presentation = snapshot.presentation.clone();
+    let watches = snapshot.watches.as_ref().unwrap();
+    let subject = watches
+        .eligible_subjects
+        .iter()
+        .find(|(_, role)| *role == patchbay_model::DebuggerWatchSubjectRole::Cord)
+        .unwrap()
+        .0
+        .clone();
+    let body = serde_json::to_vec(&serde_json::json!({
+        "presentation_id": presentation.identity.as_str(),
+        "presentation_revision": presentation.revision,
+        "watch_revision": watches.revision,
+        "action": "add",
+        "subject": subject,
+    }))
+    .unwrap();
+    let response = post_debugger_watch(snapshot.clone(), &body);
+    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    let watched = patchbay_html::RendererSnapshot::decode(
+        response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
+        presentation.revision,
+    )
+    .unwrap();
+    assert_eq!(watched.presentation, presentation);
+    let watch = &watched.watches.as_ref().unwrap().watches[0];
+    assert_eq!(watch.subject, subject);
+    assert_eq!(watch.latest.as_ref().unwrap().sequence, 42);
+    assert_eq!(watch.telemetry_gap.as_ref().unwrap().dropped_records, 2);
+
+    let stale = post_debugger_watch(
+        snapshot,
+        &serde_json::to_vec(&serde_json::json!({
+            "presentation_id": presentation.identity.as_str(),
+            "presentation_revision": presentation.revision,
+            "watch_revision": 99,
+            "action": "add",
+            "subject": subject,
+        }))
+        .unwrap(),
+    );
+    assert!(stale.starts_with("HTTP/1.1 400 Bad Request"));
+}
+
 #[test]
 fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let index = request("/", "GET");

@@ -28,7 +28,57 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
+    attach_documentary_debugger(&mut snapshot)?;
     Ok(snapshot)
+}
+
+fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), String> {
+    let find = |role| {
+        snapshot
+            .presentation
+            .subjects
+            .iter()
+            .find(|subject| subject.role == role)
+            .map(|subject| subject.identity.clone())
+            .ok_or_else(|| format!("documentary debugger fixture has no {role:?}"))
+    };
+    let gear = find(conduit_presentation::PresentationRole::Gear)?;
+    let port = find(conduit_presentation::PresentationRole::Port)?;
+    let cord = find(conduit_presentation::PresentationRole::Cord)?;
+    let execution = serde_json::json!({
+        "body": vec![21; 32], "plan": vec![22; 32], "play": vec![23; 32]
+    });
+    let debugger: patchbay_model::DebuggerPresentation = serde_json::from_value(
+        serde_json::json!({
+            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "execution": execution,
+            "revision": 3,
+            "tick": 0,
+            "reduced_motion": false,
+            "gap": { "dropped_records": 2, "first_retained_sequence": 40 },
+            "activities": [
+                { "subject": gear, "line_subject": null, "host": 1, "phase": "faulted", "latest_kind": "fault", "latest_sequence": 40, "observed_count": 1, "coalesced_count": 0, "last_activity_tick": 0, "latest_value": null, "retained_fault_code": 17 },
+                { "subject": port, "line_subject": null, "host": 1, "phase": "active", "latest_kind": "value-received", "latest_sequence": 41, "observed_count": 2, "coalesced_count": 1, "last_activity_tick": 0, "latest_value": { "kind": "text", "summary": "\"hello watch\"", "type_identity": 11, "total_bytes": 11, "truncated": false }, "retained_fault_code": null },
+                { "subject": cord, "line_subject": null, "host": 1, "phase": "active", "latest_kind": "value-sent", "latest_sequence": 42, "observed_count": 3, "coalesced_count": 2, "last_activity_tick": 0, "latest_value": { "kind": "scalar", "summary": "42", "type_identity": 12, "total_bytes": 2, "truncated": false }, "retained_fault_code": null }
+            ]
+        }),
+    )
+    .map_err(|error| error.to_string())?;
+    let watches: patchbay_model::DebuggerWatchSet = serde_json::from_value(serde_json::json!({
+        "schema": patchbay_model::DEBUGGER_WATCH_SCHEMA,
+        "execution": debugger.execution,
+        "revision": 0,
+        "focused_subject": null,
+        "eligible_subjects": [[gear, "gear"], [port, "port"], [cord, "cord"]],
+        "watches": []
+    }))
+    .map_err(|error| error.to_string())?;
+    snapshot
+        .attach_debugger(debugger)
+        .map_err(|error| error.to_string())?;
+    snapshot
+        .attach_watches(watches)
+        .map_err(|error| error.to_string())
 }
 
 pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
