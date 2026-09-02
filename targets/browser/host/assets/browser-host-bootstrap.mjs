@@ -1,6 +1,6 @@
 import { initializeBrowserHost as initializeFromBytes } from "./browser-host-membership.mjs";
 
-const MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
+const MAXIMUM_RUNTIME_BYTES = 5 * 1024 * 1024;
 
 export async function initializeBrowserHost(options = {}) {
   if (options.runtimeBytes) return initializeFromBytes(options.runtimeBytes);
