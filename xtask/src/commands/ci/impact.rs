@@ -39,6 +39,16 @@ const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/patchbay-debugger-pr-proof.yml",
 ];
+const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 8] = [
+    ".github/workflows/executable-book-deploy.yml",
+    ".github/workflows/pages-deploy-pr-proof.yml",
+    "proof/ci/pages-product-run-selection.spec.mjs",
+    "proof/ci/pages-workflow-paths.spec.mjs",
+    "scripts/ci/pages-product-run-selection.mjs",
+    "scripts/ci/resolve-pages-product-run.mjs",
+    "xtask/src/commands/ci/impact.rs",
+    "xtask/src/commands/ci/impact/tests.rs",
+];
 const HARMLESS_PREFIXES: [&str; 2] = ["docs/", "examples/"];
 const HARMLESS_FILES: [&str; 6] = [
     "README.md",
@@ -357,8 +367,20 @@ fn plan_for_paths(
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/browser/executable-book.spec.mjs");
+    let pages_deploy_resolver_slice = substantive
+        .iter()
+        .all(|path| PAGES_DEPLOY_RESOLVER_SLICE.contains(&path.as_str()))
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "scripts/ci/resolve-pages-product-run.mjs")
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "proof/ci/pages-product-run-selection.spec.mjs");
 
     for path in substantive {
+        if pages_deploy_resolver_slice {
+            continue;
+        }
         if creche_presentation_slice {
             selected.insert("browser".to_owned(), true);
             reasons
