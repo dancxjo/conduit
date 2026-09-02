@@ -114,22 +114,25 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         assert!(global.workspace_shards.values().all(|required| *required));
     }
 
-    let pages_workflow = plan_for_paths(
-        &root,
-        vec![".github/workflows/executable-book-pages.yml".to_owned()],
-        &packages,
-    )
-    .unwrap();
-    assert!(!pages_workflow.full_fallback);
-    assert!(!pages_workflow.esp32_required);
-    assert!(pages_workflow.browser_required);
-    assert!(!pages_workflow.conduitos_required);
-    assert!(pages_workflow.workspace_shards["lint"]);
-    assert!(pages_workflow
-        .workspace_shards
-        .iter()
-        .filter(|(shard, _)| shard.as_str() != "lint")
-        .all(|(_, required)| !required));
+    for path in [
+        ".github/workflows/book-pr-proof.yml",
+        ".github/workflows/executable-book-pages.yml",
+    ] {
+        let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(!focused_workflow.full_fallback, "{path}");
+        assert!(!focused_workflow.esp32_required, "{path}");
+        assert!(focused_workflow.browser_required, "{path}");
+        assert!(!focused_workflow.conduitos_required, "{path}");
+        assert!(focused_workflow.workspace_shards["lint"], "{path}");
+        assert!(
+            focused_workflow
+                .workspace_shards
+                .iter()
+                .filter(|(shard, _)| shard.as_str() != "lint")
+                .all(|(_, required)| !required),
+            "{path}"
+        );
+    }
 
     let unknown =
         plan_for_paths(&root, vec!["unknown/new-input.bin".to_owned()], &packages).unwrap();

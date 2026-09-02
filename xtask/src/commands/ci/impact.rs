@@ -34,7 +34,10 @@ const GLOBAL_FILES: [&str; 4] = [
     "rust-toolchain",
     "rust-toolchain.toml",
 ];
-const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/executable-book-pages.yml"];
+const FOCUSED_WORKFLOW_FILES: [&str; 2] = [
+    ".github/workflows/book-pr-proof.yml",
+    ".github/workflows/executable-book-pages.yml",
+];
 const HARMLESS_PREFIXES: [&str; 2] = ["docs/", "examples/"];
 const HARMLESS_FILES: [&str; 6] = [
     "README.md",
