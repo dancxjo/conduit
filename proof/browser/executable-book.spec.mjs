@@ -209,7 +209,7 @@ test("same-named input and output Ports keep distinct animated Cords", async ({ 
   await expect(patchbay.locator(".react-flow__edge-path").first()).toHaveCSS("stroke-dasharray", "none");
 });
 
-test("reading measure stays narrow while the Patchbay workbench uses wide and narrow viewports", async ({ page }) => {
+test("Book tour pairs narrative with Patchbay above source and output, then stacks coherently", async ({ page }) => {
   for (const width of [1440, 1600]) {
     await page.setViewportSize({ width, height: 1000 });
     await openStep(page, 1);
@@ -217,29 +217,70 @@ test("reading measure stays narrow while the Patchbay workbench uses wide and na
       copy: document.querySelector(".chapter-copy").getBoundingClientRect().width,
       workbench: document.querySelector(".book-workbench").getBoundingClientRect().width,
       graph: document.querySelector(".book-flow-root").getBoundingClientRect().width,
+      copyLeft: document.querySelector(".chapter-copy").getBoundingClientRect().left,
+      copyTop: document.querySelector(".chapter-copy").getBoundingClientRect().top,
+      workbenchLeft: document.querySelector(".book-workbench").getBoundingClientRect().left,
+      workbenchTop: document.querySelector(".book-workbench").getBoundingClientRect().top,
+      patchbay: document.querySelector(".compact-patchbay").getBoundingClientRect().toJSON(),
+      source: document.querySelector(".source-editor").getBoundingClientRect().toJSON(),
+      result: document.querySelector(".result").getBoundingClientRect().toJSON(),
       scroll: document.documentElement.scrollWidth,
       viewport: innerWidth,
     }));
     expect(measures.copy).toBeLessThanOrEqual(740);
-    expect(measures.workbench).toBeGreaterThan(width - 100);
-    expect(measures.graph).toBeGreaterThan(500);
+    expect(measures.copy / measures.workbench).toBeGreaterThan(.85);
+    expect(measures.copy / measures.workbench).toBeLessThan(1.15);
+    expect(measures.workbenchLeft).toBeGreaterThan(measures.copyLeft + measures.copy * .9);
+    expect(Math.abs(measures.workbenchTop - measures.copyTop)).toBeLessThan(2);
+    expect(measures.graph).toBeGreaterThan(300);
+    expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.source.top + 1);
+    expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.result.top + 1);
+    expect(Math.abs(measures.source.top - measures.result.top)).toBeLessThan(2);
     expect(measures.scroll).toBeLessThanOrEqual(measures.viewport);
   }
 
   await page.setViewportSize({ width: 700, height: 1000 });
   await openStep(page, 1);
   const narrow = await page.evaluate(() => {
-    const source = document.querySelector(".source-editor").getBoundingClientRect();
+    const copy = document.querySelector(".chapter-copy").getBoundingClientRect();
+    const workbench = document.querySelector(".book-workbench").getBoundingClientRect();
     const patchbay = document.querySelector(".compact-patchbay").getBoundingClientRect();
+    const source = document.querySelector(".source-editor").getBoundingClientRect();
+    const result = document.querySelector(".result").getBoundingClientRect();
     return {
+      copyBottom: copy.bottom,
+      workbenchTop: workbench.top,
+      patchbayBottom: patchbay.bottom,
+      sourceTop: source.top,
       sourceBottom: source.bottom,
-      patchbayTop: patchbay.top,
+      resultTop: result.top,
       scroll: document.documentElement.scrollWidth,
       viewport: innerWidth,
     };
   });
-  expect(narrow.patchbayTop).toBeGreaterThanOrEqual(narrow.sourceBottom - 1);
+  expect(narrow.workbenchTop).toBeGreaterThanOrEqual(narrow.copyBottom - 1);
+  expect(narrow.sourceTop).toBeGreaterThanOrEqual(narrow.patchbayBottom - 1);
+  expect(narrow.resultTop).toBeGreaterThanOrEqual(narrow.sourceBottom - 1);
   expect(narrow.scroll).toBeLessThanOrEqual(narrow.viewport);
+
+  const listing = page.locator(".runner").first().locator("textarea");
+  await listing.focus();
+  const beforeResize = await listing.evaluate((element) => {
+    element.setSelectionRange(7, 7);
+    return element.getBoundingClientRect().height;
+  });
+  await listing.evaluate((element) => { element.style.height = "28rem"; });
+  await expect.poll(() => listing.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(beforeResize);
+  await page.setViewportSize({ width: 1200, height: 1000 });
+  const interaction = await page.evaluate(() => ({
+    activeLabel: document.activeElement?.getAttribute("aria-label"),
+    selection: document.activeElement?.selectionStart,
+    scroll: document.documentElement.scrollWidth,
+    viewport: innerWidth,
+  }));
+  expect(interaction.activeLabel).toBe("Editable Conduit listing");
+  expect(interaction.selection).toBe(7);
+  expect(interaction.scroll).toBeLessThanOrEqual(interaction.viewport);
 });
 
 test("Book Patchbay replaces stale topology with local refusal and the latest accepted edit", async ({ page }) => {
