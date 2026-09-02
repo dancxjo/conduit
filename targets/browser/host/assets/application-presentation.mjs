@@ -1,14 +1,16 @@
-const VERSION = 2;
-const MAX_BYTES = 16_384;
+const VERSION = 3;
+const MAX_BYTES = 131_072;
 const MAX_NODES = 32;
 const MAX_DEPTH = 8;
 const MAX_KEY_BYTES = 32;
 const MAX_TEXT_BYTES = 256;
 const MAX_ACTIONS = 16;
 const MAX_ACTION_ID_BYTES = 48;
-const MAX_EVENT_BYTES = 512;
+const MAX_CONTROL_VALUE_BYTES = 65_536;
+const MAX_EVENT_BYTES = MAX_CONTROL_VALUE_BYTES;
 const MAX_EVENT_QUEUE = 8;
-const EVENT_HEADER_BYTES = 9;
+const MAX_EVENT_QUEUE_BYTES = 131_072;
+const EVENT_HEADER_BYTES = 11;
 
 export class ApplicationPresentationRefusal extends Error {
   constructor(code) {
@@ -107,18 +109,24 @@ export function decodeApplicationView(input) {
     const action = rawAction === 255 ? null : rawAction;
     const keyLength = cursor.byte();
     const textLength = cursor.u16();
+    const valueLength = cursor.u32();
+    const valueCapacity = cursor.u32();
     if (!(component in COMPONENTS)) refuse("unknown-component");
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
+    const isControl = component === 15 || component === 16 || component === 17;
+    if ((isControl && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
+      || (!isControl && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
+    const value = cursor.text(valueLength);
     if (keys.has(key)) refuse("duplicate-key");
     keys.add(key);
     const depth = parent === null ? 1 : depths[parent] + 1;
     if (depth > MAX_DEPTH) refuse("too-deep");
     depths.push(depth);
-    return Object.freeze({ parent, component, action, key, text });
+    return Object.freeze({ parent, component, action, key, text, value, valueCapacity });
   });
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
@@ -151,9 +159,19 @@ export function encodeApplicationView(view) {
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
     const key = new TextEncoder().encode(node.key ?? "");
     const content = new TextEncoder().encode(node.text ?? "");
+    const value = new TextEncoder().encode(node.value ?? "");
+    const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    push(parent, component, action, key.length, content.length & 0xff, content.length >>> 8);
-    chunks.push(key, content);
+    const isControl = component === 15 || component === 16 || component === 17;
+    if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
+      || (isControl && (valueCapacity === 0 || value.length > valueCapacity))
+      || (!isControl && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
+    const nodeHeader = new Uint8Array(14);
+    nodeHeader.set([parent, component, action, key.length, content.length & 0xff, content.length >>> 8]);
+    const headerView = new DataView(nodeHeader.buffer);
+    headerView.setUint32(6, value.length, true);
+    headerView.setUint32(10, valueCapacity, true);
+    chunks.push(nodeHeader, key, content, value);
   }
   const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
   if (length > MAX_BYTES) refuse("oversized-encoding");
@@ -180,7 +198,7 @@ export function encodeApplicationEvent(event) {
   new DataView(encoded.buffer).setUint32(1, event.revision, true);
   encoded[5] = event.kind;
   encoded[6] = action.length;
-  new DataView(encoded.buffer).setUint16(7, value.length, true);
+  new DataView(encoded.buffer).setUint32(7, value.length, true);
   encoded.set(action, EVENT_HEADER_BYTES);
   encoded.set(value, EVENT_HEADER_BYTES + action.length);
   return encoded;
@@ -191,8 +209,11 @@ export function manifestApplicationView(input, root, options = {}) {
   const view = decodeApplicationView(input);
   const theme = options.theme ? decodeApplicationTheme(options.theme) : null;
   const capacity = options.eventCapacity ?? MAX_EVENT_QUEUE;
+  const byteCapacity = options.eventByteCapacity ?? MAX_EVENT_QUEUE_BYTES;
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_EVENT_QUEUE) refuse("queue-pressure");
+  if (!Number.isInteger(byteCapacity) || byteCapacity < 1 || byteCapacity > MAX_EVENT_QUEUE_BYTES) refuse("queue-pressure");
   const queue = [];
+  let queuedBytes = 0;
   let lastRefusal = null;
   const fragment = document.createDocumentFragment();
   const elements = [];
@@ -202,6 +223,11 @@ export function manifestApplicationView(input, root, options = {}) {
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
     element.textContent = node.text;
+    if (node.component === 15 || node.component === 16 || node.component === 17) {
+      element.setAttribute("aria-label", node.text);
+      element.value = node.value;
+      if (node.component !== 16) element.maxLength = node.valueCapacity;
+    }
     if (node.component === 9 || node.component === 20 || node.component === 21) {
       element.setAttribute("aria-live", node.component === 21 ? "assertive" : "polite");
     }
@@ -216,7 +242,13 @@ export function manifestApplicationView(input, root, options = {}) {
           options.onRefusal?.(lastRefusal);
           return;
         }
-        if (queue.length === capacity) {
+        if (value.length > node.valueCapacity) {
+          lastRefusal = "invalid-control-value";
+          options.onRefusal?.(lastRefusal);
+          return;
+        }
+        const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + value.length;
+        if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
           lastRefusal = "queue-pressure";
           options.onRefusal?.(lastRefusal);
           return;
@@ -224,6 +256,7 @@ export function manifestApplicationView(input, root, options = {}) {
         const pending = { revision: view.revision, action: action.id, kind: action.kind, value };
         const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
         queue.push(event);
+        queuedBytes += event.encoded.length;
         options.onEvent?.(event);
       });
     }
@@ -242,8 +275,13 @@ export function manifestApplicationView(input, root, options = {}) {
   }
   return Object.freeze({
     view,
-    nextEvent() { return queue.shift() ?? null; },
+    nextEvent() {
+      const event = queue.shift() ?? null;
+      if (event) queuedBytes -= event.encoded.length;
+      return event;
+    },
     queuedEvents() { return queue.length; },
+    queuedEventBytes() { return queuedBytes; },
     lastRefusal() { return lastRefusal; },
   });
 }
@@ -269,6 +307,7 @@ export function createApplicationPresentationHost(scope = document) {
       refusals.delete(slot);
       const manifestation = manifestApplicationView(encoded, rootFor(slot), {
         eventCapacity: options.eventCapacity,
+        eventByteCapacity: options.eventByteCapacity,
         theme: options.theme,
         onEvent(event) {
           if (revisions.get(slot) !== event.revision) {
@@ -285,11 +324,13 @@ export function createApplicationPresentationHost(scope = document) {
     },
     nextEvent(slot) { return manifestations.get(slot)?.nextEvent() ?? null; },
     queuedEvents(slot) { return manifestations.get(slot)?.queuedEvents() ?? 0; },
+    queuedEventBytes(slot) { return manifestations.get(slot)?.queuedEventBytes() ?? 0; },
     lastRefusal(slot) { return refusals.get(slot) ?? manifestations.get(slot)?.lastRefusal() ?? null; },
   });
 }
 
 export const applicationPresentationLimits = Object.freeze({
   bytes: MAX_BYTES, nodes: MAX_NODES, depth: MAX_DEPTH, textBytes: MAX_TEXT_BYTES,
-  actions: MAX_ACTIONS, resources: 0, eventBytes: MAX_EVENT_BYTES, eventQueue: MAX_EVENT_QUEUE,
+  actions: MAX_ACTIONS, resources: 0, controlValueBytes: MAX_CONTROL_VALUE_BYTES,
+  eventBytes: MAX_EVENT_BYTES, eventQueue: MAX_EVENT_QUEUE, eventQueueBytes: MAX_EVENT_QUEUE_BYTES,
 });
