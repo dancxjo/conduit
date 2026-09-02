@@ -21,6 +21,9 @@ mod current_body_frame;
 mod debugger_presentation;
 #[cfg(test)]
 mod debugger_presentation_tests;
+mod debugger_watch;
+#[cfg(test)]
+mod debugger_watch_tests;
 mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
@@ -124,6 +127,11 @@ pub use debugger_presentation::{
     DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
     DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
     RECENT_ACTIVITY_TICKS,
+};
+pub use debugger_watch::{
+    DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
+    DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
+    DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
 };
 pub use degradation_explanation::{
     PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,

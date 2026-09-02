@@ -15,6 +15,7 @@ mod parts;
 mod text_lab_loss;
 mod theme;
 mod transition;
+mod watches;
 
 use http::{read_request, write_response};
 use theme::render_theme_css;
@@ -301,6 +302,26 @@ impl PatchbayHtmlServer {
                         "400 Bad Request",
                         "text/plain; charset=utf-8",
                         b"invalid interaction request",
+                    );
+                }
+                Err(error) => return Err(error),
+            };
+            return write_response(
+                &mut stream,
+                "200 OK",
+                "application/json; charset=utf-8",
+                &body,
+            );
+        }
+        if first == "POST /api/debugger-watch HTTP/1.1" {
+            let body = match self.apply_debugger_watch(&request.body) {
+                Ok(body) => body,
+                Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                    return write_response(
+                        &mut stream,
+                        "400 Bad Request",
+                        "text/plain; charset=utf-8",
+                        b"invalid debugger Watch request",
                     );
                 }
                 Err(error) => return Err(error),
