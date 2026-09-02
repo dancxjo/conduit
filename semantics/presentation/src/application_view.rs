@@ -44,6 +44,7 @@ pub enum ApplicationComponent {
     SuccessStatus = 20,
     FailureStatus = 21,
     Option = 22,
+    Summary = 23,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -366,6 +367,7 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         20 => Ok(ApplicationComponent::SuccessStatus),
         21 => Ok(ApplicationComponent::FailureStatus),
         22 => Ok(ApplicationComponent::Option),
+        23 => Ok(ApplicationComponent::Summary),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }
