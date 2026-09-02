@@ -31,7 +31,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
   } });
 
   const current = readCurrent(host.runtime);
-  if (current) renderReceipt(runner, current, true, state, { listingId, onDraft });
+  if (current) renderReceipt(runner, current, true, state, { presentation, listingId, onDraft });
   return runner;
 }
 
