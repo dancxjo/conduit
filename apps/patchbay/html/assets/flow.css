@@ -34,7 +34,7 @@
   white-space: nowrap;
 }
 .faceplate-icon { color: var(--patchbay-emphasis); font-weight: 800; }
-.faceplate-title { font-weight: 750; }
+.faceplate-title { color: var(--patchbay-emphasis); font-weight: 750; }
 .faceplate-role {
   color: var(--patchbay-text-secondary);
   font-size: .68rem;
