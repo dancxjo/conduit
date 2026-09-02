@@ -11,6 +11,7 @@ use conduit_kernel::debug_observation::{
 use serde::{Deserialize, Serialize};
 
 pub const DEBUGGER_WATCH_SCHEMA: &str = "conduit.patchbay.debugger-watch-set/v1";
+/// One finite inspector surface may retain no more than this many exact Watches.
 pub const MAX_DEBUGGER_WATCHES: usize = 8;
 pub const MAX_WATCH_HISTORY_RECORDS: usize = 32;
 
