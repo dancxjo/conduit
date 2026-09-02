@@ -485,7 +485,7 @@ jobs:
       - name: Verify the combined Pages carrier
         run: |
           test "$(find target/pages-site/book -type f | wc -l)" -eq 44
-          test "$(find target/pages-site/creche -type f | wc -l)" -eq 74
+          test "$(find target/pages-site/creche -type f | wc -l)" -eq 78
           actual=$(find target/pages-site -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)
           expected=$(printf '%s\n' book creche index.html site.css | LC_ALL=C sort)
           test "$actual" = "$expected"
