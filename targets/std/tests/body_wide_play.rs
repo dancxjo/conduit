@@ -10,6 +10,7 @@ use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
     RouteTarget, ValueRef, ValueStorage,
 };
+use std::collections::BTreeSet;
 
 const PORTS: usize = 1;
 const FORMS: usize = 2;
@@ -212,4 +213,60 @@ fn two_forms_progress_in_one_body_play_through_one_production_kernel_scheduler()
     assert_eq!(scheduler.drivers()[2].form, 1);
     assert_eq!(playing.plans.len(), 1);
     assert_eq!(playing.plans[0].active_play_id, Some(play.active_play_id));
+}
+
+#[test]
+fn the_same_body_plan_model_covers_local_and_distributed_form_partitions() {
+    let distributed = conduit_semantic_catalog::exact_body_coordination_plan(
+        conduit_core::BootId::from("forebrain/boot"),
+        conduit_core::BootId::from("motherbrain/boot"),
+        "line/interbrain",
+    )
+    .unwrap();
+    let distributed_form = ResidentForm::new(
+        distributed.plan.source_document_id.clone(),
+        distributed.plan.checked_form_id.clone(),
+    );
+    let local_form = resident("local-dashboard");
+    let body = Body::born(
+        distributed_form.source_document_id.clone(),
+        distributed_form.checked_form_id.clone(),
+        9,
+        SignId::from("sign/distributed-born"),
+    )
+    .unwrap()
+    .admit_form(local_form.clone(), SignId::from("sign/local-admitted"))
+    .unwrap();
+    let wake = body
+        .wake(1, SignId::from("sign/distributed-woke"))
+        .unwrap()
+        .1;
+    let body_plan = BodyPlan::seal(
+        &wake,
+        vec![
+            BodyFormPlan {
+                form: distributed_form,
+                plan: distributed.plan,
+            },
+            BodyFormPlan {
+                form: local_form.clone(),
+                plan: constituent(&local_form),
+            },
+        ],
+    )
+    .unwrap();
+    let hosts = body_plan
+        .forms
+        .iter()
+        .find(|partition| partition.form != local_form)
+        .unwrap()
+        .plan
+        .fragments
+        .iter()
+        .map(|fragment| fragment.host_id.clone())
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(body_plan.forms.len(), 2);
+    assert_eq!(hosts.len(), 2);
+    assert_eq!(body_plan.workset, wake.workset);
 }
