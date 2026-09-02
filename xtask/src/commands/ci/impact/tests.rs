@@ -131,6 +131,31 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(scheduler_alone.esp32_required);
     assert!(scheduler_alone.conduitos_required);
 
+    let patchbay_package = plan_for_paths(
+        &root,
+        PATCHBAY_PACKAGE_SLICE
+            .iter()
+            .map(|path| (*path).to_owned())
+            .collect(),
+        &packages,
+    )
+    .unwrap();
+    assert!(!patchbay_package.full_fallback);
+    assert!(!patchbay_package.esp32_required);
+    assert!(patchbay_package.browser_required);
+    assert!(!patchbay_package.conduitos_required);
+
+    let incomplete_patchbay_package = plan_for_paths(
+        &root,
+        vec![
+            "Cargo.lock".to_owned(),
+            "apps/patchbay/html/Cargo.toml".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(incomplete_patchbay_package.full_fallback);
+
     for path in ["Cargo.lock", ".github/workflows/check.yml"] {
         let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
         assert!(global.full_fallback, "{path}");

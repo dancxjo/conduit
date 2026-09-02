@@ -57,6 +57,19 @@ const DEBUGGER_KERNEL_SLICE: [&str; 7] = [
     "architecture/kernel/src/scheduler/debug_control.rs",
     "architecture/kernel/tests/debug_observation.rs",
 ];
+const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
+    "Cargo.lock",
+    "apps/patchbay/html/Cargo.toml",
+    "apps/patchbay/html/assets/app.css",
+    "apps/patchbay/html/assets/app.js",
+    "apps/patchbay/html/assets/index.html",
+    "apps/patchbay/html/assets/patchbay.application.template.json",
+    "apps/patchbay/html/src/server.rs",
+    "apps/patchbay/html/src/server/http.rs",
+    "apps/patchbay/html/tests/server.rs",
+    "proof/browser/patchbay-debugger-watch.spec.mjs",
+    "proof/browser/patchbay-html.spec.mjs",
+];
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
@@ -263,6 +276,18 @@ fn plan_for_paths(
         && substantive
             .iter()
             .any(|path| path.as_str() == "architecture/kernel/src/scheduler.rs");
+    let patchbay_package_slice = substantive
+        .iter()
+        .all(|path| PATCHBAY_PACKAGE_SLICE.contains(&path.as_str()))
+        && [
+            "Cargo.lock",
+            "apps/patchbay/html/Cargo.toml",
+            "apps/patchbay/html/assets/patchbay.application.template.json",
+            "apps/patchbay/html/assets/index.html",
+            "apps/patchbay/html/src/server.rs",
+        ]
+        .iter()
+        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
 
     for path in substantive {
         if FOCUSED_WORKFLOW_FILES.contains(&path.as_str()) {
@@ -279,6 +304,14 @@ fn plan_for_paths(
                 .get_mut("browser")
                 .expect("known suite")
                 .push(format!("focused-debugger-kernel:{path}"));
+            continue;
+        }
+        if patchbay_package_slice && path.as_str() == "Cargo.lock" {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push("focused-patchbay-package:Cargo.lock".to_owned());
             continue;
         }
         if GLOBAL_FILES.contains(&path.as_str()) || starts_with_any(path, &GLOBAL_PREFIXES) {
