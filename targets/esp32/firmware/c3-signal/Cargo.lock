@@ -185,8 +185,17 @@ name = "conduit-audio"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-data",
  "libm",
  "serde",
+]
+
+[[package]]
+name = "conduit-data"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
 ]
 
 [[package]]
