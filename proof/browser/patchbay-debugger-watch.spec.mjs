@@ -162,9 +162,9 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await page.locator("#toggle-palette").click();
     await page.locator(`#subjects button[data-subject="${cord}"]`).click();
     await page.getByRole("button", { name: "Focus events for exact subject" }).click();
-    await expect(page.getByRole("list", { name: "Exact retained debugger events" }).getByRole("listitem")).toHaveCount(2);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(2);
     await page.getByRole("button", { name: "Show all events" }).click();
-    await expect(page.getByRole("list", { name: "Exact retained debugger events" }).getByRole("listitem")).toHaveCount(4);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(4);
     await page.getByRole("button", { name: "Jump live" }).press("Enter");
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
     await expect(watch).toContainText("Latest42");
@@ -200,7 +200,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 40" }).click();
     await page.getByRole("button", { name: "Trace upstream" }).click();
-    const exact = page.locator('.timeline-events li[data-causal-trace="exact"]');
+    const exact = page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]');
     await expect(exact).toHaveCount(2);
     await expect(exact.nth(0)).toContainText("trace 1 · seq 39");
     await expect(exact.nth(1)).toContainText("trace 2 · seq 40");
@@ -209,10 +209,10 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await exact.nth(0).getByRole("button").click();
     await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(cord);
     await page.getByRole("button", { name: "Clear causal trace" }).click();
-    await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(0);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(0);
     await page.locator(".timeline-events button").filter({ hasText: "seq 39" }).click();
     await page.getByRole("button", { name: "Trace downstream" }).click();
-    await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(4);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(4);
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
   } finally {
