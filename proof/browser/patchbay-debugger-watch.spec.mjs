@@ -62,7 +62,7 @@ test("the real Patchbay shows one bounded Tongues system across signals, belief,
     await expect(page.locator(".signal-gap")).toHaveCount(0);
     await expect(page.locator('.learned-plot circle[data-disposition="observed"]')).not.toHaveCount(0);
     await expect(page.locator('.learned-plot circle[data-disposition="inferred"]')).not.toHaveCount(0);
-    await expect(page.locator(".watch-card").first()).toContainText("0 dropped");
+    await expect(page.locator(".learned-watch-list")).toContainText("0 dropped");
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
     expect(final.debugger).toEqual(initial.debugger);
@@ -105,9 +105,9 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const card = page.locator(".watch-card").filter({ has: page.getByRole("button", { name: `Watch ${cord}`, exact: true }) });
     await expect(card).toContainText("42");
     await expect(card).toContainText("scalar");
-    await expect(card).toContainText("Latest sequence42");
+    await expect(card).toContainText("Latest sequence 42");
     await expect(card).toContainText("2 observations lost before sequence 40");
-    await expect(page.getByRole("list", { name: `Recent observations for ${cord}` }).getByRole("listitem")).toHaveCount(1);
+    await expect(page.locator('#watch-history [data-application-component="artifact"]')).toHaveCount(1);
 
     const afterAdd = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterAdd.presentation).toEqual(initial.presentation);
@@ -121,7 +121,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await expect(page.getByRole("button", { name: `Watch ${cord}`, exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Clear Watch history", exact: true }).click();
-    await expect(page.getByRole("list", { name: `Recent observations for ${cord}` }).getByRole("listitem")).toHaveCount(0);
+    await expect(page.locator('#watch-history [data-application-component="artifact"]')).toHaveCount(0);
     await page.getByRole("button", { name: "Remove Watch", exact: true }).click();
     await expect(page.locator(".watch-card")).toHaveCount(0);
     const afterRemove = await (await fetch(`${url}/api/snapshot`)).json();
@@ -155,19 +155,19 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await expect(page.locator(".timeline-status")).toContainText("cursor 41");
     const watch = page.locator(".watch-card");
     await expect(watch).toContainText("historical replay");
-    await expect(watch).toContainText("Latest41");
+    await expect(watch.locator('[data-application-component="definition"]').filter({ hasText: "State and latest" })).toContainText("historical replay · 41");
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
-    await expect(page.locator(".exact-selection dl")).toContainText(port);
+    await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(port);
     await page.locator("#toggle-palette").click();
     await page.locator(`#subjects button[data-subject="${cord}"]`).click();
     await page.getByRole("button", { name: "Focus events for exact subject" }).click();
-    await expect(page.getByRole("list", { name: "Exact retained debugger events" }).getByRole("listitem")).toHaveCount(2);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(2);
     await page.getByRole("button", { name: "Show all events" }).click();
-    await expect(page.getByRole("list", { name: "Exact retained debugger events" }).getByRole("listitem")).toHaveCount(4);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(4);
     await page.getByRole("button", { name: "Jump live" }).press("Enter");
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
-    await expect(watch).toContainText("Latest42");
+    await expect(watch.locator('[data-application-component="definition"]').filter({ hasText: "State and latest" })).toContainText("current · 42");
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
   } finally {
@@ -200,19 +200,19 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 40" }).click();
     await page.getByRole("button", { name: "Trace upstream" }).click();
-    const exact = page.locator('.timeline-events li[data-causal-trace="exact"]');
+    const exact = page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]');
     await expect(exact).toHaveCount(2);
     await expect(exact.nth(0)).toContainText("trace 1 · seq 39");
     await expect(exact.nth(1)).toContainText("trace 2 · seq 40");
     await expect(page.locator(".watch-card")).toContainText("Fault 17");
     await expect(page.locator(".causal-trace-exact")).toHaveCount(2);
     await exact.nth(0).getByRole("button").click();
-    await expect(page.locator(".exact-selection dl")).toContainText(cord);
+    await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(cord);
     await page.getByRole("button", { name: "Clear causal trace" }).click();
-    await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(0);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(0);
     await page.locator(".timeline-events button").filter({ hasText: "seq 39" }).click();
     await page.getByRole("button", { name: "Trace downstream" }).click();
-    await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(4);
+    await expect(page.locator('.timeline-events [data-application-component="artifact"][data-causal-trace="exact"]')).toHaveCount(4);
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
   } finally {
