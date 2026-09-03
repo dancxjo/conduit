@@ -27,9 +27,7 @@ h1,h2,h3 { color:var(--amber); }
 .birth-field { display:grid; grid-template-columns:minmax(0,1fr); gap:.4rem; min-width:0; position:relative; }
 .birth-presentation select, .birth-presentation input, .birth-presentation textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
 .birth-presentation select:hover, .birth-presentation input:hover, .birth-presentation textarea:hover { border-color:var(--amber); }
-.select-field { position:relative; min-width:0; }
-.select-field::after { content:""; position:absolute; right:.85rem; top:50%; width:.5rem; height:.5rem; border-right:2px solid var(--amber); border-bottom:2px solid var(--amber); transform:translateY(-65%) rotate(45deg); pointer-events:none; }
-.birth-presentation select, .select-field select { appearance:none; padding-right:2.5rem; }
+.select-field { min-width:0; }
 .birth-presentation textarea { min-height:11rem; resize:vertical; font-family:ui-monospace, monospace; }
 .birth-presentation [data-application-key="seed-source"] summary { margin:.25rem 0 .65rem; cursor:pointer; }
 .seed-source { width:100%; min-width:0; margin:0; position:relative; clear:both; }
@@ -40,6 +38,7 @@ h1,h2,h3 { color:var(--amber); }
 .physical-selection select, .physical-selection output { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
 .physical-selection output { overflow-wrap:anywhere; }
 .physical-selection .select-field { display:block; }
+select { appearance:none; padding-right:2.5rem; background-image:linear-gradient(45deg,transparent 50%,var(--amber) 50%),linear-gradient(135deg,var(--amber) 50%,transparent 50%); background-position:right .95rem center,right .6rem center; background-size:.4rem .4rem; background-repeat:no-repeat; }
 .target-option-note { margin:1.85rem 0 0; color:var(--muted); }
 .body-chain { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:.8rem; align-items:center; }
 .body-chain article { display:grid; gap:.3rem; padding:.7rem; border:1px solid var(--line); border-radius:.6rem; background:var(--field); }
