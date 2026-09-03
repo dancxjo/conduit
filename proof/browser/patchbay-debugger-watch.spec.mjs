@@ -62,7 +62,7 @@ test("the real Patchbay shows one bounded Tongues system across signals, belief,
     await expect(page.locator(".signal-gap")).toHaveCount(0);
     await expect(page.locator('.learned-plot circle[data-disposition="observed"]')).not.toHaveCount(0);
     await expect(page.locator('.learned-plot circle[data-disposition="inferred"]')).not.toHaveCount(0);
-    await expect(page.locator(".watch-card").first()).toContainText("0 dropped");
+    await expect(page.locator(".learned-watch-list")).toContainText("0 dropped");
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
     expect(final.debugger).toEqual(initial.debugger);
@@ -105,9 +105,9 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const card = page.locator(".watch-card").filter({ has: page.getByRole("button", { name: `Watch ${cord}`, exact: true }) });
     await expect(card).toContainText("42");
     await expect(card).toContainText("scalar");
-    await expect(card).toContainText("Latest sequence42");
+    await expect(card).toContainText("Latest sequence 42");
     await expect(card).toContainText("2 observations lost before sequence 40");
-    await expect(page.getByRole("list", { name: `Recent observations for ${cord}` }).getByRole("listitem")).toHaveCount(1);
+    await expect(page.locator('#watch-history [data-application-component="artifact"]')).toHaveCount(1);
 
     const afterAdd = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterAdd.presentation).toEqual(initial.presentation);
@@ -121,7 +121,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await expect(page.getByRole("button", { name: `Watch ${cord}`, exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Clear Watch history", exact: true }).click();
-    await expect(page.getByRole("list", { name: `Recent observations for ${cord}` }).getByRole("listitem")).toHaveCount(0);
+    await expect(page.locator('#watch-history [data-application-component="artifact"]')).toHaveCount(0);
     await page.getByRole("button", { name: "Remove Watch", exact: true }).click();
     await expect(page.locator(".watch-card")).toHaveCount(0);
     const afterRemove = await (await fetch(`${url}/api/snapshot`)).json();
@@ -155,7 +155,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await expect(page.locator(".timeline-status")).toContainText("cursor 41");
     const watch = page.locator(".watch-card");
     await expect(watch).toContainText("historical replay");
-    await expect(watch).toContainText("Latest41");
+    await expect(watch.locator('[data-application-component="definition"]').filter({ hasText: "State and latest" })).toContainText("historical replay · 41");
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
     await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(port);
@@ -167,7 +167,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(4);
     await page.getByRole("button", { name: "Jump live" }).press("Enter");
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
-    await expect(watch).toContainText("Latest42");
+    await expect(watch.locator('[data-application-component="definition"]').filter({ hasText: "State and latest" })).toContainText("current · 42");
     const final = await (await fetch(`${url}/api/snapshot`)).json();
     expect(final.presentation).toEqual(initial.presentation);
   } finally {
