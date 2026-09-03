@@ -7,7 +7,7 @@ mod structure;
 pub const APPLICATION_VIEW_VERSION: u8 = 7;
 /// Version 6 omitted structural form, stepper, and progress components.
 pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 6;
-pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
+pub const MAX_APPLICATION_VIEW_NODES: usize = 40;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
 pub const MAX_APPLICATION_VIEW_TEXT_BYTES: usize = 256;

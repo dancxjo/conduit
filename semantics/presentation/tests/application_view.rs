@@ -135,6 +135,43 @@ fn malformed_oversized_and_noncanonical_views_refuse() {
 }
 
 #[test]
+fn the_forty_node_product_boundary_is_exact() {
+    let mut admitted = view();
+    for index in admitted.nodes.len()..MAX_APPLICATION_VIEW_NODES {
+        admitted.nodes.push(ApplicationViewNode {
+            parent: Some(0),
+            component: ApplicationComponent::Paragraph,
+            key: format!("bounded-{index}"),
+            text: "finite product content".into(),
+            value: String::new(),
+            value_capacity: 0,
+            action: None,
+            state: ApplicationNodeState::Ready,
+        });
+    }
+    assert_eq!(admitted.nodes.len(), MAX_APPLICATION_VIEW_NODES);
+    assert_eq!(
+        ApplicationView::decode(&admitted.encode().unwrap()),
+        Ok(admitted.clone())
+    );
+
+    admitted.nodes.push(ApplicationViewNode {
+        parent: Some(0),
+        component: ApplicationComponent::Paragraph,
+        key: "one-too-many".into(),
+        text: String::new(),
+        value: String::new(),
+        value_capacity: 0,
+        action: None,
+        state: ApplicationNodeState::Ready,
+    });
+    assert_eq!(
+        admitted.validate(),
+        Err(ApplicationViewRefusal::TooManyNodes)
+    );
+}
+
+#[test]
 fn duplicate_keys_unknown_actions_and_depth_refuse() {
     let mut duplicate = view();
     duplicate.nodes[2].key = "heading".into();
