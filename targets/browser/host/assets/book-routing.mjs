@@ -22,7 +22,7 @@ export function createBookRouting({ host, applicationId, isRunning, currentPage,
       [new URL("same-face-different-implementation/", document.baseURI).pathname, 1],
     ]);
     const index = legacyRoutes.get(location.pathname) ?? routes.indexOf(location.pathname);
-    if (index === -1) throw new Error("this Book page does not exist");
+    if (index === -1) throw new Error("this Tour page does not exist");
     return index;
   };
   const move = async (index, mode) => {
@@ -41,7 +41,7 @@ export function createBookRouting({ host, applicationId, isRunning, currentPage,
       path: routes[index],
     });
     if (outcome.disposition !== "completed" || outcome.path !== routes[index]) {
-      throw new Error(`Book location ${mode} refused (${outcome.disposition})`);
+      throw new Error(`Tour location ${mode} refused (${outcome.disposition})`);
     }
   };
 
@@ -57,10 +57,10 @@ export function createBookRouting({ host, applicationId, isRunning, currentPage,
     admitPages(markdownPages) {
       routes = markdownPages.map((markdown) => {
         const title = markdown.match(/^# (.+)$/m)?.[1];
-        if (!title) throw new Error("a Book page has no title");
+        if (!title) throw new Error("a Tour page has no title");
         const slug = title.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "")
           .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        if (!slug) throw new Error("a Book page has no route identity");
+        if (!slug) throw new Error("a Tour page has no route identity");
         return new URL(`${slug}/`, document.baseURI).pathname;
       });
       return Object.freeze({ index: indexForLocation(), normalize: isProductRoot() });

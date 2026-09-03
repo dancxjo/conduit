@@ -77,7 +77,7 @@ try {
   hostStatus.success("Browser Host ready");
   globalThis.__conduitBookHost = host;
   globalThis.__conduitBookPersistence = Object.freeze({
-    schema: "conduit.book/persistence@1",
+    schema: "conduit.tour/persistence@1",
     flush: readingState.flush,
   });
 } catch (error) {
@@ -126,7 +126,7 @@ function parseBookPages(chapters) {
     if (line.startsWith("# ") || current.length > 0) current.push(line);
   }
   if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length === 0) throw new Error("the Book has no pages");
+  if (parsed.length === 0) throw new Error("Tour has no pages");
   return parsed;
 }
 
@@ -138,7 +138,7 @@ async function renderPage(index, routeChange = "none") {
   chapter.replaceChildren();
   renderMarkdown(guidedPages[index]);
   navigation.render(currentPage, guidedPages.length, running);
-  document.title = (chapter.querySelector("h1")?.textContent ?? "The Book") + " · The Book";
+  document.title = (chapter.querySelector("h1")?.textContent ?? "Tour") + " · Tour";
 }
 
 function setNavigationDisabled(disabled) {
@@ -294,7 +294,7 @@ function createCrecheCallToAction(label = "Birth a Body") {
   explanation.textContent = "The Book explains the idea. The Crèche owns the stateful birth and provisioning workflow.";
   const link = document.createElement("a");
   const configuredUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content.trim();
-  if (!configuredUrl) throw new Error("the Book has no configured Crèche entrance");
+  if (!configuredUrl) throw new Error("Tour has no configured Crèche entrance");
   link.href = configuredUrl;
   link.textContent = label;
   callout.append(explanation, link);

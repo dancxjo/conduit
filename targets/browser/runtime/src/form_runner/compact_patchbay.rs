@@ -80,16 +80,16 @@ pub(super) fn project(
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
-            "parse compact Book Patchbay: {}",
+            "parse compact Tour Patchbay: {}",
             diagnostic.message
         ));
     }
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check compact Book Patchbay: {error:?}"))?;
+        .map_err(|error| format!("check compact Tour Patchbay: {error:?}"))?;
     let entry = checked
         .forms
         .last()
-        .ok_or_else(|| "compact Book Patchbay source has no Form".to_owned())?
+        .ok_or_else(|| "compact Tour Patchbay source has no Form".to_owned())?
         .name
         .clone();
 
@@ -108,7 +108,7 @@ pub(super) fn project(
                 error,
             )
         }
-        Err(error) => return Err(format!("expand compact Book Patchbay: {error:?}")),
+        Err(error) => return Err(format!("expand compact Tour Patchbay: {error:?}")),
     };
     admit_topology(&visible)?;
     let realized = recursive
@@ -119,7 +119,7 @@ pub(super) fn project(
                 &catalog,
                 &backs(&startup, &catalog)?,
             )
-            .map_err(|error| format!("expand recursive compact Book Patchbay: {error:?}"))
+            .map_err(|error| format!("expand recursive compact Tour Patchbay: {error:?}"))
         })
         .transpose()?;
     let realization = realized.as_ref().unwrap_or(&visible);
@@ -206,7 +206,7 @@ fn project_incompatible_cord(
         .forms
         .iter()
         .find(|form| form.name == entry)
-        .ok_or_else(|| "compact Book Patchbay checked Form disappeared".to_owned())?;
+        .ok_or_else(|| "compact Tour Patchbay checked Form disappeared".to_owned())?;
     let prefix = format!("{entry}/");
     let mut gears = Vec::new();
     for gear in &form.gears {
@@ -286,7 +286,7 @@ fn project_incompatible_cord(
         }
     }
     let diagnostic =
-        diagnostic.ok_or_else(|| format!("expand compact Book Patchbay: {error:?}"))?;
+        diagnostic.ok_or_else(|| format!("expand compact Tour Patchbay: {error:?}"))?;
     admit_draft_topology(&gears, &cords)?;
     Ok(CompactPatchbayProjection {
         schema: "conduit.book/compact-patchbay@1",
@@ -325,13 +325,13 @@ fn admit_draft_topology(gears: &[CompactGear], cords: &[CompactCord]) -> Result<
 fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
     if form.gears.len() > MAXIMUM_BROWSER_GEARS {
         return Err(format!(
-            "compact Book Patchbay Gear bound exceeded: {} > {MAXIMUM_BROWSER_GEARS}",
+            "compact Tour Patchbay Gear bound exceeded: {} > {MAXIMUM_BROWSER_GEARS}",
             form.gears.len()
         ));
     }
     if form.connections.len() > MAXIMUM_BROWSER_CORDS {
         return Err(format!(
-            "compact Book Patchbay Cord bound exceeded: {} > {MAXIMUM_BROWSER_CORDS}",
+            "compact Tour Patchbay Cord bound exceeded: {} > {MAXIMUM_BROWSER_CORDS}",
             form.connections.len()
         ));
     }
@@ -341,7 +341,7 @@ fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
             .checked_add(gear.outputs.len())
     });
     if ports.is_none_or(|count| count > MAXIMUM_COMPACT_PORTS) {
-        return Err("compact Book Patchbay Port bound exceeded".into());
+        return Err("compact Tour Patchbay Port bound exceeded".into());
     }
     Ok(())
 }
@@ -411,7 +411,7 @@ mod tests {
     fn invalid_cord_projects_the_draft_and_topology_bounds_still_refuse() {
         assert!(project("form nope {", 1, false)
             .unwrap_err()
-            .starts_with("parse compact Book Patchbay"));
+            .starts_with("parse compact Tour Patchbay"));
         let wrong_type = r#"form wrong {
     text: text/literal("x")
     light: presentation/indicator

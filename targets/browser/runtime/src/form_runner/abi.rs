@@ -95,7 +95,7 @@ fn project_patchbay(source_length: usize, sequence: u64, recursive: bool) -> i32
     INPUT.with(|input| {
         let mut input = input.borrow_mut();
         let result = core::str::from_utf8(&input[..source_length])
-            .map_err(|_| "compact Book Patchbay source is not UTF-8".to_owned())
+            .map_err(|_| "compact Tour Patchbay source is not UTF-8".to_owned())
             .and_then(|source| super::compact_patchbay::project(source, sequence, recursive));
         input[..source_length].fill(0);
         match result {

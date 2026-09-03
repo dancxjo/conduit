@@ -67,7 +67,7 @@ printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
 done
 
 node scripts/ci/build-browser-application-package.mjs \
-    targets/browser/host/assets/book.application.template.json "$destination"
+    targets/browser/host/assets/book.application.template.json "$destination" tour.application.json
 
 test "$(find "$destination" -type f | wc -l)" -eq 47
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
