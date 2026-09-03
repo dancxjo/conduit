@@ -84,17 +84,17 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
       }
       activeListChunks.set(slotPrefix, usedChunks);
     },
-    boundedArtifacts(slotPrefix, entries) {
+    boundedArtifacts(slotPrefix, entries, entriesPerSlot = 4) {
       const slots = [];
       for (let index = 0; ; index += 1) {
         const slot = scope.querySelector(`[data-application-slot="${slotPrefix}-${index}"]`);
         if (!slot) break;
         slots.push(slot);
       }
-      if (entries.length > slots.length * 4) throw new Error(`shared ${slotPrefix} capacity exceeded`);
-      const usedChunks = Math.ceil(entries.length / 4), previousChunks = activeListChunks.get(slotPrefix) ?? 0;
+      if (entriesPerSlot < 1 || entriesPerSlot > 4 || entries.length > slots.length * entriesPerSlot) throw new Error(`shared ${slotPrefix} capacity exceeded`);
+      const usedChunks = Math.ceil(entries.length / entriesPerSlot), previousChunks = activeListChunks.get(slotPrefix) ?? 0;
       for (let slotIndex = 0; slotIndex < Math.max(usedChunks, previousChunks); slotIndex += 1) {
-        const root = slots[slotIndex], chunk = entries.slice(slotIndex * 4, slotIndex * 4 + 4), slot = `${slotPrefix}-${slotIndex}`;
+        const root = slots[slotIndex], chunk = entries.slice(slotIndex * entriesPerSlot, slotIndex * entriesPerSlot + entriesPerSlot), slot = `${slotPrefix}-${slotIndex}`;
         root.hidden = chunk.length === 0;
         if (chunk.length === 0) { present(slot, { actions: [], nodes: [{ parent: null, component: "stack", key: "empty", text: "", action: null }] }); continue; }
         const actions = chunk.flatMap(entry => entry.actions);
@@ -115,6 +115,7 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
           entry.actions.forEach((action, entryActionIndex) => { nodes.push({ parent, component: "button", key: `action-${entryIndex}-${entryActionIndex}`, text: action.label, action: actionIndex });actionIndex += 1; });
         });
         present(slot, { actions: actions.map((_, index) => ({ id: `artifact-action-${index}`, event: "activate" })), nodes }, { onEvent(event) { actions[Number(event.action.slice("artifact-action-".length))]?.run(); } });
+        root.querySelectorAll('[data-application-component="artifact"]').forEach((artifact, index) => chunk[index].annotate?.(artifact));
         root.querySelectorAll("button").forEach((control, index) => actions[index].annotate?.(control));
       }
       activeListChunks.set(slotPrefix, usedChunks);
