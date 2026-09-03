@@ -109,9 +109,10 @@ pub use advice::{
 };
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
-    default_expanded_placements, plan_expanded_canonical,
+    default_expanded_placements, plan_canonical_realization_with_options, plan_expanded_canonical,
     plan_expanded_canonical_with_connection_limits, plan_expanded_canonical_with_options,
-    plan_expanded_canonical_with_shared_pools, SharedPoolPlanningRequirement,
+    plan_expanded_canonical_with_shared_pools, CanonicalRealizationMode,
+    CanonicalRealizationSelectionError, PlannedCanonicalRealization, SharedPoolPlanningRequirement,
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics,
