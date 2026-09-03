@@ -1,3 +1,11 @@
+//! LLM-oriented hosted model profile.
+//!
+//! This remains a specialization of the generalized model mechanism: its
+//! model content corresponds to a `ModelArtifact`, its finite LLM operations
+//! correspond to a subset of `ModelSignature`, and its runtime fields belong
+//! to `ModelRuntimeRealization`. Existing LLM Kind identities remain intact;
+//! this module is not the provider-neutral model vocabulary.
+
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     compute_resource_requirement, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
+conduit-data = { path = "../data" }
 conduit-time = { path = "../time", default-features = false }
 conduit-form = { path = "../../architecture/form", optional = true }
 conduit-web = { path = "../web", optional = true, default-features = false, features = ["form-catalog"] }
