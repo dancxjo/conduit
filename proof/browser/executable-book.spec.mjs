@@ -968,10 +968,14 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   });
   expect(evidence.obtainment).toMatchObject({
     target_id: "browser/wasm32/page",
-    package_id: "browser-wasm@1",
-    output: "browser-bundle",
-    bundle_sha256: release.bundle_sha256,
+    distribution_sha256: release.bundle_sha256,
+    builder_adapter: "conduit-host-browser/bind-prebuilt@1",
+    compiler_started: false,
+    build_id: expect.stringMatching(/^build:sha256:/),
+    image_id: expect.stringMatching(/^image:sha256:/),
   });
+  expect(evidence.obtainment.image_content_digest).not.toBe(release.bundle_sha256);
+  expect(evidence.obtainment.bundle_sha256).toBe(evidence.obtainment.image_content_digest);
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
@@ -984,7 +988,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
     output: "browser-bundle",
     fabrication_package_id: "browser-wasm@1",
     deployment_adapter: "conduit-host-browser/load@1",
-    image_content_digest: release.bundle_sha256,
+    image_content_digest: evidence.obtainment.image_content_digest,
   });
   const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
     const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
@@ -1000,6 +1004,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   });
   expect(bundle.magic).toBe("PK\u0003\u0004");
   expect(bundle.files).toContain("runtime.wasm");
+  expect(bundle.files).toContain("conduit-browser-image.json");
   expect(bundle.provision).toMatchObject({
     schema: "conduit.spore/native-package-provision@1",
     spore: { spore_id: evidence.binding.spore_id, body_id: birth.bodyId },
