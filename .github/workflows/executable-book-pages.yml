@@ -534,7 +534,7 @@ jobs:
           path: |
             target/debug/conduit-browser-host
             target/pages-root
-            target/book-product
+            target/tour-product
             target/creche-product
             target/patchbay-product
           if-no-files-found: error
