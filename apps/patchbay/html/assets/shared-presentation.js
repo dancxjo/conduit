@@ -46,8 +46,13 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
       const controls = scope.querySelector(`[data-application-slot="${slot}"]`).querySelectorAll("button");
       controls.forEach((control, index) => entries[index].annotate?.(control));
     },
-    boundedList(slotPrefix, entries, selectedIdentity) {
-      const slots = Array.from(scope.querySelectorAll(`[data-application-slot^="${slotPrefix}-"]`));
+    boundedList(slotPrefix, label, entries, selectedIdentity) {
+      const slots = [];
+      for (let index = 0; ; index += 1) {
+        const slot = scope.querySelector(`[data-application-slot="${slotPrefix}-${index}"]`);
+        if (!slot) break;
+        slots.push(slot);
+      }
       if (entries.length > slots.length * 16) throw new Error(`shared ${slotPrefix} capacity exceeded`);
       const usedChunks = Math.ceil(entries.length / 16), previousChunks = activeListChunks.get(slotPrefix) ?? 0;
       for (let slotIndex = 0; slotIndex < Math.max(usedChunks, previousChunks); slotIndex += 1) {
@@ -63,8 +68,11 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
         present(slot, {
           actions: chunk.map((_, index) => ({ id: `choose-${index}`, event: "activate" })),
           nodes: [
-            { parent: null, component: "navigation", key: "items", text: "Canonical Presentation subjects", value: selected < 0 ? "" : `item-${selected}`, valueCapacity: selected < 0 ? 0 : 32, action: null },
-            ...chunk.map((entry, index) => ({ parent: 0, component: "button", key: `item-${index}`, text: entry.text, action: index })),
+            { parent: null, component: "navigation", key: "items", text: label, value: selected < 0 ? "" : `item-${selected}`, valueCapacity: selected < 0 ? 0 : 32, action: null },
+            ...chunk.flatMap((entry, index) => [
+              { parent: 0, component: "button", key: `item-${index}`, text: entry.text, action: index },
+              ...(entry.detail ? [{ parent: 0, component: "paragraph", key: `detail-${index}`, text: entry.detail, action: null }] : []),
+            ]),
           ],
         }, { onEvent(event) { chunk[Number(event.action.slice("choose-".length))]?.run(); } });
         root.querySelectorAll("button").forEach((control, index) => {

@@ -47,16 +47,16 @@
           <h3 id="seed-palette-title">Available .conduit Seeds</h3>
           <label for="seed-query">Find a Seed</label>
           <input id="seed-query" type="search" maxlength="128" autocomplete="off" aria-controls="seed-results" aria-describedby="seed-results-status">
-          <p id="seed-results-status" role="status" aria-live="polite"></p>
-          <ul id="seed-results" aria-label="Available Seeds"></ul>
+          <div id="seed-results-status" data-application-slot="seed-results-status"></div>
+          <div id="seed-results" aria-label="Available Seeds"><div data-application-slot="seed-results-0"></div></div>
         </section>
         <section id="gear-palette" aria-labelledby="gear-palette-title" hidden>
           <h3 id="gear-palette-title">Gears · reusable Kinds</h3>
           <p>Place semantic Kinds into the opened canonical Form.</p>
           <label for="gear-query">Find a Gear</label>
           <input id="gear-query" type="search" maxlength="96" autocomplete="off" aria-controls="gear-results" aria-describedby="gear-results-status">
-          <p id="gear-results-status" role="status" aria-live="polite"></p>
-          <ul id="gear-results" aria-label="Available Gear Kinds"></ul>
+          <div id="gear-results-status" data-application-slot="gear-results-status"></div>
+          <div id="gear-results" aria-label="Available Gear Kinds"><div data-application-slot="gear-results-0"></div><div data-application-slot="gear-results-1"></div><div data-application-slot="gear-results-2"></div><div data-application-slot="gear-results-3"></div><div data-application-slot="gear-results-4"></div></div>
         </section>
         <details><summary>Exact Form identity</summary><div id="form-facts" data-application-slot="form-facts"></div></details>
         <h3 id="structure-title">World context</h3>
