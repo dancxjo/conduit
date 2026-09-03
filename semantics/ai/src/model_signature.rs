@@ -50,6 +50,8 @@ pub struct ModelTensorConstraint {
 pub enum ModelValueConstraint {
     Tensor(ModelTensorConstraint),
     SampledSignal(ModelTensorConstraint),
+    ProbabilisticTensor(ModelTensorConstraint),
+    ProbabilisticSignal(ModelTensorConstraint),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,6 +147,8 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
     let (tensor, signal) = match &port.value {
         ModelValueConstraint::Tensor(tensor) => (tensor, false),
         ModelValueConstraint::SampledSignal(tensor) => (tensor, true),
+        ModelValueConstraint::ProbabilisticTensor(tensor) => (tensor, false),
+        ModelValueConstraint::ProbabilisticSignal(tensor) => (tensor, true),
     };
     if tensor.elements.is_empty()
         || tensor.elements.len() > MAXIMUM_MODEL_ELEMENTS
@@ -210,6 +214,14 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
             }
             ModelValueConstraint::SampledSignal(value) => {
                 output.push(1);
+                value
+            }
+            ModelValueConstraint::ProbabilisticTensor(value) => {
+                output.push(2);
+                value
+            }
+            ModelValueConstraint::ProbabilisticSignal(value) => {
+                output.push(3);
                 value
             }
         };
