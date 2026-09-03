@@ -2,7 +2,7 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
-import { createBookEvidenceTables, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
+import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
@@ -351,6 +351,7 @@ function createMultiHostRunner(source, showPlan) {
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
   const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
   const runSlot = `book-run-evidence-${runnerSlotSequence}`;
+  const planSlot = `book-plan-evidence-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner multi-host-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -376,7 +377,7 @@ function createMultiHostRunner(source, showPlan) {
       <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
         <h3>Checked Form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
         <h3>Latest run</h3><div class="run-identities" data-application-slot="${runSlot}"></div><div class="expansion"></div>
-        <h3>Exact Plan for this Play</h3><div class="plan-view"></div><div class="raw-plan"><h4>Raw Plan evidence</h4><pre><code></code></pre></div>
+        <h3>Exact Plan for this Play</h3><div class="plan-view" data-application-slot="${planSlot}"></div>
       </details>
     </div>`;
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
@@ -397,6 +398,7 @@ function createMultiHostRunner(source, showPlan) {
     runnerPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
   );
   runner.evidence = createBookEvidenceTables(runnerPresentation, exactSlot, runSlot);
+  runner.planEvidence = createBookPlanPresentation(runnerPresentation, planSlot);
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, false);
   return runner;
@@ -838,35 +840,7 @@ function renderHostCard(runner, suffix, identity, state) {
 }
 
 function renderPlanProjection(runner, plan) {
-  const view = runner.querySelector(".plan-view");
-  view.replaceChildren();
-  const explanation = document.createElement("p");
-  explanation.textContent = plan.explanation;
-  const planId = document.createElement("code");
-  planId.className = "projected-plan-id";
-  planId.textContent = plan.plan_id;
-  const hosts = document.createElement("div");
-  hosts.className = "projected-hosts";
-  for (const projected of plan.hosts) {
-    const card = document.createElement("article");
-    const title = document.createElement("strong");
-    title.textContent = `${projected.label} · one Play`;
-    const identity = document.createElement("code");
-    identity.textContent = projected.host_id;
-    const gears = document.createElement("ul");
-    for (const gear of projected.gears) {
-      const item = document.createElement("li");
-      item.textContent = `${gear.kind_id} → ${gear.implementation_id}`;
-      gears.append(item);
-    }
-    card.append(title, identity, gears);
-    hosts.append(card);
-  }
-  const cord = document.createElement("p");
-  cord.className = "projected-cord";
-  cord.textContent = `Cross-Host ${plan.cord.value_kind} Cord · ${plan.cord.line_id} · ${plan.cord.maximum_in_flight_items} item / ${plan.cord.maximum_payload_bytes} bytes`;
-  view.append(explanation, planId, hosts, cord);
-  runner.querySelector(".raw-plan code").textContent = JSON.stringify(plan.raw_plan, null, 2);
+  runner.planEvidence.render(plan);
   runner.querySelector(".plan-view-details").dataset.planId = plan.plan_id;
 }
 

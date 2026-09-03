@@ -72,3 +72,65 @@ export function createBookEvidenceTables(presentation, exactSlot, runSlot) {
     },
   });
 }
+
+const MAXIMUM_PROJECTED_HOSTS = 4;
+const MAXIMUM_GEARS_PER_HOST = 4;
+const MAXIMUM_RAW_PLAN_BYTES = 65_536;
+
+export function createBookPlanPresentation(presentation, slot) {
+  let revision = 0;
+  return Object.freeze({
+    render(plan) {
+      if (!Array.isArray(plan.hosts) || plan.hosts.length === 0 || plan.hosts.length > MAXIMUM_PROJECTED_HOSTS
+        || plan.hosts.some((host) => !Array.isArray(host.gears)
+          || host.gears.length === 0 || host.gears.length > MAXIMUM_GEARS_PER_HOST)) {
+        throw new Error("Book Plan projection exceeds its admitted Host or Gear bound");
+      }
+      const rawPlan = JSON.stringify(plan.raw_plan, null, 2);
+      if (new TextEncoder().encode(rawPlan).length > MAXIMUM_RAW_PLAN_BYTES) {
+        throw new Error("Book raw Plan evidence exceeds its admitted byte bound");
+      }
+
+      const nodes = [
+        { parent: null, component: "panel", key: "plan", text: "", action: null },
+        { parent: 0, component: "paragraph", key: "explanation", text: plan.explanation, action: null },
+        { parent: 0, component: "code", key: "plan-id", text: plan.plan_id, action: null },
+        { parent: 0, component: "grid", key: "hosts", text: "", action: null },
+      ];
+      for (const [hostIndex, projected] of plan.hosts.entries()) {
+        const card = nodes.length;
+        nodes.push({
+          parent: 3, component: "artifact", key: `host-${hostIndex}`,
+          text: `${projected.label} · one Play`, action: null,
+        });
+        nodes.push({
+          parent: card, component: "code", key: `host-${hostIndex}-identity`,
+          text: projected.host_id, action: null,
+        });
+        const gears = nodes.length;
+        nodes.push({
+          parent: card, component: "definition-table", key: `host-${hostIndex}-gears`,
+          text: `${projected.label} selected Gears`, action: null,
+        });
+        for (const [gearIndex, gear] of projected.gears.entries()) {
+          nodes.push({
+            parent: gears, component: "definition", key: `host-${hostIndex}-gear-${gearIndex}`,
+            text: gear.kind_id, value: gear.implementation_id, valueCapacity: 4096, action: null,
+          });
+        }
+      }
+      nodes.push({
+        parent: 0, component: "paragraph", key: "cord",
+        text: `Cross-Host ${plan.cord.value_kind} Cord · ${plan.cord.line_id} · ${plan.cord.maximum_in_flight_items} item / ${plan.cord.maximum_payload_bytes} bytes`,
+        action: null,
+      });
+      const raw = nodes.length;
+      nodes.push({ parent: 0, component: "artifact", key: "raw-plan", text: "Raw Plan evidence", action: null });
+      nodes.push({
+        parent: raw, component: "code-block", key: "raw-plan-json", text: "json",
+        value: rawPlan, valueCapacity: MAXIMUM_RAW_PLAN_BYTES, action: null,
+      });
+      presentation.present(slot, { revision: ++revision, actions: [], nodes });
+    },
+  });
+}

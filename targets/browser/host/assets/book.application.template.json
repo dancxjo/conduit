@@ -11,7 +11,7 @@
     { "role": "book-state", "kind": "module", "path": "book-state.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "book-navigation", "kind": "module", "path": "book-navigation.mjs", "maximum_bytes": 4096, "dependencies": [] },
     { "role": "book-inventory-presentation", "kind": "module", "path": "book-inventory-presentation.mjs", "maximum_bytes": 4096, "dependencies": [] },
-    { "role": "book-runner-presentation", "kind": "module", "path": "book-runner-presentation.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "book-runner-presentation", "kind": "module", "path": "book-runner-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "book-syntax-editor", "kind": "module", "path": "book-syntax-editor.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "patchbay-flow", "kind": "module", "path": "assets/flow.js", "maximum_bytes": 16384, "dependencies": [{"role":"patchbay-flow-scene","specifier":"./flow-scene.js"},{"role":"patchbay-faceplate","specifier":"./flow-faceplate.js"}] },
     { "role": "patchbay-flow-scene", "kind": "module", "path": "assets/flow-scene.js", "maximum_bytes": 32768, "dependencies": [{"role":"patchbay-flow-layout","specifier":"./flow-layout.js"},{"role":"patchbay-portable-navigation","specifier":"./portable-navigation.js"}] },
