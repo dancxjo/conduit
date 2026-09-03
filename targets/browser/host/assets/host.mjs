@@ -22,14 +22,27 @@ try {
   document.querySelector("#identity").hidden = false;
   globalThis.__conduitBrowserHost = Object.freeze({ hostId, bootId, runtime: api });
   const { createBrowserMediaHost } = await import("./media-host.mjs");
-  const media = createBrowserMediaHost({ api, hostId, bootId });
+  const media = createBrowserMediaHost({
+    api,
+    hostId,
+    bootId,
+    selectedImplementations: [
+      "browser/media-devices-camera@1",
+      "browser/media-devices-microphone@1",
+    ],
+  });
   document.querySelector("#media").hidden = false;
   document.querySelector("#camera").addEventListener("click", () => media.acquire("camera"));
   document.querySelector("#microphone").addEventListener("click", () => media.acquire("microphone"));
   const { createBrowserDeviceBase } = await import("./device-base.mjs");
-  const devices = createBrowserDeviceBase({ api, hostId, bootId });
+  const selectedDeviceImplementations = ["browser/webserial@1", "browser/webusb@1"];
+  const devices = createBrowserDeviceBase({
+    api, hostId, bootId, selectedImplementations: selectedDeviceImplementations,
+  });
   const { createBrowserUsbDeviceBase } = await import("./usb-device-base.mjs");
-  const usbDevices = createBrowserUsbDeviceBase({ api, hostId, bootId });
+  const usbDevices = createBrowserUsbDeviceBase({
+    api, hostId, bootId, selectedImplementations: selectedDeviceImplementations,
+  });
   document.querySelector("#devices").hidden = false;
   const serialClose = document.querySelector("#serial-close");
   const usbClose = document.querySelector("#usb-close");

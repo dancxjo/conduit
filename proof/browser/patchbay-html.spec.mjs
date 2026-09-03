@@ -164,24 +164,24 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(truthExplanation).toContainText("LINE UNAVAILABLE means this exact Line cannot carry traffic");
     await expect(truthExplanation).toContainText("IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization");
     await expect(truthExplanation).toContainText("PLAYING means an active Play bound to the current Plan includes this Part");
-    await expect(page.getByRole("list",{name:"Body Parts"}).getByRole("listitem")).toHaveCount(3);
-    await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("HERE · AVAILABLE");
-    await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("ATTACHED · AVAILABLE");
-    await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("OFFLINE · OFFLINE");
-    await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("IN PLAN");
-    await expect(page.getByRole("list",{name:"Body Parts"})).toContainText("PLAYING");
-    await expect(page.getByRole("list",{name:"Admission candidates"}).getByRole("listitem")).toHaveCount(1);
-    await expect(page.getByRole("list",{name:"Admission candidates"})).toContainText("Browser · tab 3");
+    await expect(page.locator('#part-rows [data-application-component="artifact"]')).toHaveCount(3);
+    await expect(page.locator("#part-rows")).toContainText("HERE · AVAILABLE");
+    await expect(page.locator("#part-rows")).toContainText("ATTACHED · AVAILABLE");
+    await expect(page.locator("#part-rows")).toContainText("OFFLINE · OFFLINE");
+    await expect(page.locator("#part-rows")).toContainText("IN PLAN");
+    await expect(page.locator("#part-rows")).toContainText("PLAYING");
+    await expect(page.locator('#candidate-rows [data-application-component="artifact"]')).toHaveCount(1);
+    await expect(page.locator("#candidate-rows")).toContainText("Browser · tab 3");
     await expect(page.locator("#parts-possibilities")).toContainText("current Plan remains unchanged");
     const partPlan=snapshot.presentation.basis.plan_id;
-    const candidateInspect=page.getByRole("list",{name:"Admission candidates"}).getByRole("button",{name:"Inspect"});
+    const candidateInspect=page.locator("#candidate-rows").getByRole("button",{name:"Inspect"});
     await candidateInspect.focus();await candidateInspect.press("Enter");
     await expect(page.locator("#parts-feedback")).toContainText("without admitting it");
     await expect(page.locator("#parts-details")).toContainText(snapshot.parts.wants_to_join[0].candidate_id);
     const inspectedParts=await (await fetch(`${url}/api/snapshot`)).json();
     expect(inspectedParts.parts.wants_to_join).toHaveLength(1);
     expect(inspectedParts.presentation.basis.plan_id).toBe(partPlan);
-    await page.getByRole("list",{name:"Admission candidates"}).getByRole("button",{name:"Admit"}).click();
+    await page.locator("#candidate-rows").getByRole("button",{name:"Admit"}).click();
     await expect(page.locator("#parts-feedback")).toContainText("refused nonfatally");
     const refusedParts=await (await fetch(`${url}/api/snapshot`)).json();
     expect(refusedParts.parts.wants_to_join).toHaveLength(1);
@@ -195,9 +195,10 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-truth").click();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
-    await expect(page.locator("#route-cards h3").first()).toContainText("Route");
-    await expect(page.locator("#diagnostics li")).toHaveCount(0);
-    await expect(page.locator("#realizations li").first()).toBeVisible();
+    await expect(page.locator('#route-cards [data-application-component="artifact"]').first()).toContainText("Route");
+    await expect(page.locator('#diagnostics [data-application-component="code-block"]')).toHaveCount(0);
+    await expect(page.locator('#realizations [data-application-component="disclosure"]').first()).toBeVisible();
+    await page.locator('#realizations [data-application-component="disclosure"] summary').first().click();
     await expect(page.locator("#plan")).toContainText("presentation/renderer");
     await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
     await expect(page.locator("#plan")).toContainText("patchbay-html/dom-svg@1");
@@ -213,9 +214,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#realizations")).toContainText("base-instance patchbay-renderer/websocket-instance");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/document-ready · Available");
-    await expect(page.locator("#topology li").first()).toContainText("boot");
-    await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/usb-cdc-acm@1"}).first()).toBeVisible();
-    await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/websocket-rfc6455@1"}).first()).toBeVisible();
+    await expect(page.locator('#topology [data-application-component="code-block"]').first()).toContainText("boot");
+    await expect(page.locator("#route-cards")).toContainText("conduit.base/usb-cdc-acm@1");
+    await expect(page.locator("#route-cards")).toContainText("conduit.base/websocket-rfc6455@1");
     const workspace=await page.locator(".workspace").boundingBox();
     const canvas=await page.locator("#form").boundingBox();
     await page.locator("#toggle-inspector").click();
@@ -370,12 +371,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(staleAction.navigation.cursor.focus).toBe(selectedBeforeStale);
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator("#subjects [aria-pressed=true]")).toHaveAttribute("data-subject",selectedBeforeStale);
-    const projectedTextCount=await page.evaluate(async()=>
+    const projectedText=await page.evaluate(async()=>
       (await import("/assets/portable-navigation.js")).projectCurrent(
         await (await fetch("/api/snapshot")).json(),
-      ).text.length,
+      ).text,
     );
-    await expect(page.locator("#linear li")).toHaveCount(projectedTextCount);
+    await expect(page.locator("#linear")).toContainText(projectedText[0].text);
+    expect(projectedText.length).toBeGreaterThan(0);
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
     const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};
@@ -584,10 +586,13 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       await structured.click();
       const actions=snapshot.presentation.actions.filter(action=>action.target===target);
       await expect(page.locator("#semantic-actions button")).toHaveCount(actions.length);
-      for(const action of actions){
-        const control=page.locator(`[data-semantic-action="${action.identity.replaceAll('"','\\"')}"]`);
+      for(const [index,action] of actions.entries()){
+        const control=page.locator(`#semantic-actions [data-application-key="semantic-${index}"]`);
         await expect(control).toHaveText(action.label.toUpperCase());
         if(action.availability==="Available")await expect(control).toBeEnabled();else await expect(control).toBeDisabled();
+        const availability=page.locator(`#semantic-actions [data-application-key="availability-${index}"]`);
+        if(action.availability?.Refused)await expect(availability).toHaveAttribute("data-application-evidence","refused");
+        if(action.availability?.Unavailable)await expect(availability).toHaveAttribute("data-application-evidence","missing");
       }
       await expect(page.locator("#inspector .exact-selection")).toContainText(target);
       expect(await page.locator("#inspector").evaluate(element=>({horizontal:element.scrollWidth<=element.clientWidth,vertical:getComputedStyle(element).overflowY}))).toEqual({horizontal:true,vertical:"auto"});

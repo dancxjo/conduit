@@ -37,6 +37,32 @@ test("durable storage is offered only when its exact implementation is selected 
   expect(result.selected.inspection[0]).toMatchObject({ implementation_id: "browser/indexeddb@1", configured: true, initialized: true, offered: true });
 });
 
+test("device PROFILE selection offers only acquisition without permission or resource claims", async ({ page }) => {
+  const ids = ["browser/webserial@1", "browser/webusb@1"];
+  const fixture = await makeImage(ids);
+  const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    return boot.admitBrowserBoot({
+      imageBytes: image.bytes,
+      expectedImageId: image.id,
+      expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes),
+      bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest,
+      bootId: "boot/devices",
+      availableImplementations: ids.map((id) => ({ id, revision: 1 })),
+      observations: Object.fromEntries(ids.map((id) => [id, {
+        api_supported: true, secure_context: true, permission: "prompt", resource_ready: false,
+      }])),
+    });
+  }, { ids, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("8") });
+  expect(result.offers).toEqual([
+    expect.objectContaining({ offer_id: "device/acquire-webserial@1", resource_identity: null }),
+    expect.objectContaining({ offer_id: "device/acquire-webusb@1", resource_identity: null }),
+  ]);
+});
+
 test("exact IMAGE gates a superset runtime into only selected implementations and current offers", async ({ page }) => {
   const fixture = await makeImage(IDS.slice(0, 2));
   const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
@@ -65,12 +91,12 @@ test("exact IMAGE gates a superset runtime into only selected implementations an
   ]);
   expect(result.inspection).toEqual([
     expect.objectContaining({ implementation_id: "browser/dom@1", configured: true, admitted: true, initialized: true, resource_ready: true, offered: true }),
-    expect.objectContaining({ implementation_id: "browser/media-devices-camera@1", configured: true, admitted: true, initialized: true, resource_ready: false, offered: false, refusal: "PermissionDenied" }),
+    expect.objectContaining({ implementation_id: "browser/media-devices-camera@1", offer_id: "media/acquire-camera@1", configured: true, admitted: true, initialized: true, resource_ready: true, offered: true, refusal: null }),
   ]);
   expect(result.inspection.some(({ implementation_id }) => implementation_id === "browser/websocket@1")).toBe(false);
 });
 
-test("unsupported, initialization, permission, resource, and successful offer states remain distinct", async ({ page }) => {
+test("unsupported, initialization, permission, provider, endpoint authority, and successful offer states remain distinct", async ({ page }) => {
   const fixture = await makeImage(IDS);
   const states = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
     const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
@@ -95,22 +121,37 @@ test("unsupported, initialization, permission, resource, and successful offer st
         "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
         "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: false },
       }),
+      endpoint: await inspect({
+        "browser/dom@1": { api_supported: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: false, authority_ready: true },
+      }),
+      authority: await inspect({
+        "browser/dom@1": { api_supported: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: false },
+      }),
       successful: await inspect({
         "browser/dom@1": { api_supported: true },
         "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "granted", resource_ready: true, resource_identity: "camera/front" },
-        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: true },
       }),
     };
   }, { ids: IDS, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("b") });
 
   expect(states.unsupported["browser/dom@1"].refusal).toBe("UnsupportedApi");
   expect(states.initialization["browser/dom@1"].refusal).toBe("InitializationFailed");
-  expect(states.initialization["browser/media-devices-camera@1"].refusal).toBe("PermissionDenied");
+  expect(states.initialization["browser/media-devices-camera@1"]).toMatchObject({
+    offer_id: "media/acquire-camera@1", offered: true, refusal: null,
+  });
   expect(states.initialization["browser/websocket@1"].refusal).toBe("ProviderUnavailable");
+  expect(states.endpoint["browser/websocket@1"].refusal).toBe("EndpointUnavailable");
+  expect(states.authority["browser/websocket@1"].refusal).toBe("EndpointAuthorityAbsent");
+  expect(states.successful["browser/websocket@1"]).toMatchObject({ offered: true, resource_ready: true });
   expect(states.successful["browser/media-devices-camera@1"]).toMatchObject({ offered: true, resource_ready: true, resource_identity: "camera/front" });
 });
 
-test("resource loss changes Boot offer truth and invalidates only dependent realization without rewriting Form or IMAGE", async ({ page }) => {
+test("permission and acquired-resource observations do not collapse the media acquisition offer", async ({ page }) => {
   const fixture = await makeImage([IDS[1]]);
   const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
     const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
@@ -124,7 +165,7 @@ test("resource loss changes Boot offer truth and invalidates only dependent real
     };
     const before = await boot.admitBrowserBoot(common);
     const realization = boot.bindBrowserOfferRealization(before, {
-      realizationId: "realization/7", offerId: "media/camera@1", formId: "form/unchanged", planId: "plan/7",
+      realizationId: "realization/7", offerId: "media/acquire-camera@1", formId: "form/unchanged", planId: "plan/7",
     });
     const after = boot.refreshBrowserBootTruth(before, {
       [ids[1]]: { api_supported: true, secure_context: true, permission: "granted", resource_ready: false, resource_lost: true },
@@ -134,11 +175,53 @@ test("resource loss changes Boot offer truth and invalidates only dependent real
 
   expect(result.after.image_id).toBe(result.before.image_id);
   expect(result.after.profile_id).toBe(result.before.profile_id);
-  expect(result.after.inspection[0].refusal).toBe("ResourceLost");
-  expect(result.loss).toEqual([expect.objectContaining({
-    terminal: "CurrentOfferLost", realization_id: "realization/7", form_id: "form/unchanged",
-    image_mutated: false, authored_form_mutated: false,
-  })]);
+  expect(result.before.inspection[0]).toMatchObject({ offered: true, offer_id: "media/acquire-camera@1" });
+  expect(result.after.inspection[0]).toMatchObject({ offered: true, offer_id: "media/acquire-camera@1" });
+  expect(result.loss).toEqual([]);
+  expect(result.after.inspection[0].resource_identity).toBeNull();
+});
+
+test("WebRTC signaling bootstrap and exact session grant remain separate from DataChannel offer truth", async ({ page }) => {
+  const implementation = "browser/webrtc-datachannel@1";
+  const fixture = await makeImage([implementation]);
+  const result = await page.evaluate(async ({ implementation, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const common = {
+      imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes), bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest, bootId: "boot/webrtc",
+      availableImplementations: [{ id: implementation, revision: 1 }],
+    };
+    const observation = {
+      api_supported: true, secure_context: true, provider_ready: true,
+      endpoint_ready: true, authority_ready: true,
+    };
+    const noSignaling = await boot.admitBrowserBoot({ ...common, observations: { [implementation]: observation } });
+    const noGrant = await boot.admitBrowserBoot({
+      ...common, observations: { [implementation]: { ...observation, signaling_ready: true } },
+    });
+    const ready = await boot.admitBrowserBoot({
+      ...common, observations: { [implementation]: { ...observation, signaling_ready: true, session_grant_ready: true } },
+    });
+    const realization = boot.bindBrowserOfferRealization(ready, {
+      realizationId: "line-realization/webrtc/1", offerId: "line/webrtc-datachannel@1",
+      formId: "form/portable-camera", planId: "plan/webrtc/1",
+    });
+    return { noSignaling, noGrant, ready, realization };
+  }, { implementation, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("7") });
+
+  expect(result.noSignaling.inspection[0]).toMatchObject({ offered: false, refusal: "SignalingBootstrapAbsent" });
+  expect(result.noGrant.inspection[0]).toMatchObject({ offered: false, refusal: "SessionGrantAbsent" });
+  expect(result.ready.inspection[0]).toMatchObject({ offered: true, resource_ready: true });
+  expect(result.realization).toMatchObject({
+    implementation_id: implementation,
+    form_id: "form/portable-camera",
+    plan_id: "plan/webrtc/1",
+    admitted_offer_generation: 1,
+  });
+  expect(result.realization).not.toHaveProperty("body_id");
+  expect(result.realization).not.toHaveProperty("signaling_url");
 });
 
 test("superset and reduced bundles yield equivalent semantic truth while stale IMAGE and missing selected code refuse", async ({ page }) => {
@@ -148,7 +231,7 @@ test("superset and reduced bundles yield equivalent semantic truth while stale I
     const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
     const observations = {
       [ids[0]]: { api_supported: true },
-      [ids[2]]: { api_supported: true, secure_context: true, provider_ready: true },
+      [ids[2]]: { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: true },
     };
     const input = {
       imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,

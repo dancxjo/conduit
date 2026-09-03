@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { downloadArtifact } from "./download-artifact.mjs";
 
 const TARGET = "conduitos/aarch64/orange-pi-5-rk3588s";
 const MANIFEST = "orange-pi-5-image.json";
@@ -49,9 +50,9 @@ test.afterEach(() => entrance?.child.kill());
 test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page }) => {
   const release = await installRelease(page);
   const runner = await birthBody(page);
-  await runner.locator(".physical-target").selectOption(TARGET);
-  await expect(runner.locator(".physical-mode")).toHaveValue("fabricate-new");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET);
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/orange-pi@1", label: "Orange Pi computers" },
@@ -79,8 +80,8 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
   ]);
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-conduitos-orange-pi-5\.img$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download IMG");
+  const handoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(handoff).toContainText("Download IMG");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: TARGET, output: "sd-image", fabrication_package_id: "conduit-host-orange-pi@1",
@@ -88,11 +89,14 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
     image_content_digest: release.artifact.sha256,
     spore_artifact: { format: "img", media_type: "application/x-raw-disk-image", image_content_digest: release.artifact.sha256, image_bytes: release.artifact.bytes, provision_bytes: 4096 },
   });
-  const nativeImage = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
-    return { mbrMagic: Array.from(bytes.subarray(510, 512)), bytes: bytes.byteLength, provision: readBodyProvisionedMedia(bytes).provision };
-  });
+  const downloaded = await downloadArtifact(page, handoff);
+  expect(downloaded.filename).toMatch(/-conduitos-orange-pi-5\.img$/);
+  const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+  const nativeImage = {
+    mbrMagic: Array.from(downloaded.bytes.subarray(510, 512)),
+    bytes: downloaded.bytes.byteLength,
+    provision: readBodyProvisionedMedia(downloaded.bytes).provision,
+  };
   expect(nativeImage).toMatchObject({
     mbrMagic: [0x55, 0xaa], bytes: release.artifact.bytes + 4096,
     provision: { image_bytes: release.artifact.bytes, spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id } },
@@ -122,5 +126,5 @@ test("architecture, model, boot image, and writer refusals stay distinct", async
   }, { releaseManifest: release, imageUrl: new URL("targets/orange-pi/browser-deployment/image.mjs", entrance.url).href, adapterUrl: new URL("targets/orange-pi/browser-deployment/creche-adapter.mjs", entrance.url).href });
   expect(terminals).toEqual({ wrongModel: "WrongModel", wrongArchitecture: "WrongArchitecture", incompleteBootImage: "IncompleteBootImage", staleImage: "StaleImage", absentWriter: "AbsentWriter", acceptedWriter: "accepted" });
   const runner = await birthBody(page);
-  for (const unsupported of ["conduitos/loongarch64/orange-pi-5-rk3588s", "std/aarch64/orange-pi-5-rk3588s", "conduitos/aarch64/orange-pi-5b-rk3588s", "conduitos/aarch64/orange-pi-5-plus-rk3588"]) await expect(runner.locator(`.physical-target option[value="${unsupported}"]`)).toHaveCount(0);
+  for (const unsupported of ["conduitos/loongarch64/orange-pi-5-rk3588s", "std/aarch64/orange-pi-5-rk3588s", "conduitos/aarch64/orange-pi-5b-rk3588s", "conduitos/aarch64/orange-pi-5-plus-rk3588"]) await expect(runner.locator(`[data-application-key="physical-target"] option[value="${unsupported}"]`)).toHaveCount(0);
 });

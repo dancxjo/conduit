@@ -8,15 +8,17 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
-    <div class="birth-presentation" data-application-slot="birth-controls"></div>
+    <div class="birth-presentation">
+      <div data-application-slot="birth-fields"></div>
+      <div data-application-slot="birth-source"></div>
+    </div>
     <div class="result body-birth-result">
       <div class="body-chain" aria-label="Seed to Body lifecycle">
         <article><span>checked Seed</span><code class="seed-id">not born</code></article>
         <b aria-hidden="true">BIRTH →</b>
         <article><span>durable Body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
-      <dl class="body-identities"></dl>
-      <details class="body-raw"><summary>Raw Body and membership evidence</summary><pre><code></code></pre></details>
+      <div class="body-evidence" data-application-slot="birth-evidence"></div>
     </div>`;
   const presentation = presentationFor(runner);
   const state = {
@@ -49,20 +51,18 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
 
 function presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth = () => {} }) {
   const interactive = !state.terminal && !state.pending;
-  const actions = interactive ? [
+  const fieldActions = interactive ? [
     { id: "program.change", event: "change" },
     { id: "name.input", event: "input" },
     { id: "name-system.change", event: "change" },
     { id: "name.refresh", event: "activate" },
+  ] : [];
+  const sourceActions = interactive ? [
     { id: "source.input", event: "input" },
     { id: "birth.activate", event: "activate" },
   ] : [];
-  presentation.present("birth-controls", {
-    revision: ++state.revision,
-    actions,
-    nodes: birthControlNodes(state, listingId),
-  }, { onEvent(event) {
-    presentation.nextEvent("birth-controls");
+  const onEvent = (slot) => (event) => {
+    presentation.nextEvent(slot);
     const value = decoder.decode(event.value);
     if (event.action === "program.change") state.initialProgram = value;
     if (event.action === "name.input") state.friendlyName = value;
@@ -70,32 +70,59 @@ function presentBirthControls(runner, state, { presentation, listingId, onDraft,
     if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
     if (event.action === "source.input") { state.source = value; onDraft(value); }
     if (event.action === "birth.activate") onBirth();
-  } });
+  };
+  presentation.present("birth-fields", {
+    revision: ++state.revision,
+    actions: fieldActions,
+    nodes: birthFieldNodes(state),
+  }, { onEvent: onEvent("birth-fields") });
+  presentation.present("birth-source", {
+    revision: ++state.revision,
+    actions: sourceActions,
+    nodes: birthSourceNodes(state, listingId),
+  }, { onEvent: onEvent("birth-source") });
 }
 
-function birthControlNodes(state, listingId) {
+function birthFieldNodes(state) {
   const interactive = !state.terminal && !state.pending;
   const nodes = [
-      { parent: null, component: "stack", action: null, key: "birth-editor", text: "" },
-      { parent: 0, component: "select", action: interactive ? 0 : null, key: "body-program", text: "Initial program", value: state.initialProgram, valueCapacity: 64 },
-      { parent: 1, component: "option", action: null, key: "morse-program", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
-      { parent: 0, component: "text-input", action: interactive ? 1 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
-      { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
-      { parent: 0, component: "select", action: interactive ? 2 : null, key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
+    { parent: null, component: "stack", action: null, key: "birth-fields", text: "" },
+    { parent: 0, component: "form-field", action: null, key: "program-field", text: "" },
+    { parent: 1, component: "field-label", action: null, key: "program-label", text: "Initial program" },
+    { parent: 1, component: "select", action: interactive ? 0 : null, key: "body-program", text: "Initial program", value: state.initialProgram, valueCapacity: 64 },
+    { parent: 1, component: "field-help", action: null, key: "program-help", text: "Choose the checked Form that the new Body will retain." },
+    { parent: 3, component: "option", action: null, key: "morse-program", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
+    { parent: 0, component: "form-field", action: null, key: "friendly-name-field", text: "" },
+    { parent: 6, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
+    { parent: 6, component: "text-input", action: interactive ? 1 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
+    { parent: 6, component: "field-help", action: null, key: "friendly-name-help", text: "Editable metadata; the durable Body identity remains distinct." },
+    { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
+    { parent: 0, component: "form-field", action: null, key: "name-system-field", text: "" },
+    { parent: 11, component: "field-label", action: null, key: "name-system-label", text: "Naming tradition" },
+    { parent: 11, component: "select", action: interactive ? 2 : null, key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
+    { parent: 11, component: "field-help", action: null, key: "name-system-help", text: "Select one bounded naming system for the next suggestion." },
   ];
   for (const option of NAMING_SYSTEM_OPTIONS) {
-    nodes.push({ parent: 5, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
+    nodes.push({ parent: 13, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
   }
   nodes.push({ parent: 0, component: "button", action: interactive ? 3 : null, key: "another-name", text: "Suggest another name" });
-  const disclosure = nodes.length;
-  nodes.push({ parent: 0, component: "disclosure", action: null, key: "seed-source", text: "" });
-  nodes.push({ parent: disclosure, component: "summary", action: null, key: "seed-summary", text: "Reviewed program source" });
-  nodes.push({ parent: disclosure, component: "textarea", action: interactive ? 4 : null, key: listingId, text: "Conduit Seed source", value: state.source, valueCapacity: 65_536 });
-  const actions = nodes.length;
-  nodes.push({ parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" });
-  nodes.push({ parent: actions, component: "button", action: interactive ? 5 : null, key: "birth", text: "Birth Body" });
-  nodes.push({ parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status });
   return nodes;
+}
+
+function birthSourceNodes(state, listingId) {
+  const interactive = !state.terminal && !state.pending;
+  return [
+    { parent: null, component: "stack", action: null, key: "birth-source", text: "" },
+    { parent: 0, component: "disclosure", action: null, key: "seed-source", text: "" },
+    { parent: 1, component: "summary", action: null, key: "seed-summary", text: "Reviewed program source" },
+    { parent: 1, component: "form-field", action: null, key: "seed-source-field", text: "" },
+    { parent: 3, component: "field-label", action: null, key: "seed-source-label", text: "Conduit Seed source" },
+    { parent: 3, component: "textarea", action: interactive ? 0 : null, key: listingId, text: "Conduit Seed source", value: state.source, valueCapacity: 65_536 },
+    { parent: 3, component: "field-help", action: null, key: "seed-source-help", text: "This checked meaning contains no Host, Boot, device, or transport facts." },
+    { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" },
+    { parent: 7, component: "button", action: interactive ? 1 : null, key: "birth", text: "Birth Body" },
+    { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
+  ];
 }
 
 async function suggestName(runner, state, controls) {
@@ -218,20 +245,22 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     ["Plan", receipt.plan_id ?? "none"],
     ["Active Play", receipt.active_play_id ?? "none"],
   ];
-  const list = runner.querySelector(".body-identities");
-  list.replaceChildren();
-  for (const [label, value] of identities) {
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    term.textContent = label;
-    description.textContent = value;
-    list.append(term, description);
-  }
-  runner.querySelector(".body-raw code").textContent = JSON.stringify({
+  const rawEvidence = JSON.stringify({
     body: receipt.raw_body,
     membership: receipt.raw_membership,
     source_interaction: receipt.source_interaction,
   }, null, 2);
+  presentationOptions.presentation.present("birth-evidence", {
+    revision: ++state.revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "body-evidence", text: "Body and membership evidence" },
+      { parent: 0, component: "definition-table", action: null, key: "body-identities", text: "Exact Body identities" },
+      ...identities.map(([label, value]) => ({ parent: 1, component: "definition", action: null, key: identityKey(label), text: label, value, valueCapacity: 65_536 })),
+      { parent: 0, component: "disclosure", action: null, key: "body-raw", text: "Raw Body and membership evidence" },
+      { parent: identities.length + 2, component: "code-block", action: null, key: "body-raw-json", text: "json", value: rawEvidence, valueCapacity: 65_536 },
+    ],
+  });
 }
 
 export function createFirstHostRunner({ host, presentationFor, nextSequence, onBodyChanged }) {
@@ -239,9 +268,7 @@ export function createFirstHostRunner({ host, presentationFor, nextSequence, onB
   runner.className = "runner first-host-runner";
   runner.innerHTML = `
     <div data-application-slot="first-host-controls"></div>
-    <div class="result">
-      <dl class="host-identities"></dl>
-    </div>`;
+    <div class="result" data-application-slot="first-host-evidence"></div>`;
   const presentation = presentationFor(runner);
   const state = {
     revision: 0,
@@ -304,15 +331,19 @@ function renderAttachedHost(runner, presentation, receipt, state) {
   state.status = `${receipt.friendly_name} now has one admitted browser Host and remains LULLED.`;
   presentFirstHostControls(runner, presentation, state, () => {});
   const values = [["Body", receipt.body_id], ["Part", receipt.here_part_id], ["Host", receipt.host_id], ["Boot", receipt.boot_id]];
-  const list = runner.querySelector(".host-identities");
-  list.replaceChildren();
-  for (const [label, value] of values) {
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    term.textContent = label;
-    description.textContent = value;
-    list.append(term, description);
-  }
+  presentation.present("first-host-evidence", {
+    revision: ++state.revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "host-evidence", text: "Current browser Host membership" },
+      { parent: 0, component: "definition-table", action: null, key: "host-identities", text: "Exact Host identities" },
+      ...values.map(([label, value]) => ({ parent: 1, component: "definition", action: null, key: identityKey(label), text: label, value, valueCapacity: 256 })),
+    ],
+  });
+}
+
+function identityKey(label) {
+  return label.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replaceAll(/^-|-$/g, "").slice(0, 32);
 }
 
 function readOutput(api) {

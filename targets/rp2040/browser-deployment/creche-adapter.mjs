@@ -227,6 +227,7 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         api: host.runtime,
         hostId: host.hostId,
         bootId: host.bootId,
+        selectedImplementations: ["browser/webusb@1"],
         status: null,
         output: null,
       });
@@ -286,6 +287,7 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         api: host.runtime,
         hostId: host.hostId,
         bootId: host.bootId,
+        selectedImplementations: ["browser/webserial@1"],
         status: null,
         output: null,
       });

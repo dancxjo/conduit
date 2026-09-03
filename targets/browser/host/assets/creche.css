@@ -18,13 +18,14 @@ main { width:min(70rem, calc(100% - 2rem)); margin:2rem auto 5rem; }
 .eyebrow { color:var(--green-dark); font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 h1,h2,h3 { color:var(--amber); }
 .creche-steps { margin:1.5rem 0; padding-bottom:1rem; border-bottom:1px solid var(--line); }
-.creche-steps [data-application-component="navigation"] { display:flex; flex-wrap:wrap; gap:.5rem; }
-.creche-steps button[aria-current="step"] { border-color:var(--amber); background:var(--amber); color:var(--paper); }
-.creche-steps button[aria-current="step"]:hover { border-color:var(--focus); background:var(--focus); }
+.creche-steps [data-application-component="stepper"] { display:flex; flex-wrap:wrap; gap:.5rem; }
+.creche-steps button:disabled { border-color:var(--amber); background:var(--amber); color:var(--paper); opacity:1; }
 #workspace { display:grid; gap:1rem; }
 .runner, .physical-host-runner, .graduation-runner, .creche-complete { display:grid; gap:1rem; padding:1.25rem; border:1px solid var(--line); border-radius:.85rem; background:var(--panel); }
 .editor, .result { min-width:0; }
-.birth-presentation [data-application-key="birth-editor"] { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; align-content:start; }
+.birth-presentation { display:grid; gap:1rem; }
+.birth-presentation [data-application-component="stack"] { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; align-content:start; }
+.birth-presentation [data-application-component="form-field"] { display:grid; gap:.4rem; }
 .birth-field { display:grid; grid-template-columns:minmax(0,1fr); gap:.4rem; min-width:0; position:relative; }
 .birth-presentation select, .birth-presentation input, .birth-presentation textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
 .birth-presentation select:hover, .birth-presentation input:hover, .birth-presentation textarea:hover { border-color:var(--amber); }
@@ -47,16 +48,14 @@ h1,h2,h3 { color:var(--amber); }
 .body-chain { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:.8rem; align-items:center; }
 .body-chain article { display:grid; gap:.3rem; padding:.7rem; border:1px solid var(--line); border-radius:.6rem; background:var(--field); }
 .body-chain code, code, dd { overflow-wrap:anywhere; }
-.body-identities, .host-identities, .graduation-evidence { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.35rem .8rem; }
+[data-application-key="body-identities"], [data-application-key="host-identities"], [data-application-key="graduation-identities"] { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.35rem .8rem; }
 dd { margin:0; }
 pre { max-height:20rem; overflow:auto; padding:.8rem; background:#1f2824; color:#eef4ef; }
 .creche-body-context [data-application-component="panel"] { display:grid; gap:.2rem; padding:.7rem 1rem; border-left:4px solid var(--amber); background:var(--field); }
 .creche-body-context p { margin:0; font-weight:700; }
-.physical-stages, [data-application-key="graduation-criteria"] { display:grid; grid-template-columns:repeat(auto-fit,minmax(8rem,1fr)); gap:.5rem; padding:0; list-style:none; }
-.physical-stages li, [data-application-key="graduation-criteria"] [data-application-component="panel"], .body-biography li { padding:.7rem; border:1px solid var(--line); background:var(--field); }
-.body-biography ol { display:grid; gap:.6rem; padding-left:1.5rem; }
-.body-biography strong, .body-biography p, .body-biography code { display:block; }
-.body-biography p { margin:.3rem 0; }
+[data-application-key="physical-stages"], [data-application-key="graduation-criteria"] { display:grid; grid-template-columns:repeat(auto-fit,minmax(8rem,1fr)); gap:.5rem; padding:0; }
+[data-application-key^="physical-stage-"], [data-application-key="graduation-criteria"] [data-application-component="panel"] { padding:.7rem; border:1px solid var(--line); background:var(--field); }
+.body-biography [data-application-key="biography-records"] { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.6rem 1rem; padding:.7rem; border:1px solid var(--line); background:var(--field); }
 .error { color:var(--failure); }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
 @media (max-width:650px) { .body-chain { grid-template-columns:1fr; } .body-chain > b { transform:rotate(90deg); justify-self:center; } }

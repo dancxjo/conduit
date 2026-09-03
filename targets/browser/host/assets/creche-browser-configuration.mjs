@@ -3,12 +3,13 @@ const REVIEW_SCHEMA = "conduit.creche/checked-browser-configuration@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBrowserConfigurationOutfitter({ host, restoredSelection = null, onChange }) {
+export function createBrowserConfigurationOutfitter({ host, presentationFor, restoredSelection = null, onChange }) {
   const catalog = call(host.runtime, "conduit_creche_browser_configuration_catalog");
   requireCatalog(catalog);
   let selected = new Set(restoredSelection?.implementations ?? catalog.defaults);
   let checked = null;
   let diagnostic = null;
+  let presentationRevision = 0;
 
   if (restoredSelection) {
     try {
@@ -24,70 +25,89 @@ export function createBrowserConfigurationOutfitter({ host, restoredSelection = 
     render() {
       const root = document.createElement("section");
       root.className = "browser-configuration";
-      root.innerHTML = "<h3>Browser Host capabilities</h3>";
+      const presentation = presentationFor(root);
       if (checked) {
-        renderReview(root, checked, () => {
+        root.innerHTML = '<div data-application-slot="browser-configuration-review"></div>';
+        presentReview(presentation, checked, ++presentationRevision, () => {
           checked = null;
           onChange();
         });
         return root;
       }
-      const presets = document.createElement("div");
-      presets.className = "browser-configuration-presets";
-      presets.append(
-        preset("Minimal", ["browser/dom@1", "browser/dom-presentation@1"]),
-        preset("Interactive", catalog.defaults),
-        preset("Custom", [...selected]),
-      );
-      root.append(presets);
-      for (const group of [...new Set(catalog.entries.map((entry) => entry.group))]) {
-        const fieldset = document.createElement("fieldset");
-        const legend = document.createElement("legend");
-        legend.textContent = group;
-        fieldset.append(legend);
-        for (const entry of catalog.entries.filter((candidate) => candidate.group === group)) {
-          const label = document.createElement("label");
-          const input = document.createElement("input");
-          input.type = "checkbox";
-          input.value = entry.implementation_id;
-          input.checked = selected.has(entry.implementation_id);
-          input.addEventListener("change", () => {
-            if (input.checked) selected.add(input.value); else selected.delete(input.value);
+      root.innerHTML = '<div data-application-slot="browser-configuration-actions"></div>';
+      const groups = [...new Set(catalog.entries.map((entry) => entry.group))];
+      groups.forEach((_, index) => root.insertAdjacentHTML("beforeend", `<div data-application-slot="browser-configuration-group-${index}"></div>`));
+      presentActions(presentation, ++presentationRevision);
+      groups.forEach((group, index) => presentGroup(presentation, group, index, ++presentationRevision));
+      return root;
+
+      function presentActions(view, viewRevision) {
+        const presets = [
+          ["Minimal", ["browser/dom@1", "browser/dom-presentation@1"]],
+          ["Interactive", catalog.defaults],
+          ["Custom", [...selected]],
+        ];
+        view.present("browser-configuration-actions", {
+          revision: viewRevision,
+          actions: [
+            ...presets.map((_, index) => ({ id: `preset.${index}`, event: "activate" })),
+            { id: "configuration.review", event: "activate" },
+          ],
+          nodes: [
+            { parent: null, component: "stack", action: null, key: "browser-configuration", text: "" },
+            { parent: 0, component: "heading", action: null, key: "configuration-heading", text: "Browser Host capabilities" },
+            { parent: 0, component: "action-group", action: null, key: "configuration-presets", text: "" },
+            ...presets.map(([label], index) => ({ parent: 2, component: "button", action: index, key: `preset-${index}`, text: label })),
+            { parent: 0, component: "button", action: 3, key: "review-browser-configuration", text: "Review Host" },
+            ...(diagnostic ? [{ parent: 0, component: "failure-status", action: null, key: "configuration-diagnostic", text: diagnostic }] : []),
+          ],
+        }, { onEvent(event) {
+          view.nextEvent("browser-configuration-actions");
+          if (event.action.startsWith("preset.")) {
+            selected = new Set(presets[Number(event.action.slice(-1))][1]);
+            checked = null;
             diagnostic = null;
-          });
-          label.append(input, ` ${entry.label} · ${entry.implementation_id}`);
-          if (entry.runtime_prerequisites.length) {
-            const note = document.createElement("small");
-            note.textContent = ` Future runtime conditions: ${entry.runtime_prerequisites.map((item) => item.detail).join("; ")}. None is claimed satisfied here.`;
-            label.append(note);
+            onChange();
           }
-          fieldset.append(label);
-        }
-        root.append(fieldset);
+          if (event.action === "configuration.review") {
+            try { checked = review(host.runtime, selection()); diagnostic = null; }
+            catch (error) { diagnostic = error instanceof Error ? error.message : String(error); }
+            onChange();
+          }
+        } });
       }
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "review-browser-configuration";
-      button.textContent = "Review Host";
-      button.addEventListener("click", () => {
-        try {
-          checked = review(host.runtime, selection());
+
+      function presentGroup(view, group, groupIndex, viewRevision) {
+        const entries = catalog.entries.filter((entry) => entry.group === group);
+        const slot = `browser-configuration-group-${groupIndex}`;
+        view.present(slot, {
+          revision: viewRevision,
+          actions: entries.map((_, index) => ({ id: `implementation.toggle-${index}`, event: "activate" })),
+          nodes: [
+            { parent: null, component: "panel", action: null, key: `configuration-group-${groupIndex}`, text: group },
+            ...entries.flatMap((entry, index) => {
+              const action = selected.has(entry.implementation_id) ? "Remove" : "Add";
+              return [
+                { parent: 0, component: "button", action: index, key: `implementation-${index}`, text: `${action} ${entry.label} · ${entry.implementation_id}` },
+                ...entry.runtime_prerequisites.map((item, prerequisiteIndex) => ({
+                  parent: 0,
+                  component: "paragraph",
+                  action: null,
+                  key: `prerequisite-${index}-${prerequisiteIndex}`,
+                  text: `Future runtime condition: ${item.detail}. Not claimed satisfied here.`,
+                })),
+              ];
+            }),
+          ],
+        }, { onEvent(event) {
+          view.nextEvent(slot);
+          const entry = entries[Number(event.action.split("-").at(-1))];
+          if (selected.has(entry.implementation_id)) selected.delete(entry.implementation_id);
+          else selected.add(entry.implementation_id);
           diagnostic = null;
           onChange();
-        } catch (error) {
-          diagnostic = error instanceof Error ? error.message : String(error);
-          onChange();
-        }
-      });
-      root.append(button);
-      if (diagnostic) {
-        const failure = document.createElement("p");
-        failure.className = "browser-configuration-diagnostic";
-        failure.setAttribute("role", "alert");
-        failure.textContent = diagnostic;
-        root.append(failure);
+        } });
       }
-      return root;
     },
     checked: () => checked,
     selection,
@@ -98,19 +118,6 @@ export function createBrowserConfigurationOutfitter({ host, restoredSelection = 
       catalog_generation: restoredSelection?.catalog_generation ?? catalog.generation,
       implementations: Object.freeze([...selected].sort()),
     });
-  }
-
-  function preset(label, implementations) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label;
-    button.addEventListener("click", () => {
-      selected = new Set(implementations);
-      checked = null;
-      diagnostic = null;
-      onChange();
-    });
-    return button;
   }
 }
 
@@ -144,27 +151,26 @@ function review(runtime, selection) {
   return Object.freeze(value);
 }
 
-function renderReview(root, checked, edit) {
-  const summary = document.createElement("dl");
-  summary.className = "browser-configuration-review";
-  for (const [term, value] of [
+function presentReview(presentation, checked, revision, edit) {
+  const values = [
     ["Target", checked.target_id],
     ["Implementations", checked.selected_implementations.join(", ") || "none"],
     ["PROFILE", checked.profile_id],
     ["BrowserBundle output", checked.output],
     ["Body/Spore join", checked.join_mode],
-  ]) {
-    const dt = document.createElement("dt"); dt.textContent = term;
-    const dd = document.createElement("dd"); dd.textContent = value;
-    summary.append(dt, dd);
-  }
-  const source = document.createElement("pre"); source.textContent = checked.canonical_source;
-  const absent = document.createElement("p");
-  absent.textContent = `Configuration creates no ${checked.does_not_create.join(", ")}.`;
-  const button = document.createElement("button");
-  button.type = "button"; button.className = "edit-browser-configuration"; button.textContent = "Back / Edit";
-  button.addEventListener("click", edit);
-  root.append(summary, source, absent, button);
+  ];
+  presentation.present("browser-configuration-review", {
+    revision,
+    actions: [{ id: "configuration.edit", event: "activate" }],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "configuration-review", text: "Reviewed browser Host configuration" },
+      { parent: 0, component: "definition-table", action: null, key: "configuration-review-values", text: "Exact configuration identities" },
+      ...values.map(([term, value], index) => ({ parent: 1, component: "definition", action: null, key: `review-${index}`, text: term, value, valueCapacity: 65_536 })),
+      { parent: 0, component: "code-block", action: null, key: "configuration-source", text: "conduit", value: checked.canonical_source, valueCapacity: 65_536 },
+      { parent: 0, component: "paragraph", action: null, key: "configuration-absent", text: `Configuration creates no ${checked.does_not_create.join(", ")}.` },
+      { parent: 0, component: "button", action: 0, key: "edit-browser-configuration", text: "Back / Edit" },
+    ],
+  }, { onEvent() { presentation.nextEvent("browser-configuration-review"); edit(); } });
 }
 
 function requireCatalog(catalog) {

@@ -1,59 +1,32 @@
 import { PHYSICAL_HOST_INTENTIONS } from "./creche-target-catalog.mjs";
-
+import { presentPhysicalActions, presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalProgress, presentPhysicalSelection, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
 const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createPhysicalHostRunner({ host, targetCatalog, onBodyChanged }) {
+export function createPhysicalHostRunner({ host, hostOperations, presentationFor, targetCatalog, onBodyChanged }) {
   const catalog = requireTargetCatalog(targetCatalog);
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
   runner.innerHTML = `
-    <ol class="physical-stages" aria-label="Add one physical Host">
-      <li data-stage="obtain"><strong>1 · Obtain exact machinery</strong><span>waiting</span></li>
-      <li data-stage="bind"><strong>2 · Bind invitation</strong><span>waiting</span></li>
-      <li data-stage="realize"><strong>3 · Deploy, install, or attach</strong><span>waiting</span></li>
-      <li data-stage="observe"><strong>4 · Observe Boot + join</strong><span>waiting</span></li>
-      <li data-stage="admit"><strong>5 · Admit Part + offers</strong><span>waiting</span></li>
-    </ol>
+    <div data-application-slot="physical-progress"></div>
     <div class="physical-selection">
-      <label>Intention
-        <span class="select-field"><select class="physical-mode"></select></span>
-      </label>
-      <label>Target
-        <span class="select-field"><select class="physical-target"></select></span>
-      </label>
+      <div class="select-field" data-application-slot="physical-mode-control"></div>
+      <div class="select-field" data-application-slot="physical-target-control"></div>
       <div class="target-options"></div>
-      <div class="spore-download" aria-live="polite"></div>
+      <div class="spore-download" data-application-slot="physical-artifact"></div>
     </div>
-    <div class="physical-actions">
-      <button class="bind" type="button" disabled>Bind Body invitation</button>
-      <button class="realize" type="button" disabled>Realize selected Host</button>
-      <button class="observe" type="button" disabled>Observe Boot and join</button>
-      <button class="admit" type="button" disabled>Admit Part and offers</button>
-      <button class="cancel" type="button" disabled>Cancel current operation</button>
-    </div>
-    <p class="physical-status" role="status">Preparing the selected target without requesting machine access.</p>
-    <details><summary>Exact physical-Host evidence</summary><pre><code></code></pre></details>`;
+    <div class="physical-actions" data-application-slot="physical-actions"></div>
+    <div class="physical-status" data-application-slot="physical-status"></div>
+    <div class="physical-evidence" data-application-slot="physical-evidence"></div>`;
 
-  const modeControl = runner.querySelector(".physical-mode");
-  const targetControl = runner.querySelector(".physical-target");
-  for (const family of catalog.families) {
-    const heading = document.createElement("optgroup");
-    heading.label = family.label;
-    heading.dataset.familyId = family.id;
-    for (const entry of family.entries) {
-      const option = document.createElement("option");
-      option.value = entry.target.id;
-      option.textContent = entry.target.label;
-      heading.append(option);
-    }
-    targetControl.append(heading);
-  }
-
+  const presentation = presentationFor(runner);
   const state = {
+    presentation,
+    presentationFor,
+    presentationRevision: 0,
     catalog,
     entry: null,
     adapter: null,
@@ -69,16 +42,26 @@ export function createPhysicalHostRunner({ host, targetCatalog, onBodyChanged })
     realization: null,
     observation: null,
     admission: null,
-    downloadUrl: null,
+    download: null,
+    hostOperations,
+    intentions: PHYSICAL_HOST_INTENTIONS,
+    selectionDisabled: false,
+    actionEnabled: null,
+    cancelEnabled: false,
+    stages: { obtain: "waiting", bind: "waiting", realize: "waiting", observe: "waiting", admit: "waiting" },
   };
 
-  modeControl.addEventListener("change", () => selectMode(runner, host, state, modeControl.value));
-  targetControl.addEventListener("change", () => selectTarget(runner, host, state, targetControl.value));
-  runner.querySelector(".bind").addEventListener("click", () => bindInvitation(runner, host, state));
-  runner.querySelector(".realize").addEventListener("click", () => realizeHost(runner, host, state));
-  runner.querySelector(".observe").addEventListener("click", () => observeJoin(runner, host, state));
-  runner.querySelector(".admit").addEventListener("click", () => admitPart(runner, host, state, onBodyChanged));
-  runner.querySelector(".cancel").addEventListener("click", () => cancelActive(runner, state, true));
+  state.changeMode = (mode) => selectMode(runner, host, state, mode);
+  state.changeTarget = (target) => selectTarget(runner, host, state, target);
+  state.runAction = (action) => ({
+    bind: () => bindInvitation(runner, host, state),
+    realize: () => realizeHost(runner, host, state),
+    observe: () => observeJoin(runner, host, state),
+    admit: () => admitPart(runner, host, state, onBodyChanged),
+    cancel: () => cancelActive(runner, state, true),
+  })[action]?.();
+  presentPhysicalActions(state);
+  presentPhysicalProgress(state);
   selectTarget(runner, host, state, catalog.entries[0].target.id);
   return runner;
 }
@@ -100,21 +83,10 @@ function selectTarget(runner, host, state, targetId) {
   if (!entry) throw new TypeError("physical Host target is absent from the current catalog generation");
   state.entry = entry;
   state.adapter = null;
-  runner.querySelector(".physical-target").value = targetId;
-  const modeControl = runner.querySelector(".physical-mode");
-  modeControl.replaceChildren();
-  for (const intention of PHYSICAL_HOST_INTENTIONS) {
-    const support = entry.intentions.find((mode) => mode.id === intention.id);
-    const option = document.createElement("option");
-    option.value = intention.id;
-    option.textContent = `${intention.label}${support.supported ? "" : " · unavailable for this target"}`;
-    modeControl.append(option);
-  }
   const currentSupport = entry.intentions.find((mode) => mode.id === state.mode);
   if (!currentSupport?.supported) {
     state.mode = entry.intentions.find((mode) => mode.supported)?.id ?? state.mode;
   }
-  modeControl.value = state.mode;
   selectMode(runner, host, state, state.mode);
 }
 
@@ -129,10 +101,10 @@ function selectMode(runner, host, state, mode) {
   state.observation = null;
   state.admission = null;
   clearDownload(runner, state);
-  resetStages(runner);
-  setButtons(runner, null);
-  runner.querySelector(".physical-mode").disabled = false;
-  runner.querySelector(".physical-target").disabled = false;
+  resetStages(state);
+  setButtons(state, null);
+  state.selectionDisabled = false;
+  presentPhysicalSelection(state);
   const options = runner.querySelector(".target-options");
   options.replaceChildren();
   const support = state.entry.intentions.find((candidate) => candidate.id === state.mode);
@@ -141,7 +113,7 @@ function selectMode(runner, host, state, mode) {
     return;
   }
   if (!state.adapter) {
-    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host });
+    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host, presentationFor: state.presentationFor });
   }
   const targetOptions = state.adapter.createOptions({
     mode: state.mode,
@@ -152,7 +124,7 @@ function selectMode(runner, host, state, mode) {
   const configuration = state.adapter.configuration?.();
   if (configuration?.required && !configuration.checked) {
     state.phase = "configuring";
-    status(runner, "Choose and review the finite Host machinery. No Host, Boot, permission, resource, offer, Plan, or Play exists yet.");
+    status(runner, state, "Choose and review the finite Host machinery. No Host, Boot, permission, resource, offer, Plan, or Play exists yet.");
     return;
   }
   void operate(runner, state, "obtain", (signal) => state.adapter.obtain({
@@ -162,9 +134,9 @@ function selectMode(runner, host, state, mode) {
   }), (result) => {
     state.obtainment = result;
     state.phase = "obtained";
-    completeStage(runner, "obtain", `${result.resultKind} · exact`);
-    setButtons(runner, "bind");
-    status(runner, "Exact machinery result retained. Invitation, realization, Boot, join, membership, offers, Plan, and Play remain absent.");
+    completeStage(state, "obtain", `${result.resultKind} · exact`);
+    setButtons(state, "bind");
+    status(runner, state, "Exact machinery result retained. Invitation, realization, Boot, join, membership, offers, Plan, and Play remain absent.");
   });
 }
 
@@ -178,36 +150,39 @@ function bindInvitation(runner, host, state) {
   }), (result) => {
     state.binding = result;
     state.phase = "bound";
-    completeStage(runner, "bind", short(result.prepared.spore_id));
-    runner.querySelector(".physical-mode").disabled = true;
-    runner.querySelector(".physical-target").disabled = true;
+    completeStage(state, "bind", short(result.prepared.spore_id));
+    state.selectionDisabled = true;
+    presentPhysicalSelection(state);
     setOptionsDisabled(runner, true);
-    setButtons(runner, "realize");
+    setButtons(state, "realize");
     renderDownload(runner, state, result.download);
-    status(runner, "Invitation bound. Realization, Boot, join, membership, offers, Plan, and Play remain absent.");
+    status(runner, state, "Invitation bound. Realization, Boot, join, membership, offers, Plan, and Play remain absent.");
   });
 }
 
 function renderDownload(runner, state, download) {
-  if (!download || !["conduit.spore/browser-download@1", "conduit.spore/browser-download@2"].includes(download.schema)
-    || !(download.blob instanceof Blob) || typeof download.filename !== "string") {
+  if (!download || download.schema !== "conduit.spore/browser-artifact@1"
+    || !(download.payload instanceof Uint8Array) || download.payload.byteLength !== download.bytes
+    || typeof download.filename !== "string") {
     throw new TypeError("physical Host adapter omitted its downloadable spore artifact");
   }
   clearDownload(runner, state);
-  state.downloadUrl = URL.createObjectURL(download.blob);
-  const link = document.createElement("a");
-  link.className = "download-spore";
-  link.href = state.downloadUrl;
-  link.download = download.filename;
-  const format = download.format ? ` ${download.format.toUpperCase()}` : " spore";
-  link.textContent = `Download${format} · ${download.bytes} bytes`;
-  runner.querySelector(".spore-download").append(link);
+  state.download = download;
+  presentPhysicalArtifact(state, download, async (artifact) => {
+    try {
+      const outcome = await state.hostOperations.handoffArtifact(artifact);
+      if (!["completed", "handoff-offered"].includes(outcome.disposition)) {
+        status(runner, state, `Artifact handoff refused: ${outcome.disposition}`, true);
+      }
+    } catch (error) {
+      status(runner, state, `Artifact handoff refused: ${error.code ?? error.message}`, true);
+    }
+  });
 }
 
 function clearDownload(runner, state) {
-  if (state.downloadUrl) URL.revokeObjectURL(state.downloadUrl);
-  state.downloadUrl = null;
-  runner.querySelector(".spore-download")?.replaceChildren();
+  state.download = null;
+  presentPhysicalArtifact(state, null, () => {});
 }
 
 function realizeHost(runner, host, state) {
@@ -220,9 +195,9 @@ function realizeHost(runner, host, state) {
   }), (result) => {
     state.realization = result;
     state.phase = "realized";
-    completeStage(runner, "realize", result.terminal);
-    setButtons(runner, "observe");
-    status(runner, "Carrier realization completed. No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted.");
+    completeStage(state, "realize", result.terminal);
+    setButtons(state, "observe");
+    status(runner, state, "Carrier realization completed. No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted.");
   });
 }
 
@@ -237,9 +212,9 @@ function observeJoin(runner, host, state) {
   }), (result) => {
     state.observation = result;
     state.phase = "observed";
-    completeStage(runner, "observe", short(result.join.boot_id));
-    setButtons(runner, "admit");
-    status(runner, "Fresh Boot advertisement and invitation-bound join observed. Admission remains an explicit action.");
+    completeStage(state, "observe", short(result.join.boot_id));
+    setButtons(state, "admit");
+    status(runner, state, "Fresh Boot advertisement and invitation-bound join observed. Admission remains an explicit action.");
   });
 }
 
@@ -247,9 +222,9 @@ function admitPart(runner, host, state, onBodyChanged) {
   void operate(runner, state, "admit", () => Promise.resolve(admitObservation(host.runtime, state.observation.join)), (result) => {
     state.admission = { evidence: result };
     state.phase = "admitted";
-    completeStage(runner, "admit", `revision ${result.membership_revision}`);
-    setButtons(runner, null);
-    status(runner, `Physical Part admitted; ${result.offer_count} current offers are ready. No Plan or Play was created.`);
+    completeStage(state, "admit", `revision ${result.membership_revision}`);
+    setButtons(state, null);
+    status(runner, state, `Physical Part admitted; ${result.offer_count} current offers are ready. No Plan or Play was created.`);
     onBodyChanged?.();
   });
 }
@@ -267,8 +242,9 @@ async function operate(runner, state, operation, work, accept) {
   state.active = { operation, generation, controller };
   state.phase = operation;
   state.terminal = null;
-  setButtons(runner, null);
-  runner.querySelector(".cancel").disabled = false;
+  setButtons(state, null);
+  state.cancelEnabled = true;
+  presentPhysicalActions(state);
   renderEvidence(runner, state);
   try {
     const result = await work(controller.signal);
@@ -276,12 +252,14 @@ async function operate(runner, state, operation, work, accept) {
     requireOperationEvidence(state, result?.evidence ?? result, operation);
     accept(result);
     state.active = null;
-    runner.querySelector(".cancel").disabled = true;
+    state.cancelEnabled = false;
+    presentPhysicalActions(state);
     renderEvidence(runner, state);
   } catch (error) {
     if (!currentOperation(state, generation)) return;
     state.active = null;
-    runner.querySelector(".cancel").disabled = true;
+    state.cancelEnabled = false;
+    presentPhysicalActions(state);
     let evidence = targetFailure(state, operation, error);
     try {
       requireOperationEvidence(state, evidence, operation);
@@ -299,7 +277,8 @@ function cancelActive(runner, state, terminal) {
   active.controller.abort();
   state.active = null;
   void Promise.resolve(state.adapter.cancel({ mode: state.mode, operation: active.operation })).catch(() => {});
-  runner.querySelector(".cancel").disabled = true;
+  state.cancelEnabled = false;
+  presentPhysicalActions(state);
   if (terminal) {
     state.cancellations += 1;
     fail(runner, state, active.operation, workflowFailure(state, active.operation, "Cancelled", "operator cancelled the active physical Host operation"));
@@ -310,8 +289,8 @@ function fail(runner, state, operation, evidence) {
   state.phase = "terminal";
   state.terminal = evidence;
   clearOperationResult(state, operation);
-  setButtons(runner, null);
-  status(runner, `${operation} refused: ${evidence.terminal}: ${evidence.message}`, true);
+  setButtons(state, null);
+  status(runner, state, `${operation} refused: ${evidence.terminal}: ${evidence.message}`, true);
   renderEvidence(runner, state);
 }
 
@@ -399,7 +378,12 @@ function renderEvidence(runner, state) {
   if (encoded.length > state.entry.bounds.maximumRetainedEvidenceBytes) {
     throw new RangeError("physical Host retained evidence exceeds its admitted byte bound");
   }
-  runner.querySelector("details code").textContent = JSON.stringify(evidence, null, 2);
+  const disposition = state.terminal
+    ? state.terminal.terminal === "Cancelled" || state.terminal.schema === SELECTION_FAILURE_SCHEMA
+      ? "refused-evidence"
+      : "failed-evidence"
+    : state.phase === "admitted" ? "successful-evidence" : "artifact";
+  presentPhysicalEvidence(state, evidence, disposition);
 }
 
 function admitObservation(api, join) {
@@ -433,23 +417,19 @@ function outputError(api, operation, code) {
   return Object.assign(new Error(evidence?.message ?? `${operation} refused (${code})`), { code: "BodyRefusal", evidence });
 }
 
-function resetStages(runner) {
-  for (const stage of runner.querySelectorAll(".physical-stages li")) {
-    stage.classList.remove("complete");
-    stage.querySelector("span").textContent = "waiting";
-  }
+function resetStages(state) {
+  for (const name of Object.keys(state.stages)) state.stages[name] = "waiting";
+  presentPhysicalProgress(state);
 }
 
-function completeStage(runner, name, value) {
-  const stage = runner.querySelector(`[data-stage="${name}"]`);
-  stage.classList.add("complete");
-  stage.querySelector("span").textContent = value;
+function completeStage(state, name, value) {
+  state.stages[name] = value;
+  presentPhysicalProgress(state);
 }
 
-function setButtons(runner, enabled) {
-  for (const name of ["bind", "realize", "observe", "admit"]) {
-    runner.querySelector(`.${name}`).disabled = name !== enabled;
-  }
+function setButtons(state, enabled) {
+  state.actionEnabled = enabled;
+  presentPhysicalActions(state);
 }
 
 function setOptionsDisabled(runner, disabled) {
@@ -458,10 +438,8 @@ function setOptionsDisabled(runner, disabled) {
   }
 }
 
-function status(runner, message, error = false) {
-  const element = runner.querySelector(".physical-status");
-  element.classList.toggle("error", error);
-  element.textContent = message;
+function status(runner, state, message, error = false) {
+  presentPhysicalStatus(state, message, error);
 }
 
 function clearOperationResult(state, operation) {

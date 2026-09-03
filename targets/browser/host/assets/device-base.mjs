@@ -58,10 +58,12 @@ export function createBrowserDeviceBase({
   api,
   hostId,
   bootId,
+  selectedImplementations,
   serial = navigator.serial,
   status = document.querySelector("#device-status"),
   output = document.querySelector("#device-evidence"),
 }) {
+  const selected = new Set(selectedImplementations ?? []);
   const required = [
     "conduit_browser_serial_input_ptr",
     "conduit_browser_serial_input_capacity",
@@ -108,6 +110,9 @@ export function createBrowserDeviceBase({
     maximumWrites = 8,
     maximumSignalOperations = 0,
   } = {}) {
+    if (!selected.has("browser/webserial@1")) {
+      throw new Error("browser WebSerial implementation is absent from the selected PROFILE");
+    }
     if (port || terminal) throw new Error("one bounded browser device Base session is already owned");
     const identity = encoder.encode(hostId + bootId);
     writeInput(api, identity);

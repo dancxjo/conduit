@@ -5,8 +5,12 @@ use conduit_host_fabrication::{
 };
 use std::collections::BTreeMap;
 
+mod device;
 mod inventory;
+mod line;
+mod media;
 
+pub use device::{BrowserDeviceRealizationDescriptor, BROWSER_DEVICE_REALIZATIONS};
 pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
     BrowserInventoryDiagnostic, BrowserRealizationDescriptor, BrowserRuntimePrerequisite,
@@ -14,6 +18,8 @@ pub use inventory::{
     BROWSER_HUMAN_PRESENTATION_REALIZATIONS, BROWSER_IMPLEMENTATIONS, REVIEWED_DISTRIBUTION_ID,
     REVIEWED_RUNTIME_ARTIFACT,
 };
+pub use line::{BrowserLineRealizationDescriptor, BROWSER_LINE_REALIZATIONS};
+pub use media::{BrowserMediaRealizationDescriptor, BROWSER_MEDIA_REALIZATIONS};
 
 pub struct BrowserFabricationPackage;
 
@@ -200,6 +206,65 @@ mod tests {
     }
 
     #[test]
+    fn media_entries_bind_the_accepted_two_plan_realization_exactly() {
+        assert_eq!(BROWSER_MEDIA_REALIZATIONS.len(), 2);
+        for realization in BROWSER_MEDIA_REALIZATIONS {
+            let fabricated = BROWSER_IMPLEMENTATIONS
+                .iter()
+                .find(|item| item.implementation_id == realization.fabrication_implementation_id)
+                .unwrap();
+            assert_eq!(
+                fabricated.implementation_revision,
+                realization.implementation_revision
+            );
+            assert!(realization
+                .acquisition_offer_id
+                .starts_with("media/acquire-"));
+            assert_eq!(realization.maximum_acquisitions_in_flight, 1);
+            assert_eq!(realization.maximum_result_bytes, 1024);
+            assert_eq!(realization.maximum_value_bytes, 64 * 1024);
+            assert_eq!(realization.maximum_queue_items, 1);
+            assert_eq!(realization.maximum_queue_bytes, 64 * 1024);
+            assert!(!realization.stable_physical_device_identity);
+            assert!(realization.requires_subsequent_use_plan);
+        }
+        assert!(
+            !BROWSER_IMPLEMENTATIONS
+                .iter()
+                .any(|item| { item.implementation_id == "browser/web-audio-output@1" }),
+            "Web Audio API presence is not an accepted audio-output realization"
+        );
+    }
+
+    #[test]
+    fn device_entries_bind_exact_chooser_and_transfer_realizations() {
+        assert_eq!(BROWSER_DEVICE_REALIZATIONS.len(), 2);
+        for realization in BROWSER_DEVICE_REALIZATIONS {
+            let fabricated = BROWSER_IMPLEMENTATIONS
+                .iter()
+                .find(|item| item.implementation_id == realization.fabrication_implementation_id)
+                .unwrap();
+            assert_eq!(
+                fabricated.implementation_revision,
+                realization.implementation_revision
+            );
+            assert!(realization
+                .acquisition_offer_id
+                .starts_with("device/acquire-"));
+            assert!(realization
+                .runtime_base_implementation_id
+                .starts_with("browser/web-"));
+            assert_eq!(realization.maximum_active_devices, 1);
+            assert_eq!(realization.maximum_transfers_in_flight, 1);
+            assert_eq!(realization.maximum_transfer_bytes, 4096);
+            assert_eq!(realization.maximum_reads_or_in_transfers, 8);
+            assert_eq!(realization.maximum_writes_or_out_transfers, 8);
+            assert!(!realization.stable_hardware_identity);
+            assert!(realization.requires_subsequent_use_plan);
+        }
+    }
+
+    #[test]
     fn human_and_presentation_entries_bind_exact_portable_runtime_realizations() {
         let fabricated = BROWSER_IMPLEMENTATIONS
             .iter()
@@ -263,5 +328,49 @@ mod tests {
         assert_eq!(storage.maximum_records_per_host, 1_024);
         assert_eq!(storage.maximum_bytes_per_host, 16 * 1024 * 1024);
         assert_ne!(storage.application_store, storage.host_identity_store);
+    }
+
+    #[test]
+    fn line_realizations_bind_exact_contracts_limits_and_outbound_authority() {
+        assert_eq!(BROWSER_LINE_REALIZATIONS.len(), 2);
+        let fabricated = BROWSER_IMPLEMENTATIONS
+            .iter()
+            .map(|item| item.implementation_id)
+            .collect::<BTreeSet<_>>();
+        for line in BROWSER_LINE_REALIZATIONS {
+            assert!(fabricated.contains(line.fabrication_implementation_id));
+            assert_eq!(line.implementation_revision, 1);
+            assert!(line.base_implementation_id.starts_with("conduit.base/"));
+            assert!(line.artifact_id.ends_with(".mjs@1"));
+            assert_eq!(line.maximum_sessions_per_host, 4);
+            assert_eq!(line.maximum_in_flight_items, 1);
+            assert_eq!(line.maximum_payload_bytes, 64 * 1024);
+            assert!(line.maximum_frame_bytes >= line.maximum_payload_bytes);
+            assert!(line.maximum_frame_bytes <= line.maximum_buffered_bytes);
+            assert_eq!(line.maximum_buffered_bytes, 256 * 1024);
+            assert!(line.maximum_received_messages > 0);
+            assert!(!line.endpoint_authority.is_empty());
+            assert!(!line.credential_requirement.is_empty());
+            assert!(line.initiates_outbound_only);
+        }
+        let websocket = &BROWSER_LINE_REALIZATIONS[0];
+        assert_eq!(
+            websocket.contract.scope,
+            conduit_core::LineScope::RoutedNetwork
+        );
+        assert_eq!(
+            websocket.contract.security,
+            conduit_core::LineSecurity::PlaintextNetwork
+        );
+        assert_eq!(websocket.maximum_frame_bytes, 64 * 1024);
+        assert_eq!(websocket.signaling_bootstrap, None);
+        let webrtc = &BROWSER_LINE_REALIZATIONS[1];
+        assert_eq!(webrtc.contract.scope, conduit_core::LineScope::PointToPoint);
+        assert_eq!(
+            webrtc.contract.security,
+            conduit_core::LineSecurity::AuthenticatedEncrypted
+        );
+        assert_eq!(webrtc.maximum_frame_bytes, 128 * 1024);
+        assert!(webrtc.signaling_bootstrap.is_some());
     }
 }

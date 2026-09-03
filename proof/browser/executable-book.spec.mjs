@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { installB7Devices } from "./b7-fixture.mjs";
 import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
+import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 let entrance;
 
@@ -155,7 +156,7 @@ test("every Book page and Crèche step has a direct, history-aware route", async
 
   await openStandaloneCreche(page);
   await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Crèche ready");
-  await expect(page.locator('.creche-steps [data-application-component="navigation"]')).toBeVisible();
+  await expect(page.locator('.creche-steps [data-application-component="stepper"]')).toBeVisible();
   const steps = ["birth", "first-host", "physical-host", "graduate"];
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
   for (let index = 1; index < steps.length; index += 1) {
@@ -489,8 +490,8 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     const stagedBodyId = await birth.getAttribute("data-body-id");
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     let evidence = JSON.parse(await runner.locator("details code").textContent());
     const c3Manifest = JSON.parse(await readFile(
       new URL("../../target/creche-product/artifacts/esp32-c3-generic-release.json", import.meta.url),
@@ -509,26 +510,23 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.bin");
     expect(requestedPaths).not.toContain("/conduit/artifacts/esp32-c3-generic-release.json");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    const spore = runner.locator(".download-spore");
-    await expect(spore).toHaveAttribute("download", /-c3\.bin$/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
+    const spore = runner.locator('[data-application-key="download-spore"]');
     evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: c3Manifest.target_id,
       image_content_digest: evidence.obtainment.artifact.content_digest,
     });
     expect(evidence.binding.image_id).toMatch(/^image:sha256:[0-9a-f]{64}$/);
-    const artifact = await spore.evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readEsp32BodySpore } = await import(new URL("../targets/esp32/browser-deployment/index.mjs", location.href).href);
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      return {
-        magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-        bytes: bytes.byteLength,
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: readEsp32BodySpore(bytes),
-      };
-    });
+    const downloadedSpore = await downloadArtifact(page, spore);
+    expect(downloadedSpore.filename).toMatch(/-c3\.bin$/);
+    const { readEsp32BodySpore } = await import("../../targets/esp32/browser-deployment/index.mjs");
+    const artifact = {
+      magic: new TextDecoder().decode(downloadedSpore.bytes.subarray(0, 8)),
+      bytes: downloadedSpore.bytes.byteLength,
+      contentDigest: await sha256(downloadedSpore.bytes),
+      provision: readEsp32BodySpore(downloadedSpore.bytes),
+    };
     expect(artifact).toMatchObject({
       bytes: 4 * 1024 * 1024,
       provision: {
@@ -549,11 +547,10 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await expect(page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" })).toBeDisabled();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const conduitosRunner = page.locator(".physical-host-runner");
-    await conduitosRunner.locator(".physical-target").selectOption("conduitos/x86_64/pc");
-    await expect(conduitosRunner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await conduitosRunner.locator('[data-application-key="physical-target"]').selectOption("conduitos/x86_64/pc");
+    await expect(conduitosRunner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await conduitosRunner.getByRole("button", { name: "Bind Body invitation" }).click();
-    const conduitosDownload = conduitosRunner.locator(".download-spore");
-    await expect(conduitosDownload).toHaveAttribute("download", /-conduitos-native\.iso$/);
+    const conduitosDownload = conduitosRunner.locator('[data-application-key="download-spore"]');
     evidence = JSON.parse(await conduitosRunner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: "conduitos/x86_64/pc",
@@ -561,17 +558,14 @@ test("the staged Book and Crèche each boot with only their own product tree", a
       fabrication_package_id: "conduitos-image@1",
       deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
     });
-    const nativeIso = await conduitosDownload.evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      const artifact = readBodyProvisionedMedia(bytes);
-      return {
-        isoMagic: new TextDecoder().decode(bytes.subarray(32769, 32774)),
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: artifact.provision,
-      };
-    });
+    const downloadedIso = await downloadArtifact(page, conduitosDownload);
+    expect(downloadedIso.filename).toMatch(/-conduitos-native\.iso$/);
+    const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+    const nativeIso = {
+      isoMagic: new TextDecoder().decode(downloadedIso.bytes.subarray(32769, 32774)),
+      contentDigest: await sha256(downloadedIso.bytes),
+      provision: readBodyProvisionedMedia(downloadedIso.bytes).provision,
+    };
     expect(nativeIso).toMatchObject({
       isoMagic: "CD001",
       provision: {
@@ -623,7 +617,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
     await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+    await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
     await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence).toMatchObject({ binding: null, realization: null, observation: null, admission: null });
@@ -634,7 +628,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
       artifact_work_started: false,
     });
     await expect(runner.getByRole("button", { name: "Bind Body invitation" })).toBeDisabled();
-    await expect(runner.locator(".download-spore")).toHaveCount(0);
+    await expect(runner.locator('[data-application-key="download-spore"]')).toHaveCount(0);
     expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.json");
     expect(requestedPaths).not.toContain("/conduit/creche/artifacts/esp32-c3-generic-release.bin");
     expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
@@ -720,13 +714,14 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page.locator('[data-application-key="attach-host"]')).toHaveAttribute("data-application-action", "host.attach");
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
   await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
+  await expect(page.locator('.first-host-runner [data-application-key="host-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   await page.getByRole("button", { name: "4. Graduate" }).click();
   await expect(page.locator('[data-application-key="without-patchbay"]')).toHaveAttribute("data-application-action", "graduate.without-patchbay");
   await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(page.locator('[data-application-key="graduation-status"]')).toHaveAttribute("data-application-component", "success-status");
   await expect(page.locator('[data-application-key="end-creche"]')).toHaveAttribute("data-application-action", "graduate.end");
   await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
-  await expect(page.locator(".body-biography li")).toHaveCount(4);
+  await expect(page.locator('.body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   const durable = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_biography();
@@ -752,7 +747,7 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
     runner.getByLabel("Initial program").boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
     runner.locator('[data-application-key="seed-source"]').boundingBox(),
-    runner.locator('[data-application-key="birth-editor"]').boundingBox(),
+    runner.locator(".birth-presentation").boundingBox(),
   ]);
   for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
   expect(program.y + program.height).toBeLessThanOrEqual(name.y);
@@ -776,7 +771,7 @@ test("the standalone Crèche physical Host selects use only the custom dropdown 
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
-  const selects = page.locator(".physical-host-runner .physical-mode, .physical-host-runner .physical-target");
+  const selects = page.locator('.physical-host-runner [data-application-key="physical-mode"], .physical-host-runner [data-application-key="physical-target"]');
   await expect(selects).toHaveCount(2);
   const appearances = await selects.evaluateAll(
     (elements) => elements.map((element) => getComputedStyle(element).appearance),
@@ -790,22 +785,18 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await expect(runner.locator("input[type=file]")).toHaveCount(0);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    const download = runner.locator(".download-spore");
-    await expect(download).toHaveAttribute("download", /-pico-w\.uf2$/);
-    const artifact = await download.evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readRp2040BodySpore } = await import("/creche/targets/rp2040/browser-deployment/index.mjs");
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      return {
-        filename: link.download,
-        bytes: bytes.byteLength,
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: readRp2040BodySpore(bytes),
-      };
-    });
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(/-pico-w\.uf2$/);
+    const { readRp2040BodySpore } = await import("../../targets/rp2040/browser-deployment/index.mjs");
+    const artifact = {
+      filename: downloaded.filename,
+      bytes: downloaded.bytes.byteLength,
+      contentDigest: await sha256(downloaded.bytes),
+      provision: readRp2040BodySpore(downloaded.bytes),
+    };
     return { birth, artifact, evidence: JSON.parse(await runner.locator("details code").textContent()) };
   };
   const first = await prepareOne("A");
@@ -832,9 +823,9 @@ test("the same Crèche lifecycle consumes packaged and template-specialized fabr
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator(".fabrication-strategy").selectOption(strategy);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     return JSON.parse(await runner.locator("details code").textContent());
   };
   const packaged = await prepare("fabrication-packaged", "packaged-exact");
@@ -852,47 +843,39 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
   const source = await (await page.request.get(new URL("./creche-physical.mjs", entrance.url).href)).text();
   const catalogSource = await (await page.request.get(new URL("./creche-target-catalog.mjs", entrance.url).href)).text();
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
-  await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target optgroup")).toHaveCount(8);
-  await expect(runner.locator(".physical-target optgroup").nth(0)).toHaveAttribute("label", "RP2040 boards");
-  await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "SparkFun Pro Micro");
-  await expect(runner.locator(".physical-target optgroup").nth(2)).toHaveAttribute("label", "ESP32 boards");
-  await expect(runner.locator(".physical-target optgroup").nth(3)).toHaveAttribute("label", "Hosted computers");
-  await expect(runner.locator(".physical-target optgroup").nth(4)).toHaveAttribute("label", "Browser Hosts");
-  await expect(runner.locator(".physical-target optgroup").nth(5)).toHaveAttribute("label", "Orange Pi computers");
-  await expect(runner.locator(".physical-target optgroup").nth(6)).toHaveAttribute("label", "Raspberry Pi computers");
-  await expect(runner.locator(".physical-target optgroup").nth(7)).toHaveAttribute("label", "ConduitOS machines");
-  await expect(runner.locator(".physical-target option")).toHaveText([
-    "Raspberry Pi Pico W · RP2040",
-    "Pro Micro · ATmega32U4 · 5 V / 16 MHz",
-    "ESP32-C3",
-    "ESP32-S3",
-    "ESP32-WROOM-32 · HW-463",
-    "Hosted computer · Linux · x86_64",
-    "Hosted computer · Windows · x86_64",
-    "Hosted computer · macOS · arm64",
-    "Browser page Host",
-    "Orange Pi 5 · RK3588S · bare-metal ConduitOS",
-    "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
-    "Pi Zero 2 W rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
-    "Pi Zero 2 WH rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
-    "Model B+ v1.2 · ARMv6 · bare-metal ConduitOS",
-    "Pi Zero v1 · ARMv6 · bare-metal ConduitOS",
-    "Pi Zero W v1.1 · ARMv6 · bare-metal ConduitOS",
-    "Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
-    "x86_64 PC · product Host",
-    "AArch64 virt · product Host",
-    "IA-32 PC · product Host",
-    "RISC-V64 virt · product Host",
-    "LoongArch64 virt · product Host",
+  await expect(runner.locator('[data-application-key="physical-mode"] option')).toHaveCount(3);
+  const targetOptions = runner.locator('[data-application-key="physical-target"] option');
+  await expect(targetOptions).toHaveText([
+    "RP2040 boards · Raspberry Pi Pico W · RP2040",
+    "SparkFun Pro Micro · Pro Micro · ATmega32U4 · 5 V / 16 MHz",
+    "ESP32 boards · ESP32-C3",
+    "ESP32 boards · ESP32-S3",
+    "ESP32 boards · ESP32-WROOM-32 · HW-463",
+    "Hosted computers · Hosted computer · Linux · x86_64",
+    "Hosted computers · Hosted computer · Windows · x86_64",
+    "Hosted computers · Hosted computer · macOS · arm64",
+    "Browser Hosts · Browser page Host",
+    "Orange Pi computers · Orange Pi 5 · RK3588S · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
+    "Raspberry Pi computers · Pi Zero 2 W rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+    "Raspberry Pi computers · Pi Zero 2 WH rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+    "Raspberry Pi computers · Model B+ v1.2 · ARMv6 · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi Zero v1 · ARMv6 · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi Zero W v1.1 · ARMv6 · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
+    "ConduitOS machines · x86_64 PC · product Host",
+    "ConduitOS machines · AArch64 virt · product Host",
+    "ConduitOS machines · IA-32 PC · product Host",
+    "ConduitOS machines · RISC-V64 virt · product Host",
+    "ConduitOS machines · LoongArch64 virt · product Host",
   ]);
-  await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
+  await expect(runner.locator('[data-application-key="physical-target"]')).toHaveValue("conduitos/thumbv6m/pico-w");
 
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.catalog).toMatchObject({
@@ -929,7 +912,7 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     maximumRetainedEvidenceBytes: 131072,
   });
 
-  await runner.locator(".physical-mode").selectOption("install-existing");
+  await runner.locator('[data-application-key="physical-mode"]').selectOption("install-existing");
   await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.intention).toMatchObject({ mode: "install-existing", result_kind: "installation", supported: false });
@@ -941,7 +924,7 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   });
   expect(evidence.admitted_operations).toBe(1);
 
-  await runner.locator(".physical-mode").selectOption("attach-running");
+  await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
   await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.intention).toMatchObject({ mode: "attach-running", result_kind: "attachment", supported: false });
@@ -954,10 +937,10 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   const birth = await birthStandaloneBody(page, { sourceVariant: "browser-existing-computer" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("browser/wasm32/page");
-  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
   await runner.getByRole("button", { name: "Review Host" }).click();
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/browser@1" },
@@ -987,9 +970,9 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   expect(evidence.obtainment.bundle_sha256).toBe(evidence.obtainment.image_content_digest);
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-browser-wasm32-page\.zip$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
+  const bundleHandoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(bundleHandoff).toContainText("Download ZIP");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     body_id: birth.bodyId,
@@ -999,18 +982,16 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
     deployment_adapter: "conduit-host-browser/load@1",
     image_content_digest: evidence.obtainment.image_content_digest,
   });
-  const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const archive = readBodyBoundZip(bytes);
-    return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      files: Array.from(archive.entries.keys()),
-      provision: archive.provision,
-    };
-  });
+  const downloadedBundle = await downloadArtifact(page, bundleHandoff);
+  expect(downloadedBundle.filename).toMatch(/-browser-wasm32-page\.zip$/);
+  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const archive = readBodyBoundZip(downloadedBundle.bytes);
+  const bundle = {
+    magic: new TextDecoder().decode(downloadedBundle.bytes.subarray(0, 4)),
+    contentDigest: await sha256(downloadedBundle.bytes),
+    files: Array.from(archive.entries.keys()),
+    provision: archive.provision,
+  };
   expect(bundle.magic).toBe("PK\u0003\u0004");
   expect(bundle.files).toContain("runtime.wasm");
   expect(bundle.files).toContain("conduit-browser-image.json");
@@ -1022,11 +1003,11 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   expect(bundle.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("BrowserBundleLoaded");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
-  await expect(runner.locator('[data-stage="observe"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Admit Part and offers" }).click();
-  await expect(runner.locator('[data-stage="admit"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.realization).toMatchObject({
     terminal: "BrowserBundleLoaded",
@@ -1055,12 +1036,12 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   await birthStandaloneBody(page, { sourceVariant: "native-existing-computer" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("std/x86_64/computer");
-  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-hosted-linux-x86_64\.zip$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
+  const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(hostedHandoff).toContainText("Download ZIP");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry.target_profile).toMatchObject({
     os: "linux",
@@ -1090,18 +1071,16 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
       ]),
     },
   });
-  const hostedPackage = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const archive = readBodyBoundZip(bytes);
-    return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      files: Array.from(archive.entries.keys()),
-      provision: archive.provision,
-    };
-  });
+  const downloadedHosted = await downloadArtifact(page, hostedHandoff);
+  expect(downloadedHosted.filename).toMatch(/-hosted-linux-x86_64\.zip$/);
+  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const hostedArchive = readBodyBoundZip(downloadedHosted.bytes);
+  const hostedPackage = {
+    magic: new TextDecoder().decode(downloadedHosted.bytes.subarray(0, 4)),
+    contentDigest: await sha256(downloadedHosted.bytes),
+    files: Array.from(hostedArchive.entries.keys()),
+    provision: hostedArchive.provision,
+  };
   expect(hostedPackage).toMatchObject({
     magic: "PK\u0003\u0004",
     provision: {
@@ -1151,10 +1130,11 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
     await birthStandaloneBody(page, { sourceVariant: `native-${profile.os}-${index}` });
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption(profile.id);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator(".download-spore")).toHaveAttribute("download", new RegExp(`-${profile.profileId}\\.zip$`));
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(new RegExp(`-${profile.profileId}\\.zip$`));
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry).toMatchObject({
       target: { id: profile.id, profile_id: profile.profileId },
@@ -1189,8 +1169,8 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     await birthStandaloneBody(page, { sourceVariant: `esp32-${index}` });
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption(profile.id);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     let evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry.target.profile_id).toBe(profile.profileId);
     expect(evidence.target_entry.target_profile).toMatchObject({
@@ -1208,23 +1188,17 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     });
 
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    await expect(runner.locator(".download-spore")).toHaveAttribute(
-      "download",
-      new RegExp(`-${profile.releaseName}\\.bin$`),
-    );
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     evidence = JSON.parse(await runner.locator("details code").textContent());
-    const artifact = await runner.locator(".download-spore").evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readEsp32BodySpore } = await import(new URL("../targets/esp32/browser-deployment/index.mjs", location.href).href);
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      return {
-        magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-        bytes: bytes.byteLength,
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: readEsp32BodySpore(bytes),
-      };
-    });
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(new RegExp(`-${profile.releaseName}\\.bin$`));
+    const { readEsp32BodySpore } = await import("../../targets/esp32/browser-deployment/index.mjs");
+    const artifact = {
+      magic: new TextDecoder().decode(downloaded.bytes.subarray(0, 8)),
+      bytes: downloaded.bytes.byteLength,
+      contentDigest: await sha256(downloaded.bytes),
+      provision: readEsp32BodySpore(downloaded.bytes),
+    };
     expect(artifact).toMatchObject({
       bytes: 4 * 1024 * 1024,
       provision: {
@@ -1250,7 +1224,7 @@ test("an unavailable generic ESP32 release refuses before device authority or sp
   await birthStandaloneBody(page, { sourceVariant: "esp32-release-absent" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
   await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ binding: null, realization: null, observation: null, admission: null });
@@ -1281,10 +1255,10 @@ test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal"
   await birthStandaloneBody(page, { sourceVariant: "esp32-wrong-port" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "WrongPort"');
   const evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -1367,6 +1341,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await page.evaluate(async () => {
     const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
     const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
+    const { createApplicationPresentationHost } = await import("/creche/application-presentation.mjs");
     let release;
     globalThis.__fixtureCancelCount = 0;
     const target = {
@@ -1411,7 +1386,11 @@ test("the physical workflow cancels one bounded catalog operation without accept
       createAdapter: () => adapter,
     };
     const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
-    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetCatalog });
+    const runner = createPhysicalHostRunner({
+      host: globalThis.__conduitCrecheHost,
+      targetCatalog,
+      presentationFor: (scope) => createApplicationPresentationHost(scope),
+    });
     runner.dataset.fixture = "cancellation";
     document.querySelector("#workspace").append(runner);
     globalThis.__releaseFixtureObtainment = release;
@@ -1421,7 +1400,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await runner.getByRole("button", { name: "Cancel current operation" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "Cancelled"');
   await page.evaluate(() => globalThis.__releaseFixtureObtainment());
-  await expect(runner.locator('[data-stage="obtain"]')).not.toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("waiting");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ phase: "terminal", cancellations: 1, obtainment: null });
   expect(evidence.terminal).toMatchObject({ operation: "obtain", terminal: "Cancelled" });
@@ -1430,6 +1409,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await page.evaluate(async () => {
     const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
     const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
+    const { createApplicationPresentationHost } = await import("/creche/application-presentation.mjs");
     const target = {
       id: "fixture/evidence-bound",
       label: "Evidence-bound fixture",
@@ -1469,7 +1449,11 @@ test("the physical workflow cancels one bounded catalog operation without accept
       createAdapter: () => adapter,
     };
     const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
-    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetCatalog });
+    const runner = createPhysicalHostRunner({
+      host: globalThis.__conduitCrecheHost,
+      targetCatalog,
+      presentationFor: (scope) => createApplicationPresentationHost(scope),
+    });
     runner.dataset.fixture = "evidence-bound";
     document.querySelector("#workspace").append(runner);
   });
@@ -1718,23 +1702,23 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
   const birth = await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Invitation, realization, Boot, join, membership, offers, Plan, and Play remain absent");
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Realization, Boot, join, membership, offers, Plan, and Play remain absent");
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("RebootRequested");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("RebootRequested");
   await expect(runner.locator(".physical-status")).toContainText("No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted");
 
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
-  await expect(runner.locator('[data-stage="observe"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Admission remains an explicit action");
 
   await runner.getByRole("button", { name: "Admit Part and offers" }).click();
-  await expect(runner.locator('[data-stage="admit"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("current offers are ready. No Plan or Play was created");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding.body_id).toBe(birth.bodyId);
@@ -1774,12 +1758,12 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const deploy = runner.getByRole("button", { name: "Realize selected Host" });
   await deploy.click();
   await expect(runner.locator(".physical-status")).toContainText("This USB acquisition is terminal");
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("waiting");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("waiting");
   await expect(deploy).toBeDisabled();
 });
 
@@ -1788,7 +1772,7 @@ test("Add a physical Host retains the exact Picoboot refusal chain", async ({ pa
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   const evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -1816,17 +1800,17 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   ]);
   await runner.getByRole("button", { name: "Host Patchbay on this Body" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
-  await expect(runner.locator(".graduation-evidence")).toContainText("browser/patchbay-surface@1");
-  await expect(runner.locator(".graduation-evidence")).toContainText("Crèche requiredfalse");
+  await expect(runner.locator('[data-application-key="graduation-identities"]')).toContainText("browser/patchbay-surface@1");
+  await expect(runner.locator('[data-application-key="graduation-identities"]')).toContainText("Crèche requiredfalse");
   const biography = runner.locator(".body-biography");
-  await expect(biography).toHaveAttribute("data-body-id", bodyId);
-  await expect(biography.locator("li")).toHaveCount(4);
-  await expect(biography.locator("strong")).toHaveText(["Born", "Part admitted", "Host joined", "Graduated from the Crèche"]);
+  await expect(biography.locator('[data-application-key="biography-records"]')).toContainText(bodyId);
+  await expect(biography.locator('[data-application-key^="biography-record-"]')).toHaveCount(4);
+  await expect(biography.locator("dt")).toHaveText(["Born", "Part admitted", "Host joined", "Graduated from the Crèche"]);
   await expect(biography).toContainText("browser/patchbay-surface@1");
   await runner.getByRole("button", { name: "End the Crèche" }).click();
   await expect(page.locator(".creche-complete")).toContainText(bodyId);
   await expect(page.locator(".creche-steps")).toHaveCount(0);
-  await expect(page.locator(".creche-complete .body-biography li")).toHaveCount(4);
+  await expect(page.locator('.creche-complete .body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   const retained = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_current();
@@ -1852,12 +1836,12 @@ test("graduation can finish without hosting Patchbay and still retain the same B
   const runner = page.locator(".graduation-runner");
   await runner.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
-  await expect(runner.locator(".graduation-evidence")).toContainText("Patchbay Plannot hosted");
+  await expect(runner.locator('[data-application-key="graduation-identities"]')).toContainText("Patchbay Plannot hosted");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.choice).toBe("external-reader");
   expect(evidence.patchbay_plan_id).toBeNull();
   expect(evidence.creche_required).toBe(false);
-  await expect(runner.locator(".body-biography li")).toHaveCount(4);
+  await expect(runner.locator('.body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   await expect(runner.locator(".body-biography")).toContainText("compatible reader can project this same evidence later");
 });
 

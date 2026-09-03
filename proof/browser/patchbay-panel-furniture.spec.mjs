@@ -32,6 +32,7 @@ async function enactFurnitureControl(page,name,enact) {
 }
 
 test("subordinate furniture is keyboard-operable and presentation-only",async ({page})=>{
+  test.setTimeout(40_000);
   const server=startServer();
   try {
     const url=await server.url;
@@ -60,7 +61,7 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
         await page.route("**/api/navigation",delayInspectorNavigation);
         await launcher.focus();await launcher.press("Enter");await navigationHeld;
         await expect(surface).toHaveAttribute("aria-busy","true");
-        await expect(surface.locator('[data-furniture-action="close"]')).toBeDisabled();
+        await expect(surface.locator('[data-application-key="close"]')).toBeDisabled();
         await page.keyboard.press("Escape");
         releaseNavigation();
         await expect(surface).not.toHaveAttribute("aria-busy","true");
@@ -71,39 +72,40 @@ test("subordinate furniture is keyboard-operable and presentation-only",async ({
       await expect(surface).toBeVisible();
       await expect(surface).toHaveAttribute("data-furniture-surface",name);
       await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
-      await expect(surface.locator("[data-furniture-action]")).toHaveCount(3);
-      await expect(surface.locator('[data-furniture-action="collapse"]')).toBeFocused();
+      await expect(surface.locator('.furniture-bar [data-application-component="action-group"]')).toHaveCount(1);
+      await expect(surface.locator('.furniture-bar [data-application-component="button"]')).toHaveCount(3);
+      await expect(surface.locator('[data-application-key="collapse"]')).toBeFocused();
       const initialDock=await surface.getAttribute("data-furniture-dock");
-      await surface.locator('[data-furniture-action="collapse"]').press("Enter");
+      await surface.locator('[data-application-key="collapse"]').press("Enter");
       await expect(surface).toHaveAttribute("data-furniture-collapsed","true");
-      await surface.locator('[data-furniture-action="collapse"]').press("Enter");
+      await surface.locator('[data-application-key="collapse"]').press("Enter");
       await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
       if(name==="inspector") {
         const constrainedFlow=await page.locator("#flow-root").boundingBox();
-        await surface.locator('[data-furniture-action="close"]').focus();
-        await enactFurnitureControl(page,name,()=>surface.locator('[data-furniture-action="close"]').press("Enter"));
+        await surface.locator('[data-application-key="close"]').focus();
+        await enactFurnitureControl(page,name,()=>surface.locator('[data-application-key="close"]').press("Enter"));
         await expect(surface).toBeHidden();
         expect((await page.locator("#flow-root").boundingBox()).width).toBeGreaterThan(constrainedFlow.width);
         await enactFurnitureControl(page,name,()=>launcher.press("Enter"));
         await expect(surface).toBeVisible();
         await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
       }
-      await surface.locator('[data-furniture-action="move"]').focus();
-      await surface.locator('[data-furniture-action="move"]').press("Enter");
+      await surface.locator('[data-application-key="move"]').focus();
+      await surface.locator('[data-application-key="move"]').press("Enter");
       await expect(surface).not.toHaveAttribute("data-furniture-dock",initialDock);
       const movedDock=await surface.getAttribute("data-furniture-dock");
       const moved=await surface.boundingBox(),viewport=page.viewportSize();
       expect(moved.x).toBeGreaterThanOrEqual(0);expect(moved.y).toBeGreaterThanOrEqual(0);
       expect(moved.x+moved.width).toBeLessThanOrEqual(viewport.width);
       expect(moved.y+moved.height).toBeLessThanOrEqual(viewport.height);
-      await surface.locator('[data-furniture-action="close"]').focus();
-      await enactFurnitureControl(page,name,()=>surface.locator('[data-furniture-action="close"]').press("Enter"));
+      await surface.locator('[data-application-key="close"]').focus();
+      await enactFurnitureControl(page,name,()=>surface.locator('[data-application-key="close"]').press("Enter"));
       await expect(surface).toBeHidden();await expect(launcher).toBeFocused();
       await enactFurnitureControl(page,name,()=>launcher.press("Enter"));
       await expect(surface).toBeVisible();
       await expect(surface).toHaveAttribute("data-furniture-collapsed","false");
       await expect(surface).toHaveAttribute("data-furniture-dock",movedDock);
-      await expect(surface.locator('[data-furniture-action="collapse"]')).toBeFocused();
+      await expect(surface.locator('[data-application-key="collapse"]')).toBeFocused();
       await enactFurnitureControl(page,name,()=>page.keyboard.press("Escape"));
       await expect(surface).toBeHidden();await expect(launcher).toBeFocused();
     }

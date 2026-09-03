@@ -116,6 +116,30 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
+test("superset WebSerial adapter refuses PROFILE omission before the chooser", async ({ page }) => {
+  await page.goto(await startEntrance());
+  await page.waitForFunction(() => globalThis.__conduitBrowserHost?.runtime);
+  const result = await page.evaluate(async () => {
+    let chooserCalls = 0;
+    const { createBrowserDeviceBase } = await import("/device-base.mjs");
+    const base = createBrowserDeviceBase({
+      api: __conduitBrowserHost.runtime,
+      hostId: __conduitBrowserHost.hostId,
+      bootId: __conduitBrowserHost.bootId,
+      selectedImplementations: [],
+      serial: { requestPort: async () => { chooserCalls += 1; } },
+    });
+    try { await base.acquireSerial(); } catch (error) {
+      return { message: error.message, chooserCalls };
+    }
+    return { message: "accepted", chooserCalls };
+  });
+  expect(result).toEqual({
+    message: "browser WebSerial implementation is absent from the selected PROFILE",
+    chooserCalls: 0,
+  });
+});
+
 test("explicit Web Serial acquisition creates one exact finite Base then bounded use", async ({ page }) => {
   await installSuccessfulSerial(page);
   await page.goto(await startEntrance());
