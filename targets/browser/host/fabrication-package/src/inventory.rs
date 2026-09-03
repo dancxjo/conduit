@@ -12,6 +12,8 @@ pub struct BrowserRuntimePrerequisite {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrowserImplementationDescriptor {
+    pub group: &'static str,
+    pub label: &'static str,
     pub base_kind: &'static str,
     pub implementation_id: &'static str,
     pub implementation_revision: u32,
@@ -48,8 +50,18 @@ const DEVICE_ACQUISITION: BrowserRuntimePrerequisite = BrowserRuntimePrerequisit
 };
 
 pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
-    descriptor("browser/dom", "browser/dom@1", 4, 4 * 1024 * 1024, &[]),
     descriptor(
+        "Presentation",
+        "Browser document",
+        "browser/dom",
+        "browser/dom@1",
+        4,
+        4 * 1024 * 1024,
+        &[],
+    ),
+    descriptor(
+        "Presentation",
+        "Graphical and text presentation",
         "presentation/graphical",
         "browser/dom-presentation@1",
         4,
@@ -57,6 +69,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[],
     ),
     descriptor(
+        "Human input",
+        "Keyboard",
         "human/keyboard",
         "browser/keyboard-events@1",
         1,
@@ -64,6 +78,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[],
     ),
     descriptor(
+        "Human input",
+        "Pointer",
         "human/pointer",
         "browser/pointer-events@1",
         4,
@@ -71,6 +87,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[],
     ),
     descriptor(
+        "Storage",
+        "Durable browser storage",
         "storage/durable",
         "browser/indexeddb@1",
         8,
@@ -78,6 +96,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[SECURE_CONTEXT],
     ),
     descriptor(
+        "Lines",
+        "WebSocket",
         "line/websocket",
         "browser/websocket@1",
         16,
@@ -85,6 +105,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[SECURE_CONTEXT],
     ),
     descriptor(
+        "Lines",
+        "WebRTC data channel",
         "line/webrtc-datachannel",
         "browser/webrtc-datachannel@1",
         16,
@@ -92,6 +114,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[SECURE_CONTEXT],
     ),
     descriptor(
+        "Media",
+        "Camera",
         "media/camera",
         "browser/media-devices-camera@1",
         2,
@@ -104,6 +128,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         ],
     ),
     descriptor(
+        "Media",
+        "Microphone",
         "media/microphone",
         "browser/media-devices-microphone@1",
         2,
@@ -116,6 +142,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         ],
     ),
     descriptor(
+        "Media",
+        "Audio output",
         "audio/output",
         "browser/web-audio-output@1",
         4,
@@ -123,6 +151,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[USER_ACTIVATION],
     ),
     descriptor(
+        "Devices",
+        "WebSerial",
         "device/serial",
         "browser/webserial@1",
         4,
@@ -135,6 +165,8 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         ],
     ),
     descriptor(
+        "Devices",
+        "WebUSB",
         "device/usb",
         "browser/webusb@1",
         4,
@@ -235,6 +267,8 @@ pub fn validate_browser_inventory(
 }
 
 const fn descriptor(
+    group: &'static str,
+    label: &'static str,
     base_kind: &'static str,
     implementation_id: &'static str,
     maximum_instances: u32,
@@ -242,6 +276,8 @@ const fn descriptor(
     prerequisites: &'static [BrowserRuntimePrerequisite],
 ) -> BrowserImplementationDescriptor {
     BrowserImplementationDescriptor {
+        group,
+        label,
         base_kind,
         implementation_id,
         implementation_revision: 1,

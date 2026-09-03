@@ -153,6 +153,8 @@ mod tests {
         ));
 
         let malformed_prerequisites = BrowserImplementationDescriptor {
+            group: "Devices",
+            label: "Broken device",
             base_kind: "device/usb",
             implementation_id: "browser/broken-usb@1",
             implementation_revision: 1,

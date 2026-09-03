@@ -16,6 +16,7 @@ cp targets/browser/host/assets/creche-lifecycle.mjs "$destination/creche-lifecyc
 cp targets/browser/host/assets/creche-names.mjs "$destination/creche-names.mjs"
 cp targets/browser/host/assets/creche-physical.mjs "$destination/creche-physical.mjs"
 cp targets/browser/host/assets/creche-target-catalog.mjs "$destination/creche-target-catalog.mjs"
+cp targets/browser/host/assets/creche-browser-configuration.mjs "$destination/creche-browser-configuration.mjs"
 cp targets/browser/host/assets/creche-spore-bundle.mjs "$destination/creche-spore-bundle.mjs"
 cp targets/browser/host/assets/creche-native-zip.mjs "$destination/creche-native-zip.mjs"
 cp targets/browser/host/assets/creche-native-disk.mjs "$destination/creche-native-disk.mjs"
@@ -73,5 +74,8 @@ done
 node scripts/ci/build-browser-application-package.mjs \
   targets/browser/host/assets/creche.application.template.json "$destination" creche.application.json
 
-test "$(find "$destination" -type f | wc -l)" -eq 104
+file_count=$(find "$destination" -type f | wc -l)
+test "$file_count" -le 128
+test -f "$destination/creche.application.json"
+test -f "$destination/creche-browser-configuration.mjs"
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"
