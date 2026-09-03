@@ -17,7 +17,7 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 | browser Host identity and Body membership | Host mechanism, not a configurable semantic Base | durable profile and admitted membership authority |
 | application package loader/presentation bridge | Host operation and product substrate | exact admitted package bytes |
 | Book runners and browser proof fixtures | application/proof code, never ordinary Host choices | intentionally excluded |
-| touch and gamepad | intentionally unsupported | no reviewed production contract/implementation yet |
+| touch and gamepad | portable value contracts and deterministic fixtures exist, but no selectable live browser realization exists | intentionally unadvertised |
 
 Implementation availability, PROFILE selection, Boot initialization, current resource/permission truth, and immutable Plan selection are distinct. BUILD records only the first two. In particular, selecting camera, microphone, WebSerial, or WebUSB never prompts for permission and never claims a device exists.
 
@@ -66,3 +66,27 @@ realization, retaining its Form and Plan identities while explicitly recording
 that neither the authored Form nor IMAGE changed. A reduced-module bundle and
 the superset bundle therefore produce the same semantic registry and offers for
 one selected PROFILE; only their artifact layout and size may differ.
+
+## Human-facing realization boundary
+
+`BROWSER_HUMAN_PRESENTATION_REALIZATIONS` is the checked join between each
+fabrication identity and its portable Kind, ordinary runtime implementation,
+runtime artifact identity, Host-operation contract, and finite limits. Runtime
+tests compare that table to the real installed `CapabilityOffer`s so a label in
+the configurator cannot silently drift away from what the planner selects.
+
+The ordinary installed-browser advertisement is constructed from the selected
+fabrication identities. A viewer with only `browser/dom-presentation@1` has no
+keyboard offer and no window-input resource. The control-surface profile adds
+`browser/keyboard-events@1` and `browser/pointer-events@1`; their presence in a
+superset WASM alone grants no offer.
+
+`browser-human-input.mjs` is the shared Host-owned DOM adapter used by browser
+products and the pointer vertical. It binds every delivered value to exact
+Host, Boot, and offer-generation truth, translates keys and normalized pointer
+coordinates into the existing portable value schemas, and keeps unsupported
+input, focus/page loss, finite pressure, cancellation, and stale Boot distinct.
+The authored Form and portable contract never receive DOM objects, selectors,
+CSS, or Web API event classes. Touch and gamepad stay absent until a reviewed
+live browser implementation and lifecycle exist; their portable schemas alone
+are not an implementation claim.

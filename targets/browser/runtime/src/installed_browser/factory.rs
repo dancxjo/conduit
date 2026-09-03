@@ -72,6 +72,88 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &input::KEYBOARD,
 ];
 
+pub(crate) const PRESENTATION_FABRICATION_ID: &str = "browser/dom-presentation@1";
+pub(crate) const KEYBOARD_FABRICATION_ID: &str = "browser/keyboard-events@1";
+pub(crate) const POINTER_FABRICATION_ID: &str = "browser/pointer-events@1";
+
+/// The finite human-facing machinery admitted into one browser IMAGE.
+///
+/// This is deliberately expressed in fabrication identities. The Web API
+/// surface is merely how the Host realizes these selections after Boot.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct BrowserMachinery {
+    presentation: bool,
+    keyboard: bool,
+    pointer: bool,
+}
+
+impl BrowserMachinery {
+    #[cfg(test)]
+    pub(crate) const PRESENTATION_ONLY: Self = Self {
+        presentation: true,
+        keyboard: false,
+        pointer: false,
+    };
+
+    pub(crate) fn from_selected(selected: &[&str]) -> Result<Self, String> {
+        let has = |identity| selected.contains(&identity);
+        for identity in selected {
+            if ![
+                PRESENTATION_FABRICATION_ID,
+                KEYBOARD_FABRICATION_ID,
+                POINTER_FABRICATION_ID,
+            ]
+            .contains(identity)
+            {
+                return Err(format!(
+                    "unknown browser human-facing fabrication identity {identity}"
+                ));
+            }
+        }
+        Ok(Self {
+            presentation: has(PRESENTATION_FABRICATION_ID),
+            keyboard: has(KEYBOARD_FABRICATION_ID),
+            pointer: has(POINTER_FABRICATION_ID),
+        })
+    }
+
+    fn admits(self, installation: &BrowserInstallation) -> bool {
+        if installation.implementation_id == input::KEYBOARD_IMPLEMENTATION {
+            return self.keyboard;
+        }
+        let offer = (installation.offer)();
+        if offer
+            .resource_requirements
+            .iter()
+            .any(|requirement| requirement.class_id.as_str() == PRESENTATION_RESOURCE_CLASS)
+        {
+            return self.presentation;
+        }
+        true
+    }
+
+    pub(crate) fn selected_fabrication_ids(self) -> Vec<&'static str> {
+        [
+            (self.presentation, PRESENTATION_FABRICATION_ID),
+            (self.keyboard, KEYBOARD_FABRICATION_ID),
+            (self.pointer, POINTER_FABRICATION_ID),
+        ]
+        .into_iter()
+        .filter_map(|(selected, identity)| selected.then_some(identity))
+        .collect()
+    }
+}
+
+pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
+    BrowserMachinery::from_selected(&[
+        PRESENTATION_FABRICATION_ID,
+        KEYBOARD_FABRICATION_ID,
+        POINTER_FABRICATION_ID,
+    ])
+    .expect("ordinary browser profile contains reviewed machinery")
+    .selected_fabrication_ids()
+}
+
 pub(crate) fn catalogs(
 ) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
     let mut startup = conduit_form::StartupCatalog::new();
@@ -116,25 +198,42 @@ pub(crate) fn factory(
 }
 
 pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
+    advertisement_for_machinery(
+        host_id,
+        boot_id,
+        BrowserMachinery::from_selected(&selected_human_machinery())
+            .expect("ordinary browser profile contains reviewed machinery"),
+    )
+}
+
+pub(crate) fn advertisement_for_machinery(
+    host_id: HostId,
+    boot_id: BootId,
+    machinery: BrowserMachinery,
+) -> HostAdvertisement {
+    let mut resources = Vec::new();
+    if machinery.presentation {
+        resources.push(resource_offer(
+            "browser/presentation",
+            PRESENTATION_RESOURCE_CLASS,
+            super::MAXIMUM_BROWSER_GEARS as u32,
+        ));
+    }
+    resources.push(resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1));
+    if machinery.keyboard || machinery.pointer {
+        resources.push(resource_offer(
+            "browser/window-input",
+            input::WINDOW_INPUT_RESOURCE_CLASS,
+            1,
+        ));
+    }
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/installed-local@1"),
-        resources: vec![
-            resource_offer(
-                "browser/presentation",
-                PRESENTATION_RESOURCE_CLASS,
-                super::MAXIMUM_BROWSER_GEARS as u32,
-            ),
-            resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1),
-            resource_offer(
-                "browser/window-input",
-                input::WINDOW_INPUT_RESOURCE_CLASS,
-                1,
-            ),
-        ],
+        resources,
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
             limits: PlannerLimits {
@@ -148,6 +247,7 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         }],
         capabilities: INSTALLATIONS
             .iter()
+            .filter(|entry| machinery.admits(entry))
             .map(|entry| {
                 let mut offer = (entry.offer)();
                 offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
@@ -177,4 +277,124 @@ pub(super) fn validate_placement(
         return Err("planned browser Gear does not match its installed capability".into());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+
+    #[test]
+    fn selected_fabrication_ids_gate_real_planning_offers_and_resources() {
+        let viewer = advertisement_for_machinery(
+            HostId::from("browser/viewer"),
+            BootId::from("browser/viewer-boot"),
+            BrowserMachinery::PRESENTATION_ONLY,
+        );
+        assert!(viewer.capabilities.iter().any(|offer| {
+            offer
+                .resource_requirements
+                .iter()
+                .any(|item| item.class_id.as_str() == PRESENTATION_RESOURCE_CLASS)
+        }));
+        assert!(!viewer.capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str() == input::KEYBOARD_IMPLEMENTATION
+        }));
+        assert!(!viewer
+            .resources
+            .iter()
+            .any(|resource| { resource.class_id.as_str() == input::WINDOW_INPUT_RESOURCE_CLASS }));
+
+        let control = advertisement_for_machinery(
+            HostId::from("browser/control"),
+            BootId::from("browser/control-boot"),
+            BrowserMachinery::from_selected(&[
+                PRESENTATION_FABRICATION_ID,
+                KEYBOARD_FABRICATION_ID,
+                POINTER_FABRICATION_ID,
+            ])
+            .unwrap(),
+        );
+        assert!(control.capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str() == input::KEYBOARD_IMPLEMENTATION
+        }));
+        assert!(control
+            .resources
+            .iter()
+            .any(|resource| { resource.class_id.as_str() == input::WINDOW_INPUT_RESOURCE_CLASS }));
+        assert!(BrowserMachinery::from_selected(&["browser/touch-events@1"]).is_err());
+    }
+
+    #[test]
+    fn fabrication_metadata_matches_installed_offer_identities() {
+        let advertised = advertisement(
+            HostId::from("browser/metadata-test"),
+            BootId::from("browser/metadata-test-boot"),
+        );
+        for binding in conduit_host_browser_fabrication::BROWSER_HUMAN_PRESENTATION_REALIZATIONS {
+            let Some(installation) = INSTALLATIONS
+                .iter()
+                .find(|entry| entry.implementation_id == binding.runtime_implementation_id)
+            else {
+                assert_eq!(
+                    binding.runtime_implementation_id,
+                    "browser/dom-pointer-source@1"
+                );
+                let pointer = crate::browser_pointer::advertisement()
+                    .capabilities
+                    .into_iter()
+                    .find(|offer| {
+                        offer.implementation.implementation_id.as_str()
+                            == binding.runtime_implementation_id
+                    })
+                    .expect("reviewed pointer vertical advertises its exact realization");
+                assert_eq!(pointer.kind_id.as_str(), binding.portable_kind);
+                assert_eq!(
+                    pointer.implementation.artifact_id.as_str(),
+                    binding.runtime_artifact_id
+                );
+                assert_eq!(
+                    pointer.limits.max_queue_items as u32,
+                    binding.maximum_queue_items
+                );
+                assert_eq!(pointer.limits.max_queue_bytes, binding.maximum_queue_bytes);
+                assert!(pointer.host_operations.iter().any(|operation| {
+                    operation.contract_id.as_str() == binding.host_operation
+                        && operation.maximum_in_flight == binding.maximum_in_flight
+                }));
+                continue;
+            };
+            let offer = advertised
+                .capabilities
+                .iter()
+                .find(|offer| {
+                    offer.implementation.implementation_id.as_str()
+                        == installation.implementation_id
+                })
+                .expect("selected installation is advertised");
+            assert_eq!(offer.kind_id.as_str(), binding.portable_kind);
+            assert_eq!(
+                offer.implementation.artifact_id.as_str(),
+                binding.runtime_artifact_id
+            );
+            assert_eq!(
+                offer.limits.max_queue_items as u32, binding.maximum_queue_items,
+                "queue item binding drifted for {}",
+                binding.runtime_implementation_id
+            );
+            assert_eq!(
+                offer.limits.max_queue_bytes, binding.maximum_queue_bytes,
+                "queue byte binding drifted for {}",
+                binding.runtime_implementation_id
+            );
+            assert!(
+                offer.host_operations.iter().any(|operation| {
+                    operation.contract_id.as_str() == binding.host_operation
+                        && operation.maximum_in_flight == binding.maximum_in_flight
+                }),
+                "fabrication operation binding drifted for {}: expected {}",
+                binding.runtime_implementation_id,
+                binding.host_operation
+            );
+        }
+    }
 }

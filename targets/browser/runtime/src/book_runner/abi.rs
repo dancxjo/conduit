@@ -54,6 +54,23 @@ pub extern "C" fn conduit_book_inventory() -> i32 {
         .unwrap_or(ERROR_OUTPUT)
 }
 
+/// Projects the exact fabrication selections used to construct this runtime's
+/// ordinary installed-host advertisement.
+#[no_mangle]
+pub extern "C" fn conduit_book_human_machinery() -> i32 {
+    clear_output();
+    let implementations = crate::installed_browser::selected_human_machinery()
+        .into_iter()
+        .map(|id| serde_json::json!({ "id": id, "revision": 1 }))
+        .collect::<Vec<_>>();
+    write_output(&serde_json::json!({
+        "schema": "conduit.browser/selected-human-machinery@1",
+        "implementations": implementations,
+    }))
+    .map(|()| STATUS_READY)
+    .unwrap_or(ERROR_OUTPUT)
+}
+
 /// Projects the exact checked Form beside its Book source without planning or
 /// starting a Play.
 #[no_mangle]
@@ -369,6 +386,15 @@ mod tests {
 
         assert_eq!(conduit_book_inventory(), STATUS_READY);
         assert!(conduit_book_output_len() > 0);
+        assert_eq!(conduit_book_human_machinery(), STATUS_READY);
+        let machinery: serde_json::Value = OUTPUT.with(|output| {
+            serde_json::from_slice(&output.borrow()[..conduit_book_output_len()]).unwrap()
+        });
+        assert_eq!(
+            machinery["schema"],
+            "conduit.browser/selected-human-machinery@1"
+        );
+        assert_eq!(machinery["implementations"].as_array().unwrap().len(), 3);
     }
 
     #[test]

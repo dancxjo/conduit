@@ -352,7 +352,7 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
     Ok((startup, profile))
 }
 
-fn advertisement() -> HostAdvertisement {
+pub(crate) fn advertisement() -> HostAdvertisement {
     let value_type = pointer_event_type();
     let value_kind = value_type
         .profile()

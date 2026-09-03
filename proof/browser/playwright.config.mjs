@@ -18,6 +18,7 @@ export default defineConfig({
     "presentation-nucleus.spec.mjs",
     "browser-host-operations.spec.mjs",
     "browser-pointer.spec.mjs",
+    "browser-human-input.spec.mjs",
     "browser-host-entrance.spec.mjs",
     "executable-book.spec.mjs",
     "browser-application-package.spec.mjs",

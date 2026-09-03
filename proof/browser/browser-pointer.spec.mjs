@@ -19,10 +19,10 @@ test("real Chromium pointer input crosses the planned production kernel", async 
     schema: "input/pointer-event@1",
     position_x: 250000,
     position_y: 250000,
-    primary_pressed: true,
+    primary_pressed: false,
     dropped: 0,
     queue_capacity: 1,
-    sequence: 0,
+    sequence: 1,
   });
   expect(receipt.canonical_bytes).toBeGreaterThan(0);
   expect(receipt.value_kind).toMatch(/^structured-info\/profile-[0-9a-f]{64}@1$/);
@@ -44,6 +44,6 @@ test("real Chromium pointer input crosses the planned production kernel", async 
   await page.mouse.move(bounds.x + 200, bounds.y + 100);
   await page.mouse.down();
   await page.mouse.up();
-  expect(await page.evaluate(() => globalThis.__conduitBrowserPointerReceipt.sequence)).toBe(0);
+  expect(await page.evaluate(() => globalThis.__conduitBrowserPointerReceipt.sequence)).toBe(1);
   expect(failures).toEqual([]);
 });

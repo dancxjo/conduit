@@ -7,9 +7,9 @@ const decoder = new TextDecoder("utf-8", { fatal: true });
 
 export const BROWSER_IMPLEMENTATION_CATALOG = Object.freeze([
   definition("browser/dom@1", "browser/dom@1", []),
-  definition("browser/dom-presentation@1", "presentation/dom@1", ["resource"]),
-  definition("browser/keyboard-events@1", "input/keyboard-events@1", ["resource"]),
-  definition("browser/pointer-events@1", "input/pointer-events@1", ["resource"]),
+  definition("browser/dom-presentation@1", "presentation/graphical", ["resource"]),
+  definition("browser/keyboard-events@1", "input/keyboard", ["resource"]),
+  definition("browser/pointer-events@1", "input/pointer-source", ["resource"]),
   definition("browser/indexeddb@1", "storage/indexeddb@1", ["secure", "resource"]),
   definition("browser/websocket@1", "line/websocket@1", ["secure", "provider"]),
   definition("browser/webrtc-datachannel@1", "line/webrtc-datachannel@1", ["secure", "provider"]),

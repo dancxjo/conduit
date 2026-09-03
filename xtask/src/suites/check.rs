@@ -527,15 +527,15 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.browser-drawbridge",
-        "test dependency_and_profile_installation_drawbridge_is_explicit",
+        "test current_hosts_depend_only_on_exact_lowering_and_kernel_execution",
         "cargo",
         &[
             "test",
             "-p",
             "conduit-plan-lowering",
             "--test",
-            "browser_readiness",
-            "dependency_and_profile_installation_drawbridge_is_explicit",
+            "lowering_boundary",
+            "current_hosts_depend_only_on_exact_lowering_and_kernel_execution",
         ],
     ),
     Step::new(
@@ -687,7 +687,7 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
             "-p",
             "conduit-plan-lowering",
             "--test",
-            "browser_readiness",
+            "lowering_boundary",
             "v1_has_one_runtime_and_no_compiled_compatibility_closure",
         ],
     ),

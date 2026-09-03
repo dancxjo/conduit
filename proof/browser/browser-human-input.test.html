@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit selected browser human input proof</title>
+<style>#surface { width: 400px; height: 200px; background: #234; touch-action: none; }</style>
+<p id="status">starting</p>
+<div id="surface" tabindex="0" aria-label="Admitted portable input surface"></div>
+<output id="keyboard"></output>
+<output id="pointer"></output>
+<script type="module">
+import { openBrowserHumanInput } from "../../targets/browser/host/assets/browser-human-input.mjs";
+
+const selected = new URL(location.href).searchParams.get("profile") === "viewer"
+  ? ["browser/dom-presentation@1"]
+  : ["browser/dom-presentation@1", "browser/keyboard-events@1", "browser/pointer-events@1"];
+let current = {
+  host_id: "browser/human-input-proof",
+  boot_id: "browser/human-input-proof-boot",
+  offer_generation: 1,
+  implementation_registry: selected.map((id) => ({ id, revision: 1 })),
+};
+const surface = document.querySelector("#surface");
+const adapter = openBrowserHumanInput({ target: surface, boot: current, currentBoot: () => current });
+const pointerValues = [];
+let stopPointer = null;
+try {
+  stopPointer = adapter.observePointer((value, error) => {
+    if (error) {
+      document.querySelector("#pointer").textContent = error.code;
+      return;
+    }
+    pointerValues.push(value);
+    document.querySelector("#pointer").textContent = JSON.stringify(value);
+  });
+} catch (error) {
+  document.querySelector("#pointer").textContent = error.code;
+}
+globalThis.__conduitHumanInput = Object.freeze({
+  adapter,
+  pointerValues,
+  async acquireKeyboard() {
+    try {
+      const value = await adapter.nextKeyboard();
+      document.querySelector("#keyboard").textContent = JSON.stringify({ ...value, canonical_bytes: [...value.canonical_bytes] });
+      return value;
+    } catch (error) {
+      document.querySelector("#keyboard").textContent = error.code;
+      return error;
+    }
+  },
+  staleBoot() { current = { ...current, boot_id: "browser/replacement-boot" }; },
+  stopPointer() { stopPointer?.(); },
+});
+document.querySelector("#status").textContent = "ready";
+</script>

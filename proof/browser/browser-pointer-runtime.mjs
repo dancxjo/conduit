@@ -1,3 +1,5 @@
+import { openBrowserHumanInput } from "../../targets/browser/host/assets/browser-human-input.mjs";
+
 const REQUIRED_EXPORTS = [
   "memory",
   "conduit_browser_pointer_run",
@@ -12,33 +14,27 @@ export async function installBrowserPointerSource(wasmBytes, target, onReceipt) 
   for (const name of REQUIRED_EXPORTS) {
     if (!(name in api)) throw new Error(`missing browser pointer export: ${name}`);
   }
-  let sequence = 0;
   let closed = false;
-  const listener = (event) => {
-    if (closed) return;
-    if (event.buttons !== 0 && event.buttons !== 1) {
-      throw new Error("browser pointer buttons exceed the admitted primary-button profile");
-    }
-    const bounds = target.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) throw new Error("pointer surface has no extent");
-    const millionth = (value) => Math.round(value * 1_000_000);
-    const positionX = millionth((event.clientX - bounds.left) / bounds.width);
-    const positionY = millionth((event.clientY - bounds.top) / bounds.height);
-    const deltaX = millionth(event.movementX / bounds.width);
-    const deltaY = millionth(event.movementY / bounds.height);
-    const coalesced = typeof event.getCoalescedEvents === "function"
-      ? Math.max(0, event.getCoalescedEvents().length - 1)
-      : 0;
+  const boot = Object.freeze({
+    host_id: "browser-pointer-host",
+    boot_id: "browser-pointer-boot",
+    offer_generation: 1,
+    implementation_registry: Object.freeze([{ id: "browser/pointer-events@1", revision: 1 }]),
+  });
+  const adapter = openBrowserHumanInput({ target, boot });
+  const stop = adapter.observePointer((event, error) => {
+    if (error) throw error;
+    if (closed || !event) return;
     const status = api.conduit_browser_pointer_run(
-      positionX,
-      positionY,
-      deltaX,
-      deltaY,
-      event.buttons === 1 ? 1 : 0,
-      coalesced,
-      0,
-      1,
-      sequence,
+      event.position_x,
+      event.position_y,
+      event.delta_x,
+      event.delta_y,
+      event.primary_pressed ? 1 : 0,
+      event.coalesced,
+      event.dropped,
+      event.queue_capacity,
+      event.sequence,
     );
     if (status !== 0) throw new Error(`browser pointer Play refused ${status}`);
     const pointer = api.conduit_browser_pointer_receipt_ptr();
@@ -49,14 +45,14 @@ export async function installBrowserPointerSource(wasmBytes, target, onReceipt) 
     const receipt = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(
       new Uint8Array(api.memory.buffer, pointer, length),
     ));
-    sequence += 1;
     onReceipt(Object.freeze(receipt));
-  };
-  target.addEventListener("pointerdown", listener);
+  });
   return Object.freeze({
     api,
+    adapter,
     close() {
-      if (!closed) target.removeEventListener("pointerdown", listener);
+      if (!closed) stop();
+      adapter.close();
       closed = true;
     },
   });
