@@ -48,8 +48,10 @@ impl ZeroBodyFrontDoor {
             subject: host_subject.clone(),
             level: PresentationDisclosureLevel::Context,
         }];
-        let selected_seed = match &self.opened {
-            Some(OpenedFrontDoorSubject::Seed { seed_id, .. }) => Some(seed_id),
+        let selected_form = match &self.opened {
+            Some(OpenedFrontDoorSubject::Form {
+                checked_form_id, ..
+            }) => Some(checked_form_id),
             _ => None,
         };
         for offer in &host.capabilities {
@@ -109,17 +111,17 @@ impl ZeroBodyFrontDoor {
                     .into(),
             });
         }
-        for seed in &self.seeds {
-            let subject = format!("seed/{}", seed.seed_id.as_str());
+        for form in &self.forms {
+            let subject = format!("form/{}", form.checked_form_id.as_str());
             let is_opened = matches!(
                 &self.opened,
-                Some(OpenedFrontDoorSubject::Seed { seed_id, .. }) if seed_id == &seed.seed_id
+                Some(OpenedFrontDoorSubject::Form { checked_form_id, .. }) if checked_form_id == &form.checked_form_id
             );
             subjects.push(PresentationSubject {
                 identity: subject.clone(),
-                role: PresentationRole::Seed,
-                label: seed.label.clone(),
-                accessibility_name: format!("Openable Seed {}; not born", seed.label),
+                role: PresentationRole::Form,
+                label: form.label.clone(),
+                accessibility_name: format!("Openable Form {}; not born", form.label),
             });
             relationships.push(PresentationRelationship {
                 source: host_subject.clone(),
@@ -127,29 +129,29 @@ impl ZeroBodyFrontDoor {
                 kind: PresentationRelationshipKind::Observes,
             });
             properties.extend([
-                identity(&subject, "seed-id", seed.seed_id.as_str()),
+                identity(&subject, "form-id", form.checked_form_id.as_str()),
                 identity(
                     &subject,
                     "source-document-id",
-                    seed.source_document_id.as_str(),
+                    form.source_document_id.as_str(),
                 ),
-                identity(&subject, "checked-form-id", seed.checked_form_id.as_str()),
+                identity(&subject, "checked-form-id", form.checked_form_id.as_str()),
                 PresentationProperty {
                     subject: subject.clone(),
                     name: "freshness-sequence".into(),
-                    value: PresentationPropertyValue::Count(seed.freshness_sequence),
+                    value: PresentationPropertyValue::Count(form.freshness_sequence),
                 },
             ]);
             text.push(PresentationText {
                 subject: subject.clone(),
                 text: format!(
-                    "SEED provenance={}; OPEN permits inspection and does not create a Body",
-                    seed.provenance
+                    "FORM provenance={}; OPEN permits inspection and does not create a Body",
+                    form.provenance
                 ),
             });
             actions.extend([
                 PresentationAction {
-                    identity: format!("action/open/{}", seed.seed_id.as_str()),
+                    identity: format!("action/open/{}", form.checked_form_id.as_str()),
                     intent: "conduit.intent/open@1".into(),
                     target: subject.clone(),
                     label: "Open".into(),
@@ -157,7 +159,7 @@ impl ZeroBodyFrontDoor {
                     availability: PresentationActionAvailability::Available,
                 },
                 PresentationAction {
-                    identity: format!("action/birth/{}", seed.seed_id.as_str()),
+                    identity: format!("action/birth/{}", form.checked_form_id.as_str()),
                     intent: "conduit.intent/birth@1".into(),
                     target: subject.clone(),
                     label: "Birth".into(),
@@ -176,7 +178,7 @@ impl ZeroBodyFrontDoor {
             ]);
             disclosures.push(PresentationDisclosure {
                 subject,
-                level: if selected_seed.is_none() || is_opened {
+                level: if selected_form.is_none() || is_opened {
                     PresentationDisclosureLevel::Primary
                 } else {
                     PresentationDisclosureLevel::ExactProvenance
@@ -188,8 +190,10 @@ impl ZeroBodyFrontDoor {
                 OpenedFrontDoorSubject::Body { body_id, .. } => {
                     format!("body/{}", body_id.as_str())
                 }
-                OpenedFrontDoorSubject::Seed { seed_id, .. } => {
-                    format!("seed/{}", seed_id.as_str())
+                OpenedFrontDoorSubject::Form {
+                    checked_form_id, ..
+                } => {
+                    format!("form/{}", checked_form_id.as_str())
                 }
             };
             properties.push(PresentationProperty {
@@ -197,36 +201,39 @@ impl ZeroBodyFrontDoor {
                 name: "opened".into(),
                 value: PresentationPropertyValue::Flag(true),
             });
-            if let OpenedFrontDoorSubject::Seed { seed_id, .. } = opened {
-                let seed = self
-                    .seeds
+            if let OpenedFrontDoorSubject::Form {
+                checked_form_id, ..
+            } = opened
+            {
+                let form = self
+                    .forms
                     .iter()
-                    .find(|candidate| &candidate.seed_id == seed_id)
-                    .ok_or_else(|| "opened Seed is absent from the bounded entrance".to_owned())?;
-                let editor = seed.editor()?;
+                    .find(|candidate| &candidate.checked_form_id == checked_form_id)
+                    .ok_or_else(|| "opened Form is absent from the bounded entrance".to_owned())?;
+                let editor = form.editor()?;
                 let open_form = editor.view().open_form.clone();
                 let graph = editor
                     .patchbay_graph_for_authoring(&open_form)
                     .map_err(|error| error.to_string())?;
-                let form_subject = format!("form/{}", seed.checked_form_id.as_str());
+                let form_subject = format!("form/{}", form.checked_form_id.as_str());
                 let mut content =
                     ContentBuilder::from_parts(subjects, relationships, properties, text);
                 content.subject_with_identity(
                     &form_subject,
                     PresentationRole::Form,
                     &open_form,
-                    format!("Checked Form {} opened from Seed {}", open_form, seed.label),
+                    format!("Checked Form {} opened from Form {}", open_form, form.label),
                 );
                 content.contains(&subject, &form_subject);
                 content.property(
                     &form_subject,
                     "source-document-id",
-                    PresentationPropertyValue::Identity(seed.source_document_id.as_str().into()),
+                    PresentationPropertyValue::Identity(form.source_document_id.as_str().into()),
                 );
                 content.property(
                     &form_subject,
                     "checked-form-id",
-                    PresentationPropertyValue::Identity(seed.checked_form_id.as_str().into()),
+                    PresentationPropertyValue::Identity(form.checked_form_id.as_str().into()),
                 );
                 content.line(
                     &form_subject,
@@ -284,7 +291,7 @@ impl ZeroBodyFrontDoor {
             .body_candidates
             .iter()
             .map(|candidate| candidate.evidence_sign.clone())
-            .chain(self.seeds.iter().map(|seed| seed.evidence_sign.clone()))
+            .chain(self.forms.iter().map(|form| form.evidence_sign.clone()))
             .chain(self.refusals.iter().map(|refusal| refusal.sign_id.clone()))
             .collect::<Vec<_>>();
         sign_ids.sort();
@@ -292,7 +299,6 @@ impl ZeroBodyFrontDoor {
         let presentation = Presentation::new_with_semantics(
             self.revision,
             PresentationBasis {
-                seed_id: None,
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
@@ -310,9 +316,9 @@ impl ZeroBodyFrontDoor {
             disclosures,
         )
         .map_err(|error| error.to_string())?;
-        let selected_seed = selected_seed.is_some();
+        let selected_form = selected_form.is_some();
         let navigation =
-            crate::PatchbayNavigationProjection::for_zero_body(&presentation, selected_seed)?;
+            crate::PatchbayNavigationProjection::for_zero_body(&presentation, selected_form)?;
         Ok(ZeroBodyFrontDoorProjection {
             presentation,
             navigation,

@@ -38,7 +38,7 @@ pub(crate) fn snapshot_for_zero_body_front_door(
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
-    if let Some(document) = session.opened_seed_document() {
+    if let Some(document) = session.opened_form_document() {
         snapshot
             .attach_authoring(browser_authoring(&document)?)
             .map_err(|error| error.to_string())?;
@@ -80,7 +80,7 @@ fn browser_authoring(
         .checked
         .source_document_id
         .as_ref()
-        .ok_or("opened Seed source is unchecked")?;
+        .ok_or("opened Form source is unchecked")?;
     let graph =
         patchbay_model::FormEditor::from_source(document.path.clone(), document.source.clone())
             .map_err(|error| error.to_string())?
@@ -155,7 +155,7 @@ mod tests {
             .presentation
             .subjects
             .iter()
-            .any(|subject| subject.role == PresentationRole::Seed));
+            .any(|subject| subject.role == PresentationRole::Form));
         assert!(!snapshot
             .presentation
             .subjects
@@ -163,17 +163,17 @@ mod tests {
             .any(|subject| subject.role == PresentationRole::Body));
         assert_eq!(snapshot.presentation.actions.len(), 2);
         assert_eq!(snapshot.presentation.disclosures.len(), 2);
-        let seed = snapshot
+        let form = snapshot
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Seed)
+            .find(|subject| subject.role == PresentationRole::Form)
             .unwrap();
         let actions = snapshot
             .presentation
             .actions
             .iter()
-            .filter(|action| action.target == seed.identity)
+            .filter(|action| action.target == form.identity)
             .collect::<Vec<_>>();
         assert_eq!(actions.len(), 2);
         assert_eq!(actions[0].label, "Open");

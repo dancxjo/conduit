@@ -13,12 +13,11 @@ import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "./targets/orange-pi/browse
 import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/raspberry-pi/browser-deployment/creche-adapter.mjs";
 import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/conduitos/browser-deployment/creche-adapter.mjs";
 
-const MORSE_NETWORK = `form morse_network {
-    message: text/literal("SOS")
-    morse: text/morse(120)
-    light: presentation/indicator
-    message > morse > light
-}`;
+const MORSE_NETWORK = await fetch(new URL("./forms/initial-body.conduit", import.meta.url), { cache: "no-store" })
+  .then((response) => {
+    if (!response.ok) throw new Error(`reviewed Form inventory unavailable (${response.status})`);
+    return response.text();
+  });
 const steps = [
   { name: "Birth", slug: "birth" },
   { name: "First Host", slug: "first-host" },
@@ -121,7 +120,7 @@ function renderStep() {
   heading.textContent = steps[currentStep].name;
   workspace.append(heading);
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
-    source: MORSE_NETWORK, sourceKey: "standalone-creche", listingId: "creche-seed", host,
+    source: MORSE_NETWORK, sourceKey: "standalone-creche", listingId: "creche-forms", host,
     presentationFor, nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: bodyChanged,
   }));
   if (currentStep === 1) workspace.append(createFirstHostRunner({

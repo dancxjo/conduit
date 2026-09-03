@@ -256,7 +256,6 @@ fn unavailable(reason_code: &str) -> PresentationActionAvailability {
 
 fn empty_basis() -> PresentationBasis {
     PresentationBasis {
-        seed_id: None,
         body_id: None,
         wake_id: None,
         source_document_id: None,

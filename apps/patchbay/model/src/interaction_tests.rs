@@ -14,7 +14,6 @@ fn invocation_presentation(
     conduit_presentation::Presentation::new_with_semantics(
         17,
         conduit_presentation::PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,

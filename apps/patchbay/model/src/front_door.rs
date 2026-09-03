@@ -233,12 +233,12 @@ fn actions_for(presentation: &Presentation, identity: Option<&str>) -> Vec<Entra
             &[EntranceAction::Inspect, EntranceAction::Join]
         }
         Some(PresentationRole::Body) => &[EntranceAction::Inspect, EntranceAction::Open],
-        Some(PresentationRole::Seed)
+        Some(PresentationRole::Form)
             if identity.is_some_and(|identity| property_flag(presentation, identity, "opened")) =>
         {
             &[EntranceAction::Inspect, EntranceAction::Birth]
         }
-        Some(PresentationRole::Seed) => &[EntranceAction::Inspect, EntranceAction::Open],
+        Some(PresentationRole::Form) => &[EntranceAction::Inspect, EntranceAction::Open],
         Some(PresentationRole::Candidate) => &[
             EntranceAction::Inspect,
             EntranceAction::Admit,

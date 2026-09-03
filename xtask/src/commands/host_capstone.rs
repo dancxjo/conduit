@@ -378,7 +378,6 @@ fn presentation(
     Presentation::new(
         revision,
         PresentationBasis {
-            seed_id: Some(body.seed_id.clone()),
             body_id: Some(body.body_id.clone()),
             wake_id: Some(wake_id.clone()),
             source_document_id: Some(form.source_document_id.clone()),

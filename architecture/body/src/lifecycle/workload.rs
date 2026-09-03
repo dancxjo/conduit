@@ -12,20 +12,7 @@ use crate::{
 };
 
 impl Body {
-    /// Returns current workload truth, migrating legacy revision-zero evidence
-    /// to its historical single Seed Form interpretation without changing the
-    /// already-bound Body identity.
     pub fn effective_workset(&self) -> Result<BodyWorkset, BodyLifecycleError> {
-        if self.workload_revision == 0 {
-            if !self.workset.is_empty() {
-                return Err(BodyLifecycleError::InvalidIdentity);
-            }
-            return BodyWorkset::seed(ResidentForm::new(
-                self.source_document_id.clone(),
-                self.checked_form_id.clone(),
-            ))
-            .map_err(Into::into);
-        }
         self.workset.validate()?;
         Ok(self.workset.clone())
     }
@@ -42,7 +29,6 @@ impl Body {
         next.workset.add(form.clone())?;
         next.workload_revision = self
             .workload_revision
-            .max(1)
             .checked_add(1)
             .ok_or(BodyLifecycleError::InvalidTransition)?;
         next.sign_ids.push(sign_id.clone());
@@ -68,7 +54,6 @@ impl Body {
         next.workset.remove(form)?;
         next.workload_revision = self
             .workload_revision
-            .max(1)
             .checked_add(1)
             .ok_or(BodyLifecycleError::InvalidTransition)?;
         next.sign_ids.push(sign_id.clone());
@@ -126,13 +111,12 @@ impl Wake {
         body.validate()?;
         if self.lifecycle != WakeLifecycle::Playing
             || self.body_id != body.body_id
-            || self.seed_id != body.seed_id
             || !matches!(&body.state, BodyState::Awake { wake_id } if wake_id == &self.wake_id)
         {
             return Err(BodyLifecycleError::MismatchedWake);
         }
         let replacement_workset = body.effective_workset()?;
-        let replacement_revision = body.workload_revision.max(1);
+        let replacement_revision = body.workload_revision;
         if replacement_revision <= self.workload_revision || replacement_workset == self.workset {
             return Err(BodyLifecycleError::InvalidTransition);
         }

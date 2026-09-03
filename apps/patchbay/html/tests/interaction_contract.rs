@@ -7,7 +7,6 @@ fn presentation() -> conduit_presentation::Presentation {
     conduit_presentation::Presentation::new_with_semantics(
         3,
         conduit_presentation::PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,

@@ -18,7 +18,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const tradition = birth.getByLabel("Naming tradition");
   await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
   await expect(name).toHaveAttribute("aria-describedby", /description/);
-  await expect(birth.getByLabel("Conduit Seed source")).toHaveAttribute("aria-describedby", /description/);
+  await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
   await expect(tradition.locator("option")).toHaveCount(24);
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 0");
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("not the Body ID");

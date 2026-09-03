@@ -58,7 +58,6 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
         body,
         BodyMembership::new(membership.body_id.clone()).unwrap(),
         "Roseau".into(),
-        "Morse Network".into(),
     )
     .unwrap();
     evidence

@@ -13,7 +13,7 @@ async function startAuthoringEntrance() {
 }
 
 async function spawnEntrance(source) {
-  const child = spawn("target/debug/patchbay-html", ["--seed", "Empty Form", source], {
+  const child = spawn("target/debug/patchbay-html", ["--form", "Empty Form", source], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   const errors = [];
@@ -72,8 +72,8 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
   const server = await startAuthoringEntrance();
   try {
     await page.goto(server.url);
-    await page.getByRole("button", { name: "Seeds", exact: true }).click();
-    await page.getByRole("button", { name: "Open Seed Empty Form" }).click();
+    await page.getByRole("button", { name: "Forms", exact: true }).click();
+    await page.getByRole("button", { name: "Open Form Empty Form" }).click();
     await expect(page.getByRole("button", { name: "Gears", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Gears", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Gears · reusable Kinds" })).toBeVisible();
@@ -136,7 +136,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await expect.poll(async () => (await current(page)).navigation.cursor.depth).toBe("Primary");
     await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
-    await selectRole(page, "Seed", "Empty Form");
+    await selectRole(page, "Form", "Empty Form");
     await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.body_id)).toBe(true);
     await selectRole(page, "Form", "Current checked and expanded Form");
@@ -158,8 +158,8 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     const reopened = await spawnEntrance(server.source);
     server.child = reopened.child;
     await page.goto(reopened.url);
-    await page.getByRole("button", { name: "Seeds", exact: true }).click();
-    await page.getByRole("button", { name: "Open Seed Empty Form" }).click();
+    await page.getByRole("button", { name: "Forms", exact: true }).click();
+    await page.getByRole("button", { name: "Open Form Empty Form" }).click();
     const restored = await current(page);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.label).sort()).toEqual(["making/literal", "making/text"]);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);

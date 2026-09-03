@@ -83,7 +83,7 @@ pub extern "C" fn conduit_creche_birth(
     host_length: usize,
     boot_length: usize,
     friendly_name_length: usize,
-    initial_program_length: usize,
+    initial_forms_length: usize,
     source_length: usize,
     birth_sequence: u64,
 ) -> i32 {
@@ -94,7 +94,7 @@ pub extern "C" fn conduit_creche_birth(
     };
     let Some(metadata_length) = identity_length
         .checked_add(friendly_name_length)
-        .and_then(|length| length.checked_add(initial_program_length))
+        .and_then(|length| length.checked_add(initial_forms_length))
     else {
         return ERROR_INPUT;
     };
@@ -104,7 +104,7 @@ pub extern "C" fn conduit_creche_birth(
     if host_length == 0
         || boot_length == 0
         || friendly_name_length == 0
-        || initial_program_length == 0
+        || initial_forms_length == 0
         || source_length == 0
         || total_length > INPUT_BYTES
     {
@@ -124,18 +124,18 @@ pub extern "C" fn conduit_creche_birth(
             let boot = core::str::from_utf8(&input[host_length..identity_length])
                 .map_err(|_| "Boot identity is not UTF-8".to_string())?;
             let friendly_name_end = identity_length + friendly_name_length;
-            let program_end = friendly_name_end + initial_program_length;
+            let forms_end = friendly_name_end + initial_forms_length;
             let friendly_name = core::str::from_utf8(&input[identity_length..friendly_name_end])
                 .map_err(|_| "friendly name is not UTF-8".to_string())?;
-            let initial_program = core::str::from_utf8(&input[friendly_name_end..program_end])
-                .map_err(|_| "initial program is not UTF-8".to_string())?;
-            let source = core::str::from_utf8(&input[program_end..total_length])
-                .map_err(|_| "Body Seed source is not UTF-8".to_string())?;
+            let initial_forms = core::str::from_utf8(&input[friendly_name_end..forms_end])
+                .map_err(|_| "initial Form selection is not UTF-8".to_string())?;
+            let source = core::str::from_utf8(&input[forms_end..total_length])
+                .map_err(|_| "Body Form source is not UTF-8".to_string())?;
             session::birth(
                 host,
                 boot,
                 friendly_name,
-                initial_program,
+                initial_forms,
                 source,
                 birth_sequence,
                 interaction,

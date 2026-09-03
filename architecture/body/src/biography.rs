@@ -6,12 +6,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Body, BodyId, BodyLifecycleEvent, BodyMembership, MembershipChangeId, MembershipEvent,
-    MembershipEventKind, PartId, SeedId, MAX_LIFECYCLE_ID_BYTES,
+    MembershipEventKind, PartId, MAX_LIFECYCLE_ID_BYTES,
 };
 
 pub const MAX_BODY_BIOGRAPHY_RECORDS: usize = 64;
 pub const MAX_BODY_FRIENDLY_NAME_BYTES: usize = 64;
-pub const MAX_BODY_PROGRAM_ID_BYTES: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyGraduationChoice {
@@ -32,7 +31,8 @@ pub struct BodyGraduationEvidence {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyBiographyRecordKind {
     Born {
-        seed_id: SeedId,
+        initial_workset: crate::BodyWorkset,
+        workload_revision: u64,
     },
     PartAdmitted {
         change_id: MembershipChangeId,
@@ -82,9 +82,6 @@ pub struct BodyBiographyEvidence {
     pub schema: String,
     pub body_id: BodyId,
     pub friendly_name: String,
-    /// Historical display label for the Seed Form at BIRTH. This is not the
-    /// current workload and does not create a distinct Program identity.
-    pub initial_program: String,
     pub body: Body,
     pub membership: BodyMembership,
     pub graduation: Option<BodyGraduationEvidence>,
@@ -103,32 +100,33 @@ pub enum BodyBiographyError {
 }
 
 impl BodyBiographyEvidence {
-    pub fn seed_form_label(&self) -> &str {
-        &self.initial_program
-    }
-
     pub fn born(
         body: Body,
         membership: BodyMembership,
         friendly_name: String,
-        initial_program: String,
     ) -> Result<Self, BodyBiographyError> {
         let sign_id = match body.events.first() {
-            Some(BodyLifecycleEvent::Born { sign_id }) => sign_id.clone(),
+            Some(BodyLifecycleEvent::Born { sign_id, .. }) => sign_id.clone(),
+            _ => return Err(BodyBiographyError::InvalidBody),
+        };
+        let initial_workset = match body.events.first() {
+            Some(BodyLifecycleEvent::Born {
+                initial_workset, ..
+            }) => initial_workset.clone(),
             _ => return Err(BodyBiographyError::InvalidBody),
         };
         let evidence = Self {
-            schema: "conduit.body/biography-evidence@1".into(),
+            schema: "conduit.body/biography-evidence@2".into(),
             body_id: body.body_id.clone(),
             friendly_name,
-            initial_program,
             membership,
             graduation: None,
             records: vec![BodyBiographyRecord {
                 sequence: body.birth_sequence,
                 sign_id,
                 kind: BodyBiographyRecordKind::Born {
-                    seed_id: body.seed_id.clone(),
+                    initial_workset,
+                    workload_revision: 0,
                 },
             }],
             body,
@@ -316,13 +314,11 @@ impl BodyBiographyEvidence {
         self.membership
             .validate()
             .map_err(|_| BodyBiographyError::InvalidEvidence)?;
-        if self.schema != "conduit.body/biography-evidence@1"
+        if self.schema != "conduit.body/biography-evidence@2"
             || self.body_id != self.body.body_id
             || self.body_id != self.membership.body_id
             || self.friendly_name.trim().is_empty()
             || self.friendly_name.len() > MAX_BODY_FRIENDLY_NAME_BYTES
-            || self.initial_program.is_empty()
-            || self.initial_program.len() > MAX_BODY_PROGRAM_ID_BYTES
         {
             return Err(BodyBiographyError::InvalidMetadata);
         }
@@ -342,7 +338,10 @@ impl BodyBiographyEvidence {
         }
         let first = &self.records[0];
         if first.sequence != self.body.birth_sequence
-            || !matches!(&first.kind, BodyBiographyRecordKind::Born { seed_id } if seed_id == &self.body.seed_id)
+            || !matches!(&first.kind, BodyBiographyRecordKind::Born { initial_workset, workload_revision: 0 }
+                if self.body.events.first().is_some_and(|event| matches!(event,
+                    BodyLifecycleEvent::Born { initial_workset: body_initial, workload_revision: 0, .. }
+                    if body_initial == initial_workset)))
             || first.sign_id != self.body.sign_ids[0]
         {
             return Err(BodyBiographyError::InvalidEvidence);

@@ -108,7 +108,6 @@ fn projected_property_names(
     let presentation = Presentation::new(
         1,
         PresentationBasis {
-            seed_id: Some(body.seed_id),
             body_id: Some(body.body_id),
             wake_id: None,
             source_document_id: Some(plan.source_document_id.clone()),

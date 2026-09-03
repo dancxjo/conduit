@@ -125,7 +125,10 @@ function biographyHeading(kind) {
 }
 
 function biographyExplanation(kind, facts, biography) {
-  if (kind === "Born") return `${biography.friendly_name} began as Body ${biography.body_id} with ${biography.initial_program}.`;
+  if (kind === "Born") {
+    const count = facts.initial_workset?.forms?.length ?? 0;
+    return `${biography.friendly_name} began as Body ${biography.body_id} with ${count} initial active Form(s).`;
+  }
   if (kind === "PartAdmitted") return `Part ${facts.part_id} entered this Body's admitted membership.`;
   if (kind === "HostJoined") return `Part ${facts.part_id} was observed on Host ${facts.host_id}, Boot ${facts.boot_id}.`;
   if (kind === "HostLeft") return `Part ${facts.part_id} left prior Boot ${facts.prior_boot_id} and remains admitted.`;

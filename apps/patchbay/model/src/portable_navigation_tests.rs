@@ -3,10 +3,10 @@ use conduit_presentation::{
     PresentationAspect, PresentationDepth, PresentationPlace, PresentationRole, ProjectionItem,
 };
 
-use crate::{SeedCandidate, ZeroBodyFrontDoor};
+use crate::{FormCandidate, ZeroBodyFrontDoor};
 
-fn explicit_seed(label: &str, source_name: &str, freshness: u64) -> SeedCandidate {
-    SeedCandidate::from_source(
+fn explicit_seed(label: &str, source_name: &str, freshness: u64) -> FormCandidate {
+    FormCandidate::from_source(
         label,
         source_name,
         include_str!("../../../../examples/text-lab.conduit"),
@@ -58,7 +58,7 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
     )
     .unwrap();
     session
-        .add_seed(explicit_seed("Second", "second.conduit", 2))
+        .add_form(explicit_seed("Second", "second.conduit", 2))
         .unwrap();
     let initial = session.project().unwrap();
     assert_eq!(initial.navigation.cursor.place, PresentationPlace::Entrance);
@@ -67,7 +67,7 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
         .presentation
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Seed)
+        .filter(|subject| subject.role == PresentationRole::Form)
         .map(|subject| subject.identity.clone())
         .collect::<Vec<_>>();
     assert_eq!(seeds.len(), 2);
@@ -84,14 +84,14 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
     assert_eq!(
         entrance
             .iter()
-            .filter(|role| **role == PresentationRole::Seed)
+            .filter(|role| **role == PresentationRole::Form)
             .count(),
         2
     );
     assert_eq!(
         program
             .iter()
-            .filter(|role| **role == PresentationRole::Seed)
+            .filter(|role| **role == PresentationRole::Form)
             .count(),
         1
     );
@@ -102,7 +102,7 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
             .iter()
             .filter(|disclosure| {
                 opened.presentation.subjects.iter().any(|subject| {
-                    subject.identity == disclosure.subject && subject.role == PresentationRole::Seed
+                    subject.identity == disclosure.subject && subject.role == PresentationRole::Form
                 }) && disclosure.level == conduit_presentation::PresentationDisclosureLevel::Primary
             })
             .count(),
@@ -127,7 +127,7 @@ fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
         .presentation
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Seed)
+        .find(|subject| subject.role == PresentationRole::Form)
         .unwrap()
         .identity
         .clone();
@@ -165,7 +165,7 @@ fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
         matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Gear))
     }));
     assert!(!program.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Body | PresentationRole::Part | PresentationRole::Host | PresentationRole::Line | PresentationRole::Seed)))
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Body | PresentationRole::Part | PresentationRole::Host | PresentationRole::Line)))
     }));
 
     let mut body_cursor = projected.navigation.cursor.clone();

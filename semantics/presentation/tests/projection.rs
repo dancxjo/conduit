@@ -21,7 +21,6 @@ fn fixture() -> (Presentation, PresentationNavigation) {
     let presentation = Presentation::new_with_semantics(
         9,
         PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,
@@ -33,7 +32,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
         },
         vec![
             subject("entrance", PresentationRole::Document),
-            subject("seed/text-lab", PresentationRole::Seed),
+            subject("form/text-lab", PresentationRole::Form),
             subject("program", PresentationRole::Form),
             subject("gear/upper", PresentationRole::Gear),
             subject("cord/text", PresentationRole::Cord),
@@ -66,7 +65,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             },
         ],
         vec![PresentationText {
-            subject: "seed/text-lab".into(),
+            subject: "form/text-lab".into(),
             text: "Keyboard to uppercase text".into(),
         }],
         vec![PresentationAction {
@@ -90,7 +89,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
                 label: "Entrance".into(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Structure,
-                    focusable_subjects: vec!["entrance".into(), "seed/text-lab".into()],
+                    focusable_subjects: vec!["entrance".into(), "form/text-lab".into()],
                 }],
             },
             NavigationPlace {
@@ -183,7 +182,7 @@ fn memberships() -> Vec<ProjectionMembership> {
         membership(
             Entrance,
             Structure,
-            ProjectionItem::Subject("seed/text-lab".into()),
+            ProjectionItem::Subject("form/text-lab".into()),
             Primary,
         ),
         membership(Entrance, Structure, ProjectionItem::Text(0), Detail),

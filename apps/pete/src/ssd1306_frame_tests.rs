@@ -8,7 +8,6 @@ pub(crate) fn presentation(revision: u64) -> Presentation {
     Presentation::new(
         revision,
         PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,

@@ -75,7 +75,16 @@ fn living_portable() -> (
 fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     let (projection, body, wake, portable) = living_portable();
     let identities = projection.identities();
-    assert_eq!(portable.basis.seed_id.as_ref(), Some(&body.seed_id));
+    assert!(portable
+        .basis
+        .checked_form_id
+        .as_ref()
+        .is_some_and(|checked| {
+            body.workset
+                .forms()
+                .iter()
+                .any(|form| &form.checked_form_id == checked)
+        }));
     assert_eq!(portable.basis.body_id.as_ref(), Some(&body.body_id));
     assert_eq!(portable.basis.wake_id.as_ref(), Some(&wake.wake_id));
     assert_eq!(portable.basis.plan_id, identities.plan_id);
@@ -234,7 +243,7 @@ fn stale_or_terminal_lifecycle_cannot_masquerade_as_live_presentation() {
     );
 
     let mut stale_body = body;
-    stale_body.source_document_id = "other-source".into();
+    stale_body.workload_revision = stale_body.workload_revision.saturating_add(1);
     assert!(matches!(
         projection.to_portable(&stale_body, &wake),
         Err(PortableProjectionError::InvalidBody(_))

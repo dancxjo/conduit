@@ -1,7 +1,7 @@
 //! Exact portable result of one planned renderer realization.
 
 use alloc::string::String;
-use conduit_body::{BodyId, SeedId, WakeId};
+use conduit_body::{BodyId, WakeId};
 use conduit_core::{
     bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, ArtifactId, BootId,
     CapabilityId, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
@@ -60,7 +60,6 @@ pub struct ManifestationSign {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifestation {
     pub manifestation_id: ManifestationId,
-    pub seed_id: Option<SeedId>,
     pub body_id: Option<BodyId>,
     pub wake_id: Option<WakeId>,
     pub presentation_id: PresentationContentId,
@@ -143,7 +142,6 @@ impl Manifestation {
         );
         let mut manifestation = Self {
             manifestation_id,
-            seed_id: presentation.basis.seed_id.clone(),
             body_id: presentation.basis.body_id.clone(),
             wake_id: presentation.basis.wake_id.clone(),
             presentation_id: presentation.identity.clone(),
@@ -228,8 +226,7 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &self.placement_id)?;
-        if self.seed_id != presentation.basis.seed_id
-            || self.body_id != presentation.basis.body_id
+        if self.body_id != presentation.basis.body_id
             || self.wake_id != presentation.basis.wake_id
             || self.presentation_id != presentation.identity
             || self.presentation_revision != presentation.revision

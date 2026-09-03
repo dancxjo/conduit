@@ -52,7 +52,7 @@ pub struct BirthSigns {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchbayMode {
-    SeedOpened,
+    FormOpened,
     BornLulled,
     Awake(WakeLifecycle),
 }
@@ -288,7 +288,7 @@ impl BuildBirthController {
             born_revision: self.born_revision,
         };
         let mode = match self.body.as_ref().map(|body| &body.state) {
-            None => PatchbayMode::SeedOpened,
+            None => PatchbayMode::FormOpened,
             Some(BodyState::Lulled) => PatchbayMode::BornLulled,
             Some(BodyState::Awake { .. }) => PatchbayMode::Awake(
                 self.wake
@@ -298,7 +298,7 @@ impl BuildBirthController {
             ),
         };
         let mut lines = vec![format!(
-            "SEED current={} saved={} checked={} last-born={}",
+            "FORM current={} saved={} checked={} last-born={}",
             revisions.current_revision,
             revisions.saved_revision,
             optional_revision(revisions.checked_revision),
@@ -423,12 +423,12 @@ fn append_lifecycle_lines(
         return;
     };
     lines.push(format!(
-        "BODY {} seed={} birth-sequence={} state={:?} checked={}",
+        "BODY {} birth-sequence={} state={:?} active-forms={} workload-revision={}",
         body.body_id.as_str(),
-        body.seed_id.as_str(),
         body.birth_sequence,
         body.state,
-        body.checked_form_id.as_str()
+        body.workset.len(),
+        body.workload_revision,
     ));
     for event in &body.events {
         lines.push(format!("BODY EVENT {event:?}"));

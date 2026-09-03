@@ -6,8 +6,8 @@ import { expect, test } from "@playwright/test";
 
 function startPublicEntrance() {
   const child = spawn("target/debug/patchbay-html", [
-    "--seed", "Text Lab", "examples/text-lab.conduit",
-    "--seed", "Hello", "examples/hello.conduit",
+    "--form", "Text Lab", "examples/text-lab.conduit",
+    "--form", "Hello", "examples/hello.conduit",
   ], {
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -25,7 +25,6 @@ function startPublicEntrance() {
 }
 
 const semanticBasis = ({ presentation }) => ({
-  seed_id: presentation.basis.seed_id,
   source_document_id: presentation.basis.source_document_id,
   checked_form_id: presentation.basis.checked_form_id,
   expanded_form_id: presentation.basis.expanded_form_id,
@@ -117,7 +116,6 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(initial.entrance.selected_subject).toMatch(/^host\//);
     expect(initial.parts).toBeUndefined();
     expect(initial.presentation.basis).toMatchObject({
-      seed_id: null,
       body_id: null,
       wake_id: null,
       source_document_id: null,
@@ -127,7 +125,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       active_play_id: null,
     });
     expect(initial.presentation.subjects.some(({ role }) => role === "Host")).toBe(true);
-    expect(initial.presentation.subjects.some(({ role }) => role === "Seed")).toBe(true);
+    expect(initial.presentation.subjects.some(({ role }) => role === "Form")).toBe(true);
     expect(initial.presentation.subjects.some(({ role }) => role === "Body")).toBe(false);
     expect(initial.presentation.subjects.some(({ role }) => role === "Part")).toBe(false);
     expect(initial.presentation.properties).toEqual(expect.arrayContaining([
@@ -152,17 +150,17 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     )).toBe(true);
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
-    await page.getByRole("button", { name: "Seeds", exact: true }).click();
-    await expect(page.getByRole("navigation", { name: "Available Seeds" }).getByRole("button")).toHaveCount(3);
-    await expect(page.getByRole("button", { name: "Open Seed Text Lab" })).toBeVisible();
-    await page.getByRole("searchbox", { name: "Find a Seed" }).fill("hElLo");
-    await expect(page.locator("#seed-results-status")).toHaveText("1 of 3 Seeds available");
-    const seed = initial.presentation.subjects.find(({ role, label }) => role === "Seed" && label === "Hello");
-    const seedButton = page.getByRole("button", { name: "Open Seed Hello" });
-    await page.getByRole("searchbox", { name: "Find a Seed" }).press("ArrowDown");
-    await expect(seedButton).toBeFocused();
+    await page.getByRole("button", { name: "Forms", exact: true }).click();
+    await expect(page.getByRole("navigation", { name: "Available Forms" }).getByRole("button")).toHaveCount(3);
+    await expect(page.getByRole("button", { name: "Open Form Text Lab" })).toBeVisible();
+    await page.getByRole("searchbox", { name: "Find a Form" }).fill("hElLo");
+    await expect(page.locator("#form-results-status")).toHaveText("1 of 3 Forms available");
+    const form = initial.presentation.subjects.find(({ role, label }) => role === "Form" && label === "Hello");
+    const formButton = page.getByRole("button", { name: "Open Form Hello" });
+    await page.getByRole("searchbox", { name: "Find a Form" }).press("ArrowDown");
+    await expect(formButton).toBeFocused();
     await page.evaluate(() => window.patchbayReload());
-    await expect(seedButton).toBeFocused();
+    await expect(formButton).toBeFocused();
     const openResponses = [];
     let resolveOpenSequence;
     const openSequence = new Promise((resolve) => { resolveOpenSequence = resolve; });
@@ -172,7 +170,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
         if(openResponses.length === 2) resolveOpenSequence();
       }
     });
-    await Promise.all([openSequence, seedButton.press("Enter")]);
+    await Promise.all([openSequence, formButton.press("Enter")]);
     expect(openResponses).toHaveLength(2);
     expect(openResponses.map(response => new URL(response.url()).pathname).sort()).toEqual([
       "/api/interaction",
@@ -185,7 +183,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(openResponses.every((response) => response.ok())).toBe(true);
     await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
     const openAction = initial.presentation.actions.find(
-      ({ intent, target }) => intent === "conduit.intent/open@1" && target === seed.identity,
+      ({ intent, target }) => intent === "conduit.intent/open@1" && target === form.identity,
     );
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
     expect(opened.interaction.last_request_id).toMatch(/^navigation\//);
@@ -196,7 +194,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(opened.navigation.cursor.place).toBe("Program");
     expect(opened.parts).toBeUndefined();
     expect(opened.presentation.properties).toContainEqual(
-      expect.objectContaining({ subject: seed.identity, name: "opened", value: { Flag: true } }),
+      expect.objectContaining({ subject: form.identity, name: "opened", value: { Flag: true } }),
     );
     expect(opened.presentation.subjects).toEqual(expect.arrayContaining([
       expect.objectContaining({ role: "Form" }),
@@ -207,7 +205,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     await expect(upperFaceplate).toHaveText("upper");
     await expect(upperFaceplate).toHaveAttribute("title", "hello/upper");
     const birthAction = opened.presentation.actions.find(
-      ({ intent, target }) => intent === "conduit.intent/birth@1" && target === seed.identity,
+      ({ intent, target }) => intent === "conduit.intent/birth@1" && target === form.identity,
     );
     expect(birthAction.identity).toMatch(/^action\/birth\//);
 
@@ -215,7 +213,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     await expect(exact).not.toHaveAttribute("open", "");
     await exact.locator("summary").click();
     await expect(exact).toHaveAttribute("open", "");
-    await expect(exact).toContainText(seed.identity);
+    await expect(exact).toContainText(form.identity);
     await exact.locator("summary").click();
     await expect(exact).not.toHaveAttribute("open", "");
 
@@ -242,7 +240,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(born.interaction.last_request_id).toMatch(/^navigation\//);
     expect(born.interaction.last_disposition).toBe("Succeeded");
     expect(born.presentation.basis.body_id).toBeTruthy();
-    expect(born.presentation.basis.seed_id).toBeTruthy();
+    expect(born.presentation.basis.checked_form_id).toBeTruthy();
     expect(born.presentation.basis.wake_id).toBeNull();
     expect(born.presentation.basis.plan_id).toBeNull();
     expect(born.presentation.basis.active_play_id).toBeNull();
@@ -261,7 +259,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
           subject,
         }),
       })).json(),
-    { presentationId: opened.presentation.identity, revision: opened.revision, subject: seed.identity });
+    { presentationId: opened.presentation.identity, revision: opened.revision, subject: form.identity });
     expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
     expect(stale.presentation.basis.body_id).toBe(born.presentation.basis.body_id);
 
@@ -397,7 +395,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
         browser_engine: "chromium",
         browser_version: browser.version(),
         exact_initial_body: null,
-        opened_seed_id: seed.identity,
+        opened_form_id: form.identity,
         born_body_id: playing.presentation.basis.body_id,
         wake_id: playing.presentation.basis.wake_id,
         revisions: [initial.revision, opened.revision, born.revision, awakened.revision, planned.revision, playing.revision],

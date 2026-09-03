@@ -246,7 +246,7 @@ fn native_document_exposes_both_route_recovery_cases() {
     let lines = application.presentation_lines();
     let text = lines.join("\n");
     assert!(text.contains("PRESENTATION "));
-    assert!(text.contains("SEED "));
+    assert!(text.contains("FORM "));
     assert!(text.contains("The Play became unsatisfied"));
     assert!(text.contains("Replacement Plan"));
     assert!(text.contains("Plan identity did not change"));
@@ -281,7 +281,7 @@ fn native_build_mode_drives_explicit_birth_wake_plan_play_and_lull() {
     .unwrap();
 
     let build = application.presentation_lines().join("\n");
-    assert!(build.contains("SEED current=0 saved=0 checked=0 last-born=not-present"));
+    assert!(build.contains("FORM current=0 saved=0 checked=0 last-born=not-present"));
     assert!(build.contains("BODY not born — action: BIRTH"));
     assert!(build.contains("kind=text/upper"));
     assert!(build.contains("info=value/text@1"));

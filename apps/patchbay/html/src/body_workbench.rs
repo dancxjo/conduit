@@ -116,7 +116,6 @@ pub fn body_workbench_fixture_snapshot(
         BodyMembership::new(membership.body_id.clone())
             .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?,
         "Roseau".into(),
-        "Morse relay".into(),
     )
     .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
     evidence
@@ -203,10 +202,21 @@ pub(crate) fn validate_body_workbench(
         .body_id
         .as_ref()
         .is_some_and(|identity| identity.as_str() == body_id);
-    let source_matches = presentation.basis.source_document_id.as_ref()
-        == Some(&attachment.evidence().body.source_document_id);
-    let checked_matches = presentation.basis.checked_form_id.as_ref()
-        == Some(&attachment.evidence().body.checked_form_id);
+    let basis_form = presentation
+        .basis
+        .source_document_id
+        .as_ref()
+        .zip(presentation.basis.checked_form_id.as_ref());
+    let form_matches = basis_form.is_none_or(|(source, checked)| {
+        attachment
+            .evidence()
+            .body
+            .workset
+            .contains(&conduit_body::ResidentForm::new(
+                source.clone(),
+                checked.clone(),
+            ))
+    });
     let expected_current = serde_json::to_value(CurrentBodyFrame::from_attachment(
         workbench.evidence_revision,
         &attachment,
@@ -219,8 +229,7 @@ pub(crate) fn validate_body_workbench(
     .map_err(BodyWorkbenchError::Encode)?;
     if workbench.body_id != body_id
         || !body_matches
-        || !source_matches
-        || !checked_matches
+        || !form_matches
         || workbench.current != expected_current
         || workbench.history != expected_history
     {
@@ -269,13 +278,7 @@ fn workbench_presentation(
     let mut form_identities = Vec::with_capacity(workset.len());
     for form in workset.forms() {
         let form_identity = format!("form/{}", form.checked_form_id.as_str());
-        let is_seed = form.source_document_id == evidence.body.source_document_id
-            && form.checked_form_id == evidence.body.checked_form_id;
-        let label = if is_seed {
-            evidence.seed_form_label().to_owned()
-        } else {
-            form.checked_form_id.as_str().to_owned()
-        };
+        let label = form.checked_form_id.as_str().to_owned();
         subjects.push(PresentationSubject {
             identity: form_identity.clone(),
             role: PresentationRole::Form,
@@ -297,22 +300,14 @@ fn workbench_presentation(
             "checked-form-id",
             form.checked_form_id.as_str(),
         ));
-        if is_seed {
-            properties.push(PresentationProperty {
-                subject: form_identity.clone(),
-                name: "birth-seed".into(),
-                value: PresentationPropertyValue::Text("true".into()),
-            });
-        }
         form_identities.push(form_identity);
     }
     let mut text = vec![PresentationText {
         subject: body_identity.clone(),
         text: format!(
-            "{} is a durable Body running {} current Form(s); its birth Seed was {}.",
+            "{} is a durable Body running {} current Form(s).",
             evidence.friendly_name,
             workset.len(),
-            evidence.seed_form_label()
         ),
     }];
     for part in &evidence.membership.parts {
@@ -378,14 +373,13 @@ fn workbench_presentation(
     Presentation::new_with_semantics(
         revision,
         PresentationBasis {
-            seed_id: Some(evidence.body.seed_id.clone()),
             body_id: Some(evidence.body_id.clone()),
             wake_id: match &evidence.body.state {
                 conduit_body::BodyState::Awake { wake_id } => Some(wake_id.clone()),
                 conduit_body::BodyState::Lulled => None,
             },
-            source_document_id: Some(evidence.body.source_document_id.clone()),
-            checked_form_id: Some(evidence.body.checked_form_id.clone()),
+            source_document_id: None,
+            checked_form_id: None,
             expanded_form_id: None,
             plan_id: None,
             active_play_id: None,
@@ -451,13 +445,8 @@ mod tests {
         )
         .unwrap();
         let membership = BodyMembership::new(born_body.body_id.clone()).unwrap();
-        let mut evidence = BodyBiographyEvidence::born(
-            born_body.clone(),
-            membership,
-            "Roseau".into(),
-            "hello@1".into(),
-        )
-        .unwrap();
+        let mut evidence =
+            BodyBiographyEvidence::born(born_body.clone(), membership, "Roseau".into()).unwrap();
         let body = born_body
             .admit_form(
                 conduit_body::ResidentForm::new(
@@ -519,7 +508,14 @@ mod tests {
             .filter(|subject| subject.role == PresentationRole::Form)
             .collect::<Vec<_>>();
         assert_eq!(forms.len(), 2);
-        assert!(forms.iter().any(|subject| subject.label == "hello@1"));
+        let initial_checked = snapshot
+            .presentation
+            .basis
+            .checked_form_id
+            .as_ref()
+            .unwrap()
+            .as_str();
+        assert!(forms.iter().any(|subject| subject.label == initial_checked));
         assert!(forms
             .iter()
             .any(|subject| subject.label == "checked/recorder"));

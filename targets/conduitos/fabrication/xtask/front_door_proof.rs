@@ -20,7 +20,7 @@ struct FrontDoorProof {
     image_sha256: String,
     profile: &'static str,
     body: Option<String>,
-    seed_opened: bool,
+    form_opened: bool,
     details_opened: bool,
     effects: u8,
     remained_alive: bool,
@@ -99,7 +99,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         hid_qmp::wait_for_stage(
             &serial_path,
             &mut child,
-            "\"status\":\"seed-opened\"",
+            "\"status\":\"form-opened\"",
             "front-door-open-timeout",
         )?;
         hid_qmp::send_named_keys(&mut qmp, &mut reader, &["ret"], false, "front-door-open")?;
@@ -161,7 +161,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         image_sha256: image.iso_sha256,
         profile: super::demo::DEMO_PROFILE,
         body: None,
-        seed_opened: serial.contains("\"status\":\"seed-opened\""),
+        form_opened: serial.contains("\"status\":\"form-opened\""),
         details_opened: serial.contains("\"status\":\"details-opened\""),
         effects: 0,
         remained_alive: true,

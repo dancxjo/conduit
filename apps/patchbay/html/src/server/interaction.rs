@@ -198,7 +198,7 @@ impl PatchbayHtmlServer {
                             return PatchbayInvocationOutcome::Failed;
                         };
                         let mut candidate = session.clone();
-                        match save_opened_seed(&mut candidate) {
+                        match save_opened_form(&mut candidate) {
                             Ok(()) => {
                                 prepared_zero_body = Some(candidate);
                                 PatchbayInvocationOutcome::Succeeded
@@ -222,7 +222,7 @@ impl PatchbayHtmlServer {
                 let PatchbayInteractionRequest::Edit { edit, .. } = &request else {
                     unreachable!("guard restricts request")
                 };
-                let outcome = candidate.apply_opened_seed_edit(edit);
+                let outcome = candidate.apply_opened_form_edit(edit);
                 if outcome == PatchbayInvocationOutcome::Succeeded {
                     prepared_zero_body = Some(candidate);
                 }
@@ -318,18 +318,18 @@ impl PatchbayHtmlServer {
     }
 }
 
-fn save_opened_seed(session: &mut patchbay_model::ZeroBodyFrontDoor) -> Result<(), String> {
+fn save_opened_form(session: &mut patchbay_model::ZeroBodyFrontDoor) -> Result<(), String> {
     let document = session
-        .opened_seed_document()
-        .ok_or("SAVE requires an opened Seed")?;
+        .opened_form_document()
+        .ok_or("SAVE requires an opened Form")?;
     let parent = document
         .path
         .parent()
-        .ok_or("Seed source has no parent directory")?;
+        .ok_or("Form source has no parent directory")?;
     let file_name = document
         .path
         .file_name()
-        .ok_or("Seed source has no file name")?;
+        .ok_or("Form source has no file name")?;
     let temporary = parent.join(format!(
         ".{}.patchbay-html-save",
         file_name.to_string_lossy()
@@ -340,7 +340,7 @@ fn save_opened_seed(session: &mut patchbay_model::ZeroBodyFrontDoor) -> Result<(
         let _ = std::fs::remove_file(&temporary);
         return Err(format!("replace canonical Form: {error}"));
     }
-    session.mark_opened_seed_saved(document.revision)
+    session.mark_opened_form_saved(document.revision)
 }
 
 #[derive(Deserialize)]

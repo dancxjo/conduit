@@ -96,8 +96,7 @@ pub(crate) fn push_linear_basis(
         presentation.revision
     ))?;
     builder.push(format!(
-        "SEED {} body={} wake={}",
-        optional_identity(basis.seed_id.as_ref().map(|identity| identity.as_str())),
+        "BODY {} wake={}",
         optional_identity(basis.body_id.as_ref().map(|identity| identity.as_str())),
         optional_identity(basis.wake_id.as_ref().map(|identity| identity.as_str()))
     ))?;
@@ -325,7 +324,6 @@ mod tests {
         Presentation::new(
             7,
             PresentationBasis {
-                seed_id: Some(body.seed_id),
                 body_id: Some(body.body_id),
                 wake_id: Some(wake.wake_id),
                 source_document_id: Some(source_document_id),
@@ -379,7 +377,6 @@ mod tests {
         assert_eq!(linear.revision, presentation.revision);
         for identity in [
             presentation.identity.as_str(),
-            presentation.basis.seed_id.as_ref().unwrap().as_str(),
             presentation.basis.body_id.as_ref().unwrap().as_str(),
             presentation.basis.wake_id.as_ref().unwrap().as_str(),
             presentation

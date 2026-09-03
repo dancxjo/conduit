@@ -53,9 +53,19 @@ pub enum BodyWorksetError {
 }
 
 impl BodyWorkset {
-    pub fn seed(form: ResidentForm) -> Result<Self, BodyWorksetError> {
+    pub fn one(form: ResidentForm) -> Result<Self, BodyWorksetError> {
         let mut workset = Self::default();
         workset.add(form)?;
+        Ok(workset)
+    }
+
+    pub fn from_forms(
+        forms: impl IntoIterator<Item = ResidentForm>,
+    ) -> Result<Self, BodyWorksetError> {
+        let mut workset = Self::default();
+        for form in forms {
+            workset.add(form)?;
+        }
         Ok(workset)
     }
 

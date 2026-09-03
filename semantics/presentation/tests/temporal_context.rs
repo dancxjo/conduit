@@ -23,7 +23,6 @@ fn presentation(
     Presentation::new_with_semantics_and_temporal(
         1,
         PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,

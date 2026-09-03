@@ -1,7 +1,6 @@
 //! Bounded zero-Body Patchbay state for an ordinary ConduitOS boot.
 
 use alloc::{format, string::String, vec};
-use conduit_body::SeedId;
 use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};
 use conduit_human::KeyEvent;
 use conduit_presentation::{
@@ -40,10 +39,10 @@ pub struct FrontDoor {
     image_id: String,
     source_document_id: SourceDocumentId,
     checked_form_id: CheckedFormId,
-    seed_id: SeedId,
+    form_subject: String,
     selected_subject: String,
     exact_details_open: bool,
-    seed_open: bool,
+    form_open: bool,
     revision: u64,
     offer_count: u64,
     lifecycle_authority_admitted: bool,
@@ -92,8 +91,8 @@ impl FrontDoor {
         offer_count: u64,
         lifecycle_authority_admitted: bool,
     ) -> Self {
-        let seed_id = SeedId::bind(&source_document_id, &checked_form_id);
-        let selected_subject = format!("seed/{}", seed_id.as_str());
+        let form_subject = format!("form/{}", checked_form_id.as_str());
+        let selected_subject = form_subject.clone();
         Self {
             host_id,
             boot_id,
@@ -103,10 +102,10 @@ impl FrontDoor {
             image_id: image_id.into(),
             source_document_id,
             checked_form_id,
-            seed_id,
+            form_subject,
             selected_subject,
             exact_details_open: false,
-            seed_open: false,
+            form_open: false,
             revision: 1,
             offer_count,
             lifecycle_authority_admitted,
@@ -123,15 +122,13 @@ impl FrontDoor {
         self.revision
     }
 
-    pub fn seed_id(&self) -> &SeedId {
-        &self.seed_id
-    }
-
     pub fn observe_journey(&mut self, projection: JourneyProjection) -> Result<(), Error> {
-        if projection.seed_id != self.seed_id {
+        if projection.source_document_id != self.source_document_id
+            || projection.checked_form_id != self.checked_form_id
+        {
             return Err(Error::Presentation);
         }
-        self.seed_open = projection.status == JourneyStatus::SeedOpened;
+        self.form_open = projection.status == JourneyStatus::FormOpened;
         self.journey = Some(projection);
         self.advance()
     }
@@ -145,12 +142,12 @@ impl FrontDoor {
         }
         match event.usage() {
             TAB | RIGHT | LEFT | DOWN | UP => {
-                let seed = format!("seed/{}", self.seed_id.as_str());
+                let form = self.form_subject.clone();
                 let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
-                self.selected_subject = if self.selected_subject == seed {
+                self.selected_subject = if self.selected_subject == form {
                     host
                 } else {
-                    seed
+                    form
                 };
                 self.exact_details_open = false;
                 self.advance()?;
@@ -165,8 +162,8 @@ impl FrontDoor {
                 Ok(true)
             }
             ENTER => {
-                self.seed_open = self.selected_subject.starts_with("seed/");
-                self.exact_details_open = !self.seed_open;
+                self.form_open = self.selected_subject.starts_with("form/");
+                self.exact_details_open = !self.form_open;
                 self.advance()?;
                 Ok(true)
             }
@@ -186,7 +183,7 @@ impl FrontDoor {
 
     pub fn presentation(&self) -> Result<Presentation, Error> {
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
-        let seed = format!("seed/{}", self.seed_id.as_str());
+        let form = self.form_subject.clone();
         let mut subjects = vec![
             PresentationSubject {
                 identity: host.clone(),
@@ -195,15 +192,15 @@ impl FrontDoor {
                 accessibility_name: "This Host; current Body none".into(),
             },
             PresentationSubject {
-                identity: seed.clone(),
-                role: PresentationRole::Seed,
-                label: "ConduitOS entrance Seed".into(),
-                accessibility_name: "Openable checked IMAGE Seed; opening is inert".into(),
+                identity: form.clone(),
+                role: PresentationRole::Form,
+                label: "ConduitOS entrance Form".into(),
+                accessibility_name: "Openable checked IMAGE Form; opening is inert".into(),
             },
         ];
         let mut relationships = vec![PresentationRelationship {
             source: host.clone(),
-            target: seed.clone(),
+            target: form.clone(),
             kind: PresentationRelationshipKind::Observes,
         }];
         let mut properties = vec![
@@ -224,21 +221,20 @@ impl FrontDoor {
                 "offer-count",
                 PresentationPropertyValue::Count(self.offer_count),
             ),
-            property(&seed, "seed-id", identity(self.seed_id.as_str())),
             property(
-                &seed,
+                &form,
                 "source-document-id",
                 identity(self.source_document_id.as_str()),
             ),
             property(
-                &seed,
+                &form,
                 "checked-form-id",
                 identity(self.checked_form_id.as_str()),
             ),
             property(
-                &seed,
+                &form,
                 "opened",
-                PresentationPropertyValue::Flag(self.seed_open),
+                PresentationPropertyValue::Flag(self.form_open),
             ),
         ];
         if self.exact_details_open {
@@ -275,7 +271,7 @@ impl FrontDoor {
                 }
             }
             properties.push(property(
-                &seed,
+                &form,
                 "expanded-form-id",
                 identity(journey.expanded_form_id.as_str()),
             ));
@@ -302,7 +298,6 @@ impl FrontDoor {
         }
         let basis = self.journey.as_ref().map_or_else(
             || PresentationBasis {
-                seed_id: None,
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
@@ -315,7 +310,6 @@ impl FrontDoor {
             |journey| {
                 if journey.body_id.is_some() && journey.wake_id.is_some() {
                     PresentationBasis {
-                        seed_id: Some(journey.seed_id.clone()),
                         body_id: journey.body_id.clone(),
                         wake_id: journey.wake_id.clone(),
                         source_document_id: Some(self.source_document_id.clone()),
@@ -332,7 +326,6 @@ impl FrontDoor {
                     }
                 } else {
                     PresentationBasis {
-                        seed_id: None,
                         body_id: None,
                         wake_id: None,
                         source_document_id: None,
@@ -361,14 +354,14 @@ impl FrontDoor {
                     text: host_text,
                 },
                 PresentationText {
-                    subject: seed.clone(),
-                    text: "IMAGE-embedded checked Seed; OPEN permits inspection only".into(),
+                    subject: form.clone(),
+                    text: "IMAGE-embedded checked Form; OPEN permits inspection only".into(),
                 },
             ],
-            self.semantic_actions(&seed),
+            self.semantic_actions(&form),
             vec![
                 PresentationDisclosure {
-                    subject: seed,
+                    subject: form,
                     level: PresentationDisclosureLevel::Primary,
                 },
                 PresentationDisclosure {
@@ -470,7 +463,7 @@ mod tests {
         let presentation = door.presentation().unwrap();
         assert!(presentation.basis.body_id.is_none());
         assert!(presentation.basis.plan_id.is_none());
-        assert_eq!(presentation.subjects[1].role, PresentationRole::Seed);
+        assert_eq!(presentation.subjects[1].role, PresentationRole::Form);
         assert_eq!(presentation.actions.len(), 2);
         assert!(
             presentation
@@ -495,7 +488,7 @@ mod tests {
     fn open_is_inert_and_details_are_progressive() {
         let mut door = door();
         assert!(door.accept(key(ENTER), 1).unwrap());
-        assert!(door.seed_open);
+        assert!(door.form_open);
         assert_eq!(door.revision(), 2);
         assert!(door.presentation().unwrap().basis.body_id.is_none());
         assert!(door.accept(key(F2), 2).unwrap());

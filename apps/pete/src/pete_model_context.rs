@@ -89,7 +89,6 @@ pub fn project_pete_create_model_context(
     let presentation = Presentation::new_with_semantics_and_temporal(
         u64::from(snapshot.observation_generation),
         PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,

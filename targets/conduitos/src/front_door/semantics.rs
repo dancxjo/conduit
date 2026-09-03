@@ -10,7 +10,7 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 use super::FrontDoor;
 
 impl FrontDoor {
-    pub(super) fn semantic_actions(&self, seed_subject: &str) -> Vec<PresentationAction> {
+    pub(super) fn semantic_actions(&self, form_subject: &str) -> Vec<PresentationAction> {
         let status = self
             .journey
             .as_ref()
@@ -20,7 +20,7 @@ impl FrontDoor {
             .as_ref()
             .and_then(|journey| journey.body_id.as_ref())
             .map_or_else(
-                || seed_subject.to_owned(),
+                || form_subject.to_owned(),
                 |body| format!("body/{}", body.as_str()),
             );
         let birth = if !self.lifecycle_authority_admitted {
@@ -28,7 +28,7 @@ impl FrontDoor {
                 "authority/not-admitted",
                 "No admitted authority can create a Body from this entrance.",
             )
-        } else if status == JourneyStatus::SeedOpened {
+        } else if status == JourneyStatus::FormOpened {
             PresentationActionAvailability::Available
         } else {
             lifecycle_unavailable("Birth", status)
@@ -37,14 +37,14 @@ impl FrontDoor {
             action(
                 "open-back",
                 "Open",
-                seed_subject,
+                form_subject,
                 availability(
-                    matches!(status, JourneyStatus::World | JourneyStatus::SeedOpened),
+                    matches!(status, JourneyStatus::World | JourneyStatus::FormOpened),
                     "Open",
                     status,
                 ),
             ),
-            action("birth", "Birth", seed_subject, birth),
+            action("birth", "Birth", form_subject, birth),
         ];
         if self
             .journey
@@ -155,8 +155,8 @@ fn unavailable(reason_code: &str, explanation: &str) -> PresentationActionAvaila
 
 pub(super) fn lifecycle_summary(journey: &JourneyProjection) -> &'static str {
     match journey.status {
-        JourneyStatus::World => "Body none; the entrance Seed is ready for inert inspection.",
-        JourneyStatus::SeedOpened => "Seed open; inspection has created no effect.",
+        JourneyStatus::World => "Body none; the entrance Form is ready for inert inspection.",
+        JourneyStatus::FormOpened => "Form open; inspection has created no effect.",
         JourneyStatus::BornLulled => "Body born and retained; Wake is available.",
         JourneyStatus::Awake => "Wake active; an exact Plan is required before Play.",
         JourneyStatus::Planned => "Exact immutable Plan ready; Play is available.",

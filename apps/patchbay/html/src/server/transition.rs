@@ -97,8 +97,8 @@ mod tests {
     }
 
     #[test]
-    fn html_open_seed_is_inert_then_explicit_birth_establishes_body() {
-        let explicit = patchbay_model::SeedCandidate::from_source(
+    fn html_open_form_is_inert_then_explicit_birth_establishes_body() {
+        let explicit = patchbay_model::FormCandidate::from_source(
             "Text Lab",
             "text-lab.conduit",
             include_str!("../../../../../examples/text-lab.conduit"),
@@ -108,17 +108,17 @@ mod tests {
         )
         .unwrap();
         let mut server =
-            PatchbayHtmlServer::bind_front_door_with_seeds_ephemeral(vec![explicit]).unwrap();
-        let seed = server
+            PatchbayHtmlServer::bind_front_door_with_forms_ephemeral(vec![explicit]).unwrap();
+        let form = server
             .snapshot
             .presentation
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Seed && subject.label == "Text Lab")
+            .find(|subject| subject.role == PresentationRole::Form && subject.label == "Text Lab")
             .unwrap()
             .identity
             .clone();
-        let open = request(&server, "open", Some(&seed));
+        let open = request(&server, "open", Some(&form));
         let opened = server.apply_front_door_transition(&open).unwrap();
         let opened: crate::RendererSnapshot = serde_json::from_slice(&opened).unwrap();
         assert!(opened.presentation.basis.body_id.is_none());
@@ -127,7 +127,7 @@ mod tests {
             Some("Succeeded")
         );
         assert!(opened.presentation.properties.iter().any(|property| {
-            property.subject == seed
+            property.subject == form
                 && property.name == "opened"
                 && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
         }));
@@ -136,7 +136,7 @@ mod tests {
             "presentation_id": opened.presentation.identity.as_str(),
             "revision": opened.revision - 1,
             "action": "birth",
-            "subject": seed,
+            "subject": form,
         }))
         .unwrap();
         let stale: crate::RendererSnapshot =
@@ -155,7 +155,7 @@ mod tests {
             .presentation
             .actions
             .iter()
-            .find(|action| action.target == seed && action.intent == "conduit.intent/birth@1")
+            .find(|action| action.target == form && action.intent == "conduit.intent/birth@1")
             .unwrap();
         assert_eq!(
             birth.availability,

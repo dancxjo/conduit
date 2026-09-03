@@ -58,9 +58,9 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
   await openStandaloneCreche(page);
   const birth = page.locator(".body-birth-runner");
   if (sourceVariant) {
-    const sourceDisclosure = birth.locator('[data-application-key="seed-source"]');
+    const sourceDisclosure = birth.locator('[data-application-key="form-source"]');
     await sourceDisclosure.locator("summary").click();
-    const source = sourceDisclosure.getByRole("textbox", { name: "Conduit Seed source" });
+    const source = sourceDisclosure.getByRole("textbox", { name: "Conduit Form source" });
     await source.fill((await source.inputValue()).replace('"SOS"', `"SOS ${sourceVariant}"`));
   }
   await birth.getByRole("button", { name: "Birth Body" }).click();
@@ -749,7 +749,7 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   const [program, name, source, editor] = await Promise.all([
     runner.getByLabel("Initial program").boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
-    runner.locator('[data-application-key="seed-source"]').boundingBox(),
+    runner.locator('[data-application-key="form-source"]').boundingBox(),
     runner.locator(".birth-presentation").boundingBox(),
   ]);
   for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
@@ -759,8 +759,8 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
     expect(control.x).toBeGreaterThanOrEqual(editor.x);
     expect(control.x + control.width).toBeLessThanOrEqual(editor.x + editor.width);
   }
-  await runner.locator('[data-application-key="seed-source"] summary').click();
-  await expect(runner.locator('[data-application-key="seed-source"] textarea')).toBeVisible();
+  await runner.locator('[data-application-key="form-source"] summary').click();
+  await expect(runner.locator('[data-application-key="form-source"] textarea')).toBeVisible();
   const selectAppearance = await runner.getByLabel("Initial program").evaluate(
     (element) => getComputedStyle(element).appearance,
   );

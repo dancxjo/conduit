@@ -64,10 +64,10 @@ body[data-embodied="false"] .canvas-heading [role="toolbar"] { display:none; }
 #subjects nav,#structured-subjects nav { position:static; inset:auto; display:block; width:auto; max-width:none; margin:0; padding:0; border:0; background:transparent; }
 #structured-navigator button { width:100%; margin:.12rem 0; text-align:left; overflow-wrap:anywhere; }
 #structured-navigator p { margin:.5rem .65rem; color:var(--conduit-text-secondary); font-size:.82rem; }
-#seed-query { width:100%; margin:.25rem 0; }
-#seed-results { list-style:none; padding:0; }
-#seed-results button { display:grid; gap:.2rem; width:100%; margin:.35rem 0; padding:.55rem; text-align:left; }
-#seed-results button span { overflow:hidden; color:var(--conduit-text-secondary); font-size:.72rem; text-overflow:ellipsis; white-space:nowrap; }
+#form-query { width:100%; margin:.25rem 0; }
+#form-results { list-style:none; padding:0; }
+#form-results button { display:grid; gap:.2rem; width:100%; margin:.35rem 0; padding:.55rem; text-align:left; }
+#form-results button span { overflow:hidden; color:var(--conduit-text-secondary); font-size:.72rem; text-overflow:ellipsis; white-space:nowrap; }
 #gear-query { width:100%; margin:.25rem 0; }
 #gear-results { list-style:none; padding:0; }
 #gear-results button { display:grid; gap:.18rem; width:100%; margin:.35rem 0; padding:.55rem; text-align:left; }

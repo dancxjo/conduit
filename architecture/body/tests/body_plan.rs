@@ -25,15 +25,12 @@ fn plan(form: &ResidentForm, expansion: &str) -> Plan {
 }
 
 fn two_form_wake() -> conduit_body::Wake {
-    let seed = resident("dashboard");
-    let body = Body::born(
-        seed.source_document_id,
-        seed.checked_form_id,
+    let body = Body::born_with_forms(
+        conduit_body::BodyWorkset::from_forms([resident("dashboard"), resident("service")])
+            .unwrap(),
         1,
         SignId::from("sign/born"),
     )
-    .unwrap()
-    .admit_form(resident("service"), SignId::from("sign/admit-service"))
     .unwrap();
     body.wake(1, SignId::from("sign/woke")).unwrap().1
 }

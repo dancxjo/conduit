@@ -52,8 +52,8 @@ fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
         "profile",
         "build",
         "image",
-        journey.seed.source_document_id.clone(),
-        journey.seed.checked_form_id.clone(),
+        journey.form.source_document_id.clone(),
+        journey.form.checked_form_id.clone(),
         7,
         true,
     )
@@ -63,7 +63,7 @@ fn target(journey: &ProductJourney, action: JourneyAction) -> String {
     let projection = journey.projection();
     match action {
         JourneyAction::OpenBack | JourneyAction::Birth => {
-            format!("seed/{}", projection.seed_id.as_str())
+            format!("form/{}", projection.checked_form_id.as_str())
         }
         JourneyAction::Wake
         | JourneyAction::Plan
@@ -120,9 +120,9 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     let initial = journey.projection();
     invoke(&mut journey, JourneyAction::OpenBack, &identities, &offer).unwrap();
     let opened = journey.projection();
-    assert_eq!(opened.status, JourneyStatus::SeedOpened);
+    assert_eq!(opened.status, JourneyStatus::FormOpened);
     assert!(opened.body_id.is_none() && opened.plan_id.is_none());
-    assert_eq!(opened.seed_id, initial.seed_id);
+    assert_eq!(opened.checked_form_id, initial.checked_form_id);
     front_door.observe_journey(opened.clone()).unwrap();
     assert!(front_door.presentation().unwrap().basis.body_id.is_none());
     assert_current_action(&front_door, JourneyAction::Birth);
@@ -221,7 +221,7 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         presentation_revision: 0,
         action_id: "action/open/current".into(),
         action: JourneyAction::OpenBack,
-        target_identity: journey.projection().seed_id.as_str().into(),
+        target_identity: journey.projection().checked_form_id.as_str().into(),
     };
     assert_eq!(
         journey.apply(stale, &identities, &offer, "build", 1),
@@ -239,7 +239,7 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
         journey.apply(wrong, &identities, &offer, "build", 1),
         Err(JourneyError::WrongTarget)
     );
-    let seed = format!("seed/{}", journey.projection().seed_id.as_str());
+    let seed = format!("form/{}", journey.projection().checked_form_id.as_str());
     let born_without_open = JourneyRequest {
         request_id: "request/born".into(),
         presentation_id: "presentation/current".into(),
@@ -250,7 +250,7 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
     };
     assert_eq!(
         journey.apply(born_without_open, &identities, &offer, "build", 1),
-        Err(JourneyError::SeedNotOpened)
+        Err(JourneyError::FormNotOpened)
     );
     assert!(journey.body.is_none());
 

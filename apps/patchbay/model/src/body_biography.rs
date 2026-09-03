@@ -38,14 +38,14 @@ pub fn project_body_biography(
     let mut entries = Vec::with_capacity(evidence.records.len().min(MAX_BODY_BIOGRAPHY_RECORDS));
     for record in &evidence.records {
         let (heading, explanation) = match &record.kind {
-            BodyBiographyRecordKind::Born { seed_id } => (
+            BodyBiographyRecordKind::Born { initial_workset, workload_revision } => (
                 "Born",
                 format!(
-                    "{} became Body {} from Seed {} (Form {}).",
+                    "{} became Body {} with {} initial active Form(s) at workload revision {}.",
                     evidence.friendly_name,
                     evidence.body_id.as_str(),
-                    seed_id.as_str(),
-                    evidence.seed_form_label()
+                    initial_workset.len(),
+                    workload_revision,
                 ),
             ),
             BodyBiographyRecordKind::PartAdmitted { part_id, .. } => (
@@ -176,7 +176,6 @@ mod tests {
             body.clone(),
             BodyMembership::new(body.body_id.clone()).unwrap(),
             "Workbench".into(),
-            "form/light-switch@1".into(),
         )
         .unwrap();
         let reopened: BodyBiographyEvidence =

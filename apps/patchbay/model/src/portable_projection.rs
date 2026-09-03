@@ -113,7 +113,6 @@ impl PatchbayPresentation {
         Presentation::new_with_semantics(
             self.revision,
             PresentationBasis {
-                seed_id: Some(body.seed_id.clone()),
                 body_id: Some(body.body_id.clone()),
                 wake_id: wake.map(|wake| wake.wake_id.clone()),
                 source_document_id: Some(source_document_id),
@@ -261,12 +260,17 @@ fn validate_lifecycle(
     );
     if !active_body
         || body.body_id != wake.body_id
-        || body.seed_id != wake.seed_id
-        || body.source_document_id != wake.source_document_id
-        || body.checked_form_id != wake.checked_form_id
-        || presentation.document.checked.source_document_id.as_ref()
-            != Some(&body.source_document_id)
-        || checked.checked_form_id != body.checked_form_id
+        || body.workset != wake.workset
+        || body.workload_revision != wake.workload_revision
+        || !body.workset.contains(&conduit_body::ResidentForm::new(
+            presentation
+                .document
+                .checked
+                .source_document_id
+                .clone()
+                .ok_or(PortableProjectionError::MissingCheckedForm)?,
+            checked.checked_form_id.clone(),
+        ))
     {
         return Err(PortableProjectionError::LifecycleMismatch);
     }

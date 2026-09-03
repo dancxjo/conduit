@@ -7,11 +7,12 @@ release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEAS
 
 test -f "$runtime"
 test ! -e "$destination"
-mkdir -p "$destination/artifacts" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/orange-pi/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
+mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/orange-pi/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
 
 cp targets/browser/host/assets/creche.html "$destination/index.html"
 cp targets/browser/host/assets/creche.css "$destination/creche.css"
 cp targets/browser/host/assets/creche.mjs "$destination/creche.mjs"
+cp forms/initial-body.conduit "$destination/forms/initial-body.conduit"
 cp targets/browser/host/assets/creche-lifecycle.mjs "$destination/creche-lifecycle.mjs"
 cp targets/browser/host/assets/creche-names.mjs "$destination/creche-names.mjs"
 cp targets/browser/host/assets/creche-physical.mjs "$destination/creche-physical.mjs"

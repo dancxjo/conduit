@@ -27,11 +27,11 @@ pub(super) fn readiness() -> Result<GraduationReadiness, String> {
         durable_identity,
         birth_evidence,
         current_admitted_part,
-        intended_program: receipt.initial_program.clone(),
+        active_form_count: receipt.raw_body.workset.len(),
         ready: durable_identity
             && birth_evidence
             && current_admitted_part
-            && receipt.initial_program == "morse-network@1",
+            && !receipt.raw_body.workset.is_empty(),
     })
 }
 

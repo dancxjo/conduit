@@ -6,7 +6,7 @@
 Conduit has two orthogonal construction paths:
 
 ```text
-SEED ── BIRTH ──> BODY
+FORM WORKSET ── BIRTH ──> BODY
 PROFILE ── BUILD ──> IMAGE
 ```
 
@@ -14,15 +14,15 @@ The words name different kinds of truth. They are not parallel aliases.
 
 ## Meaning becomes living
 
-- **SEED** is dormant semantic material that can be opened and inspected.
+- **FORM** is dormant semantic material that can be opened and inspected.
 - **BIRTH** is the explicit human-authorized action that creates a Body.
 - the **birth Sign/event** is the bounded evidence that the action succeeded.
 - **BODY** is the resulting living semantic identity, potentially realized by
   several Parts and Hosts.
 
-`OPEN SEED` is inert. It does not admit membership, issue authority, start a
+`OPEN FORM` is inert. It does not admit membership, issue authority, start a
 Play, or cause platform effects. `BIRTH` is explicit, attributable operator
-authority; it consumes the exact opened checked Seed, creates a durable Body
+authority; it admits the exact bounded selection of checked Forms, creates a durable Body
 identity and originating Part, and leaves the Body LULLED. BIRTH does not
 implicitly Wake, Plan, or Play. Public Conduit UI, command, schema, and action
 labels use **BIRTH**. Conventional past-tense prose and internal event fields
@@ -113,8 +113,8 @@ earlier migration remain unchanged.
 The following identities never substitute for one another:
 
 ```text
-SeedId                 ProfileId
-source / Form identity BuildId
+checked Form identity  ProfileId
+source Form identity   BuildId
 BodyId                 ImageId / ArtifactId
 birth Sign             build receipt
                        HostId
