@@ -20,7 +20,8 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
 
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("waiting");
   await expect(runner.locator('[data-application-key^="configuration-group-"]')).toHaveCount(6);
-  await expect(runner.locator('[data-application-action^="implementation.toggle-"]')).toHaveCount(12);
+  await expect(runner.locator('[data-application-action^="implementation.toggle-"]')).toHaveCount(11);
+  await expect(runner.getByRole("button").filter({ hasText: "browser/web-audio-output@1" })).toHaveCount(0);
   await expect(runner.getByRole("button").filter({ hasText: "browser/dom@1" })).toContainText("Remove");
   await expect(runner.getByRole("button").filter({ hasText: "browser/keyboard-events@1" })).toContainText("Remove");
 

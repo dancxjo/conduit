@@ -285,15 +285,6 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         ],
     ),
     descriptor(
-        "Media",
-        "Audio output",
-        "audio/output",
-        "browser/web-audio-output@1",
-        4,
-        2 * 1024 * 1024,
-        &[USER_ACTIVATION],
-    ),
-    descriptor(
         "Devices",
         "WebSerial",
         "device/serial",

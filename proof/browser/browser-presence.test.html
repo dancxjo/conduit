@@ -143,6 +143,7 @@ globalThis.__browserPresence = await joinBrowserBody({
       api,
       hostId,
       bootId,
+      selectedImplementations: ["browser/media-devices-camera@1"],
       status: document.querySelector("#media-status"),
       output: document.querySelector("#media-evidence"),
     });

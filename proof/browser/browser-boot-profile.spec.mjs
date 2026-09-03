@@ -65,7 +65,7 @@ test("exact IMAGE gates a superset runtime into only selected implementations an
   ]);
   expect(result.inspection).toEqual([
     expect.objectContaining({ implementation_id: "browser/dom@1", configured: true, admitted: true, initialized: true, resource_ready: true, offered: true }),
-    expect.objectContaining({ implementation_id: "browser/media-devices-camera@1", configured: true, admitted: true, initialized: true, resource_ready: false, offered: false, refusal: "PermissionDenied" }),
+    expect.objectContaining({ implementation_id: "browser/media-devices-camera@1", offer_id: "media/acquire-camera@1", configured: true, admitted: true, initialized: true, resource_ready: true, offered: true, refusal: null }),
   ]);
   expect(result.inspection.some(({ implementation_id }) => implementation_id === "browser/websocket@1")).toBe(false);
 });
@@ -115,7 +115,9 @@ test("unsupported, initialization, permission, provider, endpoint authority, and
 
   expect(states.unsupported["browser/dom@1"].refusal).toBe("UnsupportedApi");
   expect(states.initialization["browser/dom@1"].refusal).toBe("InitializationFailed");
-  expect(states.initialization["browser/media-devices-camera@1"].refusal).toBe("PermissionDenied");
+  expect(states.initialization["browser/media-devices-camera@1"]).toMatchObject({
+    offer_id: "media/acquire-camera@1", offered: true, refusal: null,
+  });
   expect(states.initialization["browser/websocket@1"].refusal).toBe("ProviderUnavailable");
   expect(states.endpoint["browser/websocket@1"].refusal).toBe("EndpointUnavailable");
   expect(states.authority["browser/websocket@1"].refusal).toBe("EndpointAuthorityAbsent");
@@ -123,7 +125,7 @@ test("unsupported, initialization, permission, provider, endpoint authority, and
   expect(states.successful["browser/media-devices-camera@1"]).toMatchObject({ offered: true, resource_ready: true, resource_identity: "camera/front" });
 });
 
-test("resource loss changes Boot offer truth and invalidates only dependent realization without rewriting Form or IMAGE", async ({ page }) => {
+test("permission and acquired-resource observations do not collapse the media acquisition offer", async ({ page }) => {
   const fixture = await makeImage([IDS[1]]);
   const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
     const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
@@ -137,7 +139,7 @@ test("resource loss changes Boot offer truth and invalidates only dependent real
     };
     const before = await boot.admitBrowserBoot(common);
     const realization = boot.bindBrowserOfferRealization(before, {
-      realizationId: "realization/7", offerId: "media/camera@1", formId: "form/unchanged", planId: "plan/7",
+      realizationId: "realization/7", offerId: "media/acquire-camera@1", formId: "form/unchanged", planId: "plan/7",
     });
     const after = boot.refreshBrowserBootTruth(before, {
       [ids[1]]: { api_supported: true, secure_context: true, permission: "granted", resource_ready: false, resource_lost: true },
@@ -147,11 +149,10 @@ test("resource loss changes Boot offer truth and invalidates only dependent real
 
   expect(result.after.image_id).toBe(result.before.image_id);
   expect(result.after.profile_id).toBe(result.before.profile_id);
-  expect(result.after.inspection[0].refusal).toBe("ResourceLost");
-  expect(result.loss).toEqual([expect.objectContaining({
-    terminal: "CurrentOfferLost", realization_id: "realization/7", form_id: "form/unchanged",
-    image_mutated: false, authored_form_mutated: false,
-  })]);
+  expect(result.before.inspection[0]).toMatchObject({ offered: true, offer_id: "media/acquire-camera@1" });
+  expect(result.after.inspection[0]).toMatchObject({ offered: true, offer_id: "media/acquire-camera@1" });
+  expect(result.loss).toEqual([]);
+  expect(result.after.inspection[0].resource_identity).toBeNull();
 });
 
 test("WebRTC signaling bootstrap and exact session grant remain separate from DataChannel offer truth", async ({ page }) => {
