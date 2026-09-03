@@ -315,7 +315,37 @@ fn main() -> Result<(), String> {
                         .map_err(debug("relay WebRTC signal"))?;
                     rendezvous.commit(&routed).map_err(debug("commit signal"))?;
                 }
-                BrowserAdmissionIngress::PresenceRenewal { sequence, .. } => {
+                BrowserAdmissionIngress::PresenceRenewal {
+                    credential_id,
+                    body_id,
+                    part_id,
+                    host_id,
+                    boot_id,
+                    sequence,
+                    ..
+                } => {
+                    exact_credential(
+                        &peers[index].credential,
+                        &credential_id,
+                        &body_id,
+                        &part_id,
+                        &host_id,
+                        &boot_id,
+                    )?;
+                    observed_at = observed_at.checked_add(1).ok_or("clock exhausted")?;
+                    presence
+                        .renew(
+                            &membership,
+                            &peers[index].credential.part_id,
+                            &peers[index].session_id,
+                            sequence,
+                            observed_at,
+                            LEASE_MILLIS,
+                            SignId::from(format!(
+                                "sign/browser-body-camera-realization/renewed-{index}-{sequence}"
+                            )),
+                        )
+                        .map_err(debug("renew presence"))?;
                     peers[index]
                         .socket
                         .send(&BrowserAdmissionEgress::PresenceAccepted {

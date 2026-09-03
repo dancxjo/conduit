@@ -38,6 +38,44 @@ pub struct BrowserRealizationDescriptor {
     pub maximum_queue_bytes: u32,
 }
 
+/// Exact reviewed binding for the bounded application-state realization.
+/// Host identity uses a separate object store and is not part of this offer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BrowserStorageRealizationDescriptor {
+    pub fabrication_implementation_id: &'static str,
+    pub portable_kind: &'static str,
+    pub implementation_revision: u32,
+    pub artifact_id: &'static str,
+    pub database_name: &'static str,
+    pub application_store: &'static str,
+    pub host_identity_store: &'static str,
+    pub maximum_records_per_application: u32,
+    pub maximum_key_bytes: u32,
+    pub maximum_value_bytes: u32,
+    pub maximum_bytes_per_application: u32,
+    pub maximum_applications_per_host: u32,
+    pub maximum_records_per_host: u32,
+    pub maximum_bytes_per_host: u32,
+}
+
+pub const BROWSER_DURABLE_STORAGE_REALIZATION: BrowserStorageRealizationDescriptor =
+    BrowserStorageRealizationDescriptor {
+        fabrication_implementation_id: "browser/indexeddb@1",
+        portable_kind: "storage/durable",
+        implementation_revision: 1,
+        artifact_id: "browser-application-storage.mjs@1",
+        database_name: "conduit-browser-host-applications",
+        application_store: "application-state",
+        host_identity_store: "browser-host-identity",
+        maximum_records_per_application: 64,
+        maximum_key_bytes: 256,
+        maximum_value_bytes: 64 * 1024,
+        maximum_bytes_per_application: 1024 * 1024,
+        maximum_applications_per_host: 16,
+        maximum_records_per_host: 16 * 64,
+        maximum_bytes_per_host: 16 * 1024 * 1024,
+    };
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct BrowserRealizationLimits {
     maximum_in_flight: u16,

@@ -4,11 +4,13 @@ import path from "node:path";
 import { startWebRtcRendezvousProbe } from "./browser-presence-support.mjs";
 
 test("two admitted product clients compose Body grants into one exact ready session", async ({
-  browser, context,
+  browser,
 }, testInfo) => {
   const probe = await startWebRtcRendezvousProbe();
-  const source = await context.newPage();
-  const sink = await context.newPage();
+  const sourceContext = await browser.newContext();
+  const sinkContext = await browser.newContext();
+  const source = await sourceContext.newPage();
+  const sink = await sinkContext.newPage();
   const browserErrors = [];
   for (const page of [source, sink]) {
     page.on("pageerror", (error) => browserErrors.push(error.message));
@@ -276,6 +278,8 @@ test("two admitted product clients compose Body grants into one exact ready sess
   await restartedPage.evaluate(() => globalThis.__browserPresence.close());
   await restartedContext.close();
   await sinkPage.evaluate(() => globalThis.__browserPresence.close());
+  await sourceContext.close();
+  await sinkContext.close();
   await expect.poll(() => {
     if (probe.process.exitCode && probe.process.exitCode !== 0) throw new Error(probe.output());
     return probe.process.exitCode;

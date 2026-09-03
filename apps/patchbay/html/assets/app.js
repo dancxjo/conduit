@@ -1,6 +1,6 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { createApplicationPresentationHost } from "/assets/application-presentation.mjs";
-import { arrangeFlow, fitFlow, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
+import { arrangeFlow, configureFlowStorage, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { installPanelFurniture } from "/assets/panel-furniture.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
@@ -340,10 +340,10 @@ async function joinCurrentBody(){
   if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");
   window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:admittedRuntimeBytes,onState:()=>load()});
 }
-export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");
+export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");configureFlowStorage(context.storage);
 presentStatus("Loading bounded snapshot…");document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
-document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;
+document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;window.patchbayFlowStorageSettled=flowStorageSettled;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
 document.querySelector("#plan-form").onclick=()=>dispatchFrontDoorAction("Plan");document.querySelector("#play-plan").onclick=()=>dispatchFrontDoorAction("Play");
 document.querySelector("#text-lab-loss").onclick=()=>observeTextLabLoss().catch(error=>{document.querySelector("#front-door-feedback").textContent=`Text Lab loss failed: ${error.message}`;});

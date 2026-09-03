@@ -8,6 +8,35 @@ const IDS = [
 
 test.beforeEach(async ({ page }) => page.goto("/proof/browser/signal-dom-host.test.html"));
 
+test("durable storage is offered only when its exact implementation is selected and available", async ({ page }) => {
+  const fixture = await makeImage(["browser/dom@1"]);
+  const selectedFixture = await makeImage(["browser/indexeddb@1"]);
+  const result = await page.evaluate(async ({ fixture, selectedFixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const common = {
+      imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes), bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest, bootId: "boot/storage",
+      availableImplementations: ["browser/dom@1", "browser/indexeddb@1"].map((id) => ({ id, revision: 1 })),
+    };
+    const omitted = await boot.admitBrowserBoot({ ...common, observations: { "browser/dom@1": { api_supported: true } } });
+    const selectedImage = { ...selectedFixture, bytes: new Uint8Array(selectedFixture.bytes) };
+    const selected = await boot.admitBrowserBoot({
+      ...common, imageBytes: selectedImage.bytes, expectedImageId: selectedImage.id,
+      expectedProfileId: selectedImage.profileId,
+      observations: { "browser/indexeddb@1": { api_supported: true, secure_context: true, resource_ready: true } },
+    });
+    return { omitted, selected };
+  }, {
+    fixture: { ...fixture, bytes: Array.from(fixture.bytes) },
+    selectedFixture: { ...selectedFixture, bytes: Array.from(selectedFixture.bytes) },
+    artifactDigest: digest("6"),
+  });
+  expect(result.omitted.inspection.some(({ implementation_id }) => implementation_id === "browser/indexeddb@1")).toBe(false);
+  expect(result.selected.inspection[0]).toMatchObject({ implementation_id: "browser/indexeddb@1", configured: true, initialized: true, offered: true });
+});
+
 test("exact IMAGE gates a superset runtime into only selected implementations and current offers", async ({ page }) => {
   const fixture = await makeImage(IDS.slice(0, 2));
   const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {

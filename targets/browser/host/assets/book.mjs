@@ -1,5 +1,5 @@
 import { initializeBrowserHost } from "./browser-host-membership.mjs";
-import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
+import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
@@ -35,6 +35,7 @@ try {
   hostPresentationFor = application.presentationFor;
   hostStatus = createBookStatus(hostPresentation, "book-host-status", "host-status", "Starting browser Host…");
   readingState = await openBookReadingState(application.storage);
+  configureFlowStorage(application.storage);
   navigation = createBookNavigation(hostPresentation, (offset) => {
     renderPage(currentPage + offset, "push").catch(showBookFailure);
   });

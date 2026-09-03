@@ -10,6 +10,7 @@ mod inventory;
 pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
     BrowserInventoryDiagnostic, BrowserRealizationDescriptor, BrowserRuntimePrerequisite,
+    BrowserStorageRealizationDescriptor, BROWSER_DURABLE_STORAGE_REALIZATION,
     BROWSER_HUMAN_PRESENTATION_REALIZATIONS, BROWSER_IMPLEMENTATIONS, REVIEWED_DISTRIBUTION_ID,
     REVIEWED_RUNTIME_ARTIFACT,
 };
@@ -249,5 +250,18 @@ mod tests {
             .any(|(kind, implementation)| {
                 kind == "storage/durable" && implementation == "browser/indexeddb@1"
             }));
+    }
+
+    #[test]
+    fn durable_storage_metadata_matches_the_shared_host_adapter_contract() {
+        let storage = &BROWSER_DURABLE_STORAGE_REALIZATION;
+        assert_eq!(storage.fabrication_implementation_id, "browser/indexeddb@1");
+        assert_eq!(storage.portable_kind, "storage/durable");
+        assert_eq!(storage.implementation_revision, 1);
+        assert_eq!(storage.artifact_id, "browser-application-storage.mjs@1");
+        assert_eq!(storage.maximum_key_bytes, 256);
+        assert_eq!(storage.maximum_records_per_host, 1_024);
+        assert_eq!(storage.maximum_bytes_per_host, 16 * 1024 * 1024);
+        assert_ne!(storage.application_store, storage.host_identity_store);
     }
 }

@@ -24,6 +24,10 @@ let currentScene = null;
 let arrangeCurrent = null;
 const workspaceIndexKey = "conduit.patchbay.flow/workspaces";
 const nodeTypes = { faceplate: FaceplateNode };
+const retainedScenes = new Map();
+const loadedWorkspaces = new Set();
+let admittedStorage = null;
+let storageWrites = Promise.resolve();
 
 function rootFor(target) {
   let mounted = roots.get(target);
@@ -41,30 +45,42 @@ function storageKey(workspaceIdentity) {
 }
 
 function restore(projection) {
-  const document = sessionStorage.getItem(storageKey(projection.workspaceIdentity));
+  const document = retainedScenes.get(storageKey(projection.workspaceIdentity)) ?? null;
   return decodeFlowPresentation(document, projection);
 }
 
-function retainWorkspace(workspaceIdentity) {
-  let identities = [];
-  try {
-    const document = sessionStorage.getItem(workspaceIndexKey) || "[]";
-    const parsed = document.length <= 64 * 1024 ? JSON.parse(document) : [];
-    if (Array.isArray(parsed)) {
-      identities = parsed
-        .filter((identity) => typeof identity === "string")
-        .slice(0, MAX_FLOW_WORKSPACES);
-    }
-  } catch { identities = []; }
+async function retainWorkspace(workspaceIdentity) {
+  const parsed = await admittedStorage.readJson(workspaceIndexKey);
+  let identities = Array.isArray(parsed)
+    ? parsed.filter((identity) => typeof identity === "string").slice(0, MAX_FLOW_WORKSPACES)
+    : [];
   identities = [workspaceIdentity, ...identities.filter((identity) => identity !== workspaceIdentity)];
-  for (const evicted of identities.slice(MAX_FLOW_WORKSPACES)) sessionStorage.removeItem(storageKey(evicted));
-  sessionStorage.setItem(workspaceIndexKey, JSON.stringify(identities.slice(0, MAX_FLOW_WORKSPACES)));
+  for (const evicted of identities.slice(MAX_FLOW_WORKSPACES)) {
+    retainedScenes.delete(storageKey(evicted));
+    await admittedStorage.deleteJson(storageKey(evicted));
+  }
+  await admittedStorage.writeJson(workspaceIndexKey, identities.slice(0, MAX_FLOW_WORKSPACES));
 }
 
 function persist(scene, viewport = instance?.getViewport() || scene.viewport) {
   currentScene = { ...scene, viewport };
-  retainWorkspace(scene.workspaceIdentity);
-  sessionStorage.setItem(storageKey(scene.workspaceIdentity), encodeFlowPresentation(currentScene));
+  if (admittedStorage && !loadedWorkspaces.has(scene.workspaceIdentity)) return;
+  const key = storageKey(scene.workspaceIdentity);
+  const document = encodeFlowPresentation(currentScene);
+  retainedScenes.set(key, document);
+  if (admittedStorage) {
+    storageWrites = storageWrites.then(async () => {
+      await retainWorkspace(scene.workspaceIdentity);
+      await admittedStorage.writeJson(key, document);
+    }).catch((error) => { currentScene = { ...currentScene, storageRefusal: error.code ?? "StorageFailure" }; });
+  }
+}
+
+export function configureFlowStorage(storage) {
+  if (storage?.schema !== "conduit.browser/application-storage@1") {
+    throw new Error("Patchbay requires admitted application storage");
+  }
+  admittedStorage = storage;
 }
 
 function presentEdges(edges) {
@@ -85,6 +101,25 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
   const [edges, setEdges] = React.useState(presentEdges(initial.edges));
   const workspace = React.useRef(projected.workspaceIdentity);
   const mounted = React.useRef(false);
+  React.useEffect(() => {
+    let active = true;
+    if (admittedStorage && !retainedScenes.has(storageKey(projected.workspaceIdentity))) {
+      admittedStorage.readJson(storageKey(projected.workspaceIdentity)).then((document) => {
+        loadedWorkspaces.add(projected.workspaceIdentity);
+        if (!active) return;
+        if (typeof document !== "string") {
+          if (currentScene?.workspaceIdentity === projected.workspaceIdentity) persist(currentScene);
+          return;
+        }
+        retainedScenes.set(storageKey(projected.workspaceIdentity), document);
+        const next = reconcileFlowScene(projected, decodeFlowPresentation(document, projected));
+        currentScene = next;
+        setNodes(next.nodes);
+        instance?.setViewport(next.viewport, { duration: 0 });
+      }).catch((error) => { currentScene = { ...currentScene, storageRefusal: error.code ?? "StorageFailure" }; });
+    }
+    return () => { active = false; };
+  }, [projected.workspaceIdentity]);
   React.useEffect(() => {
     if (!mounted.current) {
       mounted.current = true;
@@ -145,8 +180,14 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
       onMoveEnd: (_event, viewport) => persist({ ...projected, nodes, edges, viewport }, viewport),
       onInit: (next) => {
         instance = next;
-        next.setViewport(initial.viewport, { duration: 0 });
-        currentScene = { ...projected, nodes, edges, viewport: initial.viewport };
+        const viewport = currentScene?.workspaceIdentity === projected.workspaceIdentity
+          ? currentScene.viewport
+          : initial.viewport;
+        const initializedNodes = currentScene?.workspaceIdentity === projected.workspaceIdentity
+          ? currentScene.nodes
+          : nodes;
+        next.setViewport(viewport, { duration: 0 });
+        currentScene = { ...projected, nodes: initializedNodes, edges, viewport };
       },
       nodesDraggable: true,
       nodesConnectable: Boolean(snapshot.authoring),
@@ -206,6 +247,11 @@ export function arrangeFlow() {
 
 export function flowViewport() {
   return instance?.getViewport() || null;
+}
+
+export async function flowStorageSettled() {
+  await storageWrites;
+  return currentScene?.storageRefusal ?? "Stored";
 }
 
 export function zoomFlow(factor) {

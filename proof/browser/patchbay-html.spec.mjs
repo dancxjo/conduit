@@ -231,12 +231,12 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
     expect(await page.locator(".faceplate-title").first().evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
-    const seedsButton=page.getByRole("button",{name:"Seeds"});
-    await seedsButton.hover();
-    await expect(seedsButton).toHaveCSS("border-color","rgb(233, 163, 37)");
+    const paletteButton=page.locator("#toggle-palette");
+    await paletteButton.hover();
+    await expect(paletteButton).toHaveCSS("border-color","rgb(233, 163, 37)");
     await page.keyboard.press("Tab");
-    await seedsButton.focus();
-    await expect(seedsButton).toHaveCSS("outline-color","rgb(244, 196, 0)");
+    await paletteButton.focus();
+    await expect(paletteButton).toHaveCSS("outline-color","rgb(244, 196, 0)");
     await page.evaluate(()=>document.fonts.ready);
     if(canonical) {
       expect(await page.evaluate(()=>document.fonts.check('16px "DejaVu Sans"'))).toBe(true);
@@ -497,6 +497,7 @@ test("full-window Flow mechanics remain presentation-only", async ({page}) => {
       manifestation:after.renderer.manifestation.manifestation_id,
       subjects:after.presentation.subjects.map(subject=>subject.identity).sort(),
     }).toEqual(identities);
+    await expect.poll(()=>page.evaluate(()=>window.patchbayFlowStorageSettled())).toBe("Stored");
     await page.reload();
     await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",identities.presentation);
     await expect.poll(()=>page.evaluate(()=>window.patchbayFlowViewport())).toEqual(viewportAfter);
