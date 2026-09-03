@@ -112,6 +112,27 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   }
 });
 
+test("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  const legacy = {
+    schema: "conduit.book/reading-state@1",
+    drafts: [["runner-0", "legacy draft"]],
+    expandedBacks: ["same-morse-caller/morse"],
+  };
+  await page.evaluate((state) => globalThis.__conduitBrowserApplication.storage.writeJson("reading-state", state), legacy);
+
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  const migrated = await page.evaluate(async () => ({
+    applicationIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
+    state: await globalThis.__conduitBrowserApplication.storage.readJson("reading-state"),
+  }));
+  expect(migrated.applicationIdentity).toBe("conduit.application/book-reading-state");
+  expect(migrated.state).toEqual({ ...legacy, schema: "conduit.tour/reading-state@1" });
+});
+
 test("Crèche launches its exact admitted graph through bounded Host context", async ({ page }) => {
   entrance.child.kill();
   entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
