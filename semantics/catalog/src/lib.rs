@@ -29,6 +29,8 @@ mod structured_values;
 pub use structured_values::*;
 mod diverse_structured_info;
 pub use diverse_structured_info::*;
+mod delivery_classification;
+pub use delivery_classification::*;
 mod vision;
 pub use vision::*;
 mod vision_realization;

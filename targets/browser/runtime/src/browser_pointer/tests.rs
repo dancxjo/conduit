@@ -16,6 +16,19 @@ fn sample() -> NormalizedPointerSample {
 
 #[test]
 fn pointer_crosses_checked_plan_and_kernel_with_exact_identities() {
+    let delivery = browser_pointer_delivery_contract().unwrap();
+    assert_eq!(
+        delivery.evolution,
+        conduit_core::EvolutionSemantics::CurrentState
+    );
+    assert_eq!(
+        delivery.admission_unit,
+        conduit_core::AdmissionUnit::CoherentFrame
+    );
+    assert_eq!(
+        delivery.pressure_policy,
+        conduit_core::DeliveryPressurePolicy::CoalesceLatest
+    );
     let receipt = execute_browser_pointer(sample()).unwrap();
     assert_eq!(receipt.position_x, 250_000);
     assert_eq!(receipt.schema, "input/pointer-event@1");

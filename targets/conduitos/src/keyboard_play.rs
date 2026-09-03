@@ -217,6 +217,17 @@ mod tests {
 
     #[test]
     fn planned_keyboard_values_cross_the_fixed_kernel_and_close() {
+        assert_eq!(
+            conduit_human::KEY_EVENT_DELIVERY_CONTRACT,
+            conduit_semantic_catalog::reviewed_delivery_contract(&conduit_core::KindId::from(
+                conduit_human::KEY_EVENT_INFO_ID,
+            ))
+            .unwrap()
+        );
+        assert_eq!(
+            conduit_human::KEY_EVENT_DELIVERY_CONTRACT.pressure_policy,
+            conduit_core::DeliveryPressurePolicy::PreserveOrder
+        );
         let identities = BootIdentities {
             host: [1; 32],
             boot: [2; 32],
