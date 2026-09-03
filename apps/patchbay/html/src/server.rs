@@ -38,6 +38,7 @@ const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
 const FLOW_LAYOUT_SCRIPT: &[u8] = include_bytes!("../assets/flow-layout.js");
 const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js");
 const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
+const SHARED_PRESENTATION_SCRIPT: &[u8] = include_bytes!("../assets/shared-presentation.js");
 const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const HOST_IDENTITY_SCRIPT: &[u8] =
@@ -159,6 +160,7 @@ impl PatchbayHtmlServer {
             "assets/flow-layout.js" => Some(FLOW_LAYOUT_SCRIPT),
             "assets/flow-faceplate.js" => Some(FLOW_FACEPLATE_SCRIPT),
             "assets/panel-furniture.js" => Some(PANEL_FURNITURE_SCRIPT),
+            "assets/shared-presentation.js" => Some(SHARED_PRESENTATION_SCRIPT),
             "assets/portable-navigation.js" => Some(PORTABLE_NAVIGATION_SCRIPT),
             "assets/websocket-line.mjs" => Some(WEBSOCKET_LINE_SCRIPT),
             "assets/text-lab-live-runtime.mjs" => Some(TEXT_LAB_RUNTIME_SCRIPT),
@@ -510,6 +512,11 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 PANEL_FURNITURE_SCRIPT,
+            ),
+            "GET /assets/shared-presentation.js HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                SHARED_PRESENTATION_SCRIPT,
             ),
             "GET /assets/portable-navigation.js HTTP/1.1" => (
                 "200 OK",
