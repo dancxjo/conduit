@@ -116,6 +116,15 @@ fn is_creche_presentation_path(path: &str) -> bool {
         || path.starts_with("targets/browser/host/assets/creche")
 }
 
+fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
+    // Semantic crates are renderer- and machine-neutral contracts. Their
+    // reverse-dependent workspace shards compile and test the affected product
+    // graph, including portable/embedded configurations. Fabricating firmware
+    // and booting every machine adds no distinct proof unless the change also
+    // touches a target-sensitive layer, which is classified separately.
+    !path.starts_with("semantics/") || !matches!(suite, "esp32" | "conduitos")
+}
+
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
     esp32_required: bool,
@@ -459,7 +468,9 @@ fn plan_for_paths(
         if let Some(package) = package_for_path(root, path, packages) {
             changed_packages.insert(package.to_owned());
             for suite in SUITES {
-                if closures[suite].contains(package) {
+                if closures[suite].contains(package)
+                    && machine_proof_is_required_for_dependency(path, suite)
+                {
                     selected.insert(suite.to_owned(), true);
                     reasons
                         .get_mut(suite)
