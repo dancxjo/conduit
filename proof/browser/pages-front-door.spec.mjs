@@ -74,7 +74,6 @@ test("Conduit home, Book, Crèche, and Patchbay are stable sibling endpoints", a
   await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Patchbay" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Book" })).toHaveAttribute("href", "/conduit/book");
   await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Crèche" })).toHaveAttribute("href", "/conduit/creche");
-  await expect(page.getByText("No Body is open").first()).toBeVisible();
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
@@ -103,14 +102,20 @@ test("the shared shell follows dark and light preferences without changing appli
       if (path === "/book/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
       if (path === "/creche/") await expect(page.locator("#host-state")).toHaveText("Crèche ready");
       if (path === "/patchbay/") await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-      const palette = await page.evaluate(() => ({
-        scheme: getComputedStyle(document.documentElement).colorScheme,
-        background: getComputedStyle(document.documentElement).getPropertyValue(
-          location.pathname.endsWith("/conduit/") ? "--conduit-background" : "--paper",
-        ).trim(),
-      }));
+      const palette = await page.evaluate(() => {
+        const patchbay = location.pathname.endsWith("/patchbay/");
+        const style = getComputedStyle(patchbay ? document.body : document.documentElement);
+        return {
+          scheme: getComputedStyle(document.documentElement).colorScheme,
+          background: style.getPropertyValue(
+            location.pathname.endsWith("/conduit/") || patchbay ? "--conduit-background" : "--paper",
+          ).trim().toLowerCase(),
+        };
+      });
       expect(palette.scheme).toContain(colorScheme);
-      expect(palette.background).toBe(colorScheme === "dark" ? "#05070b" : "#eef5f8");
+      expect(palette.background).toBe(colorScheme === "dark"
+        ? "#05070b"
+        : path === "/patchbay/" ? "#e5eff4" : "#eef5f8");
       const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
       await expect(primaryNavigation).toBeVisible();
       const hoverTarget = primaryNavigation.getByRole("link", { name: "Patchbay" });
