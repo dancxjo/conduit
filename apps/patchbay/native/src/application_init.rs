@@ -5,6 +5,7 @@ use super::*;
 impl PatchbayApplication {
     pub(super) fn new(arguments: Arguments) -> Result<Self, String> {
         let pico_admission_port = arguments.pico_admission_port.clone();
+        let workbench = native_workbench::NativeBodyWorkbenchSlot::open_arguments(&arguments)?;
         let native_file_base = probe_native_file_base();
         let mut composition = StdHostComposition::minimal()
             .with_signal()
@@ -46,6 +47,9 @@ impl PatchbayApplication {
             arguments.environment_path,
             arguments.prewake,
         )?;
+        if let Some(workbench) = workbench.current() {
+            workbench.validate_form(workspace.form_editor.as_ref())?;
+        }
         let semantic_history = workspace
             .form_editor
             .as_ref()
@@ -144,6 +148,7 @@ impl PatchbayApplication {
             interaction: Some(PatchbayInteraction::new(source_host_id, source_boot_id)),
             entrance: None,
             zero_body_front_door: None,
+            workbench,
             hit_targets: Vec::new(),
             cursor_position: (0.0, 0.0),
             canvas_viewport: Default::default(),

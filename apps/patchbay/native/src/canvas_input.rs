@@ -24,6 +24,9 @@ impl PatchbayApplication {
         else {
             return Ok(());
         };
+        if self.handle_native_workbench_action(&action)? {
+            return Ok(());
+        }
         if self.environment.is_some() && (self.prewake.is_none() || self.prewake_environment_view) {
             if let GuiAction::EnvironmentSelect(part_id) = &action {
                 self.environment_drag = Some((part_id.clone(), self.cursor_position));

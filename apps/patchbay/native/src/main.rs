@@ -64,6 +64,11 @@ mod interaction_feedback;
 mod interaction_status;
 mod keyboard_input;
 mod lifecycle_flow;
+mod native_workbench;
+mod native_workbench_input;
+#[cfg(test)]
+mod native_workbench_tests;
+mod native_workbench_view;
 #[cfg(test)]
 mod navigation_journey;
 #[cfg(test)]
@@ -94,6 +99,7 @@ mod viewport_input;
 #[cfg(test)]
 mod viewport_tests;
 mod window_title;
+mod workbench_chrome;
 mod workspace_open;
 use arguments::{parse_arguments, Arguments, USAGE};
 use conduit_std_host::StdHostComposition;
@@ -127,6 +133,7 @@ struct PatchbayApplication {
     interaction: Option<PatchbayInteraction>,
     entrance: Option<front_door::NativeFrontDoorPresentation>,
     zero_body_front_door: Option<patchbay_model::ZeroBodyFrontDoor>,
+    workbench: native_workbench::NativeBodyWorkbenchSlot,
     hit_targets: Vec<gui::HitTarget>,
     cursor_position: (f64, f64),
     canvas_viewport: canvas_viewport::CanvasViewport,
@@ -215,6 +222,7 @@ impl ApplicationHandler for PatchbayApplication {
         match event {
             WindowEvent::CloseRequested => {
                 self.native_keyboard.close();
+                self.workbench.detach();
                 event_loop.exit();
             }
             WindowEvent::Focused(focused) => self.handle_window_focus(focused),

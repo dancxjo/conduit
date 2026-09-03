@@ -1,6 +1,7 @@
 //! Finite renderer-local hit geometry and pre-admission action candidates.
 
 use crate::gui_primitives::PixelRect;
+use conduit_presentation::{PresentationAspect, PresentationPlace};
 use embedded_graphics::prelude::Point;
 use patchbay_model::PatchbaySubjectRef;
 use patchbay_model::{EnvironmentLinkKind, MachineProfile};
@@ -22,6 +23,11 @@ pub enum ViewportAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuiAction {
+    ShowWorkbench {
+        place: PresentationPlace,
+        aspect: PresentationAspect,
+    },
+    InspectHistoryEntry(usize),
     TogglePartsView,
     SpawnBrowserPart,
     CancelBrowserPartSpawn,

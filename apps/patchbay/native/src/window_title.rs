@@ -4,6 +4,14 @@ use crate::PatchbayApplication;
 
 impl PatchbayApplication {
     pub(super) fn title(&self) -> String {
+        if let Some(workbench) = self.workbench.current() {
+            return format!(
+                "Conduit Patchbay — {} — {:?} / {:?}",
+                workbench.frame().friendly_name,
+                workbench.place(),
+                workbench.aspect()
+            );
+        }
         if let Some(prewake) = &self.prewake {
             return format!(
                 "Conduit Patchbay — PREWAKE {:?} — SIMULATION ONLY — NO PHYSICAL AUTHORITY",

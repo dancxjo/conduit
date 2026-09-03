@@ -16,7 +16,7 @@ use crate::{
         draw_regions, frame_rect, icon_label, line, positive, text, PixelRect, RegionMetrics,
     },
     icon::Icon,
-    lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
+    lifecycle_flow::LifecycleFlow,
     parts_view::{draw_parts, PartsSelection},
 };
 use embedded_graphics::{
@@ -181,11 +181,12 @@ pub fn draw_patchbay(
             ),
         );
         let mut header = canvas.clipped(&clip);
-        draw_header(
+        crate::workbench_chrome::draw_program_header(
             &mut header,
             graph,
             breadcrumb,
-            (lifecycle, width, viewport),
+            lifecycle,
+            width,
             theme,
             &mut targets,
         );
@@ -336,37 +337,6 @@ pub fn draw_patchbay(
     );
     targets.truncate(MAX_HIT_TARGETS);
     targets
-}
-
-fn draw_header<D: DrawTarget<Color = Rgb888>>(
-    target: &mut D,
-    graph: &PatchbayGraph,
-    breadcrumb: &str,
-    view: (&LifecycleContext, i32, &CanvasViewport),
-    theme: &PatchbayTheme,
-    targets: &mut Vec<HitTarget>,
-) {
-    let (lifecycle, width, viewport) = view;
-    {
-        let clip = Rectangle::new(Point::zero(), Size::new(232, HEADER_HEIGHT as u32));
-        let mut meaning = target.clipped(&clip);
-        icon_label(
-            &mut meaning,
-            Icon::Form,
-            Point::new(14, 10),
-            &format!(
-                "FORM  {}",
-                if breadcrumb.is_empty() {
-                    graph.form_name.as_str()
-                } else {
-                    breadcrumb
-                }
-            ),
-            theme.emphasis,
-        );
-    }
-    draw_lifecycle_flow(target, lifecycle, width, theme, targets);
-    let _ = viewport;
 }
 
 fn draw_cords<D: DrawTarget<Color = Rgb888>>(

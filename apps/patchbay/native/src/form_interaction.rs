@@ -35,6 +35,9 @@ pub(super) fn graphical_form_for_editor(
 
 impl PatchbayApplication {
     pub(super) fn handle_gui_action(&mut self, action: GuiAction) -> Result<(), String> {
+        if self.handle_native_workbench_action(&action)? {
+            return Ok(());
+        }
         if matches!(
             &action,
             GuiAction::PrewakeToggleWorkspace
@@ -57,6 +60,9 @@ impl PatchbayApplication {
                 | GuiAction::BeginShortTextEdit { .. }
         );
         match action {
+            GuiAction::ShowWorkbench { .. } | GuiAction::InspectHistoryEntry(_) => {
+                return Err("native Body workbench is absent".into())
+            }
             GuiAction::TogglePartsView
             | GuiAction::SpawnBrowserPart
             | GuiAction::CancelBrowserPartSpawn

@@ -14,6 +14,7 @@ use std::num::NonZeroU32;
 enum RenderView {
     Environment,
     Patchbay,
+    Workbench,
     Document,
 }
 
@@ -22,9 +23,13 @@ fn select_render_view(
     has_environment: bool,
     has_prewake: bool,
     prewake_environment_view: bool,
+    has_workbench: bool,
+    workbench_program: bool,
 ) -> RenderView {
     if has_prewake && prewake_environment_view && has_environment {
         RenderView::Environment
+    } else if has_workbench && (!workbench_program || !has_graph) {
+        RenderView::Workbench
     } else if has_graph {
         RenderView::Patchbay
     } else {
@@ -70,7 +75,17 @@ impl PatchbayApplication {
         let size = window.inner_size();
         let width = NonZeroU32::new(size.width).ok_or("native window width is zero")?;
         let height = NonZeroU32::new(size.height).ok_or("native window height is zero")?;
-        let lines = if self.linear_view {
+        let workbench_program = self
+            .workbench
+            .current()
+            .is_some_and(crate::native_workbench::NativeBodyWorkbench::is_program);
+        let lines = if let Some(workbench) = self
+            .workbench
+            .current()
+            .filter(|_| !workbench_program || self.graphical_form.is_none())
+        {
+            crate::native_workbench_view::workbench_lines(workbench, self.linear_view)
+        } else if self.linear_view {
             self.details_lines()
         } else {
             self.presentation_lines()
@@ -78,12 +93,20 @@ impl PatchbayApplication {
         let selected = self.selected_graphical_identity().map(str::to_owned);
         let graph = self.graphical_form.as_ref();
         let linear_view = self.linear_view;
-        let parts = self.parts_projection()?;
+        let parts = if self.workbench.current().is_some() {
+            None
+        } else {
+            self.parts_projection()?
+        };
         let lifecycle = LifecycleContext {
-            body_id: self
-                .build_birth
-                .body()
-                .map(|body| body.body_id.as_str().to_owned()),
+            body_id: self.workbench.current().map_or_else(
+                || {
+                    self.build_birth
+                        .body()
+                        .map(|body| body.body_id.as_str().to_owned())
+                },
+                |workbench| Some(workbench.frame().body_id.as_str().to_owned()),
+            ),
             wake_id: self
                 .build_birth
                 .wake_value()
@@ -169,6 +192,8 @@ impl PatchbayApplication {
             self.environment.is_some(),
             self.prewake.is_some(),
             self.prewake_environment_view,
+            self.workbench.current().is_some(),
+            workbench_program,
         );
         let hit_targets = if render_view == RenderView::Environment {
             if let Some(environment) = &self.environment {
@@ -192,6 +217,27 @@ impl PatchbayApplication {
             } else {
                 Vec::new()
             }
+        } else if render_view == RenderView::Workbench {
+            if let Some(workbench) = self.workbench.current() {
+                if linear_view {
+                    draw_document(
+                        &mut buffer,
+                        size.width as usize,
+                        size.height as usize,
+                        &lines,
+                    );
+                    Vec::new()
+                } else {
+                    crate::native_workbench_view::draw_native_workbench(
+                        &mut buffer,
+                        size.width as usize,
+                        size.height as usize,
+                        workbench,
+                    )
+                }
+            } else {
+                Vec::new()
+            }
         } else if let Some(graph) = graph {
             if linear_view {
                 draw_document(
@@ -202,7 +248,7 @@ impl PatchbayApplication {
                 );
                 Vec::new()
             } else {
-                draw_patchbay(
+                let mut targets = draw_patchbay(
                     &mut buffer,
                     size.width as usize,
                     size.height as usize,
@@ -224,7 +270,17 @@ impl PatchbayApplication {
                         gesture,
                         viewport: &self.canvas_viewport,
                     },
-                )
+                );
+                if let Some(workbench) = self.workbench.current() {
+                    crate::native_workbench_view::draw_program_tabs(
+                        &mut buffer,
+                        size.width as usize,
+                        size.height as usize,
+                        workbench,
+                        &mut targets,
+                    );
+                }
+                targets
             }
         } else {
             draw_document(
@@ -262,16 +318,75 @@ mod tests {
     #[test]
     fn render_selection_keeps_default_form_launch_on_patchbay() {
         let cases = [
-            (true, false, false, false, RenderView::Patchbay),
-            (true, true, false, false, RenderView::Patchbay),
-            (true, true, true, false, RenderView::Patchbay),
-            (true, true, true, true, RenderView::Environment),
-            (false, false, false, false, RenderView::Document),
+            (
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                RenderView::Patchbay,
+            ),
+            (true, true, false, false, false, false, RenderView::Patchbay),
+            (true, true, true, false, false, false, RenderView::Patchbay),
+            (
+                true,
+                true,
+                true,
+                true,
+                false,
+                false,
+                RenderView::Environment,
+            ),
+            (
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                RenderView::Document,
+            ),
+            (true, false, false, false, true, true, RenderView::Patchbay),
+            (
+                true,
+                false,
+                false,
+                false,
+                true,
+                false,
+                RenderView::Workbench,
+            ),
+            (
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                RenderView::Workbench,
+            ),
         ];
 
-        for (has_graph, has_environment, has_prewake, environment_view, expected) in cases {
+        for (
+            has_graph,
+            has_environment,
+            has_prewake,
+            environment_view,
+            has_workbench,
+            workbench_program,
+            expected,
+        ) in cases
+        {
             assert_eq!(
-                select_render_view(has_graph, has_environment, has_prewake, environment_view,),
+                select_render_view(
+                    has_graph,
+                    has_environment,
+                    has_prewake,
+                    environment_view,
+                    has_workbench,
+                    workbench_program,
+                ),
                 expected
             );
         }

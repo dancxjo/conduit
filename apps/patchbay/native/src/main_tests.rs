@@ -119,6 +119,54 @@ fn arguments_are_explicit_and_fail_closed() {
         parse_arguments(vec!["--prewake-hold".into()].into_iter()),
         Err("--prewake-hold requires --prewake".into())
     );
+    let external =
+        parse_arguments(vec!["--body-biography".into(), "roseau.json".into()].into_iter()).unwrap();
+    assert_eq!(
+        external.body_biography_path,
+        Some(PathBuf::from("roseau.json"))
+    );
+    assert!(external.hosted_patchbay_plan_id.is_none());
+    let hosted = parse_arguments(
+        vec![
+            "--body-biography".into(),
+            "roseau.json".into(),
+            "--hosted-patchbay-plan".into(),
+            "plan/17".into(),
+            "--hosted-patchbay-implementation".into(),
+            "patchbay/native@1".into(),
+        ]
+        .into_iter(),
+    )
+    .unwrap();
+    assert_eq!(hosted.hosted_patchbay_plan_id.as_deref(), Some("plan/17"));
+    assert_eq!(
+        hosted.hosted_patchbay_implementation_id.as_deref(),
+        Some("patchbay/native@1")
+    );
+    assert_eq!(
+        parse_arguments(
+            vec![
+                "--body-biography".into(),
+                "roseau.json".into(),
+                "--hosted-patchbay-plan".into(),
+                "plan/17".into(),
+            ]
+            .into_iter(),
+        ),
+        Err("hosted Patchbay Plan and implementation identities must be supplied together".into())
+    );
+    assert_eq!(
+        parse_arguments(
+            vec![
+                "--hosted-patchbay-plan".into(),
+                "plan/17".into(),
+                "--hosted-patchbay-implementation".into(),
+                "patchbay/native@1".into(),
+            ]
+            .into_iter(),
+        ),
+        Err("hosted Patchbay placement requires --body-biography".into())
+    );
     assert_eq!(
         parse_arguments(
             vec![

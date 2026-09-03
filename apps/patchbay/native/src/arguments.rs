@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter Patchbay truthfully; the current Body may be NONE\n  --form <PATH>                         Open a canonical .conduit Form\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --prewake-hold                        Hold the simulated Plan effect-free until explicitly released\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --help                                Print help";
+pub const USAGE: &str = "Usage: patchbay-native [OPTIONS]\n\nOptions:\n  --front-door                         Enter Patchbay truthfully; the current Body may be NONE\n  --form <PATH>                         Open a canonical .conduit Form\n  --environment <PATH>                  Open an authored environment\n  --prewake                             Rehearse against authored simulation truth\n  --prewake-hold                        Hold the simulated Plan effect-free until explicitly released\n  --observatory-snapshot <PATH>         Open an Observatory snapshot\n  --linear-observatory-snapshot <PATH>  Print an Observatory snapshot as text\n  --control-demo                        Run the native control demonstration\n  --control-demo-stop                   Run the native control stop demonstration\n  --body-parts-demo                     Birth and open the canonical Parts view\n  --body-biography <PATH>               Attach graduated Body evidence as an external reader\n  --hosted-patchbay-plan <ID>           Exact hosted Patchbay graduation Plan\n  --hosted-patchbay-implementation <ID> Exact hosted Patchbay implementation\n  --browser-page-url <URL>              Browser Host page used by + Browser Part\n  --browser-chat-url <WS-URL>           Planned browser Host chat Line endpoint\n  --pico-admission-port <PATH>          Existing Pico USB CDC 0 admission Line\n  --native-copy-demo                    Run the protected-copy demonstration\n  --distributed-route-demo              Run the distributed-route demonstration\n  --distributed-play                    Run the distributed Play client\n  --distributed-play-server             Run the distributed Play server\n  --smoke-exit-after-window             Exit after the first rendered frame\n  --first-run-proof                     Run the finite native first-run acceptance journey\n  --help                                Print help";
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Arguments {
@@ -16,6 +16,9 @@ pub struct Arguments {
     pub control_demo: bool,
     pub control_demo_stop: bool,
     pub body_parts_demo: bool,
+    pub body_biography_path: Option<PathBuf>,
+    pub hosted_patchbay_plan_id: Option<String>,
+    pub hosted_patchbay_implementation_id: Option<String>,
     pub browser_page_url: Option<String>,
     pub browser_chat_url: Option<String>,
     pub pico_admission_port: Option<String>,
@@ -71,6 +74,28 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
                 parsed.control_demo_stop = true;
             }
             "--body-parts-demo" if !parsed.body_parts_demo => parsed.body_parts_demo = true,
+            "--body-biography" if parsed.body_biography_path.is_none() => {
+                parsed.body_biography_path = Some(
+                    arguments
+                        .next()
+                        .ok_or("--body-biography requires a path")?
+                        .into(),
+                );
+            }
+            "--hosted-patchbay-plan" if parsed.hosted_patchbay_plan_id.is_none() => {
+                parsed.hosted_patchbay_plan_id = Some(
+                    arguments
+                        .next()
+                        .ok_or("--hosted-patchbay-plan requires an exact Plan identity")?,
+                );
+            }
+            "--hosted-patchbay-implementation"
+                if parsed.hosted_patchbay_implementation_id.is_none() =>
+            {
+                parsed.hosted_patchbay_implementation_id = Some(arguments.next().ok_or(
+                    "--hosted-patchbay-implementation requires an exact implementation identity",
+                )?);
+            }
             "--browser-page-url" if parsed.browser_page_url.is_none() => {
                 parsed.browser_page_url = Some(
                     arguments
@@ -117,6 +142,16 @@ pub fn parse_arguments(mut arguments: impl Iterator<Item = String>) -> Result<Ar
     }
     if parsed.prewake_hold && !parsed.prewake {
         return Err("--prewake-hold requires --prewake".into());
+    }
+    if parsed.hosted_patchbay_plan_id.is_some()
+        != parsed.hosted_patchbay_implementation_id.is_some()
+    {
+        return Err(
+            "hosted Patchbay Plan and implementation identities must be supplied together".into(),
+        );
+    }
+    if parsed.hosted_patchbay_plan_id.is_some() && parsed.body_biography_path.is_none() {
+        return Err("hosted Patchbay placement requires --body-biography".into());
     }
     Ok(parsed)
 }
