@@ -95,7 +95,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
 
     await page.getByRole("button", { name: "Subjects", exact: true }).click();
     await selectRole(page, "Gear", "making/literal Gear");
-    const configure = page.locator("#authoring-actions form").filter({ hasText: "Configure value" });
+    const configure = page.locator('#authoring-actions [data-application-component="form-field"]').filter({ hasText: "Configure value" });
     await configure.locator("input").fill("Browser-authored truth");
     await clickEdit(page, configure.getByRole("button", { name: "Apply" }));
 

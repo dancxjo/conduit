@@ -24,6 +24,7 @@ export function installPanelFurniture(entries, presentation) {
           { parent: 0, component: "button", key: "close", text: `Close ${entry.title}`, action: 2 },
         ],
       }, { onEvent(event) {
+        presentation.nextEvent(entry.slot);
         if (event.action === "collapse") surface.dataset.furnitureCollapsed = String(!collapsed);
         else if (event.action === "move") surface.dataset.furnitureDock = DOCKS[(DOCKS.indexOf(dock) + 1) % DOCKS.length];
         else if (event.action === "close") { entry.onDismiss(); return; }

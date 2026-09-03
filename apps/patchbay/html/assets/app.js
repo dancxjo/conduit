@@ -7,7 +7,7 @@ import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
 import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
 const schema = "conduit.patchbay.portable-presentation";
-const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", gearQuery:"", cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
+const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
 const applicationPresentation = createApplicationPresentationHost();
 let admittedRuntimeBytes = null;
 let statusRevision = 0;
@@ -23,6 +23,26 @@ function presentDefinitions(slot, entries) {
       ...entries.map(([name, value], index) => ({ parent: 0, component: "definition", key: `fact-${index}`, text: name, value: String(value ?? "not present"), valueCapacity: 65_536, action: null })),
     ],
   });
+}
+function presentActions(slot, entries) {
+  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
+  sharedRevisions.set(slot, revision);
+  applicationPresentation.present(slot, {
+    revision,
+    actions: entries.map((_, index) => ({ id: `action-${index}`, event: "activate" })),
+    nodes: [
+      { parent: null, component: "action-group", key: "actions", text: "Available actions", action: null },
+      ...entries.map((entry, index) => ({ parent: 0, component: "button", key: `action-${index}`, text: entry.label, state: entry.disabled ? "unavailable" : "ready", action: entry.disabled ? null : index })),
+    ],
+  }, { onEvent(event) {
+    applicationPresentation.nextEvent(slot);
+    entries[Number(event.action.slice("action-".length))]?.run();
+  } });
+}
+function presentSharedStatus(slot, text, component = "status") {
+  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
+  sharedRevisions.set(slot, revision);
+  applicationPresentation.present(slot, { revision, actions: [], nodes: [{ parent: null, component, key: "status", text, action: null }] });
 }
 function presentStatus(text, component = "status") {
   applicationPresentation.present("patchbay-status", {
@@ -82,7 +102,7 @@ function renderSemanticActions(identity){
         {parent:0,component:availability.state==="Refused"?"refused-evidence":availability.state==="Unavailable"?"missing-evidence":"status",key:`availability-${index}`,text:availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state,action:null},
       ];}),
     ],
-  },{onEvent(event){const index=Number(event.action.slice("semantic-".length));dispatchSemanticAction(desired[index]);}});
+  },{onEvent(event){applicationPresentation.nextEvent("semantic-actions");const index=Number(event.action.slice("semantic-".length));dispatchSemanticAction(desired[index]);}});
 }
 function propertyText(value){
   if(value.Identity!==undefined)return value.Identity;
@@ -102,7 +122,7 @@ function displaySelection(identity){
   const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection");
   document.querySelector("#clear-selection").hidden=!subject;
   document.querySelector("#center-flow").disabled=!subject;
-  if(!subject){presentDefinitions("selection-summary",[]);presentDefinitions("selection-exact",[]);renderSemanticActions(null);document.querySelector("#authoring-actions").replaceChildren();renderTimeline(null);renderWatches(null);exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
+  if(!subject){presentDefinitions("selection-summary",[]);presentDefinitions("selection-exact",[]);renderSemanticActions(null);renderAuthoringActions(null);renderTimeline(null);renderWatches(null);exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
   const depth=state.projected.cursor?.depth??"Exact";exact.hidden=!(["Detail","Exact"].includes(depth));document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;
   const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name)),summaryFacts=[["Meaning",subject.label],["Subject",subject.role],...visible.map(item=>[item.name.startsWith("authored-control-")?"Authored configuration":item.name,summaryText(item.value)])];
   if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));summaryFacts.push(["Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below"]);}
@@ -140,25 +160,26 @@ function renderLearnedProjection(projection){
 }
 function renderTimeline(subject){
   renderExecutionControl(subject);
-  const section=document.querySelector("#debugger-timeline"),status=section.querySelector(".timeline-status"),controls=section.querySelector(".timeline-controls"),gap=section.querySelector(".timeline-gap"),list=section.querySelector(".timeline-events"),timeline=state.snapshot?.timeline,projection=state.snapshot?.timeline_projection;controls.replaceChildren();list.replaceChildren();section.hidden=!timeline;if(!timeline||!projection){status.textContent="No retained observations available.";gap.textContent="";return;}
-  const control=(label,action,disabled=false)=>{const item=editButton(label,()=>dispatchTimeline(action));item.disabled=disabled;controls.append(item);};
+  const section=document.querySelector("#debugger-timeline"),gap=section.querySelector(".timeline-gap"),list=section.querySelector(".timeline-events"),timeline=state.snapshot?.timeline,projection=state.snapshot?.timeline_projection;list.replaceChildren();section.hidden=!timeline;if(!timeline||!projection){presentSharedStatus("timeline-status","No retained observations available.");presentActions("timeline-actions",[]);gap.textContent="";return;}
+  const controls=[];const control=(label,action,disabled=false)=>controls.push({label,disabled,run:()=>dispatchTimeline(action)});
   control(projection.mode==="live"?"Pause visualization":"Visualization paused","pause",projection.mode!=="live");control("Previous event","previous",projection.cursor==null||projection.cursor===0);control("Next event","next",projection.cursor==null||projection.cursor===timeline.events.length-1);control("Jump live","jump-live",projection.mode==="live");
-  const hasSubject=subject&&timeline.events.some(event=>event.subject===subject.identity||event.related_subject===subject.identity);if(hasSubject)controls.append(editButton("Focus events for exact subject",()=>dispatchTimeline("filter-subject",{subject:subject.identity})));if(timeline.subject_filter)controls.append(editButton("Show all events",()=>dispatchTimeline("clear-filter")));if(projection.cursor!=null){controls.append(editButton("Trace upstream",()=>dispatchTimeline("trace-upstream")),editButton("Trace downstream",()=>dispatchTimeline("trace-downstream")));}if(timeline.trace)controls.append(editButton("Clear causal trace",()=>dispatchTimeline("clear-trace")));
-  status.textContent=`${projection.mode==="live"?"Following live observations":"Debugger replay paused; execution is not paused"} · ${timeline.events.length} of 128 events · cursor ${projection.cursor_sequence??"none"} · ${timeline.retained_bytes} of 65536 bytes`;
-  const traceGap=timeline.trace?.missing_parent_sequences?.length?` Causal history unavailable for parent sequence ${timeline.trace.missing_parent_sequences.join(", ")}; no topology edge was substituted.`:"";gap.textContent=(timeline.gap?`Replay is incomplete: ${timeline.gap.dropped_records} observations lost before sequence ${timeline.gap.first_retained_sequence}. Exact reconstruction across this gap is unavailable.`:timeline.evicted_events?`${timeline.evicted_events} oldest events evicted; available range begins at sequence ${timeline.events[0]?.sequence}.`:"")+traceGap;
+  const hasSubject=subject&&timeline.events.some(event=>event.subject===subject.identity||event.related_subject===subject.identity);if(hasSubject)controls.push({label:"Focus events for exact subject",run:()=>dispatchTimeline("filter-subject",{subject:subject.identity})});if(timeline.subject_filter)controls.push({label:"Show all events",run:()=>dispatchTimeline("clear-filter")});if(projection.cursor!=null){controls.push({label:"Trace upstream",run:()=>dispatchTimeline("trace-upstream")},{label:"Trace downstream",run:()=>dispatchTimeline("trace-downstream")});}if(timeline.trace)controls.push({label:"Clear causal trace",run:()=>dispatchTimeline("clear-trace")});presentActions("timeline-actions",controls);
+  presentSharedStatus("timeline-status",`${projection.mode==="live"?"Following live observations":"Debugger replay paused; execution is not paused"} · ${timeline.events.length} of 128 events · cursor ${projection.cursor_sequence??"none"} · ${timeline.retained_bytes} of 65536 bytes`);
+  const traceGap=timeline.trace?.missing_parent_sequences?.length?` Causal history unavailable for parent sequence ${timeline.trace.missing_parent_sequences.join(", ")}; no topology edge was substituted.`:"";const gapText=(timeline.gap?`Replay is incomplete: ${timeline.gap.dropped_records} observations lost before sequence ${timeline.gap.first_retained_sequence}. Exact reconstruction across this gap is unavailable.`:timeline.evicted_events?`${timeline.evicted_events} oldest events evicted; available range begins at sequence ${timeline.events[0]?.sequence}.`:"")+traceGap;gap.textContent=gapText;gap.dataset.evidenceDisposition=timeline.gap?"missing":timeline.evicted_events?"stale":"current";
   const traceSteps=new Map((timeline.trace?.steps??[]).map((step,position)=>[step.event_index,position+1]));timeline.events.forEach((event,index)=>{if(timeline.subject_filter&&event.subject!==timeline.subject_filter&&event.related_subject!==timeline.subject_filter)return;const row=document.createElement("li"),selectEvent=document.createElement("button"),context=document.createElement("div"),traceNumber=traceSteps.get(index);row.setAttribute("aria-current",String(projection.cursor===index));row.dataset.causalTrace=traceNumber?"exact":"unrelated";selectEvent.type="button";selectEvent.textContent=`${traceNumber?`trace ${traceNumber} · `:""}seq ${event.sequence} · ${event.event} · ${event.subject} · ${watchValue(event)}`;selectEvent.onclick=()=>dispatchTimeline("select-event",{index});context.className="timeline-event-context";context.textContent=`Host ${event.host} · Form ${event.form} · Body ${event.execution.body.join("")} · Plan ${event.execution.plan.join("")} · Play ${event.execution.play.join("")}${event.invocation_sequence!=null?` · Invocation ${event.invocation_sequence}`:""}`;row.append(selectEvent,context);list.append(row);});
 }
 function renderExecutionControl(subject){
-  const section=document.querySelector("#debugger-control"),status=section.querySelector(".control-status"),actions=section.querySelector(".control-actions"),control=state.snapshot?.debugger_control;actions.replaceChildren();section.hidden=!control;if(!control){status.textContent="Execution control unavailable.";return;}const selected=subject?.identity,eligible=control.eligible_subjects.includes(selected);if(control.state==="suspended"){status.textContent=`Execution actually suspended before Gear start at ${control.suspended_subject}. This is runtime suspension, not visualization replay pause.`;actions.append(editButton("Resume execution",()=>dispatchDebuggerControl("resume")));}else if(control.state==="running"){status.textContent="Execution running. Pausing the timeline does not suspend this Play.";if(eligible)actions.append(editButton("Break here",()=>dispatchDebuggerControl("break-here",selected)));}else status.textContent=`Execution control ${control.state}: ${control.reason??"the exact execution context is unavailable"}`;
+  const section=document.querySelector("#debugger-control"),control=state.snapshot?.debugger_control;section.hidden=!control;if(!control){presentSharedStatus("control-status","Execution control unavailable.","missing-evidence");presentActions("control-actions",[]);return;}const selected=subject?.identity,eligible=control.eligible_subjects.includes(selected),actions=[];let status;if(control.state==="suspended"){status=`Execution actually suspended before Gear start at ${control.suspended_subject}. This is runtime suspension, not visualization replay pause.`;actions.push({label:"Resume execution",run:()=>dispatchDebuggerControl("resume")});}else if(control.state==="running"){status="Execution running. Pausing the timeline does not suspend this Play.";if(eligible)actions.push({label:"Break here",run:()=>dispatchDebuggerControl("break-here",selected)});}else status=`Execution control ${control.state}: ${control.reason??"the exact execution context is unavailable"}`;presentSharedStatus("control-status",status,control.state==="running"||control.state==="suspended"?"status":"warning-status");presentActions("control-actions",actions);
 }
 function renderWatches(subject){
-  const section=document.querySelector("#debugger-watches"),status=section.querySelector(".watch-status"),actions=section.querySelector(".watch-actions"),list=section.querySelector(".watch-list"),set=state.snapshot?.watches;actions.replaceChildren();list.replaceChildren();section.hidden=!set;if(!set){status.textContent="No debugger Watches available.";return;}
+  const section=document.querySelector("#debugger-watches"),list=section.querySelector(".watch-list"),set=state.snapshot?.watches;list.replaceChildren();section.hidden=!set;if(!set){presentSharedStatus("watch-status","No debugger Watches available.","missing-evidence");presentActions("watch-actions",[]);return;}
   const selected=subject?.identity,eligible=set.eligible_subjects.some(([identity])=>identity===selected),current=set.watches.find(watch=>watch.subject===selected);
+  const actions=[];
   if(eligible&&selected){
-    if(current){actions.append(editButton("Remove Watch",()=>dispatchWatch("remove",selected)),editButton("Clear Watch history",()=>dispatchWatch("clear-history",selected)));}
-    else actions.append(editButton("Watch",()=>dispatchWatch("add",selected)));
+    if(current){actions.push({label:"Remove Watch",run:()=>dispatchWatch("remove",selected)},{label:"Clear Watch history",run:()=>dispatchWatch("clear-history",selected)});}
+    else actions.push({label:"Watch",run:()=>dispatchWatch("add",selected)});
   }
-  status.textContent=`${set.watches.length} of 8 Watches · sequence-domain rates only`;
+  presentActions("watch-actions",actions);presentSharedStatus("watch-status",`${set.watches.length} of 8 Watches · sequence-domain rates only`);
   for(const watch of set.watches){
     const replay=state.snapshot.timeline_projection?.watch_states.find(candidate=>candidate.subject===watch.subject),shown=replay?.historical?{...watch,latest:replay.latest}:watch;
     const item=document.createElement("li"),card=document.createElement("article"),focus=document.createElement("button"),facts=document.createElement("dl"),history=document.createElement("ol");card.className="watch-card";card.setAttribute("aria-current",String(set.focused_subject===watch.subject));focus.type="button";focus.textContent=`Watch ${watch.subject}`;focus.onclick=()=>dispatchWatch("focus",watch.subject).then(()=>select(watch.subject));card.append(focus);term(facts,"State",replay?.historical?"historical replay":watch.lifecycle);term(facts,"Latest",watchValue(shown.latest));term(facts,"Kind",shown.latest?.value?.kind??(shown.latest?.fault_code!=null?"fault":shown.latest?.event));term(facts,"Type",shown.latest?.value?.type_identity);if(shown.latest?.value?.truncated)term(facts,"Preview",`Truncated bounded preview of ${shown.latest.value.total_bytes} bytes`);term(facts,"Updates",watch.update_count);term(facts,"Latest sequence",shown.latest?.sequence);term(facts,"Rate",replay?.historical?"Historical cursor; live rate not shown":watch.rate?`${watch.rate.updates} updates / ${watch.rate.sequence_span} sequence steps`:"Unavailable without an authoritative time basis");card.append(facts);
@@ -169,23 +190,31 @@ function renderWatches(subject){
   }
 }
 
-function editButton(label,run){const button=document.createElement("button");button.type="button";button.textContent=label;button.onclick=run;return button;}
 function configurationValue(defaultValue,raw){if(defaultValue.U64!==undefined)return {U64:Number(raw)};if(defaultValue.I64!==undefined)return {I64:Number(raw)};if(defaultValue.Bool!==undefined)return {Bool:raw==="true"};if(defaultValue.Text!==undefined)return {Text:raw};throw new Error("this configuration value is not supported by the common browser editor");}
 function renderAuthoringActions(subject){
-  const container=document.querySelector("#authoring-actions");container.replaceChildren();const authoring=state.snapshot.authoring;if(!authoring)return;
+  const authoring=state.snapshot.authoring,nodes=[{parent:null,component:"stack",key:"authoring",text:"",action:null}],actions=[],callbacks=[];
+  const addAction=(event,run)=>{const index=actions.length;actions.push({id:`authoring-${index}`,event});callbacks.push(run);return index;};
+  const addButton=(label,run)=>nodes.push({parent:0,component:"button",key:`button-${nodes.length}`,text:label,action:addAction("activate",run)});
+  if(!authoring||!subject){present();return;}
   const semantic=semanticIdentity(subject.identity);
   if(subject.role==="Gear"){
     const kind=property(subject.identity,"kind-id")?.value?.Identity,entry=authoring.palette.find(item=>item.kind_id===kind);
-    container.append(editButton("Duplicate Gear",()=>authoringEdit("duplicate-gear",semantic)),editButton("Remove Gear",()=>authoringEdit("remove-gear",semantic)));
-    for(const field of entry?.configuration??[]){const form=document.createElement("form"),label=document.createElement("label"),input=document.createElement("input"),button=document.createElement("button");label.textContent=`Configure ${field.key}`;input.name="value";input.required=true;const value=field.default_value;input.value=String(value.U64??value.I64??value.Bool??value.Text??"");button.type="submit";button.textContent="Apply";form.onsubmit=event=>{event.preventDefault();return authoringEdit("configure-gear",semantic,{key:field.key,value:configurationValue(value,input.value)});};form.append(label,input,button);container.append(form);}
+    addButton("Duplicate Gear",()=>authoringEdit("duplicate-gear",semantic));addButton("Remove Gear",()=>authoringEdit("remove-gear",semantic));
+    for(const [fieldIndex,field] of (entry?.configuration??[]).entries()){
+      const value=field.default_value,valueKey=`${authoring.source_revision}:${semantic}:${field.key}`,initial=String(value.U64??value.I64??value.Bool??value.Text??"");if(!state.authoringValues.has(valueKey))state.authoringValues.set(valueKey,initial);
+      const form=nodes.length,inputAction=addAction("input",event=>state.authoringValues.set(valueKey,new TextDecoder().decode(event.value)));nodes.push({parent:0,component:"form-field",key:`field-${fieldIndex}`,text:"",action:null},{parent:form,component:"field-label",key:`label-${fieldIndex}`,text:`Configure ${field.key}`,action:null},{parent:form,component:"field-help",key:`help-${fieldIndex}`,text:`Canonical ${field.key} value`,action:null},{parent:form,component:"text-input",key:`input-${fieldIndex}`,text:`Configure ${field.key}`,value:state.authoringValues.get(valueKey),valueCapacity:256,action:inputAction});
+      addButton("Apply",()=>authoringEdit("configure-gear",semantic,{key:field.key,value:configurationValue(value,state.authoringValues.get(valueKey))}));
+    }
   }else if(subject.role==="Port"){
     const direction=property(subject.identity,"direction")?.value?.Text;
-    if(state.rerouteCord)container.append(editButton("Reroute armed Cord here",()=>{const cord=state.rerouteCord;state.rerouteCord=null;return authoringEdit("reroute-cord",cord,{secondary:semantic});}));
-    if(direction==="outgoing")container.append(editButton(state.cordSource===semantic?"Cord source selected":"Start Cord here",()=>{state.cordSource=semantic;displaySelection(subject.identity);}));
-    if(direction==="receiving"&&state.cordSource)container.append(editButton("Connect selected output here",()=>{const source=state.cordSource;state.cordSource=null;return authoringEdit("connect-ports",source,{secondary:semantic});}));
+    if(state.rerouteCord)addButton("Reroute armed Cord here",()=>{const cord=state.rerouteCord;state.rerouteCord=null;return authoringEdit("reroute-cord",cord,{secondary:semantic});});
+    if(direction==="outgoing")addButton(state.cordSource===semantic?"Cord source selected":"Start Cord here",()=>{state.cordSource=semantic;displaySelection(subject.identity);});
+    if(direction==="receiving"&&state.cordSource)addButton("Connect selected output here",()=>{const source=state.cordSource;state.cordSource=null;return authoringEdit("connect-ports",source,{secondary:semantic});});
   }else if(subject.role==="Cord"){
-    container.append(editButton("Remove Cord",()=>authoringEdit("remove-cord",semantic)),editButton("Reroute one endpoint",()=>{state.rerouteCord=semantic;displaySelection(subject.identity);}));
+    addButton("Remove Cord",()=>authoringEdit("remove-cord",semantic));addButton("Reroute one endpoint",()=>{state.rerouteCord=semantic;displaySelection(subject.identity);});
   }
+  present();
+  function present(){const revision=(sharedRevisions.get("authoring-actions")??0)+1;sharedRevisions.set("authoring-actions",revision);applicationPresentation.present("authoring-actions",{revision,actions,nodes},{onEvent(event){applicationPresentation.nextEvent("authoring-actions");callbacks[Number(event.action.slice("authoring-".length))]?.(event);}});}
 }
 function lensProperty(lens,name){if(lens==="world")return ["seed-id","body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing","activity","evidence-class","candidate-state","lifecycle","auto-run","stage","authority-state","refusal","disposition"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","offer-generation","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="play")return ["active-play-id","play-state","pressure","activity","disposition","request-id","run-id","stage","authority-state","effect-id"].includes(name);if(lens==="signs")return ["evidence-class","effect-id","request-id"].includes(name)||name.startsWith("sign-");return false;}
 

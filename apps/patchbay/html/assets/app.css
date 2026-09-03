@@ -69,7 +69,7 @@ body[data-embodied="false"] .canvas-heading [role="toolbar"] { display:none; }
 #gear-results button { display:grid; gap:.18rem; width:100%; margin:.35rem 0; padding:.55rem; text-align:left; }
 #gear-results button span,#gear-results button small { color:var(--patchbay-text-secondary); font-size:.72rem; }
 #authoring-actions { display:grid; gap:.45rem; margin:.55rem 0; }
-#authoring-actions form { display:grid; gap:.35rem; padding:.45rem; border:1px solid var(--patchbay-structure-secondary); border-radius:.35rem; }
+#authoring-actions [data-application-component="form-field"] { display:grid; gap:.35rem; padding:.45rem; border:1px solid var(--patchbay-structure-secondary); border-radius:.35rem; }
 #authoring-actions input,#authoring-actions select { width:100%; color:inherit; background:var(--patchbay-background); border:1px solid var(--patchbay-structure-secondary); padding:.35rem; }
 .inspector-hint { color:var(--patchbay-text-secondary); font-size:.85rem; }
 #debugger-watches { border-top:1px solid var(--patchbay-structure-secondary); margin-top:.8rem; padding-top:.65rem; }
