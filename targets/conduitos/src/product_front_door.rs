@@ -37,7 +37,7 @@ pub fn run(
     let generation = conduit_core::OfferGeneration(offer.generation);
     let mut journey = ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
         .map_err(|error| error.as_str())?;
-    let seed = journey.seed().clone();
+    let form = journey.form().clone();
     let mut front_door = FrontDoor::new(
         host_id.clone(),
         boot_id.clone(),
@@ -45,8 +45,8 @@ pub fn run(
         fabrication.profile_id,
         fabrication.build_id,
         fabrication.image_binding,
-        seed.source_document_id,
-        seed.checked_form_id,
+        form.source_document_id,
+        form.checked_form_id,
         u64::try_from(CAPABILITY_COUNT).unwrap_or(u64::MAX)
             + u64::from(offer.keyboard.is_some())
             + u64::from(offer.pc_speaker.is_some()),
@@ -191,7 +191,7 @@ fn emit_journey_sign(
     receipt: &crate::native_compositor::CompositionReceipt,
 ) {
     let line = format!(
-        "CONDUIT_PRODUCT_JOURNEY {{\"status\":\"{}\",\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"seed_id\":\"{}\",\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"body_id\":{},\"born_sign_id\":{},\"part_id\":{},\"wake_id\":{},\"plan_id\":{},\"active_play_id\":{},\"gear_ids\":{},\"port_ids\":{},\"cord_ids\":{},\"presentation_id\":\"{}\",\"manifestation_id\":\"{}\",\"presenter_implementation_id\":\"{}\",\"input_sign_id\":{},\"result_sign_id\":{},\"result\":{},\"request_id\":{}}}\n",
+        "CONDUIT_PRODUCT_JOURNEY {{\"status\":\"{}\",\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"source_document_id\":\"{}\",\"checked_form_id\":\"{}\",\"expanded_form_id\":\"{}\",\"body_id\":{},\"born_sign_id\":{},\"part_id\":{},\"wake_id\":{},\"plan_id\":{},\"active_play_id\":{},\"gear_ids\":{},\"port_ids\":{},\"cord_ids\":{},\"presentation_id\":\"{}\",\"manifestation_id\":\"{}\",\"presenter_implementation_id\":\"{}\",\"input_sign_id\":{},\"result_sign_id\":{},\"result\":{},\"request_id\":{}}}\n",
         projection.status.as_str(),
         projection.revision,
         fabrication.profile_id,
@@ -200,7 +200,6 @@ fn emit_journey_sign(
         projection.host_id.as_str(),
         projection.boot_id.as_str(),
         projection.offer_generation.0,
-        projection.seed_id.as_str(),
         projection.source_document_id.as_str(),
         projection.checked_form_id.as_str(),
         projection.expanded_form_id.as_str(),

@@ -2,7 +2,7 @@
 
 In Conduit, **Program = Form**.
 
-A Seed is the Form that started the Body, but a Body may later carry additional Forms and run several Forms concurrently without changing Body identity.
+A Body begins with a bounded workset of zero, one, or many Forms and may later add or remove Forms without changing Body identity. No initial Form remains privileged.
 
 ```text
 Body Roseau

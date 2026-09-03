@@ -49,7 +49,7 @@ just patchbay  # cargo xtask demo patchbay --on native
 
 The native command opens a real window. Both installed Patchbay renderers begin
 with this Host and `BODY: NONE`, then
-show bounded Body candidates and openable Seeds without granting membership or
+show bounded Body candidates and openable Forms without granting membership or
 birthing anything. `OPEN` is inspection-only; explicit `JOIN` or `BIRTH`
 establishes the current Body. The embodied view then exposes canonical Parts,
 truthful Lines, the checked/expanded Form, and—after explicit actions—its

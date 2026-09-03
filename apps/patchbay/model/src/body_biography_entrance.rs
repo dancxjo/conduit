@@ -147,7 +147,6 @@ mod tests {
             body,
             BodyMembership::new(membership.body_id.clone()).unwrap(),
             "Roseau".into(),
-            "morse-network@1".into(),
         )
         .unwrap();
         evidence

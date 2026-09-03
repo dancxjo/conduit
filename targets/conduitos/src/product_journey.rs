@@ -3,8 +3,7 @@
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
 use conduit_body::{
-    AuthenticatedHostObservation, Body, BodyMembership, BodyState, MembershipProofId, PartId,
-    SeedId, Wake,
+    AuthenticatedHostObservation, Body, BodyMembership, BodyState, MembershipProofId, PartId, Wake,
 };
 use conduit_core::{
     ActivePlayIdentity, BootId, ExpandedFormId, HostId, OfferGeneration, Plan, SignId,
@@ -13,7 +12,7 @@ use conduit_kernel::scheduler::HostOperationRequest;
 
 use crate::{
     identity::BootIdentities,
-    keyboard_text_plan::{self, KeyboardTextSeedIdentity},
+    keyboard_text_plan::{self, KeyboardTextFormIdentity},
     keyboard_text_play::KeyboardTextKernel,
     offer::HostOffer,
     ordinary_plan::PreparationError,
@@ -28,7 +27,7 @@ pub use patchbay_control::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JourneyStatus {
     World,
-    SeedOpened,
+    FormOpened,
     BornLulled,
     Awake,
     Planned,
@@ -42,7 +41,7 @@ impl JourneyStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::World => "world",
-            Self::SeedOpened => "seed-opened",
+            Self::FormOpened => "form-opened",
             Self::BornLulled => "born-lulled",
             Self::Awake => "awake",
             Self::Planned => "planned",
@@ -58,7 +57,7 @@ impl JourneyStatus {
 pub enum JourneyError {
     StalePresentation,
     WrongTarget,
-    SeedNotOpened,
+    FormNotOpened,
     AlreadyBorn,
     BodyAbsent,
     InvalidTransition,
@@ -74,7 +73,7 @@ impl JourneyError {
         match self {
             Self::StalePresentation => "product-interaction-stale-presentation",
             Self::WrongTarget => "product-interaction-wrong-target",
-            Self::SeedNotOpened => "product-birth-seed-not-open",
+            Self::FormNotOpened => "product-birth-form-not-open",
             Self::AlreadyBorn => "product-birth-duplicate",
             Self::BodyAbsent => "product-body-absent",
             Self::InvalidTransition => "product-lifecycle-transition-refused",
@@ -91,7 +90,6 @@ impl JourneyError {
 pub struct JourneyProjection {
     pub status: JourneyStatus,
     pub revision: u64,
-    pub seed_id: SeedId,
     pub source_document_id: conduit_core::SourceDocumentId,
     pub checked_form_id: conduit_core::CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
@@ -117,7 +115,7 @@ pub struct ProductJourney {
     host_id: HostId,
     boot_id: BootId,
     offer_generation: OfferGeneration,
-    seed: KeyboardTextSeedIdentity,
+    form: KeyboardTextFormIdentity,
     status: JourneyStatus,
     revision: u64,
     request_sequence: u64,
@@ -144,12 +142,12 @@ impl ProductJourney {
         boot_id: BootId,
         offer_generation: OfferGeneration,
     ) -> Result<Self, JourneyError> {
-        let seed = keyboard_text_plan::checked_seed_identity().map_err(JourneyError::Plan)?;
+        let form = keyboard_text_plan::checked_form_identity().map_err(JourneyError::Plan)?;
         Ok(Self {
             host_id,
             boot_id,
             offer_generation,
-            seed,
+            form,
             status: JourneyStatus::World,
             revision: 1,
             request_sequence: 0,
@@ -171,8 +169,8 @@ impl ProductJourney {
         })
     }
 
-    pub fn seed(&self) -> &KeyboardTextSeedIdentity {
-        &self.seed
+    pub fn form(&self) -> &KeyboardTextFormIdentity {
+        &self.form
     }
 
     pub const fn revision(&self) -> u64 {
@@ -221,7 +219,7 @@ impl ProductJourney {
         }
         self.validate_target(&request)?;
         match request.action {
-            JourneyAction::OpenBack => self.open_seed()?,
+            JourneyAction::OpenBack => self.open_form()?,
             JourneyAction::Birth => self.birth()?,
             JourneyAction::Wake => self.wake()?,
             JourneyAction::Plan => self.plan(identities, offer, build_id)?,
@@ -238,10 +236,9 @@ impl ProductJourney {
         JourneyProjection {
             status: self.status,
             revision: self.revision,
-            seed_id: SeedId::bind(&self.seed.source_document_id, &self.seed.checked_form_id),
-            source_document_id: self.seed.source_document_id.clone(),
-            checked_form_id: self.seed.checked_form_id.clone(),
-            expanded_form_id: self.seed.expanded_form_id.clone(),
+            source_document_id: self.form.source_document_id.clone(),
+            checked_form_id: self.form.checked_form_id.clone(),
+            expanded_form_id: self.form.expanded_form_id.clone(),
             host_id: self.host_id.clone(),
             boot_id: self.boot_id.clone(),
             offer_generation: self.offer_generation,
@@ -295,11 +292,7 @@ impl ProductJourney {
     fn validate_target(&self, request: &JourneyRequest) -> Result<(), JourneyError> {
         let expected = match request.action {
             JourneyAction::OpenBack | JourneyAction::Birth => {
-                format!(
-                    "seed/{}",
-                    SeedId::bind(&self.seed.source_document_id, &self.seed.checked_form_id)
-                        .as_str()
-                )
+                format!("form/{}", self.form.checked_form_id.as_str())
             }
             JourneyAction::Wake
             | JourneyAction::Plan
@@ -318,11 +311,11 @@ impl ProductJourney {
         Ok(())
     }
 
-    fn open_seed(&mut self) -> Result<(), JourneyError> {
+    fn open_form(&mut self) -> Result<(), JourneyError> {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
-        self.status = JourneyStatus::SeedOpened;
+        self.status = JourneyStatus::FormOpened;
         Ok(())
     }
 
@@ -330,13 +323,13 @@ impl ProductJourney {
         if self.body.is_some() {
             return Err(JourneyError::AlreadyBorn);
         }
-        if self.status != JourneyStatus::SeedOpened {
-            return Err(JourneyError::SeedNotOpened);
+        if self.status != JourneyStatus::FormOpened {
+            return Err(JourneyError::FormNotOpened);
         }
         let born_sign = SignId::from(format!("conduitos/product/born/{}", self.revision));
         let body = Body::born(
-            self.seed.source_document_id.clone(),
-            self.seed.checked_form_id.clone(),
+            self.form.source_document_id.clone(),
+            self.form.checked_form_id.clone(),
             0,
             born_sign.clone(),
         )

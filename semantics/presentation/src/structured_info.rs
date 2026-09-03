@@ -105,7 +105,6 @@ impl StructuredSignPresentation {
         let presentation = Presentation::new(
             revision,
             PresentationBasis {
-                seed_id: None,
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,

@@ -13,8 +13,8 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
       <div data-application-slot="birth-source"></div>
     </div>
     <div class="result body-birth-result">
-      <div class="body-chain" aria-label="Seed to Body lifecycle">
-        <article><span>checked Seed</span><code class="seed-id">not born</code></article>
+      <div class="body-chain" aria-label="Forms to Body lifecycle">
+        <article><span>initial active Forms</span><code class="initial-forms">not born</code></article>
         <b aria-hidden="true">BIRTH →</b>
         <article><span>durable Body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
@@ -30,9 +30,9 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     variation: 0,
     namingRequest: 0,
     pending: true,
-    initialProgram: "morse-network@1",
+    initialForms: ["morse_network", "memory_lantern"],
     source: draft ?? source,
-    status: "Edit the Seed, then explicitly birth one Body.",
+    status: "Review the Forms, choose the bounded initial workload, then explicitly birth one Body.",
     outcome: "status",
     terminal: false,
   };
@@ -52,7 +52,8 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
 function presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth = () => {} }) {
   const interactive = !state.terminal && !state.pending;
   const fieldActions = interactive ? [
-    { id: "program.change", event: "change" },
+    { id: "form.morse.toggle", event: "activate" },
+    { id: "form.memory.toggle", event: "activate" },
     { id: "name.input", event: "input" },
     { id: "name-system.change", event: "change" },
     { id: "name.refresh", event: "activate" },
@@ -64,7 +65,14 @@ function presentBirthControls(runner, state, { presentation, listingId, onDraft,
   const onEvent = (slot) => (event) => {
     presentation.nextEvent(slot);
     const value = decoder.decode(event.value);
-    if (event.action === "program.change") state.initialProgram = value;
+    if (event.action.startsWith("form.")) {
+      const name = event.action === "form.morse.toggle" ? "morse_network" : "memory_lantern";
+      state.initialForms = state.initialForms.includes(name)
+        ? state.initialForms.filter((candidate) => candidate !== name)
+        : [...state.initialForms, name];
+      presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth });
+      return;
+    }
     if (event.action === "name.input") state.friendlyName = value;
     if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
     if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
@@ -87,25 +95,25 @@ function birthFieldNodes(state) {
   const interactive = !state.terminal && !state.pending;
   const nodes = [
     { parent: null, component: "stack", action: null, key: "birth-fields", text: "" },
-    { parent: 0, component: "form-field", action: null, key: "program-field", text: "" },
-    { parent: 1, component: "field-label", action: null, key: "program-label", text: "Initial program" },
-    { parent: 1, component: "select", action: interactive ? 0 : null, key: "body-program", text: "Initial program", value: state.initialProgram, valueCapacity: 64 },
-    { parent: 1, component: "field-help", action: null, key: "program-help", text: "Choose the checked Form that the new Body will retain." },
-    { parent: 3, component: "option", action: null, key: "morse-program", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
+    { parent: 0, component: "stack", action: null, key: "program-field", text: "" },
+    { parent: 1, component: "paragraph", action: null, key: "program-label", text: "Initial active Forms" },
+    { parent: 1, component: "button", action: interactive ? 0 : null, key: "morse-form", text: `${state.initialForms.includes("morse_network") ? "✓" : "○"} Morse Network` },
+    { parent: 1, component: "button", action: interactive ? 1 : null, key: "memory-form", text: `${state.initialForms.includes("memory_lantern") ? "✓" : "○"} Memory Lantern` },
+    { parent: 1, component: "paragraph", action: null, key: "program-help", text: `${state.initialForms.length} of 2 reviewed Forms selected; maximum 16.` },
     { parent: 0, component: "form-field", action: null, key: "friendly-name-field", text: "" },
     { parent: 6, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
-    { parent: 6, component: "text-input", action: interactive ? 1 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
+    { parent: 6, component: "text-input", action: interactive ? 2 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
     { parent: 6, component: "field-help", action: null, key: "friendly-name-help", text: "Editable metadata; the durable Body identity remains distinct." },
     { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
     { parent: 0, component: "form-field", action: null, key: "name-system-field", text: "" },
     { parent: 11, component: "field-label", action: null, key: "name-system-label", text: "Naming tradition" },
-    { parent: 11, component: "select", action: interactive ? 2 : null, key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
+    { parent: 11, component: "select", action: interactive ? 3 : null, key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
     { parent: 11, component: "field-help", action: null, key: "name-system-help", text: "Select one bounded naming system for the next suggestion." },
   ];
   for (const option of NAMING_SYSTEM_OPTIONS) {
     nodes.push({ parent: 13, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
   }
-  nodes.push({ parent: 0, component: "button", action: interactive ? 3 : null, key: "another-name", text: "Suggest another name" });
+  nodes.push({ parent: 0, component: "button", action: interactive ? 4 : null, key: "another-name", text: "Suggest another name" });
   return nodes;
 }
 
@@ -113,12 +121,12 @@ function birthSourceNodes(state, listingId) {
   const interactive = !state.terminal && !state.pending;
   return [
     { parent: null, component: "stack", action: null, key: "birth-source", text: "" },
-    { parent: 0, component: "disclosure", action: null, key: "seed-source", text: "" },
-    { parent: 1, component: "summary", action: null, key: "seed-summary", text: "Reviewed program source" },
-    { parent: 1, component: "form-field", action: null, key: "seed-source-field", text: "" },
-    { parent: 3, component: "field-label", action: null, key: "seed-source-label", text: "Conduit Seed source" },
-    { parent: 3, component: "textarea", action: interactive ? 0 : null, key: listingId, text: "Conduit Seed source", value: state.source, valueCapacity: 65_536 },
-    { parent: 3, component: "field-help", action: null, key: "seed-source-help", text: "This checked meaning contains no Host, Boot, device, or transport facts." },
+    { parent: 0, component: "disclosure", action: null, key: "form-source", text: "" },
+    { parent: 1, component: "summary", action: null, key: "form-summary", text: "Reviewed Form source" },
+    { parent: 1, component: "form-field", action: null, key: "form-source-field", text: "" },
+    { parent: 3, component: "field-label", action: null, key: "form-source-label", text: "Conduit Form source" },
+    { parent: 3, component: "textarea", action: interactive ? 0 : null, key: listingId, text: "Conduit Form source", value: state.source, valueCapacity: 65_536 },
+    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "These checked meanings contain no Host, Boot, device, or transport facts." },
     { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" },
     { parent: 7, component: "button", action: interactive ? 1 : null, key: "birth", text: "Birth Body" },
     { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
@@ -137,7 +145,7 @@ async function suggestName(runner, state, controls) {
     state.friendlyName = suggestion.name;
     state.namingLabel = suggestion.system_label;
     state.pending = false;
-    state.status = "Edit the suggestion or the Seed, then explicitly birth one Body.";
+    state.status = "Edit the suggestion or the Forms, then explicitly birth one Body.";
     presentBirthControls(runner, state, controls);
   } catch (error) {
     if (request !== state.namingRequest || state.terminal) return;
@@ -159,10 +167,10 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const nameBytes = encoder.encode(state.friendlyName.trim());
-  const programBytes = encoder.encode(state.initialProgram);
-  const total = hostBytes.length + bootBytes.length + nameBytes.length + programBytes.length + sourceBytes.length;
+  const formsBytes = encoder.encode(JSON.stringify(state.initialForms));
+  const total = hostBytes.length + bootBytes.length + nameBytes.length + formsBytes.length + sourceBytes.length;
   if (total > api.conduit_creche_input_capacity()) {
-    state.status = "The Seed and exact Host identities exceed the admitted BIRTH input bound.";
+    state.status = "The Form selection and exact Host identities exceed the admitted BIRTH input bound.";
     state.outcome = "failure-status";
     presentBirthControls(runner, state, presentationOptions);
     return;
@@ -177,13 +185,13 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
   input.set(hostBytes);
   input.set(bootBytes, hostBytes.length);
   input.set(nameBytes, hostBytes.length + bootBytes.length);
-  input.set(programBytes, hostBytes.length + bootBytes.length + nameBytes.length);
-  input.set(sourceBytes, hostBytes.length + bootBytes.length + nameBytes.length + programBytes.length);
+  input.set(formsBytes, hostBytes.length + bootBytes.length + nameBytes.length);
+  input.set(sourceBytes, hostBytes.length + bootBytes.length + nameBytes.length + formsBytes.length);
   const code = api.conduit_creche_birth(
     hostBytes.length,
     bootBytes.length,
     nameBytes.length,
-    programBytes.length,
+    formsBytes.length,
     sourceBytes.length,
     BigInt(sequence),
   );
@@ -220,21 +228,18 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   runner.dataset.birthSignId = receipt.birth_sign_id;
   state.terminal = true;
   state.friendlyName = receipt.friendly_name;
-  state.initialProgram = receipt.initial_program;
-  runner.querySelector(".seed-id").textContent = receipt.seed_id;
+  state.initialForms = receipt.initial_forms.map((form) => form.name);
+  runner.querySelector(".initial-forms").textContent = `${receipt.initial_forms.length} active`;
   runner.querySelector(".body-id").textContent = receipt.body_id;
   runner.querySelector(".body-state").textContent = receipt.state;
   state.status = retained
     ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
-    : "Born — one checked Seed now has one LULLED Body; no Wake, Plan, or Play exists.";
+    : `Born — ${receipt.initial_forms.length} checked Form(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
   state.outcome = "success-status";
   presentBirthControls(runner, state, presentationOptions);
   const identities = [
     ["Friendly name", receipt.friendly_name],
-    ["Initial program", receipt.initial_program],
-    ["Source document", receipt.source_document_id],
-    ["Checked Form", receipt.checked_form_id],
-    ["Seed", receipt.seed_id],
+    ["Initial Forms", receipt.initial_forms.map((form) => form.name).join(", ") || "none"],
     ["BIRTH Sign", receipt.birth_sign_id],
     ["Body", receipt.body_id],
     ["Here Part", receipt.here_part_id ?? "none yet"],

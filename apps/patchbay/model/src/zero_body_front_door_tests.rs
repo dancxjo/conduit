@@ -71,7 +71,7 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
     .unwrap();
     let presentation = session.project().unwrap().presentation;
     assert!(presentation.basis.body_id.is_none());
-    assert!(presentation.basis.seed_id.is_none());
+    assert!(presentation.basis.checked_form_id.is_none());
     assert!(presentation.basis.wake_id.is_none());
     assert!(presentation.basis.source_document_id.is_none());
     assert!(presentation.basis.checked_form_id.is_none());
@@ -137,7 +137,7 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
 }
 
 #[test]
-fn opening_seed_is_inert_and_only_explicit_birth_embodies_host() {
+fn opening_form_is_inert_and_only_explicit_birth_embodies_host() {
     let mut session = ZeroBodyFrontDoor::with_identity(
         crate::host_adapter::test_host_adapter_arc(),
         HostId::from("birth/host"),
@@ -145,19 +145,19 @@ fn opening_seed_is_inert_and_only_explicit_birth_embodies_host() {
     )
     .unwrap();
     let initial = session.project().unwrap().presentation;
-    let seed = initial
+    let form = initial
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Seed)
+        .find(|subject| subject.role == PresentationRole::Form)
         .unwrap()
         .identity
         .clone();
-    let seed_id = session.seeds[0].seed_id.clone();
-    session.open_seed(&seed_id, initial.revision).unwrap();
+    let form_id = session.forms[0].checked_form_id.clone();
+    session.open_form(&form_id, initial.revision).unwrap();
     let opened = session.project().unwrap().presentation;
     assert!(opened.basis.body_id.is_none());
     assert!(opened.properties.iter().any(|property| {
-        property.subject == seed
+        property.subject == form
             && property.name == "opened"
             && property.value == PresentationPropertyValue::Flag(true)
     }));
@@ -170,7 +170,7 @@ fn opening_seed_is_inert_and_only_explicit_birth_embodies_host() {
         assert!(opened.subjects.iter().any(|subject| subject.role == role));
     }
     assert!(opened.actions.iter().any(|action| {
-        action.target == seed
+        action.target == form
             && action.intent == "conduit.intent/birth@1"
             && matches!(
                 action.availability,
@@ -249,37 +249,37 @@ fn zero_body_sources_are_finite_and_duplicates_fail_closed() {
         BootId::from("bounds/boot"),
     )
     .unwrap();
-    let seed = session.seeds[0].clone();
-    assert!(session.add_seed(seed).is_err());
+    let seed = session.forms[0].clone();
+    assert!(session.add_form(seed).is_err());
     let candidate = living_body_candidate();
     session.observe_body_candidate(candidate.clone()).unwrap();
     assert!(session.observe_body_candidate(candidate).is_err());
 }
 
 #[test]
-fn opened_seed_edits_canonical_source_and_stale_edits_are_atomic() {
+fn opened_form_edits_canonical_source_and_stale_edits_are_atomic() {
     let mut session = ZeroBodyFrontDoor::with_identity(
         crate::host_adapter::test_host_adapter_arc(),
         HostId::from("edit/host"),
         BootId::from("edit/boot"),
     )
     .unwrap();
-    let seed = SeedCandidate::from_source(
+    let form = FormCandidate::from_source(
         "Empty",
         "empty.conduit",
         "form making {\n}\n",
         "test source",
-        SignId::from("edit/seed"),
+        SignId::from("edit/form"),
         9,
     )
     .unwrap();
-    let seed_id = seed.seed_id.clone();
-    session.add_seed(seed).unwrap();
+    let form_id = form.checked_form_id.clone();
+    session.add_form(form).unwrap();
     let revision = session.revision();
-    session.open_seed(&seed_id, revision).unwrap();
-    let document = session.opened_seed_document().unwrap();
+    session.open_form(&form_id, revision).unwrap();
+    let document = session.opened_form_document().unwrap();
     let graph = session
-        .seeds
+        .forms
         .last()
         .unwrap()
         .editor()
@@ -297,20 +297,20 @@ fn opened_seed_edits_canonical_source_and_stale_edits_are_atomic() {
         kind_id: "text/literal".into(),
     };
     assert_eq!(
-        session.apply_opened_seed_edit(&first),
+        session.apply_opened_form_edit(&first),
         PatchbayInvocationOutcome::Succeeded
     );
-    let after_first = session.opened_seed_document().unwrap();
+    let after_first = session.opened_form_document().unwrap();
     assert!(after_first.source.contains("literal: text/literal(\"\")"));
     let unchanged = after_first.source.clone();
     assert_eq!(
-        session.apply_opened_seed_edit(&first),
+        session.apply_opened_form_edit(&first),
         PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
     );
-    assert_eq!(session.opened_seed_document().unwrap().source, unchanged);
+    assert_eq!(session.opened_form_document().unwrap().source, unchanged);
 
     let seed = session
-        .seeds
+        .forms
         .iter()
         .find(|seed| seed.source_name == "empty.conduit")
         .unwrap();
@@ -330,15 +330,15 @@ fn opened_seed_edits_canonical_source_and_stale_edits_are_atomic() {
         kind_id: "text/literal".into(),
     };
     assert_eq!(
-        session.apply_opened_seed_edit(&second),
+        session.apply_opened_form_edit(&second),
         PatchbayInvocationOutcome::Succeeded
     );
-    let final_source = session.opened_seed_document().unwrap().source;
+    let final_source = session.opened_form_document().unwrap().source;
     assert!(final_source.contains("literal: text/literal(\"\")"));
     assert!(final_source.contains("literal-2: text/literal(\"\")"));
 
     let seed = session
-        .seeds
+        .forms
         .iter()
         .find(|seed| seed.source_name == "empty.conduit")
         .unwrap();
@@ -361,8 +361,8 @@ fn opened_seed_edits_canonical_source_and_stale_edits_are_atomic() {
     };
     let unchanged = document.source;
     assert_eq!(
-        session.apply_opened_seed_edit(&invalid),
+        session.apply_opened_form_edit(&invalid),
         PatchbayInvocationOutcome::Refused(PatchbayRefusal::InvalidConfiguration)
     );
-    assert_eq!(session.opened_seed_document().unwrap().source, unchanged);
+    assert_eq!(session.opened_form_document().unwrap().source, unchanged);
 }

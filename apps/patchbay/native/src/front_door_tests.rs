@@ -1,15 +1,15 @@
 use super::*;
 use crate::gui_hit::GuiAction;
 
-fn action_lines_for_seed_label<'a>(lines: &'a [String], label: &str) -> Option<&'a [String]> {
-    let header = format!("Seed  {}", label);
+fn action_lines_for_form_label<'a>(lines: &'a [String], label: &str) -> Option<&'a [String]> {
+    let header = format!("Form  {}", label);
     let start = lines.iter().position(|line| line == &header)?;
     let end = lines
         .iter()
         .enumerate()
         .skip(start + 1)
         .find_map(|(index, line)| {
-            if line.starts_with("Seed  ") {
+            if line.starts_with("Form  ") {
                 Some(index)
             } else {
                 None
@@ -19,25 +19,25 @@ fn action_lines_for_seed_label<'a>(lines: &'a [String], label: &str) -> Option<&
     Some(&lines[start + 1..end])
 }
 
-fn two_seed_front_door_projection(
+fn two_form_front_door_projection(
     application: &mut PatchbayApplication,
 ) -> Result<(String, String), String> {
     let session = application
         .zero_body_front_door
         .as_mut()
         .ok_or("zero-body front-door session is absent")?;
-    let extra_seed = patchbay_model::SeedCandidate::from_source(
+    let extra_form = patchbay_model::FormCandidate::from_source(
         "Patchbay entrance secondary",
         "hello.conduit",
         include_str!("../../../../examples/hello.conduit"),
         "registry sample two",
-        conduit_core::SignId::from("patchbay/front-door/seed/secondary"),
+        conduit_core::SignId::from("patchbay/front-door/form/secondary"),
         2,
     )
-    .map_err(|error| format!("seed candidate: {error}"))?;
+    .map_err(|error| format!("form candidate: {error}"))?;
     session
-        .add_seed(extra_seed)
-        .map_err(|error| format!("session seed: {error}"))?;
+        .add_form(extra_form)
+        .map_err(|error| format!("session form: {error}"))?;
     application
         .refresh_front_door()
         .map_err(|error| format!("front-door refresh: {error}"))?;
@@ -45,21 +45,21 @@ fn two_seed_front_door_projection(
         .entrance
         .as_ref()
         .ok_or("front-door entrance is absent")?;
-    let seed_subjects = entrance
+    let form_subjects = entrance
         .presentation
         .subjects
         .iter()
-        .filter(|subject| subject.role == conduit_presentation::PresentationRole::Seed)
+        .filter(|subject| subject.role == conduit_presentation::PresentationRole::Form)
         .map(|subject| subject.identity.clone())
         .collect::<Vec<_>>();
-    if seed_subjects.len() != 2 {
+    if form_subjects.len() != 2 {
         return Err(format!(
-            "expected two seeds after adding a candidate, found {}",
-            seed_subjects.len()
+            "expected two forms after adding a candidate, found {}",
+            form_subjects.len()
         ));
     }
-    let (seed_a, seed_b) = (seed_subjects[0].clone(), seed_subjects[1].clone());
-    Ok((seed_a, seed_b))
+    let (form_a, form_b) = (form_subjects[0].clone(), form_subjects[1].clone());
+    Ok((form_a, form_b))
 }
 
 fn install_mutated_presentation(
@@ -111,7 +111,7 @@ fn rebuild_presentation_with_actions(
     .map_err(|error| format!("presentation rebuild: {error:?}"))
 }
 
-fn set_seed_action_availability(
+fn set_form_action_availability(
     presentation: &conduit_presentation::Presentation,
     subject: &str,
     intent: &str,
@@ -147,7 +147,6 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     assert!(application.build_birth.body().is_none());
     assert!(presentation.basis.body_id.is_none());
     assert!(presentation.basis.wake_id.is_none());
-    assert!(presentation.basis.seed_id.is_none());
     let initial_focus = entrance
         .navigation
         .cursor
@@ -156,12 +155,12 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
         .expect("zero-Body front door has an exact initial Focus");
     assert!(presentation.subjects.iter().any(|subject| {
         subject.identity == initial_focus
-            && subject.role == conduit_presentation::PresentationRole::Seed
+            && subject.role == conduit_presentation::PresentationRole::Form
     }));
     assert!(presentation
         .subjects
         .iter()
-        .any(|subject| subject.role == conduit_presentation::PresentationRole::Seed));
+        .any(|subject| subject.role == conduit_presentation::PresentationRole::Form));
     let navigation = &entrance.navigation;
     assert_eq!(
         navigation.cursor.place,
@@ -183,7 +182,7 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
     assert!(ordinary.contains(
         "CTRL-TAB PLACE  ·  CTRL-PAGEUP/PAGEDOWN ASPECT  ·  F2 EXACT  ·  SHIFT-F3 CHOOSE / F3 FOLLOW"
     ));
-    assert!(ordinary.contains("Seed  Patchbay entrance specimen"));
+    assert!(ordinary.contains("Form  Morse Network"));
     assert!(ordinary.contains("OPEN [ENTER]  ·  AVAILABLE"));
     assert!(ordinary.contains("BIRTH [F4]  ·  UNAVAILABLE — No admitted authority"));
     let focused_open = crate::presentation::focused_action_for_binding(
@@ -192,7 +191,7 @@ fn native_front_door_begins_on_truthful_zero_body_world_state() {
         patchbay_model::PatchbayAction::OpenBack,
     )
     .expect("initial binding projection is valid")
-    .expect("initial Seed Focus resolves the advertised OPEN binding");
+    .expect("initial Form Focus resolves the advertised OPEN binding");
     assert_eq!(focused_open.target, initial_focus);
     assert!(!ordinary.contains(presentation.identity.as_str()));
     assert!(!ordinary.contains("source-document-id"));
@@ -206,13 +205,13 @@ fn native_front_door_keys_invoke_current_open_and_disclose_exact_details() {
     })
     .unwrap();
     let original = application.entrance.as_ref().unwrap().presentation.clone();
-    let seed_subject = application
+    let form_subject = application
         .zero_body_front_door
         .as_ref()
         .unwrap()
-        .seed_ids()
+        .form_ids()
         .first()
-        .map(|seed_id| format!("seed/{}", seed_id.as_str()))
+        .map(|form_id| format!("form/{}", form_id.as_str()))
         .unwrap();
     assert_eq!(
         application
@@ -223,7 +222,7 @@ fn native_front_door_keys_invoke_current_open_and_disclose_exact_details() {
             .cursor
             .focus
             .as_deref(),
-        Some(seed_subject.as_str())
+        Some(form_subject.as_str())
     );
 
     assert!(application
@@ -521,16 +520,16 @@ fn unavailable_birth_key_uses_current_action_and_cannot_create_a_body() {
         ..Arguments::default()
     })
     .unwrap();
-    let seed_subject = application
+    let form_subject = application
         .zero_body_front_door
         .as_ref()
         .unwrap()
-        .seed_ids()
+        .form_ids()
         .first()
-        .map(|seed_id| format!("seed/{}", seed_id.as_str()))
+        .map(|form_id| format!("form/{}", form_id.as_str()))
         .unwrap();
     application
-        .select_front_door_subject(&seed_subject)
+        .select_front_door_subject(&form_subject)
         .unwrap();
 
     assert!(application
@@ -555,17 +554,17 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
         ..Arguments::default()
     })
     .unwrap();
-    let (seed_one, seed_two) =
-        two_seed_front_door_projection(&mut application).expect("two seed subjects expected");
+    let (form_one, form_two) =
+        two_form_front_door_projection(&mut application).expect("two form subjects expected");
     let baseline_revision = application
         .zero_body_front_door
         .as_ref()
         .expect("zero-body front-door session is present")
         .revision();
     let presentation = application.entrance.as_ref().unwrap().presentation.clone();
-    let presentation = set_seed_action_availability(
+    let presentation = set_form_action_availability(
         &presentation,
-        &seed_one,
+        &form_one,
         patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
         conduit_presentation::PresentationActionAvailability::Unavailable {
             reason_code: "cursor-test-blocked-alt".into(),
@@ -573,9 +572,9 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
         },
     )
     .unwrap();
-    let presentation = set_seed_action_availability(
+    let presentation = set_form_action_availability(
         &presentation,
-        &seed_two,
+        &form_two,
         patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
         conduit_presentation::PresentationActionAvailability::Unavailable {
             reason_code: "cursor-test-blocked".into(),
@@ -585,7 +584,7 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
     .unwrap();
     install_mutated_presentation(&mut application, presentation).unwrap();
 
-    application.select_front_door_subject(&seed_one).unwrap();
+    application.select_front_door_subject(&form_one).unwrap();
     assert_eq!(
         application
             .entrance
@@ -594,7 +593,7 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
             .navigation
             .cursor
             .focus,
-        Some(seed_one.clone())
+        Some(form_one.clone())
     );
     let focused_action = crate::presentation::focused_action_for_binding(
         &application.entrance.as_ref().unwrap().presentation,
@@ -603,7 +602,7 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
     )
     .expect("projection lookup should work")
     .expect("focused OPEN action should exist");
-    assert_eq!(focused_action.target, seed_one);
+    assert_eq!(focused_action.target, form_one);
     application
         .handle_front_door_key(&winit::keyboard::Key::Named(
             winit::keyboard::NamedKey::Enter,
@@ -623,7 +622,7 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
         crate::interaction_status::InteractionStatusCode::Refused
     );
 
-    application.select_front_door_subject(&seed_two).unwrap();
+    application.select_front_door_subject(&form_two).unwrap();
     assert_eq!(
         application
             .entrance
@@ -632,7 +631,7 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
             .navigation
             .cursor
             .focus,
-        Some(seed_two.clone())
+        Some(form_two.clone())
     );
     let focused_action = crate::presentation::focused_action_for_binding(
         &application.entrance.as_ref().unwrap().presentation,
@@ -641,7 +640,7 @@ fn front_door_focus_selection_is_single_sourced_by_navigation_cursor() {
     )
     .expect("projection lookup should work")
     .expect("focused OPEN action should exist");
-    assert_eq!(focused_action.target, seed_two);
+    assert_eq!(focused_action.target, form_two);
     application
         .handle_front_door_key(&winit::keyboard::Key::Named(
             winit::keyboard::NamedKey::Enter,
@@ -669,69 +668,69 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
         ..Arguments::default()
     })
     .unwrap();
-    let (seed_one, seed_two) =
-        two_seed_front_door_projection(&mut application).expect("two seed subjects expected");
+    let (form_one, form_two) =
+        two_form_front_door_projection(&mut application).expect("two form subjects expected");
     let initial_revision = application
         .zero_body_front_door
         .as_ref()
         .unwrap()
         .revision();
     let presentation = application.entrance.as_ref().unwrap().presentation.clone();
-    let presentation = set_seed_action_availability(
+    let presentation = set_form_action_availability(
         &presentation,
-        &seed_one,
+        &form_one,
         patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
         conduit_presentation::PresentationActionAvailability::Available,
     )
     .unwrap();
-    let presentation = set_seed_action_availability(
+    let presentation = set_form_action_availability(
         &presentation,
-        &seed_two,
+        &form_two,
         patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
         conduit_presentation::PresentationActionAvailability::Unavailable {
-            reason_code: "seed-two-blocked".into(),
+            reason_code: "form-two-blocked".into(),
             explanation: "Projection test keeps this OPEN unavailable".into(),
         },
     )
     .unwrap();
     install_mutated_presentation(&mut application, presentation).unwrap();
 
-    application.select_front_door_subject(&seed_two).unwrap();
+    application.select_front_door_subject(&form_two).unwrap();
     let projected_lines = application.presentation_lines();
-    let seed_two_label = application
+    let form_two_label = application
         .entrance
         .as_ref()
         .expect("front-door entrance is present")
         .presentation
         .subjects
         .iter()
-        .find(|subject| subject.identity == seed_two)
-        .expect("focus seed subject should exist")
+        .find(|subject| subject.identity == form_two)
+        .expect("focus form subject should exist")
         .label
         .as_str()
         .to_string();
-    let focused_actions = action_lines_for_seed_label(&projected_lines, &seed_two_label)
-        .expect("focused seed action block must exist");
+    let focused_actions = action_lines_for_form_label(&projected_lines, &form_two_label)
+        .expect("focused form action block must exist");
     assert!(focused_actions.iter().any(|line| {
         line.contains("OPEN [ENTER]  ·  UNAVAILABLE — Projection test keeps this OPEN unavailable")
     }));
     assert!(!focused_actions
         .iter()
         .any(|line| line.contains("OPEN [ENTER]  ·  AVAILABLE")));
-    let seed_one_label = application
+    let form_one_label = application
         .entrance
         .as_ref()
         .expect("front-door entrance is present")
         .presentation
         .subjects
         .iter()
-        .find(|subject| subject.identity == seed_one)
-        .expect("other seed subject should exist")
+        .find(|subject| subject.identity == form_one)
+        .expect("other form subject should exist")
         .label
         .as_str()
         .to_string();
-    let unfocused_actions = action_lines_for_seed_label(&projected_lines, &seed_one_label)
-        .expect("unfocused seed action block must exist");
+    let unfocused_actions = action_lines_for_form_label(&projected_lines, &form_one_label)
+        .expect("unfocused form action block must exist");
     assert!(unfocused_actions
         .iter()
         .any(|line| line == "  OPEN  ·  AVAILABLE"));
@@ -752,22 +751,22 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
         initial_revision
     );
 
-    application.select_front_door_subject(&seed_one).unwrap();
+    application.select_front_door_subject(&form_one).unwrap();
     let projected_lines = application.presentation_lines();
-    let seed_one_label = application
+    let form_one_label = application
         .entrance
         .as_ref()
         .expect("front-door entrance is present")
         .presentation
         .subjects
         .iter()
-        .find(|subject| subject.identity == seed_one)
-        .expect("focus seed subject should exist")
+        .find(|subject| subject.identity == form_one)
+        .expect("focus form subject should exist")
         .label
         .as_str()
         .to_string();
-    let focused_actions = action_lines_for_seed_label(&projected_lines, &seed_one_label)
-        .expect("focused seed action block must exist");
+    let focused_actions = action_lines_for_form_label(&projected_lines, &form_one_label)
+        .expect("focused form action block must exist");
     assert!(focused_actions
         .iter()
         .any(|line| line.contains("OPEN [ENTER]  ·  AVAILABLE")));
@@ -792,10 +791,10 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
         .as_ref()
         .unwrap()
         .opened()
-        .expect("seed should be opened");
+        .expect("form should be opened");
     assert!(matches!(
         opened,
-        patchbay_model::OpenedFrontDoorSubject::Seed { .. }
+        patchbay_model::OpenedFrontDoorSubject::Form { .. }
     ));
 }
 
@@ -806,18 +805,18 @@ fn native_front_door_refused_projection_action_cannot_be_invoked() {
         ..Arguments::default()
     })
     .unwrap();
-    let seed = application
+    let form = application
         .zero_body_front_door
         .as_ref()
         .unwrap()
-        .seed_ids()
+        .form_ids()
         .first()
-        .map(|seed_id| format!("seed/{}", seed_id.as_str()))
+        .map(|form_id| format!("form/{}", form_id.as_str()))
         .unwrap();
-    application.select_front_door_subject(&seed).unwrap();
-    let presentation = set_seed_action_availability(
+    application.select_front_door_subject(&form).unwrap();
+    let presentation = set_form_action_availability(
         &application.entrance.as_ref().unwrap().presentation,
-        &seed,
+        &form,
         patchbay_model::PatchbayAction::Birth.presentation_intent(),
         conduit_presentation::PresentationActionAvailability::Refused {
             reason_code: "test-blocked".into(),
@@ -843,20 +842,20 @@ fn native_front_door_stale_presentation_and_unknown_action_ids_fail_closed() {
         ..Arguments::default()
     })
     .unwrap();
-    let seed = application
+    let form = application
         .zero_body_front_door
         .as_ref()
         .unwrap()
-        .seed_ids()
+        .form_ids()
         .first()
-        .map(|seed_id| format!("seed/{}", seed_id.as_str()))
+        .map(|form_id| format!("form/{}", form_id.as_str()))
         .unwrap();
-    application.select_front_door_subject(&seed).unwrap();
+    application.select_front_door_subject(&form).unwrap();
     let initial_presentation = application.entrance.as_ref().unwrap().presentation.clone();
     let stale_revision = initial_presentation.revision + 1;
-    let stale = set_seed_action_availability(
+    let stale = set_form_action_availability(
         &initial_presentation,
-        &seed,
+        &form,
         patchbay_model::PatchbayAction::OpenBack.presentation_intent(),
         conduit_presentation::PresentationActionAvailability::Available,
     )
@@ -868,7 +867,7 @@ fn native_front_door_stale_presentation_and_unknown_action_ids_fail_closed() {
     };
     let stale = rebuild_presentation_with_actions(&stale, stale.actions.clone()).unwrap();
     install_mutated_presentation(&mut application, stale).unwrap();
-    application.select_front_door_subject(&seed).unwrap();
+    application.select_front_door_subject(&form).unwrap();
     assert!(application
         .handle_front_door_key(&winit::keyboard::Key::Named(
             winit::keyboard::NamedKey::Enter,
@@ -940,29 +939,28 @@ fn native_front_door_discloses_exact_truth_only_in_details() {
 }
 
 #[test]
-fn native_open_seed_revision_remains_unbodied_and_preserves_selection() {
+fn native_open_form_revision_remains_unbodied_and_preserves_selection() {
     let mut application = PatchbayApplication::new(Arguments {
         front_door: true,
         ..Arguments::default()
     })
     .unwrap();
-    let seed_id = application
+    let form_id = application
         .zero_body_front_door
         .as_ref()
         .unwrap()
-        .seed_ids()
+        .form_ids()
         .into_iter()
         .next()
         .unwrap();
-    let seed_subject = format!("seed/{}", seed_id.as_str());
+    let form_subject = format!("form/{}", form_id.as_str());
     application
-        .select_front_door_subject(&seed_subject)
+        .select_front_door_subject(&form_subject)
         .unwrap();
     application.handle_gui_action(GuiAction::OpenBack).unwrap();
     let opened = &application.entrance.as_ref().unwrap().presentation;
     assert_eq!(opened.revision, 2);
     assert!(opened.basis.body_id.is_none());
-    assert!(opened.basis.seed_id.is_none());
     assert!(opened.properties.iter().any(|property| {
         property.name == "opened"
             && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)

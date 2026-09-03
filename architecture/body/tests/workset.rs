@@ -31,7 +31,6 @@ fn body_retains_multiple_exact_forms_without_program_identity_or_body_replacemen
         .unwrap();
 
     assert_eq!(with_dashboard.body_id, born.body_id);
-    assert_eq!(with_dashboard.seed_id, born.seed_id);
     assert_eq!(with_dashboard.effective_workset().unwrap().len(), 3);
     assert_eq!(
         with_dashboard.admit_form(form("service"), SignId::from("sign/duplicate")),
@@ -42,7 +41,6 @@ fn body_retains_multiple_exact_forms_without_program_identity_or_body_replacemen
         .remove_form(&form("seed"), SignId::from("sign/remove-seed"))
         .unwrap();
     assert_eq!(without_seed.body_id, born.body_id);
-    assert_eq!(without_seed.seed_id, born.seed_id);
     assert!(!without_seed
         .effective_workset()
         .unwrap()
@@ -96,22 +94,72 @@ fn workset_is_canonical_bounded_by_count_and_identity_bytes() {
 }
 
 #[test]
-fn revision_zero_evidence_migrates_to_the_seed_form_without_rebinding_body() {
+fn revision_zero_is_the_initial_workload_revision() {
     let current = body();
-    let mut value = serde_json::to_value(&current).unwrap();
-    value.as_object_mut().unwrap().remove("workset");
-    value.as_object_mut().unwrap().remove("workload_revision");
-    let legacy: Body = serde_json::from_value(value).unwrap();
-
-    assert_eq!(legacy.body_id, current.body_id);
-    assert_eq!(legacy.workload_revision, 0);
-    assert_eq!(legacy.effective_workset().unwrap().forms(), &[form("seed")]);
-    legacy.validate().unwrap();
-
-    let migrated = legacy
+    assert_eq!(current.workload_revision, 0);
+    assert_eq!(
+        current.effective_workset().unwrap().forms(),
+        &[form("seed")]
+    );
+    let migrated = current
         .admit_form(form("second"), SignId::from("sign/admit-second"))
         .unwrap();
-    assert_eq!(migrated.body_id, current.body_id);
-    assert_eq!(migrated.workload_revision, 2);
+    assert_eq!(migrated.workload_revision, 1);
     assert_eq!(migrated.effective_workset().unwrap().len(), 2);
+}
+
+#[test]
+fn birth_accepts_zero_one_or_many_initial_forms_without_privileging_order() {
+    let empty =
+        Body::born_with_forms(BodyWorkset::default(), 8, SignId::from("sign/empty-born")).unwrap();
+    assert!(empty.workset.is_empty());
+
+    let forward = Body::born_with_forms(
+        BodyWorkset::from_forms([form("clock"), form("lantern")]).unwrap(),
+        9,
+        SignId::from("sign/many-born"),
+    )
+    .unwrap();
+    let reverse = Body::born_with_forms(
+        BodyWorkset::from_forms([form("lantern"), form("clock")]).unwrap(),
+        9,
+        SignId::from("sign/many-born"),
+    )
+    .unwrap();
+    assert_eq!(forward.body_id, reverse.body_id);
+    assert_eq!(forward.workset.len(), 2);
+    assert_eq!(forward.workload_revision, 0);
+    assert!(matches!(
+        forward.events.as_slice(),
+        [conduit_body::BodyLifecycleEvent::Born {
+            initial_workset,
+            workload_revision: 0,
+            ..
+        }] if initial_workset == &forward.workset
+    ));
+}
+
+#[test]
+fn historical_seed_biography_decodes_only_as_explicit_v1_evidence() {
+    let current = body();
+    let legacy = serde_json::json!({
+        "schema": "conduit.body/biography-evidence@1",
+        "body_id": current.body_id,
+        "friendly_name": "Historical Roseau",
+        "initial_program": "Morse Network",
+        "body": {
+            "body_id": current.body_id,
+            "seed_id": "legacy-seed-id",
+            "source_document_id": "source/seed",
+            "checked_form_id": "checked/seed",
+            "birth_sequence": 1,
+            "state": "Lulled",
+            "sign_ids": ["sign/born"],
+            "events": [{"Born": {"sign_id": "sign/born"}}]
+        }
+    });
+    let decoded: conduit_body::HistoricalSeedBiographyV1 = serde_json::from_value(legacy).unwrap();
+    assert!(decoded.validate_historical());
+    assert!(decoded.disclosure_label().contains("Legacy Seed"));
+    assert!(serde_json::from_value::<Body>(serde_json::to_value(&decoded.body).unwrap()).is_err());
 }

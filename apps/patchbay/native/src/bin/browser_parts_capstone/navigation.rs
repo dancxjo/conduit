@@ -67,9 +67,10 @@ pub(super) fn cord_line_receipt(
     let expanded = editor
         .expand_form("webchat-browser-demo")
         .map_err(|error| error.to_string())?;
-    if expanded.source_document_id != body.source_document_id
-        || expanded.checked_form_id != body.checked_form_id
-    {
+    if !body.workset.contains(&conduit_body::ResidentForm::new(
+        expanded.source_document_id.clone(),
+        expanded.checked_form_id.clone(),
+    )) {
         return Err("live navigation Body does not bind the canonical webchat Form".into());
     }
     let plan_document = PlanDocument::from_plan(

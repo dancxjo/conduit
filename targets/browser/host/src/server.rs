@@ -19,6 +19,7 @@ const APPLICATION_THEME: &[u8] = include_bytes!("../assets/application-theme.css
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
+const INITIAL_BODY_FORMS: &[u8] = include_bytes!("../../../../forms/initial-body.conduit");
 const MAX_RUNTIME_BYTES: usize = 8 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
@@ -120,6 +121,14 @@ impl BrowserHostServer {
         let request = std::str::from_utf8(&request[..length])
             .map_err(|_| "browser Host request was not UTF-8".to_owned())?;
         let request_line = request.lines().next();
+        if request_line == Some("GET /forms/initial-body.conduit HTTP/1.1") {
+            return self.write_response(
+                stream,
+                "200 OK",
+                "text/plain; charset=utf-8",
+                INITIAL_BODY_FORMS,
+            );
+        }
         if let Some(application) = &self.application {
             return match application.response(request_line)? {
                 Some(response) => {

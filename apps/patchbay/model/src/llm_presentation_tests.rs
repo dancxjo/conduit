@@ -25,7 +25,6 @@ fn basis() -> PresentationBasis {
     .unwrap();
     let (body, wake) = body.wake(2, SignId::from("sign/woke")).unwrap();
     PresentationBasis {
-        seed_id: Some(body.seed_id.clone()),
         body_id: Some(body.body_id),
         wake_id: Some(wake.wake_id),
         source_document_id: Some(source),

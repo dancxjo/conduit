@@ -10,13 +10,6 @@ impl Presentation {
         let mut digest = Sha256::new();
         hash_string(&mut digest, "conduit.presentation/presentation@1");
         digest.update(self.revision.to_le_bytes());
-        // Preserve established embodied Presentation identities: Some
-        // values hash exactly as the formerly required fields did. None
-        // uses the otherwise-invalid empty identity as the zero-Body marker.
-        hash_string(
-            &mut digest,
-            self.basis.seed_id.as_ref().map_or("", |id| id.as_str()),
-        );
         hash_string(
             &mut digest,
             self.basis.body_id.as_ref().map_or("", |id| id.as_str()),

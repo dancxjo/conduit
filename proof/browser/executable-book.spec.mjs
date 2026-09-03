@@ -58,9 +58,9 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
   await openStandaloneCreche(page);
   const birth = page.locator(".body-birth-runner");
   if (sourceVariant) {
-    const sourceDisclosure = birth.locator('[data-application-key="seed-source"]');
+    const sourceDisclosure = birth.locator('[data-application-key="form-source"]');
     await sourceDisclosure.locator("summary").click();
-    const source = sourceDisclosure.getByRole("textbox", { name: "Conduit Seed source" });
+    const source = sourceDisclosure.getByRole("textbox", { name: "Conduit Form source" });
     await source.fill((await source.inputValue()).replace('"SOS"', `"SOS ${sourceVariant}"`));
   }
   await birth.getByRole("button", { name: "Birth Body" }).click();
@@ -706,8 +706,9 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page).toHaveTitle("Conduit Crèche");
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  await expect(birth.locator('[data-application-key="body-program"]')).toHaveAttribute("data-application-component", "select");
-  await expect(birth.locator('[data-application-key="morse-program"]')).toHaveAttribute("data-application-component", "option");
+  await expect(birth.locator('[data-application-key="program-field"]')).toHaveAttribute("data-application-component", "stack");
+  await expect(birth.getByRole("button", { name: "✓ Morse Network" })).toBeVisible();
+  await expect(birth.getByRole("button", { name: "✓ Memory Lantern" })).toBeVisible();
   await birth.getByLabel("Friendly Body name").fill("standalone firefly");
   await birth.getByRole("button", { name: "Birth Body" }).click();
   const bodyId = await birth.getAttribute("data-body-id");
@@ -732,7 +733,7 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
     return JSON.parse(new TextDecoder().decode(bytes));
   });
   expect(durable.body_id).toBe(bodyId);
-  expect(durable.schema).toBe("conduit.body/biography-evidence@1");
+  expect(durable.schema).toBe("conduit.body/biography-evidence@2");
   const crecheRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
   expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
   expect((await page.request.get(new URL("/book/", entrance.url).href)).status()).toBe(404);
@@ -747,9 +748,9 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const runner = page.locator(".body-birth-runner");
   const [program, name, source, editor] = await Promise.all([
-    runner.getByLabel("Initial program").boundingBox(),
+    runner.locator('[data-application-key="program-field"]').boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
-    runner.locator('[data-application-key="seed-source"]').boundingBox(),
+    runner.locator('[data-application-key="form-source"]').boundingBox(),
     runner.locator(".birth-presentation").boundingBox(),
   ]);
   for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
@@ -759,9 +760,9 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
     expect(control.x).toBeGreaterThanOrEqual(editor.x);
     expect(control.x + control.width).toBeLessThanOrEqual(editor.x + editor.width);
   }
-  await runner.locator('[data-application-key="seed-source"] summary').click();
-  await expect(runner.locator('[data-application-key="seed-source"] textarea')).toBeVisible();
-  const selectAppearance = await runner.getByLabel("Initial program").evaluate(
+  await runner.locator('[data-application-key="form-source"] summary').click();
+  await expect(runner.locator('[data-application-key="form-source"] textarea')).toBeVisible();
+  const selectAppearance = await runner.getByLabel("Naming tradition").evaluate(
     (element) => getComputedStyle(element).appearance,
   );
   expect(selectAppearance).toBe("none");
@@ -1474,7 +1475,7 @@ test("the guided arc names each idea after the reader has met the prior one", as
     { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
     { title: "The Body: one computer, one machine or many", anchor: "same Conduit problem at different topology and cost scales" },
     { title: "Many Forms, one Body-wide realization", anchor: "Program = Form" },
-    { title: "Birth, spores, and the Crèche", anchor: "initial Form and birth provenance" },
+    { title: "Birth, spores, and the Crèche", anchor: "selected Forms enter the same bounded workset" },
   ];
   await openStep(page, 0);
   for (let step = 0; step < chapterChecks.length; step += 1) {

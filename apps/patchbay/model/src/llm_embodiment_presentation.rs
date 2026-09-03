@@ -192,10 +192,13 @@ fn project_view(
     Presentation::new_with_semantics(
         revision,
         PresentationBasis {
-            seed_id: Some(body.seed_id.clone()),
             body_id: Some(body.body_id.clone()),
             wake_id: None,
-            source_document_id: Some(body.source_document_id.clone()),
+            source_document_id: body
+                .workset
+                .forms()
+                .first()
+                .map(|form| form.source_document_id.clone()),
             checked_form_id: Some(view.checked_form_id.clone()),
             expanded_form_id: Some(view.expanded_form_id.clone()),
             plan_id: Some(view.plan_id.clone()),

@@ -1,6 +1,6 @@
 //! Truthful Patchbay WORLD state for one Host that bears no Body.
 
-use conduit_body::{Body, BodyMembership, MembershipProofId, SeedId, Wake};
+use conduit_body::{Body, BodyMembership, MembershipProofId, Wake};
 use conduit_core::{BootId, CheckedFormId, HostId, SignId, SourceDocumentId};
 use conduit_presentation::Presentation;
 
@@ -8,7 +8,7 @@ use crate::{FormEditor, LocalFrontDoor, PatchbayModel};
 use std::sync::Arc;
 
 pub const MAX_FRONT_DOOR_BODY_CANDIDATES: usize = 16;
-pub const MAX_FRONT_DOOR_SEEDS: usize = 16;
+pub const MAX_FRONT_DOOR_FORMS: usize = 16;
 pub const MAX_FRONT_DOOR_REFUSAL_SIGNS: usize = 16;
 
 #[derive(Clone)]
@@ -48,13 +48,16 @@ impl BodyJoinCandidate {
             .map_err(|error| format!("{error:?}"))?;
         if body.body_id != wake.body_id
             || body.body_id != membership.body_id
-            || editor.view().checked.source_document_id.as_ref() != Some(&body.source_document_id)
-            || !editor
-                .view()
-                .checked
-                .forms
-                .iter()
-                .any(|form| form.checked_form_id == body.checked_form_id)
+            || body.workset.forms().iter().any(|resident| {
+                editor.view().checked.source_document_id.as_ref()
+                    != Some(&resident.source_document_id)
+                    || !editor
+                        .view()
+                        .checked
+                        .forms
+                        .iter()
+                        .any(|form| form.checked_form_id == resident.checked_form_id)
+            })
         {
             return Err("Body join candidate identity chain is inconsistent".into());
         }
@@ -76,9 +79,8 @@ impl BodyJoinCandidate {
 }
 
 #[derive(Clone)]
-pub struct SeedCandidate {
+pub struct FormCandidate {
     pub label: String,
-    pub seed_id: SeedId,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub source_name: String,
@@ -89,7 +91,7 @@ pub struct SeedCandidate {
     pub(super) editor: FormEditor,
 }
 
-impl SeedCandidate {
+impl FormCandidate {
     pub fn from_source(
         label: impl Into<String>,
         source_name: impl Into<String>,
@@ -103,7 +105,7 @@ impl SeedCandidate {
         let source = source.into();
         let provenance = provenance.into();
         if label.is_empty() || provenance.is_empty() || freshness_sequence == 0 {
-            return Err("Seed label, provenance, and freshness must be present".into());
+            return Err("Form label, provenance, and freshness must be present".into());
         }
         let editor = FormEditor::from_source(source_name.clone().into(), source.clone())
             .map_err(|error| error.to_string())?;
@@ -112,19 +114,17 @@ impl SeedCandidate {
             .checked
             .source_document_id
             .clone()
-            .ok_or("Seed source is unchecked")?;
+            .ok_or("Form source is unchecked")?;
         let checked_form_id = editor
             .view()
             .checked
             .forms
             .first()
-            .ok_or("Seed source contains no Form")?
+            .ok_or("Form source contains no Form")?
             .checked_form_id
             .clone();
-        let seed_id = SeedId::bind(&source_document_id, &checked_form_id);
         Ok(Self {
             label,
-            seed_id,
             source_document_id,
             checked_form_id,
             source_name,
@@ -147,8 +147,8 @@ pub enum OpenedFrontDoorSubject {
         body_id: conduit_body::BodyId,
         observed_at: u64,
     },
-    Seed {
-        seed_id: SeedId,
+    Form {
+        checked_form_id: CheckedFormId,
         observed_at: u64,
     },
 }
@@ -164,7 +164,7 @@ pub struct ZeroBodyFrontDoor {
     pub(super) adapter: Arc<dyn crate::PatchbayHostAdapter>,
     pub(super) model: PatchbayModel,
     pub(super) body_candidates: Vec<BodyJoinCandidate>,
-    pub(super) seeds: Vec<SeedCandidate>,
+    pub(super) forms: Vec<FormCandidate>,
     pub(super) opened: Option<OpenedFrontDoorSubject>,
     pub(super) refusals: Vec<FrontDoorRefusalSign>,
     pub(super) revision: u64,
@@ -203,19 +203,19 @@ impl ZeroBodyFrontDoor {
         adapter: Arc<dyn crate::PatchbayHostAdapter>,
         model: PatchbayModel,
     ) -> Result<Self, String> {
-        let seed = SeedCandidate::from_source(
-            "Patchbay entrance specimen",
-            "patchbay-front-door.conduit",
-            include_str!("../../../../examples/patchbay-front-door.conduit"),
-            "repository example; opening is inert and BIRTH remains explicit",
-            SignId::from("patchbay/front-door/seed-available"),
+        let form = FormCandidate::from_source(
+            "Morse Network",
+            "initial-body.conduit",
+            include_str!("../../../../forms/initial-body.conduit"),
+            "reviewed Form inventory; opening is inert and BIRTH remains explicit",
+            SignId::from("patchbay/front-door/form-available"),
             1,
         )?;
         Ok(Self {
             adapter,
             model,
             body_candidates: Vec::new(),
-            seeds: vec![seed],
+            forms: vec![form],
             opened: None,
             refusals: Vec::new(),
             revision: 1,
@@ -234,12 +234,15 @@ impl ZeroBodyFrontDoor {
         self.opened.as_ref()
     }
 
-    pub fn seed_ids(&self) -> Vec<SeedId> {
-        self.seeds.iter().map(|seed| seed.seed_id.clone()).collect()
+    pub fn form_ids(&self) -> Vec<CheckedFormId> {
+        self.forms
+            .iter()
+            .map(|form| form.checked_form_id.clone())
+            .collect()
     }
 
     pub fn record_refusal(&mut self, code: &str) -> Result<SignId, String> {
-        if !matches!(code, "StalePresentation" | "StaleDiscovery" | "StaleSeed") {
+        if !matches!(code, "StalePresentation" | "StaleDiscovery" | "StaleForm") {
             return Err("unsupported front-door refusal code".into());
         }
         if self.refusals.len() == MAX_FRONT_DOOR_REFUSAL_SIGNS {
@@ -272,14 +275,18 @@ impl ZeroBodyFrontDoor {
         self.advance()
     }
 
-    pub fn add_seed(&mut self, seed: SeedCandidate) -> Result<(), String> {
-        if self.seeds.len() == MAX_FRONT_DOOR_SEEDS {
-            return Err("front-door Seed capacity exhausted".into());
+    pub fn add_form(&mut self, form: FormCandidate) -> Result<(), String> {
+        if self.forms.len() == MAX_FRONT_DOOR_FORMS {
+            return Err("front-door Form capacity exhausted".into());
         }
-        if self.seeds.iter().any(|value| value.seed_id == seed.seed_id) {
-            return Err("front-door Seed is already available".into());
+        if self
+            .forms
+            .iter()
+            .any(|value| value.checked_form_id == form.checked_form_id)
+        {
+            return Err("front-door Form is already available".into());
         }
-        self.seeds.push(seed);
+        self.forms.push(form);
         self.advance()
     }
 
@@ -301,16 +308,20 @@ impl ZeroBodyFrontDoor {
         self.advance()
     }
 
-    pub fn open_seed(&mut self, seed_id: &SeedId, revision: u64) -> Result<(), String> {
+    pub fn open_form(
+        &mut self,
+        checked_form_id: &CheckedFormId,
+        revision: u64,
+    ) -> Result<(), String> {
         self.require_revision(revision)?;
-        let seed = self
-            .seeds
+        let form = self
+            .forms
             .iter()
-            .find(|seed| &seed.seed_id == seed_id)
-            .ok_or("unknown Seed")?;
-        self.opened = Some(OpenedFrontDoorSubject::Seed {
-            seed_id: seed_id.clone(),
-            observed_at: seed.freshness_sequence,
+            .find(|form| &form.checked_form_id == checked_form_id)
+            .ok_or("unknown Form")?;
+        self.opened = Some(OpenedFrontDoorSubject::Form {
+            checked_form_id: checked_form_id.clone(),
+            observed_at: form.freshness_sequence,
         });
         self.advance()
     }
@@ -324,15 +335,15 @@ impl ZeroBodyFrontDoor {
             let body_id = candidate.body.body_id.clone();
             return self.open_body(&body_id, revision);
         }
-        if let Some(seed) = self
-            .seeds
+        if let Some(form) = self
+            .forms
             .iter()
-            .find(|seed| format!("seed/{}", seed.seed_id.as_str()) == subject)
+            .find(|form| format!("form/{}", form.checked_form_id.as_str()) == subject)
         {
-            let seed_id = seed.seed_id.clone();
-            return self.open_seed(&seed_id, revision);
+            let checked_form_id = form.checked_form_id.clone();
+            return self.open_form(&checked_form_id, revision);
         }
-        Err("OPEN requires a current Body or Seed subject".into())
+        Err("OPEN requires a current Body or Form subject".into())
     }
 
     pub fn join_open_body(self, revision: u64) -> Result<LocalFrontDoor, String> {
@@ -357,22 +368,22 @@ impl ZeroBodyFrontDoor {
 
     pub fn birth(self, revision: u64) -> Result<LocalFrontDoor, String> {
         self.require_revision(revision)?;
-        let OpenedFrontDoorSubject::Seed {
-            seed_id,
+        let OpenedFrontDoorSubject::Form {
+            checked_form_id,
             observed_at,
-        } = self.opened.clone().ok_or("BIRTH requires an opened Seed")?
+        } = self.opened.clone().ok_or("BIRTH requires an opened Form")?
         else {
-            return Err("BIRTH requires an opened Seed".into());
+            return Err("BIRTH requires an opened Form".into());
         };
-        let seed = self
-            .seeds
+        let form = self
+            .forms
             .into_iter()
-            .find(|candidate| candidate.seed_id == seed_id)
-            .ok_or("opened Seed is no longer available")?;
-        if seed.freshness_sequence != observed_at {
-            return Err("opened Seed observation is stale".into());
+            .find(|candidate| candidate.checked_form_id == checked_form_id)
+            .ok_or("opened Form is no longer available")?;
+        if form.freshness_sequence != observed_at {
+            return Err("opened Form observation is stale".into());
         }
-        LocalFrontDoor::born_from_seed(self.adapter, self.model, seed, self.revision)
+        LocalFrontDoor::born_from_form(self.adapter, self.model, form, self.revision)
     }
 
     fn require_revision(&self, revision: u64) -> Result<(), String> {

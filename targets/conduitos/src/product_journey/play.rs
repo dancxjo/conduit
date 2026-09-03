@@ -76,9 +76,9 @@ impl ProductJourney {
         }
         let prepared =
             keyboard_text_plan::prepare(identities, offer, build_id).map_err(JourneyError::Plan)?;
-        if prepared.source_document_id != self.seed.source_document_id
-            || prepared.checked_form_id != self.seed.checked_form_id
-            || prepared.expanded_form_id != self.seed.expanded_form_id
+        if prepared.source_document_id != self.form.source_document_id
+            || prepared.checked_form_id != self.form.checked_form_id
+            || prepared.expanded_form_id != self.form.expanded_form_id
         {
             return Err(JourneyError::WrongTarget);
         }

@@ -74,7 +74,7 @@ impl PatchbayApplication {
             )
         } else {
             match document.mode {
-                PatchbayMode::SeedOpened => flow(
+                PatchbayMode::FormOpened => flow(
                     "FORM_CHECKED",
                     "FORM checked",
                     "No Body exists",

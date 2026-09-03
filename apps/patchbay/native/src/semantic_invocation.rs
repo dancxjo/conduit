@@ -69,7 +69,6 @@ impl PatchbayApplication {
         Presentation::new_with_semantics(
             self.lifecycle_sequence.max(1),
             PresentationBasis {
-                seed_id: embodied.then(|| body.unwrap().seed_id.clone()),
                 body_id: embodied.then(|| body.unwrap().body_id.clone()),
                 wake_id: embodied.then(|| wake.unwrap().wake_id.clone()),
                 source_document_id: embodied.then(|| graph.source_document_id.clone()),

@@ -65,7 +65,6 @@ fn fixture(choice: BodyGraduationChoice) -> (patchbay_model::PatchbayGraph, Vec<
         body,
         BodyMembership::new(membership.body_id.clone()).unwrap(),
         "Roseau".into(),
-        "Morse relay".into(),
     )
     .unwrap();
     evidence

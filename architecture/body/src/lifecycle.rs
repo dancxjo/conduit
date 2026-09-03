@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::identity::{bind_identity, validate_ids};
 use crate::validation::{validate_new_sign, validate_plan_history, validate_sign};
 use crate::{
-    BodyId, BodyLifecycleEvent, BodyWorkset, BodyWorksetError, ResidentForm, SeedId, WakeId,
+    BodyId, BodyLifecycleEvent, BodyWorkset, BodyWorksetError, ResidentForm, WakeId,
     WakeLifecycleEvent,
 };
 
@@ -24,17 +24,18 @@ pub enum BodyState {
     Awake { wake_id: WakeId },
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BodyIdentityDerivation {
+    /// Canonical initial Form workset plus the attributable birth sequence.
+    InitialWorksetV2,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Body {
     pub body_id: BodyId,
-    pub seed_id: SeedId,
-    pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    /// Exact current Form workload. Empty with revision zero is the explicit
-    /// compatibility encoding for pre-workset single-Form Body evidence.
-    #[serde(default)]
+    pub identity_derivation: BodyIdentityDerivation,
+    /// Exact current Form workload. Birth establishes revision zero.
     pub workset: BodyWorkset,
-    #[serde(default)]
     pub workload_revision: u64,
     pub birth_sequence: u64,
     pub state: BodyState,
@@ -77,12 +78,7 @@ pub struct WakePlan {
 pub struct Wake {
     pub wake_id: WakeId,
     pub body_id: BodyId,
-    pub seed_id: SeedId,
-    pub source_document_id: SourceDocumentId,
-    pub checked_form_id: CheckedFormId,
-    #[serde(default)]
     pub workset: BodyWorkset,
-    #[serde(default)]
     pub workload_revision: u64,
     pub wake_sequence: u64,
     pub lifecycle: WakeLifecycle,
@@ -133,42 +129,42 @@ impl From<BodyWorksetError> for BodyLifecycleError {
 }
 
 impl Body {
+    /// Convenience entrance for a one-Form initial workset. The Form has no
+    /// privileged status after birth.
     pub fn born(
         source_document_id: SourceDocumentId,
         checked_form_id: CheckedFormId,
         birth_sequence: u64,
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
-        validate_ids(&[
-            source_document_id.as_str(),
-            checked_form_id.as_str(),
-            sign_id.as_str(),
-        ])?;
-        let seed_id = SeedId::bind(&source_document_id, &checked_form_id);
-        let body_id = BodyId::bound(bind_identity(
-            "body",
-            &[
-                seed_id.as_str(),
-                source_document_id.as_str(),
-                checked_form_id.as_str(),
-            ],
+        Self::born_with_forms(
+            BodyWorkset::one(ResidentForm::new(source_document_id, checked_form_id))?,
             birth_sequence,
-        ));
-        let workset = BodyWorkset::seed(ResidentForm::new(
-            source_document_id.clone(),
-            checked_form_id.clone(),
-        ))?;
+            sign_id,
+        )
+    }
+
+    pub fn born_with_forms(
+        initial_workset: BodyWorkset,
+        birth_sequence: u64,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        validate_ids(&[sign_id.as_str()])?;
+        initial_workset.validate()?;
+        let body_id = bind_body_v2(&initial_workset, birth_sequence);
         Ok(Self {
             body_id,
-            seed_id,
-            source_document_id,
-            checked_form_id,
-            workset,
-            workload_revision: 1,
+            identity_derivation: BodyIdentityDerivation::InitialWorksetV2,
+            workset: initial_workset.clone(),
+            workload_revision: 0,
             birth_sequence,
             state: BodyState::Lulled,
             sign_ids: vec![sign_id.clone()],
-            events: vec![BodyLifecycleEvent::Born { sign_id }],
+            events: vec![BodyLifecycleEvent::Born {
+                initial_workset,
+                workload_revision: 0,
+                sign_id,
+            }],
         })
     }
 
@@ -199,11 +195,8 @@ impl Body {
         let wake = Wake {
             wake_id,
             body_id: self.body_id.clone(),
-            seed_id: self.seed_id.clone(),
-            source_document_id: self.source_document_id.clone(),
-            checked_form_id: self.checked_form_id.clone(),
-            workset: self.effective_workset()?,
-            workload_revision: self.workload_revision.max(1),
+            workset: self.workset.clone(),
+            workload_revision: self.workload_revision,
             wake_sequence,
             lifecycle: WakeLifecycle::AwaitingPlan,
             plans: Vec::new(),
@@ -242,36 +235,23 @@ impl Body {
     }
 
     pub fn validate(&self) -> Result<(), BodyLifecycleError> {
-        validate_ids(&[
-            self.body_id.as_str(),
-            self.seed_id.as_str(),
-            self.source_document_id.as_str(),
-            self.checked_form_id.as_str(),
-        ])?;
+        validate_ids(&[self.body_id.as_str()])?;
         validate_sign(&self.sign_ids, MAX_BODY_SIGNS)?;
-        let effective_workset = self.effective_workset()?;
         crate::events::validate_body_events(
             &self.events,
             &self.sign_ids,
             &self.state,
-            ResidentForm::new(
-                self.source_document_id.clone(),
-                self.checked_form_id.clone(),
-            ),
-            &effective_workset,
-            self.workload_revision.max(1),
+            &self.workset,
+            self.workload_revision,
         )?;
-        if self.seed_id != SeedId::bind(&self.source_document_id, &self.checked_form_id)
-            || self.body_id.as_str()
-                != bind_identity(
-                    "body",
-                    &[
-                        self.seed_id.as_str(),
-                        self.source_document_id.as_str(),
-                        self.checked_form_id.as_str(),
-                    ],
-                    self.birth_sequence,
-                )
+        let initial = match self.events.first() {
+            Some(BodyLifecycleEvent::Born {
+                initial_workset, ..
+            }) => initial_workset,
+            _ => return Err(BodyLifecycleError::InvalidTransition),
+        };
+        if self.identity_derivation != BodyIdentityDerivation::InitialWorksetV2
+            || self.body_id != bind_body_v2(initial, self.birth_sequence)
         {
             return Err(BodyLifecycleError::InvalidIdentity);
         }
@@ -280,11 +260,8 @@ impl Body {
 
     fn matches(&self, wake: &Wake) -> bool {
         self.body_id == wake.body_id
-            && self.seed_id == wake.seed_id
-            && self.source_document_id == wake.source_document_id
-            && self.checked_form_id == wake.checked_form_id
-            && self.effective_workset().ok().as_ref() == Some(&wake.workset)
-            && self.workload_revision.max(1) == wake.workload_revision
+            && self.workset == wake.workset
+            && self.workload_revision == wake.workload_revision
             && matches!(&self.state, BodyState::Awake { wake_id } if wake_id == &wake.wake_id)
     }
 }
@@ -473,13 +450,7 @@ impl Wake {
     }
 
     pub fn validate(&self) -> Result<(), BodyLifecycleError> {
-        validate_ids(&[
-            self.wake_id.as_str(),
-            self.body_id.as_str(),
-            self.seed_id.as_str(),
-            self.source_document_id.as_str(),
-            self.checked_form_id.as_str(),
-        ])?;
+        validate_ids(&[self.wake_id.as_str(), self.body_id.as_str()])?;
         validate_sign(&self.sign_ids, MAX_WAKE_SIGNS)?;
         self.workset.validate()?;
         crate::events::validate_wake_events(
@@ -490,11 +461,9 @@ impl Wake {
             &self.workset,
             self.workload_revision,
         )?;
-        if self.seed_id != SeedId::bind(&self.source_document_id, &self.checked_form_id)
-            || self.wake_id.as_str()
-                != bind_identity("wake", &[self.body_id.as_str()], self.wake_sequence)
+        if self.wake_id.as_str()
+            != bind_identity("wake", &[self.body_id.as_str()], self.wake_sequence)
             || self.plans.len() > MAX_WAKE_PLANS
-            || self.workload_revision == 0
         {
             return Err(BodyLifecycleError::InvalidIdentity);
         }
@@ -523,4 +492,14 @@ impl Wake {
         self.events.push(event);
         Ok(())
     }
+}
+
+fn bind_body_v2(initial_workset: &BodyWorkset, birth_sequence: u64) -> BodyId {
+    let mut values = alloc::vec::Vec::with_capacity(1 + initial_workset.len() * 2);
+    values.push("conduit.body/identity@2");
+    for form in initial_workset.forms() {
+        values.push(form.source_document_id.as_str());
+        values.push(form.checked_form_id.as_str());
+    }
+    BodyId::bound(bind_identity("body", &values, birth_sequence))
 }

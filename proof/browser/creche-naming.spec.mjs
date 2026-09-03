@@ -16,9 +16,14 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
-  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
+  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(3);
+  await expect(birth.locator('[data-application-key="program-field"]')).toHaveAttribute("data-application-component", "stack");
+  await expect(birth.getByRole("button", { name: "✓ Morse Network" })).toBeVisible();
+  await birth.getByRole("button", { name: "✓ Memory Lantern" }).click();
+  await expect(birth.getByRole("button", { name: "○ Memory Lantern" })).toBeVisible();
+  await expect(birth.locator('[data-application-key="program-help"]')).toHaveText("1 of 2 reviewed Forms selected; maximum 16.");
   await expect(name).toHaveAttribute("aria-describedby", /description/);
-  await expect(birth.getByLabel("Conduit Seed source")).toHaveAttribute("aria-describedby", /description/);
+  await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
   await expect(tradition.locator("option")).toHaveCount(24);
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 0");
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("not the Body ID");

@@ -1,5 +1,4 @@
 use alloc::string::String;
-use conduit_core::{CheckedFormId, SourceDocumentId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -23,7 +22,6 @@ macro_rules! identity {
     };
 }
 
-identity!(SeedId);
 identity!(BodyId);
 identity!(WakeId);
 identity!(PartId);
@@ -37,16 +35,6 @@ identity!(AdmissionId);
 identity!(MembershipCredentialId);
 #[cfg(feature = "authenticated-admission")]
 identity!(SpawnInvitationId);
-
-impl SeedId {
-    pub fn bind(source: &SourceDocumentId, checked: &CheckedFormId) -> Self {
-        Self::bound(bind_identity(
-            "seed",
-            &[source.as_str(), checked.as_str()],
-            0,
-        ))
-    }
-}
 
 impl PartId {
     pub fn bind(

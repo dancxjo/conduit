@@ -17,7 +17,7 @@ pub struct PatchbayNavigationProjection {
 }
 
 impl PatchbayNavigationProjection {
-    pub fn for_zero_body(presentation: &Presentation, selected_seed: bool) -> Result<Self, String> {
+    pub fn for_zero_body(presentation: &Presentation, selected_form: bool) -> Result<Self, String> {
         let entrance_root = presentation
             .properties
             .iter()
@@ -27,10 +27,17 @@ impl PatchbayNavigationProjection {
             })
             .map(|property| property.subject.clone())
             .ok_or_else(|| "zero-Body Presentation has no exact entrance Host".to_owned())?;
-        let program_root = selected_seed
-            .then(|| first_subject(presentation, PresentationRole::Form))
+        let program_root = selected_form
+            .then(|| {
+                presentation.properties.iter().find_map(|property| {
+                    (property.name == "opened"
+                        && property.value
+                            == conduit_presentation::PresentationPropertyValue::Flag(true))
+                    .then(|| property.subject.clone())
+                })
+            })
             .flatten();
-        let entrance_focus = first_subject(presentation, PresentationRole::Seed)
+        let entrance_focus = first_subject(presentation, PresentationRole::Form)
             .unwrap_or_else(|| entrance_root.clone());
         let mut places = vec![place(
             presentation,
@@ -228,6 +235,10 @@ fn subject_in_place(
     aspect: PresentationAspect,
 ) -> bool {
     let role = subject.role;
+    let has_body = presentation
+        .subjects
+        .iter()
+        .any(|candidate| candidate.role == PresentationRole::Body);
     if role == PresentationRole::Sign {
         return aspect == PresentationAspect::Signs;
     }
@@ -241,9 +252,12 @@ fn subject_in_place(
         return place == PresentationPlace::Program && aspect == PresentationAspect::Signs;
     }
     let domain = match role {
-        PresentationRole::Seed => Some(PresentationPlace::Entrance),
+        // A Form can be a library entry at the Entrance or the opened Program.
+        // Its exact place is established below from the opened property rather
+        // than from a privileged presentation role.
+        PresentationRole::Form if has_body => Some(PresentationPlace::Program),
+        PresentationRole::Form => None,
         PresentationRole::Document
-        | PresentationRole::Form
         | PresentationRole::Gear
         | PresentationRole::Port
         | PresentationRole::Cord
@@ -271,19 +285,21 @@ fn subject_in_place(
         return aspect == PresentationAspect::Structure
             && matches!(
                 role,
-                PresentationRole::Seed
+                PresentationRole::Form
                     | PresentationRole::Body
                     | PresentationRole::Host
                     | PresentationRole::Capability
             );
     }
-    if place == PresentationPlace::Program && role == PresentationRole::Seed {
+    if place == PresentationPlace::Program && role == PresentationRole::Form {
         return aspect == PresentationAspect::Structure
-            && presentation.properties.iter().any(|property| {
-                property.subject == subject.identity
-                    && property.name == "opened"
-                    && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
-            });
+            && (has_body
+                || presentation.properties.iter().any(|property| {
+                    property.subject == subject.identity
+                        && property.name == "opened"
+                        && property.value
+                            == conduit_presentation::PresentationPropertyValue::Flag(true)
+                }));
     }
     domain == Some(place) && aspect != PresentationAspect::Signs
 }
@@ -298,7 +314,7 @@ fn memberships(
             for subject in &aspect.focusable_subjects {
                 let depth = if place.place == PresentationPlace::Entrance
                     && presentation.subjects.iter().any(|candidate| {
-                        candidate.identity == *subject && candidate.role == PresentationRole::Seed
+                        candidate.identity == *subject && candidate.role == PresentationRole::Form
                     }) {
                     PresentationDepth::Primary
                 } else {

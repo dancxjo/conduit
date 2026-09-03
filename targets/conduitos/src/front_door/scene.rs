@@ -69,10 +69,10 @@ impl FrontDoor {
             text(&mut scene, 18, 76, label)?;
             exact_text(&mut scene, 18, 100, &value)?;
             text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
-        } else if self.seed_open {
+        } else if self.form_open {
             text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-            text(&mut scene, 18, 76, "SEED OPEN / INSPECTION ONLY")?;
-            exact_text(&mut scene, 18, 100, self.seed_id.as_str())?;
+            text(&mut scene, 18, 76, "FORM OPEN / INSPECTION ONLY")?;
+            exact_text(&mut scene, 18, 100, &self.form_subject)?;
             text(
                 &mut scene,
                 18,
@@ -89,22 +89,22 @@ impl FrontDoor {
         } else {
             text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
             text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
-            text(&mut scene, 18, 96, "SEEDS")?;
+            text(&mut scene, 18, 96, "FORMS")?;
             text(
                 &mut scene,
                 26,
                 118,
-                if self.selected_subject.starts_with("seed/") {
-                    "> CONDUITOS ENTRANCE SEED"
+                if self.selected_subject.starts_with("form/") {
+                    "> CONDUITOS ENTRANCE FORM"
                 } else {
-                    "  CONDUITOS ENTRANCE SEED"
+                    "  CONDUITOS ENTRANCE FORM"
                 },
             )?;
             text(
                 &mut scene,
                 26,
                 140,
-                if !self.selected_subject.starts_with("seed/") {
+                if !self.selected_subject.starts_with("form/") {
                     "> DETAILS"
                 } else {
                     "  DETAILS"
@@ -129,7 +129,7 @@ impl FrontDoor {
                     self.offer_count, self.offer_generation.0
                 ),
             ),
-            6 => ("SEED ID", self.seed_id.as_str().into()),
+            6 => ("FORM SUBJECT", self.form_subject.clone()),
             7 => (
                 "SOURCE DOCUMENT ID",
                 self.source_document_id.as_str().into(),

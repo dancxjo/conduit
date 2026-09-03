@@ -21,7 +21,7 @@ pub struct CurrentBodyFrame {
     pub evidence_revision: u64,
     pub body_id: conduit_body::BodyId,
     pub friendly_name: String,
-    pub program: CurrentBodyProgram,
+    pub active_forms: Vec<CurrentBodyForm>,
     pub lifecycle: CurrentBodyLifecycle,
     pub admitted_parts: usize,
     pub current_hosts: Vec<CurrentBodyHost>,
@@ -34,8 +34,7 @@ pub struct CurrentBodyFrame {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct CurrentBodyProgram {
-    pub label: String,
+pub struct CurrentBodyForm {
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
 }
@@ -155,11 +154,16 @@ impl CurrentBodyFrame {
             evidence_revision,
             body_id: evidence.body_id.clone(),
             friendly_name: evidence.friendly_name.clone(),
-            program: CurrentBodyProgram {
-                label: evidence.initial_program.clone(),
-                source_document_id: evidence.body.source_document_id.clone(),
-                checked_form_id: evidence.body.checked_form_id.clone(),
-            },
+            active_forms: evidence
+                .body
+                .workset
+                .forms()
+                .iter()
+                .map(|form| CurrentBodyForm {
+                    source_document_id: form.source_document_id.clone(),
+                    checked_form_id: form.checked_form_id.clone(),
+                })
+                .collect(),
             lifecycle,
             admitted_parts,
             current_hosts,
@@ -320,7 +324,6 @@ mod tests {
             body,
             BodyMembership::new(membership.body_id.clone()).unwrap(),
             "Roseau".into(),
-            "Morse Network".into(),
         )
         .unwrap();
         evidence
@@ -363,7 +366,7 @@ mod tests {
         let frame = CurrentBodyFrame::from_attachment(7, &attachment);
 
         assert_eq!(frame.friendly_name, "Roseau");
-        assert_eq!(frame.program.label, "Morse Network");
+        assert_eq!(frame.active_forms.len(), 1);
         assert_eq!(frame.lifecycle, CurrentBodyLifecycle::Lulled);
         assert_eq!(frame.salient_action, CurrentBodyLifecycleAction::Wake);
         assert_eq!(frame.admitted_parts, 1);

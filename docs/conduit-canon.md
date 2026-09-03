@@ -241,13 +241,14 @@ single Host, multiple cores, and multiple Hosts; distribution does not create a
 second scheduler or execution ontology.
 
 A Body is a **continuant**. An explicit attributable human/operator action
-**BIRTHs** it from one exact opened checked Seed and records distinct birth
-event/Sign evidence. That Seed is birth provenance, not the Body's eternal or
-singular program. In Conduit vocabulary a program is a Form; there is no
+**BIRTHs** it with a bounded initial workset of zero, one, or many exact checked
+Forms and records distinct birth event/Sign evidence. No initial Form is
+privileged after birth. In Conduit vocabulary a program is a Form; there is no
 separate Program identity. The newborn Body is LULLED; BIRTH creates no implicit
-Wake, Plan, or Play. Thereafter changes in Parts, Hosts and Boots, Lines,
-the bounded current Form workset, Wake/Lull episodes, Plans, Plays, and manifestations are events in the history
-of the same Body rather than replacement Body identities.
+Wake, Plan, or Play. Thereafter changes in Parts, Hosts and Boots, Lines, the
+bounded current Form workset, Wake/Lull episodes, Plans, Plays, and
+manifestations are events in the history of the same Body rather than
+replacement Body identities.
 
 The Form workset may contain zero, one, or many exact checked Forms. Adding or
 removing a Form advances bounded workload truth without replacing the Body.
@@ -256,8 +257,8 @@ workset, globally admits its resources, and may have at most one active Play.
 Forms inside that Play may progress concurrently under the one kernel. A
 workset change retires the current Plan and Play and requires a replacement
 Body-wide Plan before execution resumes; it never starts a second scheduler.
-Legacy single-Form Body evidence is interpreted as a one-Form workset whose
-member is the historical Seed.
+Legacy seed-era Body evidence remains explicitly versioned historical evidence;
+it does not restore a privileged identity in the current model.
 
 Absence is not death. Offline Parts, unreachable Hosts, lost Boots or Lines,
 Lull, stale or missing Plans, terminated Plays, and even loss of all current
@@ -465,7 +466,7 @@ repository-development entrance, recognize the intended object, perform the
 intended ordinary action, see its correlated effect or refusal, and descend to
 the exact proof when curious.
 
-Product demonstrations are ordinary checked Seeds and Forms travelling through
+Product demonstrations are ordinary checked Forms travelling through
 the real checker, planner, kernel, Presentation, and Presenter. A bespoke demo
 appliance may diagnose a lower boundary, but it does not define the product
 experience. Until the golden enactment loop is understandable, additional

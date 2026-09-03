@@ -263,7 +263,6 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     let presentation = Presentation::new(
         1,
         PresentationBasis {
-            seed_id: Some(body.seed_id),
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
             source_document_id: Some(form.source_document_id),

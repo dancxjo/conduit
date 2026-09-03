@@ -1,7 +1,7 @@
 use patchbay_html::{
     body_workbench_fixture_snapshot, body_workbench_snapshot, cross_host_demonstration_snapshot,
-    demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot, load_seed_sources,
-    text_lab_split_snapshot, BrowserBodyWorkbenchEntrance, PatchbayHtmlServer, SeedSource,
+    demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot, load_form_sources,
+    text_lab_split_snapshot, BrowserBodyWorkbenchEntrance, FormSource, PatchbayHtmlServer,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -11,7 +11,7 @@ struct Arguments {
     llm_documentary_fixture: bool,
     llm_embodiment_fixture: Option<usize>,
     text_lab_split: Option<String>,
-    seeds: Vec<SeedSource>,
+    forms: Vec<FormSource>,
     body_evidence: Option<std::path::PathBuf>,
     body_entrance: Option<BrowserBodyWorkbenchEntrance>,
     body_workbench_fixture: Option<bool>,
@@ -31,7 +31,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
-                    && parsed.seeds.is_empty() =>
+                    && parsed.forms.is_empty() =>
             {
                 parsed.documentary_fixture = true;
             }
@@ -41,7 +41,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
-                    && parsed.seeds.is_empty() =>
+                    && parsed.forms.is_empty() =>
             {
                 parsed.llm_documentary_fixture = true;
             }
@@ -51,7 +51,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
-                    && parsed.seeds.is_empty() =>
+                    && parsed.forms.is_empty() =>
             {
                 parsed.llm_embodiment_fixture = Some(
                     arguments
@@ -67,7 +67,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
-                    && parsed.seeds.is_empty() =>
+                    && parsed.forms.is_empty() =>
             {
                 parsed.text_lab_split = Some(
                     arguments
@@ -75,7 +75,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                         .ok_or("--text-lab-split requires one loopback WebSocket base")?,
                 );
             }
-            "--seed"
+            "--form" | "--seed"
                 if !parsed.debugger_watch_fixture
                     && !parsed.documentary_fixture
                     && !parsed.llm_documentary_fixture
@@ -84,11 +84,11 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             {
                 let label = arguments
                     .next()
-                    .ok_or("--seed requires a label and canonical .conduit path")?;
+                    .ok_or("--form requires a label and canonical .conduit path")?;
                 let path = arguments
                     .next()
-                    .ok_or("--seed requires a label and canonical .conduit path")?;
-                parsed.seeds.push(SeedSource::new(label, path));
+                    .ok_or("--form requires a label and canonical .conduit path")?;
+                parsed.forms.push(FormSource::new(label, path));
             }
             "--body-evidence"
                 if parsed.body_evidence.is_none()
@@ -98,7 +98,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
-                    && parsed.seeds.is_empty() =>
+                    && parsed.forms.is_empty() =>
             {
                 parsed.body_evidence = Some(
                     arguments
@@ -115,7 +115,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
                     && !parsed.llm_documentary_fixture
                     && parsed.llm_embodiment_fixture.is_none()
                     && parsed.text_lab_split.is_none()
-                    && parsed.seeds.is_empty() =>
+                    && parsed.forms.is_empty() =>
             {
                 parsed.body_workbench_fixture = Some(match arguments.next().as_deref() {
                     Some("hosted") => true,
@@ -142,7 +142,7 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             }
             _ => {
                 return Err(format!(
-                    "unknown or incompatible Patchbay HTML argument {argument}; expected repeated --seed <LABEL> <PATH>"
+                    "unknown or incompatible Patchbay HTML argument {argument}; expected repeated --form <LABEL> <PATH> (--seed remains a legacy alias)"
                 ));
             }
         }
@@ -185,8 +185,8 @@ fn main() -> Result<(), String> {
             .with_text_lab_loss_updates(base)
             .map_err(|error| error.to_string())?
     } else {
-        let seeds = load_seed_sources(&arguments.seeds).map_err(|error| error.to_string())?;
-        PatchbayHtmlServer::bind_browser_front_door_with_seeds_ephemeral(seeds)
+        let forms = load_form_sources(&arguments.forms).map_err(|error| error.to_string())?;
+        PatchbayHtmlServer::bind_browser_front_door_with_forms_ephemeral(forms)
             .map_err(|error| error.to_string())?
     };
     println!(
@@ -202,13 +202,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn arguments_admit_only_explicit_ordered_canonical_seed_bindings() {
+    fn arguments_admit_only_explicit_ordered_canonical_form_bindings() {
         let parsed = parse_arguments(
             [
-                "--seed",
+                "--form",
                 "Text Lab",
                 "examples/text-lab.conduit",
-                "--seed",
+                "--form",
                 "Hello",
                 "examples/hello.conduit",
             ]
@@ -216,20 +216,26 @@ mod tests {
             .map(str::to_owned),
         )
         .unwrap();
-        assert_eq!(parsed.seeds.len(), 2);
-        assert_eq!(parsed.seeds[0].label, "Text Lab");
+        assert_eq!(parsed.forms.len(), 2);
+        assert_eq!(parsed.forms[0].label, "Text Lab");
         assert_eq!(
-            parsed.seeds[1].path,
+            parsed.forms[1].path,
             std::path::Path::new("examples/hello.conduit")
         );
         assert_eq!(
-            parse_arguments(["--seed", "Text Lab"].into_iter().map(str::to_owned)),
-            Err("--seed requires a label and canonical .conduit path".into())
+            parse_arguments(["--form", "Text Lab"].into_iter().map(str::to_owned)),
+            Err("--form requires a label and canonical .conduit path".into())
         );
+        assert!(parse_arguments(
+            ["--seed", "Legacy", "examples/hello.conduit"]
+                .into_iter()
+                .map(str::to_owned)
+        )
+        .is_ok());
         assert!(parse_arguments(
             [
                 "--documentary-fixture",
-                "--seed",
+                "--form",
                 "Hello",
                 "examples/hello.conduit"
             ]

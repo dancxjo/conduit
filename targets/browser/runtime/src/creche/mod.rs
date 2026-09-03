@@ -2,7 +2,9 @@
 
 mod abi;
 mod browser_configuration;
+mod durable;
 mod graduation;
+mod initial_forms;
 mod protocol;
 mod session;
 mod spore;

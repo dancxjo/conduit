@@ -9,6 +9,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyLifecycleEvent {
     Born {
+        initial_workset: BodyWorkset,
+        workload_revision: u64,
         sign_id: SignId,
     },
     FormAdmitted {
@@ -36,7 +38,7 @@ pub enum BodyLifecycleEvent {
 impl BodyLifecycleEvent {
     pub fn sign_id(&self) -> &SignId {
         match self {
-            Self::Born { sign_id }
+            Self::Born { sign_id, .. }
             | Self::FormAdmitted { sign_id, .. }
             | Self::FormRemoved { sign_id, .. }
             | Self::Woke { sign_id, .. }
@@ -128,7 +130,6 @@ pub(crate) fn validate_body_events(
     events: &[BodyLifecycleEvent],
     sign: &[SignId],
     state: &BodyState,
-    seed_form: ResidentForm,
     workset: &BodyWorkset,
     workload_revision: u64,
 ) -> Result<(), BodyLifecycleError> {
@@ -137,13 +138,28 @@ pub(crate) fn validate_body_events(
             .iter()
             .zip(sign)
             .any(|(event, id)| event.sign_id() != id)
-        || !matches!(events.first(), Some(BodyLifecycleEvent::Born { .. }))
+        || !matches!(
+            events.first(),
+            Some(BodyLifecycleEvent::Born {
+                workload_revision: 0,
+                ..
+            })
+        )
     {
         return Err(BodyLifecycleError::InvalidTransition);
     }
     let mut replayed = BodyState::Lulled;
-    let mut replayed_workset = BodyWorkset::seed(seed_form)?;
-    let mut replayed_workload_revision = 1u64;
+    let (mut replayed_workset, mut replayed_workload_revision) = match events.first() {
+        Some(BodyLifecycleEvent::Born {
+            initial_workset,
+            workload_revision,
+            ..
+        }) => {
+            initial_workset.validate()?;
+            (initial_workset.clone(), *workload_revision)
+        }
+        _ => return Err(BodyLifecycleError::InvalidTransition),
+    };
     for event in events.iter().skip(1) {
         match event {
             BodyLifecycleEvent::FormAdmitted {

@@ -128,9 +128,9 @@ pub use cross_host_renderer::{
     PRESENTATION_PROJECT_KIND,
 };
 pub use current_body_frame::{
-    CurrentBodyFrame, CurrentBodyFrameError, CurrentBodyFrameSlot, CurrentBodyHost,
-    CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
-    CurrentBodyPhysicalHostSummary, CurrentBodyProgram, CurrentBodyTransition,
+    CurrentBodyForm, CurrentBodyFrame, CurrentBodyFrameError, CurrentBodyFrameSlot,
+    CurrentBodyHost, CurrentBodyLifecycle, CurrentBodyLifecycleAction, CurrentBodyPatchbayReader,
+    CurrentBodyPhysicalHostSummary, CurrentBodyTransition,
 };
 pub use debugger_control::{
     DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
@@ -300,9 +300,9 @@ pub use text_lab_explanation::{
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub use topology_hosts::current_device_for_capability;
 pub use zero_body_front_door::{
-    BodyJoinCandidate, OpenedFrontDoorSubject, SeedCandidate, ZeroBodyFrontDoor,
-    ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_REFUSAL_SIGNS,
-    MAX_FRONT_DOOR_SEEDS,
+    BodyJoinCandidate, FormCandidate, OpenedFrontDoorSubject, ZeroBodyFrontDoor,
+    ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_FORMS,
+    MAX_FRONT_DOOR_REFUSAL_SIGNS,
 };
 pub const MAX_FORM_SOURCE_BYTES: usize = conduit_form::MAXIMUM_FORM_SOURCE_BYTES;
 

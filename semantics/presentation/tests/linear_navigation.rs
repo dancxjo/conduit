@@ -17,7 +17,6 @@ fn fixture() -> (
     let presentation = Presentation::new_with_semantics(
         9,
         PresentationBasis {
-            seed_id: None,
             body_id: None,
             wake_id: None,
             source_document_id: None,

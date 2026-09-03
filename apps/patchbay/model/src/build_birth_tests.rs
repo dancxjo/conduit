@@ -39,7 +39,7 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
     let mut editor = editor(include_str!("../../../../examples/hello.conduit"));
     let mut lifecycle = BuildBirthController::new();
     let build = lifecycle.document(&editor).unwrap();
-    assert_eq!(build.mode, PatchbayMode::SeedOpened);
+    assert_eq!(build.mode, PatchbayMode::FormOpened);
     assert_eq!(build.revisions.saved_revision, 0);
     assert_eq!(build.revisions.checked_revision, Some(0));
 
@@ -62,12 +62,11 @@ fn build_birth_wake_replan_play_and_lull_use_exact_canonical_values() {
     let (replacement_plan, replacement_play) = planned_on_fresh_host(&editor);
     assert_ne!(first_plan.plan_id, replacement_plan.plan_id);
     assert_eq!(born_body.state, BodyState::Lulled);
-    assert_eq!(
-        born_body.events,
-        vec![BodyLifecycleEvent::Born {
-            sign_id: SignId::from("build/born/body")
-        }]
-    );
+    assert!(matches!(
+        born_body.events.as_slice(),
+        [BodyLifecycleEvent::Born { initial_workset, workload_revision: 0, sign_id }]
+            if initial_workset == &born_body.workset && sign_id.as_str() == "build/born/body"
+    ));
     assert!(lifecycle.wake_value().is_none());
 
     editor

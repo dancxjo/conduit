@@ -282,7 +282,6 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
     .is_ok());
 
     let mut disembodied_wake = valid.basis.clone();
-    disembodied_wake.seed_id = None;
     disembodied_wake.body_id = None;
     disembodied_wake.source_document_id = None;
     disembodied_wake.checked_form_id = None;

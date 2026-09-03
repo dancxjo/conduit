@@ -63,8 +63,14 @@ impl NativeBodyWorkbench {
         let attachment =
             PatchbayBodyAttachment::open_serialized(&encoded_evidence, model_entrance(entrance))
                 .map_err(NativeBodyWorkbenchError::Entrance)?;
-        if attachment.evidence().body.source_document_id != graph.source_document_id
-            || attachment.evidence().body.checked_form_id != graph.checked_form_id
+        if !attachment
+            .evidence()
+            .body
+            .workset
+            .contains(&conduit_body::ResidentForm::new(
+                graph.source_document_id.clone(),
+                graph.checked_form_id.clone(),
+            ))
         {
             return Err(NativeBodyWorkbenchError::ProgramIdentityMismatch);
         }
@@ -117,11 +123,10 @@ impl NativeBodyWorkbench {
             state_text: self.current.status_line.clone(),
             detail: self.current.placement_line.into(),
             exact_basis: format!(
-                "body={} evidence-revision={} source={} checked={}",
+                "body={} evidence-revision={} active-forms={}",
                 self.current.body_id.as_str(),
                 self.evidence_revision,
-                self.current.program.source_document_id.as_str(),
-                self.current.program.checked_form_id.as_str()
+                self.current.active_forms.len(),
             ),
             actions: vec![LifecycleFlowAction {
                 action,
@@ -169,11 +174,18 @@ impl NativeBodyWorkbench {
                 "{} · {:?} / {:?}",
                 self.current.friendly_name, place, aspect
             ),
-            "PROGRAM | BODY | HISTORY   CTRL-TAB TO MOVE   F2 LINEAR".into(),
+            "FORMS | BODY | HISTORY   CTRL-TAB TO MOVE   F2 LINEAR".into(),
         ];
         match self.destination {
             NativeWorkbenchDestination::Program => {
-                lines.push(format!("PROGRAM {}", self.current.program.label));
+                lines.push(format!("ACTIVE FORMS {}", self.current.active_forms.len()));
+                lines.extend(self.current.active_forms.iter().map(|form| {
+                    format!(
+                        "FORM source={} checked={}",
+                        form.source_document_id.as_str(),
+                        form.checked_form_id.as_str()
+                    )
+                }));
                 lines.push(
                     "The existing native Gear / Port / Cord canvas remains authoritative.".into(),
                 );
@@ -185,11 +197,7 @@ impl NativeBodyWorkbench {
             lines.extend([
                 format!("EXACT evidence-revision={}", self.evidence_revision),
                 format!("EXACT body={}", self.current.body_id.as_str()),
-                format!(
-                    "EXACT source={} checked={}",
-                    self.current.program.source_document_id.as_str(),
-                    self.current.program.checked_form_id.as_str()
-                ),
+                format!("EXACT active-forms={}", self.current.active_forms.len()),
                 format!("EXACT evidence-bytes={}", self.encoded_evidence.len()),
             ]);
             if self.destination == NativeWorkbenchDestination::History {

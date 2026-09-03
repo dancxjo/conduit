@@ -134,7 +134,7 @@ export function projectFlowScene(snapshot, lens = "world") {
     children.get(relation.source).push(relation.target);
   }
   const subjects = presentation.subjects.filter((subject) =>
-    ["Seed", "Body", "Host", "Part", "Gear"].includes(subject.role));
+    ["Form", "Body", "Host", "Part", "Gear"].includes(subject.role));
   if (subjects.length > MAX_FLOW_SUBJECTS) throw new Error("Flow subject bound exceeded");
   const nodes = subjects.map((subject) => ({
     id: subject.identity,

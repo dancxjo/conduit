@@ -2,7 +2,7 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use conduit_body::{BodyId, SeedId, WakeId};
+use conduit_body::{BodyId, WakeId};
 use conduit_core::{
     ActivePlayId, BaseImplementationId, CheckedFormId, ExpandedFormId, PlanId, SignId,
     SourceDocumentId,
@@ -33,7 +33,6 @@ impl PresentationContentId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationBasis {
-    pub seed_id: Option<SeedId>,
     pub body_id: Option<BodyId>,
     pub wake_id: Option<WakeId>,
     pub source_document_id: Option<SourceDocumentId>,
@@ -63,7 +62,6 @@ pub enum PresentationRole {
     Route,
     Diagnostic,
     Sign,
-    Seed,
     Info,
     Region,
     Collection,
@@ -230,7 +228,6 @@ impl Presentation {
             return Err(PresentationError::NonCanonicalSign);
         }
         for identity in [
-            self.basis.seed_id.as_ref().map(|value| value.as_str()),
             self.basis.body_id.as_ref().map(|value| value.as_str()),
             self.basis.wake_id.as_ref().map(|value| value.as_str()),
             self.basis
@@ -257,10 +254,8 @@ impl Presentation {
             validate_id(identity)?;
         }
         let embodied = self.basis.body_id.is_some();
-        if self.basis.seed_id.is_some() != embodied
-            || (self.basis.wake_id.is_some() && !embodied)
-            || self.basis.source_document_id.is_some() != embodied
-            || self.basis.checked_form_id.is_some() != embodied
+        if (self.basis.wake_id.is_some() && !embodied)
+            || self.basis.source_document_id.is_some() != self.basis.checked_form_id.is_some()
             || (self.basis.plan_id.is_some() && self.basis.expanded_form_id.is_none())
             || (self.basis.active_play_id.is_some() && self.basis.plan_id.is_none())
             || (!embodied
@@ -316,15 +311,9 @@ impl Presentation {
         self.validate_temporal()?;
         let total_bytes = self
             .basis
-            .seed_id
+            .body_id
             .as_ref()
             .map_or(0, |id| id.as_str().len())
-            .saturating_add(
-                self.basis
-                    .body_id
-                    .as_ref()
-                    .map_or(0, |id| id.as_str().len()),
-            )
             .saturating_add(
                 self.basis
                     .wake_id

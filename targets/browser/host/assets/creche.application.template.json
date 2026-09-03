@@ -20,6 +20,7 @@
       {"role":"raspberry-pi-adapter","specifier":"./targets/raspberry-pi/browser-deployment/creche-adapter.mjs"},
       {"role":"conduitos-adapter","specifier":"./targets/conduitos/browser-deployment/creche-adapter.mjs"}
     ]},
+    { "role": "reviewed-form-inventory", "kind": "content", "path": "forms/initial-body.conduit", "maximum_bytes": 4096, "dependencies": [] },
     { "role": "browser-host-bootstrap", "kind": "module", "path": "browser-host-bootstrap.mjs", "maximum_bytes": 4096, "dependencies": [{"role":"browser-host-membership","specifier":"./browser-host-membership.mjs"}] },
     { "role": "browser-host-membership", "kind": "module", "path": "browser-host-membership.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"browser-host-identity","specifier":"./browser-host-identity.mjs"}] },
     { "role": "browser-host-identity", "kind": "module", "path": "browser-host-identity.mjs", "maximum_bytes": 8192, "dependencies": [] },

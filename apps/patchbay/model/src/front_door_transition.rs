@@ -8,8 +8,8 @@ use conduit_core::SignId;
 use std::sync::Arc;
 
 use crate::{
-    front_door_topology::FrontDoorTopology, BodyJoinCandidate, FormEditor, LocalFrontDoor,
-    PatchbayModel, SeedCandidate,
+    front_door_topology::FrontDoorTopology, BodyJoinCandidate, FormCandidate, FormEditor,
+    LocalFrontDoor, PatchbayModel,
 };
 
 impl LocalFrontDoor {
@@ -32,24 +32,26 @@ impl LocalFrontDoor {
         )
     }
 
-    pub(super) fn born_from_seed(
+    pub(super) fn born_from_form(
         adapter: Arc<dyn crate::PatchbayHostAdapter>,
         model: PatchbayModel,
-        seed: SeedCandidate,
+        form: FormCandidate,
         revision: u64,
     ) -> Result<Self, String> {
-        let editor = seed.editor()?;
+        let editor = form.editor()?;
+        let checked_form_id = form.checked_form_id.clone();
         let body = Body::born(
-            seed.source_document_id,
-            seed.checked_form_id,
+            form.source_document_id,
+            checked_form_id.clone(),
             revision,
             SignId::from(format!("patchbay/front-door/born/{revision}")),
         )
         .map_err(|error| error.to_string())?;
         let membership =
             BodyMembership::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
-        let proof = MembershipProofId::bind(&format!("explicit-birth/{}", seed.seed_id.as_str()))
-            .map_err(|error| error.to_string())?;
+        let proof =
+            MembershipProofId::bind(&format!("explicit-birth/{}", checked_form_id.as_str()))
+                .map_err(|error| error.to_string())?;
         Self::from_existing(
             adapter, model, editor, body, None, membership, proof, revision, "born",
         )
@@ -67,12 +69,17 @@ impl LocalFrontDoor {
         revision: u64,
         transition: &str,
     ) -> Result<Self, String> {
+        let resident = body
+            .workset
+            .forms()
+            .first()
+            .ok_or("Body has no active Form to open")?;
         let form_name = editor
             .view()
             .checked
             .forms
             .iter()
-            .find(|form| form.checked_form_id == body.checked_form_id)
+            .find(|form| form.checked_form_id == resident.checked_form_id)
             .map(|form| form.name.clone())
             .ok_or("Body checked Form is absent from its source document")?;
         let here = PartId::bind(

@@ -24,7 +24,6 @@ struct JourneyProof {
     image_sha256: String,
     profile: &'static str,
     boot_id: String,
-    seed_id: String,
     source_document_id: String,
     checked_form_id: String,
     expanded_form_id: String,
@@ -118,7 +117,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "product-journey-front-door-timeout",
         )?;
         for (key, status) in [
-            ("ret", "seed-opened"),
+            ("ret", "form-opened"),
             ("f3", "born-lulled"),
             ("f4", "awake"),
             ("f5", "planned"),
@@ -133,7 +132,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "HOST ID",
             "BOOT ID",
             "CURRENT OFFERS",
-            "SEED ID",
+            "FORM SUBJECT",
             "SOURCE DOCUMENT ID",
             "CHECKED FORM ID",
             "EXPANDED FORM ID",
@@ -189,7 +188,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
         .collect::<BTreeMap<_, _>>();
     for status in [
-        "seed-opened",
+        "form-opened",
         "born-lulled",
         "awake",
         "planned",
@@ -204,7 +203,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             ));
         }
     }
-    let opened = by_status["seed-opened"];
+    let opened = by_status["form-opened"];
     if opened.get("body_id") != Some(&Value::Null)
         || opened.get("wake_id") != Some(&Value::Null)
         || opened.get("plan_id") != Some(&Value::Null)
@@ -256,7 +255,6 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "image_id",
         "host_id",
         "boot_id",
-        "seed_id",
         "source_document_id",
         "checked_form_id",
         "expanded_form_id",
@@ -285,7 +283,6 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         image_sha256: image.iso_sha256,
         profile: super::demo::DEMO_PROFILE,
         boot_id: text(opened, "boot_id")?,
-        seed_id: text(opened, "seed_id")?,
         source_document_id: text(opened, "source_document_id")?,
         checked_form_id: text(opened, "checked_form_id")?,
         expanded_form_id: text(opened, "expanded_form_id")?,
