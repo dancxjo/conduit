@@ -311,6 +311,16 @@ pub extern "C" fn conduit_browser_webrtc_session_maximum_frame_bytes() -> u32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_webrtc_session_maximum_payload_bytes() -> u32 {
+    ENDPOINT.with(|slot| {
+        slot.borrow()
+            .as_ref()
+            .map(|endpoint| endpoint.binding.limits.maximum_payload_bytes)
+            .unwrap_or(0)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_webrtc_session_maximum_in_flight_items() -> u32 {
     ENDPOINT.with(|slot| {
         slot.borrow()

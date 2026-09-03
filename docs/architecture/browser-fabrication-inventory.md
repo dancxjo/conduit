@@ -120,3 +120,34 @@ Clearing one application's records cannot reset Host identity, mutate Body
 membership, or revoke a Host. Book and Crèche receive only the bounded Host
 adapter from their application context; neither owns an ambient IndexedDB or
 localStorage path.
+
+## Line realization boundary
+
+`BROWSER_LINE_REALIZATIONS` is the checked join from each selectable browser
+Line fabrication identity to its exact portable `LineContract`, Base
+implementation, reviewed JavaScript artifact, runtime authority requirements,
+and finite session, message, queue, and buffer limits. The WebSocket realization
+is `conduit.base/websocket-rfc6455@1`: routed-network, message,
+full-duplex, ordered, reliable, no continuation, and plaintext-network. The
+WebRTC realization is `conduit.base/webrtc-data-channel@1`: point-to-point,
+message, full-duplex, ordered, reliable, no continuation, and authenticated and
+encrypted. Both admit at most four sessions, one in-flight item, 64 KiB per
+application payload, and 256 KiB buffered per session. WebSocket admits a 64 KiB
+message; WebRTC separately admits a 128 KiB framed protocol message so its
+bounded session control envelope does not consume the application payload.
+
+PROFILE selection alone does not create either offer. Boot must also observe a
+current provider, an endpoint grant, and endpoint authority. WebRTC additionally
+requires the current Body-scoped signaling bootstrap and session grant. Browser
+API presence alone sets none of those authority facts. Addresses, signaling
+data, and opaque credentials remain runtime Host inputs and never enter the
+authored Form; the browser adapter initiates only explicitly granted outbound
+sessions and does not treat network reachability as Body membership.
+
+Provider loss, endpoint-authority loss, signaling loss, session loss, pressure,
+cancellation, stale Boot or negotiation identity, unsupported APIs, and finite
+capacity exhaustion remain distinct refusals. There is no implicit reconnect:
+a later session requires new current authority. The same portable Form and Line
+contract may therefore select this browser realization or a materially different
+non-browser realization without changing authored transport syntax, because no
+such syntax exists in the Form.

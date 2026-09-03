@@ -101,6 +101,10 @@ fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
         conduit_browser_webrtc_session_maximum_frame_bytes(),
         FRAME_CAPACITY as u32
     );
+    assert_eq!(
+        conduit_browser_webrtc_session_maximum_payload_bytes(),
+        PAYLOAD_CAPACITY
+    );
     assert_eq!(conduit_browser_webrtc_session_maximum_in_flight_items(), 1);
     ENDPOINT.with(|slot| {
         assert_eq!(slot.borrow().as_ref().unwrap().binding, binding);
@@ -117,6 +121,7 @@ fn granted_start_reconstructs_exact_binding_and_refuses_non_hello() {
     assert!(conduit_browser_webrtc_session_start_granted(0, ready_length as u32) < 0);
     ENDPOINT.with(|slot| assert!(slot.borrow().is_none()));
     assert_eq!(conduit_browser_webrtc_session_maximum_frame_bytes(), 0);
+    assert_eq!(conduit_browser_webrtc_session_maximum_payload_bytes(), 0);
     assert_eq!(conduit_browser_webrtc_session_maximum_in_flight_items(), 0);
 
     let mut unsupported = dynamic_binding();

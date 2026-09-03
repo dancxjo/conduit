@@ -11,8 +11,8 @@ export const BROWSER_IMPLEMENTATION_CATALOG = Object.freeze([
   definition("browser/keyboard-events@1", "input/keyboard", ["resource"]),
   definition("browser/pointer-events@1", "input/pointer-source", ["resource"]),
   definition("browser/indexeddb@1", "storage/indexeddb@1", ["secure", "resource"]),
-  definition("browser/websocket@1", "line/websocket@1", ["secure", "provider"]),
-  definition("browser/webrtc-datachannel@1", "line/webrtc-datachannel@1", ["secure", "provider"]),
+  definition("browser/websocket@1", "line/websocket@1", ["secure", "provider", "endpoint", "authority"]),
+  definition("browser/webrtc-datachannel@1", "line/webrtc-datachannel@1", ["secure", "provider", "endpoint", "authority", "signaling", "session-grant"]),
   definition("browser/media-devices-camera@1", "media/camera@1", ["secure", "permission", "resource"]),
   definition("browser/media-devices-microphone@1", "media/microphone@1", ["secure", "permission", "resource"]),
   definition("browser/web-audio-output@1", "media/audio-output@1", ["secure", "activation", "resource"]),
@@ -114,8 +114,8 @@ export async function observeBrowserHostEnvironment(scope = globalThis) {
     "browser/keyboard-events@1": observation(Boolean(scope.KeyboardEvent), { resource_ready: Boolean(document), page_active: active }),
     "browser/pointer-events@1": observation(Boolean(scope.PointerEvent), { resource_ready: Boolean(document), page_active: active }),
     "browser/indexeddb@1": observation(Boolean(scope.indexedDB), { secure_context: Boolean(scope.isSecureContext), resource_ready: Boolean(scope.indexedDB) }),
-    "browser/websocket@1": observation(Boolean(scope.WebSocket), { secure_context: Boolean(scope.isSecureContext), provider_ready: true }),
-    "browser/webrtc-datachannel@1": observation(Boolean(scope.RTCPeerConnection), { secure_context: Boolean(scope.isSecureContext), provider_ready: true }),
+    "browser/websocket@1": observation(Boolean(scope.WebSocket), { secure_context: Boolean(scope.isSecureContext), provider_ready: true, endpoint_ready: false, authority_ready: false }),
+    "browser/webrtc-datachannel@1": observation(Boolean(scope.RTCPeerConnection), { secure_context: Boolean(scope.isSecureContext), provider_ready: true, endpoint_ready: false, authority_ready: false, signaling_ready: false, session_grant_ready: false }),
     "browser/media-devices-camera@1": observation(Boolean(navigator?.mediaDevices?.getUserMedia), { secure_context: Boolean(scope.isSecureContext) }),
     "browser/media-devices-microphone@1": observation(Boolean(navigator?.mediaDevices?.getUserMedia), { secure_context: Boolean(scope.isSecureContext) }),
     "browser/web-audio-output@1": observation(Boolean(scope.AudioContext || scope.webkitAudioContext), { secure_context: Boolean(scope.isSecureContext) }),
@@ -172,6 +172,18 @@ function inspect(implementation, available, input = {}) {
   }
   if (definition.prerequisites.includes("provider") && input.provider_ready !== true) {
     return state(implementation, definition, { configured, admitted, initialized, reason: "ProviderUnavailable" });
+  }
+  if (definition.prerequisites.includes("endpoint") && input.endpoint_ready !== true) {
+    return state(implementation, definition, { configured, admitted, initialized, reason: "EndpointUnavailable" });
+  }
+  if (definition.prerequisites.includes("authority") && input.authority_ready !== true) {
+    return state(implementation, definition, { configured, admitted, initialized, reason: "EndpointAuthorityAbsent" });
+  }
+  if (definition.prerequisites.includes("signaling") && input.signaling_ready !== true) {
+    return state(implementation, definition, { configured, admitted, initialized, reason: "SignalingBootstrapAbsent" });
+  }
+  if (definition.prerequisites.includes("session-grant") && input.session_grant_ready !== true) {
+    return state(implementation, definition, { configured, admitted, initialized, reason: "SessionGrantAbsent" });
   }
   if (definition.prerequisites.includes("resource") && input.resource_ready !== true) {
     return state(implementation, definition, { configured, admitted, initialized, reason: input.resource_lost ? "ResourceLost" : "ResourceNotAcquired" });

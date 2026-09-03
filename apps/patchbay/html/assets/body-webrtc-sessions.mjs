@@ -1,6 +1,6 @@
 import { BodyWebRtcSession } from "./body-webrtc-session.mjs";
 
-const MAXIMUM_WEB_RTC_SESSIONS = 16;
+const MAXIMUM_WEB_RTC_SESSIONS = 4;
 const MAXIMUM_GRANT_GENERATIONS = 2;
 
 function negotiationIdentity(value) {

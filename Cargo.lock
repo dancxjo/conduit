@@ -674,6 +674,7 @@ dependencies = [
 name = "conduit-host-browser-fabrication"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
  "conduit-host-fabrication",
 ]
 

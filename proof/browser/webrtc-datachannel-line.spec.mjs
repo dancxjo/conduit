@@ -69,6 +69,24 @@ async function activeSession(context) {
   return { left, right, leftReady, rightReady };
 }
 
+test("reviewed DataChannel bounds refuse oversized session configuration", async ({ context }) => {
+  await expect(connect(context, {
+    maximumMessageBytes: 129 * 1024,
+    maximumBufferedBytes: 256 * 1024,
+    maximumReceivedMessages: 1,
+  })).rejects.toThrow("maximumMessageBytes exceeds the reviewed Line bound");
+  await expect(connect(context, {
+    maximumMessageBytes: 1024,
+    maximumBufferedBytes: 257 * 1024,
+    maximumReceivedMessages: 1,
+  })).rejects.toThrow("maximumBufferedBytes exceeds the reviewed Line bound");
+  await expect(connect(context, {
+    maximumMessageBytes: 1024,
+    maximumBufferedBytes: 2048,
+    maximumReceivedMessages: 17,
+  })).rejects.toThrow("maximumReceivedMessages exceeds the reviewed Line bound");
+});
+
 test("two browser Hosts exchange bounded binary DataChannel messages then observe Line loss", async ({
   context,
 }) => {

@@ -1,6 +1,9 @@
 const DEFAULT_MAXIMUM_MESSAGE_BYTES = 2048;
 const DEFAULT_MAXIMUM_BUFFERED_BYTES = 8192;
 const DEFAULT_MAXIMUM_RECEIVED_MESSAGES = 4;
+export const MAXIMUM_WEBRTC_MESSAGE_BYTES = 128 * 1024;
+export const MAXIMUM_WEBRTC_BUFFERED_BYTES = 256 * 1024;
+export const MAXIMUM_WEBRTC_RECEIVED_MESSAGES = 16;
 
 function positiveInteger(value, label) {
   if (!Number.isSafeInteger(value) || value <= 0) {
@@ -42,6 +45,9 @@ export class BrowserWebRtcDataChannelLine {
       maximumMessageBytes,
       "maximumMessageBytes",
     );
+    if (this.#maximumMessageBytes > MAXIMUM_WEBRTC_MESSAGE_BYTES) {
+      throw new RangeError("maximumMessageBytes exceeds the reviewed Line bound");
+    }
     this.#maximumBufferedBytes = positiveInteger(
       maximumBufferedBytes,
       "maximumBufferedBytes",
@@ -49,10 +55,16 @@ export class BrowserWebRtcDataChannelLine {
     if (this.#maximumBufferedBytes < this.#maximumMessageBytes) {
       throw new RangeError("maximumBufferedBytes must admit one maximum message");
     }
+    if (this.#maximumBufferedBytes > MAXIMUM_WEBRTC_BUFFERED_BYTES) {
+      throw new RangeError("maximumBufferedBytes exceeds the reviewed Line bound");
+    }
     this.#maximumReceivedMessages = positiveInteger(
       maximumReceivedMessages,
       "maximumReceivedMessages",
     );
+    if (this.#maximumReceivedMessages > MAXIMUM_WEBRTC_RECEIVED_MESSAGES) {
+      throw new RangeError("maximumReceivedMessages exceeds the reviewed Line bound");
+    }
     this.#channel = channel;
     channel.binaryType = "arraybuffer";
     channel.bufferedAmountLowThreshold = Math.floor(this.#maximumBufferedBytes / 2);
