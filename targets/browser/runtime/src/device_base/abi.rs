@@ -224,6 +224,7 @@ pub extern "C" fn conduit_browser_serial_complete_acquisition(
                 let resource = AcquiredSerialResource {
                     host_id: state.host_id.clone(),
                     boot_id: state.boot_id.clone(),
+                    offer_generation: OfferGeneration(1),
                     handle_id: ResourceHandleId::from(handle.as_str()),
                     class_id: ResourceClassId::from(SERIAL_RESOURCE_CLASS),
                     base_implementation_id: BaseImplementationId::from(SERIAL_BASE_IMPLEMENTATION),

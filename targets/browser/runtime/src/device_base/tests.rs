@@ -57,6 +57,7 @@ fn resource() -> AcquiredSerialResource {
     AcquiredSerialResource {
         host_id: HostId::from("browser/one"),
         boot_id: BootId::from("browser-boot/one"),
+        offer_generation: OfferGeneration(1),
         handle_id: ResourceHandleId::from("serial/opaque-one"),
         class_id: ResourceClassId::from(SERIAL_RESOURCE_CLASS),
         base_implementation_id: BaseImplementationId::from(SERIAL_BASE_IMPLEMENTATION),
@@ -94,6 +95,34 @@ fn acquired() -> BrowserSerialSession {
         )
         .unwrap();
     session
+}
+
+#[test]
+fn device_context_exists_only_for_the_current_acquired_resource() {
+    let capabilities = vec![CapabilityId::from("device/acquire-webserial@1")];
+    assert!(BrowserSerialSession::new()
+        .current_device_association(capabilities.clone())
+        .is_none());
+
+    let mut session = acquired();
+    let association = session
+        .current_device_association(capabilities.clone())
+        .unwrap();
+    assert_eq!(association.host_id, offer().host_id);
+    assert_eq!(association.boot_id, offer().boot_id);
+    assert_eq!(association.offer_generation, offer().offer_generation);
+    assert_eq!(association.capability_ids, capabilities);
+    assert_eq!(association.resources[0].handle_id, resource().handle_id);
+    assert_eq!(
+        association.identity_evidence.strength,
+        conduit_core::DeviceIdentityStrength::BootLocalResource
+    );
+    assert!(association.validate_shape().is_ok());
+
+    session.device_lost().unwrap();
+    assert!(session
+        .current_device_association(vec![CapabilityId::from("device/acquire-webserial@1")])
+        .is_none());
 }
 
 fn playing() -> BrowserSerialSession {

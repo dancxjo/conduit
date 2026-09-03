@@ -1,5 +1,10 @@
 use super::*;
-use conduit_core::{BootId, HostId, LineAvailability, Observation, ObservationKind, SignId};
+use crate::current_device_for_capability;
+use conduit_core::{
+    BaseImplementationId, BootId, DeviceAssociation, DeviceId, DeviceIdentityEvidence,
+    DeviceIdentityFact, DeviceIdentityStrength, DeviceTruthDisposition, HostId, LineAvailability,
+    Observation, ObservationKind, SignId, PROTOCOL_VERSION,
+};
 use conduit_observatory::{
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
@@ -31,6 +36,7 @@ fn host_report(
         advertisement,
         state,
         capabilities,
+        devices: Vec::new(),
     }
 }
 
@@ -106,6 +112,44 @@ fn bounded_fleet_view_keeps_exact_boot_capability_resource_line_and_gap_facts() 
     assert!(document.contains("base=conduit.base/websocket-rfc6455@1"));
     assert!(document.contains("base=conduit.base/usb-cdc-acm@1"));
     assert!(document.contains("visible_gaps=3"));
+}
+
+#[test]
+fn capability_inspection_descends_to_optional_device_provenance() {
+    let mut snapshot = fleet_snapshot(true);
+    let advertisement = &snapshot.hosts[0].advertisement;
+    let capability_id = advertisement.capabilities[0].capability_id.clone();
+    let host_id = advertisement.host_id.clone();
+    let boot_id = advertisement.boot_id.clone();
+    let offer_generation = advertisement.offer_generation;
+    snapshot.hosts[0].devices = vec![DeviceAssociation {
+        protocol_version: PROTOCOL_VERSION,
+        device_id: DeviceId::from("device/provider-one"),
+        host_id: host_id.clone(),
+        boot_id: boot_id.clone(),
+        offer_generation,
+        disposition: DeviceTruthDisposition::Current,
+        capability_ids: vec![capability_id.clone()],
+        resources: vec![],
+        identity_evidence: DeviceIdentityEvidence {
+            strength: DeviceIdentityStrength::ProviderAsserted,
+            provider: BaseImplementationId::from("fixture/provider@1"),
+            facts: vec![DeviceIdentityFact {
+                name: "provider-subject".into(),
+                value: "one".into(),
+            }],
+        },
+    }];
+
+    let mut topology = PatchbayTopology::new(1).unwrap();
+    topology.ingest(&snapshot).unwrap();
+    let report = topology.current_report().unwrap();
+    let association =
+        current_device_for_capability(report, &host_id, &boot_id, &capability_id).unwrap();
+    assert_eq!(association.device_id.as_str(), "device/provider-one");
+    let lines = topology.document(None).unwrap().lines().join("\n");
+    assert!(lines.contains("DEVICE device/provider-one"));
+    assert!(lines.contains("DEVICE not identified"));
 }
 
 #[test]

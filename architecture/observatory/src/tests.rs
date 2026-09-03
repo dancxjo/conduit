@@ -1,4 +1,5 @@
 use alloc::vec;
+use alloc::vec::Vec;
 
 use super::{
     build_report, render_text_report, unsupported_state, BootProofClass, BuildInclusionPathReport,
@@ -6,7 +7,11 @@ use super::{
     ImageBuildTraceReport, LineReport, MemoryMapSummary, ObservatorySnapshot, OfferFreshness,
     OperationalState, PlanLifecycle, RetentionReport, SealedBootProvenanceReport, SNAPSHOT_SCHEMA,
 };
-use conduit_core::{ArtifactId, TerminalDisposition};
+use conduit_core::{
+    ArtifactId, BaseImplementationId, DeviceAssociation, DeviceId, DeviceIdentityEvidence,
+    DeviceIdentityFact, DeviceIdentityStrength, DeviceTruthDisposition, OfferGeneration,
+    TerminalDisposition, PROTOCOL_VERSION,
+};
 use conduit_signal_conformance::exact_std_pico_usb_plan;
 
 #[test]
@@ -37,6 +42,7 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
     ]
     .into_iter()
     .map(|advertisement| HostReport {
+        devices: Vec::new(),
         capabilities: advertisement
             .capabilities
             .iter()
@@ -85,6 +91,78 @@ fn projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof() {
 }
 
 #[test]
+fn projects_current_and_explicitly_historical_device_context_without_owning_it() {
+    let exact = exact_std_pico_usb_plan().unwrap();
+    let advertisement = exact.source_advertisement;
+    let capability_id = advertisement.capabilities[0].capability_id.clone();
+    let association = |device: &str, boot_id, disposition| DeviceAssociation {
+        protocol_version: PROTOCOL_VERSION,
+        device_id: DeviceId::from(device),
+        host_id: advertisement.host_id.clone(),
+        boot_id,
+        offer_generation: OfferGeneration(1),
+        disposition,
+        capability_ids: vec![capability_id.clone()],
+        resources: vec![],
+        identity_evidence: DeviceIdentityEvidence {
+            strength: DeviceIdentityStrength::ProviderAsserted,
+            provider: BaseImplementationId::from("fixture/provider@1"),
+            facts: vec![DeviceIdentityFact {
+                name: "provider-subject".into(),
+                value: "bounded-fixture-one".into(),
+            }],
+        },
+    };
+    let devices = vec![
+        association(
+            "device/current",
+            advertisement.boot_id.clone(),
+            DeviceTruthDisposition::Current,
+        ),
+        association(
+            "device/history",
+            conduit_core::BootId::from("old-boot"),
+            DeviceTruthDisposition::HistoricalLost {
+                terminal_sign_id: Some(conduit_core::SignId::from("sign/device-lost")),
+            },
+        ),
+    ];
+    let snapshot = ObservatorySnapshot {
+        schema: SNAPSHOT_SCHEMA.into(),
+        hosts: vec![HostReport {
+            advertisement: advertisement.clone(),
+            state: OperationalState::Available,
+            capabilities: vec![],
+            devices,
+        }],
+        bases: vec![],
+        lines: vec![],
+        plans: vec![],
+        plays: vec![],
+        observations: vec![],
+        historical_observations: vec![],
+        sealed_boot_provenance: vec![],
+        retention: RetentionReport {
+            item_capacity: 1,
+            retained_items: 0,
+            dropped_items: 0,
+        },
+    };
+
+    let report = build_report(&snapshot).unwrap();
+    assert_eq!(report.devices.len(), 2);
+    let rendered = render_text_report(&report);
+    assert!(rendered.contains("device id=device/current disposition=Current"));
+    assert!(rendered.contains("device id=device/history disposition=HistoricalLost"));
+
+    let mut stale = snapshot;
+    stale.hosts[0].devices[0].offer_generation = OfferGeneration(2);
+    assert!(build_report(&stale)
+        .unwrap_err()
+        .contains("WrongCurrentGeneration"));
+}
+
+#[test]
 fn traces_current_profile_build_image_host_boot_and_inclusion_without_owning_truth() {
     let exact = exact_std_pico_usb_plan().expect("current std/Pico USB plan resolves");
     let advertisement = exact.sink_advertisement;
@@ -93,6 +171,7 @@ fn traces_current_profile_build_image_host_boot_and_inclusion_without_owning_tru
         hosts: vec![HostReport {
             advertisement: advertisement.clone(),
             state: OperationalState::Available,
+            devices: Vec::new(),
             capabilities: advertisement
                 .capabilities
                 .iter()

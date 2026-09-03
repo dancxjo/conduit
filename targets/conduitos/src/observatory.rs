@@ -163,6 +163,7 @@ pub fn prepare_export(
             advertisement: prepared.advertisement.clone(),
             state: OperationalState::Available,
             capabilities,
+            devices: Vec::new(),
         }],
         bases,
         lines: Vec::new(),

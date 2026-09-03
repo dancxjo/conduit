@@ -154,6 +154,7 @@ fn host_report(advertisement: &HostAdvertisement, state: OperationalState) -> Ho
     HostReport {
         advertisement: advertisement.clone(),
         state,
+        devices: Vec::new(),
         capabilities: advertisement
             .capabilities
             .iter()

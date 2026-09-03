@@ -15,6 +15,7 @@ mod configuration;
 mod control_loop;
 mod deadline;
 mod delivery;
+mod device;
 mod execution;
 mod execution_fusion;
 mod face;
@@ -43,6 +44,7 @@ pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfig
 pub use control_loop::*;
 pub use deadline::*;
 pub use delivery::*;
+pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
 pub use face::{CheckedFace, FaceStartupParameter};
@@ -115,6 +117,7 @@ macro_rules! identity_type {
 identity_type!(HostId);
 identity_type!(BootId);
 identity_type!(CapabilityId);
+identity_type!(DeviceId);
 identity_type!(PlannerProfileId);
 identity_type!(KindId);
 // Immutable identity of one exact semantic-kind contract revision.
