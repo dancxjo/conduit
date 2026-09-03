@@ -118,6 +118,11 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
             "text/javascript; charset=utf-8",
         ),
         (
+            "targets/browser/host/assets/browser-boot-profile.mjs",
+            "browser-boot-profile.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
             "targets/browser/host/assets/media-host.mjs",
             "media-host.mjs",
             "text/javascript; charset=utf-8",

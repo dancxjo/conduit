@@ -55,7 +55,8 @@ export async function startApplication(application) {
   presentationFor = application.presentationFor;
   storage = application.storage;
   renderHostStatus("Starting browser Host…", "status");
-  host = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
+  const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
+  host = Object.freeze({ ...initialized, admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot });
   requireCrecheAbi(host.runtime);
   await restoreDurableBody();
   renderHostStatus("Crèche ready", "success-status");

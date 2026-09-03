@@ -125,6 +125,48 @@ async function executeClassic(resource, bytes) {
   } finally { URL.revokeObjectURL(url); }
 }
 
+async function loadProfileGatedBootModule(bytes, expectedDigest) {
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength < 1 || bytes.byteLength > 64 * 1024
+    || !DIGEST_PATTERN.test(expectedDigest ?? "") || await sha256(bytes) !== expectedDigest) {
+    throw new Error("profile-gated Boot module failed exact byte admission");
+  }
+  const source = decoder.decode(bytes);
+  if (/\bimport\s*(?:\(|["'])|\bfrom\s*["']/.test(source)) {
+    throw new Error("profile-gated Boot module is not self-contained");
+  }
+  const url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+  let module;
+  try { module = await import(url); } finally { URL.revokeObjectURL(url); }
+  if (typeof module.admitBrowserBoot !== "function" || typeof module.observeBrowserHostEnvironment !== "function"
+    || !Array.isArray(module.BROWSER_IMPLEMENTATION_CATALOG)) {
+    throw new Error("profile-gated Boot module has an incompatible finite entrance");
+  }
+  return Object.freeze({
+    admitBrowserBoot: module.admitBrowserBoot,
+    observeBrowserHostEnvironment: module.observeBrowserHostEnvironment,
+    implementationCatalog: Object.freeze(module.BROWSER_IMPLEMENTATION_CATALOG.map(({ implementation_id, revision }) => Object.freeze({ implementation_id, revision }))),
+  });
+}
+
+async function admitProfileGatedBrowserBoot({
+  moduleBytes, moduleDigest, imageBytes, expectedImageId, expectedProfileId,
+  runtimeBytes, artifactContentDigest, bootId,
+}) {
+  const module = await loadProfileGatedBootModule(moduleBytes, moduleDigest);
+  return module.admitBrowserBoot({
+    imageBytes,
+    expectedImageId,
+    expectedProfileId,
+    runtimeBytes,
+    bootModuleDigest: moduleDigest,
+    artifactContentDigest,
+    bootId,
+    availableImplementations: module.implementationCatalog.map(({ implementation_id, revision }) => ({ id: implementation_id, revision })),
+    observations: await module.observeBrowserHostEnvironment(globalThis),
+    bundleVariant: "superset",
+  });
+}
+
 export async function loadBrowserApplication(manifestReference) {
   const manifestUrl = new URL(manifestReference, document.baseURI);
   if (manifestUrl.origin !== location.origin) throw new Error("application package must be same-origin");
@@ -211,7 +253,10 @@ export async function loadBrowserApplication(manifestReference) {
   if (typeof module.startApplication !== "function") throw new Error("application module has no bounded start entrance");
   const presentation = createApplicationPresentationHost();
   const presentationFor = (scope) => createApplicationPresentationHost(scope);
-  const context = Object.freeze({ schema: "conduit.browser/application-context@1", manifest, storage, presentation, presentationFor, bytes, text });
+  const context = Object.freeze({
+    schema: "conduit.browser/application-context@1", manifest, storage, presentation, presentationFor, bytes, text,
+    admitProfileGatedBrowserBoot,
+  });
   await module.startApplication(context);
   globalThis.__conduitBrowserApplication = context;
   return context;
