@@ -15,6 +15,7 @@ use conduit_system_continuity::{
 
 fn available_host(advertisement: conduit_core::HostAdvertisement) -> HostReport {
     HostReport {
+        devices: Vec::new(),
         capabilities: advertisement
             .capabilities
             .iter()

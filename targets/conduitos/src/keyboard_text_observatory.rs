@@ -156,6 +156,7 @@ pub fn completed_snapshot(
             advertisement: prepared.advertisement.clone(),
             state: OperationalState::Available,
             capabilities,
+            devices: Vec::new(),
         }],
         bases,
         lines: Vec::new(),

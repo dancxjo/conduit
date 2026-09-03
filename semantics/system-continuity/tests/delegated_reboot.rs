@@ -161,6 +161,7 @@ fn authorized_reboot_separates_acceptance_line_loss_and_completed_proof() {
                 advertisement: advertisement(&replacement, true),
                 state: OperationalState::Available,
                 capabilities: vec![],
+                devices: vec![],
             },
             conduit_core::SignId::from("sign/new-boot-report"),
         )

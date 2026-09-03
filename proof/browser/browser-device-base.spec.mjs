@@ -156,6 +156,20 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
   expect(truth.resource_handle).toMatch(/^serial\//);
   expect(truth.usb_vendor_id).toBe(0x2e8a);
   expect(truth.usb_product_id).toBe(0x000a);
+  expect(truth.current_device).toMatchObject({
+    protocol_version: 1,
+    host_id: truth.host_id,
+    boot_id: truth.boot_id,
+    offer_generation: 1,
+    disposition: "current",
+    capability_ids: ["device/acquire-webserial@1"],
+    identity_evidence: {
+      strength: "boot-local-resource",
+      provider: "browser/web-serial@1",
+    },
+  });
+  expect(truth.current_device.device_id).toContain(truth.boot_id);
+  expect(truth.current_device.resources[0].handle_id).toBe(truth.resource_handle);
   expect(truth.transfer_bounds).toEqual({
     maximum_transfer_bytes: 4096,
     maximum_reads: 8,
@@ -211,6 +225,7 @@ test("explicit Web Serial acquisition creates one exact finite Base then bounded
   expect(JSON.parse(await page.locator("#device-evidence").textContent())).toMatchObject({
     phase: "terminal",
     terminal: "Closed",
+    current_device: null,
     admitted_reads: 1,
     admitted_writes: 1,
     retained_bytes: 0,

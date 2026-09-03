@@ -397,6 +397,7 @@ fn available_host(advertisement: &HostAdvertisement) -> HostReport {
     HostReport {
         advertisement: advertisement.clone(),
         state: OperationalState::Available,
+        devices: Vec::new(),
         capabilities: advertisement
             .capabilities
             .iter()

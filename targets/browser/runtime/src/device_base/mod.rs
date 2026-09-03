@@ -1,12 +1,13 @@
 //! Finite browser device-Base admission. Browser APIs remain in the Host adapter.
 
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId, HostId,
-    HostOperationContractId, HostOperationId, OfferGeneration, PlanId, ResourceClassId,
-    ResourceHandleId,
+    AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId,
+    CapabilityId, DeviceAssociation, HostId, HostOperationContractId, HostOperationId,
+    OfferGeneration, PlanId, ResourceClassId, ResourceHandleId,
 };
 
 mod abi;
+mod device_projection;
 mod evidence;
 mod transfer;
 mod web_usb;
@@ -16,6 +17,7 @@ pub(crate) const SERIAL_REQUEST_AUTHORITY: &str = "conduit.authority/request-web
 pub(crate) const SERIAL_USE_AUTHORITY: &str = "conduit.authority/use-web-serial@1";
 pub(crate) const SERIAL_RESOURCE_CLASS: &str = "conduit.resource/web-serial-port@1";
 pub(crate) const SERIAL_BASE_IMPLEMENTATION: &str = "browser/web-serial@1";
+pub(crate) const SERIAL_ACQUISITION_CAPABILITY: &str = "device/acquire-webserial@1";
 pub(crate) const MAXIMUM_SERIAL_RESULT_BYTES: usize = 2_048;
 pub(crate) const MAXIMUM_SERIAL_TRANSFER_BYTES: usize = 4_096;
 pub(crate) const MAXIMUM_SERIAL_TRANSFERS: u16 = 40_000;
@@ -97,6 +99,7 @@ pub(crate) struct SerialAcquisitionRequest {
 pub(crate) struct AcquiredSerialResource {
     pub(crate) host_id: HostId,
     pub(crate) boot_id: BootId,
+    pub(crate) offer_generation: OfferGeneration,
     pub(crate) handle_id: ResourceHandleId,
     pub(crate) class_id: ResourceClassId,
     pub(crate) base_implementation_id: BaseImplementationId,
@@ -202,6 +205,7 @@ pub(crate) struct BrowserSerialSession {
     expected_operation: Option<HostOperationId>,
     expected_host_id: Option<HostId>,
     expected_boot_id: Option<BootId>,
+    expected_offer_generation: Option<OfferGeneration>,
     retained_transfer: Option<(SerialTransferDirection, usize)>,
     admitted_reads: u16,
     admitted_writes: u16,
@@ -215,6 +219,7 @@ impl BrowserSerialSession {
             expected_operation: None,
             expected_host_id: None,
             expected_boot_id: None,
+            expected_offer_generation: None,
             retained_transfer: None,
             admitted_reads: 0,
             admitted_writes: 0,
@@ -243,6 +248,15 @@ impl BrowserSerialSession {
 
     pub(crate) const fn admitted_signal_operations(&self) -> u16 {
         self.admitted_signal_operations
+    }
+
+    /// Projects current acquired-resource truth into optional Device context.
+    /// Before acquisition and after loss/closure there is no current Device.
+    pub(crate) fn current_device_association(
+        &self,
+        capability_ids: Vec<CapabilityId>,
+    ) -> Option<DeviceAssociation> {
+        device_projection::current_device_association(&self.phase, capability_ids)
     }
 
     pub(crate) fn seal_acquisition(
@@ -279,6 +293,7 @@ impl BrowserSerialSession {
         self.expected_operation = Some(request.operation_id.clone());
         self.expected_host_id = Some(offer.host_id.clone());
         self.expected_boot_id = Some(offer.boot_id.clone());
+        self.expected_offer_generation = Some(offer.offer_generation);
         self.phase = BrowserSerialPhase::AcquisitionPlanned { plan_id, request };
         Ok(())
     }
@@ -316,6 +331,7 @@ impl BrowserSerialSession {
                 || resource.boot_id.as_str().is_empty()
                 || self.expected_host_id.as_ref() != Some(&resource.host_id)
                 || self.expected_boot_id.as_ref() != Some(&resource.boot_id)
+                || self.expected_offer_generation != Some(resource.offer_generation)
                 || resource.handle_id.as_str().is_empty()
                 || resource.class_id.as_str() != SERIAL_RESOURCE_CLASS
                 || resource.base_implementation_id.as_str() != SERIAL_BASE_IMPLEMENTATION
@@ -334,6 +350,7 @@ impl BrowserSerialSession {
         self.expected_operation = None;
         self.expected_host_id = None;
         self.expected_boot_id = None;
+        self.expected_offer_generation = None;
         self.phase = match result {
             SerialAcquisitionResult::Acquired(resource) => {
                 BrowserSerialPhase::ResourceTruth(*resource)
@@ -431,6 +448,7 @@ impl BrowserSerialSession {
         self.expected_operation = None;
         self.expected_host_id = None;
         self.expected_boot_id = None;
+        self.expected_offer_generation = None;
         self.retained_transfer = None;
         self.phase = match self.phase {
             BrowserSerialPhase::AcquisitionPlanned { .. }

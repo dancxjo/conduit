@@ -3,6 +3,8 @@
 use conduit_observatory::{build_report, ObservatoryReport, ObservatorySnapshot};
 use std::collections::VecDeque;
 
+use crate::topology_hosts::render_hosts;
+
 pub const MAX_TOPOLOGY_LINES: usize = 256;
 pub const MAX_RETAINED_REPORT_BYTES: usize = 64 * 1024;
 
@@ -126,79 +128,6 @@ impl PatchbayTopology {
         }
         Ok(TopologyDocument { lines })
     }
-}
-
-fn render_hosts(
-    lines: &mut Vec<String>,
-    report: &ObservatoryReport,
-) -> Result<(), TopologyViewError> {
-    let mut hosts = report.hosts.iter().collect::<Vec<_>>();
-    hosts.sort_by(|left, right| {
-        (&left.host_id, &left.boot_id).cmp(&(&right.host_id, &right.boot_id))
-    });
-    push_line(lines, format!("HOSTS {}", hosts.len()))?;
-    for host in hosts {
-        push_line(
-            lines,
-            format!(
-                "  HOST {} / BOOT {} state={:?} profile={} generation={}",
-                host.host_id.as_str(),
-                host.boot_id.as_str(),
-                host.state,
-                host.profile.as_str(),
-                host.offer_generation.0
-            ),
-        )?;
-        let mut capabilities = report
-            .capabilities
-            .iter()
-            .filter(|row| row.host_id == host.host_id && row.boot_id == host.boot_id)
-            .collect::<Vec<_>>();
-        capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-        for capability in capabilities {
-            push_line(
-                lines,
-                format!(
-                    "    OFFER {} kind={} contract={} implementation={} support={:?} availability={:?} freshness={:?}",
-                    capability.capability_id.as_str(),
-                    capability.kind_id.as_str(),
-                    capability.kind_contract_revision.as_str(),
-                    capability.implementation_id.as_str(),
-                    capability.support,
-                    capability.availability,
-                    capability.freshness
-                ),
-            )?;
-        }
-        let mut planners = host.planner_capabilities.iter().collect::<Vec<_>>();
-        planners.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
-        for planner in planners {
-            push_line(
-                lines,
-                format!(
-                    "    PLANNER {} hosts={} operations={} connections={}",
-                    planner.profile_id.as_str(),
-                    planner.limits.maximum_host_advertisements,
-                    planner.limits.maximum_gears,
-                    planner.limits.maximum_connections
-                ),
-            )?;
-        }
-        let mut resources = host.resources.iter().collect::<Vec<_>>();
-        resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-        for resource in resources {
-            push_line(
-                lines,
-                format!(
-                    "    RESOURCE {} class={} capacity={}",
-                    resource.pool_id.as_str(),
-                    resource.class_id.as_str(),
-                    resource.capacity_units
-                ),
-            )?;
-        }
-    }
-    Ok(())
 }
 
 fn render_bases(
@@ -456,6 +385,8 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
     7usize
         .saturating_add(report.hosts.len())
         .saturating_add(report.capabilities.len())
+        .saturating_add(report.capabilities.len())
+        .saturating_add(report.devices.len())
         .saturating_add(report.bases.len())
         .saturating_add(report.plans.len())
         .saturating_add(report.fragments.len())
@@ -481,7 +412,7 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
         )
 }
 
-fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewError> {
+pub(crate) fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewError> {
     if lines.len() == MAX_TOPOLOGY_LINES {
         return Err(TopologyViewError::PresentationTooLarge);
     }

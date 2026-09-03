@@ -50,6 +50,8 @@ fn validate_hosts(
         if !host_boots.insert(key) {
             return Err("duplicate host/boot report".to_string());
         }
+        conduit_core::validate_device_associations(&host.advertisement, &host.devices)
+            .map_err(|refusal| format!("invalid Host Device association: {refusal:?}"))?;
         validate_capability_statuses(&host.capabilities, &host.advertisement.capabilities)?;
     }
     Ok(host_boots)

@@ -48,6 +48,24 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.availability
         );
     }
+    let _ = writeln!(output, "devices {}", report.devices.len());
+    for device in &report.devices {
+        let association = &device.association;
+        let _ = writeln!(
+            output,
+            "device id={} disposition={:?} host={} boot={} generation={} capabilities={:?} resources={:?} identity_strength={:?} identity_provider={} identity_facts={:?}",
+            association.device_id.as_str(),
+            association.disposition,
+            association.host_id.as_str(),
+            association.boot_id.as_str(),
+            association.offer_generation.0,
+            association.capability_ids,
+            association.resources,
+            association.identity_evidence.strength,
+            association.identity_evidence.provider.as_str(),
+            association.identity_evidence.facts,
+        );
+    }
     let _ = writeln!(output, "bases {}", report.bases.len());
     for base in &report.bases {
         let _ = writeln!(

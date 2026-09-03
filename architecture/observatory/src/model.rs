@@ -3,11 +3,11 @@ use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
     CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
-    ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedFormId, FragmentId,
-    HostAdvertisement, HostBaseId, HostBaseKindId, HostId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, KindId, LineOffer, Observation, OfferGeneration,
-    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, PresentationId,
-    ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
+    DeviceAssociation, ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedFormId,
+    FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostId, HostOperationRequirement,
+    HostProfileId, ImplementationId, KindContractRevision, KindId, LineOffer, Observation,
+    OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor,
+    PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
     TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
@@ -70,6 +70,8 @@ pub struct HostReport {
     pub advertisement: HostAdvertisement,
     pub state: OperationalState,
     pub capabilities: Vec<CapabilityStatusReport>,
+    #[serde(default)]
+    pub devices: Vec<DeviceAssociation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -249,6 +251,11 @@ pub struct CapabilityRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DeviceRow {
+    pub association: DeviceAssociation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineRow {
     pub offer: LineOffer,
     pub state: OperationalState,
@@ -347,6 +354,7 @@ pub struct RetentionRow {
 pub struct ObservatoryReport {
     pub hosts: Vec<HostRow>,
     pub capabilities: Vec<CapabilityRow>,
+    pub devices: Vec<DeviceRow>,
     pub bases: Vec<BaseReport>,
     pub lines: Vec<LineRow>,
     pub plans: Vec<PlanRow>,

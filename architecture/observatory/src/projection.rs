@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use conduit_core::{ConnectionId, ObservationKind, PlacementId, Plan, PlanId};
 
 use crate::{
-    validate_snapshot, CapabilityAvailability, CapabilityRow, CapabilitySupport,
+    validate_snapshot, CapabilityAvailability, CapabilityRow, CapabilitySupport, DeviceRow,
     ExecutionRegionRow, FragmentRow, HostRow, LineRow, ObservatoryReport, ObservatorySnapshot,
     OfferFreshness, OperationalState, PlacementRow, PlanRow, RetentionRow, SignRow,
 };
@@ -60,6 +60,17 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
                     }),
                 }
             })
+        })
+        .collect::<Vec<_>>();
+
+    let devices = snapshot
+        .hosts
+        .iter()
+        .flat_map(|host| {
+            host.devices
+                .iter()
+                .cloned()
+                .map(|association| DeviceRow { association })
         })
         .collect::<Vec<_>>();
 
@@ -217,6 +228,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
     Ok(ObservatoryReport {
         hosts,
         capabilities,
+        devices,
         bases: snapshot.bases.clone(),
         lines,
         plans,

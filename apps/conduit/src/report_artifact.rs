@@ -29,6 +29,7 @@ pub fn snapshot_from_execution(
     let hosts = advertisements
         .into_iter()
         .map(|advertisement| HostReport {
+            devices: Vec::new(),
             capabilities: advertisement
                 .capabilities
                 .iter()

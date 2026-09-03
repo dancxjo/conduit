@@ -95,6 +95,7 @@ mod text_lab_explanation;
 mod text_lab_explanation_loss;
 mod theme;
 mod topology;
+mod topology_hosts;
 mod zero_body_authoring;
 mod zero_body_front_door;
 mod zero_body_projection;
@@ -294,6 +295,7 @@ pub use text_lab_explanation::{
 };
 pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
+pub use topology_hosts::current_device_for_capability;
 pub use zero_body_front_door::{
     BodyJoinCandidate, OpenedFrontDoorSubject, SeedCandidate, ZeroBodyFrontDoor,
     ZeroBodyFrontDoorProjection, MAX_FRONT_DOOR_BODY_CANDIDATES, MAX_FRONT_DOOR_REFUSAL_SIGNS,
@@ -476,6 +478,7 @@ impl PatchbayModel {
                 advertisement,
                 state,
                 capabilities,
+                devices: Vec::new(),
             }],
             bases: Vec::new(),
             lines: Vec::new(),

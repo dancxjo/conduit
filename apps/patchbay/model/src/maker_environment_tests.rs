@@ -171,6 +171,7 @@ fn snapshot(hosts: &[(&str, &str, &str)]) -> ObservatorySnapshot {
         hosts: hosts
             .iter()
             .map(|(host, boot, profile)| HostReport {
+                devices: Vec::new(),
                 advertisement: HostAdvertisement {
                     protocol_version: PROTOCOL_VERSION,
                     host_id: HostId::from(*host),

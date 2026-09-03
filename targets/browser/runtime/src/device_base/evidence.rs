@@ -1,6 +1,9 @@
 use super::abi::AbiState;
-use super::{BrowserSerialPhase, SERIAL_ACQUIRE_OPERATION, SERIAL_REQUEST_AUTHORITY};
-use conduit_core::PlanId;
+use super::{
+    BrowserSerialPhase, SERIAL_ACQUIRE_OPERATION, SERIAL_ACQUISITION_CAPABILITY,
+    SERIAL_REQUEST_AUTHORITY,
+};
+use conduit_core::{CapabilityId, PlanId};
 
 pub(super) fn refresh_evidence(state: &mut AbiState) {
     let (phase, terminal) = match state.session.phase() {
@@ -27,6 +30,9 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         .filter_map(|(bit, name)| (state.stages & bit != 0).then_some(name))
         .collect::<Vec<_>>();
     let resource = state.resource.as_ref();
+    let current_device = state
+        .session
+        .current_device_association(vec![CapabilityId::from(SERIAL_ACQUISITION_CAPABILITY)]);
     let value = serde_json::json!({
         "schema": "conduit.browser/web-serial-base-evidence@1",
         "host_id": state.host_id.as_str(), "boot_id": state.boot_id.as_str(),
@@ -45,6 +51,7 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         "use_authority_grant": resource.map(|value| value.use_authority_grant.as_str()),
         "usb_vendor_id": resource.and_then(|value| value.usb_vendor_id),
         "usb_product_id": resource.and_then(|value| value.usb_product_id),
+        "current_device": current_device,
         "configuration": {
             "baud_rate": state.configuration.baud_rate,
             "data_bits": state.configuration.data_bits,
