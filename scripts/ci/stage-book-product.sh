@@ -18,7 +18,7 @@ cp targets/browser/host/assets/book-navigation.mjs "$destination/book-navigation
 cp targets/browser/host/assets/book-inventory-presentation.mjs "$destination/book-inventory-presentation.mjs"
 cp targets/browser/host/assets/book-routing.mjs "$destination/book-routing.mjs"
 cp targets/browser/host/assets/book-runner-presentation.mjs "$destination/book-runner-presentation.mjs"
-cp targets/browser/host/assets/book-syntax-editor.mjs "$destination/book-syntax-editor.mjs"
+cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination/application-syntax-presentation.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp targets/browser/host/assets/browser-host-membership.mjs "$destination/browser-host-membership.mjs"
 cp targets/browser/host/assets/browser-host-identity.mjs "$destination/browser-host-identity.mjs"

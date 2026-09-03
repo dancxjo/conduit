@@ -2,10 +2,11 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const PROTOCOL = "conduit.syntax-highlight-projection@1";
 
-export function attachBookSyntaxEditor(textarea, runtime) {
-  if (!(textarea instanceof HTMLTextAreaElement)) throw new TypeError("Book syntax editor requires a textarea");
-  const container = textarea.closest('[data-application-key="source-field"]');
-  if (!container) throw new TypeError("Book syntax editor requires its source container");
+export function attachConduitSyntaxEditor(textarea, runtime) {
+  if (!(textarea instanceof HTMLTextAreaElement)) throw new TypeError("Conduit syntax editor requires a textarea");
+  const container = textarea.closest('[data-application-component="form-field"]');
+  if (!container) throw new TypeError("Conduit syntax editor requires a presentation form field");
+  container.dataset.applicationSyntax = "conduit";
   const backdrop = document.createElement("pre");
   backdrop.className = "syntax-highlight";
   backdrop.setAttribute("aria-hidden", "true");
@@ -25,8 +26,8 @@ export function attachBookSyntaxEditor(textarea, runtime) {
   return Object.freeze({ render });
 }
 
-export function createBookSyntaxExample(source, runtime) {
-  if (typeof source !== "string" || source.length === 0) throw new TypeError("Book syntax example requires source");
+export function createConduitSyntaxExample(source, runtime) {
+  if (typeof source !== "string" || source.length === 0) throw new TypeError("Conduit syntax example requires source");
   const example = document.createElement("pre");
   example.className = "syntax-example";
   example.setAttribute("aria-label", "Read-only Conduit example");
@@ -44,13 +45,13 @@ function renderSyntax(source, target, owner, runtime) {
     return;
   }
   const bytes = encoder.encode(source);
-  if (bytes.length > runtime.conduit_book_input_capacity()) {
+  if (bytes.length > runtime.conduit_syntax_input_capacity()) {
     renderPlain(source, target, owner, "refused");
     return;
   }
-  new Uint8Array(runtime.memory.buffer, runtime.conduit_book_input_ptr(), bytes.length).set(bytes);
-  const status = runtime.conduit_book_project_syntax(bytes.length);
-  if (status < 0 || runtime.conduit_book_output_len() === 0) {
+  new Uint8Array(runtime.memory.buffer, runtime.conduit_syntax_input_ptr(), bytes.length).set(bytes);
+  const status = runtime.conduit_syntax_project(bytes.length);
+  if (status < 0 || runtime.conduit_syntax_output_len() === 0) {
     renderPlain(source, target, owner, "refused");
     return;
   }
@@ -58,8 +59,8 @@ function renderSyntax(source, target, owner, runtime) {
   try {
     const output = new Uint8Array(
       runtime.memory.buffer,
-      runtime.conduit_book_output_ptr(),
-      runtime.conduit_book_output_len(),
+      runtime.conduit_syntax_output_ptr(),
+      runtime.conduit_syntax_output_len(),
     );
     projection = JSON.parse(decoder.decode(output));
     validateProjection(projection, bytes);

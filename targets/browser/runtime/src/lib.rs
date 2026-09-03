@@ -52,6 +52,8 @@ pub mod presentation_nucleus;
 ))]
 mod source_interaction;
 mod structured_offers;
+#[cfg(any(feature = "book-surface", feature = "creche-surface"))]
+mod syntax_projection;
 mod text_lab_live;
 pub mod text_lab_split;
 mod webchat;

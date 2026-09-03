@@ -24,6 +24,17 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   await expect(birth.locator('[data-application-key="program-help"]')).toHaveText("1 of 2 reviewed Forms selected; maximum 16.");
   await expect(name).toHaveAttribute("aria-describedby", /description/);
   await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
+  const source = birth.getByLabel("Conduit Form source");
+  const syntax = birth.locator('[data-application-syntax="conduit"] .syntax-highlight');
+  await expect(source).toHaveAttribute("data-syntax-disposition", "accepted");
+  await expect(syntax.locator(".syntax-keyword").first()).toHaveText("form");
+  await source.evaluate((element) => element.setSelectionRange(0, 4));
+  const selectedStyle = await source.evaluate((element) => {
+    const style = getComputedStyle(element, "::selection");
+    return { color: style.color, fill: style.webkitTextFillColor };
+  });
+  expect(selectedStyle.color).not.toBe("rgba(0, 0, 0, 0)");
+  expect(selectedStyle.fill).not.toBe("rgba(0, 0, 0, 0)");
   await expect(tradition.locator("option")).toHaveCount(24);
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 0");
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("not the Body ID");

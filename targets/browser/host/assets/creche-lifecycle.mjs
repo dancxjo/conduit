@@ -1,4 +1,5 @@
 import { nameFor, NAMING_SYSTEM_OPTIONS } from "./creche-names.mjs";
+import { attachConduitSyntaxEditor } from "./application-syntax-presentation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -37,7 +38,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     terminal: false,
   };
   const current = readCurrent(host.runtime);
-  const controls = { presentation, listingId, onDraft, onBirth() {
+  const controls = { presentation, runtime: host.runtime, listingId, onDraft, onBirth() {
     birth(runner, host, state, nextSequence(), onBodyChanged, controls);
   } };
   if (current) {
@@ -49,7 +50,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
   return runner;
 }
 
-function presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth = () => {} }) {
+function presentBirthControls(runner, state, { presentation, runtime, listingId, onDraft, onBirth = () => {} }) {
   const interactive = !state.terminal && !state.pending;
   const fieldActions = interactive ? [
     { id: "form.morse.toggle", event: "activate" },
@@ -70,12 +71,12 @@ function presentBirthControls(runner, state, { presentation, listingId, onDraft,
       state.initialForms = state.initialForms.includes(name)
         ? state.initialForms.filter((candidate) => candidate !== name)
         : [...state.initialForms, name];
-      presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth });
+      presentBirthControls(runner, state, { presentation, runtime, listingId, onDraft, onBirth });
       return;
     }
     if (event.action === "name.input") state.friendlyName = value;
-    if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
-    if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
+    if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, { presentation, runtime, listingId, onDraft, onBirth }); }
+    if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, { presentation, runtime, listingId, onDraft, onBirth }); }
     if (event.action === "source.input") { state.source = value; onDraft(value); }
     if (event.action === "birth.activate") onBirth();
   };
@@ -89,6 +90,7 @@ function presentBirthControls(runner, state, { presentation, listingId, onDraft,
     actions: sourceActions,
     nodes: birthSourceNodes(state, listingId),
   }, { onEvent: onEvent("birth-source") });
+  attachConduitSyntaxEditor(runner.querySelector(`[data-application-key="${listingId}"]`), runtime);
 }
 
 function birthFieldNodes(state) {

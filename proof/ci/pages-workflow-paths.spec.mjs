@@ -30,6 +30,20 @@ test("merged-PR deployment triggers exactly when PR product proof builds a carri
   assert.deepEqual(deployPaths, productPaths);
 });
 
+test("every browser product admits the complete shared presentation theme", () => {
+  const themeBytes = readFileSync("targets/browser/host/assets/application-theme.css").byteLength;
+  for (const path of [
+    "targets/browser/host/assets/book.application.template.json",
+    "targets/browser/host/assets/creche.application.template.json",
+    "apps/patchbay/html/assets/patchbay.application.template.json",
+  ]) {
+    const manifest = JSON.parse(readFileSync(path, "utf8"));
+    const resource = manifest.resources.find(({ role }) => role === "shared-presentation-style");
+    assert.ok(resource, `${path} omits the shared presentation theme`);
+    assert.ok(themeBytes <= resource.maximum_bytes, `${path} theme bound is stale`);
+  }
+});
+
 test("product jobs build the immutable PR head and deployments queue", () => {
   const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
   const checkoutCount = [...productWorkflow.matchAll(/uses: actions\/checkout@v7/g)].length;

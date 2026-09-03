@@ -3,7 +3,7 @@ import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/fl
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
-import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
+import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
@@ -104,7 +104,8 @@ function requireBookAbi(api) {
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_book_project_patchbay", "conduit_book_project_patchbay_recursive",
-    "conduit_book_project_syntax",
+    "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
+    "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project",
     "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
     "conduit_book_multi_output_ptr", "conduit_book_multi_output_len",
     "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
@@ -163,7 +164,7 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      copy.append(createBookSyntaxExample(source.join("\n"), host.runtime));
+      copy.append(createConduitSyntaxExample(source.join("\n"), host.runtime));
       chapter.append(createCrecheCallToAction());
       copy = appendCopy();
     } else if (line === "```conduit run two-host" || line === "```conduit run two-host plan") {
@@ -345,7 +346,7 @@ function createRunner(source, recursive = false, presentation = {}) {
     refreshCompactPatchbay(runner, value, recursive);
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
-  attachBookSyntaxEditor(textarea, host.runtime);
+  attachConduitSyntaxEditor(textarea, host.runtime);
   runner.actionControls = createBookRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
@@ -405,7 +406,7 @@ function createMultiHostRunner(source, showPlan) {
     },
   );
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
-  attachBookSyntaxEditor(textarea, host.runtime);
+  attachConduitSyntaxEditor(textarea, host.runtime);
   runner.actionControls = createBookRunnerActions(
     runnerPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),

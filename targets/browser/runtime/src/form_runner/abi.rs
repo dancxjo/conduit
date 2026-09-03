@@ -14,7 +14,6 @@ const ERROR_COMPLETE: i32 = -405;
 const ERROR_CANCEL: i32 = -406;
 const ERROR_INTERACTION: i32 = -407;
 const ERROR_PROJECTION: i32 = -408;
-const ERROR_HIGHLIGHT: i32 = -409;
 
 thread_local! {
     static SESSION: RefCell<Option<BookSession>> = const { RefCell::new(None) };
@@ -86,32 +85,6 @@ pub extern "C" fn conduit_book_project_patchbay_recursive(
     sequence: u64,
 ) -> i32 {
     project_patchbay(source_length, sequence, true)
-}
-
-/// Projects finite exact UTF-8 byte spans from the canonical Form highlighter.
-/// Parsing and checking remain separate, so incomplete edits still project.
-#[no_mangle]
-pub extern "C" fn conduit_book_project_syntax(source_length: usize) -> i32 {
-    clear_output();
-    if source_length == 0 || source_length > INPUT_BYTES {
-        return ERROR_INPUT;
-    }
-    INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let result = core::str::from_utf8(&input[..source_length])
-            .map_err(|_| "Book syntax source is not UTF-8".to_owned())
-            .and_then(super::syntax_projection::project);
-        input[..source_length].fill(0);
-        match result {
-            Ok(projection) => write_output(&projection)
-                .map(|()| STATUS_READY)
-                .unwrap_or(ERROR_OUTPUT),
-            Err(message) => {
-                let _ = write_output(&super::refusal(message));
-                ERROR_HIGHLIGHT
-            }
-        }
-    })
 }
 
 fn project_patchbay(source_length: usize, sequence: u64, recursive: bool) -> i32 {
@@ -395,21 +368,5 @@ mod tests {
             "conduit.browser/selected-human-machinery@1"
         );
         assert_eq!(machinery["implementations"].as_array().unwrap().len(), 3);
-    }
-
-    #[test]
-    fn syntax_projection_accepts_incomplete_source_and_clears_input() {
-        let source = b"form unfinished { value=\"still typing";
-        INPUT.with(|input| input.borrow_mut()[..source.len()].copy_from_slice(source));
-        assert_eq!(conduit_book_project_syntax(source.len()), STATUS_READY);
-        let projection: serde_json::Value = OUTPUT.with(|output| {
-            serde_json::from_slice(&output.borrow()[..conduit_book_output_len()]).unwrap()
-        });
-        assert_eq!(
-            projection["protocol"],
-            super::super::syntax_projection::SYNTAX_PROJECTION_VERSION
-        );
-        assert_eq!(projection["source_bytes"], source.len());
-        INPUT.with(|input| assert!(input.borrow()[..source.len()].iter().all(|byte| *byte == 0)));
     }
 }
