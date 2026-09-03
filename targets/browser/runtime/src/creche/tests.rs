@@ -170,6 +170,39 @@ fn duplicate_absent_and_over_capacity_initial_selections_refuse_before_birth() {
 }
 
 #[test]
+fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
+    let inventory = super::initial_forms::reviewed_inventory(TWO_FORMS).unwrap();
+    assert_eq!(inventory.forms.len(), 3);
+    assert_eq!(inventory.forms[0].title, "Desk Telegraph");
+    assert!(inventory
+        .forms
+        .iter()
+        .all(|form| form.source_document_id == inventory.source_document_id));
+    assert!(inventory
+        .forms
+        .iter()
+        .all(|form| !form.required_kinds.is_empty()));
+
+    let mut stale: Vec<super::initial_forms::InitialFormSelection> =
+        serde_json::from_str(&selection(TWO_FORMS, &["memory_lantern"])).unwrap();
+    stale[0].checked_form_id = "checked/stale".into();
+    session::clear_for_test();
+    let interaction = admit_source(TWO_FORMS.as_bytes(), 29).unwrap();
+    let refusal = session::birth(
+        "browser/creche",
+        "browser-boot/creche",
+        "stale lantern",
+        &serde_json::to_string(&stale).unwrap(),
+        TWO_FORMS,
+        29,
+        interaction,
+    )
+    .unwrap_err();
+    assert!(refusal.contains("stale or substituted exact identity"));
+    assert!(session::current().is_none());
+}
+
+#[test]
 fn malformed_or_empty_form_source_is_refused_before_body_creation() {
     session::clear_for_test();
     let malformed = "form broken { nope: missing/kind }";
