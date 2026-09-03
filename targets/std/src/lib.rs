@@ -46,6 +46,7 @@ pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
 pub mod hosted_midi;
+pub mod hosted_model;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_synth;

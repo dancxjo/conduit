@@ -464,6 +464,7 @@ name = "conduit-ai"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-kernel",
  "conduit-planner",
