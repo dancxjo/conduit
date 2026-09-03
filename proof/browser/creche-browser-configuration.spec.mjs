@@ -18,7 +18,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   await expect(runner.locator('[data-application-key="physical-status"]')).toHaveAttribute("data-application-component", "status");
   await expect(runner.locator('[data-application-key="physical-evidence"]')).toHaveAttribute("data-application-component", "artifact");
 
-  await expect(runner.locator('[data-stage="obtain"]')).not.toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("waiting");
   await expect(runner.locator('[data-application-key^="configuration-group-"]')).toHaveCount(6);
   await expect(runner.locator('[data-application-action^="implementation.toggle-"]')).toHaveCount(12);
   await expect(runner.getByRole("button").filter({ hasText: "browser/dom@1" })).toContainText("Remove");
@@ -38,10 +38,10 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   await runner.getByRole("button", { name: "Back / Edit" }).click();
   await expect(runner.getByRole("button", { name: "Review Host" })).toBeVisible();
   await runner.getByRole("button", { name: "Review Host" }).click();
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.obtainment.distribution_sha256).toBe(release.bundle_sha256);
   expect(evidence.obtainment.image_content_digest).not.toBe(release.bundle_sha256);
@@ -59,7 +59,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   });
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("BrowserBundleLoaded");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   const realized = JSON.parse(await runner.locator("details code").textContent()).realization;
   expect(realized).toMatchObject({
     schema: "conduit.browser/creche-bundle-load@1",

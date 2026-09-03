@@ -491,7 +491,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     let evidence = JSON.parse(await runner.locator("details code").textContent());
     const c3Manifest = JSON.parse(await readFile(
       new URL("../../target/creche-product/artifacts/esp32-c3-generic-release.json", import.meta.url),
@@ -510,7 +510,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.bin");
     expect(requestedPaths).not.toContain("/conduit/artifacts/esp32-c3-generic-release.json");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     const spore = runner.locator('[data-application-key="download-spore"]');
     evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
@@ -548,7 +548,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const conduitosRunner = page.locator(".physical-host-runner");
     await conduitosRunner.locator('[data-application-key="physical-target"]').selectOption("conduitos/x86_64/pc");
-    await expect(conduitosRunner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(conduitosRunner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await conduitosRunner.getByRole("button", { name: "Bind Body invitation" }).click();
     const conduitosDownload = conduitosRunner.locator('[data-application-key="download-spore"]');
     evidence = JSON.parse(await conduitosRunner.locator("details code").textContent());
@@ -785,9 +785,9 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await expect(runner.locator("input[type=file]")).toHaveCount(0);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(/-pico-w\.uf2$/);
     const { readRp2040BodySpore } = await import("../../targets/rp2040/browser-deployment/index.mjs");
@@ -823,9 +823,9 @@ test("the same Crèche lifecycle consumes packaged and template-specialized fabr
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator(".fabrication-strategy").selectOption(strategy);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     return JSON.parse(await runner.locator("details code").textContent());
   };
   const packaged = await prepare("fabrication-packaged", "packaged-exact");
@@ -843,7 +843,7 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
   const source = await (await page.request.get(new URL("./creche-physical.mjs", entrance.url).href)).text();
   const catalogSource = await (await page.request.get(new URL("./creche-target-catalog.mjs", entrance.url).href)).text();
@@ -940,7 +940,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
   await runner.getByRole("button", { name: "Review Host" }).click();
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/browser@1" },
@@ -970,7 +970,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   expect(evidence.obtainment.bundle_sha256).toBe(evidence.obtainment.image_content_digest);
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   const bundleHandoff = runner.locator('[data-application-key="download-spore"]');
   await expect(bundleHandoff).toContainText("Download ZIP");
   evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -1003,11 +1003,11 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   expect(bundle.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("BrowserBundleLoaded");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
-  await expect(runner.locator('[data-stage="observe"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Admit Part and offers" }).click();
-  await expect(runner.locator('[data-stage="admit"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.realization).toMatchObject({
     terminal: "BrowserBundleLoaded",
@@ -1038,7 +1038,7 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
   await expect(hostedHandoff).toContainText("Download ZIP");
@@ -1131,7 +1131,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(new RegExp(`-${profile.profileId}\\.zip$`));
@@ -1170,7 +1170,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     let evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry.target.profile_id).toBe(profile.profileId);
     expect(evidence.target_entry.target_profile).toMatchObject({
@@ -1188,7 +1188,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     });
 
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     evidence = JSON.parse(await runner.locator("details code").textContent());
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(new RegExp(`-${profile.releaseName}\\.bin$`));
@@ -1256,9 +1256,9 @@ test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal"
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "WrongPort"');
   const evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -1400,7 +1400,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await runner.getByRole("button", { name: "Cancel current operation" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "Cancelled"');
   await page.evaluate(() => globalThis.__releaseFixtureObtainment());
-  await expect(runner.locator('[data-stage="obtain"]')).not.toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("waiting");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ phase: "terminal", cancellations: 1, obtainment: null });
   expect(evidence.terminal).toMatchObject({ operation: "obtain", terminal: "Cancelled" });
@@ -1702,23 +1702,23 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
   const birth = await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Invitation, realization, Boot, join, membership, offers, Plan, and Play remain absent");
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Realization, Boot, join, membership, offers, Plan, and Play remain absent");
 
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("RebootRequested");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("RebootRequested");
   await expect(runner.locator(".physical-status")).toContainText("No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted");
 
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
-  await expect(runner.locator('[data-stage="observe"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Admission remains an explicit action");
 
   await runner.getByRole("button", { name: "Admit Part and offers" }).click();
-  await expect(runner.locator('[data-stage="admit"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("current offers are ready. No Plan or Play was created");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding.body_id).toBe(birth.bodyId);
@@ -1758,12 +1758,12 @@ test("Add a physical Host retains a refused WebUSB acquisition as terminal", asy
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const deploy = runner.getByRole("button", { name: "Realize selected Host" });
   await deploy.click();
   await expect(runner.locator(".physical-status")).toContainText("This USB acquisition is terminal");
-  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("waiting");
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("waiting");
   await expect(deploy).toBeDisabled();
 });
 
@@ -1772,7 +1772,7 @@ test("Add a physical Host retains the exact Picoboot refusal chain", async ({ pa
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   const evidence = JSON.parse(await runner.locator("details code").textContent());

@@ -52,7 +52,7 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
   const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET);
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/orange-pi@1", label: "Orange Pi computers" },

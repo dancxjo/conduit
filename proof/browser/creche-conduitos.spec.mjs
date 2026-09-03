@@ -63,7 +63,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
   });
   const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(X86);
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.obtainment).toMatchObject({ target_id: X86, artifact_role: "product-host", image_id: release.manifest.image_id, image_sha256: release.manifest.artifact.sha256, image_bytes: release.manifest.artifact.bytes, does_not_prove: ["load", "boot", "join", "membership"] });
   expect(release.requested).toEqual([
@@ -123,7 +123,7 @@ test("catalog exposes every reviewed ConduitOS product Host and keeps carriers e
   }
   await expect(runner.locator('[data-application-key="physical-target"] option[value="conduitos/generic"]')).toHaveCount(0);
   await runner.locator('[data-application-key="physical-target"]').selectOption(AARCH64);
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry.target_profile).toMatchObject({ architecture: "aarch64", machine: "virt", artifact_role: "product-host", firmware: "QEMU_EFI.fd", boot_entry: "BOOTAA64.EFI", supported_carriers: ["downloadable-disk-image"], unavailable_carriers: ["browser-raw-disk-writer", "browser-vm-launcher", "network-boot"] });
 });
@@ -133,7 +133,7 @@ for (const target of PROMOTED) {
     const release = await installRelease(page, target.manifest);
     const runner = await birthBody(page);
     await runner.locator('[data-application-key="physical-target"]').selectOption(target.id);
-    await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry.target_profile).toMatchObject({
       architecture: target.architecture,
@@ -145,7 +145,7 @@ for (const target of PROMOTED) {
     });
     expect(evidence.obtainment).toMatchObject({ target_id: target.id, artifact_role: "product-host" });
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+    await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(/\.iso$/);
     const bound = JSON.parse(await runner.locator("details code").textContent());

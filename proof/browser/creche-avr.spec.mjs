@@ -70,7 +70,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
   await birthBody(page);
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET_ID);
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
@@ -109,7 +109,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
   });
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
   const download = runner.locator('[data-application-key="download-spore"]');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({

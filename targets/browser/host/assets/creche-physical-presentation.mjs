@@ -68,6 +68,27 @@ export function presentPhysicalActions(state) {
   } });
 }
 
+export function presentPhysicalProgress(state) {
+  const stages = [
+    ["obtain", "1 · Obtain exact machinery"],
+    ["bind", "2 · Bind invitation"],
+    ["realize", "3 · Deploy, install, or attach"],
+    ["observe", "4 · Observe Boot + join"],
+    ["admit", "5 · Admit Part + offers"],
+  ];
+  const completed = stages.filter(([id]) => state.stages[id] !== "waiting").length;
+  state.presentation.present("physical-progress", {
+    revision: ++state.presentationRevision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "stack", action: null, key: "physical-progress-stack", text: "" },
+      { parent: 0, component: "progress", action: null, key: "physical-progress", text: "Add one physical Host", value: `${completed}/${stages.length}`, valueCapacity: 11 },
+      { parent: 0, component: "definition-table", action: null, key: "physical-stages", text: "Physical Host stages" },
+      ...stages.map(([id, label]) => ({ parent: 2, component: "definition", action: null, key: `physical-stage-${id}`, text: label, value: state.stages[id], valueCapacity: 256 })),
+    ],
+  });
+}
+
 export function presentPhysicalSelection(state) {
   const controlState = state.selectionDisabled ? "unavailable" : "ready";
   const support = state.entry.intentions;

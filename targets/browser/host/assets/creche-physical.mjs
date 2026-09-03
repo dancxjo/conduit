@@ -1,5 +1,5 @@
 import { PHYSICAL_HOST_INTENTIONS } from "./creche-target-catalog.mjs";
-import { presentPhysicalActions, presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalSelection, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
+import { presentPhysicalActions, presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalProgress, presentPhysicalSelection, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
 const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
@@ -11,13 +11,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
   runner.innerHTML = `
-    <ol class="physical-stages" aria-label="Add one physical Host">
-      <li data-stage="obtain"><strong>1 · Obtain exact machinery</strong><span>waiting</span></li>
-      <li data-stage="bind"><strong>2 · Bind invitation</strong><span>waiting</span></li>
-      <li data-stage="realize"><strong>3 · Deploy, install, or attach</strong><span>waiting</span></li>
-      <li data-stage="observe"><strong>4 · Observe Boot + join</strong><span>waiting</span></li>
-      <li data-stage="admit"><strong>5 · Admit Part + offers</strong><span>waiting</span></li>
-    </ol>
+    <div data-application-slot="physical-progress"></div>
     <div class="physical-selection">
       <div class="select-field" data-application-slot="physical-mode-control"></div>
       <div class="select-field" data-application-slot="physical-target-control"></div>
@@ -54,6 +48,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     selectionDisabled: false,
     actionEnabled: null,
     cancelEnabled: false,
+    stages: { obtain: "waiting", bind: "waiting", realize: "waiting", observe: "waiting", admit: "waiting" },
   };
 
   state.changeMode = (mode) => selectMode(runner, host, state, mode);
@@ -66,6 +61,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     cancel: () => cancelActive(runner, state, true),
   })[action]?.();
   presentPhysicalActions(state);
+  presentPhysicalProgress(state);
   selectTarget(runner, host, state, catalog.entries[0].target.id);
   return runner;
 }
@@ -105,7 +101,7 @@ function selectMode(runner, host, state, mode) {
   state.observation = null;
   state.admission = null;
   clearDownload(runner, state);
-  resetStages(runner);
+  resetStages(state);
   setButtons(state, null);
   state.selectionDisabled = false;
   presentPhysicalSelection(state);
@@ -138,7 +134,7 @@ function selectMode(runner, host, state, mode) {
   }), (result) => {
     state.obtainment = result;
     state.phase = "obtained";
-    completeStage(runner, "obtain", `${result.resultKind} · exact`);
+    completeStage(state, "obtain", `${result.resultKind} · exact`);
     setButtons(state, "bind");
     status(runner, state, "Exact machinery result retained. Invitation, realization, Boot, join, membership, offers, Plan, and Play remain absent.");
   });
@@ -154,7 +150,7 @@ function bindInvitation(runner, host, state) {
   }), (result) => {
     state.binding = result;
     state.phase = "bound";
-    completeStage(runner, "bind", short(result.prepared.spore_id));
+    completeStage(state, "bind", short(result.prepared.spore_id));
     state.selectionDisabled = true;
     presentPhysicalSelection(state);
     setOptionsDisabled(runner, true);
@@ -199,7 +195,7 @@ function realizeHost(runner, host, state) {
   }), (result) => {
     state.realization = result;
     state.phase = "realized";
-    completeStage(runner, "realize", result.terminal);
+    completeStage(state, "realize", result.terminal);
     setButtons(state, "observe");
     status(runner, state, "Carrier realization completed. No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted.");
   });
@@ -216,7 +212,7 @@ function observeJoin(runner, host, state) {
   }), (result) => {
     state.observation = result;
     state.phase = "observed";
-    completeStage(runner, "observe", short(result.join.boot_id));
+    completeStage(state, "observe", short(result.join.boot_id));
     setButtons(state, "admit");
     status(runner, state, "Fresh Boot advertisement and invitation-bound join observed. Admission remains an explicit action.");
   });
@@ -226,7 +222,7 @@ function admitPart(runner, host, state, onBodyChanged) {
   void operate(runner, state, "admit", () => Promise.resolve(admitObservation(host.runtime, state.observation.join)), (result) => {
     state.admission = { evidence: result };
     state.phase = "admitted";
-    completeStage(runner, "admit", `revision ${result.membership_revision}`);
+    completeStage(state, "admit", `revision ${result.membership_revision}`);
     setButtons(state, null);
     status(runner, state, `Physical Part admitted; ${result.offer_count} current offers are ready. No Plan or Play was created.`);
     onBodyChanged?.();
@@ -421,17 +417,14 @@ function outputError(api, operation, code) {
   return Object.assign(new Error(evidence?.message ?? `${operation} refused (${code})`), { code: "BodyRefusal", evidence });
 }
 
-function resetStages(runner) {
-  for (const stage of runner.querySelectorAll(".physical-stages li")) {
-    stage.classList.remove("complete");
-    stage.querySelector("span").textContent = "waiting";
-  }
+function resetStages(state) {
+  for (const name of Object.keys(state.stages)) state.stages[name] = "waiting";
+  presentPhysicalProgress(state);
 }
 
-function completeStage(runner, name, value) {
-  const stage = runner.querySelector(`[data-stage="${name}"]`);
-  stage.classList.add("complete");
-  stage.querySelector("span").textContent = value;
+function completeStage(state, name, value) {
+  state.stages[name] = value;
+  presentPhysicalProgress(state);
 }
 
 function setButtons(state, enabled) {

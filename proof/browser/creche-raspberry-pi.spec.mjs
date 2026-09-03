@@ -64,7 +64,7 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
   const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(PI_OS_TARGET);
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/raspberry-pi@1" },
@@ -150,7 +150,7 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(BARE_TARGET);
   await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
-  await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
+  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/raspberry-pi@1" },

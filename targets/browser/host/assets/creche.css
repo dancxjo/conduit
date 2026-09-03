@@ -53,8 +53,8 @@ dd { margin:0; }
 pre { max-height:20rem; overflow:auto; padding:.8rem; background:#1f2824; color:#eef4ef; }
 .creche-body-context [data-application-component="panel"] { display:grid; gap:.2rem; padding:.7rem 1rem; border-left:4px solid var(--amber); background:var(--field); }
 .creche-body-context p { margin:0; font-weight:700; }
-.physical-stages, [data-application-key="graduation-criteria"] { display:grid; grid-template-columns:repeat(auto-fit,minmax(8rem,1fr)); gap:.5rem; padding:0; list-style:none; }
-.physical-stages li, [data-application-key="graduation-criteria"] [data-application-component="panel"] { padding:.7rem; border:1px solid var(--line); background:var(--field); }
+[data-application-key="physical-stages"], [data-application-key="graduation-criteria"] { display:grid; grid-template-columns:repeat(auto-fit,minmax(8rem,1fr)); gap:.5rem; padding:0; }
+[data-application-key^="physical-stage-"], [data-application-key="graduation-criteria"] [data-application-component="panel"] { padding:.7rem; border:1px solid var(--line); background:var(--field); }
 .body-biography [data-application-key="biography-records"] { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.6rem 1rem; padding:.7rem; border:1px solid var(--line); background:var(--field); }
 .error { color:var(--failure); }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
