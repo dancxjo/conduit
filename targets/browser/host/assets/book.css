@@ -60,27 +60,13 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 }
 .editor { position: relative; grid-area: editor; min-width: 0; min-height: 22rem; background: var(--conduit-background); }
 [data-application-key="source-editor"] { position: relative; min-width: 0; min-height: 25rem; }
-[data-application-key="source-field"] { position: relative; min-width: 0; min-height: 25rem; }
-.syntax-highlight {
-  position: absolute; inset: 0; z-index: 0; margin: 0; padding: 3rem 1.25rem 5.5rem;
-  overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
-  white-space: pre-wrap; overflow-wrap: normal;
-  font: 500 .91rem/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
-}
+[data-application-key="source-field"] { min-height: 25rem; --conduit-syntax-padding: 3rem 1.25rem 5.5rem; }
 .syntax-example {
   max-width: 43rem; margin: 1.5rem 0; padding: 1.25rem; overflow: auto;
   border: 1px solid var(--conduit-structure-secondary); border-radius: 10px; color: var(--conduit-text-primary); background: var(--conduit-background);
   white-space: pre; font: 500 .86rem/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
 .syntax-example:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-.syntax-comment { color: #91aa9d; font-style: italic; }
-.syntax-keyword { color: #ffcf70; font-weight: 750; }
-.syntax-name { color: #e9f1ec; }
-.syntax-identity { color: #8ddfc0; }
-.syntax-string { color: #ffd7a0; }
-.syntax-number, .syntax-literal { color: #d9b8ff; }
-.syntax-operator { color: #ff9f8f; }
-.syntax-delimiter { color: #b9cbc1; }
 [data-application-key="source-label"] { position: absolute; top: .8rem; left: 1rem; z-index: 2; color: var(--amber); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
 [data-application-key="source-help"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .birth-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-content: start; padding: 1.25rem; }
@@ -98,11 +84,9 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 .birth-editor .actions { position: static; margin-top: auto; }
 textarea {
   position: relative; z-index: 1; width: 100%; height: 100%; min-height: 25rem; resize: vertical; border: 0; outline: 0;
-  padding: 3rem 1.25rem 5.5rem; color: transparent; caret-color: #fff; background: transparent;
-  -webkit-text-fill-color: transparent;
+  padding: 3rem 1.25rem 5.5rem;
   font: 500 .91rem/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
-textarea::selection { background: rgb(119 218 168 / 32%); }
 .compact-patchbay { grid-area: patchbay; min-width: 0; margin: 0; padding: .9rem; overflow: auto; border-bottom: 1px solid var(--conduit-structure-secondary); color: var(--conduit-text-primary); background: var(--conduit-surface); }
 .compact-patchbay figcaption { display: grid; gap: .15rem; margin-bottom: .8rem; text-align: left; }
 .compact-patchbay figcaption span { color: var(--amber); font-size: .65rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
