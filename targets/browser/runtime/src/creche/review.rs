@@ -1,7 +1,9 @@
 //! Deterministic combined review of a proposed Body workload against Host offers.
 
 use super::initial_forms::InitialFormSelection;
-use conduit_core::{BaseImplementationId, HostAdvertisement, HostId, ResourceClassId};
+use conduit_core::{
+    BaseImplementationId, CapabilityId, HostAdvertisement, HostId, ResourceClassId,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -12,7 +14,9 @@ pub(super) struct InitialWorkloadReview {
     pub(super) selected_form_count: usize,
     pub(super) required_kinds: Vec<String>,
     pub(super) proposed_hosts: Vec<ProposedHost>,
-    pub(super) plan_count: usize,
+    pub(super) reviewed_realization_count: usize,
+    pub(super) body_plan_created: bool,
+    pub(super) play_created: bool,
     pub(super) authority_acquired: bool,
     pub(super) resources_acquired: bool,
 }
@@ -47,6 +51,7 @@ pub(super) fn review(
     )?;
     let mut required_kinds = BTreeSet::new();
     let mut resource_totals = BTreeMap::<(HostId, ResourceClassId), u32>::new();
+    let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
 
     for selected_form in &selected {
         let form = checked
@@ -91,9 +96,15 @@ pub(super) fn review(
                 )
             },
         )?;
-        accumulate_resources(hosts, &placements, &mut resource_totals)?;
+        accumulate_requirements(
+            hosts,
+            &placements,
+            &mut resource_totals,
+            &mut capability_totals,
+        )?;
     }
     validate_combined_resources(hosts, &resource_totals)?;
+    validate_combined_capabilities(hosts, &capability_totals)?;
 
     Ok(InitialWorkloadReview {
         schema: "conduit.creche/initial-workload-review@1".into(),
@@ -109,16 +120,19 @@ pub(super) fn review(
                 offer_generation: host.offer_generation.0,
             })
             .collect(),
-        plan_count: selected.len(),
+        reviewed_realization_count: selected.len(),
+        body_plan_created: false,
+        play_created: false,
         authority_acquired: false,
         resources_acquired: false,
     })
 }
 
-fn accumulate_resources(
+fn accumulate_requirements(
     hosts: &[HostAdvertisement],
     placements: &conduit_planner::PlacementChoices,
-    totals: &mut BTreeMap<(HostId, ResourceClassId), u32>,
+    resource_totals: &mut BTreeMap<(HostId, ResourceClassId), u32>,
+    capability_totals: &mut BTreeMap<(HostId, CapabilityId), u32>,
 ) -> Result<(), String> {
     for placement in placements.by_gear.values() {
         let host = hosts
@@ -130,13 +144,42 @@ fn accumulate_resources(
             .iter()
             .find(|capability| capability.capability_id == placement.capability_id)
             .ok_or_else(|| "planned capability vanished during combined review".to_string())?;
+        let instances = capability_totals
+            .entry((host.host_id.clone(), capability.capability_id.clone()))
+            .or_default();
+        *instances = instances
+            .checked_add(1)
+            .ok_or_else(|| "combined capability instance count overflowed".to_string())?;
         for requirement in &capability.resource_requirements {
-            let total = totals
+            let total = resource_totals
                 .entry((host.host_id.clone(), requirement.class_id.clone()))
                 .or_default();
             *total = total
                 .checked_add(requirement.units)
                 .ok_or_else(|| "combined resource requirement overflowed".to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_combined_capabilities(
+    hosts: &[HostAdvertisement],
+    totals: &BTreeMap<(HostId, CapabilityId), u32>,
+) -> Result<(), String> {
+    for ((host_id, capability_id), required) in totals {
+        let host = hosts.iter().find(|host| &host.host_id == host_id).unwrap();
+        let capability = host
+            .capabilities
+            .iter()
+            .find(|capability| &capability.capability_id == capability_id)
+            .unwrap();
+        if *required > u32::from(capability.limits.max_active_instances) {
+            return Err(format!(
+                "combined initial workload requires {required} active instances of capability {:?} on Host {:?}, above offered limit {}",
+                capability_id.as_str(),
+                host_id.as_str(),
+                capability.limits.max_active_instances,
+            ));
         }
     }
     Ok(())
@@ -216,7 +259,9 @@ mod tests {
             )
             .unwrap();
             assert_eq!(result.selected_form_count, names.len());
-            assert_eq!(result.plan_count, names.len());
+            assert_eq!(result.reviewed_realization_count, names.len());
+            assert!(!result.body_plan_created);
+            assert!(!result.play_created);
             assert!(!result.authority_acquired);
             assert!(!result.resources_acquired);
         }
@@ -251,6 +296,22 @@ mod tests {
         )
         .unwrap_err()
         .contains("combined initial workload"));
+
+        let mut instance_limited = browser("browser/instance-limited");
+        for capability in &mut instance_limited.capabilities {
+            capability.limits.max_active_instances = 1;
+        }
+        assert!(review(
+            THREE,
+            &selection(
+                THREE,
+                &["morse_network", "memory_lantern", "desk_telegraph"],
+            ),
+            &[instance_limited],
+            &crate::installed_browser::local_bases(),
+        )
+        .unwrap_err()
+        .contains("active instances"));
     }
 
     #[test]
@@ -277,6 +338,6 @@ form note {
         )
         .unwrap();
         assert_eq!(result.proposed_hosts.len(), 2);
-        assert_eq!(result.plan_count, 2);
+        assert_eq!(result.reviewed_realization_count, 2);
     }
 }
