@@ -132,6 +132,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "HOST ID",
             "BOOT ID",
             "CURRENT OFFERS",
+            "FORM SUBJECT",
             "SOURCE DOCUMENT ID",
             "CHECKED FORM ID",
             "EXPANDED FORM ID",
