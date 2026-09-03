@@ -24,13 +24,15 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
       });
     },
     actions(slot, entries) {
-      return present(slot, {
+      const result = present(slot, {
         actions: entries.map((_, index) => ({ id: `action-${index}`, event: "activate" })),
         nodes: [
           { parent: null, component: "action-group", key: "actions", text: "Available actions", action: null },
           ...entries.map((entry, index) => ({ parent: 0, component: "button", key: `action-${index}`, text: entry.label, state: entry.disabled ? "unavailable" : "ready", action: entry.disabled ? null : index })),
         ],
       }, { onEvent(event) { entries[Number(event.action.slice("action-".length))]?.run(); } });
+      scope.querySelector(`[data-application-slot="${slot}"]`).querySelectorAll("button").forEach((control, index) => entries[index].annotate?.(control));
+      return result;
     },
     status(slot, text, component = "status") {
       return present(slot, { actions: [], nodes: [{ parent: null, component, key: "status", text, action: null }] });
@@ -79,6 +81,32 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
           control.setAttribute("aria-pressed", String(chunk[index].identity === selectedIdentity));
           chunk[index].annotate?.(control);
         });
+      }
+      activeListChunks.set(slotPrefix, usedChunks);
+    },
+    boundedArtifacts(slotPrefix, entries) {
+      const slots = [];
+      for (let index = 0; ; index += 1) {
+        const slot = scope.querySelector(`[data-application-slot="${slotPrefix}-${index}"]`);
+        if (!slot) break;
+        slots.push(slot);
+      }
+      if (entries.length > slots.length * 4) throw new Error(`shared ${slotPrefix} capacity exceeded`);
+      const usedChunks = Math.ceil(entries.length / 4), previousChunks = activeListChunks.get(slotPrefix) ?? 0;
+      for (let slotIndex = 0; slotIndex < Math.max(usedChunks, previousChunks); slotIndex += 1) {
+        const root = slots[slotIndex], chunk = entries.slice(slotIndex * 4, slotIndex * 4 + 4), slot = `${slotPrefix}-${slotIndex}`;
+        root.hidden = chunk.length === 0;
+        if (chunk.length === 0) { present(slot, { actions: [], nodes: [{ parent: null, component: "stack", key: "empty", text: "", action: null }] }); continue; }
+        const actions = chunk.flatMap(entry => entry.actions);
+        const nodes = [{ parent: null, component: "grid", key: "artifacts", text: "", action: null }];
+        let actionIndex = 0;
+        chunk.forEach((entry, entryIndex) => {
+          const parent = nodes.length;nodes.push({ parent: 0, component: "artifact", key: `artifact-${entryIndex}`, text: entry.title, action: null });
+          entry.details.forEach((detail, detailIndex) => nodes.push({ parent, component: "paragraph", key: `detail-${entryIndex}-${detailIndex}`, text: detail, action: null }));
+          entry.actions.forEach((action, entryActionIndex) => { nodes.push({ parent, component: "button", key: `action-${entryIndex}-${entryActionIndex}`, text: action.label, action: actionIndex });actionIndex += 1; });
+        });
+        present(slot, { actions: actions.map((_, index) => ({ id: `artifact-action-${index}`, event: "activate" })), nodes }, { onEvent(event) { actions[Number(event.action.slice("artifact-action-".length))]?.run(); } });
+        root.querySelectorAll("button").forEach((control, index) => actions[index].annotate?.(control));
       }
       activeListChunks.set(slotPrefix, usedChunks);
     },

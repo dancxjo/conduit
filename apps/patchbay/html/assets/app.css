@@ -37,6 +37,8 @@ main { padding:.75rem 1rem 2rem; }
 .parts-heading p { margin:.2rem 0; color:var(--patchbay-text-secondary); }
 .parts-list { list-style:none; margin:.35rem 0 .8rem; padding:0; display:grid; gap:.4rem; }
 .parts-row { display:grid; grid-template-columns:minmax(12rem,1fr) auto auto; gap:.65rem; align-items:center; border:1px solid var(--patchbay-structure-secondary); border-radius:.45rem; padding:.55rem .65rem; }
+.parts-list [data-application-component="artifact"] { display:grid; grid-template-columns:minmax(12rem,1fr) auto auto; gap:.65rem; align-items:center; border:1px solid var(--patchbay-structure-secondary); border-radius:.45rem; padding:.55rem .65rem; }
+.parts-list [data-application-component="artifact"] h3,.parts-list [data-application-component="artifact"] p { margin:0; }
 .parts-row-state { color:var(--patchbay-text-secondary); }
 .parts-row-actions,.parts-actions { display:flex; flex-wrap:wrap; gap:.35rem; }
 .parts-badges { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.2rem; }
@@ -119,7 +121,7 @@ dt { color:var(--patchbay-text-secondary); }
 dd { overflow-wrap:anywhere; margin-bottom:.5rem; }
 @media (max-width:1000px) { .workspace { grid-template-columns:minmax(11rem,15rem) minmax(0,1fr); } .inspector { position:fixed; z-index:4; inset:auto .75rem .75rem max(12rem,20vw); max-height:min(18rem,55vh); box-shadow:0 0 0 1px var(--patchbay-structure-primary); } }
 @media (max-width:720px) { .topbar { align-items:flex-start; flex-direction:column; gap:.25rem; } #status { text-align:left; } .workspace { display:flex; flex-direction:column; } .canvas-panel { order:-1; min-height:70vh; } .truth-grid { grid-template-columns:1fr; } }
-@media (max-width:720px) { .parts-row { grid-template-columns:1fr; } }
+@media (max-width:720px) { .parts-row,.parts-list [data-application-component="artifact"] { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }
 
 /* B0 full-window shell: the canvas is the application, reports are drawers. */

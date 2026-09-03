@@ -258,34 +258,31 @@ async function dispatchFrontDoorAction(action){
 
 const partsActionLabels={Inspect:"Inspect",Admit:"Admit",Refuse:"Refuse",Revoke:"Revoke",SpawnBrowserPart:"+ Browser Part",Replan:"Plan again"};
 async function dispatchPartsAction(action,target){
-  const feedback=document.querySelector("#parts-feedback");feedback.textContent=`${partsActionLabels[action]??action} pending…`;feedback.dataset.disposition="pending";document.querySelector("#parts").setAttribute("aria-busy","true");
+  const feedback=document.querySelector("#parts-feedback");presentSharedStatus("parts-feedback",`${partsActionLabels[action]??action} pending…`,"warning-status");feedback.dataset.disposition="pending";document.querySelector("#parts").setAttribute("aria-busy","true");
   try{
     const response=await fetch("/api/parts-interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,body_id:state.snapshot.parts.body_id,action,target})});
     if(!response.ok)throw new Error(`Parts interaction delivery HTTP ${response.status}`);
     render(requireSnapshot(await response.json()));
-  }catch(error){feedback.textContent=`Parts action failed without closing Patchbay: ${error.message}`;feedback.dataset.disposition="failed";}
+  }catch(error){presentSharedStatus("parts-feedback",`Parts action failed without closing Patchbay: ${error.message}`,"failed-evidence");feedback.dataset.disposition="failed";}
   finally{document.querySelector("#parts").removeAttribute("aria-busy");}
 }
-function partsButton(action,target){const button=document.createElement("button");button.type="button";button.textContent=partsActionLabels[action]??action;button.dataset.partsAction=action;button.dataset.partsTarget=target;button.onclick=()=>dispatchPartsAction(action,target);return button;}
+function partsAction(action,target){return {label:partsActionLabels[action]??action,run:()=>dispatchPartsAction(action,target),annotate:button=>{button.dataset.partsAction=action;button.dataset.partsTarget=target;}};}
 function renderParts(){
   const section=document.querySelector("#parts"),view=state.snapshot.parts;
   section.hidden=!view;if(!view)return;
   const focused=document.activeElement?.dataset?.partsAction?{action:document.activeElement.dataset.partsAction,target:document.activeElement.dataset.partsTarget}:null;
   document.querySelector("#parts-title").textContent=`Parts · ${shortId(view.body_id)}`;document.querySelector("#parts-lifecycle").textContent=view.awake?"AWAKE":"LULLED";
-  const notice=document.querySelector("#parts-possibilities");notice.hidden=!view.new_realization_possibilities;notice.textContent=view.new_realization_possibilities?"New realization possibilities are available. The current Plan remains unchanged until Plan again is explicitly requested.":"";
+  const notice=document.querySelector("#parts-possibilities");notice.hidden=!view.new_realization_possibilities;presentSharedStatus("parts-possibilities",view.new_realization_possibilities?"New realization possibilities are available. The current Plan remains unchanged until Plan again is explicitly requested.":"","warning-status");
   presentDefinitions("parts-truth",[["AVAILABLE",view.truth_explanation.available],["LINE READY",view.truth_explanation.line_ready],["LINE UNAVAILABLE",view.truth_explanation.line_unavailable],["IN PLAN",view.truth_explanation.in_plan],["PLAYING",view.truth_explanation.playing]]);
-  const parts=document.querySelector("#part-rows");parts.replaceChildren();
-  for(const row of view.parts){const li=document.createElement("li"),summary=document.createElement("div"),stateText=document.createElement("strong"),badges=document.createElement("div"),actions=document.createElement("div");li.className="parts-row";summary.textContent=row.label;stateText.className="parts-row-state";stateText.textContent=`${row.state.toUpperCase()} · ${row.available?"AVAILABLE":"OFFLINE"}`;badges.className="parts-badges";for(const label of [row.in_plan?"IN PLAN":null,row.playing?"PLAYING":null].filter(Boolean)){const badge=document.createElement("span");badge.className="parts-badge";badge.textContent=label;badges.append(badge);}summary.append(badges);actions.className="parts-row-actions";for(const action of row.actions)actions.append(partsButton(action,row.details.part_id));li.append(summary,stateText,actions);parts.append(li);}
-  const candidates=document.querySelector("#candidate-rows");candidates.replaceChildren();
-  if(!view.wants_to_join.length){const li=document.createElement("li");li.textContent="No candidates currently want to join.";candidates.append(li);}
-  for(const row of view.wants_to_join){const li=document.createElement("li"),summary=document.createElement("div"),stateText=document.createElement("strong"),actions=document.createElement("div");li.className="parts-row";summary.textContent=row.label;stateText.className="parts-row-state";stateText.textContent=`${row.state.replace(/([A-Z])/g," $1").trim().toUpperCase()} · AVAILABLE`;actions.className="parts-row-actions";for(const action of row.actions)actions.append(partsButton(action,row.candidate_id));li.append(summary,stateText,actions);candidates.append(li);}
-  const toolbar=document.querySelector("#parts-actions");toolbar.replaceChildren();for(const action of view.actions)toolbar.append(partsButton(action,view.body_id));
+  sharedPresentation.boundedArtifacts("part-rows",view.parts.map(row=>({title:row.label,details:[`${row.state.toUpperCase()} · ${row.available?"AVAILABLE":"OFFLINE"}`,[row.in_plan?"IN PLAN":null,row.playing?"PLAYING":null].filter(Boolean).join(" · ")].filter(Boolean),actions:row.actions.map(action=>partsAction(action,row.details.part_id))})));
+  sharedPresentation.boundedArtifacts("candidate-rows",view.wants_to_join.length?view.wants_to_join.map(row=>({title:row.label,details:[`${row.state.replace(/([A-Z])/g," $1").trim().toUpperCase()} · AVAILABLE`],actions:row.actions.map(action=>partsAction(action,row.candidate_id))})):[{title:"No candidates currently want to join.",details:[],actions:[]}]);
+  presentActions("parts-actions",view.actions.map(action=>partsAction(action,view.body_id)));
   const selectedPart=view.parts.find(row=>row.details.part_id===state.snapshot.interaction.selected_part),selectedCandidate=view.wants_to_join.find(row=>row.candidate_id===state.snapshot.interaction.selected_candidate);let details;
   if(selectedPart){const d=selectedPart.details;details=[["Part",d.part_id],["Host",d.host_id],["Boot",d.boot_id],["Offer generation",d.offer_generation],["Capabilities",d.capabilities.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none"],["Admission proof",d.proof_reference],["Plan placements",d.planned_placements.join(", ")||"none"],["Authority bindings",d.planned_authority_bindings],["Expected Signs",d.expected_signs]];}
   else if(selectedCandidate)details=[["Candidate",selectedCandidate.candidate_id],["Host",selectedCandidate.host_id],["Boot",selectedCandidate.boot_id],["Offer generation",selectedCandidate.offer_generation],["Capabilities",selectedCandidate.capability_offers.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none"]];
   else details=[["Selection","Inspect a Part or candidate to disclose exact facts."]];
   presentDefinitions("parts-details",details);
-  const feedback=document.querySelector("#parts-feedback");feedback.textContent=state.snapshot.interaction.parts_feedback??"No Parts action requested.";feedback.dataset.disposition=(state.snapshot.interaction.parts_disposition??"").toLowerCase();
+  const feedback=document.querySelector("#parts-feedback"),disposition=(state.snapshot.interaction.parts_disposition??"").toLowerCase();presentSharedStatus("parts-feedback",state.snapshot.interaction.parts_feedback??"No Parts action requested.",disposition.includes("refused")?"refused-evidence":disposition.includes("failed")?"failed-evidence":disposition.includes("succeeded")?"success-status":"status");feedback.dataset.disposition=disposition;
   if(focused)document.querySelector(`[data-parts-action="${CSS.escape(focused.action)}"][data-parts-target="${CSS.escape(focused.target)}"]`)?.focus();
 }
 

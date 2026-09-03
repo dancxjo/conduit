@@ -83,15 +83,15 @@
         <div><p class="eyebrow">ACTIVE BODY</p><h2 id="parts-title">Parts</h2></div>
         <p id="parts-lifecycle"></p>
       </div>
-      <p id="parts-possibilities" class="parts-notice" role="status" aria-live="polite" hidden></p>
+      <div id="parts-possibilities" class="parts-notice" data-application-slot="parts-possibilities" hidden></div>
       <h3>What the states mean</h3>
       <div id="parts-truth-explanation" data-application-slot="parts-truth"></div>
       <h3>Here and membership</h3>
-      <ul id="part-rows" class="parts-list" aria-label="Body Parts"></ul>
+      <div id="part-rows" class="parts-list" aria-label="Body Parts"><div data-application-slot="part-rows-0"></div><div data-application-slot="part-rows-1"></div><div data-application-slot="part-rows-2"></div><div data-application-slot="part-rows-3"></div></div>
       <h3>Wants to join</h3>
-      <ul id="candidate-rows" class="parts-list" aria-label="Admission candidates"></ul>
-      <div id="parts-actions" class="parts-actions" role="toolbar" aria-label="Body Parts actions"></div>
-      <p id="parts-feedback" role="status" aria-live="polite">No Parts action requested.</p>
+      <div id="candidate-rows" class="parts-list" aria-label="Admission candidates"><div data-application-slot="candidate-rows-0"></div><div data-application-slot="candidate-rows-1"></div><div data-application-slot="candidate-rows-2"></div><div data-application-slot="candidate-rows-3"></div></div>
+      <div id="parts-actions" class="parts-actions" data-application-slot="parts-actions"></div>
+      <div id="parts-feedback" data-application-slot="parts-feedback"></div>
       <details id="parts-details"><summary>Exact selected Part or candidate facts</summary><div data-application-slot="parts-details"></div></details>
     </section>
     <section id="current-status" class="status-strip" aria-label="Current run and diagnostic status">
