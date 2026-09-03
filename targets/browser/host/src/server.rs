@@ -13,6 +13,7 @@ const HOST_BOOTSTRAP: &[u8] = include_bytes!("../assets/browser-host-bootstrap.m
 const HOST_MEMBERSHIP: &[u8] = include_bytes!("../assets/browser-host-membership.mjs");
 const APPLICATION_PRESENTATION: &[u8] = include_bytes!("../assets/application-presentation.mjs");
 const APPLICATION_THEME_MODULE: &[u8] = include_bytes!("../assets/application-theme.mjs");
+const BROWSER_HOST_OPERATIONS: &[u8] = include_bytes!("../assets/browser-host-operations.mjs");
 const APPLICATION_THEME: &[u8] = include_bytes!("../assets/application-theme.css");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
@@ -157,6 +158,11 @@ impl BrowserHostServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 APPLICATION_THEME_MODULE,
+            ),
+            Some("GET /assets/browser-host-operations.mjs HTTP/1.1") => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                BROWSER_HOST_OPERATIONS,
             ),
             Some("GET /media-host.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", MEDIA_HOST)

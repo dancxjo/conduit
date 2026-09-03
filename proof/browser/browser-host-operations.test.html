@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit browser Host operations proof</title>
+<button id="artifact">Hand off artifact</button>
+<button id="location">Move presentation location</button>
+<button id="device">Choose device</button>
+<output id="result">ready</output>
+<script type="module">
+import {
+  browserHostOperationLimits,
+  createBrowserHostOperations,
+} from "../../targets/browser/host/assets/browser-host-operations.mjs";
+
+const context = {
+  hostId: "host/browser-proof",
+  bootId: "boot/browser-proof",
+  applicationId: "application/browser-proof",
+  applicationGeneration: 3,
+  authorityGeneration: 7,
+};
+const operation = (kind, operationId, fields) => ({
+  contract: browserHostOperationLimits.contract,
+  kind,
+  operationId,
+  ...context,
+  ...fields,
+});
+const operations = createBrowserHostOperations({
+  ...context,
+  selectedImplementations: ["browser/web-serial@1"],
+  initializedImplementations: ["browser/web-serial@1"],
+  secureContext: true,
+  deviceAdapters: {
+    "browser/web-serial@1": async ({ filters }) => ({
+      getInfo: () => ({ usbVendorId: filters[0].usbVendorId, usbProductId: 42 }),
+    }),
+  },
+});
+const result = document.querySelector("#result");
+globalThis.__browserHostOperationProof = { outcomes: [], active: () => operations.activeOperations() };
+
+const absentActivation = await operations.handoffArtifact(operation("artifact-handoff", "artifact/no-activation", {
+  userActivation: true,
+  artifactId: "artifact/proof",
+  bytes: Uint8Array.of(1),
+  maximumBytes: 1,
+  filename: "proof.bin",
+  mediaType: "application/octet-stream",
+}));
+globalThis.__browserHostOperationProof.absentActivation = absentActivation.disposition;
+
+document.querySelector("#artifact").addEventListener("click", async () => {
+  const outcome = await operations.handoffArtifact(operation("artifact-handoff", "artifact/download", {
+    userActivation: true,
+    artifactId: "artifact/proof",
+    bytes: Uint8Array.of(0x43, 0x4e, 0x44),
+    maximumBytes: 3,
+    filename: "proof.bin",
+    mediaType: "application/octet-stream",
+  }));
+  globalThis.__browserHostOperationProof.outcomes.push(outcome);
+  result.value = outcome.disposition;
+});
+document.querySelector("#location").addEventListener("click", async () => {
+  const outcome = await operations.moveLocation(operation("location", "location/proof", {
+    presentationRevision: 4,
+    mode: "push",
+    path: "/proof/browser/presented-place/",
+  }));
+  globalThis.__browserHostOperationProof.outcomes.push(outcome);
+  result.value = outcome.disposition;
+});
+document.querySelector("#device").addEventListener("click", async () => {
+  const outcome = await operations.chooseDevice(operation("device-choice", "device/proof", {
+    implementationId: "browser/web-serial@1",
+    authorized: true,
+    userActivation: true,
+    filters: [{ usbVendorId: 0x1209 }],
+    maximumResults: 1,
+    maximumResourceIdentityBytes: 256,
+  }));
+  globalThis.__browserHostOperationProof.outcomes.push(outcome);
+  result.value = outcome.disposition;
+});
+</script>

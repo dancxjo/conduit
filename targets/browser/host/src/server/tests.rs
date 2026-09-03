@@ -105,3 +105,30 @@ fn generic_application_delivery_is_mount_scoped_and_bounded() {
         .contains("delivery bound"));
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn bare_host_serves_the_bounded_generic_operation_adapter() {
+    let runtime = runtime_fixture();
+    let server = BrowserHostServer::bind(&runtime).unwrap();
+    let address = server.local_addr().unwrap();
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let (mut stream, _) = server.listener.accept().unwrap();
+            server.respond(&mut stream).unwrap();
+        });
+        let mut stream = TcpStream::connect(address).unwrap();
+        stream
+            .write_all(
+                b"GET /assets/browser-host-operations.mjs HTTP/1.1\r\nHost: localhost\r\n\r\n",
+            )
+            .unwrap();
+        let mut response = Vec::new();
+        stream.read_to_end(&mut response).unwrap();
+        let response = String::from_utf8(response).unwrap();
+        assert!(response.starts_with("HTTP/1.1 200 OK"));
+        assert!(response.contains("Content-Type: text/javascript; charset=utf-8"));
+        assert!(response.contains("conduit.host/browser-effects@1"));
+        assert!(response.contains("createBrowserHostOperations"));
+    });
+    std::fs::remove_file(runtime).unwrap();
+}

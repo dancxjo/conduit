@@ -691,6 +691,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
             "v1_has_one_runtime_and_no_compiled_compatibility_closure",
         ],
     ),
+    Step::new(
+        "check.browser.host-operations",
+        "Prove finite generic browser Host operations and negative outcomes",
+        "node",
+        &["--test", "proof/browser/browser-host-operations.test.mjs"],
+    ),
     Step::typed(
         "check.browser.wasm-build",
         "Build conduit-browser-runtime WASM",
