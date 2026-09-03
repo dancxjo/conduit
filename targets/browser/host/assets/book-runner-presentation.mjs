@@ -1,10 +1,10 @@
-export function createBookRunnerStatus(presentation, slot, initialText) {
+export function createBookStatus(presentation, slot, key, initialText) {
   let revision = 0;
   const render = (component, text) => presentation.present(slot, {
     revision: ++revision,
     actions: [],
     nodes: [
-      { parent: null, component, key: "play-status", text, action: null },
+      { parent: null, component, key, text, action: null },
     ],
   });
   const status = Object.freeze({
@@ -14,4 +14,8 @@ export function createBookRunnerStatus(presentation, slot, initialText) {
   });
   queueMicrotask(() => status.ordinary(initialText));
   return status;
+}
+
+export function createBookRunnerStatus(presentation, slot, initialText) {
+  return createBookStatus(presentation, slot, "play-status", initialText);
 }

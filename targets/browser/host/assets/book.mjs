@@ -2,7 +2,7 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
-import { createBookRunnerStatus } from "./book-runner-presentation.mjs";
+import { createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
@@ -10,7 +10,6 @@ import { presentBookInventory } from "./book-inventory-presentation.mjs";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const chapter = document.querySelector("#chapter");
-const hostState = document.querySelector("#host-state");
 let host;
 let peerHost = null;
 let generation = 0;
@@ -26,13 +25,14 @@ let patchbaySequence = 0;
 let readingState;
 let admittedRuntimeBytes;
 let navigation;
-let hostPresentation;
+let hostPresentation, hostStatus;
 let routing;
 
 export async function startApplication(application) {
 try {
-  readingState = await openBookReadingState(application.storage);
   hostPresentation = application.presentation;
+  hostStatus = createBookStatus(hostPresentation, "book-host-status", "host-status", "Starting browser Host…");
+  readingState = await openBookReadingState(application.storage);
   navigation = createBookNavigation(hostPresentation, (offset) => {
     renderPage(currentPage + offset, "push").catch(showBookFailure);
   });
@@ -55,21 +55,21 @@ try {
   const initialRoute = routing.admitPages(guidedPages);
   await renderPage(initialRoute.index);
   if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
-  hostState.textContent = "Browser Host ready";
+  hostStatus.success("Browser Host ready");
   globalThis.__conduitBookHost = host;
   globalThis.__conduitBookPersistence = Object.freeze({
     schema: "conduit.book/persistence@1",
     flush: readingState.flush,
   });
 } catch (error) {
-  hostState.textContent = "Browser Host unavailable";
+  hostStatus.failure("Browser Host unavailable");
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
 }
 }
 
 function showBookFailure(error) {
-  hostState.textContent = "Browser Host unavailable";
+  hostStatus.failure("Browser Host unavailable");
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
 }
