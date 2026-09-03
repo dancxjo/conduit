@@ -1,0 +1,16 @@
+# One learned artifact supports both observation directions and uncertain inversion.
+form tongues-bidirectional-inference {
+    corpus: tongues/paired-observations
+    train: tongues/train-shared-latent
+    infer: tongues/bidirectional-latent
+    evaluate: tongues/evaluate-latent
+
+    corpus.acoustic > train.acoustic
+    corpus.articulation > train.articulation
+    corpus.acoustic > infer.acoustic
+    corpus.articulation > infer.articulation
+    train.checkpoint > infer.checkpoint
+    infer.latent > evaluate.latent
+    infer.generated-acoustic > evaluate.generated-acoustic
+    infer.inferred-articulation > evaluate.inferred-articulation
+}

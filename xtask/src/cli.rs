@@ -351,6 +351,8 @@ pub enum DemoCommand {
     Site,
     /// Run the pinned Tongues text-to-speech starter through an ordinary Conduit Play.
     Tongues,
+    /// Run the bounded real-data Tongues paired-latent research capstone.
+    TonguesResearch,
 }
 
 #[derive(Args, Debug)]

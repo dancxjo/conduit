@@ -12,6 +12,7 @@ conduit-presentation = { path = "../../../semantics/presentation" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
+conduit-tongues = { path = "../../../semantics/tongues" }
 conduit-wire = { path = "../../../architecture/wire" }
 patchbay-model = { path = "../model" }
 patchbay-hosted = { path = "../hosted" }

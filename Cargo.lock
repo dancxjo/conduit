@@ -1074,8 +1074,10 @@ dependencies = [
 name = "conduit-tongues"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-audio",
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-kernel",
  "conduit-plan-lowering",
@@ -2666,6 +2668,7 @@ dependencies = [
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",
+ "conduit-tongues",
  "conduit-wire",
  "patchbay-hosted",
  "patchbay-model",

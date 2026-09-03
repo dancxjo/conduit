@@ -162,16 +162,24 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(patchbay_package.browser_required);
     assert!(!patchbay_package.conduitos_required);
 
-    let incomplete_patchbay_package = plan_for_paths(
+    let incomplete_patchbay_package =
+        plan_for_paths(&root, vec!["Cargo.lock".to_owned()], &packages).unwrap();
+    assert!(incomplete_patchbay_package.full_fallback);
+
+    let manifest_backed_lock = plan_for_paths(
         &root,
         vec![
             "Cargo.lock".to_owned(),
             "apps/patchbay/html/Cargo.toml".to_owned(),
+            "apps/patchbay/html/src/learned_demo.rs".to_owned(),
         ],
         &packages,
     )
     .unwrap();
-    assert!(incomplete_patchbay_package.full_fallback);
+    assert!(!manifest_backed_lock.full_fallback);
+    assert!(manifest_backed_lock.browser_required);
+    assert!(!manifest_backed_lock.esp32_required);
+    assert!(!manifest_backed_lock.conduitos_required);
 
     let pi_zero_creche = plan_for_paths(
         &root,
