@@ -3,7 +3,7 @@
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, port_id, resource_offer, ArtifactId,
     BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
+    DeliveryContract, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
     KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
     StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
@@ -19,8 +19,9 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
 use conduit_semantic_catalog::{
-    normalized_pointer_value, pointer_event_type, NormalizedPointerSample, POINTER_EVENT_TYPE,
-    POINTER_SOURCE_KIND, STRUCTURED_PRESENTATION_KIND,
+    normalized_pointer_value, pointer_event_type, reviewed_delivery_contract,
+    NormalizedPointerSample, POINTER_EVENT_INFO_ID, POINTER_EVENT_TYPE, POINTER_SOURCE_KIND,
+    STRUCTURED_PRESENTATION_KIND,
 };
 use std::collections::BTreeMap;
 
@@ -186,6 +187,9 @@ fn fail(detail: u16) -> OperationAction {
 pub fn execute_browser_pointer(
     sample: NormalizedPointerSample,
 ) -> Result<BrowserPointerReceipt, String> {
+    browser_pointer_delivery_contract()?
+        .validate()
+        .map_err(|error| format!("browser pointer delivery contract: {error:?}"))?;
     let value =
         normalized_pointer_value(sample).map_err(|error| format!("pointer value: {error:?}"))?;
     let canonical = value
@@ -324,6 +328,15 @@ pub fn execute_browser_pointer(
         queue_capacity: sample.queue_capacity,
         sequence: sample.sequence,
     })
+}
+
+/// The portable delivery semantics this Host implementation realizes.
+///
+/// Looking this up by exact Info identity keeps the browser adapter from
+/// inventing a Host-private latest-value convention.
+pub fn browser_pointer_delivery_contract() -> Result<DeliveryContract, String> {
+    reviewed_delivery_contract(&kind_id(POINTER_EVENT_INFO_ID))
+        .ok_or_else(|| format!("no reviewed delivery contract for {POINTER_EVENT_INFO_ID}"))
 }
 
 fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatalog), String> {

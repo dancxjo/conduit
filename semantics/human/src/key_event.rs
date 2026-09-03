@@ -1,6 +1,9 @@
 //! Portable keyboard transitions, independent of any device or platform Base.
 
-use conduit_core::{semantic_digest, InfoDecodeError};
+use conduit_core::{
+    semantic_digest, AdmissionUnit, DeliveryContract, DeliveryPressurePolicy, EvolutionSemantics,
+    InfoDecodeError,
+};
 
 pub const KEY_EVENT_INFO_ID: &str = "input/key-event@1";
 pub const KEY_EVENT_ENCODED_LEN: usize = 3;
@@ -8,6 +11,11 @@ pub const KEYBOARD_USAGE_MINIMUM: u8 = 0x04;
 pub const KEYBOARD_USAGE_MAXIMUM: u8 = 0xa4;
 pub const MODIFIER_USAGE_MINIMUM: u8 = 0xe0;
 pub const MODIFIER_USAGE_MAXIMUM: u8 = 0xe7;
+pub const KEY_EVENT_DELIVERY_CONTRACT: DeliveryContract = DeliveryContract::new(
+    EvolutionSemantics::Occurrence,
+    AdmissionUnit::Value,
+    DeliveryPressurePolicy::PreserveOrder,
+);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KeyEventConformanceVector {

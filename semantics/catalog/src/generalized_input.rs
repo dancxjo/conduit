@@ -16,6 +16,7 @@ pub const INPUT_AXIS_STATE_TYPE: &str = "InputAxisState";
 pub const INPUT_AXIS_SLOTS_TYPE: &str = "InputAxisSlots";
 pub const INPUT_BUTTON_SLOTS_TYPE: &str = "InputButtonSlots";
 pub const POINTER_EVENT_TYPE: &str = "PointerEvent";
+pub const POINTER_EVENT_INFO_ID: &str = "input/pointer-event@1";
 pub const TOUCH_FRAME_TYPE: &str = "TouchFrame";
 pub const ROTARY_STEP_TYPE: &str = "RotaryStep";
 pub const GAMEPAD_STATE_TYPE: &str = "GamepadState";
@@ -149,7 +150,7 @@ pub fn input_axis_slots_type() -> StructuredInfoType {
 
 pub fn pointer_event_type() -> StructuredInfoType {
     record(
-        "input/pointer-event@1",
+        POINTER_EVENT_INFO_ID,
         vec![
             field("buttons", input_button_slots_type()),
             field("delta", vector2_type()),
