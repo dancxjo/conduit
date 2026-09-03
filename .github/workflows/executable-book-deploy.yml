@@ -12,6 +12,7 @@ on:
       - scripts/ci/stage-book-product.sh
       - scripts/ci/build-browser-application-package.mjs
       - scripts/ci/stage-creche-product.sh
+      - scripts/ci/stage-patchbay-product.sh
       - scripts/ci/seal-pages-carrier.mjs
       - scripts/ci/verify-pages-carrier.mjs
       - scripts/ci/pages-product-run-selection.mjs
@@ -38,6 +39,10 @@ on:
       - apps/patchbay/html/assets/flow-layout.js
       - apps/patchbay/html/assets/flow-faceplate.js
       - apps/patchbay/html/assets/portable-navigation.js
+      - apps/patchbay/html/assets/app.js
+      - apps/patchbay/html/assets/index.html
+      - apps/patchbay/html/assets/patchbay.application.template.json
+      - apps/patchbay/html/src/**
       - targets/browser/host/assets/creche.html
       - targets/browser/host/assets/creche.application.template.json
       - targets/browser/host/assets/creche.css

@@ -2,7 +2,7 @@
 
 use patchbay_model::{ApplicationTheme, ThemeColor};
 
-pub(super) fn render_theme_css(theme: &ApplicationTheme) -> Vec<u8> {
+pub(crate) fn render_theme_css(theme: &ApplicationTheme) -> Vec<u8> {
     format!(
         ":root{{--conduit-theme-identity:\"{}\";--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
         theme.identity,

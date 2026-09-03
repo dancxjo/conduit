@@ -15,14 +15,13 @@ mod navigation;
 mod observation;
 mod parts;
 mod text_lab_loss;
-mod theme;
 mod timeline;
 mod transition;
 mod watches;
 
+use crate::theme::render_theme_css;
 use debug_control::DocumentaryDebuggerRuntime;
 use http::{read_request, write_response};
-use theme::render_theme_css;
 
 pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
 pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
@@ -62,7 +61,7 @@ const REACT: &[u8] = include_bytes!("../assets/react.min.js");
 const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
 const REACT_FLOW: &[u8] = include_bytes!("../assets/react-flow.min.js");
 const REACT_FLOW_STYLE: &[u8] = include_bytes!("../assets/react-flow.css");
-const MAX_BROWSER_WASM_BYTES: usize = 3 * 1024 * 1024;
+const MAX_BROWSER_WASM_BYTES: usize = 5 * 1024 * 1024;
 const EMPTY_BROWSER_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
 #[derive(Debug)]

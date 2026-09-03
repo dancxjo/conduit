@@ -11,6 +11,8 @@ mod learned_demo;
 mod seed_sources;
 mod server;
 mod snapshot;
+#[path = "server/theme.rs"]
+mod theme;
 mod transport_types;
 
 pub use body_workbench::{
@@ -30,3 +32,7 @@ pub use seed_sources::{
 pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES, MAX_THEME_CSS_BYTES};
 pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
+
+pub fn application_theme_css() -> Vec<u8> {
+    theme::render_theme_css(&patchbay_model::CONDUIT_APPLICATION_THEME)
+}
