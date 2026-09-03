@@ -26,6 +26,7 @@ cp targets/browser/host/assets/creche-release-bundle.mjs "$destination/creche-re
 cp targets/browser/host/assets/creche-existing-computer.mjs "$destination/creche-existing-computer.mjs"
 cp targets/browser/host/assets/creche-graduation.mjs "$destination/creche-graduation.mjs"
 cp targets/browser/host/assets/creche-routing.mjs "$destination/creche-routing.mjs"
+cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination/application-syntax-presentation.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
 cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
 cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"

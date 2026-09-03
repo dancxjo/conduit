@@ -67,7 +67,7 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   expect(membershipClient.advertisement.host_id).toBe(membershipClient.hostId);
   expect(membershipClient.advertisement.boot_id).toBe(membershipClient.bootId);
   expect(admission.paths).toContain("book-runner-presentation.mjs");
-  expect(admission.paths).toContain("book-syntax-editor.mjs");
+  expect(admission.paths).toContain("application-syntax-presentation.mjs");
   expect(admission.paths).toContain("assets/flow.css");
   for (const [index, path] of admission.paths.entries()) {
     const pathname = new URL(admission.resourceUrls[index]).pathname;
@@ -136,6 +136,7 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
   expect(admission.paths.length).toBeLessThanOrEqual(64);
   expect(admission.paths).toContain("browser-host-identity.mjs");
   expect(admission.paths).toContain("creche-names.mjs");
+  expect(admission.paths).toContain("application-syntax-presentation.mjs");
   expect(admission.paths).toContain("creche-browser-configuration.mjs");
   expect(admission.paths).toContain("targets/esp32/browser-deployment/rom-loader.mjs");
   expect(admission.paths).toContain("targets/rp2040/browser-deployment/picoboot.mjs");
