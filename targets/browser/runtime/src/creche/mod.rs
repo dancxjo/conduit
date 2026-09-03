@@ -6,6 +6,7 @@ mod durable;
 mod graduation;
 mod initial_forms;
 mod protocol;
+mod review;
 mod session;
 mod spore;
 mod spore_target;

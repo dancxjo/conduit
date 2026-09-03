@@ -55,6 +55,16 @@ pub(super) fn birth(
 
     let host_id = HostId::from(host);
     let boot_id = BootId::from(boot);
+    let proposed_hosts = [crate::installed_browser::advertisement(
+        host_id.clone(),
+        boot_id.clone(),
+    )];
+    let initial_review = super::review::review(
+        source,
+        initial_forms_json,
+        &proposed_hosts,
+        &crate::installed_browser::local_bases(),
+    )?;
     let birth_sign = bind_sign(&host_id, &boot_id, None, birth_sequence);
     let body = Body::born_with_forms(workset, birth_sequence, birth_sign.sign_id.clone())
         .map_err(|error| format!("birth Body: {error:?}"))?;
@@ -71,6 +81,7 @@ pub(super) fn birth(
         schema: "conduit.creche/body-birth@2".into(),
         disposition: "born".into(),
         initial_forms,
+        initial_review,
         body_id: body.body_id.as_str().into(),
         friendly_name: friendly_name.into(),
         birth_sequence,

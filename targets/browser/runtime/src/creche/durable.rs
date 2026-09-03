@@ -12,6 +12,11 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
         || receipt.source_interaction.disposition != "accepted"
         || receipt.source_interaction.semantic_id != "interaction/executable-book-source"
         || receipt.source_interaction.value_kind != conduit_human::TEXT_INFO_ID
+        || receipt.initial_review.schema != "conduit.creche/initial-workload-review@1"
+        || receipt.initial_review.disposition != "realizable"
+        || receipt.initial_review.selected_form_count != receipt.initial_forms.len()
+        || receipt.initial_review.authority_acquired
+        || receipt.initial_review.resources_acquired
     {
         return Err("durable Crèche session metadata is invalid".into());
     }

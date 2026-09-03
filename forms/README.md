@@ -6,7 +6,7 @@ than maintain private source copies.
 
 | Artifact | Reviewed Forms | Product use |
 |---|---|---|
-| `initial-body.conduit` | `morse_network`, `memory_lantern` | bounded zero/one/many Body birth |
+| `initial-body.conduit` | `morse_network`, `memory_lantern`, `desk_telegraph` | bounded zero/one/many Body birth |
 
 Adding an artifact or changing its meaning requires checker coverage and an
 explicit consumer update. The inventory contains Forms only; it grants no Host,

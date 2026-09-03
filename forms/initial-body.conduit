@@ -9,3 +9,9 @@ form memory_lantern {
     show: presentation/text
     message > show
 }
+
+form desk_telegraph {
+    message: text/literal("CALLING")
+    show: presentation/text
+    message > show
+}

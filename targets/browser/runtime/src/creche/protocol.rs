@@ -30,6 +30,7 @@ pub(super) struct BirthReceipt {
     pub(super) schema: String,
     pub(super) disposition: String,
     pub(super) initial_forms: Vec<InitialFormReceipt>,
+    pub(super) initial_review: super::review::InitialWorkloadReview,
     pub(super) body_id: String,
     pub(super) friendly_name: String,
     pub(super) birth_sequence: u64,

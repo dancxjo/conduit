@@ -1,4 +1,5 @@
 use super::*;
+use crate::creche::initial_forms;
 use crate::source_interaction::admit_source;
 use conduit_body::{BodyId, SpawnInvitationClaim, SpawnInvitationId};
 use conduit_core::{BootId, HostId};
@@ -9,6 +10,17 @@ const SEED: &str = r#"form hello_across {
     message > show
 }"#;
 
+fn initial_selection() -> String {
+    let inventory = initial_forms::reviewed_inventory(SEED).unwrap();
+    let form = &inventory.forms[0];
+    serde_json::to_string(&[initial_forms::InitialFormSelection {
+        name: form.name.clone(),
+        source_document_id: form.source_document_id.clone(),
+        checked_form_id: form.checked_form_id.clone(),
+    }])
+    .unwrap()
+}
+
 fn born() {
     session::clear_for_test();
     let interaction = admit_source(SEED.as_bytes(), 71).unwrap();
@@ -16,7 +28,7 @@ fn born() {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &initial_selection(),
         SEED,
         71,
         interaction,
@@ -38,7 +50,7 @@ fn fresh_body_changes_spore_while_reviewed_image_identity_stays_fixed() {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &initial_selection(),
         SEED,
         72,
         interaction,
@@ -65,7 +77,7 @@ fn selected_uf2_content_is_bound_before_spore_creation() {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &initial_selection(),
         SEED,
         73,
         interaction,
@@ -83,7 +95,7 @@ fn selected_uf2_content_is_bound_before_spore_creation() {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &initial_selection(),
         SEED,
         74,
         interaction,
