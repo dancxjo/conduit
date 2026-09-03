@@ -462,11 +462,7 @@ fn browser_target() -> Result<TargetFacts, String> {
                 os: descriptor.os,
                 fabrication_descriptor: None,
             },
-            bases: vec![ConfigurationBase {
-                kind: "browser/dom".into(),
-                implementation: Some("browser/dom@1".into()),
-                implementations: Vec::new(),
-            }],
+            bases: conduit_host_browser_fabrication::default_configuration_bases(),
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
