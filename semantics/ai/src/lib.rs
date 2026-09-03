@@ -44,6 +44,8 @@ pub use model_artifact::*;
 mod probability;
 pub use probability::*;
 mod probability_digest;
+mod relation;
+pub use relation::*;
 mod rag_semantics;
 pub use rag_semantics::*;
 mod reranking;
