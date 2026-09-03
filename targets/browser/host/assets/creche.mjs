@@ -3,6 +3,7 @@ import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
+import { createCrecheRouting } from "./creche-routing.mjs";
 import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "./targets/avr/browser-deployment/creche-adapter.mjs";
 import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
 import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/esp32/browser-deployment/creche-adapter.mjs";
@@ -28,11 +29,11 @@ const workspace = document.querySelector("#workspace");
 let presentation;
 let presentationFor;
 let storage;
-const crecheBaseUrl = new URL(".", document.baseURI);
 let host;
+let routing;
 let durableWrite = Promise.resolve();
 let durabilityFailure = null;
-let currentStep = stepIndexForLocation();
+let currentStep = 0;
 let sequence = 0;
 let presentationRevision = 0;
 const targetCatalog = createPhysicalHostTargetCatalog({
@@ -58,13 +59,21 @@ export async function startApplication(application) {
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
   host = Object.freeze({ ...initialized, admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot });
   requireCrecheAbi(host.runtime);
+  routing = createCrecheRouting({
+    host,
+    applicationId: application.manifest.applicationId,
+    steps,
+    onPopState(index) { currentStep = index; renderNavigation(); renderStep(); },
+    onFailure(error) { renderHostStatus(error instanceof Error ? error.message : String(error), "failure-status"); },
+  });
+  currentStep = routing.current();
   await restoreDurableBody();
   renderHostStatus("Crèche ready", "success-status");
   globalThis.__conduitCrecheHost = host;
   globalThis.__conduitCrecheDurability = Object.freeze({ settled: durabilitySettled });
   renderNavigation();
   renderStep();
-  if (isProductRoot()) replaceStepRoute(currentStep);
+  if (routing.isProductRoot()) await routing.move(currentStep, "replace");
  } catch (error) {
   renderHostStatus("Crèche unavailable", "failure-status");
   workspace.textContent = error instanceof Error ? error.message : String(error);
@@ -88,7 +97,12 @@ function renderNavigation() {
   presentation.present("creche-navigation", { revision: ++presentationRevision, actions, nodes }, {
     onEvent(event) {
       const index = Number(event.action.slice("step-".length));
-      if (Number.isInteger(index) && index >= 0 && index < steps.length) navigateToStep(index);
+      if (Number.isInteger(index) && index >= 0 && index < steps.length) {
+        void navigateToStep(index).catch((error) => renderHostStatus(
+          error instanceof Error ? error.message : String(error),
+          "failure-status",
+        ));
+      }
     },
   });
 }
@@ -127,34 +141,12 @@ function renderStep() {
   refreshContext();
 }
 
-function stepIndexForLocation() {
-  if (isProductRoot()) return 0;
-  const index = steps.findIndex(({ slug }) => location.pathname === new URL(`${slug}/`, crecheBaseUrl).pathname);
-  if (index === -1) throw new Error("this Crèche step does not exist");
-  return index;
-}
-
-function isProductRoot() {
-  return location.pathname === crecheBaseUrl.pathname
-    || location.pathname === new URL("index.html", crecheBaseUrl).pathname;
-}
-
-function replaceStepRoute(index) {
-  history.replaceState(null, "", new URL(`${steps[index].slug}/`, crecheBaseUrl).pathname);
-}
-
-function navigateToStep(index) {
-  history.pushState(null, "", new URL(`${steps[index].slug}/`, crecheBaseUrl).pathname);
+async function navigateToStep(index) {
+  await routing.move(index, "push");
   currentStep = index;
   renderNavigation();
   renderStep();
 }
-
-addEventListener("popstate", () => {
-  currentStep = stepIndexForLocation();
-  renderNavigation();
-  renderStep();
-});
 
 function refreshContext() {
   workspace.querySelector('[data-creche-context="true"]')?.remove();
@@ -301,7 +293,7 @@ async function finishCrecheLocally() {
   host.runtime.conduit_creche_forget_local();
   sequence = 0;
   currentStep = 0;
-  replaceStepRoute(0);
+  await routing.move(0, "replace");
   if (!document.querySelector('[data-application-slot="creche-navigation"]')) {
     const navigation = document.createElement("div");
     navigation.className = "creche-steps";
