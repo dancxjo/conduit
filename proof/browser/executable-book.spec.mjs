@@ -667,7 +667,7 @@ test("the Book opens with one logical Body premise and keeps Crèche machinery l
   await expect(page.locator("#chapter")).toContainText("Gear, Port, Cord, Form");
   await expect(page.locator("#chapter")).not.toContainText(/Crèche/i);
   await expect(page.locator(".body-birth-runner, .first-host-runner, .physical-host-runner, .graduation-runner")).toHaveCount(0);
-  await expect(page.locator(".gear-inventory")).toHaveCount(0);
+  await expect(page.locator('[data-application-slot="book-inventory"]')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Birth a Body" })).toHaveCount(0);
 
   await openStep(page, 1);
@@ -1624,9 +1624,12 @@ test("stopping state over time cancels the pending timer without a late completi
 test("Hosts chapter shows the exact installed offers from the planning advertisement", async ({ page }) => {
   await openStep(page, 2);
   await expect(page.getByRole("heading", { name: "Hosts make Forms real" })).toBeVisible();
-  const inventory = page.locator(".gear-inventory");
+  const inventory = page.locator('[data-application-slot="book-inventory"]');
   await expect(inventory).toHaveCount(1);
-  const visibleInstalled = await inventory.locator("li.available code").allTextContents();
+  await expect(inventory).toHaveAttribute("data-application-revision", "1");
+  await expect(inventory.locator('[data-application-component="disclosure"]')).toBeVisible();
+  await expect(inventory.locator('[data-application-component="definition-table"]')).toHaveAttribute("aria-label", "Exact browser planning offers");
+  const visibleInstalled = await inventory.locator('[data-application-key^="offer-available-"] dt').allTextContents();
   const advertisedInstalled = await page.evaluate(() => {
     const api = globalThis.__conduitBookHost.runtime;
     api.conduit_book_inventory();
@@ -1640,6 +1643,13 @@ test("Hosts chapter shows the exact installed offers from the planning advertise
     "time/every", "state/count", "presentation/count", "logic/select",
     "layout/viewport", "time/delay", "input/keyboard", "presentation/bool",
   ]));
+  const [source, manifest] = await Promise.all([
+    page.request.get(new URL("book.mjs", entrance.url).href).then((response) => response.text()),
+    page.request.get(new URL("book.application.json", entrance.url).href).then((response) => response.json()),
+  ]);
+  expect(source).toContain('from "./book-inventory-presentation.mjs"');
+  expect(source).not.toContain('className = "gear-inventory"');
+  expect(manifest.resources.some((resource) => resource.role === "book-inventory-presentation")).toBe(true);
 });
 
 test("Two browser Hosts executes one unchanged Form across independent Hosts", async ({ page }) => {

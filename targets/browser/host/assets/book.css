@@ -164,12 +164,13 @@ details dt { color: var(--ink); font-weight: 700; }
 .expansion { border-top: 1px solid var(--line); padding-top: .7rem; }
 .expansion p { margin: 0 0 .6rem; font-size: inherit; }
 .expansion ul { margin: .35rem 0 .8rem; padding-left: 1.15rem; }
-.gear-inventory { margin: 2.5rem 0 .5rem; padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-.gear-inventory ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .45rem 1rem; margin: 1rem 0 0; padding: 0; list-style: none; }
-.gear-inventory li { display: grid; gap: .15rem; padding: .5rem .6rem; border-left: 3px solid var(--green); background: var(--paper); }
-.gear-inventory li.unavailable { border-left-color: var(--amber); background: color-mix(in srgb, var(--paper) 90%, var(--amber)); }
-.gear-inventory code { color: var(--ink); font-weight: 700; }
-.gear-inventory span { color: var(--muted); font-size: .72rem; }
+[data-application-slot="book-inventory"] { margin: 2.5rem 0 .5rem; }
+[data-application-slot="book-inventory"] [data-application-component="disclosure"] { padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+[data-application-slot="book-inventory"] [data-application-component="definition-table"] { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .45rem 1rem; margin-top: 1rem; }
+[data-application-slot="book-inventory"] [data-application-component="definition"] { display: grid; gap: .15rem; padding: .5rem .6rem; border-left: 3px solid var(--green); background: var(--paper); }
+[data-application-slot="book-inventory"] [data-application-key^="offer-unavailable-"] { border-left-color: var(--amber); background: color-mix(in srgb, var(--paper) 90%, var(--amber)); }
+[data-application-slot="book-inventory"] dt { color: var(--ink); font-weight: 700; }
+[data-application-slot="book-inventory"] dd { margin: 0; color: var(--muted); font-size: .72rem; }
 [data-application-slot="book-navigation"] [data-application-component="navigation"] {
   position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: .55rem;
   margin-top: 2rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 12px 12px 0 0;
