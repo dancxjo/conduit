@@ -85,7 +85,9 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     }));
     expect(admitted.application).toBe("conduit.application/patchbay");
     expect(admitted.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
-    expect(admitted.resources).toBe(24);
+    // The public admitted set excludes the application module that is already
+    // executing; the sealed package manifest itself contains 24 resources.
+    expect(admitted.resources).toBe(23);
     await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
     await expect(page.locator("#status")).toHaveAttribute("data-application-revision", /^\d+$/);
     await expect(page.locator("#status [data-application-component='status']")).toContainText("Presentation revision");
