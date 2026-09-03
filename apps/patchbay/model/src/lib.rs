@@ -83,6 +83,7 @@ mod presenter_plans_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
+mod recursive_form_projection;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
@@ -262,6 +263,9 @@ pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,
     BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
     ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
+};
+pub use recursive_form_projection::{
+    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
 };
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,

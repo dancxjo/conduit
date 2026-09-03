@@ -12,7 +12,97 @@ use conduit_core::{
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
-use conduit_form::{CheckedForm, ExpandedCanonicalForm};
+use conduit_form::{
+    expand_canonical_form, expand_canonical_form_with_backs, CanonicalBackCatalog, CheckedForm,
+    CheckedSyntaxDocument, ExpandedCanonicalForm, ProfileCatalog,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CanonicalRealizationMode {
+    Direct,
+    RecursiveBack,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlannedCanonicalRealization {
+    pub mode: CanonicalRealizationMode,
+    pub expanded: ExpandedCanonicalForm,
+    pub placements: PlacementChoices,
+    pub plan: Plan,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CanonicalRealizationSelectionError {
+    InvalidDirectExpansion(String),
+    InvalidRecursiveExpansion {
+        direct: PlannerError,
+        recursive: String,
+    },
+    NoRealizablePath {
+        direct: PlannerError,
+        recursive: PlannerError,
+    },
+}
+
+/// Plans between peer realizations of one checked caller without changing its
+/// source. A fully admitted direct Plan wins; otherwise the same checked
+/// caller is expanded through the admitted exact Back catalog and planned
+/// normally. Mere capability availability cannot suppress a valid Back.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_canonical_realization_with_options(
+    document: &CheckedSyntaxDocument,
+    form_name: &str,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    hosts: &[HostAdvertisement],
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+) -> Result<PlannedCanonicalRealization, CanonicalRealizationSelectionError> {
+    let direct = expand_canonical_form(document, form_name, catalog).map_err(|error| {
+        CanonicalRealizationSelectionError::InvalidDirectExpansion(error.to_string())
+    })?;
+    match plan_default_candidate(direct, hosts, bases, options) {
+        Ok((expanded, placements, plan)) => Ok(PlannedCanonicalRealization {
+            mode: CanonicalRealizationMode::Direct,
+            expanded,
+            placements,
+            plan,
+        }),
+        Err(direct_error) => {
+            let recursive = expand_canonical_form_with_backs(document, form_name, catalog, backs)
+                .map_err(|error| {
+                CanonicalRealizationSelectionError::InvalidRecursiveExpansion {
+                    direct: direct_error.clone(),
+                    recursive: error.to_string(),
+                }
+            })?;
+            let (expanded, placements, plan) =
+                plan_default_candidate(recursive, hosts, bases, options).map_err(
+                    |recursive_error| CanonicalRealizationSelectionError::NoRealizablePath {
+                        direct: direct_error,
+                        recursive: recursive_error,
+                    },
+                )?;
+            Ok(PlannedCanonicalRealization {
+                mode: CanonicalRealizationMode::RecursiveBack,
+                expanded,
+                placements,
+                plan,
+            })
+        }
+    }
+}
+
+fn plan_default_candidate(
+    expanded: ExpandedCanonicalForm,
+    hosts: &[HostAdvertisement],
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+) -> Result<(ExpandedCanonicalForm, PlacementChoices, Plan), PlannerError> {
+    let placements = default_expanded_placements(&expanded, hosts)?;
+    let plan = plan_expanded_canonical_with_options(&expanded, hosts, &placements, bases, options)?;
+    Ok((expanded, placements, plan))
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SharedPoolPlanningRequirement {

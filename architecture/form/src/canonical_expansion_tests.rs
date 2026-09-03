@@ -168,6 +168,67 @@ fn canonical_back_refuses_a_face_that_differs_from_the_high_level_kind() {
     );
 }
 
+#[test]
+fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
+    let (startup, profile) = catalogs();
+    let high = profile.get(&kind_id("test/pass")).unwrap();
+    let document = check_syntax_document(
+        &parse_syntax_document(
+            "form test/pass (\n count: Count = 1\n in: test/value > out: test/value\n) {\n leaf: test/pass(count)\n in > leaf > out\n}\n",
+        ),
+        &startup,
+    )
+    .unwrap();
+    let checked_form_id = document.forms[0].checked_form_id.clone();
+
+    let mut backs = crate::CanonicalBackCatalog::new();
+    assert!(matches!(
+        backs.insert_exact(
+            high,
+            &[StartupParameterSignature {
+                name: "count".into(),
+                value_type: "Count".into(),
+                default: Some("1".into()),
+            }],
+            &document,
+            "test/pass",
+            &conduit_core::SourceDocumentId::from("stale-source"),
+            &checked_form_id,
+        ),
+        Err(crate::CanonicalBackError::StaleSourceDocument { .. })
+    ));
+    assert!(matches!(
+        backs.insert_exact(
+            high,
+            &[StartupParameterSignature {
+                name: "count".into(),
+                value_type: "Count".into(),
+                default: Some("1".into()),
+            }],
+            &document,
+            "test/pass",
+            &document.source_document_id,
+            &conduit_core::CheckedFormId::from("stale-form"),
+        ),
+        Err(crate::CanonicalBackError::StaleCheckedForm { .. })
+    ));
+
+    backs
+        .insert_exact(
+            high,
+            &[StartupParameterSignature {
+                name: "count".into(),
+                value_type: "Count".into(),
+                default: Some("1".into()),
+            }],
+            &document,
+            "test/pass",
+            &document.source_document_id,
+            &checked_form_id,
+        )
+        .unwrap();
+}
+
 fn expand(source: &str, root: &str) -> crate::ExpandedCanonicalForm {
     let (startup, profile) = catalogs();
     let syntax = parse_syntax_document(source);
@@ -255,6 +316,25 @@ fn nested_expansion_and_source_reordering_have_deterministic_identity() {
     assert_eq!(first.expanded_form_id, reordered.expanded_form_id);
     assert_eq!(first.gears, reordered.gears);
     assert_eq!(first.connections, reordered.connections);
+}
+
+#[test]
+fn two_uses_share_one_form_definition_but_have_distinct_occurrence_paths() {
+    let source = "form relay (\n input: test/value > output: test/value\n) {\n pass: test/pass\n input > pass > output\n}\n\nform main {\n source: test/source\n left: relay\n right: relay\n left_sink: test/sink\n right_sink: test/sink\n source > left > left_sink\n source > right > right_sink\n}\n";
+    let expanded = expand(source, "main");
+    let relay_gears = expanded
+        .provenance
+        .iter()
+        .filter(|item| item.source_form == "relay")
+        .collect::<Vec<_>>();
+
+    assert_eq!(relay_gears.len(), 2);
+    assert_eq!(relay_gears[0].source_gear, "pass");
+    assert_eq!(relay_gears[1].source_gear, "pass");
+    assert_eq!(relay_gears[0].form_path, ["main", "left"]);
+    assert_eq!(relay_gears[1].form_path, ["main", "right"]);
+    assert_ne!(relay_gears[0].gear_id, relay_gears[1].gear_id);
+    expanded.validate_expansion().unwrap();
 }
 
 #[test]
