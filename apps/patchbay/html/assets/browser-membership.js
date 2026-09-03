@@ -1,5 +1,5 @@
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
-import { openBrowserHostIdentity } from "./browser-host-identity.mjs";
+import { openBrowserHostIdentity } from "/targets/browser/host/assets/browser-host-identity.mjs";
 
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_OUTPUT_BYTES = 24 * 1024;

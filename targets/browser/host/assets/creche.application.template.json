@@ -2,6 +2,7 @@
   "schema": "conduit.browser/application-package-template@1",
   "application_id": "conduit.application/creche",
   "state_compatibility": { "identity": "conduit.application/creche-host-state", "version": 1 },
+  "host_implementations": ["browser/indexeddb@1"],
   "resources": [
     { "role": "application-module", "kind": "module", "path": "creche.mjs", "maximum_bytes": 16384, "dependencies": [
       {"role":"browser-host-bootstrap","specifier":"./browser-host-bootstrap.mjs"},

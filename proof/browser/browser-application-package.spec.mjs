@@ -412,20 +412,95 @@ test("browser Host refuses changed resource bytes and a changed aggregate packag
   await expect(page.locator("#chapter")).toHaveText("application package identity changed");
 });
 
+test("selected durable storage keeps scopes, lifecycle, and refusal states exact", async ({ page }) => {
+  await openBookStep(page, entrance, 0);
+  const result = await page.evaluate(async () => {
+    const module = await import(new URL("../browser-application-storage.mjs", location.href).href);
+    const digest = `sha256:${"a".repeat(64)}`;
+    const codes = {};
+    try { await module.openBrowserApplicationStorage("proof/omitted", 1, digest); }
+    catch (error) { codes.omitted = error.code; }
+    try {
+      await module.openBrowserApplicationStorage("proof/unavailable", 1, digest, {
+        implementationRegistry: ["browser/indexeddb@1"], indexedDb: null,
+      });
+    } catch (error) { codes.unavailable = error.code; }
+    try {
+      await module.openBrowserApplicationStorage("proof/quota", 1, digest, {
+        implementationRegistry: ["browser/indexeddb@1"],
+        indexedDb: { open() { throw new DOMException("full", "QuotaExceededError"); } },
+      });
+    } catch (error) { codes.quota = error.code; }
+
+    const selected = { implementationRegistry: ["browser/indexeddb@1"] };
+    const first = await module.openBrowserApplicationStorage("proof/application", 1, digest, selected);
+    await first.writeJson("retained", { value: 7 });
+    const successful = await first.readJson("retained");
+    const durability = await first.durability();
+    const second = await module.openBrowserApplicationStorage("proof/application", 2, digest, selected);
+    try { await second.readJson("retained"); } catch (error) { codes.version = error.code; }
+    second.close();
+
+    const request = indexedDB.open("conduit-browser-host-applications", 2);
+    const database = await new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    let transaction = database.transaction(["browser-host-identity", "application-state"], "readwrite");
+    transaction.objectStore("browser-host-identity").put({ identity: "scope-proof", retained: true });
+    transaction.objectStore("application-state").put({
+      identity: "proof/application@1\u0000retained", applicationIdentity: "proof/application",
+      applicationVersion: 1, packageDigest: digest, key: "retained", value: "{", valueBytes: 1,
+    });
+    await new Promise((resolve) => transaction.addEventListener("complete", resolve, { once: true }));
+    database.close();
+    try { await first.readJson("retained"); } catch (error) { codes.corrupt = error.code; }
+    await first.clearApplication();
+
+    const identityRequest = indexedDB.open("conduit-browser-host-applications", 2);
+    const identityDatabase = await new Promise((resolve) => identityRequest.addEventListener("success", () => resolve(identityRequest.result), { once: true }));
+    transaction = identityDatabase.transaction("browser-host-identity", "readonly");
+    const identity = await new Promise((resolve) => {
+      const get = transaction.objectStore("browser-host-identity").get("scope-proof");
+      get.addEventListener("success", () => resolve(get.result), { once: true });
+    });
+    identityDatabase.close();
+    first.close();
+    try { await first.readJson("retained"); } catch (error) { codes.stale = error.code; }
+    return { codes, successful, durability, identity, metadata: {
+      state: globalThis.__conduitBrowserApplication.storage.state,
+      implementationId: globalThis.__conduitBrowserApplication.storage.implementationId,
+      artifactId: globalThis.__conduitBrowserApplication.storage.artifactId,
+      bounds: globalThis.__conduitBrowserApplication.storage.bounds,
+    } };
+  });
+  expect(result.codes).toEqual({
+    omitted: "ImplementationNotSelected", unavailable: "StorageUnavailable",
+    quota: "QuotaExhausted", version: "VersionMismatch", corrupt: "CorruptRecord",
+    stale: "StaleApplicationGeneration",
+  });
+  expect(result.successful).toEqual({ value: 7 });
+  expect(["PersistenceGranted", "EvictionPossible", "EvictionStatusUnavailable"]).toContain(result.durability.state);
+  expect(result.identity).toEqual({ identity: "scope-proof", retained: true });
+  expect(result.metadata).toMatchObject({
+    state: "Initialized", implementationId: "browser/indexeddb@1",
+    artifactId: "browser-application-storage.mjs@1",
+    bounds: { maximumRecords: 64, maximumApplicationBytes: 1024 * 1024, maximumApplications: 16 },
+  });
+});
+
 test("browser Host storage refuses capacity exhaustion and malformed durable Book state", async ({ page }) => {
   await openBookStep(page, entrance, 0);
   const capacityRefusal = await page.evaluate(async () => {
     const storage = globalThis.__conduitBrowserApplication.storage;
     await storage.writeJson("reading-state", { schema: "conduit.book/unknown-state@9", drafts: [], expandedBacks: [] });
-    for (let index = 0; index < 63; index += 1) await storage.writeJson(`proof-${index}`, index);
-    try {
-      await storage.writeJson("proof-overflow", true);
-      return "accepted";
-    } catch (error) {
-      return error.message;
+    for (let index = 0; index <= storage.bounds.maximumRecords; index += 1) {
+      try { await storage.writeJson(`proof-${index}`, index); }
+      catch (error) { return { code: error.code, message: error.message }; }
     }
+    return "accepted";
   });
-  expect(capacityRefusal).toBe("application storage capacity is exhausted");
+  expect(capacityRefusal).toEqual({ code: "ApplicationCapacityExhausted", message: "application storage capacity is exhausted" });
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host unavailable");
   await expect(page.locator("#chapter")).toHaveText("persisted Book state is malformed");

@@ -9,6 +9,10 @@ const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../../rp2040/browser-deploym
 const RP2040_SPAWN: &[u8] = include_bytes!("../../../../rp2040/browser-deployment/spawn.mjs");
 const RP2040_FABRICATION: &[u8] =
     include_bytes!("../../../../rp2040/browser-deployment/fabrication.mjs");
+const RP2040_PICO_LOCAL_MANIFEST: &[u8] =
+    include_bytes!("../../assets/artifacts/pico-w-signal-pico-local.json");
+const RP2040_PICO_LOCAL_UF2: &[u8] =
+    include_bytes!("../../assets/artifacts/pico-w-signal-pico-local.uf2");
 const ESP32_INDEX: &[u8] = include_bytes!("../../../../esp32/browser-deployment/index.mjs");
 const ESP32_DEPLOYMENT: &[u8] =
     include_bytes!("../../../../esp32/browser-deployment/deployment.mjs");
@@ -29,6 +33,15 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
         "GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1" => RP2040_BOOTSEL,
         "GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1" => RP2040_SPAWN,
         "GET /targets/rp2040/browser-deployment/fabrication.mjs HTTP/1.1" => RP2040_FABRICATION,
+        "GET /creche/artifacts/pico-w-signal-pico-local.json HTTP/1.1" => {
+            return Some((
+                "application/json; charset=utf-8",
+                RP2040_PICO_LOCAL_MANIFEST,
+            ));
+        }
+        "GET /creche/artifacts/pico-w-signal-pico-local.uf2 HTTP/1.1" => {
+            return Some(("application/octet-stream", RP2040_PICO_LOCAL_UF2));
+        }
         "GET /targets/esp32/browser-deployment/index.mjs HTTP/1.1" => ESP32_INDEX,
         "GET /targets/esp32/browser-deployment/deployment.mjs HTTP/1.1" => ESP32_DEPLOYMENT,
         "GET /targets/esp32/browser-deployment/image.mjs HTTP/1.1" => ESP32_IMAGE,

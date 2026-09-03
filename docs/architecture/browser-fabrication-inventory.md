@@ -90,3 +90,33 @@ The authored Form and portable contract never receive DOM objects, selectors,
 CSS, or Web API event classes. Touch and gamepad stay absent until a reviewed
 live browser implementation and lifecycle exist; their portable schemas alone
 are not an implementation claim.
+
+## Durable-storage realization boundary
+
+`BROWSER_DURABLE_STORAGE_REALIZATION` binds `browser/indexeddb@1` to the
+reviewed `browser-application-storage.mjs@1` Host adapter and records the same
+finite limits enforced by that adapter: 64 records, 256-byte keys, 64 KiB
+values, and 1 MiB per application; at most 16 applications, 1,024 records, and
+16 MiB are admitted across one browser Host database. These are Conduit
+admission bounds, not a promise that a browser grants or permanently retains
+that much storage.
+
+Each admitted application package names its selected Host implementations in
+its content digest. The loader initializes application storage only when
+`browser/indexeddb@1` is selected and the API is currently available. Superset
+JavaScript therefore does not create an offer or an implicit in-memory
+substitute. The adapter reports `EvictionPossible`, `PersistenceGranted`, or
+`EvictionStatusUnavailable` separately from successful reads and writes.
+
+Application records are namespaced by exact state-compatibility identity and
+version. Package content identity remains recorded separately, so compatible
+package revisions can intentionally share one state schema. Version mismatch,
+corrupt records, application and Host admission exhaustion, browser quota
+exhaustion, unavailable storage, explicit deletion, and a stale application
+generation are distinct failures or lifecycle states.
+
+The `application-state` and `browser-host-identity` object stores are separate.
+Clearing one application's records cannot reset Host identity, mutate Body
+membership, or revoke a Host. Book and Crèche receive only the bounded Host
+adapter from their application context; neither owns an ambient IndexedDB or
+localStorage path.

@@ -5,6 +5,7 @@ const PACKAGE_SCHEMA = "conduit.browser/application-package@1";
 const MAXIMUM_PACKAGE_BYTES = 32 * 1024;
 const MAXIMUM_RESOURCES = 64;
 const MAXIMUM_DEPENDENCIES = 16;
+const MAXIMUM_HOST_IMPLEMENTATIONS = 16;
 const MAXIMUM_RESOURCE_BYTES = 16 * 1024 * 1024;
 const MAXIMUM_TOTAL_RESOURCE_BYTES = 32 * 1024 * 1024;
 const RESOURCE_KINDS = new Set(["module", "classic-script", "style", "content", "wasm"]);
@@ -49,6 +50,7 @@ function canonicalPackage(manifest) {
     `application\0${manifest.applicationId}`,
     `state\0${manifest.stateCompatibility.identity}\0${manifest.stateCompatibility.version}`,
   ];
+  for (const implementation of manifest.hostImplementations) lines.push(`host-implementation\0${implementation}`);
   for (const resource of manifest.resources) {
     const dependencies = resource.dependencies.map(({ role, specifier }) => `${role}=${specifier}`).join(",");
     lines.push(`resource\0${resource.role}\0${resource.kind}\0${resource.path}\0${resource.maximumBytes}\0${resource.sha256}\0${dependencies}`);
@@ -66,6 +68,15 @@ function admitManifest(document, manifestUrl) {
   });
   if (!Number.isSafeInteger(stateCompatibility.version) || stateCompatibility.version < 1) {
     throw new Error("application state compatibility version is invalid");
+  }
+  if (!Array.isArray(document.host_implementations) || document.host_implementations.length === 0
+    || document.host_implementations.length > MAXIMUM_HOST_IMPLEMENTATIONS) {
+    throw new Error("browser application Host implementation selection is outside its admitted bound");
+  }
+  const hostImplementations = Object.freeze([...new Set(document.host_implementations.map((identity) =>
+    boundedText(identity, "browser application Host implementation identity")))].sort());
+  if (hostImplementations.length !== document.host_implementations.length) {
+    throw new Error("browser application Host implementation selection is duplicated");
   }
   if (!Array.isArray(document.resources) || document.resources.length === 0 || document.resources.length > MAXIMUM_RESOURCES) {
     throw new Error("application package resource count is outside its admitted bound");
@@ -108,7 +119,7 @@ function admitManifest(document, manifestUrl) {
       if (!seenRoles.has(dependency.role) || dependency.role === resource.role) throw new Error("application resource dependency is invalid");
     }
   }
-  return Object.freeze({ schema: PACKAGE_SCHEMA, applicationId, packageDigest: document.package_digest, stateCompatibility, resources: Object.freeze(resources) });
+  return Object.freeze({ schema: PACKAGE_SCHEMA, applicationId, packageDigest: document.package_digest, stateCompatibility, hostImplementations, resources: Object.freeze(resources) });
 }
 
 async function executeClassic(resource, bytes) {
@@ -239,7 +250,12 @@ export async function loadBrowserApplication(manifestReference) {
     return url;
   }
 
-  const storage = await openBrowserApplicationStorage(manifest.stateCompatibility.identity, manifest.stateCompatibility.version, manifest.packageDigest);
+  const storage = await openBrowserApplicationStorage(
+    manifest.stateCompatibility.identity,
+    manifest.stateCompatibility.version,
+    manifest.packageDigest,
+    { implementationRegistry: manifest.hostImplementations },
+  );
   const bytes = (role) => admittedBytes.get(role)?.slice() ?? null;
   const text = (role) => {
     const resource = byRole.get(role);

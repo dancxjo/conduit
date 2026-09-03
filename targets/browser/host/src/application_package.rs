@@ -8,6 +8,7 @@ const TEMPLATE_SCHEMA: &str = "conduit.browser/application-package-template@1";
 const PACKAGE_SCHEMA: &str = "conduit.browser/application-package@1";
 const MAXIMUM_RESOURCES: usize = 64;
 const MAXIMUM_DEPENDENCIES: usize = 16;
+const MAXIMUM_HOST_IMPLEMENTATIONS: usize = 16;
 const MAXIMUM_RESOURCE_BYTES: usize = 16 * 1024 * 1024;
 const MAXIMUM_TOTAL_RESOURCE_BYTES: usize = 32 * 1024 * 1024;
 
@@ -16,6 +17,7 @@ struct Template {
     schema: String,
     application_id: String,
     state_compatibility: StateCompatibility,
+    host_implementations: Vec<String>,
     resources: Vec<TemplateResource>,
 }
 
@@ -46,6 +48,7 @@ struct Manifest {
     application_id: String,
     package_digest: String,
     state_compatibility: StateCompatibility,
+    host_implementations: Vec<String>,
     resources: Vec<ManifestResource>,
 }
 
@@ -71,10 +74,24 @@ pub fn build_manifest<'a>(
         || template.application_id.is_empty()
         || template.state_compatibility.identity.is_empty()
         || template.state_compatibility.version == 0
+        || template.host_implementations.len() > MAXIMUM_HOST_IMPLEMENTATIONS
         || template.resources.is_empty()
         || template.resources.len() > MAXIMUM_RESOURCES
     {
         return Err("browser application template is outside its admitted bounds".into());
+    }
+    let declared_host_implementations = template.host_implementations.len();
+    let host_implementations = template
+        .host_implementations
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    if host_implementations.is_empty()
+        || host_implementations.len() != declared_host_implementations
+        || host_implementations
+            .iter()
+            .any(|identity| identity.is_empty())
+    {
+        return Err("browser application Host implementation selection is invalid".into());
     }
     let mut roles = BTreeSet::new();
     let mut paths = BTreeSet::new();
@@ -131,6 +148,7 @@ pub fn build_manifest<'a>(
     let canonical = canonical(
         &template.application_id,
         &template.state_compatibility,
+        &host_implementations,
         &resources,
     );
     serde_json::to_vec(&Manifest {
@@ -138,6 +156,7 @@ pub fn build_manifest<'a>(
         application_id: template.application_id,
         package_digest: digest(canonical.as_bytes()),
         state_compatibility: template.state_compatibility,
+        host_implementations: host_implementations.into_iter().collect(),
         resources,
     })
     .map_err(|error| format!("encode browser application manifest: {error}"))
@@ -150,12 +169,16 @@ fn digest(bytes: &[u8]) -> String {
 fn canonical(
     application_id: &str,
     state: &StateCompatibility,
+    host_implementations: &BTreeSet<String>,
     resources: &[ManifestResource],
 ) -> String {
     let mut canonical = format!(
         "conduit.browser/application-package-content@1\napplication\0{application_id}\nstate\0{}\0{}\n",
         state.identity, state.version
     );
+    for implementation in host_implementations {
+        canonical.push_str(&format!("host-implementation\0{implementation}\n"));
+    }
     for resource in resources {
         let dependencies = resource
             .dependencies
@@ -184,6 +207,7 @@ mod tests {
       "schema":"conduit.browser/application-package-template@1",
       "application_id":"conduit.application/test",
       "state_compatibility":{"identity":"test-state","version":1},
+      "host_implementations":["browser/indexeddb@1"],
       "resources":[
         {"role":"application-module","kind":"module","path":"app.mjs","maximum_bytes":8,"dependencies":[{"role":"runtime","specifier":"./runtime.wasm"}]},
         {"role":"runtime","kind":"wasm","path":"runtime.wasm","maximum_bytes":8,"dependencies":[]}

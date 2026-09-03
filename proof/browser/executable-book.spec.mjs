@@ -13,6 +13,7 @@ function browserApplicationPackageDigest(manifest) {
     `application\0${manifest.application_id}`,
     `state\0${manifest.state_compatibility.identity}\0${manifest.state_compatibility.version}`,
   ];
+  for (const implementation of manifest.host_implementations) lines.push(`host-implementation\0${implementation}`);
   for (const resource of manifest.resources) {
     const dependencies = resource.dependencies.map(({ role, specifier }) => `${role}=${specifier}`).join(",");
     lines.push(`resource\0${resource.role}\0${resource.kind}\0${resource.path}\0${resource.maximum_bytes}\0${resource.sha256}\0${dependencies}`);

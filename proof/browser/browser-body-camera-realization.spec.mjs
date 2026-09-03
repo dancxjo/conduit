@@ -7,15 +7,17 @@ test("two browser Hosts realize camera-summary only after exact acquired resourc
     headless: true,
     args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
   });
-  const context = await browser.newContext();
+  const sourceContext = await browser.newContext();
+  const sinkContext = await browser.newContext();
   const hostPort = process.env.CONDUIT_BROWSER_HOST_PORT ?? "4173";
-  await context.grantPermissions(["camera"], { origin: `http://127.0.0.1:${hostPort}` });
-  const source = await context.newPage();
-  const sink = await context.newPage();
+  await sourceContext.grantPermissions(["camera"], { origin: `http://127.0.0.1:${hostPort}` });
+  await sinkContext.grantPermissions(["camera"], { origin: `http://127.0.0.1:${hostPort}` });
+  const source = await sourceContext.newPage();
+  const sink = await sinkContext.newPage();
   const errors = [];
   for (const page of [source, sink]) page.on("pageerror", (error) => errors.push(error.message));
   try {
-    const entrance = `/proof/browser/browser-presence.test.html?renew=false&reconnect=false&body=${encodeURIComponent(body.url)}`;
+    const entrance = `/proof/browser/browser-presence.test.html?reconnect=false&body=${encodeURIComponent(body.url)}`;
     await source.goto(entrance);
     await expect.poll(
       () => source.evaluate(() => globalThis.__browserPresence?.state()),
@@ -29,7 +31,7 @@ test("two browser Hosts realize camera-summary only after exact acquired resourc
         errors,
         body: body.output(),
         exitCode: body.process.exitCode,
-      })).toMatchObject({ presence: "available" });
+      }), { message: body.output() }).toMatchObject({ presence: "available" });
     }
     expect(body.output()).not.toContain("planned=");
     await source.getByRole("button", { name: "Acquire camera resource" }).click();
@@ -109,7 +111,8 @@ test("two browser Hosts realize camera-summary only after exact acquired resourc
     expect(errors).toEqual([]);
   } finally {
     if (!sink.isClosed()) await sink.evaluate(() => globalThis.__browserPresence.close()).catch(() => {});
-    await context.close();
+    await sourceContext.close();
+    await sinkContext.close();
     await browser.close();
     if (body.process.exitCode === null) body.process.kill();
   }
