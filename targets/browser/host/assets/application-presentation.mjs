@@ -1,3 +1,5 @@
+import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
+
 const VERSION = 7;
 const RETIRED_VERSION = 6;
 const MAX_BYTES = 131_072;
@@ -74,11 +76,6 @@ const NODE_STATE_IDENTITIES = Object.freeze({ ready: 1, busy: 2, unavailable: 3 
 const EVIDENCE_DISPOSITIONS = Object.freeze({
   25: "missing", 26: "stale", 27: "refused", 28: "failed", 29: "succeeded",
 });
-const THEME_ROLES = Object.freeze([
-  "background", "reading-paper", "workbench-canvas", "bootstrap-surface", "surface",
-  "structure-primary", "structure-secondary", "text-primary", "text-secondary", "emphasis",
-  "focus", "warning", "failure", "success", "muted",
-]);
 
 function validProgress(value) {
   const match = /^(\d{1,5})\/(\d{1,5})$/.exec(value);
@@ -89,19 +86,7 @@ function validProgress(value) {
 }
 
 export function decodeApplicationTheme(input) {
-  const encoded = input instanceof Uint8Array ? input : new Uint8Array(input);
-  const cursor = new Cursor(encoded);
-  if (cursor.byte() !== VERSION) refuse("unsupported-version");
-  const identityLength = cursor.byte();
-  if (identityLength === 0 || identityLength > 64) refuse("text-too-long");
-  const identity = cursor.text(identityLength);
-  const tokens = {};
-  for (const role of THEME_ROLES) {
-    const [red, green, blue] = cursor.bytes(3);
-    tokens[role] = `#${[red, green, blue].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
-  }
-  if (cursor.offset !== encoded.length) refuse("malformed-encoding");
-  return Object.freeze({ identity, tokens: Object.freeze(tokens) });
+  return decodeTheme(input, refuse);
 }
 
 export function decodeApplicationView(input) {
@@ -557,6 +542,7 @@ export function createApplicationPresentationHost(scope = document) {
 
 export const applicationPresentationLimits = Object.freeze({
   version: VERSION, retiredVersion: RETIRED_VERSION,
+  themeVersion: applicationThemeLimits.version, retiredThemeVersion: applicationThemeLimits.retiredVersion,
   bytes: MAX_BYTES, nodes: MAX_NODES, depth: MAX_DEPTH, textBytes: MAX_TEXT_BYTES,
   actions: MAX_ACTIONS, resources: 0, controlValueBytes: MAX_CONTROL_VALUE_BYTES,
   eventBytes: MAX_EVENT_BYTES, eventQueue: MAX_EVENT_QUEUE, eventQueueBytes: MAX_EVENT_QUEUE_BYTES,

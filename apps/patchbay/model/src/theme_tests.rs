@@ -14,7 +14,7 @@ fn phosphor_theme_is_fixed_bounded_and_matches_the_shared_palette() {
     assert_eq!(PHOSPHOR_THEME.structure_secondary.packed_rgb(), 0x000A_1F87);
     assert_eq!(PHOSPHOR_THEME.emphasis.packed_rgb(), 0x00E9_A325);
     assert_eq!(PHOSPHOR_THEME.focus.packed_rgb(), 0x00F4_C400);
-    assert!(core::mem::size_of_val(&PHOSPHOR_THEME) <= 64);
+    assert!(core::mem::size_of_val(&PHOSPHOR_THEME) <= 96);
 }
 
 #[test]

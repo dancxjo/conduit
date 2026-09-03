@@ -1,9 +1,11 @@
 //! Renderer-neutral application theme roles and their finite transport.
 
-use crate::{ApplicationViewRefusal, APPLICATION_VIEW_VERSION};
+use crate::ApplicationViewRefusal;
 use alloc::vec::Vec;
 
 pub const MAX_APPLICATION_THEME_BYTES: usize = 128;
+pub const APPLICATION_THEME_VERSION: u8 = 2;
+pub const RETIRED_APPLICATION_THEME_VERSION: u8 = 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ThemeColor(pub u8, pub u8, pub u8);
@@ -44,6 +46,18 @@ pub struct ApplicationTheme {
     pub failure: ThemeColor,
     pub success: ThemeColor,
     pub muted: ThemeColor,
+    pub type_body_px: u16,
+    pub type_small_px: u16,
+    pub line_height_percent: u16,
+    pub space_unit_px: u16,
+    pub space_control_inline_px: u16,
+    pub space_control_block_px: u16,
+    pub space_panel_px: u16,
+    pub radius_control_px: u16,
+    pub radius_panel_px: u16,
+    pub focus_width_px: u16,
+    pub responsive_breakpoint_px: u16,
+    pub responsive_grid_min_px: u16,
 }
 
 pub const CONDUIT_APPLICATION_THEME: ApplicationTheme = ApplicationTheme {
@@ -63,6 +77,18 @@ pub const CONDUIT_APPLICATION_THEME: ApplicationTheme = ApplicationTheme {
     failure: ThemeColor(0xff, 0x72, 0x72),
     success: ThemeColor(0x63, 0xd6, 0x9b),
     muted: ThemeColor(0x8c, 0x4c, 0x19),
+    type_body_px: 16,
+    type_small_px: 14,
+    line_height_percent: 150,
+    space_unit_px: 4,
+    space_control_inline_px: 10,
+    space_control_block_px: 7,
+    space_panel_px: 13,
+    radius_control_px: 6,
+    radius_panel_px: 9,
+    focus_width_px: 3,
+    responsive_breakpoint_px: 720,
+    responsive_grid_min_px: 260,
 };
 
 impl ApplicationTheme {
@@ -87,12 +113,30 @@ impl ApplicationTheme {
             self.success,
             self.muted,
         ];
-        let mut encoded = Vec::with_capacity(2 + self.identity.len() + colors.len() * 3);
-        encoded.push(APPLICATION_VIEW_VERSION);
+        let metrics = [
+            self.type_body_px,
+            self.type_small_px,
+            self.line_height_percent,
+            self.space_unit_px,
+            self.space_control_inline_px,
+            self.space_control_block_px,
+            self.space_panel_px,
+            self.radius_control_px,
+            self.radius_panel_px,
+            self.focus_width_px,
+            self.responsive_breakpoint_px,
+            self.responsive_grid_min_px,
+        ];
+        let mut encoded =
+            Vec::with_capacity(2 + self.identity.len() + colors.len() * 3 + metrics.len() * 2);
+        encoded.push(APPLICATION_THEME_VERSION);
         encoded.push(self.identity.len() as u8);
         encoded.extend_from_slice(self.identity.as_bytes());
         for ThemeColor(red, green, blue) in colors {
             encoded.extend_from_slice(&[red, green, blue]);
+        }
+        for metric in metrics {
+            encoded.extend_from_slice(&metric.to_le_bytes());
         }
         if encoded.len() > MAX_APPLICATION_THEME_BYTES {
             return Err(ApplicationViewRefusal::OversizedEncoding);
