@@ -267,7 +267,7 @@ function summarizeProfile(evidence, use) {
     spore_id: evidence.binding.spore_id,
     host_id: evidence.realization.host_id,
     boot_id: evidence.realization.boot_id,
-    runtime_sha256: evidence.realization.boot_truth.image.runtime.sha256,
+    runtime_sha256: evidence.realization.boot_truth.image.files.find(({ path }) => path === "runtime.wasm").sha256,
     boot_module_sha256: evidence.realization.boot_module_sha256,
     implementations: evidence.realization.implementation_registry,
     inspection: evidence.realization.inspection,
