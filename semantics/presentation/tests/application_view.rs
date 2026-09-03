@@ -58,6 +58,14 @@ fn application_view_round_trip_is_exact_and_finite() {
         CONDUIT_APPLICATION_THEME.workbench_canvas
     );
     assert!(CONDUIT_APPLICATION_THEME.encode().unwrap().len() <= MAX_APPLICATION_THEME_BYTES);
+    let encoded_theme = CONDUIT_APPLICATION_THEME.encode().unwrap();
+    assert_eq!(encoded_theme[0], APPLICATION_THEME_VERSION);
+    assert_ne!(APPLICATION_THEME_VERSION, RETIRED_APPLICATION_THEME_VERSION);
+    assert_eq!(CONDUIT_APPLICATION_THEME.type_body_px, 16);
+    assert_eq!(CONDUIT_APPLICATION_THEME.line_height_percent, 150);
+    assert_eq!(CONDUIT_APPLICATION_THEME.space_unit_px, 4);
+    assert_eq!(CONDUIT_APPLICATION_THEME.radius_panel_px, 9);
+    assert_eq!(CONDUIT_APPLICATION_THEME.responsive_breakpoint_px, 720);
 }
 
 #[test]

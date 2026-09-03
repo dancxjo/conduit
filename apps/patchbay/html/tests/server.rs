@@ -312,7 +312,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let manifest: serde_json::Value =
         serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(manifest["application_id"], "conduit.application/patchbay");
-    assert_eq!(manifest["resources"].as_array().unwrap().len(), 23);
+    assert_eq!(manifest["resources"].as_array().unwrap().len(), 24);
     let navigation = request("/assets/portable-navigation.js", "GET");
     assert!(navigation.starts_with("HTTP/1.1 200 OK"));
     assert!(navigation.contains("projectCurrent"));
@@ -352,6 +352,7 @@ fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
             "/assets/application-presentation.mjs",
             "createApplicationPresentationHost",
         ),
+        ("/assets/application-theme.mjs", "applicationThemeLimits"),
         (
             "/assets/body-webrtc-sessions.mjs",
             "class BodyWebRtcSessions",
@@ -469,7 +470,9 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(response.contains("Content-Type: text/css; charset=utf-8"));
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= patchbay_html::MAX_THEME_CSS_BYTES);
-    assert!(body.contains("--patchbay-theme-identity:\"conduit.presentation/phosphor@1\""));
+    assert!(body.contains("--conduit-theme-identity:\"conduit.presentation/phosphor@1\""));
+    assert!(body.contains("Temporary Patchbay compatibility aliases; remove in #2172"));
+    assert!(body.contains("--patchbay-theme-identity:var(--conduit-theme-identity)"));
     for (token, color) in [
         ("background", "#05070B"),
         ("surface", "#090D16"),
@@ -480,8 +483,14 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
         ("emphasis", "#E9A325"),
         ("focus", "#F4C400"),
     ] {
-        assert!(body.contains(&format!("--patchbay-{token}:{color}")));
+        assert!(body.contains(&format!("--conduit-{token}:{color}")));
+        assert!(body.contains(&format!("--patchbay-{token}:var(--conduit-{token})")));
     }
+    assert!(body.contains("--conduit-type-body:16px"));
+    assert!(body.contains("--conduit-line-height:150%"));
+    assert!(body.contains("--conduit-space-panel:13px"));
+    assert!(body.contains("--conduit-radius-panel:9px"));
+    assert!(body.contains("--conduit-responsive-breakpoint:720px"));
 
     let application = request("/assets/app.css", "GET");
     assert!(application.contains("var(--patchbay-background)"));

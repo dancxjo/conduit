@@ -23,6 +23,7 @@ cp targets/browser/host/assets/creche-release-bundle.mjs "$destination/creche-re
 cp targets/browser/host/assets/creche-existing-computer.mjs "$destination/creche-existing-computer.mjs"
 cp targets/browser/host/assets/creche-graduation.mjs "$destination/creche-graduation.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
+cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
 cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
@@ -71,5 +72,5 @@ done
 node scripts/ci/build-browser-application-package.mjs \
   targets/browser/host/assets/creche.application.template.json "$destination" creche.application.json
 
-test "$(find "$destination" -type f | wc -l)" -eq 101
+test "$(find "$destination" -type f | wc -l)" -eq 102
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

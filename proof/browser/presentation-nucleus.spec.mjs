@@ -16,6 +16,12 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   await expect(page.locator("#nucleus [data-presentation-kind=text]")).toHaveText("STRASSE");
   await expect(page.locator("#nucleus [data-application-component=shell]")).toHaveCount(1);
   await expect(page.locator("#nucleus")).toHaveAttribute("data-application-theme", "conduit.presentation/phosphor@1");
+  await expect(page.locator("#nucleus")).toHaveCSS("font-size", "16px");
+  await expect(page.locator("#nucleus")).toHaveCSS("line-height", "24px");
+  const themedButton = page.locator("#nucleus [data-application-component=button]");
+  await expect(themedButton).toHaveCSS("border-radius", "6px");
+  await themedButton.focus();
+  await expect(themedButton).toHaveCSS("outline-width", "3px");
   await expect(page.locator("#nucleus [data-application-key=heading] > h3")).toHaveText("Browser Host presentation");
   await expect(page.locator("#nucleus [data-application-key=heading]")).toHaveAttribute("data-application-evidence", "succeeded");
   const structured = page.locator("#nucleus [data-presentation-kind=structured-info]");
@@ -122,4 +128,19 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   await revised.focus();
   await page.evaluate(() => globalThis.__conduitFocusProof.removeFocused());
   await expect(page.locator('[data-application-key="page-two"]')).toBeFocused();
+});
+
+test("one finite theme mechanism preserves contrast and responsive layout across products", async ({ page }) => {
+  await page.setViewportSize({ width: 680, height: 900 });
+  await page.goto("/proof/browser/presentation-nucleus.test.html");
+  await expect(page.locator("#result")).toHaveText("ok");
+  for (const product of ["book", "creche", "patchbay"]) {
+    const root = page.locator(`[data-conduit-product="${product}"]`);
+    await expect(root).toHaveAttribute("data-application-theme", "conduit.presentation/phosphor@1");
+    await expect(root.locator('[data-application-component="panel"]')).toHaveCSS("border-radius", "9px");
+    await expect(root.locator('[data-application-component="panel"]')).toHaveCSS("border-color", "rgb(244, 196, 0)");
+    await expect(root.locator('[data-application-component="grid"]')).toHaveCSS("grid-template-columns", /\d+px/);
+    expect(await root.evaluate((element) => getComputedStyle(element).getPropertyValue("--conduit-structure-secondary").trim()))
+      .toBe("#f4c400");
+  }
 });

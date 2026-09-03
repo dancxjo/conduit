@@ -159,5 +159,5 @@ export function manifestPresentationNucleus(api, root) {
   structuredPresentation.dataset.quantity = String(structured.quantity);
   structuredPresentation.setAttribute("aria-label", "Education feedback structured information");
   applicationShell.append(structuredPresentation);
-  return Object.freeze({ layout, graphics, text, structured, application });
+  return Object.freeze({ layout, graphics, text, structured, application, applicationTheme });
 }

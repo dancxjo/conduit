@@ -1,0 +1,42 @@
+:where([data-application-theme]) {
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) system-ui, sans-serif;
+}
+:where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
+:where([data-application-component="stack"], [data-application-component="form-field"]) { display: grid; gap: var(--conduit-space-unit); }
+:where([data-application-component="grid"]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--conduit-responsive-grid-min)), 1fr)); gap: var(--conduit-space-panel); }
+:where([data-application-component="action-group"], [data-application-component="navigation"], [data-application-component="stepper"]) { display: flex; flex-wrap: wrap; gap: var(--conduit-space-unit); }
+:where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {
+  padding: var(--conduit-space-panel);
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-panel);
+  background: var(--conduit-surface);
+}
+:where(button, input, select, textarea, summary)[data-application-component] {
+  padding: var(--conduit-space-control-block) var(--conduit-space-control-inline);
+  color: inherit;
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-control);
+  background: var(--conduit-surface);
+  font: inherit;
+}
+:where(button, input, select, textarea, summary)[data-application-component]:focus-visible {
+  border-color: var(--conduit-focus);
+  outline: var(--conduit-focus-width) solid var(--conduit-focus);
+  outline-offset: 2px;
+}
+:where([data-application-status="ordinary"]) { color: var(--conduit-text-secondary); }
+:where([data-application-status="warning"], [data-application-evidence="refused"], [data-application-evidence="stale"]) { color: var(--conduit-warning); }
+:where([data-application-status="failure"], [data-application-evidence="failed"]) { color: var(--conduit-failure); }
+:where([data-application-status="success"], [data-application-evidence="succeeded"]) { color: var(--conduit-success); }
+:where([data-application-theme][data-conduit-contrast="high"]) {
+  --conduit-surface: var(--conduit-background) !important;
+  --conduit-text-secondary: var(--conduit-text-primary) !important;
+  --conduit-structure-secondary: var(--conduit-focus) !important;
+}
+@media (max-width: 720px) {
+  :where([data-application-theme] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
+  :where([data-application-theme] [data-application-component="grid"]) { grid-template-columns: 1fr; }
+}

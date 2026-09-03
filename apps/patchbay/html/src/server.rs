@@ -42,6 +42,8 @@ const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-nav
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
 const APPLICATION_PRESENTATION_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/application-presentation.mjs");
+const APPLICATION_THEME_SCRIPT: &[u8] =
+    include_bytes!("../../../../targets/browser/host/assets/application-theme.mjs");
 const TEXT_LAB_RUNTIME_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/text-lab-live-runtime.mjs");
 const WEBSOCKET_LINE_SCRIPT: &[u8] =
@@ -148,6 +150,7 @@ impl PatchbayHtmlServer {
             "assets/webrtc-datachannel-line.mjs" => Some(WEBRTC_LINE_SCRIPT),
             "assets/webrtc-session-runtime.mjs" => Some(WEBRTC_RUNTIME_SCRIPT),
             "assets/application-presentation.mjs" => Some(APPLICATION_PRESENTATION_SCRIPT),
+            "assets/application-theme.mjs" => Some(APPLICATION_THEME_SCRIPT),
             "assets/flow.js" => Some(FLOW_SCRIPT),
             "assets/flow-scene.js" => Some(FLOW_SCENE_SCRIPT),
             "assets/flow-layout.js" => Some(FLOW_LAYOUT_SCRIPT),
@@ -528,6 +531,11 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 APPLICATION_PRESENTATION_SCRIPT,
+            ),
+            "GET /assets/application-theme.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                APPLICATION_THEME_SCRIPT,
             ),
             "GET /assets/text-lab-live-runtime.mjs HTTP/1.1" => (
                 "200 OK",

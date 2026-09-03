@@ -1,11 +1,13 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Conduit browser presentation nucleus proof</title>
+<link rel="stylesheet" href="../../targets/browser/host/assets/application-theme.css">
 <p id="result">running</p>
 <main id="nucleus" aria-label="Gear Face"></main>
 <section id="controls" aria-label="Bounded controls"></section>
 <section data-application-slot="semantic" aria-label="Semantic mechanisms"></section>
 <section data-application-slot="focus" aria-label="Form and navigation mechanisms"></section>
+<section id="theme-products" aria-label="Shared product theme mechanism"></section>
 <script type="module">
 import {
   instantiatePresentationNucleus,
@@ -14,6 +16,7 @@ import {
 import {
   applicationPresentationLimits,
   createApplicationPresentationHost,
+  decodeApplicationTheme,
   encodeApplicationView,
   manifestApplicationView,
 } from "../../targets/browser/host/assets/application-presentation.mjs";
@@ -32,6 +35,28 @@ try {
   const api = await instantiatePresentationNucleus(wasmBytes);
   const root = document.querySelector("#nucleus");
   const proof = manifestPresentationNucleus(api, root);
+  let retiredThemeRefusal = "";
+  try {
+    decodeApplicationTheme(Uint8Array.of(applicationPresentationLimits.retiredThemeVersion));
+  } catch (error) {
+    retiredThemeRefusal = error.code;
+  }
+  assert(retiredThemeRefusal === "unsupported-version", "retired color-only theme refuses explicitly");
+  const productThemeRoot = document.querySelector("#theme-products");
+  for (const product of ["book", "creche", "patchbay"]) {
+    const productRoot = document.createElement("section");
+    productRoot.dataset.conduitProduct = product;
+    productRoot.dataset.conduitContrast = "high";
+    productThemeRoot.append(productRoot);
+    manifestApplicationView(encodeApplicationView({
+      revision: 1,
+      actions: [],
+      nodes: [
+        { parent: null, component: "grid", action: null, key: `${product}-grid`, text: "" },
+        { parent: 0, component: "panel", action: null, key: `${product}-panel`, text: product },
+      ],
+    }), productRoot, { theme: proof.applicationTheme });
+  }
   assert(proof.layout.children.length === 3, "row/column/stack layout reaches the browser");
   assert(proof.graphics.length === 3, "rect/text/icon graphics reach the browser");
   assert(proof.graphics.map((command) => command.kind).join(",") === "1,2,3", "graphics order is exact");

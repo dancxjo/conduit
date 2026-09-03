@@ -4,7 +4,7 @@ use patchbay_model::{PatchbayTheme, ThemeColor};
 
 pub(super) fn render_theme_css(theme: &PatchbayTheme) -> Vec<u8> {
     format!(
-        ":root{{--patchbay-theme-identity:\"{}\";--patchbay-background:{};--patchbay-surface:{};--patchbay-structure-primary:{};--patchbay-structure-secondary:{};--patchbay-text-primary:{};--patchbay-text-secondary:{};--patchbay-emphasis:{};--patchbay-focus:{};--patchbay-warning:{};--patchbay-failure:{};--patchbay-success:{};--patchbay-muted:{};}}\n",
+        ":root{{--conduit-theme-identity:\"{}\";--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;/* Temporary Patchbay compatibility aliases; remove in #2172. */--patchbay-theme-identity:var(--conduit-theme-identity);--patchbay-background:var(--conduit-background);--patchbay-surface:var(--conduit-surface);--patchbay-structure-primary:var(--conduit-structure-primary);--patchbay-structure-secondary:var(--conduit-structure-secondary);--patchbay-text-primary:var(--conduit-text-primary);--patchbay-text-secondary:var(--conduit-text-secondary);--patchbay-emphasis:var(--conduit-emphasis);--patchbay-focus:var(--conduit-focus);--patchbay-warning:var(--conduit-warning);--patchbay-failure:var(--conduit-failure);--patchbay-success:var(--conduit-success);--patchbay-muted:var(--conduit-muted);}}\n",
         theme.identity,
         css_color(theme.background),
         css_color(theme.surface),
@@ -18,6 +18,18 @@ pub(super) fn render_theme_css(theme: &PatchbayTheme) -> Vec<u8> {
         css_color(theme.failure),
         css_color(theme.success),
         css_color(theme.muted),
+        theme.type_body_px,
+        theme.type_small_px,
+        theme.line_height_percent,
+        theme.space_unit_px,
+        theme.space_control_inline_px,
+        theme.space_control_block_px,
+        theme.space_panel_px,
+        theme.radius_control_px,
+        theme.radius_panel_px,
+        theme.focus_width_px,
+        theme.responsive_breakpoint_px,
+        theme.responsive_grid_min_px,
     )
     .into_bytes()
 }
