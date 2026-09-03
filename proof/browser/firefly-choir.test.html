@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Conduit firefly choir browser Hosts</title>
+<main>
+  <h1>Firefly choir</h1>
+  <p id="status" role="status">idle</p>
+  <button id="tap" type="button">Tap rhythm</button>
+  <output id="light" data-state="off">○</output>
+  <ol id="log" aria-label="event log"></ol>
+</main>
+<script type="module">
+  import { createFireflyChoirBrowserHost } from "/targets/browser/host/assets/firefly-choir.mjs";
+
+  let nowMs = 0;
+  let host;
+
+  window.fireflySetTime = (value) => {
+    nowMs = value;
+    host?.render(nowMs);
+  };
+
+  window.fireflyCreate = ({ enableTone }) => {
+    host = createFireflyChoirBrowserHost({
+      button: document.querySelector("#tap"),
+      light: document.querySelector("#light"),
+      status: document.querySelector("#status"),
+      log: document.querySelector("#log"),
+      clock: { now: () => nowMs },
+      enableTone,
+    });
+    return host.state();
+  };
+
+  window.fireflyAdvance = () => host.advance(nowMs);
+  window.fireflyState = () => host.state();
+  window.fireflyTakeOutbound = () => host.takeOutbound();
+  window.fireflyReceive = (bytes) => host.receive(bytes, nowMs);
+  window.fireflyMarkLineClosed = (result) => host.markLineLost(result?.reason ?? "closed");
+  window.fireflyMarkLinked = () => host.markLinked();
+</script>
