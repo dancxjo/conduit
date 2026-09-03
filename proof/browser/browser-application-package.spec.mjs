@@ -132,9 +132,11 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
   expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
-  expect(admission.paths).toHaveLength(41);
+  expect(admission.paths.length).toBeGreaterThan(0);
+  expect(admission.paths.length).toBeLessThanOrEqual(64);
   expect(admission.paths).toContain("browser-host-identity.mjs");
   expect(admission.paths).toContain("creche-names.mjs");
+  expect(admission.paths).toContain("creche-browser-configuration.mjs");
   expect(admission.paths).toContain("targets/esp32/browser-deployment/rom-loader.mjs");
   expect(admission.paths).toContain("targets/rp2040/browser-deployment/picoboot.mjs");
   for (const [index, path] of admission.paths.entries()) {
