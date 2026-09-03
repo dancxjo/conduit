@@ -29,6 +29,14 @@ retains no invented stable physical-device identity. Web Audio is not presently
 advertised: API detection alone is not an accepted finite audio-output Host
 implementation.
 
+WebSerial and WebUSB follow the same boundary. PROFILE selection admits only a
+finite chooser capability; it performs no browser prompt. The adapter may call
+`requestPort` or `requestDevice` only after an explicit admitted Host operation,
+then records the browser-visible opaque resource and optional numeric vendor or
+product fields without treating them as stable hardware identity. Transfer use
+requires a later immutable Plan and remains bounded to one active device, one
+in-flight transfer, and 4096 bytes per transfer in the reviewed realization.
+
 ## Reviewed distribution and ordinary BUILD
 
 The release producer compiles the browser runtime once and seals

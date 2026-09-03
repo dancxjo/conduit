@@ -84,10 +84,12 @@ export function createBrowserUsbDeviceBase({
   api,
   hostId,
   bootId,
+  selectedImplementations,
   usb = navigator.usb,
   status = document.querySelector("#usb-device-status"),
   output = document.querySelector("#usb-device-evidence"),
 }) {
+  const selected = new Set(selectedImplementations ?? []);
   const required = [
     "conduit_browser_usb_input_ptr",
     "conduit_browser_usb_input_capacity",
@@ -131,6 +133,9 @@ export function createBrowserUsbDeviceBase({
     maximumInTransfers = 8,
     maximumOutTransfers = 8,
   } = {}) {
+    if (!selected.has("browser/webusb@1")) {
+      throw new Error("browser WebUSB implementation is absent from the selected PROFILE");
+    }
     if (device || terminal) throw new Error("one bounded WebUSB Base session is already owned");
     requireInteger(configurationValue, 1, 255, "USB configuration");
     requireInteger(interfaceNumber, 0, 255, "USB interface");

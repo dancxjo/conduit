@@ -107,6 +107,30 @@ test.afterEach(() => {
   while (entrances.length > 0) entrances.pop().kill();
 });
 
+test("superset WebUSB adapter refuses PROFILE omission before the chooser", async ({ page }) => {
+  await page.goto(await startEntrance());
+  await page.waitForFunction(() => globalThis.__conduitBrowserHost?.runtime);
+  const result = await page.evaluate(async () => {
+    let chooserCalls = 0;
+    const { createBrowserUsbDeviceBase } = await import("/usb-device-base.mjs");
+    const base = createBrowserUsbDeviceBase({
+      api: __conduitBrowserHost.runtime,
+      hostId: __conduitBrowserHost.hostId,
+      bootId: __conduitBrowserHost.bootId,
+      selectedImplementations: [],
+      usb: { requestDevice: async () => { chooserCalls += 1; } },
+    });
+    try { await base.acquireUsb(); } catch (error) {
+      return { message: error.message, chooserCalls };
+    }
+    return { message: "accepted", chooserCalls };
+  });
+  expect(result).toEqual({
+    message: "browser WebUSB implementation is absent from the selected PROFILE",
+    chooserCalls: 0,
+  });
+});
+
 test("explicit WebUSB acquisition creates one exact finite Base then bounded use", async ({ page }) => {
   await installSuccessfulUsb(page);
   await page.goto(await startEntrance());
