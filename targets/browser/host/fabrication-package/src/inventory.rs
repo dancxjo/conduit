@@ -23,6 +23,111 @@ pub struct BrowserImplementationDescriptor {
     pub prerequisites: &'static [BrowserRuntimePrerequisite],
 }
 
+/// One ordinary runtime realization carried by a reviewed fabrication entry.
+/// The outer artifact is the exact BrowserBundle WASM; `runtime_artifact_id`
+/// is the identity retained in the resulting CapabilityOffer and Plan.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BrowserRealizationDescriptor {
+    pub fabrication_implementation_id: &'static str,
+    pub portable_kind: &'static str,
+    pub runtime_implementation_id: &'static str,
+    pub runtime_artifact_id: &'static str,
+    pub host_operation: &'static str,
+    pub maximum_in_flight: u16,
+    pub maximum_queue_items: u32,
+    pub maximum_queue_bytes: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct BrowserRealizationLimits {
+    maximum_in_flight: u16,
+    maximum_queue_items: u32,
+    maximum_queue_bytes: u32,
+}
+
+pub const BROWSER_HUMAN_PRESENTATION_REALIZATIONS: &[BrowserRealizationDescriptor] = &[
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/text",
+        "browser/presentation-text@1",
+        "conduit-browser-runtime/installed-text@1",
+        "conduit.host/browser-present-text@1",
+        limits(1, 4, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/structured-info",
+        "browser/presentation-structured-info@1",
+        "conduit-browser-runtime/installed-linguistics@1",
+        "conduit.host/browser-linguistics@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/count",
+        "browser/presentation-count@1",
+        "conduit-browser-runtime/installed-state-time@1",
+        "conduit.host/browser-present-count@1",
+        limits(1, 5, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/indicator",
+        "browser/dom-indicator@2",
+        "conduit-browser-runtime/installed-presentation@1",
+        "conduit.host/browser-present-indicator@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/bool",
+        "browser/presentation-bool@1",
+        "conduit-browser-runtime/installed-presentation@1",
+        "conduit.host/browser-present-current-bool@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/patchbay",
+        "browser/patchbay-surface@1",
+        "conduit-browser-runtime/installed-presentation@1",
+        "conduit.host/browser-present-patchbay@1",
+        limits(1, 4, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/scalar",
+        "browser/presentation-scalar@1",
+        "conduit-browser-runtime/installed-values@1",
+        "browser/presentation-scalar@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/dom-presentation@1",
+        "presentation/bool-value",
+        "browser/presentation-bool-value@1",
+        "conduit-browser-runtime/installed-values@1",
+        "browser/presentation-bool-value@1",
+        limits(1, 1, 4_096),
+    ),
+    realization(
+        "browser/keyboard-events@1",
+        "input/keyboard",
+        "browser/window-keyboard@1",
+        "conduit-browser-runtime/installed-input@1",
+        "conduit.host/browser-key-event@1",
+        limits(1, 8, 4_096),
+    ),
+    realization(
+        "browser/pointer-events@1",
+        "input/pointer-source",
+        "browser/dom-pointer-source@1",
+        "conduit-browser-runtime/pointer-source@1",
+        "browser.host/pointer-source@1",
+        limits(1, 1, 65_536),
+    ),
+];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BrowserInventoryDiagnostic {
     DuplicateImplementation(&'static str),
@@ -285,5 +390,37 @@ const fn descriptor(
         maximum_instances,
         maximum_buffered_bytes,
         prerequisites,
+    }
+}
+
+const fn realization(
+    fabrication_implementation_id: &'static str,
+    portable_kind: &'static str,
+    runtime_implementation_id: &'static str,
+    runtime_artifact_id: &'static str,
+    host_operation: &'static str,
+    limits: BrowserRealizationLimits,
+) -> BrowserRealizationDescriptor {
+    BrowserRealizationDescriptor {
+        fabrication_implementation_id,
+        portable_kind,
+        runtime_implementation_id,
+        runtime_artifact_id,
+        host_operation,
+        maximum_in_flight: limits.maximum_in_flight,
+        maximum_queue_items: limits.maximum_queue_items,
+        maximum_queue_bytes: limits.maximum_queue_bytes,
+    }
+}
+
+const fn limits(
+    maximum_in_flight: u16,
+    maximum_queue_items: u32,
+    maximum_queue_bytes: u32,
+) -> BrowserRealizationLimits {
+    BrowserRealizationLimits {
+        maximum_in_flight,
+        maximum_queue_items,
+        maximum_queue_bytes,
     }
 }

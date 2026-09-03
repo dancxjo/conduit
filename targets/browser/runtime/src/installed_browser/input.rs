@@ -12,11 +12,11 @@ use conduit_kernel::{
 
 pub(crate) const WINDOW_INPUT_RESOURCE_CLASS: &str = "conduit.resource/browser-window-input@1";
 pub(crate) const KEY_EVENT_OPERATION: &str = "conduit.host/browser-key-event@1";
-const IMPLEMENTATION: &str = "browser/window-keyboard@1";
+pub(super) const KEYBOARD_IMPLEMENTATION: &str = "browser/window-keyboard@1";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-input@1";
 
 pub(super) static KEYBOARD: BrowserInstallation = BrowserInstallation {
-    implementation_id: IMPLEMENTATION,
+    implementation_id: KEYBOARD_IMPLEMENTATION,
     offer,
     prepare,
     perform: None,
@@ -27,9 +27,9 @@ fn offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::keyboard_contract(),
         conduit_semantic_catalog::KEYBOARD_CONTRACT_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: IMPLEMENTATION,
-            execution_profile: IMPLEMENTATION,
-            implementation: IMPLEMENTATION,
+            capability: KEYBOARD_IMPLEMENTATION,
+            execution_profile: KEYBOARD_IMPLEMENTATION,
+            implementation: KEYBOARD_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
         vec![HostOperationRequirement {

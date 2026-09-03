@@ -9,8 +9,9 @@ mod inventory;
 
 pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
-    BrowserInventoryDiagnostic, BrowserRuntimePrerequisite, BROWSER_IMPLEMENTATIONS,
-    REVIEWED_DISTRIBUTION_ID, REVIEWED_RUNTIME_ARTIFACT,
+    BrowserInventoryDiagnostic, BrowserRealizationDescriptor, BrowserRuntimePrerequisite,
+    BROWSER_HUMAN_PRESENTATION_REALIZATIONS, BROWSER_IMPLEMENTATIONS, REVIEWED_DISTRIBUTION_ID,
+    REVIEWED_RUNTIME_ARTIFACT,
 };
 
 pub struct BrowserFabricationPackage;
@@ -195,6 +196,39 @@ mod tests {
             assert!(prerequisites.contains("permission"));
             assert!(prerequisites.contains("device-acquisition"));
         }
+    }
+
+    #[test]
+    fn human_and_presentation_entries_bind_exact_portable_runtime_realizations() {
+        let fabricated = BROWSER_IMPLEMENTATIONS
+            .iter()
+            .map(|item| item.implementation_id)
+            .collect::<BTreeSet<_>>();
+        for realization in BROWSER_HUMAN_PRESENTATION_REALIZATIONS {
+            assert!(fabricated.contains(realization.fabrication_implementation_id));
+            assert!(!realization.portable_kind.contains("browser"));
+            assert!(realization
+                .runtime_implementation_id
+                .starts_with("browser/"));
+            assert!(realization
+                .runtime_artifact_id
+                .starts_with("conduit-browser-runtime/"));
+            assert!(realization.host_operation.contains("browser"));
+            assert_eq!(realization.maximum_in_flight, 1);
+            assert!((1..=8).contains(&realization.maximum_queue_items));
+            assert!(realization.maximum_queue_bytes > 0);
+        }
+        assert!(BROWSER_HUMAN_PRESENTATION_REALIZATIONS.iter().any(|item| {
+            item.fabrication_implementation_id == "browser/keyboard-events@1"
+                && item.portable_kind == "input/keyboard"
+        }));
+        assert!(BROWSER_HUMAN_PRESENTATION_REALIZATIONS.iter().any(|item| {
+            item.fabrication_implementation_id == "browser/pointer-events@1"
+                && item.portable_kind == "input/pointer-source"
+        }));
+        assert!(!BROWSER_HUMAN_PRESENTATION_REALIZATIONS.iter().any(|item| {
+            item.portable_kind.contains("touch") || item.portable_kind.contains("gamepad")
+        }));
     }
 
     #[test]

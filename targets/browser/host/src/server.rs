@@ -19,7 +19,7 @@ const APPLICATION_THEME: &[u8] = include_bytes!("../assets/application-theme.css
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
-const MAX_RUNTIME_BYTES: usize = 4 * 1024 * 1024;
+const MAX_RUNTIME_BYTES: usize = 8 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;
 const MAX_REQUESTS: usize = 1024;
 

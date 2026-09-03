@@ -59,7 +59,7 @@ test("shows bounded startup suspense until the browser Host is ready", async ({ 
   await expect(page.locator("#status")).toHaveText("Current and independently initialized");
 });
 
-test("independent entrances and reload own fresh page WASM Host truth", async ({ browser }) => {
+test("independent entrances own distinct Hosts while reload retains Host and replaces Boot", async ({ browser }) => {
   const firstEntrance = await startEntrance();
   const secondEntrance = await startEntrance();
   expect(firstEntrance.url).not.toBe(secondEntrance.url);
@@ -85,7 +85,7 @@ test("independent entrances and reload own fresh page WASM Host truth", async ({
   await firstPage.reload();
   await expect(firstPage.locator("#status")).toHaveText("Current and independently initialized");
   const replacementIdentity = await identity(firstPage);
-  expect(replacementIdentity.hostId).not.toBe(firstIdentity.hostId);
+  expect(replacementIdentity.hostId).toBe(firstIdentity.hostId);
   expect(replacementIdentity.bootId).not.toBe(firstIdentity.bootId);
   expect(await identity(secondPage)).toEqual(secondIdentity);
 });
