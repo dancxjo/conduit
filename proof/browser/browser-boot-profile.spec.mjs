@@ -70,7 +70,7 @@ test("exact IMAGE gates a superset runtime into only selected implementations an
   expect(result.inspection.some(({ implementation_id }) => implementation_id === "browser/websocket@1")).toBe(false);
 });
 
-test("unsupported, initialization, permission, resource, and successful offer states remain distinct", async ({ page }) => {
+test("unsupported, initialization, permission, provider, endpoint authority, and successful offer states remain distinct", async ({ page }) => {
   const fixture = await makeImage(IDS);
   const states = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
     const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
@@ -95,10 +95,20 @@ test("unsupported, initialization, permission, resource, and successful offer st
         "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
         "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: false },
       }),
+      endpoint: await inspect({
+        "browser/dom@1": { api_supported: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: false, authority_ready: true },
+      }),
+      authority: await inspect({
+        "browser/dom@1": { api_supported: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: false },
+      }),
       successful: await inspect({
         "browser/dom@1": { api_supported: true },
         "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "granted", resource_ready: true, resource_identity: "camera/front" },
-        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: true },
       }),
     };
   }, { ids: IDS, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("b") });
@@ -107,6 +117,9 @@ test("unsupported, initialization, permission, resource, and successful offer st
   expect(states.initialization["browser/dom@1"].refusal).toBe("InitializationFailed");
   expect(states.initialization["browser/media-devices-camera@1"].refusal).toBe("PermissionDenied");
   expect(states.initialization["browser/websocket@1"].refusal).toBe("ProviderUnavailable");
+  expect(states.endpoint["browser/websocket@1"].refusal).toBe("EndpointUnavailable");
+  expect(states.authority["browser/websocket@1"].refusal).toBe("EndpointAuthorityAbsent");
+  expect(states.successful["browser/websocket@1"]).toMatchObject({ offered: true, resource_ready: true });
   expect(states.successful["browser/media-devices-camera@1"]).toMatchObject({ offered: true, resource_ready: true, resource_identity: "camera/front" });
 });
 
@@ -141,6 +154,49 @@ test("resource loss changes Boot offer truth and invalidates only dependent real
   })]);
 });
 
+test("WebRTC signaling bootstrap and exact session grant remain separate from DataChannel offer truth", async ({ page }) => {
+  const implementation = "browser/webrtc-datachannel@1";
+  const fixture = await makeImage([implementation]);
+  const result = await page.evaluate(async ({ implementation, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const common = {
+      imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes), bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest, bootId: "boot/webrtc",
+      availableImplementations: [{ id: implementation, revision: 1 }],
+    };
+    const observation = {
+      api_supported: true, secure_context: true, provider_ready: true,
+      endpoint_ready: true, authority_ready: true,
+    };
+    const noSignaling = await boot.admitBrowserBoot({ ...common, observations: { [implementation]: observation } });
+    const noGrant = await boot.admitBrowserBoot({
+      ...common, observations: { [implementation]: { ...observation, signaling_ready: true } },
+    });
+    const ready = await boot.admitBrowserBoot({
+      ...common, observations: { [implementation]: { ...observation, signaling_ready: true, session_grant_ready: true } },
+    });
+    const realization = boot.bindBrowserOfferRealization(ready, {
+      realizationId: "line-realization/webrtc/1", offerId: "line/webrtc-datachannel@1",
+      formId: "form/portable-camera", planId: "plan/webrtc/1",
+    });
+    return { noSignaling, noGrant, ready, realization };
+  }, { implementation, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("7") });
+
+  expect(result.noSignaling.inspection[0]).toMatchObject({ offered: false, refusal: "SignalingBootstrapAbsent" });
+  expect(result.noGrant.inspection[0]).toMatchObject({ offered: false, refusal: "SessionGrantAbsent" });
+  expect(result.ready.inspection[0]).toMatchObject({ offered: true, resource_ready: true });
+  expect(result.realization).toMatchObject({
+    implementation_id: implementation,
+    form_id: "form/portable-camera",
+    plan_id: "plan/webrtc/1",
+    admitted_offer_generation: 1,
+  });
+  expect(result.realization).not.toHaveProperty("body_id");
+  expect(result.realization).not.toHaveProperty("signaling_url");
+});
+
 test("superset and reduced bundles yield equivalent semantic truth while stale IMAGE and missing selected code refuse", async ({ page }) => {
   const fixture = await makeImage([IDS[0], IDS[2]]);
   const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
@@ -148,7 +204,7 @@ test("superset and reduced bundles yield equivalent semantic truth while stale I
     const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
     const observations = {
       [ids[0]]: { api_supported: true },
-      [ids[2]]: { api_supported: true, secure_context: true, provider_ready: true },
+      [ids[2]]: { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: true },
     };
     const input = {
       imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,

@@ -10,6 +10,8 @@ export const BrowserWebSocketFailure = Object.freeze({
 });
 
 const encoder = new TextEncoder();
+export const MAXIMUM_WEBSOCKET_MESSAGE_BYTES = 64 * 1024;
+export const MAXIMUM_WEBSOCKET_BUFFERED_BYTES = 256 * 1024;
 
 function failure(code, detail) {
   return Object.freeze({ ok: false, code, detail });
@@ -38,8 +40,10 @@ export class BrowserWebSocketLine {
         parsed.password !== "" ||
         !Number.isSafeInteger(maximumMessageBytes) ||
         maximumMessageBytes <= 0 ||
+        maximumMessageBytes > MAXIMUM_WEBSOCKET_MESSAGE_BYTES ||
         !Number.isSafeInteger(maximumBufferedBytes) ||
-        maximumBufferedBytes < maximumMessageBytes) {
+        maximumBufferedBytes < maximumMessageBytes ||
+        maximumBufferedBytes > MAXIMUM_WEBSOCKET_BUFFERED_BYTES) {
       throw new TypeError(BrowserWebSocketFailure.InvalidBinding);
     }
     this.url = parsed.href;

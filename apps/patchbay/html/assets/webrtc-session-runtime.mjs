@@ -7,6 +7,7 @@ const requiredExports = [
   "conduit_browser_webrtc_session_input_ptr",
   "conduit_browser_webrtc_session_input_capacity",
   "conduit_browser_webrtc_session_maximum_frame_bytes",
+  "conduit_browser_webrtc_session_maximum_payload_bytes",
   "conduit_browser_webrtc_session_maximum_in_flight_items",
   "conduit_browser_webrtc_session_output_ptr",
   "conduit_browser_webrtc_session_output_len",
@@ -83,14 +84,22 @@ export function takeWebRtcSessionOutput(runtime) {
 
 export function webRtcSessionLineLimits(runtime) {
   const maximumMessageBytes = runtime.api.conduit_browser_webrtc_session_maximum_frame_bytes();
+  const maximumPayloadBytes = runtime.api.conduit_browser_webrtc_session_maximum_payload_bytes();
   const maximumReceivedMessages = runtime.api.conduit_browser_webrtc_session_maximum_in_flight_items();
   const maximumBufferedBytes = maximumMessageBytes * maximumReceivedMessages;
   if (!Number.isSafeInteger(maximumMessageBytes) || maximumMessageBytes <= 0 ||
+      !Number.isSafeInteger(maximumPayloadBytes) || maximumPayloadBytes <= 0 ||
+      maximumPayloadBytes > maximumMessageBytes ||
       !Number.isSafeInteger(maximumReceivedMessages) || maximumReceivedMessages <= 0 ||
       !Number.isSafeInteger(maximumBufferedBytes)) {
     throw new Error("CND-WEBRTC-SESSION-008 invalid admitted Line limits");
   }
-  return Object.freeze({ maximumMessageBytes, maximumBufferedBytes, maximumReceivedMessages });
+  return Object.freeze({
+    maximumMessageBytes,
+    maximumPayloadBytes,
+    maximumBufferedBytes,
+    maximumReceivedMessages,
+  });
 }
 
 export function ingestWebRtcSession(runtime, bytes) {
