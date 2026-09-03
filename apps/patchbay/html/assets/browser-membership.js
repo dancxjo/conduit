@@ -1,4 +1,5 @@
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
+import { openBrowserHostIdentity } from "./browser-host-identity.mjs";
 
 const INPUT_CAPACITY = 4096;
 const MAXIMUM_OUTPUT_BYTES = 24 * 1024;
@@ -74,9 +75,10 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
   const requireSuccess = (status, action) => {
     if (status < 0) throw new Error(`${action} failed ${status}`);
   };
-  const hostId = `browser/${crypto.randomUUID()}`;
+  const identity = await openBrowserHostIdentity();
+  const hostId = identity.hostId;
   const bootId = `browser-boot/${crypto.randomUUID()}`;
-  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const seed = identity.seed.slice();
   const host = encoder.encode(hostId);
   const boot = encoder.encode(bootId);
   const initialization = new Uint8Array(host.length + boot.length + seed.length);

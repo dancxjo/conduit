@@ -119,13 +119,15 @@ export function renderBiography(container, biography) {
 }
 
 function biographyHeading(kind) {
-  return ({ Born: "Born", PartAdmitted: "Part admitted", HostJoined: "Host joined", Graduated: "Graduated from the Crèche" })[kind] ?? kind;
+  return ({ Born: "Born", PartAdmitted: "Part admitted", HostJoined: "Host joined", HostLeft: "Host left", PartRevoked: "Part revoked", Graduated: "Graduated from the Crèche" })[kind] ?? kind;
 }
 
 function biographyExplanation(kind, facts, biography) {
   if (kind === "Born") return `${biography.friendly_name} began as Body ${biography.body_id} with ${biography.initial_program}.`;
   if (kind === "PartAdmitted") return `Part ${facts.part_id} entered this Body's admitted membership.`;
   if (kind === "HostJoined") return `Part ${facts.part_id} was observed on Host ${facts.host_id}, Boot ${facts.boot_id}.`;
+  if (kind === "HostLeft") return `Part ${facts.part_id} left prior Boot ${facts.prior_boot_id} and remains admitted.`;
+  if (kind === "PartRevoked") return `Part ${facts.part_id} was removed from Body membership.`;
   if (facts.choice === "HostedPatchbay") return `Patchbay was placed by Plan ${facts.patchbay_plan_id} using ${facts.patchbay_implementation_id}.`;
   return "No Patchbay was hosted. A compatible reader can project this same evidence later.";
 }

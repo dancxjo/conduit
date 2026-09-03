@@ -191,6 +191,11 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
             "text/javascript; charset=utf-8",
         ),
         (
+            "targets/browser/host/assets/browser-host-identity.mjs",
+            "browser-host-identity.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
             "targets/browser/host/assets/media-host.mjs",
             "media-host.mjs",
             "text/javascript; charset=utf-8",

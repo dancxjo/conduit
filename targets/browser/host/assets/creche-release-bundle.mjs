@@ -1,5 +1,5 @@
 const encoder = new TextEncoder();
-const MAXIMUM_FILES = 8;
+const MAXIMUM_FILES = 16;
 const MAXIMUM_FILE_BYTES = 32 * 1024 * 1024;
 const MAXIMUM_BUNDLE_BYTES = 48 * 1024 * 1024;
 

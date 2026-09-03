@@ -69,6 +69,22 @@ pub fn project_body_biography(
                     boot_id.as_str()
                 ),
             ),
+            BodyBiographyRecordKind::HostLeft {
+                part_id,
+                prior_boot_id,
+                ..
+            } => (
+                "Host left",
+                format!(
+                    "Part {} left its prior Boot {}; the Part remains admitted.",
+                    part_id.as_str(),
+                    prior_boot_id.as_str()
+                ),
+            ),
+            BodyBiographyRecordKind::PartRevoked { part_id, .. } => (
+                "Part revoked",
+                format!("Part {} was removed from Body membership.", part_id.as_str()),
+            ),
             BodyBiographyRecordKind::FormAdmitted {
                 checked_form_id,
                 workload_revision,

@@ -130,11 +130,36 @@ pub(super) fn birth(
 
 pub(super) fn attach_here(host: &str, boot: &str, sequence: u64) -> Result<BirthReceipt, String> {
     with_session(|session| {
-        if session.receipt.here_part_id.is_some() {
-            return Ok(session.receipt.clone());
-        }
         let host_id = HostId::from(host);
         let boot_id = BootId::from(boot);
+        if let Some(part) = session.receipt.here_part_id.clone() {
+            let retained_host = session
+                .receipt
+                .host_id
+                .as_deref()
+                .ok_or_else(|| "restored Here membership has no Host identity".to_string())?;
+            if retained_host != host_id.as_str() {
+                return Err(
+                    "current browser Host does not match the retained Here membership".into(),
+                );
+            }
+            let retained = session
+                .receipt
+                .raw_membership
+                .parts
+                .iter()
+                .find(|candidate| candidate.part_id.as_str() == part)
+                .ok_or_else(|| "retained Here Part is absent from Body membership".to_string())?;
+            let here_part = retained.part_id.clone();
+            let current = retained.current.clone();
+            if current
+                .as_ref()
+                .is_some_and(|observation| observation.boot_id == boot_id)
+            {
+                return Ok(session.receipt.clone());
+            }
+            return attach_admitted_here(session, here_part, host_id, boot_id, current, sequence);
+        }
         let here_part = PartId::bind(&session.receipt.raw_body.body_id, "creche/here", 1)
             .map_err(|error| format!("bind Here Part: {error:?}"))?;
         let proof = MembershipProofId::bind(&session.receipt.source_interaction.result_identity)
@@ -144,27 +169,24 @@ pub(super) fn attach_here(host: &str, boot: &str, sequence: u64) -> Result<Birth
             .checked_add(1)
             .ok_or_else(|| "Host attachment sequence overflow".to_string())?;
         let attach_sign = bind_sign(&host_id, &boot_id, None, attach_sequence);
-        session
-            .biography
+        let mut membership = session.receipt.raw_membership.clone();
+        let mut biography = session.biography.clone();
+        biography
             .can_append(2)
             .map_err(|error| format!("admit biography records: {error:?}"))?;
-        let admitted_change = session
-            .receipt
-            .raw_membership
+        let admitted_change = membership
             .admit(
                 &session.receipt.raw_body.body_id,
-                session.receipt.raw_membership.revision,
+                membership.revision,
                 here_part.clone(),
                 proof.clone(),
                 admit_sign.sign_id,
             )
             .map_err(|error| format!("admit Here Part: {error:?}"))?;
-        let attached_change = session
-            .receipt
-            .raw_membership
+        let attached_change = membership
             .observe_present(
                 &session.receipt.raw_body.body_id,
-                session.receipt.raw_membership.revision,
+                membership.revision,
                 &here_part,
                 AuthenticatedHostObservation {
                     host_id: host_id.clone(),
@@ -176,19 +198,191 @@ pub(super) fn attach_here(host: &str, boot: &str, sequence: u64) -> Result<Birth
                 attach_sign.sign_id,
             )
             .map_err(|error| format!("observe current browser Host: {error:?}"))?;
-        session
-            .biography
+        biography
             .append_membership_events(
-                session.receipt.raw_membership.clone(),
+                membership.clone(),
                 &[
                     (admitted_change, sequence),
                     (attached_change, attach_sequence),
                 ],
             )
             .map_err(|error| format!("record Body membership biography: {error:?}"))?;
+        session.receipt.raw_membership = membership;
+        session.biography = biography;
         session.receipt.here_part_id = Some(here_part.as_str().into());
         session.receipt.host_id = Some(host_id.as_str().into());
         session.receipt.boot_id = Some(boot_id.as_str().into());
+        session.receipt.membership_revision = session.receipt.raw_membership.revision.0;
+        Ok(session.receipt.clone())
+    })
+}
+
+fn attach_admitted_here(
+    session: &mut BodySession,
+    here_part: PartId,
+    host_id: HostId,
+    boot_id: BootId,
+    prior: Option<AuthenticatedHostObservation>,
+    sequence: u64,
+) -> Result<BirthReceipt, String> {
+    let proof = MembershipProofId::bind(&session.receipt.source_interaction.result_identity)
+        .map_err(|error| format!("bind membership proof: {error:?}"))?;
+    let event_count = if prior.is_some() { 2 } else { 1 };
+    let mut membership = session.receipt.raw_membership.clone();
+    let mut biography = session.biography.clone();
+    biography
+        .can_append(event_count)
+        .map_err(|error| format!("admit biography records: {error:?}"))?;
+    let mut events = Vec::with_capacity(event_count);
+    let mut attach_sequence = sequence;
+    let observation_sequence = prior
+        .as_ref()
+        .map_or(1, |observation| observation.sequence + 1);
+    if let Some(prior) = prior {
+        if prior.host_id != host_id {
+            return Err("current browser Host does not match the retained Here membership".into());
+        }
+        let detach_sign = bind_sign(&host_id, &prior.boot_id, None, sequence);
+        let change = membership
+            .observe_offline(
+                &session.receipt.raw_body.body_id,
+                membership.revision,
+                &here_part,
+                &prior.boot_id,
+                detach_sign.sign_id,
+            )
+            .map_err(|error| format!("detach historical browser Boot: {error:?}"))?;
+        events.push((change, sequence));
+        attach_sequence = sequence
+            .checked_add(1)
+            .ok_or_else(|| "Host reattachment sequence overflow".to_string())?;
+    }
+    let attach_sign = bind_sign(&host_id, &boot_id, None, attach_sequence);
+    let change = membership
+        .observe_present(
+            &session.receipt.raw_body.body_id,
+            membership.revision,
+            &here_part,
+            AuthenticatedHostObservation {
+                host_id: host_id.clone(),
+                boot_id: boot_id.clone(),
+                offer_generation: OfferGeneration(1),
+                proof_id: proof,
+                sequence: observation_sequence,
+            },
+            attach_sign.sign_id,
+        )
+        .map_err(|error| format!("observe current browser Host: {error:?}"))?;
+    events.push((change, attach_sequence));
+    biography
+        .append_membership_events(membership.clone(), &events)
+        .map_err(|error| format!("record Body membership biography: {error:?}"))?;
+    session.receipt.raw_membership = membership;
+    session.biography = biography;
+    session.receipt.host_id = Some(host_id.as_str().into());
+    session.receipt.boot_id = Some(boot_id.as_str().into());
+    session.receipt.membership_revision = session.receipt.raw_membership.revision.0;
+    Ok(session.receipt.clone())
+}
+
+pub(super) fn leave_here(host: &str, boot: &str, sequence: u64) -> Result<BirthReceipt, String> {
+    with_session(|session| {
+        let host_id = HostId::from(host);
+        let boot_id = BootId::from(boot);
+        let part = session
+            .receipt
+            .here_part_id
+            .as_deref()
+            .ok_or_else(|| "this Body has no admitted browser Part".to_string())?;
+        if session.receipt.host_id.as_deref() != Some(host_id.as_str())
+            || session.receipt.boot_id.as_deref() != Some(boot_id.as_str())
+        {
+            return Err("only the exact current browser Host and Boot may leave".into());
+        }
+        let here_part = session
+            .receipt
+            .raw_membership
+            .parts
+            .iter()
+            .find(|candidate| candidate.part_id.as_str() == part)
+            .ok_or_else(|| "retained Here Part is absent from Body membership".to_string())?
+            .part_id
+            .clone();
+        let sign = bind_sign(&host_id, &boot_id, None, sequence);
+        let mut membership = session.receipt.raw_membership.clone();
+        let mut biography = session.biography.clone();
+        biography
+            .can_append(1)
+            .map_err(|error| format!("admit biography record: {error:?}"))?;
+        let change = membership
+            .observe_offline(
+                &session.receipt.raw_body.body_id,
+                membership.revision,
+                &here_part,
+                &boot_id,
+                sign.sign_id,
+            )
+            .map_err(|error| format!("detach current browser Boot: {error:?}"))?;
+        biography
+            .append_membership_events(membership.clone(), &[(change, sequence)])
+            .map_err(|error| format!("record Body membership biography: {error:?}"))?;
+        session.receipt.raw_membership = membership;
+        session.biography = biography;
+        session.receipt.boot_id = None;
+        session.receipt.membership_revision = session.receipt.raw_membership.revision.0;
+        Ok(session.receipt.clone())
+    })
+}
+
+pub(super) fn revoke_here(host: &str, boot: &str, sequence: u64) -> Result<BirthReceipt, String> {
+    with_session(|session| {
+        let host_id = HostId::from(host);
+        let part = session
+            .receipt
+            .here_part_id
+            .as_deref()
+            .ok_or_else(|| "this Body has no admitted browser Part".to_string())?;
+        if session.receipt.host_id.as_deref() != Some(host_id.as_str()) {
+            return Err("only the admitted browser Host may revoke its Part".into());
+        }
+        let boot_id = BootId::from(boot);
+        if session
+            .receipt
+            .boot_id
+            .as_deref()
+            .is_some_and(|current| current != boot_id.as_str())
+        {
+            return Err("a stale browser Boot may not revoke the current Part".into());
+        }
+        let here_part = session
+            .receipt
+            .raw_membership
+            .parts
+            .iter()
+            .find(|candidate| candidate.part_id.as_str() == part)
+            .ok_or_else(|| "retained Here Part is absent from Body membership".to_string())?
+            .part_id
+            .clone();
+        let sign = bind_sign(&host_id, &boot_id, None, sequence);
+        let mut membership = session.receipt.raw_membership.clone();
+        let mut biography = session.biography.clone();
+        biography
+            .can_append(1)
+            .map_err(|error| format!("admit biography record: {error:?}"))?;
+        let change = membership
+            .revoke(
+                &session.receipt.raw_body.body_id,
+                membership.revision,
+                &here_part,
+                sign.sign_id,
+            )
+            .map_err(|error| format!("revoke browser Part: {error:?}"))?;
+        biography
+            .append_membership_events(membership.clone(), &[(change, sequence)])
+            .map_err(|error| format!("record Body membership biography: {error:?}"))?;
+        session.receipt.raw_membership = membership;
+        session.biography = biography;
+        session.receipt.boot_id = None;
         session.receipt.membership_revision = session.receipt.raw_membership.revision.0;
         Ok(session.receipt.clone())
     })
@@ -237,6 +431,10 @@ pub(super) fn restore_durable(snapshot: DurableBodySession) -> Result<BirthRecei
         });
     });
     Ok(receipt)
+}
+
+pub(super) fn forget_local() {
+    BODY.with(|slot| slot.borrow_mut().take());
 }
 
 fn validate_durable(snapshot: &DurableBodySession) -> Result<(), String> {
