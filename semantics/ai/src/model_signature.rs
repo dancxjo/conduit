@@ -19,6 +19,7 @@ pub enum ModelOperation {
     Sample,
     LogProbability,
     Evaluate,
+    Train,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -272,6 +273,7 @@ fn operation_tag(operation: ModelOperation) -> u8 {
         ModelOperation::Sample => 3,
         ModelOperation::LogProbability => 4,
         ModelOperation::Evaluate => 5,
+        ModelOperation::Train => 6,
     }
 }
 
