@@ -69,6 +69,7 @@ fn main() {
             DemoCommand::LightSwitch(args) => commands::light_switch::run(args),
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),
+            DemoCommand::TonguesResearch => commands::tongues::run_research(&opts),
         },
         Command::UnifontSubset(args) => commands::unifont_subset::run(args),
         Command::PaletteIcons(args) => commands::palette_icons::run(args),

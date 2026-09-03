@@ -13,9 +13,15 @@ name = "conduit-tongues-demo"
 path = "src/bin/conduit-tongues-demo.rs"
 required-features = ["speech"]
 
+[[bin]]
+name = "conduit-tongues-research"
+path = "src/bin/conduit-tongues-research.rs"
+
 [dependencies]
 conduit-audio = { path = "../audio" }
+conduit-ai = { path = "../ai" }
 conduit-core = { path = "../../architecture/core" }
+conduit-data = { path = "../data" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-planner = { path = "../../architecture/planner" }

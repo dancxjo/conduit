@@ -23,6 +23,8 @@ on:
       - apps/patchbay/model/src/debugger_*.rs
       - apps/patchbay/model/src/learned_watch*.rs
       - apps/patchbay/model/src/lib.rs
+      - semantics/tongues/**
+      - examples/tongues-*.conduit
       - architecture/kernel/src/debug_observation.rs
       - architecture/kernel/src/debug_observation/*.rs
       - architecture/kernel/src/scheduler.rs

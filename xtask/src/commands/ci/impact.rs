@@ -28,12 +28,7 @@ const CONDUITOS_X86_PROOFS: [&str; 8] = [
 ];
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
 const GLOBAL_PREFIXES: [&str; 4] = [".github/", ".cargo/", "xtask/", "scripts/ci/"];
-const GLOBAL_FILES: [&str; 4] = [
-    "Cargo.toml",
-    "Cargo.lock",
-    "rust-toolchain",
-    "rust-toolchain.toml",
-];
+const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
 const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
     ".github/workflows/book-pr-proof.yml",
     ".github/workflows/executable-book-pages.yml",
@@ -385,6 +380,13 @@ fn plan_for_paths(
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/ci/pages-product-run-selection.spec.mjs");
+    // A workspace lock update caused by an accompanying package manifest is
+    // covered by package dependency closure. A lock-only change remains a
+    // global fallback because no bounded ownership explains it.
+    let manifest_backed_lock = substantive.iter().any(|path| path.as_str() == "Cargo.lock")
+        && substantive
+            .iter()
+            .any(|path| path.as_str() != "Cargo.toml" && path.ends_with("/Cargo.toml"));
     for path in substantive {
         if pages_deploy_resolver_slice {
             continue;
@@ -444,6 +446,15 @@ fn plan_for_paths(
                 .get_mut("browser")
                 .expect("known suite")
                 .push("focused-patchbay-package:Cargo.lock".to_owned());
+            continue;
+        }
+        if path == "Cargo.lock" && manifest_backed_lock {
+            for suite in SUITES {
+                reasons
+                    .get_mut(suite)
+                    .expect("known suite")
+                    .push("manifest-backed-lock:Cargo.lock".to_owned());
+            }
             continue;
         }
         if GLOBAL_FILES.contains(&path.as_str()) || starts_with_any(path, &GLOBAL_PREFIXES) {

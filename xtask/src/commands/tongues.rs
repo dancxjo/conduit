@@ -34,3 +34,28 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+
+pub fn run_research(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    if opts.dry_run {
+        if !opts.quiet {
+            println!("would run bounded Tongues paired-latent research capstone");
+        }
+        return Ok(());
+    }
+    let mut command = Command::new("cargo");
+    command.args([
+        "run",
+        "--package",
+        "conduit-tongues",
+        "--bin",
+        "conduit-tongues-research",
+    ]);
+    if opts.locked {
+        command.arg("--locked");
+    }
+    let status = command.status()?;
+    if !status.success() {
+        return Err(format!("Tongues research capstone exited with {status}").into());
+    }
+    Ok(())
+}
