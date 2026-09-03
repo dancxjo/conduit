@@ -5,6 +5,7 @@ import { createBookNavigation, createBookRunnerActions } from "./book-navigation
 import { createBookRunnerStatus } from "./book-runner-presentation.mjs";
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 import { createBookRouting } from "./book-routing.mjs";
+import { presentBookInventory } from "./book-inventory-presentation.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -1058,27 +1059,11 @@ function readInventory(api) {
 }
 
 function renderInventory(inventory) {
-  const entries = inventory.entries;
   const copy = appendCopy();
-  const details = document.createElement("details");
-  details.className = "gear-inventory";
-  const summary = document.createElement("summary");
-  const installed = entries.filter((entry) => entry.implementation_id !== null);
-  summary.textContent = `Available gears · ${installed.length} exact browser implementations · ${inventory.limits.maximum_gears} Gear / ${inventory.limits.maximum_cords} Cord bound`;
-  const list = document.createElement("ul");
-  for (const entry of entries) {
-    const item = document.createElement("li");
-    item.className = entry.implementation_id ? "available" : "unavailable";
-    const kind = document.createElement("code");
-    kind.textContent = entry.kind_id;
-    const status = document.createElement("span");
-    status.textContent = `${entry.family} · ${entry.classification}`;
-    item.title = entry.reason;
-    item.append(kind, status);
-    list.append(item);
-  }
-  details.append(summary, list);
-  copy.append(details);
+  const slot = document.createElement("div");
+  slot.dataset.applicationSlot = "book-inventory";
+  copy.append(slot);
+  presentBookInventory(hostPresentation, inventory);
 }
 
 function setIndicator(runner, level) {
