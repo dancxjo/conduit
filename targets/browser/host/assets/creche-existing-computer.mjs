@@ -169,15 +169,32 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
     const runtime = packaged.entries.get("runtime.wasm");
     if (!runtime) refuse(profile, mode, "realize", "StaleArtifact", "browser ZIP omitted its exact runtime");
+    const imageBytes = packaged.entries.get("conduit-browser-image.json");
+    const bootModuleBytes = packaged.entries.get("browser-boot-profile.mjs");
+    const release = obtainment?.private?.release;
+    if (!imageBytes || !bootModuleBytes || !release?.manifest?.browser_image_id) {
+      refuse(profile, mode, "realize", "StaleArtifact", "browser ZIP omitted its exact IMAGE or profile-gated Boot entry");
+    }
     try {
+      const hostId = `browser/${crypto.randomUUID()}`;
+      const bootId = `browser-boot/${crypto.randomUUID()}`;
+      const bootModuleDigest = release.manifest.files.find((item) => item.path === "browser-boot-profile.mjs")?.sha256;
+      const bootTruth = await host.admitProfileGatedBrowserBoot({
+        moduleBytes: bootModuleBytes,
+        moduleDigest: bootModuleDigest,
+        imageBytes,
+        expectedImageId: release.manifest.browser_image_id,
+        expectedProfileId: release.manifest.browser_profile_id,
+        runtimeBytes: runtime,
+        artifactContentDigest: nativeSpore.content_digest,
+        bootId,
+      });
       const instance = await WebAssembly.instantiate(runtime, {});
       const api = instance.instance.exports;
       requireMembershipAbi(api);
-      const hostId = `browser/${crypto.randomUUID()}`;
-      const bootId = `browser-boot/${crypto.randomUUID()}`;
       initializeMembership(api, hostId, bootId);
       requireCurrent(signal, mode, "realize", profile);
-      loadedHost = Object.freeze({ api, hostId, bootId, artifactContentDigest: nativeSpore.content_digest });
+      loadedHost = Object.freeze({ api, hostId, bootId, artifactContentDigest: nativeSpore.content_digest, bootTruth });
       return Object.freeze({
         terminal: "BrowserBundleLoaded",
         evidence: Object.freeze({
@@ -191,6 +208,12 @@ export function createExistingComputerAdapter({ host, profile }) {
           carrier: "conduit-carrier/browser-local-sandbox@1",
           host_id: hostId,
           boot_id: bootId,
+          image_id: bootTruth.image_id,
+          profile_id: bootTruth.profile_id,
+          boot_module_sha256: bootTruth.image.boot_module.sha256,
+          implementation_registry: bootTruth.implementation_registry,
+          offers: bootTruth.offers,
+          inspection: bootTruth.inspection,
           boot_observed: false,
           join_created: false,
         }),

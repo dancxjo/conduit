@@ -18,6 +18,12 @@ test("checked Browser PROFILE binds reviewed prebuilt bytes into a distinct veri
   expect(minimal.payloads.find((item) => item.path === "runtime.wasm").bytes).toEqual(
     durable.payloads.find((item) => item.path === "runtime.wasm").bytes,
   );
+  const image = JSON.parse(new TextDecoder().decode(minimal.payloads.find((item) => item.path === "conduit-browser-image.json").bytes));
+  expect(image.boot_module).toEqual({
+    role: "profile-gated-boot",
+    path: "browser-boot-profile.mjs",
+    sha256: minimal.payloads.find((item) => item.path === "browser-boot-profile.mjs").sha256,
+  });
   expect(await verifyBrowserBundleImage({ checked: checked(ids.slice(0, 2), "1"), release: minimal, distribution })).toMatchObject({
     build_id: minimal.manifest.browser_build_id,
     image_id: minimal.manifest.browser_image_id,
@@ -59,6 +65,7 @@ async function fixture(mutate = () => {}) {
     ["runtime.wasm", new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])],
     ["host.mjs", encoder.encode("import './browser-host-bootstrap.mjs';")],
     ["browser-host-bootstrap.mjs", encoder.encode("export const ready = true;")],
+    ["browser-boot-profile.mjs", encoder.encode("export const boot = true;")],
   ]);
   const files = [];
   const payloads = [];
@@ -77,7 +84,7 @@ async function fixture(mutate = () => {}) {
         runtime_abi: "conduit.browser/runtime-abi@1", targets: ["browser/wasm32/page"], toolchain_identity: "rustc:fixture",
         source_commit: "commit:fixture", maximum_bundle_bytes: 1024,
         implementations: ids.map((id) => ({ id, revision: 1, artifact: "browser-runtime-superset.wasm" })),
-        modules: [{ path: "host.mjs", dependencies: ["browser-host-bootstrap.mjs"] }, { path: "browser-host-bootstrap.mjs", dependencies: [] }],
+        modules: [{ path: "host.mjs", dependencies: ["browser-host-bootstrap.mjs"] }, { path: "browser-host-bootstrap.mjs", dependencies: [] }, { path: "browser-boot-profile.mjs", dependencies: [] }],
       },
     },
     payloads,

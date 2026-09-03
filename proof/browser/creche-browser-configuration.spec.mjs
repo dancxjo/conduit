@@ -55,6 +55,21 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
     browser_profile_id: expect.stringMatching(/^sha256:/),
     browser_configuration_source: expect.stringContaining("browser/indexeddb@1"),
   });
+
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator('[data-stage="realize"] span')).toHaveText("BrowserBundleLoaded");
+  const realized = JSON.parse(await runner.locator("details code").textContent()).realization;
+  expect(realized).toMatchObject({
+    schema: "conduit.browser/creche-bundle-load@1",
+    image_id: evidence.obtainment.image_id,
+    profile_id: evidence.obtainment.profile_id,
+    boot_module_sha256: expect.stringMatching(/^sha256:/),
+  });
+  expect(realized.implementation_registry.map(({ id }) => id).sort()).toEqual(
+    ["browser/dom@1", "browser/indexeddb@1", "browser/keyboard-events@1", "browser/pointer-events@1"].sort(),
+  );
+  expect(realized.inspection.every(({ configured }) => configured)).toBe(true);
+  expect(realized.inspection.some(({ implementation_id }) => implementation_id === "browser/media-devices-camera@1")).toBe(false);
 });
 
 test("stale restored browser choices are refused before lifecycle change", async ({ page }) => {

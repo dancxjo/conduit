@@ -5,6 +5,7 @@ const TARGET = "browser/wasm32/page";
 const BUILDER = "conduit-host-browser/bind-prebuilt@1";
 const DEPLOYMENT = "conduit-host-browser/load@1";
 const BINDING_PATH = "conduit-browser-image.json";
+const BOOT_MODULE_PATH = "browser-boot-profile.mjs";
 const MAXIMUM_FILES = 16;
 const MAXIMUM_IMPLEMENTATIONS = 64;
 const MAXIMUM_MODULES = 32;
@@ -41,6 +42,7 @@ export async function buildBrowserBundleImage({ checked, distribution }) {
       source_commit: reviewed.source_commit,
     },
     implementations: selected,
+    boot_module: requireBootModule(files),
     files: files.map(({ path, bytes, sha256: digest, media_type }) => ({ path, bytes: bytes.byteLength, sha256: digest, media_type })),
   };
   const imageId = `image:${await sha256(encodeCanonical(imagePayload))}`;
@@ -107,7 +109,18 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
   if (JSON.stringify(payload.implementations) !== JSON.stringify(selected)) {
     refuse("ImplementationBindingMismatch", "BrowserBundle selected implementation closure is stale");
   }
+  const bootModule = release.payloads.find((item) => item.path === BOOT_MODULE_PATH);
+  if (!bootModule || payload.boot_module?.role !== "profile-gated-boot"
+    || payload.boot_module.path !== BOOT_MODULE_PATH || payload.boot_module.sha256 !== bootModule.sha256) {
+    refuse("BootModuleBindingMismatch", "BrowserBundle Boot entry is absent or stale");
+  }
   return Object.freeze({ build_id: payload.build_id, image_id: imageId, profile_id: payload.profile_id, configuration_id: payload.source_configuration_id });
+}
+
+function requireBootModule(files) {
+  const module = files.find((item) => item.path === BOOT_MODULE_PATH);
+  if (!module) refuse("BootModuleMissing", "reviewed browser distribution omitted its profile-gated Boot entry");
+  return Object.freeze({ role: "profile-gated-boot", path: BOOT_MODULE_PATH, sha256: module.sha256 });
 }
 
 function requireChecked(checked) {
