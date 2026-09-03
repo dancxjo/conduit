@@ -11,8 +11,8 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point},
 };
 use patchbay_model::{
-    DebuggerActivityPhase, DebuggerPresentation, DebuggerSubjectActivity, PatchbayGraph,
-    PatchbayTheme,
+    ApplicationTheme, DebuggerActivityPhase, DebuggerPresentation, DebuggerSubjectActivity,
+    PatchbayGraph,
 };
 
 pub(super) fn draw_debugger_overlay<D: DrawTarget<Color = Rgb888>>(
@@ -25,7 +25,7 @@ pub(super) fn draw_debugger_overlay<D: DrawTarget<Color = Rgb888>>(
     ),
     presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
     debugger: &DebuggerPresentation,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
 ) {
     let (layouts, compositions, boundaries) = layout;
     for activity in &debugger.activities {

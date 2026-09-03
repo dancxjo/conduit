@@ -4,7 +4,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PaletteCategory, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PaletteCategory};
 
 use crate::{
     gui::{GuiAction, HitTarget},
@@ -18,7 +18,7 @@ pub(super) fn draw_palette<D: DrawTarget<Color = Rgb888>>(
     chooser: &crate::palette_state::PaletteChooser,
     placement_target: Result<(i32, i32), crate::palette_state::PaletteChooserError>,
     mut y: i32,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let Ok(palette) = patchbay_model::GearPalette::standard() else {

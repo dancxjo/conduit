@@ -1,10 +1,10 @@
 //! Finite CSS transport for the shared Patchbay theme.
 
-use patchbay_model::{PatchbayTheme, ThemeColor};
+use patchbay_model::{ApplicationTheme, ThemeColor};
 
-pub(super) fn render_theme_css(theme: &PatchbayTheme) -> Vec<u8> {
+pub(super) fn render_theme_css(theme: &ApplicationTheme) -> Vec<u8> {
     format!(
-        ":root{{--conduit-theme-identity:\"{}\";--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;/* Temporary Patchbay compatibility aliases; remove in #2172. */--patchbay-theme-identity:var(--conduit-theme-identity);--patchbay-background:var(--conduit-background);--patchbay-surface:var(--conduit-surface);--patchbay-structure-primary:var(--conduit-structure-primary);--patchbay-structure-secondary:var(--conduit-structure-secondary);--patchbay-text-primary:var(--conduit-text-primary);--patchbay-text-secondary:var(--conduit-text-secondary);--patchbay-emphasis:var(--conduit-emphasis);--patchbay-focus:var(--conduit-focus);--patchbay-warning:var(--conduit-warning);--patchbay-failure:var(--conduit-failure);--patchbay-success:var(--conduit-success);--patchbay-muted:var(--conduit-muted);}}\n",
+        ":root{{--conduit-theme-identity:\"{}\";--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
         theme.identity,
         css_color(theme.background),
         css_color(theme.surface),

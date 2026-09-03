@@ -487,8 +487,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= patchbay_html::MAX_THEME_CSS_BYTES);
     assert!(body.contains("--conduit-theme-identity:\"conduit.presentation/phosphor@1\""));
-    assert!(body.contains("Temporary Patchbay compatibility aliases; remove in #2172"));
-    assert!(body.contains("--patchbay-theme-identity:var(--conduit-theme-identity)"));
+    assert!(!body.contains("--patchbay-"));
     for (token, color) in [
         ("background", "#05070B"),
         ("surface", "#090D16"),
@@ -500,7 +499,6 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
         ("focus", "#F4C400"),
     ] {
         assert!(body.contains(&format!("--conduit-{token}:{color}")));
-        assert!(body.contains(&format!("--patchbay-{token}:var(--conduit-{token})")));
     }
     assert!(body.contains("--conduit-type-body:16px"));
     assert!(body.contains("--conduit-line-height:150%"));
@@ -509,9 +507,13 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(body.contains("--conduit-responsive-breakpoint:720px"));
 
     let application = request("/assets/app.css", "GET");
-    assert!(application.contains("var(--patchbay-background)"));
-    assert!(application.contains("var(--patchbay-focus)"));
+    assert!(application.contains("var(--conduit-background)"));
+    assert!(application.contains("var(--conduit-focus)"));
     assert!(!application.contains("#08111f"));
+
+    let shared = request("/assets/application-theme.css", "GET");
+    assert!(shared.starts_with("HTTP/1.1 200 OK"));
+    assert!(shared.contains("[data-application-component=\"navigation\"]"));
 
     let flow = request("/assets/flow.css", "GET");
     assert!(flow.contains(".flow-faceplate"));

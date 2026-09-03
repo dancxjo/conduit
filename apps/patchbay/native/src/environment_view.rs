@@ -7,7 +7,9 @@ use crate::{
     gui_primitives::{fill_rect, frame_rect, line, text, PixelRect},
 };
 use embedded_graphics::prelude::Point;
-use patchbay_model::{AuthoredEnvironment, EnvironmentLinkKind, MachineProfile, PHOSPHOR_THEME};
+use patchbay_model::{
+    AuthoredEnvironment, EnvironmentLinkKind, MachineProfile, CONDUIT_APPLICATION_THEME,
+};
 
 const PART_WIDTH: u32 = 180;
 const PART_HEIGHT: u32 = 112;
@@ -37,7 +39,7 @@ pub(super) fn draw_environment(
         status,
     } = view;
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
-    let theme = &PHOSPHOR_THEME;
+    let theme = &CONDUIT_APPLICATION_THEME;
     fill_rect(
         &mut canvas,
         PixelRect {

@@ -11,7 +11,7 @@ use embedded_graphics::{
     primitives::{Line, PrimitiveStyle, Rectangle},
     Drawable,
 };
-use patchbay_model::{PatchbayTheme, ThemeColor};
+use patchbay_model::{ApplicationTheme, ThemeColor};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct PixelRect {
@@ -49,7 +49,7 @@ pub(super) fn draw_regions<D: DrawTarget<Color = Rgb888>>(
     width: i32,
     height: i32,
     metrics: RegionMetrics,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
 ) {
     let RegionMetrics {
         header_height,

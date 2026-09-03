@@ -9,7 +9,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PartPresentationState, PartsAction, PartsView, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PartPresentationState, PartsAction, PartsView};
 
 pub(super) struct PartsSelection<'a> {
     pub(super) part: Option<&'a PartId>,
@@ -23,7 +23,7 @@ pub(super) fn draw_parts<D: DrawTarget<Color = Rgb888>>(
     view: &PartsView,
     selection: PartsSelection<'_>,
     canvas: PixelRect,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let PartsSelection {

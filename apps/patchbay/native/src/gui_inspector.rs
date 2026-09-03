@@ -20,13 +20,13 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PatchbayGraph, PatchbaySubjectKind, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PatchbayGraph, PatchbaySubjectKind};
 
 pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     view: InspectorView<'_>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let InspectorView {
@@ -171,7 +171,7 @@ fn draw_palette_inspection<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     chooser: &crate::palette_state::PaletteChooser,
     x: i32,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
 ) {
     let Ok(kind) = chooser.selected_kind() else {
         text(
@@ -316,7 +316,7 @@ fn identity_value<D: DrawTarget<Color = Rgb888>>(
     origin: Point,
     label: &str,
     value: &str,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
 ) {
     text(target, origin, label, theme.emphasis);
     wrapped_text(

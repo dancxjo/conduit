@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.browser/application-package-template@1",
+  "application_id": "conduit.application/field-notes-proof",
+  "state_compatibility": { "identity": "conduit.application/field-notes-proof-state", "version": 1 },
+  "host_implementations": ["browser/indexeddb@1"],
+  "resources": [
+    {
+      "role": "application-module",
+      "kind": "module",
+      "path": "application.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": [{ "role": "runtime", "specifier": "./state.mjs" }]
+    },
+    {
+      "role": "runtime",
+      "kind": "module",
+      "path": "state.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": []
+    }
+  ]
+}
