@@ -1,5 +1,7 @@
 //! Bounded brownfield adaptation of one exact Tongues starter.
 
+mod analysis;
+mod analysis_math;
 #[cfg(feature = "speech")]
 mod contract;
 #[cfg(feature = "speech")]
@@ -21,6 +23,7 @@ mod signs;
 #[cfg(feature = "speech")]
 mod specimen;
 
+pub use analysis::*;
 #[cfg(feature = "speech")]
 pub use contract::*;
 #[cfg(feature = "speech")]

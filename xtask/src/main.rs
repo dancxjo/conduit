@@ -70,6 +70,7 @@ fn main() {
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),
             DemoCommand::TonguesResearch => commands::tongues::run_research(&opts),
+            DemoCommand::TonguesAnalysis => commands::tongues::run_analysis(&opts),
         },
         Command::UnifontSubset(args) => commands::unifont_subset::run(args),
         Command::PaletteIcons(args) => commands::palette_icons::run(args),

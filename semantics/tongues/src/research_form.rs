@@ -12,8 +12,10 @@ pub const TRAINING_FORM_SOURCE: &str =
     include_str!("../../../examples/tongues-latent-training.conduit");
 pub const INFERENCE_FORM_SOURCE: &str =
     include_str!("../../../examples/tongues-bidirectional-inference.conduit");
+pub const ANALYSIS_FORM_SOURCE: &str =
+    include_str!("../../../examples/tongues-dynamics-analysis.conduit");
 
-pub fn check_research_forms() -> Result<[conduit_form::ExpandedCanonicalForm; 2], String> {
+pub fn check_research_forms() -> Result<Vec<conduit_form::ExpandedCanonicalForm>, String> {
     let (startup, profile) = research_catalogs()?;
     let training = check_one(
         TRAINING_FORM_SOURCE,
@@ -27,7 +29,13 @@ pub fn check_research_forms() -> Result<[conduit_form::ExpandedCanonicalForm; 2]
         &startup,
         &profile,
     )?;
-    Ok([training, inference])
+    let analysis = check_one(
+        ANALYSIS_FORM_SOURCE,
+        "tongues-dynamics-analysis",
+        &startup,
+        &profile,
+    )?;
+    Ok(vec![training, inference, analysis])
 }
 
 fn check_one(
@@ -98,6 +106,27 @@ fn definitions() -> Vec<KindDefinition> {
                 input("inferred-articulation", "tongues/articulation-posterior@1"),
             ],
             vec![output("report", "tongues/evaluation-report@1")],
+        ),
+        kind(
+            "tongues/extract-frozen-latent",
+            vec![
+                input("acoustic", "tongues/acoustic-trajectory@1"),
+                input("articulation", "tongues/articulatory-trajectory@1"),
+            ],
+            vec![output("latent", "tongues/latent-trajectory@1")],
+        ),
+        kind(
+            "tongues/analyze-continuous-dynamics",
+            vec![
+                input("latent", "tongues/latent-trajectory@1"),
+                input("articulation", "tongues/articulatory-trajectory@1"),
+            ],
+            vec![output("analysis", "tongues/dynamics-analysis@1")],
+        ),
+        kind(
+            "tongues/post-freeze-analysis",
+            vec![input("analysis", "tongues/dynamics-analysis@1")],
+            vec![output("report", "tongues/analysis-report@1")],
         ),
     ]
 }

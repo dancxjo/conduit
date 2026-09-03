@@ -35,6 +35,32 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let paths = [
+        "semantics/tongues/src/analysis.rs",
+        "semantics/tongues/tests/dynamics_analysis.rs",
+        "examples/tongues-dynamics-analysis.conduit",
+        "apps/patchbay/html/src/learned_demo.rs",
+        "proof/browser/patchbay-debugger-watch.spec.mjs",
+        "xtask/src/cli.rs",
+        "xtask/src/main.rs",
+        "xtask/src/commands/tongues.rs",
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    let plan = plan_for_paths(&root, paths, &packages).unwrap();
+    assert!(!plan.full_fallback);
+    assert!(plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.changed_packages.contains(&"conduit-tongues".into()));
+    assert!(plan.changed_packages.contains(&"patchbay-html".into()));
+    assert!(plan.changed_packages.contains(&"xtask".into()));
+}
+
+#[test]
 fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
