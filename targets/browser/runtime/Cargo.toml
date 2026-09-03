@@ -7,8 +7,9 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["book-surface", "creche-surface"]
-book-surface = []
+default = ["form-runner", "book-surface", "creche-surface"]
+form-runner = []
+book-surface = ["form-runner"]
 creche-surface = []
 
 [dependencies]

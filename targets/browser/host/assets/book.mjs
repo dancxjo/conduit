@@ -46,7 +46,7 @@ try {
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
-  if (host.runtime.conduit_book_human_machinery() < 0) {
+  if (host.runtime.conduit_browser_form_human_machinery() < 0) {
     throw new Error("browser Host selected machinery is unavailable");
   }
   const selectedMachinery = readOutput(host.runtime);
@@ -99,10 +99,10 @@ function persistBookState() {
 
 function requireBookAbi(api) {
   const required = [
-    "memory", "conduit_book_input_ptr", "conduit_book_input_capacity",
-    "conduit_book_output_ptr", "conduit_book_output_len", "conduit_book_start",
-    "conduit_book_start_recursive", "conduit_book_complete", "conduit_book_complete_with_output", "conduit_book_cancel",
-    "conduit_book_inventory", "conduit_book_human_machinery", "conduit_book_admit_source_interaction",
+    "memory", "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
+    "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
+    "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
+    "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_book_project_patchbay", "conduit_book_project_patchbay_recursive",
     "conduit_book_project_syntax",
     "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
@@ -442,20 +442,20 @@ function refreshCompactPatchbay(runner, source, recursive) {
   const visual = figure.querySelector(".book-flow-root");
   const text = figure.querySelector(".compact-patchbay-text");
   text.replaceChildren();
-  if (sourceBytes.length === 0 || sourceBytes.length > host.runtime.conduit_book_input_capacity()) {
+  if (sourceBytes.length === 0 || sourceBytes.length > host.runtime.conduit_browser_form_input_capacity()) {
     renderCompactPatchbayRefusal(figure, "Source exceeds the compact Patchbay input bound.");
     return false;
   }
   new Uint8Array(
     host.runtime.memory.buffer,
-    host.runtime.conduit_book_input_ptr(),
+    host.runtime.conduit_browser_form_input_ptr(),
     sourceBytes.length,
   ).set(sourceBytes);
   const project = recursive
     ? host.runtime.conduit_book_project_patchbay_recursive
     : host.runtime.conduit_book_project_patchbay;
   const code = project(sourceBytes.length, BigInt(expected));
-  const output = host.runtime.conduit_book_output_len() > 0 ? readOutput(host.runtime) : null;
+  const output = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0) {
     renderCompactPatchbayRefusal(figure, output?.message ?? `Projection refused (${code}).`);
     return false;
@@ -556,11 +556,11 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
   const expected = ++patchbaySequence;
   new Uint8Array(
     host.runtime.memory.buffer,
-    host.runtime.conduit_book_input_ptr(),
+    host.runtime.conduit_browser_form_input_ptr(),
     sourceBytes.length,
   ).set(sourceBytes);
   const code = host.runtime.conduit_book_project_patchbay_recursive(sourceBytes.length, BigInt(expected));
-  const back = host.runtime.conduit_book_output_len() > 0 ? readOutput(host.runtime) : null;
+  const back = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0 || !back || back.sequence !== expected) {
     renderFlowRefusal(expansion.querySelector(".gear-back-flow"), back?.message ?? "Reviewed Back unavailable.");
     return;
@@ -880,23 +880,23 @@ async function runListing(runner, source, recursive) {
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const total = hostBytes.length + bootBytes.length + sourceBytes.length;
-  if (total > api.conduit_book_input_capacity()) {
+  if (total > api.conduit_browser_form_input_capacity()) {
     runner.playStatus.failure("The listing exceeds the admitted input bound.");
     return;
   }
-  const input = new Uint8Array(api.memory.buffer, api.conduit_book_input_ptr(), total);
+  const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
   const interactionInput = new Uint8Array(
     api.memory.buffer,
-    api.conduit_book_input_ptr(),
+    api.conduit_browser_form_input_ptr(),
     sourceBytes.length,
   );
   interactionInput.set(sourceBytes);
-  const interaction = api.conduit_book_admit_source_interaction(
+  const interaction = api.conduit_browser_form_admit_source_interaction(
     sourceBytes.length,
     BigInt(current),
   );
   if (interaction < 0) {
-    const refusal = api.conduit_book_output_len() > 0 ? readOutput(api) : null;
+    const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
     runner.playStatus.failure(refusal?.message
       ? `The edit was refused · ${refusal.category}: ${refusal.message}`
       : `The edit was refused (${interaction}).`);
@@ -905,10 +905,10 @@ async function runListing(runner, source, recursive) {
   input.set(hostBytes);
   input.set(bootBytes, hostBytes.length);
   input.set(sourceBytes, hostBytes.length + bootBytes.length);
-  const start = recursive ? api.conduit_book_start_recursive : api.conduit_book_start;
+  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start;
   const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current));
   if (code < 0) {
-    const refusal = api.conduit_book_output_len() > 0 ? readOutput(api) : null;
+    const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
     runner.playStatus.failure(refusal?.message
       ? `The Form was refused before Play · ${refusal.category}: ${refusal.message}`
       : `The Form was refused before Play (${code}).`);
@@ -930,8 +930,8 @@ async function runListing(runner, source, recursive) {
         const event = await humanInput.nextKeyboard();
         if (current !== generation) return;
         const encoded = event.canonical_bytes;
-        new Uint8Array(api.memory.buffer, api.conduit_book_input_ptr(), encoded.length).set(encoded);
-        const completion = api.conduit_book_complete_with_output(encoded.length);
+        new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
+        const completion = api.conduit_browser_form_complete_with_output(encoded.length);
         if (completion < 0) throw new Error(`keyboard completion refused (${completion})`);
         progress = readOutput(api);
         continue;
@@ -950,7 +950,7 @@ async function runListing(runner, source, recursive) {
         throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
       }
       if (current !== generation) return;
-      const completion = api.conduit_book_complete();
+      const completion = api.conduit_browser_form_complete();
       if (completion < 0) throw new Error(`completion refused (${completion})`);
       progress = readOutput(api);
     }
@@ -980,7 +980,7 @@ function stopListing(runner) {
   cancelDelay();
   humanInput?.cancelPending();
   if (running && runner.dataset.mode === "multi") cancelMultiSessions();
-  else if (running) host.runtime.conduit_book_cancel();
+  else if (running) host.runtime.conduit_browser_form_cancel();
   running = false;
   activeRunner = null;
   setNavigationDisabled(false);
@@ -997,12 +997,12 @@ function cancelMultiSessions() {
 }
 
 function readOutput(api) {
-  const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_output_ptr(), api.conduit_book_output_len());
+  const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len());
   return JSON.parse(decoder.decode(bytes));
 }
 
 function readInventory(api) {
-  const code = api.conduit_book_inventory();
+  const code = api.conduit_browser_form_inventory();
   if (code < 0) throw new Error(`browser Gear inventory refused (${code})`);
   return readOutput(api);
 }

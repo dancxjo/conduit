@@ -8,6 +8,7 @@ pub(crate) struct InventoryEntry {
     pub family: &'static str,
     pub classification: &'static str,
     pub implementation_id: Option<String>,
+    pub artifact_id: Option<String>,
     pub reason: &'static str,
 }
 
@@ -34,6 +35,7 @@ pub(crate) fn inventory() -> InventoryDocument {
                 "bounded-browser-host-operation"
             },
             implementation_id: Some(offer.implementation.implementation_id.as_str().into()),
+            artifact_id: Some(offer.implementation.artifact_id.as_str().into()),
             kind_id: offer.kind_id.as_str().into(),
             reason: "advertised by the same finite browser Host profile used for planning",
         })
@@ -138,6 +140,10 @@ mod tests {
             .entries
             .iter()
             .all(|entry| entry.implementation_id.is_some()));
+        assert!(inventory.entries.iter().all(|entry| entry
+            .artifact_id
+            .as_deref()
+            .is_some_and(|identity| !identity.is_empty())));
         assert_eq!(inventory.limits.maximum_gears, 16);
         assert_eq!(inventory.limits.maximum_cords, 24);
         assert_eq!(inventory.limits.maximum_value_bytes, 4_096);

@@ -101,6 +101,7 @@ on:
       - proof/browser/browser-application-package.spec.mjs
       - proof/browser/browser-bundle-build.spec.mjs
       - proof/browser/browser-boot-profile.spec.mjs
+      - proof/browser/browser-form-runner.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
@@ -425,6 +426,9 @@ jobs:
           pattern: conduit-existing-computer-releases-*
           merge-multiple: true
           path: target/creche-release-artifacts
+      - name: Verify the browser Host release carries the normal Form ABI
+        run: >-
+          node -e 'const fs=require("node:fs"); const names=new Set(WebAssembly.Module.exports(new WebAssembly.Module(fs.readFileSync("target/creche-release-artifacts/runtime.wasm"))).map(({name})=>name)); for (const name of ["conduit_browser_form_inventory","conduit_browser_form_start","conduit_browser_form_complete","conduit_browser_form_cancel"]) if (!names.has(name)) throw new Error(`browser Host runtime lacks ${name}`);'
       - name: Download the reviewed generic Pro Micro release
         uses: actions/download-artifact@v6
         with:
@@ -465,6 +469,7 @@ jobs:
           proof/browser/browser-bundle-build.spec.mjs
           proof/browser/browser-boot-profile.spec.mjs
           proof/browser/browser-human-input.spec.mjs
+          proof/browser/browser-form-runner.spec.mjs
           proof/browser/pages-front-door.spec.mjs
           proof/browser/creche-avr.spec.mjs
           proof/browser/creche-orange-pi.spec.mjs
