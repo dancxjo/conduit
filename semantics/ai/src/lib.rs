@@ -41,6 +41,8 @@ mod model_signature;
 pub use model_signature::*;
 mod model_artifact;
 pub use model_artifact::*;
+mod model_compute;
+pub use model_compute::*;
 mod probability;
 pub use probability::*;
 mod probability_digest;
