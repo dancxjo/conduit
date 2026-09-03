@@ -49,6 +49,9 @@ mod graphical_patchbay;
 mod host_adapter;
 mod interaction;
 mod layout;
+mod learned_watch;
+#[cfg(test)]
+mod learned_watch_tests;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
@@ -193,6 +196,14 @@ pub use interaction::{
 pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
+};
+pub use learned_watch::{
+    ClockAlignment, DynamicsWatch, LearnedWatchProjection, LearnedWatchProjectionKind,
+    ObjectiveComponent, ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch,
+    SignalContinuity, SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch,
+    TensorAxis, TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
+    MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
+    MAX_TENSOR_SLICE_VALUES,
 };
 #[cfg(test)]
 pub use llm_documentary::llm_documentary_presentation;

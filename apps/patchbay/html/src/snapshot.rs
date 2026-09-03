@@ -282,6 +282,16 @@ impl RendererSnapshot {
                 })
                 || watches.watches.iter().any(|watch| {
                     watch.history.len() > patchbay_model::MAX_WATCH_HISTORY_RECORDS
+                        || watch.learned_projections.len()
+                            > patchbay_model::MAX_LEARNED_WATCH_PROJECTIONS
+                        || watch
+                            .learned_projections
+                            .iter()
+                            .any(|projection| projection.validate().is_err())
+                        || watch.learned_projections.iter().any(|projection| {
+                            watch.latest.as_ref().map(|entry| entry.sequence)
+                                != Some(projection.observation_sequence)
+                        })
                         || watch.execution != watches.execution
                         || !self.presentation.subjects.iter().any(|subject| {
                             subject.identity == watch.subject

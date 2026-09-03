@@ -11,6 +11,8 @@ on:
       - apps/patchbay/html/assets/flow.js
       - apps/patchbay/html/assets/index.html
       - apps/patchbay/html/src/demo.rs
+      - apps/patchbay/html/src/learned_demo.rs
+      - apps/patchbay/html/src/bin/patchbay-learned-watch-proof.rs
       - apps/patchbay/html/src/main.rs
       - apps/patchbay/html/src/server.rs
       - apps/patchbay/html/src/server/*.rs
@@ -19,6 +21,7 @@ on:
       - apps/patchbay/html/tests/server.rs
       - apps/patchbay/html/tests/snapshot.rs
       - apps/patchbay/model/src/debugger_*.rs
+      - apps/patchbay/model/src/learned_watch*.rs
       - apps/patchbay/model/src/lib.rs
       - architecture/kernel/src/debug_observation.rs
       - architecture/kernel/src/debug_observation/*.rs
