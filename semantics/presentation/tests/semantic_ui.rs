@@ -411,7 +411,7 @@ fn invalid_and_unbounded_form_choices_refuse_before_expansion() {
         lower(
             "Help",
             "one",
-            (0..32)
+            (0..MAX_APPLICATION_VIEW_NODES)
                 .map(|index| format!("option-{index}"))
                 .chain(core::iter::once("one".into()))
                 .collect()
