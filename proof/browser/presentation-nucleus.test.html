@@ -5,6 +5,7 @@
 <main id="nucleus" aria-label="Gear Face"></main>
 <section id="controls" aria-label="Bounded controls"></section>
 <section data-application-slot="semantic" aria-label="Semantic mechanisms"></section>
+<section data-application-slot="focus" aria-label="Form and navigation mechanisms"></section>
 <script type="module">
 import {
   instantiatePresentationNucleus,
@@ -151,6 +152,57 @@ try {
   let retiredRefusal = "";
   try { manifestApplicationView(Uint8Array.of(applicationPresentationLimits.retiredVersion), semanticRoot); } catch (error) { retiredRefusal = error.code; }
   assert(retiredRefusal === "unsupported-version", "retired low-level protocol refuses explicitly");
+  const focusHost = createApplicationPresentationHost();
+  const focusView = (revision, value, error) => ({
+    revision,
+    actions: [
+      { id: "form.source", event: "input" },
+      { id: "navigate.previous", event: "activate" },
+      { id: "navigate.next", event: "activate" },
+    ],
+    nodes: [
+      { parent: null, component: "shell", action: null, key: "focus-shell", text: "" },
+      { parent: 0, component: "form-field", action: null, key: "source-field", text: "" },
+      { parent: 1, component: "field-label", action: null, key: "source-label", text: "Form source" },
+      { parent: 1, component: "textarea", action: 0, key: "source-control", text: "Form source", value, valueCapacity: 64 },
+      { parent: 1, component: "field-help", action: null, key: "source-help", text: "Enter one bounded Form" },
+      ...(error ? [{ parent: 1, component: "field-error", action: null, key: "source-error", text: error }] : []),
+      { parent: 0, component: "navigation", action: null, key: "navigation", text: "Book pages", value: "page-two", valueCapacity: 16 },
+      { parent: error ? 6 : 5, component: "button", action: 1, key: "page-one", text: "Previous" },
+      { parent: error ? 6 : 5, component: "button", action: 2, key: "page-two", text: "Next" },
+      { parent: 0, component: "stepper", action: null, key: "stepper", text: "Birth steps", value: "2/3", valueCapacity: 11 },
+      { parent: error ? 9 : 8, component: "button", action: 1, key: "step-one", text: "Body" },
+      { parent: error ? 9 : 8, component: "button", action: 2, key: "step-two", text: "Host" },
+      { parent: error ? 9 : 8, component: "button", action: 2, key: "step-three", text: "Play" },
+      { parent: 0, component: "progress", action: null, key: "progress", text: "Birth", value: "2/3", valueCapacity: 11 },
+    ],
+  });
+  focusHost.present("focus", focusView(1, "gear source", "Source is not checked"));
+  const focusRoot = document.querySelector("[data-application-slot=focus]");
+  let detachedControl = focusRoot.querySelector("[data-application-key=source-control]");
+  globalThis.__conduitFocusProof = Object.freeze({
+    host: focusHost,
+    rerender() {
+      detachedControl = focusRoot.querySelector("[data-application-key=source-control]");
+      focusHost.present("focus", focusView(2, "gear source revised", null));
+    },
+    removeFocused() {
+      focusHost.present("focus", {
+        revision: 3,
+        actions: [
+          { id: "navigate.previous", event: "activate" },
+          { id: "navigate.next", event: "activate" },
+        ],
+        nodes: [
+          { parent: null, component: "shell", action: null, key: "focus-shell", text: "" },
+          { parent: 0, component: "navigation", action: null, key: "navigation", text: "Book pages", value: "page-two", valueCapacity: 16 },
+          { parent: 1, component: "button", action: 0, key: "page-one", text: "Previous" },
+          { parent: 1, component: "button", action: 1, key: "page-two", text: "Next" },
+        ],
+      });
+    },
+    dispatchDetached() { detachedControl.dispatchEvent(new Event("input")); },
+  });
   let missingContext = false;
   try {
     manifestPresentationNucleus(api, null);

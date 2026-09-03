@@ -1,7 +1,7 @@
-const VERSION = 6;
-const RETIRED_VERSION = 5;
+const VERSION = 7;
+const RETIRED_VERSION = 6;
 const MAX_BYTES = 131_072;
-const MAX_NODES = 40;
+const MAX_NODES = 32;
 const MAX_DEPTH = 8;
 const MAX_KEY_BYTES = 32;
 const MAX_TEXT_BYTES = 256;
@@ -12,6 +12,8 @@ const MAX_EVENT_BYTES = MAX_CONTROL_VALUE_BYTES;
 const MAX_EVENT_QUEUE = 8;
 const MAX_EVENT_QUEUE_BYTES = 131_072;
 const EVENT_HEADER_BYTES = 11;
+const ROOT_IDENTITIES = new WeakMap();
+let nextRootIdentity = 1;
 
 export class ApplicationPresentationRefusal extends Error {
   constructor(code) {
@@ -58,6 +60,9 @@ const COMPONENTS = Object.freeze({
   29: ["section", "successful-evidence"], 30: ["section", "definition-table"],
   31: ["dl", "definition"], 32: ["pre", "code-block"],
   33: ["article", "artifact"],
+  34: ["div", "form-field"], 35: ["label", "field-label"],
+  36: ["p", "field-help"], 37: ["p", "field-error"],
+  38: ["nav", "stepper"], 39: ["div", "progress"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -74,6 +79,14 @@ const THEME_ROLES = Object.freeze([
   "structure-primary", "structure-secondary", "text-primary", "text-secondary", "emphasis",
   "focus", "warning", "failure", "success", "muted",
 ]);
+
+function validProgress(value) {
+  const match = /^(\d{1,5})\/(\d{1,5})$/.exec(value);
+  if (!match) return false;
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  return current <= 65_535 && total > 0 && total <= 65_535 && current <= total;
+}
 
 export function decodeApplicationTheme(input) {
   const encoded = input instanceof Uint8Array ? input : new Uint8Array(input);
@@ -130,9 +143,10 @@ export function decodeApplicationView(input) {
     if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
     const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
-      || (!hasValue && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
+      || (!hasValue && component !== 12 && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
+    if (component === 12 && ((valueLength > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity)) || (valueLength === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
     const stateful = component === 8 || component === 15 || component === 16 || component === 17;
@@ -140,6 +154,8 @@ export function decodeApplicationView(input) {
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
     const value = cursor.text(valueLength);
+    if ((component === 38 || component === 39) && !validProgress(value)) refuse("invalid-control-value");
+    if (component === 38 && value.startsWith("0/")) refuse("invalid-control-value");
     if (keys.has(key)) refuse("duplicate-key");
     keys.add(key);
     const depth = parent === null ? 1 : depths[parent] + 1;
@@ -147,6 +163,18 @@ export function decodeApplicationView(input) {
     depths.push(depth);
     return Object.freeze({ parent, component, state, action, key, text, value, valueCapacity });
   });
+  for (const [index, node] of nodes.entries()) {
+    if (node.component === 12 && node.value && !nodes.some((child, childIndex) => childIndex > index && child.parent === index && child.component === 8 && child.key === node.value)) refuse("invalid-control-value");
+    const children = nodes.filter((child) => child.parent === index);
+    if (node.component === 34) {
+      const count = (component) => children.filter((child) => child.component === component).length;
+      if (count(35) !== 1 || count(36) !== 1 || count(37) > 1 || count(15) + count(16) + count(17) !== 1) refuse("invalid-control-value");
+    }
+    if ((node.component === 35 || node.component === 36 || node.component === 37)
+      && (node.parent === null || nodes[node.parent].component !== 34)) refuse("invalid-control-value");
+    if (node.component === 22 && (node.parent === null || nodes[node.parent].component !== 16)) refuse("invalid-control-value");
+    if (node.component === 38 && children.filter((child) => child.component === 8).length !== Number(node.value.split("/")[1])) refuse("invalid-control-value");
+  }
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
 }
@@ -183,10 +211,13 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
-      || (!hasValue && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
+      || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
+    if (component === 12 && ((value.length > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || value.length > valueCapacity)) || (value.length === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
+    if ((component === 38 || component === 39) && !validProgress(new TextDecoder().decode(value))) refuse("invalid-control-value");
+    if (component === 38 && new TextDecoder().decode(value).startsWith("0/")) refuse("invalid-control-value");
     const stateful = component === 8 || component === 15 || component === 16 || component === 17;
     if (state !== NODE_STATE_IDENTITIES.ready && (!stateful || action !== 255)) refuse("invalid-node-state");
     const nodeHeader = new Uint8Array(15);
@@ -210,6 +241,54 @@ function eventValue(event) {
   return "";
 }
 
+function rootIdentity(root) {
+  let identity = ROOT_IDENTITIES.get(root);
+  if (identity) return identity;
+  if (!Number.isSafeInteger(nextRootIdentity)) refuse("malformed-encoding");
+  identity = `application-${nextRootIdentity}`;
+  nextRootIdentity += 1;
+  ROOT_IDENTITIES.set(root, identity);
+  return identity;
+}
+
+function restoreInteraction(root, snapshot) {
+  if (!snapshot) return;
+  let target = Array.from(root.querySelectorAll("[data-application-key]"))
+    .find((element) => element.dataset.applicationKey === snapshot.key && !element.disabled);
+  if (!target) target = root.querySelector('[tabindex="0"]')
+    ?? root.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
+  if (!(target instanceof HTMLElement)) {
+    root.tabIndex = -1;
+    target = root;
+  }
+  target.focus();
+  if ((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) && snapshot.selection) {
+    const end = target.value.length;
+    target.setSelectionRange(Math.min(snapshot.selection.start, end), Math.min(snapshot.selection.end, end), snapshot.selection.direction);
+  }
+}
+
+function installRovingFocus(container, selectedKey, selectedIndex) {
+  const controls = Array.from(container.querySelectorAll("button:not(:disabled)"));
+  if (controls.length === 0) return;
+  let current = selectedKey ? controls.findIndex((control) => control.dataset.applicationKey === selectedKey) : selectedIndex;
+  if (current < 0 || current >= controls.length) current = 0;
+  controls.forEach((control, index) => { control.tabIndex = index === current ? 0 : -1; });
+  container.addEventListener("keydown", (event) => {
+    const focused = controls.indexOf(document.activeElement);
+    if (focused < 0) return;
+    let next = focused;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = Math.min(focused + 1, controls.length - 1);
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = Math.max(focused - 1, 0);
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = controls.length - 1;
+    else return;
+    event.preventDefault();
+    controls.forEach((control, index) => { control.tabIndex = index === next ? 0 : -1; });
+    controls[next].focus();
+  });
+}
+
 export function encodeApplicationEvent(event) {
   const action = new TextEncoder().encode(event.action);
   const value = event.value instanceof Uint8Array ? event.value : new Uint8Array(event.value);
@@ -230,6 +309,14 @@ export function encodeApplicationEvent(event) {
 export function manifestApplicationView(input, root, options = {}) {
   if (!(root instanceof Element)) throw new TypeError("application presentation requires an Element");
   const view = decodeApplicationView(input);
+  const active = root.contains(document.activeElement) ? document.activeElement : null;
+  const activeNode = active?.closest?.("[data-application-key]");
+  const interaction = activeNode ? {
+    key: activeNode.dataset.applicationKey,
+    selection: active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? {
+      start: active.selectionStart ?? 0, end: active.selectionEnd ?? 0, direction: active.selectionDirection ?? "none",
+    } : null,
+  } : null;
   const theme = options.theme ? decodeApplicationTheme(options.theme) : null;
   const capacity = options.eventCapacity ?? MAX_EVENT_QUEUE;
   const byteCapacity = options.eventByteCapacity ?? MAX_EVENT_QUEUE_BYTES;
@@ -304,6 +391,23 @@ export function manifestApplicationView(input, root, options = {}) {
       element.append(code);
     } else if (node.component === 30) {
       element.setAttribute("aria-label", node.text);
+    } else if (node.component === 39) {
+      const progress = document.createElement("progress");
+      const [current, total] = node.value.split("/").map(Number);
+      progress.value = current;
+      progress.max = total;
+      progress.setAttribute("aria-label", node.text);
+      element.append(progress);
+      element.dataset.applicationCurrent = String(current);
+      element.dataset.applicationTotal = String(total);
+    } else if (node.component === 38) {
+      const [current, total] = node.value.split("/").map(Number);
+      element.setAttribute("aria-label", node.text);
+      element.dataset.applicationCurrent = String(current);
+      element.dataset.applicationTotal = String(total);
+    } else if (node.component === 12) {
+      element.setAttribute("aria-label", node.text);
+      element.dataset.applicationCurrent = node.value;
     } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
       const title = document.createElement("h3");
       title.textContent = node.text;
@@ -348,7 +452,41 @@ export function manifestApplicationView(input, root, options = {}) {
     if (node.parent === null) fragment.append(element);
     else elements[node.parent].append(element);
   }
+  const instance = rootIdentity(root);
+  for (const [index, node] of view.nodes.entries()) {
+    if (node.component === 34) {
+      const children = view.nodes.map((child, childIndex) => ({ child, childIndex })).filter(({ child }) => child.parent === index);
+      const control = children.find(({ child }) => child.component === 15 || child.component === 16 || child.component === 17);
+      const label = children.find(({ child }) => child.component === 35);
+      const help = children.find(({ child }) => child.component === 36);
+      const error = children.find(({ child }) => child.component === 37);
+      if (!control || !label || !help) refuse("malformed-encoding");
+      const controlElement = elements[control.childIndex];
+      const controlId = `${instance}-control-${control.childIndex}`;
+      controlElement.id = controlId;
+      controlElement.removeAttribute("aria-label");
+      elements[label.childIndex].htmlFor = controlId;
+      const descriptions = [];
+      for (const described of [help, error]) {
+        if (!described) continue;
+        const id = `${instance}-description-${described.childIndex}`;
+        elements[described.childIndex].id = id;
+        descriptions.push(id);
+      }
+      controlElement.setAttribute("aria-describedby", descriptions.join(" "));
+      if (error) {
+        controlElement.setAttribute("aria-invalid", "true");
+        controlElement.setAttribute("aria-errormessage", elements[error.childIndex].id);
+        elements[error.childIndex].setAttribute("role", "alert");
+      }
+    } else if (node.component === 12) {
+      installRovingFocus(elements[index], node.value, -1);
+    } else if (node.component === 38) {
+      installRovingFocus(elements[index], "", Number(node.value.split("/")[0]) - 1);
+    }
+  }
   root.replaceChildren(fragment);
+  restoreInteraction(root, interaction);
   root.dataset.applicationRevision = String(view.revision);
   if (theme) {
     root.dataset.applicationTheme = theme.identity;

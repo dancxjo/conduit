@@ -8,15 +8,17 @@ use crate::{
     ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
     ApplicationView, ApplicationViewNode, ApplicationViewRefusal,
 };
-use alloc::{format, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 
 mod evidence_lowering;
+mod form_lowering;
 mod mechanism_lowering;
 use evidence_lowering::{
     code_node, definition_node, evidence_component, push_definition, push_evidence_state,
     validate_artifact, validate_evidence,
 };
-use mechanism_lowering::{action_node, field_node, titled};
+use form_lowering::{lower_form_field, progress_node};
+use mechanism_lowering::{action_node, titled};
 
 /// Stable identities for the shared application-presentation vocabulary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -128,6 +130,8 @@ pub enum FieldKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FormField {
     pub label: String,
+    pub help: String,
+    pub error: Option<String>,
     pub value: String,
     pub value_capacity: u32,
     pub input_action: SemanticAction,
@@ -166,9 +170,12 @@ pub enum PresentationMechanism {
     FormField(FormField),
     Navigation {
         label: String,
+        current: String,
     },
     Stepper {
         label: String,
+        current: u16,
+        total: u16,
     },
     Progress {
         title: String,
@@ -227,6 +234,7 @@ pub enum SemanticPresentationRefusal {
     InvalidActionAvailability,
     InvalidDeviceChoice,
     InvalidField,
+    InvalidNavigation,
     InvalidProgress,
     InvalidEvidence,
     InvalidDefinition,
@@ -293,27 +301,10 @@ fn lower_node(
         }
         _ => {}
     }
-    if let PresentationMechanism::FormField(FormField {
-        kind: FieldKind::Select { options },
-        ..
-    })
-    | PresentationMechanism::DeviceChoice(FormField {
-        kind: FieldKind::Select { options },
-        ..
-    }) = &source.mechanism
-    {
-        for (option_index, option) in options.iter().enumerate() {
-            nodes.push(ApplicationViewNode {
-                parent: Some(index),
-                component: ApplicationComponent::Option,
-                key: format!("{}-o{option_index}", source.key),
-                text: option.clone(),
-                value: option.clone(),
-                value_capacity: u32::try_from(option.len()).unwrap_or(u32::MAX).max(1),
-                action: None,
-                state: ApplicationNodeState::Ready,
-            });
-        }
+    if let PresentationMechanism::FormField(field) = &source.mechanism {
+        lower_form_field(index, &source.key, field, nodes, actions, false)?;
+    } else if let PresentationMechanism::DeviceChoice(field) = &source.mechanism {
+        lower_form_field(index, &source.key, field, nodes, actions, true)?;
     }
     for child in &source.children {
         lower_node(child, Some(index), nodes, actions)?;
@@ -420,31 +411,46 @@ fn lower_mechanism(
         ),
         PresentationMechanism::Definition { term, value } => definition_node(term, value)?,
         PresentationMechanism::CodeBlock { language, code } => code_node(language, code)?,
-        PresentationMechanism::FormField(field) => field_node(field, actions, false)?,
-        PresentationMechanism::Navigation { label } | PresentationMechanism::Stepper { label } => (
-            ApplicationComponent::Navigation,
-            label.clone(),
+        PresentationMechanism::FormField(_) | PresentationMechanism::DeviceChoice(_) => (
+            ApplicationComponent::FormField,
+            empty,
             String::new(),
             0,
             None,
             ApplicationNodeState::Ready,
         ),
+        PresentationMechanism::Navigation { label, current } => {
+            if label.is_empty() || current.is_empty() {
+                return Err(SemanticPresentationRefusal::InvalidNavigation);
+            }
+            (
+                ApplicationComponent::Navigation,
+                label.clone(),
+                current.clone(),
+                u32::try_from(current.len()).unwrap_or(u32::MAX).max(1),
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
+        PresentationMechanism::Stepper {
+            label,
+            current,
+            total,
+        } => {
+            if label.is_empty() || *current == 0 || *total == 0 || current > total {
+                return Err(SemanticPresentationRefusal::InvalidProgress);
+            }
+            progress_node(ApplicationComponent::Stepper, label, *current, *total)
+        }
         PresentationMechanism::Progress {
             title,
             current,
             total,
         } => {
-            if *total == 0 || current > total {
+            if title.is_empty() || *total == 0 || current > total {
                 return Err(SemanticPresentationRefusal::InvalidProgress);
             }
-            (
-                ApplicationComponent::Status,
-                format!("{title}: {current} of {total}"),
-                String::new(),
-                0,
-                None,
-                ApplicationNodeState::Ready,
-            )
+            progress_node(ApplicationComponent::Progress, title, *current, *total)
         }
         PresentationMechanism::Artifact(artifact) => {
             validate_artifact(artifact)?;
@@ -460,7 +466,6 @@ fn lower_mechanism(
         PresentationMechanism::Download(action) => {
             action_node(action, ApplicationComponent::Button, actions)?
         }
-        PresentationMechanism::DeviceChoice(field) => field_node(field, actions, true)?,
         PresentationMechanism::PatchbayCanvas { label } => (
             ApplicationComponent::PatchbayCanvas,
             label.clone(),

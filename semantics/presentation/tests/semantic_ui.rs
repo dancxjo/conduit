@@ -162,6 +162,8 @@ fn invalid_progress_availability_and_device_choice_refuse_exactly() {
 
     let choice = FormField {
         label: "Device".into(),
+        help: "Choose a compatible device".into(),
+        error: None,
         value: String::new(),
         value_capacity: 8,
         input_action: action("device.choose", "Choose"),
@@ -235,6 +237,8 @@ fn availability_and_warning_severity_survive_semantic_lowering() {
 fn select_options_lower_as_finite_children_of_the_exact_field() {
     let choice = FormField {
         label: "Device".into(),
+        help: "Choose a compatible device".into(),
+        error: Some("Previous device is stale".into()),
         value: "Pico".into(),
         value_capacity: 16,
         input_action: SemanticAction {
@@ -257,11 +261,165 @@ fn select_options_lower_as_finite_children_of_the_exact_field() {
     }
     .lower()
     .unwrap();
-    assert_eq!(lowered.nodes[0].component, ApplicationComponent::Select);
+    assert_eq!(lowered.nodes[0].component, ApplicationComponent::FormField);
     assert_eq!(lowered.nodes[1].parent, Some(0));
-    assert_eq!(lowered.nodes[1].component, ApplicationComponent::Option);
-    assert_eq!(lowered.nodes[1].value, "Pico");
-    assert_eq!(lowered.nodes[2].value, "ESP32");
+    assert_eq!(lowered.nodes[1].component, ApplicationComponent::FieldLabel);
+    assert_eq!(lowered.nodes[2].component, ApplicationComponent::Select);
+    assert_eq!(lowered.nodes[3].component, ApplicationComponent::FieldHelp);
+    assert_eq!(lowered.nodes[4].component, ApplicationComponent::FieldError);
+    assert_eq!(lowered.nodes[5].parent, Some(2));
+    assert_eq!(lowered.nodes[5].value, "Pico");
+    assert_eq!(lowered.nodes[6].value, "ESP32");
+}
+
+#[test]
+fn forms_navigation_stepper_and_progress_keep_exact_shared_contracts() {
+    let field = FormField {
+        label: "Source".into(),
+        help: "Enter one bounded Form".into(),
+        error: Some("Source is not checked".into()),
+        value: "gear source".into(),
+        value_capacity: 64,
+        input_action: SemanticAction {
+            identity: "source.input".into(),
+            event: ApplicationEventKind::Input,
+            label: "Edit source".into(),
+            availability: ActionAvailability::Available,
+        },
+        kind: FieldKind::TextArea,
+    };
+    let lowered = SemanticApplicationView {
+        revision: 9,
+        root: node(
+            "shell",
+            PresentationMechanism::Shell,
+            vec![
+                node("source", PresentationMechanism::FormField(field), vec![]),
+                node(
+                    "pages",
+                    PresentationMechanism::Navigation {
+                        label: "Book pages".into(),
+                        current: "page-two".into(),
+                    },
+                    vec![
+                        node(
+                            "page-one",
+                            PresentationMechanism::Action(action("page.one", "One")),
+                            vec![],
+                        ),
+                        node(
+                            "page-two",
+                            PresentationMechanism::Action(action("page.two", "Two")),
+                            vec![],
+                        ),
+                    ],
+                ),
+                node(
+                    "steps",
+                    PresentationMechanism::Stepper {
+                        label: "Birth".into(),
+                        current: 2,
+                        total: 3,
+                    },
+                    vec![
+                        node(
+                            "step-one",
+                            PresentationMechanism::Action(action("step.one", "Body")),
+                            vec![],
+                        ),
+                        node(
+                            "step-two",
+                            PresentationMechanism::Action(action("step.two", "Host")),
+                            vec![],
+                        ),
+                        node(
+                            "step-three",
+                            PresentationMechanism::Action(action("step.three", "Play")),
+                            vec![],
+                        ),
+                    ],
+                ),
+                node(
+                    "progress",
+                    PresentationMechanism::Progress {
+                        title: "Birth".into(),
+                        current: 2,
+                        total: 3,
+                    },
+                    vec![],
+                ),
+            ],
+        ),
+    }
+    .lower()
+    .unwrap();
+    assert_eq!(lowered.nodes[1].component, ApplicationComponent::FormField);
+    assert_eq!(lowered.nodes[2].component, ApplicationComponent::FieldLabel);
+    assert_eq!(lowered.nodes[3].component, ApplicationComponent::TextArea);
+    assert_eq!(lowered.nodes[4].component, ApplicationComponent::FieldHelp);
+    assert_eq!(lowered.nodes[5].component, ApplicationComponent::FieldError);
+    assert_eq!(lowered.nodes[6].component, ApplicationComponent::Navigation);
+    assert_eq!(lowered.nodes[6].value, "page-two");
+    assert_eq!(lowered.nodes[9].component, ApplicationComponent::Stepper);
+    assert_eq!(lowered.nodes[9].value, "2/3");
+    assert_eq!(lowered.nodes[13].component, ApplicationComponent::Progress);
+    assert_eq!(
+        ApplicationView::decode(&lowered.encode().unwrap()),
+        Ok(lowered)
+    );
+}
+
+#[test]
+fn invalid_and_unbounded_form_choices_refuse_before_expansion() {
+    let lower = |help: &str, value: &str, options: Vec<String>| {
+        SemanticApplicationView {
+            revision: 1,
+            root: node(
+                "choice",
+                PresentationMechanism::FormField(FormField {
+                    label: "Choice".into(),
+                    help: help.into(),
+                    error: None,
+                    value: value.into(),
+                    value_capacity: 16,
+                    input_action: SemanticAction {
+                        identity: "choice.change".into(),
+                        event: ApplicationEventKind::Change,
+                        label: "Choose".into(),
+                        availability: ActionAvailability::Available,
+                    },
+                    kind: FieldKind::Select { options },
+                }),
+                vec![],
+            ),
+        }
+        .lower()
+    };
+    assert_eq!(
+        lower("", "one", vec!["one".into()]),
+        Err(SemanticPresentationRefusal::InvalidField)
+    );
+    assert_eq!(
+        lower("Help", "missing", vec!["one".into()]),
+        Err(SemanticPresentationRefusal::InvalidField)
+    );
+    assert_eq!(
+        lower("Help", "one", vec!["one".into(), "one".into()]),
+        Err(SemanticPresentationRefusal::InvalidField)
+    );
+    assert_eq!(
+        lower(
+            "Help",
+            "one",
+            (0..32)
+                .map(|index| format!("option-{index}"))
+                .chain(core::iter::once("one".into()))
+                .collect()
+        ),
+        Err(SemanticPresentationRefusal::ApplicationView(
+            ApplicationViewRefusal::TooManyNodes
+        ))
+    );
 }
 
 #[test]
