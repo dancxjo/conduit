@@ -93,7 +93,7 @@ impl From<SyntaxHighlightKind> for SyntaxKind {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::book_runner::abi::{INPUT_BYTES, OUTPUT_BYTES};
+    use crate::form_runner::abi::{INPUT_BYTES, OUTPUT_BYTES};
 
     #[test]
     fn incomplete_source_projects_exact_utf8_byte_spans() {

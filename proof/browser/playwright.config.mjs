@@ -24,6 +24,7 @@ export default defineConfig({
     "browser-application-package.spec.mjs",
     "browser-bundle-build.spec.mjs",
     "browser-boot-profile.spec.mjs",
+    "browser-form-runner.spec.mjs",
     "pages-front-door.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",
