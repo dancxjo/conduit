@@ -83,6 +83,17 @@ body[data-embodied="false"] .canvas-heading [role="toolbar"] { display:none; }
 .watch-card dt { color:var(--patchbay-text-secondary); }
 .watch-history { max-height:9rem; overflow:auto; padding-left:1.25rem; }
 .watch-gap,.watch-stale { color:var(--patchbay-failure); font-weight:700; }
+.learned-watch { margin:.55rem 0; padding:.45rem; border-left:3px solid var(--patchbay-active); background:color-mix(in srgb,var(--patchbay-active) 8%,var(--patchbay-background)); }
+.learned-watch h4 { margin:0; text-transform:capitalize; }
+.learned-plot { margin:.4rem 0; }
+.learned-plot svg { display:block; width:100%; height:5.25rem; background:var(--patchbay-background); border:1px solid var(--patchbay-structure-secondary); }
+.learned-plot figcaption { color:var(--patchbay-text-secondary); font-size:.75rem; }
+.signal-line { fill:none; stroke:var(--patchbay-active); stroke-width:2; }
+.uncertainty-band { fill:var(--patchbay-focus); opacity:.2; }
+.signal-gap { stroke:var(--patchbay-failure); stroke-width:2; stroke-dasharray:4 3; }
+.learned-plot circle[data-disposition="observed"] { fill:var(--patchbay-success); }
+.learned-plot circle[data-disposition="inferred"] { fill:var(--patchbay-focus); }
+.learned-plot circle[data-disposition="sampled"] { fill:var(--patchbay-warning); }
 .timeline-controls { display:flex; flex-wrap:wrap; gap:.35rem; margin:.45rem 0; }
 .control-actions { display:flex; flex-wrap:wrap; gap:.35rem; margin:.45rem 0; }
 .timeline-events { max-height:13rem; overflow:auto; padding-left:1.4rem; }

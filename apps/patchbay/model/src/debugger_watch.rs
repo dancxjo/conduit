@@ -10,6 +10,8 @@ use conduit_kernel::debug_observation::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::LearnedWatchProjection;
+
 pub const DEBUGGER_WATCH_SCHEMA: &str = "conduit.patchbay.debugger-watch-set/v1";
 /// One finite inspector surface may retain no more than this many exact Watches.
 pub const MAX_DEBUGGER_WATCHES: usize = 8;
@@ -68,6 +70,10 @@ pub struct DebuggerWatch {
     pub history: Vec<DebuggerWatchHistoryEntry>,
     pub evicted_history: u64,
     pub telemetry_gap: Option<DebuggerGapPresentation>,
+    /// Bounded semantic views computed by admitted observation operations.
+    /// They describe runtime truth; they never own or mutate it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub learned_projections: Vec<LearnedWatchProjection>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -93,6 +99,8 @@ pub enum DebuggerWatchError {
     UnknownWatch,
     StaleExecution,
     NonmonotonicSequence,
+    InvalidProjection,
+    ProjectionLimit,
 }
 
 impl DebuggerWatchSet {
@@ -152,6 +160,7 @@ impl DebuggerWatchSet {
             history: Vec::with_capacity(MAX_WATCH_HISTORY_RECORDS),
             evicted_history: 0,
             telemetry_gap: None,
+            learned_projections: Vec::with_capacity(crate::MAX_LEARNED_WATCH_PROJECTIONS),
         });
         self.focused_subject = Some(subject.to_owned());
         self.revision = self.revision.saturating_add(1);
@@ -202,6 +211,7 @@ impl DebuggerWatchSet {
         };
         watch.latest = Some(entry.clone());
         watch.history.push(entry);
+        watch.learned_projections.clear();
         watch.update_count = 1;
         watch.telemetry_gap = debugger.gap.clone();
         self.revision = self.revision.saturating_add(1);
@@ -229,6 +239,42 @@ impl DebuggerWatchSet {
         watch.history.clear();
         watch.evicted_history = 0;
         watch.telemetry_gap = None;
+        watch.learned_projections.clear();
+        self.revision = self.revision.saturating_add(1);
+        Ok(())
+    }
+
+    pub fn project_learned(
+        &mut self,
+        subject: &str,
+        projection: LearnedWatchProjection,
+    ) -> Result<(), DebuggerWatchError> {
+        projection
+            .validate()
+            .map_err(|_| DebuggerWatchError::InvalidProjection)?;
+        let watch = self
+            .watches
+            .iter_mut()
+            .find(|watch| watch.subject == subject)
+            .ok_or(DebuggerWatchError::UnknownWatch)?;
+        if watch.latest.as_ref().map(|entry| entry.sequence)
+            != Some(projection.observation_sequence)
+        {
+            return Err(DebuggerWatchError::InvalidProjection);
+        }
+        if let Some(current) = watch
+            .learned_projections
+            .iter_mut()
+            .find(|current| current.same_slot(&projection))
+        {
+            *current = projection;
+            self.revision = self.revision.saturating_add(1);
+            return Ok(());
+        }
+        if watch.learned_projections.len() == crate::MAX_LEARNED_WATCH_PROJECTIONS {
+            return Err(DebuggerWatchError::ProjectionLimit);
+        }
+        watch.learned_projections.push(projection);
         self.revision = self.revision.saturating_add(1);
         Ok(())
     }
@@ -272,6 +318,7 @@ impl DebuggerWatchSet {
                 value: value_presentation(record),
                 fault_code: record.fault_code,
             };
+            watch.learned_projections.clear();
             if watch.history.len() == MAX_WATCH_HISTORY_RECORDS {
                 watch.history.remove(0);
                 watch.evicted_history = watch.evicted_history.saturating_add(1);

@@ -7,6 +7,7 @@ mod body_workbench;
 mod cross_host;
 mod demo;
 mod front_door;
+mod learned_demo;
 mod seed_sources;
 mod server;
 mod snapshot;
@@ -22,6 +23,7 @@ pub use demo::{
     text_lab_split_loss_snapshot, text_lab_split_snapshot,
 };
 pub use front_door::front_door_snapshot;
+pub use learned_demo::learned_demonstration_snapshot;
 pub use seed_sources::{
     load_seed_sources, SeedSource, SeedSourceError, MAX_ADDITIONAL_SEEDS, MAX_SEED_LABEL_BYTES,
 };

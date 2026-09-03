@@ -17,6 +17,60 @@ function startServer() {
   return { child, lines, url };
 }
 
+function startLearnedServer() {
+  const child = spawn("target/debug/patchbay-learned-watch-proof", [], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const errors = [];
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", chunk => errors.push(chunk));
+  const lines = createInterface({ input: child.stdout });
+  const url = new Promise((resolve, reject) => {
+    lines.once("line", line => resolve(line.replace("PATCHBAY_HTML_URL=", "")));
+    child.once("exit", code => reject(new Error(`Learned Patchbay exited ${code}: ${errors.join("")}`)));
+  });
+  return { child, lines, url };
+}
+
+test("the real Patchbay shows one bounded Tongues system across signals, belief, state, loss, and dynamics", async ({ page }) => {
+  const server = startLearnedServer();
+  try {
+    const url = await server.url;
+    const initial = await (await fetch(`${url}/api/snapshot`)).json();
+    expect(initial.watches.watches).toHaveLength(3);
+    expect(initial.watches.watches.flatMap(watch => watch.learned_projections)).toHaveLength(9);
+    await page.goto(url);
+    await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await expect(page.locator(".watch-card")).toHaveCount(3);
+    const activeCord = page.locator(".react-flow__edge.debugger-active .react-flow__edge-path");
+    await expect(activeCord).not.toHaveCount(0);
+    expect(await activeCord.first().evaluate(element => getComputedStyle(element).animationName)).toBe("conduit-cord-flow");
+    await expect(page.locator('.learned-watch[data-projection="signal"]')).toHaveCount(4);
+    await expect(page.locator('.learned-watch[data-projection="tensor"]')).toContainText("f32 [4 × 3]");
+    await expect(page.locator('.learned-watch[data-projection="tensor"]')).toContainText("truncated");
+    await expect(page.locator('.learned-watch[data-projection="probabilistic"]')).toContainText("inferred");
+    await expect(page.locator('.learned-watch[data-projection="probabilistic"]')).toContainText("tongue-forward");
+    await expect(page.locator('.learned-watch[data-projection="state"]')).toContainText("Generation17 · step 92");
+    await expect(page.locator('.learned-watch[data-projection="state"]')).toContainText("committed");
+    await expect(page.locator('.learned-watch[data-projection="training"]')).toContainText("reconstruction 0.184 + kl 0.023 = 0.207");
+    await expect(page.locator('.learned-watch[data-projection="training"]')).toContainText("checkpoint/tongues-17-created");
+    await expect(page.locator('.learned-watch[data-projection="dynamics"]')).toContainText("31 work · tolerance 10 ppm · error 7 ppm");
+    await expect(page.locator('.learned-watch[data-projection="signal"]').filter({ hasText: "not-aligned" })).toHaveCount(1);
+    await expect(page.locator('.learned-watch[data-projection="signal"]').filter({ hasText: "related by clock-relation/audio-ema/7" })).toHaveCount(1);
+    await expect(page.locator(".signal-gap")).toHaveCount(1);
+    await expect(page.locator('.learned-plot circle[data-disposition="observed"]')).not.toHaveCount(0);
+    await expect(page.locator('.learned-plot circle[data-disposition="inferred"]')).not.toHaveCount(0);
+    await expect(page.locator('.learned-plot circle[data-disposition="sampled"]')).not.toHaveCount(0);
+    await expect(page.locator(".watch-card").first()).toContainText("3 dropped");
+    const final = await (await fetch(`${url}/api/snapshot`)).json();
+    expect(final.presentation).toEqual(initial.presentation);
+    expect(final.debugger).toEqual(initial.debugger);
+  } finally {
+    server.lines.close();
+    server.child.kill("SIGTERM");
+  }
+});
+
 test("an exact Cord Watch is keyboard operable, finite, and survives reload", async ({ page }) => {
   const server = startServer();
   try {
@@ -92,7 +146,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
     await expect(page.locator(".timeline-status")).toContainText("cursor 42");
     await expect(page.locator(".timeline-gap")).toContainText("Exact reconstruction across this gap is unavailable");
-    await page.getByRole("button", { name: "Pause visualization" }).press("Enter");
+    await page.getByRole("button", { name: "Pause visualization" }).click();
     await expect(page.locator(".timeline-status")).toContainText("execution is not paused");
     await page.getByRole("button", { name: "Previous event" }).click();
     await expect(page.locator(".timeline-status")).toContainText("cursor 41");
