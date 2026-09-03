@@ -353,6 +353,8 @@ pub enum DemoCommand {
     Tongues,
     /// Run the bounded real-data Tongues paired-latent research capstone.
     TonguesResearch,
+    /// Analyze the frozen Tongues latent dynamics with bounded controls.
+    TonguesAnalysis,
 }
 
 #[derive(Args, Debug)]

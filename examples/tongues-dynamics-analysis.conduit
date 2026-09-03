@@ -1,0 +1,13 @@
+# Analyze one already-frozen continuous representation; labels enter only afterward.
+form tongues-dynamics-analysis {
+    observations: tongues/paired-observations
+    extract: tongues/extract-frozen-latent
+    dynamics: tongues/analyze-continuous-dynamics
+    overlay: tongues/post-freeze-analysis
+
+    observations.acoustic > extract.acoustic
+    observations.articulation > extract.articulation
+    extract.latent > dynamics.latent
+    observations.articulation > dynamics.articulation
+    dynamics.analysis > overlay.analysis
+}

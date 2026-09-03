@@ -59,3 +59,28 @@ pub fn run_research(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
     }
     Ok(())
 }
+
+pub fn run_analysis(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    if opts.dry_run {
+        if !opts.quiet {
+            println!("would analyze the frozen Tongues latent dynamics with bounded controls");
+        }
+        return Ok(());
+    }
+    let mut command = Command::new("cargo");
+    command.args([
+        "run",
+        "--package",
+        "conduit-tongues",
+        "--bin",
+        "conduit-tongues-analysis",
+    ]);
+    if opts.locked {
+        command.arg("--locked");
+    }
+    let status = command.status()?;
+    if !status.success() {
+        return Err(format!("Tongues dynamics analysis exited with {status}").into());
+    }
+    Ok(())
+}

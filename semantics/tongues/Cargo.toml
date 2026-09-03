@@ -17,6 +17,10 @@ required-features = ["speech"]
 name = "conduit-tongues-research"
 path = "src/bin/conduit-tongues-research.rs"
 
+[[bin]]
+name = "conduit-tongues-analysis"
+path = "src/bin/conduit-tongues-analysis.rs"
+
 [dependencies]
 conduit-audio = { path = "../audio" }
 conduit-ai = { path = "../ai" }

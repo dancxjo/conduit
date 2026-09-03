@@ -102,6 +102,19 @@ const SHARED_BROWSER_THEME_SLICE: [&str; 10] = [
     "targets/browser/host/assets/creche.html",
 ];
 
+fn is_tongues_analysis_path(path: &str) -> bool {
+    path.starts_with("semantics/tongues/")
+        || path == "examples/tongues-dynamics-analysis.conduit"
+        || path == "apps/patchbay/html/src/learned_demo.rs"
+        || path == "proof/browser/patchbay-debugger-watch.spec.mjs"
+        || path == "xtask/src/commands/ci/impact.rs"
+        || path == "xtask/src/commands/ci/impact/tests.rs"
+        || matches!(
+            path,
+            "xtask/src/cli.rs" | "xtask/src/main.rs" | "xtask/src/commands/tongues.rs"
+        )
+}
+
 fn is_creche_presentation_path(path: &str) -> bool {
     path == "proof/browser/executable-book.spec.mjs"
         || path == "scripts/ci/stage-creche-product.sh"
@@ -380,6 +393,21 @@ fn plan_for_paths(
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/ci/pages-product-run-selection.spec.mjs");
+    let tongues_analysis_slice = substantive
+        .iter()
+        .all(|path| is_tongues_analysis_path(path))
+        && substantive
+            .iter()
+            .any(|path| path.starts_with("semantics/tongues/"))
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "apps/patchbay/html/src/learned_demo.rs")
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "proof/browser/patchbay-debugger-watch.spec.mjs")
+        && substantive
+            .iter()
+            .any(|path| path.as_str() == "xtask/src/commands/tongues.rs");
     // A workspace lock update caused by an accompanying package manifest is
     // covered by package dependency closure. A lock-only change remains a
     // global fallback because no bounded ownership explains it.
@@ -389,6 +417,17 @@ fn plan_for_paths(
             .any(|path| path.as_str() != "Cargo.toml" && path.ends_with("/Cargo.toml"));
     for path in substantive {
         if pages_deploy_resolver_slice {
+            continue;
+        }
+        if tongues_analysis_slice {
+            selected.insert("browser".to_owned(), true);
+            reasons
+                .get_mut("browser")
+                .expect("known suite")
+                .push(format!("focused-tongues-analysis:{path}"));
+            if let Some(package) = package_for_path(root, path, packages) {
+                changed_packages.insert(package.to_owned());
+            }
             continue;
         }
         if creche_presentation_slice {

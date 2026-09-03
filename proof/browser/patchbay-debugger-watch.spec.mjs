@@ -38,14 +38,17 @@ test("the real Patchbay shows one bounded Tongues system across signals, belief,
     const url = await server.url;
     const initial = await (await fetch(`${url}/api/snapshot`)).json();
     expect(initial.watches.watches).toHaveLength(3);
-    expect(initial.watches.watches.flatMap(watch => watch.learned_projections)).toHaveLength(9);
+    expect(initial.watches.watches.flatMap(watch => watch.learned_projections)).toHaveLength(15);
     await page.goto(url);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await expect(page.locator(".watch-card")).toHaveCount(3);
     const activeCord = page.locator(".react-flow__edge.debugger-active .react-flow__edge-path");
     await expect(activeCord).not.toHaveCount(0);
     expect(await activeCord.first().evaluate(element => getComputedStyle(element).animationName)).toBe("conduit-cord-flow");
-    await expect(page.locator('.learned-watch[data-projection="signal"]')).toHaveCount(4);
+    await expect(page.locator('.learned-watch[data-projection="signal"]')).toHaveCount(10);
+    for (const channel of ["analysis/relative-phase", "analysis/label-free-events", "analysis/post-freeze-clusters", "post-hoc/annotation-boundaries", "sparse-dynamics/observed-delta", "sparse-dynamics/predicted-delta"]) {
+      await expect(page.locator('.learned-watch[data-projection="signal"]').filter({ hasText: channel })).toHaveCount(1);
+    }
     await expect(page.locator('.learned-watch[data-projection="tensor"]')).toContainText("i64 [16 × 4]");
     await expect(page.locator('.learned-watch[data-projection="tensor"]')).toContainText("truncated");
     await expect(page.locator('.learned-watch[data-projection="probabilistic"]')).toContainText("inferred");

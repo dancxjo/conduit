@@ -30,3 +30,15 @@ The first model is a paired linear shared-latent realization: two encoders, two 
 The current evidence does not establish cross-speaker generalization, speaker conditioning, phone-class recovery, calibrated posterior coverage, interpretable articulatory factors, waveform-quality generation, or state-of-the-art performance. PB2007 contributes one speaker to this slice, so a speaker-conditioned versus speaker-agnostic comparison would be non-identifiable. The acoustic front end is four deterministic summary features, not an SSL encoder. These are explicit failures or deferred hypotheses, not claims hidden behind the successful pipeline.
 
 The real Patchbay learned-Watch proof consumes the exact run and corpus values: observed acoustic and EMA trajectories, inferred latent state, articulation uncertainty and alternatives, objective values, recurrent dynamics, and checkpoint transition. It uses Patchbay's authoritative debugger/Watch model and DOM/SVG renderer rather than a separate visualization.
+
+## Post-freeze dynamics analysis
+
+Run the finite analysis layer over that same exact frozen checkpoint and corpus derivation:
+
+```console
+cargo xtask --json demo tongues-analysis
+```
+
+The generated identity-bound report includes descriptive relative phase and lag over a declared -3..3-bin window, pairing-reversed and alternate-seed controls, label-free turning-point events followed by annotation comparison, three-cluster induction fitted without labels, the frozen lightweight probe, and a thresholded polynomial sparse-dynamics fit evaluated on held-out utterances beside a constant-state baseline. The dedicated `.conduit` Form keeps continuous extraction and dynamics analysis upstream of the post-freeze overlay.
+
+These are deliberately modest empirical results. Reversed-pair phase locking is not lower in this slice, so it does not support a stable coupling narrative. Some learned turning points align with post-hoc boundaries and others systematically miss them. The sparse predictor improves on its stated baseline but is an association, not a causal law. A C-center comparison, cross-speaker stability, rate/context effects, alternative front ends, and claims that the learned coordinates are oscillators remain non-identifiable. Patchbay renders the actual report values—relative phase, events, cluster assignments, later labels, and observed versus sparse-predicted deltas—through the existing authoritative Watch renderer.

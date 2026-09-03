@@ -8,6 +8,8 @@ use patchbay_model::{
 
 pub fn learned_demonstration_snapshot() -> Result<RendererSnapshot, String> {
     let report = conduit_tongues::run_research().map_err(|error| format!("{error:?}"))?;
+    let analysis =
+        conduit_tongues::run_dynamics_analysis().map_err(|error| format!("{error:?}"))?;
     let corpus = conduit_tongues::Pb2007Slice::load().map_err(|error| format!("{error:?}"))?;
     let sample = corpus
         .utterances
@@ -165,6 +167,53 @@ pub fn learned_demonstration_snapshot() -> Result<RendererSnapshot, String> {
             summary: "exact seed-2132 checkpoint committed after bounded training".into(),
         }),
     )?;
+    project(
+        &mut watches,
+        &port,
+        41,
+        analysis_signal(
+            "analysis/relative-phase",
+            &analysis.phase_lag.relative_phase_milliradians,
+        ),
+    )?;
+    let event_markers = (0..16)
+        .map(|bin| i64::from(analysis.events.event_bins.contains(&bin)) * 1_000)
+        .collect::<Vec<_>>();
+    project(
+        &mut watches,
+        &port,
+        41,
+        analysis_signal("analysis/label-free-events", &event_markers),
+    )?;
+    let clusters = analysis
+        .categories
+        .test_assignments
+        .iter()
+        .map(|value| *value as i64 * 1_000)
+        .collect::<Vec<_>>();
+    project(
+        &mut watches,
+        &port,
+        41,
+        analysis_signal("analysis/post-freeze-clusters", &clusters),
+    )?;
+    let label_overlay = analysis
+        .categories
+        .post_hoc_labels
+        .iter()
+        .map(|label| i64::from(label != "__") * 1_000)
+        .collect::<Vec<_>>();
+    project(
+        &mut watches,
+        &port,
+        41,
+        observed_signal(
+            SignalStreamRole::Sensor,
+            "post-hoc/annotation-boundaries",
+            "clock/ema-100hz",
+            &label_overlay,
+        ),
+    )?;
 
     project(
         &mut watches,
@@ -218,6 +267,24 @@ pub fn learned_demonstration_snapshot() -> Result<RendererSnapshot, String> {
             checkpoint_event: Some(report.training.checkpoint_identity.clone()),
             pressure: None,
         }),
+    )?;
+    project(
+        &mut watches,
+        &gear,
+        40,
+        analysis_signal(
+            "sparse-dynamics/observed-delta",
+            &analysis.sparse_dynamics.held_out_observed_delta_millionths,
+        ),
+    )?;
+    project(
+        &mut watches,
+        &gear,
+        40,
+        analysis_signal(
+            "sparse-dynamics/predicted-delta",
+            &analysis.sparse_dynamics.held_out_predicted_delta_millionths,
+        ),
     )?;
     project(
         &mut watches,
@@ -354,6 +421,34 @@ fn latent_signal(
     })
 }
 
+fn analysis_signal(channel: &str, values: &[i64]) -> LearnedWatchProjectionKind {
+    LearnedWatchProjectionKind::Signal(SignalWatch {
+        role: SignalStreamRole::Latent,
+        channel: channel.into(),
+        unit: "analysis-milli".into(),
+        clock_identity: "clock/ema-100hz".into(),
+        start_tick: 0,
+        ticks_per_second: 100,
+        continuity: SignalContinuity::Discontinuous,
+        alignment: ClockAlignment::Related {
+            relation_evidence: "exact frozen #2145 checkpoint and PB2007 derivation".into(),
+        },
+        retained_history_bytes: std::mem::size_of_val(values) as u32,
+        evicted_points: 0,
+        points: values
+            .iter()
+            .enumerate()
+            .map(|(tick, value)| SignalPoint {
+                tick: tick as i64,
+                value_milli: Some(*value),
+                lower_milli: None,
+                upper_milli: None,
+                disposition: ProbabilisticDisposition::Inferred,
+            })
+            .collect(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -371,7 +466,7 @@ mod tests {
                 .iter()
                 .map(|watch| watch.learned_projections.len())
                 .sum::<usize>(),
-            9
+            15
         );
     }
 }
