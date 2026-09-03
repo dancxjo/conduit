@@ -303,9 +303,24 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  conduitos-releases:
+  conduitos-release-images:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            profile: profiles/hosts/conduitos-native.profile.json
+          - architecture: aarch64
+            profile: profiles/hosts/conduitos-aarch64-headless.profile.json
+          - architecture: ia32
+            profile: profiles/hosts/conduitos-ia32-headless.profile.json
+          - architecture: riscv64
+            profile: profiles/hosts/conduitos-riscv64-headless.profile.json
+          - architecture: loongarch64
+            profile: profiles/hosts/conduitos-loongarch64-headless.profile.json
+    name: conduitos-release-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -317,18 +332,67 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+      - name: Restore an identical admitted ConduitOS image
+        id: image-cache
+        uses: actions/cache@v6
+        with:
+          path: target/creche-conduitos-build/${{ matrix.architecture }}
+          key: >-
+            conduitos-product-${{ matrix.architecture }}-${{
+            hashFiles('Cargo.lock', '**/Cargo.toml', 'architecture/**', 'fabrication/**',
+            'runtime/**', 'semantics/**', 'targets/conduitos/**', 'xtask/**', matrix.profile) }}
       - name: Install the deterministic hybrid ISO tool
+        if: steps.image-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends xorriso
-      - name: Compile and seal the exact ConduitOS product Host releases
-        run: |
-          cargo +stable xtask host build profiles/hosts/conduitos-native.profile.json --output target/creche-conduitos-build/x86_64 --locked
-          cargo +stable xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json --output target/creche-conduitos-build/aarch64 --locked
-          cargo +stable xtask host build profiles/hosts/conduitos-ia32-headless.profile.json --output target/creche-conduitos-build/ia32 --locked
-          cargo +stable xtask host build profiles/hosts/conduitos-riscv64-headless.profile.json --output target/creche-conduitos-build/riscv64 --locked
-          cargo +stable xtask host build profiles/hosts/conduitos-loongarch64-headless.profile.json --output target/creche-conduitos-build/loongarch64 --locked
-          node targets/conduitos/fabrication/seal-creche-release.mjs target/creche-conduitos-build target/creche-conduitos-release
+      - name: Compile the exact ${{ matrix.architecture }} ConduitOS product Host release
+        if: steps.image-cache.outputs.cache-hit != 'true'
+        run: >-
+          cargo +stable xtask host build ${{ matrix.profile }}
+          --output target/creche-conduitos-build/${{ matrix.architecture }} --locked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conduit-conduitos-build-${{ matrix.architecture }}
+          path: target/creche-conduitos-build/${{ matrix.architecture }}
+          if-no-files-found: error
+          retention-days: 7
+
+  conduitos-releases:
+    needs: conduitos-release-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Download the exact x86_64 ConduitOS image
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-build-x86_64
+          path: target/creche-conduitos-build/x86_64
+      - name: Download the exact aarch64 ConduitOS image
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-build-aarch64
+          path: target/creche-conduitos-build/aarch64
+      - name: Download the exact ia32 ConduitOS image
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-build-ia32
+          path: target/creche-conduitos-build/ia32
+      - name: Download the exact riscv64 ConduitOS image
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-build-riscv64
+          path: target/creche-conduitos-build/riscv64
+      - name: Download the exact loongarch64 ConduitOS image
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-conduitos-build-loongarch64
+          path: target/creche-conduitos-build/loongarch64
+      - name: Seal the complete ConduitOS release set
+        run: node targets/conduitos/fabrication/seal-creche-release.mjs target/creche-conduitos-build target/creche-conduitos-release
       - uses: actions/upload-artifact@v4
         with:
           name: conduit-conduitos-releases
@@ -401,23 +465,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  products-proof:
+  products-stage:
     needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    container:
-      image: mcr.microsoft.com/playwright:v1.62.0-noble
-      options: --ipc=host
-    env:
-      NPM_CONFIG_AUDIT: "false"
-      NPM_CONFIG_FUND: "false"
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-      - name: Install the pinned browser proof dependency
-        run: npm ci --ignore-scripts --prefer-offline
       - name: Download the reviewed browser product runtimes
         uses: actions/download-artifact@v6
         with:
@@ -471,29 +527,71 @@ jobs:
           scripts/ci/stage-book-product.sh target/browser-product-runtimes/book-runtime.wasm target/book-product
           scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
-      - name: Prove the Pages products independently and together in pinned Chromium
+      - name: Retain the exact staged products once for parallel consumers
+        uses: actions/upload-artifact@v4
+        with:
+          name: conduit-staged-browser-products
+          path: |
+            target/debug/conduit-browser-host
+            target/pages-root
+            target/book-product
+            target/creche-product
+            target/patchbay-product
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+          compression-level: 0
+
+  browser-proof:
+    needs: products-stage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: tour
+            specs: proof/browser/executable-book.spec.mjs
+          - shard: browser-host
+            specs: proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+          - shard: creche-machines
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs
+          - shard: pages
+            specs: proof/browser/pages-front-door.spec.mjs
+    name: browser-proof-${{ matrix.shard }}
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install the pinned browser proof dependency
+        run: npm ci --ignore-scripts --prefer-offline
+      - name: Receive the exact staged products
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-staged-browser-products
+          path: target
+      - name: Restore executable Host permission
+        run: chmod 755 target/debug/conduit-browser-host
+      - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
+        env:
+          BROWSER_PROOF_SPECS: ${{ matrix.specs }}
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
-          proof/browser/browser-application-package.spec.mjs
-          proof/browser/browser-bundle-build.spec.mjs
-          proof/browser/browser-boot-profile.spec.mjs
-          proof/browser/browser-human-input.spec.mjs
-          proof/browser/browser-form-runner.spec.mjs
-          proof/browser/pages-front-door.spec.mjs
-          proof/browser/creche-avr.spec.mjs
-          proof/browser/creche-orange-pi.spec.mjs
-          proof/browser/creche-raspberry-pi.spec.mjs
-          proof/browser/creche-conduitos.spec.mjs
-          proof/browser/creche-native-zip.spec.mjs
-          proof/browser/creche-native-disk.spec.mjs
-          proof/browser/creche-browser-configuration.spec.mjs
+          $BROWSER_PROOF_SPECS
           --project chromium
           --workers 1
           --retries 0
       - name: Retain the browser two-profile fabrication report
-        uses: actions/upload-artifact@v6
+        if: matrix.shard == 'creche-machines'
+        uses: actions/upload-artifact@v4
         with:
           name: browser-two-profile-capstone-proof
           path: |
@@ -501,6 +599,21 @@ jobs:
             target/proof/browser-two-profile-capstone.md
           if-no-files-found: error
           retention-days: 14
+
+  pages-carrier:
+    needs: [products-stage, browser-proof]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Receive the exact staged products
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-staged-browser-products
+          path: target
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
@@ -528,3 +641,18 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14
+
+  products-proof:
+    needs: [products-stage, browser-proof, pages-carrier]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve the stable required product gate
+        env:
+          STAGE_RESULT: ${{ needs.products-stage.result }}
+          BROWSER_RESULT: ${{ needs.browser-proof.result }}
+          CARRIER_RESULT: ${{ needs.pages-carrier.result }}
+        run: |
+          test "$STAGE_RESULT" = success
+          test "$BROWSER_RESULT" = success
+          test "$CARRIER_RESULT" = success

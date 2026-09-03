@@ -41,10 +41,36 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.doesNotMatch(productWorkflow, /\n        with:\n(?:          [^\n]+\n)+        with:/);
   assert.match(productWorkflow, /source_commit=\$\(git .* rev-parse HEAD\)/);
   assert.doesNotMatch(productWorkflow, /source_commit="\$GITHUB_SHA"/);
+  assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
+  assert.match(productWorkflow, /shard: tour/);
+  assert.match(productWorkflow, /shard: browser-host/);
+  assert.match(productWorkflow, /shard: creche-machines/);
+  assert.match(productWorkflow, /shard: pages/);
+  assert.match(productWorkflow, /--workers 1/);
+  assert.match(productWorkflow, /--retries 0/);
+  assert.match(
+    productWorkflow,
+    /Retain the browser two-profile fabrication report\n        if: matrix\.shard == 'creche-machines'/,
+  );
+  assert.match(productWorkflow, /name: conduitos-release-\$\{\{ matrix\.architecture \}\}/);
+  for (const architecture of ["x86_64", "aarch64", "ia32", "riscv64", "loongarch64"]) {
+    assert.match(productWorkflow, new RegExp(`architecture: ${architecture}`));
+  }
+  assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
+  assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
+  assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[products-stage, browser-proof, pages-carrier\]\n    if: always\(\)/);
+  assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
+  assert.match(productWorkflow, /test "\$BROWSER_RESULT" = success/);
+  assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
 
   const deployWorkflow = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
   assert.match(
     deployWorkflow,
     /concurrency:\n  group: book-and-creche-pages\n  cancel-in-progress: false/,
+  );
+  assert.match(
+    deployWorkflow,
+    /github\.event\.pull_request\.merged == true && github\.event\.pull_request\.base\.ref == 'main'/,
   );
 });
