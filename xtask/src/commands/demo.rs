@@ -126,6 +126,7 @@ pub fn run_patchbay(
                     "--target",
                     "wasm32-unknown-unknown",
                     "--release",
+                    "--no-default-features",
                 ],
             ),
             &root,

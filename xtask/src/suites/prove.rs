@@ -770,6 +770,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
             "--target",
             "wasm32-unknown-unknown",
             "--release",
+            "--no-default-features",
         ],
         None,
         Some("wasm32-unknown-unknown"),

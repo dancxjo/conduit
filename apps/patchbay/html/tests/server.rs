@@ -312,7 +312,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let manifest: serde_json::Value =
         serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(manifest["application_id"], "conduit.application/patchbay");
-    assert_eq!(manifest["resources"].as_array().unwrap().len(), 24);
+    assert_eq!(manifest["resources"].as_array().unwrap().len(), 25);
     let navigation = request("/assets/portable-navigation.js", "GET");
     assert!(navigation.starts_with("HTTP/1.1 200 OK"));
     assert!(navigation.contains("projectCurrent"));
@@ -348,6 +348,10 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
 fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
     for (path, marker) in [
         ("/assets/browser-membership.js", "BodyWebRtcSessions"),
+        (
+            "/assets/browser-host-identity.mjs",
+            "openBrowserHostIdentity",
+        ),
         (
             "/assets/application-presentation.mjs",
             "createApplicationPresentationHost",

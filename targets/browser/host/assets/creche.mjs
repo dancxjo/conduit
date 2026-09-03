@@ -191,6 +191,29 @@ async function restoreDurableBody() {
     restored.birth_sequence,
     ...(snapshot.biography?.records ?? []).map((record) => record.sequence),
   );
+  if (restored.here_part_id) {
+    const reconciled = changeHereMembership("conduit_creche_attach_here", sequence + 1);
+    sequence += 2;
+    if (reconciled.host_id !== host.hostId || reconciled.boot_id !== host.bootId) {
+      throw new Error("durable browser Host membership did not reconcile to the current Boot");
+    }
+    retainDurableBody();
+  }
+}
+
+function changeHereMembership(operation, eventSequence = ++sequence) {
+  const api = host.runtime;
+  const hostBytes = new TextEncoder().encode(host.hostId);
+  const bootBytes = new TextEncoder().encode(host.bootId);
+  const input = new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), hostBytes.length + bootBytes.length);
+  input.set(hostBytes);
+  input.set(bootBytes, hostBytes.length);
+  const code = api[operation](hostBytes.length, bootBytes.length, BigInt(eventSequence));
+  if (code < 0) {
+    const refusal = readAbiOutput(api);
+    throw new Error(refusal.message ?? `browser membership operation refused (${code})`);
+  }
+  return readAbiOutput(api);
 }
 
 function retainDurableBody() {
@@ -222,14 +245,66 @@ function renderComplete(receipt, biography) {
   workspace.replaceChildren();
   const section = document.createElement("section");
   section.className = "creche-complete";
-  section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><section class="body-biography" aria-label="Body biography"><h3>Body biography · compatible reader</h3><ol></ol></section>`;
+  section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><div data-application-slot="creche-complete-actions"></div><section class="body-biography" aria-label="Body biography"><h3>Body biography · compatible reader</h3><ol></ol></section>`;
   renderBiography(section.querySelector(".body-biography"), biography);
   workspace.append(section);
+  presentation.present("creche-complete-actions", {
+    revision: ++presentationRevision,
+    actions: [
+      { id: "membership.leave", event: "activate" },
+      { id: "membership.revoke", event: "activate" },
+      { id: "creche.finish", event: "activate" },
+    ],
+    nodes: [
+      { parent: null, component: "action-group", action: null, key: "complete-actions", text: "" },
+      { parent: 0, component: "button", action: 0, key: "leave-body", text: "Leave Body" },
+      { parent: 0, component: "button", action: 1, key: "remove-browser", text: "Remove this browser from the Body" },
+      { parent: 0, component: "button", action: 2, key: "finish-creche", text: "Finish and clear Crèche" },
+    ],
+  }, { async onEvent(event) {
+    presentation.nextEvent("creche-complete-actions");
+    if (event.action === "membership.leave") {
+      changeHereMembership("conduit_creche_leave_here");
+      retainDurableBody();
+      await durabilitySettled();
+      renderComplete(readBodyProjection(host.runtime), renderBiographyEvidence());
+    }
+    if (event.action === "membership.revoke") {
+      changeHereMembership("conduit_creche_revoke_here");
+      retainDurableBody();
+      await durabilitySettled();
+      renderComplete(readBodyProjection(host.runtime), renderBiographyEvidence());
+    }
+    if (event.action === "creche.finish") await finishCrecheLocally();
+  } });
   document.querySelector('[data-application-slot="creche-navigation"]')?.remove();
 }
 
+function renderBiographyEvidence() {
+  const api = host.runtime;
+  const code = api.conduit_creche_biography();
+  if (code < 0) throw new Error(`Body biography unavailable (${code})`);
+  return readAbiOutput(api);
+}
+
+async function finishCrecheLocally() {
+  await storage.deleteJson("body-session");
+  host.runtime.conduit_creche_forget_local();
+  sequence = 0;
+  currentStep = 0;
+  replaceStepRoute(0);
+  if (!document.querySelector('[data-application-slot="creche-navigation"]')) {
+    const navigation = document.createElement("div");
+    navigation.className = "creche-steps";
+    navigation.dataset.applicationSlot = "creche-navigation";
+    workspace.before(navigation);
+  }
+  renderNavigation();
+  renderStep();
+}
+
 function requireCrecheAbi(api) {
-  const required = ["memory", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_admit_physical_spore"];
+  const required = ["memory", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_leave_here", "conduit_creche_revoke_here", "conduit_creche_forget_local", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_admit_physical_spore"];
   if (required.some((name) => !(name in api))) throw new Error("Crèche runtime ABI is incomplete");
 }
 

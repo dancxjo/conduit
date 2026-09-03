@@ -184,6 +184,66 @@ pub extern "C" fn conduit_creche_attach_here(
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_creche_leave_here(
+    host_length: usize,
+    boot_length: usize,
+    sequence: u64,
+) -> i32 {
+    host_boot_action(host_length, boot_length, |host, boot| {
+        session::leave_here(host, boot, sequence)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_creche_revoke_here(
+    host_length: usize,
+    boot_length: usize,
+    sequence: u64,
+) -> i32 {
+    host_boot_action(host_length, boot_length, |host, boot| {
+        session::revoke_here(host, boot, sequence)
+    })
+}
+
+fn host_boot_action(
+    host_length: usize,
+    boot_length: usize,
+    action: impl FnOnce(&str, &str) -> Result<super::protocol::BirthReceipt, String>,
+) -> i32 {
+    clear_output();
+    let Some(total_length) = host_length.checked_add(boot_length) else {
+        return ERROR_INPUT;
+    };
+    if host_length == 0 || boot_length == 0 || total_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = (|| {
+            let host = core::str::from_utf8(&input[..host_length])
+                .map_err(|_| "Host identity is not UTF-8".to_string())?;
+            let boot = core::str::from_utf8(&input[host_length..total_length])
+                .map_err(|_| "Boot identity is not UTF-8".to_string())?;
+            action(host, boot)
+        })();
+        input[..total_length].fill(0);
+        match result {
+            Ok(receipt) => write_output(&receipt)
+                .map(|()| STATUS_READY)
+                .unwrap_or(ERROR_OUTPUT),
+            Err(message) => refuse(message, ERROR_ADMISSION),
+        }
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_creche_forget_local() -> i32 {
+    clear_output();
+    session::forget_local();
+    STATUS_READY
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_creche_current() -> i32 {
     clear_output();
     match session::current() {

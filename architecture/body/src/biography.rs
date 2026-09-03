@@ -44,6 +44,15 @@ pub enum BodyBiographyRecordKind {
         host_id: HostId,
         boot_id: BootId,
     },
+    HostLeft {
+        change_id: MembershipChangeId,
+        part_id: PartId,
+        prior_boot_id: BootId,
+    },
+    PartRevoked {
+        change_id: MembershipChangeId,
+        part_id: PartId,
+    },
     FormAdmitted {
         source_document_id: SourceDocumentId,
         checked_form_id: CheckedFormId,
@@ -159,7 +168,9 @@ impl BodyBiographyEvidence {
             }
             if candidate.records.iter().any(|record| match &record.kind {
                 BodyBiographyRecordKind::PartAdmitted { change_id, .. }
-                | BodyBiographyRecordKind::HostJoined { change_id, .. } => {
+                | BodyBiographyRecordKind::HostJoined { change_id, .. }
+                | BodyBiographyRecordKind::HostLeft { change_id, .. }
+                | BodyBiographyRecordKind::PartRevoked { change_id, .. } => {
                     change_id == &event.change_id
                 }
                 _ => false,
@@ -179,9 +190,17 @@ impl BodyBiographyEvidence {
                         boot_id: observation.boot_id.clone(),
                     }
                 }
-                MembershipEventKind::HostDetached { .. } | MembershipEventKind::Revoked => {
-                    return Err(BodyBiographyError::InvalidEvidence)
+                MembershipEventKind::HostDetached { prior_boot_id } => {
+                    BodyBiographyRecordKind::HostLeft {
+                        change_id: event.change_id.clone(),
+                        part_id: event.part_id.clone(),
+                        prior_boot_id: prior_boot_id.clone(),
+                    }
                 }
+                MembershipEventKind::Revoked => BodyBiographyRecordKind::PartRevoked {
+                    change_id: event.change_id.clone(),
+                    part_id: event.part_id.clone(),
+                },
             };
             candidate.records.push(BodyBiographyRecord {
                 sequence: *sequence,
@@ -360,6 +379,28 @@ impl BodyBiographyEvidence {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }
                 }
+                BodyBiographyRecordKind::HostLeft {
+                    change_id,
+                    part_id,
+                    prior_boot_id,
+                } => {
+                    let event = membership_event(&self.membership, change_id)?;
+                    if event.part_id != *part_id
+                        || event.sign_id != record.sign_id
+                        || !matches!(&event.kind, MembershipEventKind::HostDetached { prior_boot_id: actual } if actual == prior_boot_id)
+                    {
+                        return Err(BodyBiographyError::InvalidEvidence);
+                    }
+                }
+                BodyBiographyRecordKind::PartRevoked { change_id, part_id } => {
+                    let event = membership_event(&self.membership, change_id)?;
+                    if event.part_id != *part_id
+                        || event.sign_id != record.sign_id
+                        || !matches!(event.kind, MembershipEventKind::Revoked)
+                    {
+                        return Err(BodyBiographyError::InvalidEvidence);
+                    }
+                }
                 BodyBiographyRecordKind::FormAdmitted {
                     source_document_id,
                     checked_form_id,
@@ -439,6 +480,8 @@ impl BodyBiographyEvidence {
                     record.kind,
                     BodyBiographyRecordKind::PartAdmitted { .. }
                         | BodyBiographyRecordKind::HostJoined { .. }
+                        | BodyBiographyRecordKind::HostLeft { .. }
+                        | BodyBiographyRecordKind::PartRevoked { .. }
                 )
             })
             .count();

@@ -673,7 +673,7 @@ let activeMemoryLine = null;
 
 async function ensurePeerHost() {
   if (peerHost !== null) return peerHost;
-  const initialized = await initializeBrowserHost(admittedRuntimeBytes);
+  const initialized = await initializeBrowserHost(admittedRuntimeBytes, { durable: false });
   requireBookAbi(initialized.runtime);
   if (initialized.hostId === host.hostId || initialized.bootId === host.bootId) {
     throw new Error("second browser Host did not receive independent Host and Boot identity");

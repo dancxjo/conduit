@@ -1,6 +1,7 @@
 const DATABASE_NAME = "conduit-browser-host-applications";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = "application-state";
+const HOST_IDENTITY_STORE_NAME = "browser-host-identity";
 const MAXIMUM_RECORDS = 64;
 const MAXIMUM_KEY_BYTES = 128;
 const MAXIMUM_VALUE_BYTES = 64 * 1024;
@@ -33,6 +34,9 @@ async function openDatabase() {
     if (!database.objectStoreNames.contains(STORE_NAME)) {
       const store = database.createObjectStore(STORE_NAME, { keyPath: "identity" });
       store.createIndex("application", "applicationIdentity", { unique: false });
+    }
+    if (!database.objectStoreNames.contains(HOST_IDENTITY_STORE_NAME)) {
+      database.createObjectStore(HOST_IDENTITY_STORE_NAME, { keyPath: "identity" });
     }
   });
   return requestResult(request);
@@ -110,6 +114,25 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     await transactionComplete(transaction);
   }
 
+  async function deleteJson(key) {
+    exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
+    const transaction = database.transaction(STORE_NAME, "readwrite");
+    transaction.objectStore(STORE_NAME).delete(prefix + key);
+    await transactionComplete(transaction);
+  }
+
+  async function clearApplication() {
+    const transaction = database.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const records = await requestResult(store.index("application").getAll(applicationIdentity));
+    if (records.length > MAXIMUM_RECORDS) {
+      transaction.abort();
+      throw new Error("application storage record bound was violated");
+    }
+    for (const record of records) store.delete(record.identity);
+    await transactionComplete(transaction);
+  }
+
   return Object.freeze({
     schema: "conduit.browser/application-storage@1",
     applicationIdentity,
@@ -126,5 +149,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     }),
     readJson,
     writeJson,
+    deleteJson,
+    clearApplication,
   });
 }

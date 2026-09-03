@@ -244,3 +244,83 @@ fn changed_durable_identity_refuses_atomically() {
         .contains("identities disagree"));
     assert!(session::current().is_none());
 }
+
+#[test]
+fn durable_browser_host_reboots_through_exact_detach_and_attach_events() {
+    session::clear_for_test();
+    let born = birth(91);
+    session::attach_here("browser/creche", "browser-boot/one", 92).unwrap();
+    let snapshot = session::durable_snapshot().unwrap();
+    session::clear_for_test();
+    session::restore_durable(snapshot).unwrap();
+
+    let reconciled = session::attach_here("browser/creche", "browser-boot/two", 94).unwrap();
+    assert_eq!(reconciled.body_id, born.body_id);
+    assert_eq!(reconciled.membership_revision, 4);
+    assert_eq!(reconciled.boot_id.as_deref(), Some("browser-boot/two"));
+    assert!(matches!(
+        reconciled.raw_membership.events[2].kind,
+        MembershipEventKind::HostDetached { .. }
+    ));
+    assert!(matches!(
+        reconciled.raw_membership.events[3].kind,
+        MembershipEventKind::HostAttached { .. }
+    ));
+    assert_eq!(
+        reconciled.raw_membership.parts[0]
+            .current
+            .as_ref()
+            .unwrap()
+            .sequence,
+        2
+    );
+    session::biography().unwrap().validate().unwrap();
+}
+
+#[test]
+fn host_mismatch_refuses_while_leave_rejoin_revoke_and_forget_remain_distinct() {
+    session::clear_for_test();
+    let born = birth(101);
+    session::attach_here("browser/creche", "browser-boot/one", 102).unwrap();
+    let before = session::current().unwrap();
+    assert!(
+        session::attach_here("browser/creche", "browser-boot/stale-sequence", 1)
+            .unwrap_err()
+            .contains("biography")
+    );
+    assert_eq!(session::current().unwrap(), before);
+    assert!(
+        session::attach_here("browser/other", "browser-boot/two", 104)
+            .unwrap_err()
+            .contains("does not match")
+    );
+    assert_eq!(session::current().unwrap(), before);
+
+    let left = session::leave_here("browser/creche", "browser-boot/one", 105).unwrap();
+    assert_eq!(left.body_id, born.body_id);
+    assert!(left.boot_id.is_none());
+    assert_eq!(
+        left.raw_membership.parts[0].state,
+        MembershipState::Admitted
+    );
+    assert!(left.raw_membership.parts[0].current.is_none());
+
+    let returned = session::attach_here("browser/creche", "browser-boot/two", 106).unwrap();
+    assert_eq!(
+        returned.raw_membership.parts[0].state,
+        MembershipState::Admitted
+    );
+    assert_eq!(returned.boot_id.as_deref(), Some("browser-boot/two"));
+    let revoked = session::revoke_here("browser/creche", "browser-boot/two", 107).unwrap();
+    assert_eq!(revoked.body_id, born.body_id);
+    assert_eq!(
+        revoked.raw_membership.parts[0].state,
+        MembershipState::Revoked
+    );
+    assert!(revoked.raw_membership.parts[0].current.is_none());
+
+    let durable_evidence = session::durable_snapshot().unwrap();
+    session::forget_local();
+    assert!(session::current().is_none());
+    assert_eq!(durable_evidence.receipt.body_id, born.body_id);
+}
