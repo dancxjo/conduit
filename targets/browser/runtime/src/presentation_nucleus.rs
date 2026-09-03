@@ -11,8 +11,9 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_presentation::{
-    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
-    ApplicationView, ApplicationViewNode, GraphicsScene, LayoutFrame, PresentationComposition,
+    ActionAvailability, ApplicationEventKind, ApplicationView, ArtifactPresentation,
+    EvidenceDisposition, EvidencePresentation, GraphicsScene, LayoutFrame, PresentationComposition,
+    PresentationMechanism, SemanticAction, SemanticApplicationView, SemanticPresentationNode,
     MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
 };
 use std::collections::BTreeMap;
@@ -127,58 +128,61 @@ pub fn execute_browser_nucleus() -> Result<BrowserNucleusProof, String> {
 }
 
 fn tiny_application_view() -> Result<ApplicationView, String> {
-    let view = ApplicationView {
-        revision: 1,
-        actions: vec![ApplicationAction {
-            id: "nucleus.continue".into(),
-            event: ApplicationEventKind::Activate,
-        }],
-        nodes: vec![
-            ApplicationViewNode {
-                parent: None,
-                component: ApplicationComponent::Shell,
-                key: "nucleus".into(),
-                text: String::new(),
-                value: String::new(),
-                value_capacity: 0,
-                action: None,
-                state: ApplicationNodeState::Ready,
-            },
-            ApplicationViewNode {
-                parent: Some(0),
-                component: ApplicationComponent::Heading,
-                key: "heading".into(),
-                text: "Browser Host presentation".into(),
-                value: String::new(),
-                value_capacity: 0,
-                action: None,
-                state: ApplicationNodeState::Ready,
-            },
-            ApplicationViewNode {
-                parent: Some(0),
-                component: ApplicationComponent::Paragraph,
-                key: "explanation".into(),
-                text: "A finite application view, not raw HTML.".into(),
-                value: String::new(),
-                value_capacity: 0,
-                action: None,
-                state: ApplicationNodeState::Ready,
-            },
-            ApplicationViewNode {
-                parent: Some(0),
-                component: ApplicationComponent::Button,
-                key: "continue".into(),
-                text: "Continue".into(),
-                value: String::new(),
-                value_capacity: 0,
-                action: Some(0),
-                state: ApplicationNodeState::Ready,
-            },
-        ],
+    let node = |key: &str, mechanism, children| SemanticPresentationNode {
+        key: key.into(),
+        mechanism,
+        children,
     };
-    view.validate()
-        .map_err(|error| format!("validate browser application view: {error:?}"))?;
-    Ok(view)
+    SemanticApplicationView {
+        revision: 1,
+        root: node(
+            "nucleus",
+            PresentationMechanism::Shell,
+            vec![
+                node(
+                    "heading",
+                    PresentationMechanism::Evidence(EvidencePresentation {
+                        title: "Browser Host presentation".into(),
+                        disposition: EvidenceDisposition::Succeeded,
+                        identity: "sign-nucleus-1".into(),
+                        provenance: "plan-nucleus-1/play-nucleus-1".into(),
+                    }),
+                    vec![],
+                ),
+                node(
+                    "artifact",
+                    PresentationMechanism::Artifact(ArtifactPresentation {
+                        title: "Bounded raw evidence".into(),
+                        kind: "application/json".into(),
+                        detail: "renderer-neutral fixture".into(),
+                        identity: "artifact-nucleus-1".into(),
+                        provenance: "sign-nucleus-1".into(),
+                        disposition: EvidenceDisposition::Succeeded,
+                    }),
+                    vec![node(
+                        "raw-evidence",
+                        PresentationMechanism::CodeBlock {
+                            language: "json".into(),
+                            code: "{\"content\":\"<script>inert</script>\"}".into(),
+                        },
+                        vec![],
+                    )],
+                ),
+                node(
+                    "continue",
+                    PresentationMechanism::Action(SemanticAction {
+                        identity: "nucleus.continue".into(),
+                        event: ApplicationEventKind::Activate,
+                        label: "Continue".into(),
+                        availability: ActionAvailability::Available,
+                    }),
+                    vec![],
+                ),
+            ],
+        ),
+    }
+    .lower()
+    .map_err(|error| format!("lower browser semantic application view: {error:?}"))
 }
 
 fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core::PlanId), String> {

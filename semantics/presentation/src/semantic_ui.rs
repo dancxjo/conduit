@@ -10,7 +10,12 @@ use crate::{
 };
 use alloc::{format, string::String, vec::Vec};
 
+mod evidence_lowering;
 mod mechanism_lowering;
+use evidence_lowering::{
+    code_node, definition_node, evidence_component, push_definition, push_evidence_state,
+    validate_artifact, validate_evidence,
+};
 use mechanism_lowering::{action_node, field_node, titled};
 
 /// Stable identities for the shared application-presentation vocabulary.
@@ -71,6 +76,33 @@ pub enum StatusKind {
     Success,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceDisposition {
+    Missing,
+    Stale,
+    Refused,
+    Failed,
+    Succeeded,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidencePresentation {
+    pub title: String,
+    pub disposition: EvidenceDisposition,
+    pub identity: String,
+    pub provenance: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArtifactPresentation {
+    pub title: String,
+    pub kind: String,
+    pub detail: String,
+    pub identity: String,
+    pub provenance: String,
+    pub disposition: EvidenceDisposition,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ActionAvailability {
     Available,
@@ -119,9 +151,7 @@ pub enum PresentationMechanism {
     Disclosure {
         summary: String,
     },
-    Evidence {
-        title: String,
-    },
+    Evidence(EvidencePresentation),
     DefinitionTable {
         title: String,
     },
@@ -145,11 +175,7 @@ pub enum PresentationMechanism {
         current: u16,
         total: u16,
     },
-    Artifact {
-        kind: String,
-        title: String,
-        detail: String,
-    },
+    Artifact(ArtifactPresentation),
     Download(SemanticAction),
     DeviceChoice(FormField),
     PatchbayCanvas {
@@ -167,7 +193,7 @@ impl PresentationMechanism {
             Self::Action(_) => PresentationMechanismKind::Action,
             Self::Status { .. } => PresentationMechanismKind::Status,
             Self::Disclosure { .. } => PresentationMechanismKind::Disclosure,
-            Self::Evidence { .. } => PresentationMechanismKind::Evidence,
+            Self::Evidence(_) => PresentationMechanismKind::Evidence,
             Self::DefinitionTable { .. } => PresentationMechanismKind::DefinitionTable,
             Self::Definition { .. } => PresentationMechanismKind::Definition,
             Self::CodeBlock { .. } => PresentationMechanismKind::CodeBlock,
@@ -175,7 +201,7 @@ impl PresentationMechanism {
             Self::Navigation { .. } => PresentationMechanismKind::Navigation,
             Self::Stepper { .. } => PresentationMechanismKind::Stepper,
             Self::Progress { .. } => PresentationMechanismKind::Progress,
-            Self::Artifact { .. } => PresentationMechanismKind::Artifact,
+            Self::Artifact(_) => PresentationMechanismKind::Artifact,
             Self::Download(_) => PresentationMechanismKind::Download,
             Self::DeviceChoice(_) => PresentationMechanismKind::DeviceChoice,
             Self::PatchbayCanvas { .. } => PresentationMechanismKind::PatchbayCanvas,
@@ -202,6 +228,10 @@ pub enum SemanticPresentationRefusal {
     InvalidDeviceChoice,
     InvalidField,
     InvalidProgress,
+    InvalidEvidence,
+    InvalidDefinition,
+    InvalidCodeBlock,
+    InvalidArtifact,
     ApplicationView(ApplicationViewRefusal),
 }
 
@@ -249,6 +279,20 @@ fn lower_node(
         action: lowered.action,
         state: lowered.state,
     });
+    match &source.mechanism {
+        PresentationMechanism::Evidence(evidence) => {
+            push_definition(index, nodes, "Identity", &evidence.identity)?;
+            push_definition(index, nodes, "Provenance", &evidence.provenance)?;
+        }
+        PresentationMechanism::Artifact(artifact) => {
+            push_evidence_state(index, nodes, artifact.disposition)?;
+            push_definition(index, nodes, "Kind", &artifact.kind)?;
+            push_definition(index, nodes, "Identity", &artifact.identity)?;
+            push_definition(index, nodes, "Provenance", &artifact.provenance)?;
+            push_definition(index, nodes, "Detail", &artifact.detail)?;
+        }
+        _ => {}
+    }
     if let PresentationMechanism::FormField(FormField {
         kind: FieldKind::Select { options },
         ..
@@ -355,31 +399,27 @@ fn lower_mechanism(
             None,
             ApplicationNodeState::Ready,
         ),
-        PresentationMechanism::Evidence { title }
-        | PresentationMechanism::DefinitionTable { title } => (
-            ApplicationComponent::Table,
+        PresentationMechanism::Evidence(evidence) => {
+            validate_evidence(evidence)?;
+            (
+                evidence_component(evidence.disposition),
+                evidence.title.clone(),
+                String::new(),
+                0,
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
+        PresentationMechanism::DefinitionTable { title } => (
+            ApplicationComponent::DefinitionTable,
             title.clone(),
             String::new(),
             0,
             None,
             ApplicationNodeState::Ready,
         ),
-        PresentationMechanism::Definition { term, value } => (
-            ApplicationComponent::Grid,
-            format!("{term}: {value}"),
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
-        PresentationMechanism::CodeBlock { language, code } => (
-            ApplicationComponent::Code,
-            format!("{language}\n{code}"),
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
+        PresentationMechanism::Definition { term, value } => definition_node(term, value)?,
+        PresentationMechanism::CodeBlock { language, code } => code_node(language, code)?,
         PresentationMechanism::FormField(field) => field_node(field, actions, false)?,
         PresentationMechanism::Navigation { label } | PresentationMechanism::Stepper { label } => (
             ApplicationComponent::Navigation,
@@ -406,18 +446,17 @@ fn lower_mechanism(
                 ApplicationNodeState::Ready,
             )
         }
-        PresentationMechanism::Artifact {
-            kind,
-            title,
-            detail,
-        } => (
-            ApplicationComponent::Panel,
-            format!("{title} [{kind}] — {detail}"),
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
+        PresentationMechanism::Artifact(artifact) => {
+            validate_artifact(artifact)?;
+            (
+                ApplicationComponent::Artifact,
+                artifact.title.clone(),
+                String::new(),
+                0,
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
         PresentationMechanism::Download(action) => {
             action_node(action, ApplicationComponent::Button, actions)?
         }

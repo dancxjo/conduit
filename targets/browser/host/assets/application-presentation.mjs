@@ -1,5 +1,5 @@
-const VERSION = 5;
-const RETIRED_VERSION = 4;
+const VERSION = 6;
+const RETIRED_VERSION = 5;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 40;
 const MAX_DEPTH = 8;
@@ -53,6 +53,11 @@ const COMPONENTS = Object.freeze({
   22: ["option", "option"],
   23: ["summary", "summary"],
   24: ["output", "warning-status"],
+  25: ["section", "missing-evidence"], 26: ["section", "stale-evidence"],
+  27: ["section", "refused-evidence"], 28: ["section", "failed-evidence"],
+  29: ["section", "successful-evidence"], 30: ["section", "definition-table"],
+  31: ["dl", "definition"], 32: ["pre", "code-block"],
+  33: ["article", "artifact"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -61,6 +66,9 @@ const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
 const EVENT_IDENTITIES = Object.freeze({ activate: 1, change: 2, input: 3, toggle: 4, submit: 5 });
 const NODE_STATES = Object.freeze({ 1: "ready", 2: "busy", 3: "unavailable" });
 const NODE_STATE_IDENTITIES = Object.freeze({ ready: 1, busy: 2, unavailable: 3 });
+const EVIDENCE_DISPOSITIONS = Object.freeze({
+  25: "missing", 26: "stale", 27: "refused", 28: "failed", 29: "succeeded",
+});
 const THEME_ROLES = Object.freeze([
   "background", "reading-paper", "workbench-canvas", "bootstrap-surface", "surface",
   "structure-primary", "structure-secondary", "text-primary", "text-secondary", "emphasis",
@@ -122,7 +130,7 @@ export function decodeApplicationView(input) {
     if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
     const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
       || (!hasValue && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
@@ -175,7 +183,7 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
       || (!hasValue && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
@@ -283,6 +291,23 @@ export function manifestApplicationView(input, root, options = {}) {
         summary.dataset.applicationDisclosureSummary = node.key;
         element.append(summary);
       }
+    } else if (node.component === 31) {
+      const term = document.createElement("dt");
+      term.textContent = node.text;
+      const value = document.createElement("dd");
+      value.textContent = node.value;
+      element.append(term, value);
+    } else if (node.component === 32) {
+      const code = document.createElement("code");
+      code.textContent = node.value;
+      element.dataset.applicationLanguage = node.text;
+      element.append(code);
+    } else if (node.component === 30) {
+      element.setAttribute("aria-label", node.text);
+    } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
+      const title = document.createElement("h3");
+      title.textContent = node.text;
+      element.append(title);
     } else {
       element.textContent = node.text;
     }
@@ -300,6 +325,12 @@ export function manifestApplicationView(input, root, options = {}) {
       element.dataset.applicationStatus = severity;
       element.setAttribute("role", node.component === 21 ? "alert" : "status");
       element.setAttribute("aria-live", node.component === 21 ? "assertive" : "polite");
+    }
+    if (node.component in EVIDENCE_DISPOSITIONS) {
+      const disposition = EVIDENCE_DISPOSITIONS[node.component];
+      element.dataset.applicationEvidence = disposition;
+      element.setAttribute("role", disposition === "failed" ? "alert" : "status");
+      element.setAttribute("aria-live", disposition === "failed" ? "assertive" : "polite");
     }
     if (node.component === 11) element.dataset.renderer = "patchbay";
     if (node.action !== null) {

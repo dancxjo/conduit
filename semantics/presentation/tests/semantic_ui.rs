@@ -52,9 +52,12 @@ fn shared_vocabulary_lowers_deterministically_without_host_truth() {
                     ),
                     node(
                         "evidence",
-                        PresentationMechanism::Evidence {
+                        PresentationMechanism::Evidence(EvidencePresentation {
                             title: "Evidence".into(),
-                        },
+                            disposition: EvidenceDisposition::Succeeded,
+                            identity: "evidence-7".into(),
+                            provenance: "play-7".into(),
+                        }),
                         vec![node(
                             "plan",
                             PresentationMechanism::Definition {
@@ -269,7 +272,7 @@ fn inherited_node_text_action_and_depth_bounds_refuse() {
             "root",
             PresentationMechanism::CodeBlock {
                 language: "text".into(),
-                code: "x".repeat(MAX_APPLICATION_VIEW_TEXT_BYTES),
+                code: "x".repeat(MAX_APPLICATION_CONTROL_VALUE_BYTES + 1),
             },
             vec![],
         ),
@@ -277,7 +280,7 @@ fn inherited_node_text_action_and_depth_bounds_refuse() {
     assert_eq!(
         oversized.lower(),
         Err(SemanticPresentationRefusal::ApplicationView(
-            ApplicationViewRefusal::TextTooLong
+            ApplicationViewRefusal::InvalidControlValue
         ))
     );
 
@@ -300,5 +303,126 @@ fn inherited_node_text_action_and_depth_bounds_refuse() {
         Err(SemanticPresentationRefusal::ApplicationView(
             ApplicationViewRefusal::TooDeep
         ))
+    );
+}
+
+#[test]
+fn evidence_artifact_definitions_and_code_keep_exact_bounded_data() {
+    let dispositions = [
+        EvidenceDisposition::Missing,
+        EvidenceDisposition::Stale,
+        EvidenceDisposition::Refused,
+        EvidenceDisposition::Failed,
+        EvidenceDisposition::Succeeded,
+    ];
+    let expected = [
+        ApplicationComponent::MissingEvidence,
+        ApplicationComponent::StaleEvidence,
+        ApplicationComponent::RefusedEvidence,
+        ApplicationComponent::FailedEvidence,
+        ApplicationComponent::SuccessfulEvidence,
+    ];
+    for (disposition, component) in dispositions.into_iter().zip(expected) {
+        let lowered = SemanticApplicationView {
+            revision: 3,
+            root: node(
+                "evidence",
+                PresentationMechanism::Evidence(EvidencePresentation {
+                    title: "Play evidence".into(),
+                    disposition,
+                    identity: "sign-3".into(),
+                    provenance: "play-2/plan-1".into(),
+                }),
+                vec![],
+            ),
+        }
+        .lower()
+        .unwrap();
+        assert_eq!(lowered.nodes[0].component, component);
+        assert_eq!(lowered.nodes[1].text, "Identity");
+        assert_eq!(lowered.nodes[1].value, "sign-3");
+        assert_eq!(lowered.nodes[2].text, "Provenance");
+        assert_eq!(lowered.nodes[2].value, "play-2/plan-1");
+        assert_eq!(
+            ApplicationView::decode(&lowered.encode().unwrap()),
+            Ok(lowered)
+        );
+    }
+
+    let lowered = SemanticApplicationView {
+        revision: 4,
+        root: node(
+            "artifact",
+            PresentationMechanism::Artifact(ArtifactPresentation {
+                title: "Plan receipt".into(),
+                kind: "application/json".into(),
+                detail: "bounded receipt".into(),
+                identity: "sha256:abcd".into(),
+                provenance: "host-1/play-2".into(),
+                disposition: EvidenceDisposition::Succeeded,
+            }),
+            vec![node(
+                "raw",
+                PresentationMechanism::CodeBlock {
+                    language: "json".into(),
+                    code: "{\"safe\":\"<script>inert</script>\"}".into(),
+                },
+                vec![],
+            )],
+        ),
+    }
+    .lower()
+    .unwrap();
+    assert_eq!(lowered.nodes[0].component, ApplicationComponent::Artifact);
+    assert_eq!(
+        lowered.nodes[1].component,
+        ApplicationComponent::SuccessfulEvidence
+    );
+    assert_eq!(lowered.nodes[6].component, ApplicationComponent::CodeBlock);
+    assert!(lowered.nodes[6].value.contains("<script>"));
+}
+
+#[test]
+fn incomplete_evidence_artifact_definition_and_code_refuse_before_lowering() {
+    let lower = |mechanism| {
+        SemanticApplicationView {
+            revision: 1,
+            root: node("root", mechanism, vec![]),
+        }
+        .lower()
+    };
+    assert_eq!(
+        lower(PresentationMechanism::Evidence(EvidencePresentation {
+            title: "Evidence".into(),
+            disposition: EvidenceDisposition::Missing,
+            identity: String::new(),
+            provenance: "expected-play".into(),
+        })),
+        Err(SemanticPresentationRefusal::InvalidEvidence)
+    );
+    assert_eq!(
+        lower(PresentationMechanism::Definition {
+            term: String::new(),
+            value: "value".into(),
+        }),
+        Err(SemanticPresentationRefusal::InvalidDefinition)
+    );
+    assert_eq!(
+        lower(PresentationMechanism::CodeBlock {
+            language: String::new(),
+            code: "raw".into(),
+        }),
+        Err(SemanticPresentationRefusal::InvalidCodeBlock)
+    );
+    assert_eq!(
+        lower(PresentationMechanism::Artifact(ArtifactPresentation {
+            title: "Artifact".into(),
+            kind: String::new(),
+            detail: "detail".into(),
+            identity: "id".into(),
+            provenance: "source".into(),
+            disposition: EvidenceDisposition::Failed,
+        })),
+        Err(SemanticPresentationRefusal::InvalidArtifact)
     );
 }
