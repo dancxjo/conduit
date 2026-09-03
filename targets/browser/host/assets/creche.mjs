@@ -131,6 +131,7 @@ function renderStep() {
   }));
   if (currentStep === 2) workspace.append(createPhysicalHostRunner({
     host,
+    presentationFor,
     targetCatalog,
     onBodyChanged: bodyChanged,
   }));

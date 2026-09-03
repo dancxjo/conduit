@@ -15,6 +15,8 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator(".physical-target").selectOption("browser/wasm32/page");
+  await expect(runner.locator('[data-application-key="physical-status"]')).toHaveAttribute("data-application-component", "status");
+  await expect(runner.locator('[data-application-key="physical-evidence"]')).toHaveAttribute("data-application-component", "artifact");
 
   await expect(runner.locator('[data-stage="obtain"]')).not.toHaveClass(/complete/);
   await expect(runner.locator(".browser-configuration fieldset")).toHaveCount(6);
