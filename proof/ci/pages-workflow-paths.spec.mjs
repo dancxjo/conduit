@@ -29,3 +29,21 @@ test("merged-PR deployment triggers exactly when PR product proof builds a carri
   );
   assert.deepEqual(deployPaths, productPaths);
 });
+
+test("product jobs build the immutable PR head and deployments queue", () => {
+  const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
+  const checkoutCount = [...productWorkflow.matchAll(/uses: actions\/checkout@v7/g)].length;
+  const exactHeadCount = [...productWorkflow.matchAll(
+    /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/g,
+  )].length;
+  assert.ok(checkoutCount > 0);
+  assert.equal(exactHeadCount, checkoutCount);
+  assert.match(productWorkflow, /source_commit=\$\(git .* rev-parse HEAD\)/);
+  assert.doesNotMatch(productWorkflow, /source_commit="\$GITHUB_SHA"/);
+
+  const deployWorkflow = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
+  assert.match(
+    deployWorkflow,
+    /concurrency:\n  group: book-and-creche-pages\n  cancel-in-progress: false/,
+  );
+});
