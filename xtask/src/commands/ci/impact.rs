@@ -34,7 +34,8 @@ const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/patchbay-debugger-pr-proof.yml",
 ];
-const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 8] = [
+const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
+    ".github/workflows/executable-book-pages.yml",
     ".github/workflows/executable-book-deploy.yml",
     ".github/workflows/pages-deploy-pr-proof.yml",
     "proof/ci/pages-product-run-selection.spec.mjs",

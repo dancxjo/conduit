@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { appendFile, readFile } from "node:fs/promises";
-import { selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
+import { resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
 
 const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
 const repository = process.env.GITHUB_REPOSITORY;
@@ -14,23 +14,21 @@ if (!Number.isSafeInteger(requestedNumber) || requestedNumber <= 0) {
   throw new Error("a merged pull request number is required");
 }
 const pull = await api(`/repos/${repository}/pulls/${requestedNumber}`);
-if (!pull.merged_at || !/^[0-9a-f]{40}$/.test(pull.merge_commit_sha ?? "")
-  || !/^[0-9a-f]{40}$/.test(pull.head?.sha ?? "")) {
-  throw new Error(`pull request #${requestedNumber} is not an exact merged source`);
-}
-const sourceCommit = await api(`/repos/${repository}/git/commits/${pull.head.sha}`);
-if (!/^[0-9a-f]{40}$/.test(sourceCommit.tree?.sha ?? "")) {
-  throw new Error(`pull request #${requestedNumber} has no exact source tree`);
-}
+const source = await resolveMergedPullSource(
+  pull,
+  (commit) => api(`/repos/${repository}/git/commits/${commit}`),
+).catch((error) => {
+  throw new Error(`pull request #${requestedNumber} cannot provide merged-tree provenance: ${error.message}`);
+});
 
-const query = new URLSearchParams({ event: "pull_request", head_sha: pull.head.sha, per_page: "100" });
+const query = new URLSearchParams({ event: "pull_request", head_sha: source.sourceHead, per_page: "100" });
 const attempts = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_ATTEMPTS, 80, 1, 120);
 const intervalMilliseconds = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_INTERVAL_MS, 15_000, 0, 60_000);
 let run;
 for (let attempt = 1; attempt <= attempts; attempt += 1) {
   const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
-  const candidate = selectExactRun(runs.workflow_runs, pull.head.sha);
-  run = selectExactSuccessfulRun(runs.workflow_runs, pull.head.sha);
+  const candidate = selectExactRun(runs.workflow_runs, source.sourceHead, requestedNumber);
+  run = selectExactSuccessfulRun(runs.workflow_runs, source.sourceHead, requestedNumber);
   if (run) break;
   if (candidate?.status === "completed") {
     throw new Error(`exact-head Pages product run ${candidate.id} concluded ${candidate.conclusion ?? "without a conclusion"}`);
@@ -41,9 +39,9 @@ if (!run) throw new Error(`exact-head Pages product run did not complete success
 
 await appendFile(output, [
   `run_id=${run.id}`,
-  `merge_commit=${pull.merge_commit_sha}`,
-  `source_head=${pull.head.sha}`,
-  `source_tree=${sourceCommit.tree.sha}`,
+  `merge_commit=${source.mergeCommit}`,
+  `source_head=${source.sourceHead}`,
+  `source_tree=${source.sourceTree}`,
   `pr_number=${requestedNumber}`,
   "",
 ].join("\n"));
