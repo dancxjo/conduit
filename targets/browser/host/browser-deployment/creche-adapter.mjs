@@ -1,4 +1,5 @@
 import { createExistingComputerAdapter, EXISTING_COMPUTER_BOUNDS, EXISTING_COMPUTER_MODES } from "../../../creche-existing-computer.mjs";
+import { createBrowserConfigurationOutfitter, prepareCheckedBrowserSpore } from "../../../creche-browser-configuration.mjs";
 
 const TARGET = Object.freeze({
   id: "browser/wasm32/page",
@@ -51,5 +52,29 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
     implemented_carriers: ["conduit-carrier/browser-release-download@1", "conduit-carrier/browser-local-sandbox@1", "conduit-carrier/browser-local-spawn@1"],
     unavailable_carriers: ["already-running"],
   }),
-  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile: PROFILE }),
+  createAdapter: ({ host }) => {
+    const existing = createExistingComputerAdapter({ host, profile: PROFILE });
+    let outfitter;
+    return Object.freeze({
+      ...existing,
+      createOptions({ mode, onChange }) {
+        if (!outfitter) outfitter = createBrowserConfigurationOutfitter({ host, onChange });
+        const note = existing.createOptions({ mode });
+        const root = document.createElement("div");
+        root.append(note, outfitter.render());
+        return root;
+      },
+      configuration: () => Object.freeze({ required: true, checked: outfitter?.checked() ?? null }),
+      async bind(args) {
+        const checked = outfitter?.checked();
+        if (!checked) throw new Error("review the browser Host configuration before Body binding");
+        return existing.bind({
+          ...args,
+          prepareSpore: ({ imageDigest, nowMillis, entropy }) => prepareCheckedBrowserSpore({
+            host, checked, selection: outfitter.selection(), imageDigest, nowMillis, entropy,
+          }),
+        });
+      },
+    });
+  },
 });

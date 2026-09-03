@@ -66,7 +66,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
   }
 
-  async function bind({ mode, body, obtainment, nowMillis, signal }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal, prepareSpore = null }) {
     requireMode(mode, "bind", profile);
     requireCurrent(signal, mode, "bind", profile);
     const release = obtainment?.private?.release;
@@ -74,16 +74,21 @@ export function createExistingComputerAdapter({ host, profile }) {
       refuse(profile, mode, "bind", "MissingArtifact", "exact generic Host release truth is missing before Body binding");
     }
     const entropy = crypto.getRandomValues(new Uint8Array(32));
-    const targetBytes = encoder.encode(profile.target_id);
     const digestBytes = encoder.encode(release.manifest.bundle_sha256);
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy);
-      input.set(targetBytes, entropy.length);
-      input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
-      if (code < 0) throw outputError(host.runtime, "existing-computer spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      let prepared;
+      if (prepareSpore) {
+        prepared = prepareSpore({ imageDigest: release.manifest.bundle_sha256, nowMillis, entropy });
+      } else {
+        const targetBytes = encoder.encode(profile.target_id);
+        const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+        input.set(entropy);
+        input.set(targetBytes, entropy.length);
+        input.set(digestBytes, entropy.length + targetBytes.length);
+        const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+        if (code < 0) throw outputError(host.runtime, "existing-computer spore preparation", code);
+        prepared = readOutput(host.runtime);
+      }
       if (prepared.target_id !== profile.target_id
         || prepared.image_content_digest !== release.manifest.bundle_sha256
         || prepared.output !== profile.output

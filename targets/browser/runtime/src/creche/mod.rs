@@ -1,6 +1,7 @@
 //! Explicit, bounded Body birth and first-Host admission for the Crèche.
 
 mod abi;
+mod browser_configuration;
 mod graduation;
 mod protocol;
 mod session;

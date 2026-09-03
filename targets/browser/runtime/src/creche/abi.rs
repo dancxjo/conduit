@@ -11,15 +11,15 @@ struct CrecheRefusal {
 
 // A join carries one finite HostAdvertisement (bounded at 24 KiB by Body
 // admission) plus exact invitation and signature fields.
-const INPUT_BYTES: usize = 32 * 1_024;
+pub(super) const INPUT_BYTES: usize = 32 * 1_024;
 const OUTPUT_BYTES: usize = 32 * 1_024;
 const STATUS_READY: i32 = 0;
-const ERROR_INPUT: i32 = -451;
+pub(super) const ERROR_INPUT: i32 = -451;
 const ERROR_BIRTH: i32 = -452;
-const ERROR_OUTPUT: i32 = -453;
+pub(super) const ERROR_OUTPUT: i32 = -453;
 const ERROR_INTERACTION: i32 = -454;
 const STATUS_ABSENT: i32 = 1;
-const ERROR_SPORE: i32 = -455;
+pub(super) const ERROR_SPORE: i32 = -455;
 const ERROR_ADMISSION: i32 = -456;
 const ERROR_GRADUATION: i32 = -457;
 const ERROR_RESTORE: i32 = -458;
@@ -434,7 +434,7 @@ pub extern "C" fn conduit_creche_admit_physical_spore(length: usize) -> i32 {
     })
 }
 
-fn refuse(message: String, code: i32) -> i32 {
+pub(super) fn refuse(message: String, code: i32) -> i32 {
     if write_output(&CrecheRefusal {
         schema: "conduit.creche/refusal@1",
         disposition: "refused-before-lifecycle-change",
@@ -448,7 +448,7 @@ fn refuse(message: String, code: i32) -> i32 {
     }
 }
 
-fn write_output(value: &impl serde::Serialize) -> Result<(), ()> {
+pub(super) fn write_output(value: &impl serde::Serialize) -> Result<(), ()> {
     let encoded = serde_json::to_vec(value).map_err(|_| ())?;
     if encoded.len() > OUTPUT_BYTES {
         return Err(());
@@ -458,6 +458,18 @@ fn write_output(value: &impl serde::Serialize) -> Result<(), ()> {
     Ok(())
 }
 
-fn clear_output() {
+pub(super) fn clear_output() {
     OUTPUT_LEN.with(|length| *length.borrow_mut() = 0);
+}
+
+pub(super) fn take_input(length: usize) -> Result<Vec<u8>, i32> {
+    if length == 0 || length > INPUT_BYTES {
+        return Err(ERROR_INPUT);
+    }
+    Ok(INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let bytes = input[..length].to_vec();
+        input[..length].fill(0);
+        bytes
+    }))
 }

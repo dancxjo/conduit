@@ -91,6 +91,7 @@ on:
       - architecture/form/src/back_catalog.rs
       - architecture/form/src/checked_syntax.rs
       - proof/browser/executable-book.spec.mjs
+      - proof/browser/creche-browser-configuration.spec.mjs
       - proof/browser/browser-application-package.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
