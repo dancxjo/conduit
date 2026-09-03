@@ -2,7 +2,7 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
-import { createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
+import { createBookEvidenceTables, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
@@ -25,12 +25,13 @@ let patchbaySequence = 0;
 let readingState;
 let admittedRuntimeBytes;
 let navigation;
-let hostPresentation, hostStatus;
+let hostPresentation, hostPresentationFor, hostStatus;
 let routing;
 
 export async function startApplication(application) {
 try {
   hostPresentation = application.presentation;
+  hostPresentationFor = application.presentationFor;
   hostStatus = createBookStatus(hostPresentation, "book-host-status", "host-status", "Starting browser Host…");
   readingState = await openBookReadingState(application.storage);
   navigation = createBookNavigation(hostPresentation, (offset) => {
@@ -294,6 +295,8 @@ function createRunner(source, recursive = false, presentation = {}) {
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
+  const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
+  const runSlot = `book-run-evidence-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner";
   runner.dataset.sourceKey = sourceKey;
@@ -313,11 +316,12 @@ function createRunner(source, recursive = false, presentation = {}) {
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence"><summary>Inspect exact evidence</summary>
-        <h3>Checked Form</h3><dl class="exact-projection"></dl>
-        <h3>Latest run</h3><dl class="run-identities"></dl><div class="expansion"></div>
+        <h3>Checked Form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
+        <h3>Latest run</h3><div class="run-identities" data-application-slot="${runSlot}"></div><div class="expansion"></div>
       </details>
     </div>`;
   runner.dataset.faceBack = String(presentation.faceBack === true);
+  const runnerPresentation = hostPresentationFor(runner);
   const textarea = runner.querySelector("textarea");
   textarea.value = readingState.drafts.get(sourceKey) ?? source;
   attachBookSyntaxEditor(textarea, host.runtime);
@@ -327,12 +331,13 @@ function createRunner(source, recursive = false, presentation = {}) {
     refreshCompactPatchbay(runner, textarea.value, recursive);
   });
   runner.actionControls = createBookRunnerActions(
-    hostPresentation, actionsSlot, presentation.runLabel ?? "Run",
+    runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
   );
   runner.playStatus = createBookRunnerStatus(
-    hostPresentation, statusSlot, "Edit the message or timing, then run it.",
+    runnerPresentation, statusSlot, "Edit the message or timing, then run it.",
   );
+  runner.evidence = createBookEvidenceTables(runnerPresentation, exactSlot, runSlot);
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
@@ -344,6 +349,8 @@ function createMultiHostRunner(source, showPlan) {
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
+  const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
+  const runSlot = `book-run-evidence-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner multi-host-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -367,12 +374,13 @@ function createMultiHostRunner(source, showPlan) {
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
-        <h3>Checked Form</h3><dl class="exact-projection"></dl>
-        <h3>Latest run</h3><dl class="run-identities"></dl><div class="expansion"></div>
+        <h3>Checked Form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
+        <h3>Latest run</h3><div class="run-identities" data-application-slot="${runSlot}"></div><div class="expansion"></div>
         <h3>Exact Plan for this Play</h3><div class="plan-view"></div><div class="raw-plan"><h4>Raw Plan evidence</h4><pre><code></code></pre></div>
       </details>
     </div>`;
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
+  const runnerPresentation = hostPresentationFor(runner);
   const textarea = runner.querySelector("textarea");
   textarea.value = readingState.drafts.get(sourceKey) ?? source;
   attachBookSyntaxEditor(textarea, host.runtime);
@@ -382,12 +390,13 @@ function createMultiHostRunner(source, showPlan) {
     refreshCompactPatchbay(runner, textarea.value, false);
   });
   runner.actionControls = createBookRunnerActions(
-    hostPresentation, actionsSlot, "Run across two Hosts",
+    runnerPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),
   );
   runner.playStatus = createBookRunnerStatus(
-    hostPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
+    runnerPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
   );
+  runner.evidence = createBookEvidenceTables(runnerPresentation, exactSlot, runSlot);
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, false);
   return runner;
@@ -499,7 +508,7 @@ function renderCompactPatchbayProjection(figure, projection) {
     item.textContent = `Cord from ${cord.source_gear_id} output ${cord.source_port_id} to ${cord.sink_gear_id} input ${cord.sink_port_id}; ${cord.info_kind}, ${cord.temporal}.`;
     ordered.append(item);
   }
-  appendExactProjection(runner?.querySelector(".exact-projection"), projection);
+  runner?.evidence.projection(projection);
   const sourceKey = runner?.dataset.sourceKey;
   if (runner?.dataset.faceBack === "true" && sourceKey && readingState.expandedBacks.has(sourceKey)
     && figure.dataset.backExpanded !== "true" && figure.dataset.backRestoreApplied !== "true") {
@@ -614,25 +623,6 @@ function patchbaySnapshot(projection, options = {}) {
     },
     interaction: { revision: projection.sequence, selected_subject: null },
   };
-}
-
-function appendExactProjection(list, projection) {
-  if (!list) return;
-  list.replaceChildren();
-  for (const [name, value] of [
-    ["Source", projection.source_document_id],
-    ["Checked Form", projection.checked_form_id],
-    ["Visible expansion", projection.visible_expanded_form_id || "not available — source is invalid"],
-    ["Realization expansion", projection.realization_expanded_form_id || "not available — source is invalid"],
-    ["Realization", projection.realization],
-    ["Opened Backs", projection.realization_backs.length],
-  ]) {
-    const term = document.createElement("dt");
-    term.textContent = name;
-    const description = document.createElement("dd");
-    description.textContent = String(value);
-    list.append(term, description);
-  }
 }
 
 class BrowserMemoryLine {
@@ -1081,33 +1071,7 @@ function renderMorse(segments) {
 }
 
 function renderIdentities(runner, effect) {
-  const labels = {
-    source_document_id: "Source document", checked_form_id: "Checked Form",
-    expanded_form_id: "Expanded Form", plan_id: "Plan", fragment_id: "Plan fragment",
-    active_play_id: "Active Play", presentation_id: "Presentation",
-    placement_id: "Placement", host_id: "Host", boot_id: "Boot",
-  };
-  const list = runner.querySelector(".run-identities");
-  list.replaceChildren();
-  for (const [key, label] of Object.entries(labels)) {
-    const term = document.createElement("dt");
-    const value = document.createElement("dd");
-    term.textContent = label;
-    value.textContent = effect[key];
-    list.append(term, value);
-  }
-  if (effect.source_interaction) {
-    for (const [label, value] of [
-      ["Source interaction proposal", effect.source_interaction.proposal_identity],
-      ["Source interaction result", effect.source_interaction.result_identity],
-    ]) {
-      const term = document.createElement("dt");
-      const identity = document.createElement("dd");
-      term.textContent = label;
-      identity.textContent = value;
-      list.append(term, identity);
-    }
-  }
+  runner.evidence.run(effect);
   const expansion = runner.querySelector(".exact-evidence .expansion");
   expansion.replaceChildren();
   const mode = document.createElement("p");
@@ -1138,14 +1102,7 @@ function renderIdentities(runner, effect) {
 }
 
 function appendRunEvidence(runner, entries) {
-  const list = runner.querySelector(".run-identities");
-  for (const [label, identity] of entries) {
-    const term = document.createElement("dt");
-    const value = document.createElement("dd");
-    term.textContent = label;
-    value.textContent = identity;
-    list.append(term, value);
-  }
+  runner.evidence.appendRun(entries);
 }
 
 function delay(milliseconds, expectedGeneration) {

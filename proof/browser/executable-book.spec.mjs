@@ -236,6 +236,7 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
       await expect(patchbay.locator(".compact-patchbay-text li").first()).toContainText("Gear");
       await expect(runners.nth(runnerIndex).locator(".exact-evidence")).not.toHaveAttribute("open", "");
       await expect(runners.nth(runnerIndex).locator(".exact-projection")).toContainText("Checked Form");
+      await expect(runners.nth(runnerIndex).locator('.exact-projection [data-application-component="definition-table"]')).toBeAttached();
       await expect(patchbay).not.toContainText("Host ID");
       await expect(patchbay).not.toContainText("Implementation");
     }
@@ -1607,6 +1608,7 @@ test("state over time presents startup and current count through four admitted b
   await expect(runner.locator(".run-identities")).toContainText("Timer completions4");
   await expect(runner.locator(".run-identities")).toContainText("Manifestation completions5");
   await expect(runner.locator(".run-identities dd")).toHaveCount(15);
+  await expect(runner.locator('.run-identities [data-application-component="definition-table"]')).toBeAttached();
 });
 
 test("stopping state over time cancels the pending timer without a late completion", async ({ page }) => {
