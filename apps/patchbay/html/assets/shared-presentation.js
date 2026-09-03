@@ -103,6 +103,15 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
         chunk.forEach((entry, entryIndex) => {
           const parent = nodes.length;nodes.push({ parent: 0, component: "artifact", key: `artifact-${entryIndex}`, text: entry.title, action: null });
           entry.details.forEach((detail, detailIndex) => nodes.push({ parent, component: "paragraph", key: `detail-${entryIndex}-${detailIndex}`, text: detail, action: null }));
+          if (entry.definitions?.length) {
+            const disclosure = nodes.length;nodes.push({ parent, component: "disclosure", key: `disclosure-${entryIndex}`, text: entry.disclosureLabel ?? "Exact evidence", action: null });
+            const table = nodes.length;nodes.push({ parent: disclosure, component: "definition-table", key: `definitions-${entryIndex}`, text: "Exact facts", action: null });
+            entry.definitions.forEach(([name, value], definitionIndex) => nodes.push({ parent: table, component: "definition", key: `definition-${entryIndex}-${definitionIndex}`, text: name, value: String(value ?? "not present"), valueCapacity: 65_536, action: null }));
+          }
+          if (entry.exactValue !== undefined) {
+            const disclosure = nodes.length;nodes.push({ parent, component: "disclosure", key: `exact-${entryIndex}`, text: entry.disclosureLabel ?? "Exact evidence", action: null });
+            nodes.push({ parent: disclosure, component: "code-block", key: `code-${entryIndex}`, text: entry.language ?? "text", value: entry.exactValue, valueCapacity: 65_536, action: null });
+          }
           entry.actions.forEach((action, entryActionIndex) => { nodes.push({ parent, component: "button", key: `action-${entryIndex}-${entryActionIndex}`, text: action.label, action: actionIndex });actionIndex += 1; });
         });
         present(slot, { actions: actions.map((_, index) => ({ id: `artifact-action-${index}`, event: "activate" })), nodes }, { onEvent(event) { actions[Number(event.action.slice("artifact-action-".length))]?.run(); } });
