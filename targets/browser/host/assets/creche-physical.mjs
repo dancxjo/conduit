@@ -149,6 +149,12 @@ function selectMode(runner, host, state, mode) {
   });
   if (targetOptions) options.append(targetOptions);
   renderEvidence(runner, state);
+  const configuration = state.adapter.configuration?.();
+  if (configuration?.required && !configuration.checked) {
+    state.phase = "configuring";
+    status(runner, "Choose and review the finite Host machinery. No Host, Boot, permission, resource, offer, Plan, or Play exists yet.");
+    return;
+  }
   void operate(runner, state, "obtain", (signal) => state.adapter.obtain({
     mode: state.mode,
     body: currentBody(host.runtime),

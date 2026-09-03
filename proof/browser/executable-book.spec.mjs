@@ -947,6 +947,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   const runner = page.locator(".physical-host-runner");
   await runner.locator(".physical-target").selectOption("browser/wasm32/page");
   await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await runner.getByRole("button", { name: "Review Host" }).click();
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
