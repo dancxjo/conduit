@@ -211,6 +211,7 @@ export function createExistingComputerAdapter({ host, profile }) {
           image_id: bootTruth.image_id,
           profile_id: bootTruth.profile_id,
           boot_module_sha256: bootTruth.image.boot_module.sha256,
+          boot_truth: bootTruth,
           implementation_registry: bootTruth.implementation_registry,
           offers: bootTruth.offers,
           inspection: bootTruth.inspection,

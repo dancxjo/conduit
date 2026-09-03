@@ -476,6 +476,15 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Retain the browser two-profile fabrication report
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-two-profile-capstone-proof
+          path: |
+            target/proof/browser-two-profile-capstone.json
+            target/proof/browser-two-profile-capstone.md
+          if-no-files-found: error
+          retention-days: 14
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
