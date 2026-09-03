@@ -4,9 +4,9 @@ use alloc::{string::String, vec::Vec};
 
 mod structure;
 
-pub const APPLICATION_VIEW_VERSION: u8 = 7;
-/// Version 6 omitted structural form, stepper, and progress components.
-pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 6;
+pub const APPLICATION_VIEW_VERSION: u8 = 8;
+/// Version 7 omitted native grouped-choice components.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 7;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 40;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -65,6 +65,10 @@ pub enum ApplicationComponent {
     FieldError = 37,
     Stepper = 38,
     Progress = 39,
+    ChoiceGroup = 40,
+    ChoiceLegend = 41,
+    ChoiceLabel = 42,
+    Checkbox = 43,
 }
 
 /// Renderer-neutral state for an interactive presentation node.
@@ -162,6 +166,7 @@ impl ApplicationView {
                     | ApplicationComponent::CodeBlock
                     | ApplicationComponent::Stepper
                     | ApplicationComponent::Progress
+                    | ApplicationComponent::Checkbox
             );
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
@@ -234,6 +239,7 @@ impl ApplicationView {
                             | ApplicationComponent::TextInput
                             | ApplicationComponent::Select
                             | ApplicationComponent::TextArea
+                            | ApplicationComponent::Checkbox
                     ))
             {
                 return Err(ApplicationViewRefusal::InvalidNodeState);
@@ -468,6 +474,10 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         37 => Ok(ApplicationComponent::FieldError),
         38 => Ok(ApplicationComponent::Stepper),
         39 => Ok(ApplicationComponent::Progress),
+        40 => Ok(ApplicationComponent::ChoiceGroup),
+        41 => Ok(ApplicationComponent::ChoiceLegend),
+        42 => Ok(ApplicationComponent::ChoiceLabel),
+        43 => Ok(ApplicationComponent::Checkbox),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

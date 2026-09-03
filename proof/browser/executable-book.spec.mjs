@@ -708,9 +708,9 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page).toHaveTitle("Conduit Crèche");
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "stack");
-  await expect(birth.getByRole("button", { name: "Add Morse Network" })).toBeVisible();
-  await expect(birth.getByRole("button", { name: "Add Memory Lantern" })).toBeVisible();
+  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "choice-group");
+  await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
+  await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).not.toBeChecked();
   await birth.getByLabel("Friendly Body name").fill("standalone firefly");
   await reviewAndBirth(page, birth);
   const bodyId = await birth.getAttribute("data-body-id");

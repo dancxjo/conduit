@@ -118,6 +118,70 @@ fn action_availability_state_round_trips_and_refuses_inconsistent_actions() {
 }
 
 #[test]
+fn grouped_independent_choices_are_native_checkbox_components() {
+    let choices = ApplicationView {
+        revision: 8,
+        actions: vec![ApplicationAction {
+            id: "form.morse.change".into(),
+            event: ApplicationEventKind::Change,
+        }],
+        nodes: vec![
+            ApplicationViewNode {
+                parent: None,
+                component: ApplicationComponent::ChoiceGroup,
+                key: "forms".into(),
+                text: "active_forms".into(),
+                value: String::new(),
+                value_capacity: 0,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::ChoiceLegend,
+                key: "forms-legend".into(),
+                text: "Initial active Forms".into(),
+                value: String::new(),
+                value_capacity: 0,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::ChoiceLabel,
+                key: "morse-label".into(),
+                text: "Morse Network".into(),
+                value: String::new(),
+                value_capacity: 0,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(2),
+                component: ApplicationComponent::Checkbox,
+                key: "morse".into(),
+                text: "morse-network".into(),
+                value: "true".into(),
+                value_capacity: 5,
+                action: Some(0),
+                state: ApplicationNodeState::Ready,
+            },
+        ],
+    };
+
+    assert_eq!(
+        ApplicationView::decode(&choices.encode().unwrap()),
+        Ok(choices.clone())
+    );
+    let mut malformed = choices;
+    malformed.nodes[3].value = "selected".into();
+    assert_eq!(
+        malformed.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+}
+
+#[test]
 fn malformed_oversized_and_noncanonical_views_refuse() {
     let encoded = view().encode().unwrap();
     assert_eq!(

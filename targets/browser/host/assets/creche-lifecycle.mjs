@@ -70,7 +70,7 @@ function presentBirthControls(runner, state, controls) {
   const visible = searchForms(inventory, state.search);
   const selectionActions = interactive ? [
     { id: "forms.search", event: "input" },
-    ...visible.map((form) => ({ id: `form.toggle.${form.name}`, event: "activate" })),
+    ...visible.map((form) => ({ id: `form.toggle.${form.name}`, event: "change" })),
   ] : [];
   const fieldActions = interactive ? [
     { id: "name.input", event: "input" },
@@ -126,20 +126,23 @@ function birthSelectionNodes(state, inventory, visible, actions) {
   const interactive = !state.terminal && !state.pending;
   const action = (id) => interactive ? actions.findIndex((candidate) => candidate.id === id) : null;
   const nodes = [
-    { parent: null, component: "stack", action: null, key: "initial-forms-field", text: "" },
-    { parent: 0, component: "paragraph", action: null, key: "initial-forms-label", text: "Initial active Forms" },
+    { parent: null, component: "stack", action: null, key: "initial-forms-selection", text: "" },
     { parent: 0, component: "form-field", action: null, key: "form-search-field", text: "" },
-    { parent: 2, component: "field-label", action: null, key: "form-search-label", text: "Search Forms" },
-    { parent: 2, component: "text-input", action: action("forms.search"), key: "form-search", text: "Search Forms", value: state.search, valueCapacity: 128 },
-    { parent: 2, component: "field-help", action: null, key: "form-search-help", text: "Filter the finite reviewed inventory by name or required kind." },
+    { parent: 1, component: "field-label", action: null, key: "form-search-label", text: "Search Forms" },
+    { parent: 1, component: "text-input", action: action("forms.search"), key: "form-search", text: "Search Forms", value: state.search, valueCapacity: 128 },
+    { parent: 1, component: "field-help", action: null, key: "form-search-help", text: "Filter the finite reviewed inventory by name or required kind." },
     { parent: 0, component: "paragraph", action: null, key: "selected-heading", text: `Selected (${state.initialForms.length})` },
+    { parent: 0, component: "choice-group", action: null, key: "initial-forms-field", text: "active_forms" },
+    { parent: 6, component: "choice-legend", action: null, key: "initial-forms-label", text: "Initial active Forms" },
   ];
   for (const form of visible) {
     const selected = state.initialForms.some((candidate) => candidate.checked_form_id === form.checked_form_id);
-    nodes.push({ parent: 0, component: "button", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: `${selected ? "Remove" : "Add"} ${form.title}` });
-    nodes.push({ parent: 0, component: "paragraph", action: null, key: `form-${form.name}-requirements`, text: form.required_kinds.join(" · ") });
+    const label = nodes.length;
+    nodes.push({ parent: 6, component: "choice-label", action: null, key: `form-${form.name}-label`, text: form.title });
+    nodes.push({ parent: label, component: "checkbox", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: form.name, value: String(selected), valueCapacity: 5 });
+    nodes.push({ parent: 6, component: "paragraph", action: null, key: `form-${form.name}-requirements`, text: form.required_kinds.join(" · ") });
   }
-  nodes.push({ parent: 0, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
+  nodes.push({ parent: 6, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
   return nodes;
 }
 

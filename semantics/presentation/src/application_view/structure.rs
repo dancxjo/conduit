@@ -56,6 +56,46 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
             }
+            ApplicationComponent::ChoiceGroup => {
+                if children
+                    .clone()
+                    .filter(|child| child.component == ApplicationComponent::ChoiceLegend)
+                    .count()
+                    != 1
+                    || !children
+                        .clone()
+                        .any(|child| child.component == ApplicationComponent::ChoiceLabel)
+                {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
+            ApplicationComponent::ChoiceLegend => {
+                if node.parent.is_none_or(|parent| {
+                    nodes[usize::from(parent)].component != ApplicationComponent::ChoiceGroup
+                }) {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
+            ApplicationComponent::ChoiceLabel => {
+                if node.parent.is_none_or(|parent| {
+                    nodes[usize::from(parent)].component != ApplicationComponent::ChoiceGroup
+                }) || children
+                    .filter(|child| child.component == ApplicationComponent::Checkbox)
+                    .count()
+                    != 1
+                {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
+            ApplicationComponent::Checkbox => {
+                if !matches!(node.value.as_str(), "true" | "false")
+                    || node.parent.is_none_or(|parent| {
+                        nodes[usize::from(parent)].component != ApplicationComponent::ChoiceLabel
+                    })
+                {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
             _ => {}
         }
     }

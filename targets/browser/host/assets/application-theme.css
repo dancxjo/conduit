@@ -58,6 +58,11 @@
 :where(.syntax-operator) { color: #ff9f8f; }
 :where(.syntax-delimiter) { color: #b9cbc1; }
 :where([data-application-component="stack"], [data-application-component="form-field"]) { display: grid; gap: var(--conduit-space-unit); }
+:where([data-application-component="choice-group"]) { display:grid; gap:var(--conduit-space-unit); min-inline-size:0; margin:0; padding:0; border:0; }
+:where([data-application-component="choice-legend"]) { margin-block-end:var(--conduit-space-unit); font-weight:700; }
+:where([data-application-component="choice-label"]) { display:flex; align-items:center; gap:var(--conduit-space-unit); width:max-content; cursor:pointer; }
+:where(input[type="checkbox"])[data-application-component="checkbox"] { appearance:auto; inline-size:1.1rem; block-size:1.1rem; margin:0; padding:0; accent-color:var(--conduit-emphasis); cursor:pointer; }
+:where([data-application-component="choice-label"]):has(input:focus-visible) { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:2px; }
 :where([data-application-component="grid"]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--conduit-responsive-grid-min)), 1fr)); gap: var(--conduit-space-panel); }
 :where([data-application-component="action-group"], [data-application-component="navigation"], [data-application-component="stepper"]) { display: flex; flex-wrap: wrap; gap: var(--conduit-space-unit); }
 :where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {
@@ -66,7 +71,7 @@
   border-radius: var(--conduit-radius-panel);
   background: var(--conduit-surface);
 }
-:where(button, input, select, textarea, summary)[data-application-component] {
+:where(button, input:not([type="checkbox"]), select, textarea, summary)[data-application-component] {
   padding: var(--conduit-space-control-block) var(--conduit-space-control-inline);
   color: inherit;
   border: 1px solid var(--conduit-structure-secondary);
@@ -74,7 +79,7 @@
   background: var(--conduit-surface);
   font: inherit;
 }
-:where(button, input, select, textarea, summary)[data-application-component]:focus-visible {
+:where(button, input:not([type="checkbox"]), select, textarea, summary)[data-application-component]:focus-visible {
   border-color: var(--conduit-focus);
   outline: var(--conduit-focus-width) solid var(--conduit-focus);
   outline-offset: 2px;

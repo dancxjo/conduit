@@ -1,7 +1,7 @@
 import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
 
-const VERSION = 7;
-const RETIRED_VERSION = 6;
+const VERSION = 8;
+const RETIRED_VERSION = 7;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 40;
 const MAX_DEPTH = 8;
@@ -65,6 +65,8 @@ const COMPONENTS = Object.freeze({
   34: ["div", "form-field"], 35: ["label", "field-label"],
   36: ["p", "field-help"], 37: ["p", "field-error"],
   38: ["nav", "stepper"], 39: ["div", "progress"],
+  40: ["fieldset", "choice-group"], 41: ["legend", "choice-legend"],
+  42: ["label", "choice-label"], 43: ["input", "checkbox"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -128,13 +130,13 @@ export function decodeApplicationView(input) {
     if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
     const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((valueLength > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity)) || (valueLength === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
-    const stateful = component === 8 || component === 15 || component === 16 || component === 17;
+    const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43;
     if (state !== "ready" && (!stateful || action !== null)) refuse("invalid-node-state");
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
@@ -159,6 +161,10 @@ export function decodeApplicationView(input) {
       && (node.parent === null || nodes[node.parent].component !== 34)) refuse("invalid-control-value");
     if (node.component === 22 && (node.parent === null || nodes[node.parent].component !== 16)) refuse("invalid-control-value");
     if (node.component === 38 && children.filter((child) => child.component === 8).length !== Number(node.value.split("/")[1])) refuse("invalid-control-value");
+    if (node.component === 40 && (children.filter((child) => child.component === 41).length !== 1 || !children.some((child) => child.component === 42))) refuse("invalid-control-value");
+    if (node.component === 41 && (node.parent === null || nodes[node.parent].component !== 40)) refuse("invalid-control-value");
+    if (node.component === 42 && (node.parent === null || nodes[node.parent].component !== 40 || children.filter((child) => child.component === 43).length !== 1)) refuse("invalid-control-value");
+    if (node.component === 43 && (!['true', 'false'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 42)) refuse("invalid-control-value");
   }
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
@@ -196,14 +202,14 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((value.length > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || value.length > valueCapacity)) || (value.length === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(new TextDecoder().decode(value))) refuse("invalid-control-value");
     if (component === 38 && new TextDecoder().decode(value).startsWith("0/")) refuse("invalid-control-value");
-    const stateful = component === 8 || component === 15 || component === 16 || component === 17;
+    const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43;
     if (state !== NODE_STATE_IDENTITIES.ready && (!stateful || action !== 255)) refuse("invalid-node-state");
     const nodeHeader = new Uint8Array(15);
     nodeHeader.set([parent, component, state, action, key.length, content.length & 0xff, content.length >>> 8]);
@@ -222,6 +228,7 @@ export function encodeApplicationView(view) {
 }
 
 function eventValue(event) {
+  if (event.currentTarget instanceof HTMLInputElement && event.currentTarget.type === "checkbox") return event.currentTarget.checked ? "true" : "false";
   if (event.currentTarget instanceof HTMLInputElement || event.currentTarget instanceof HTMLTextAreaElement || event.currentTarget instanceof HTMLSelectElement) return event.currentTarget.value;
   return "";
 }
@@ -393,6 +400,13 @@ export function manifestApplicationView(input, root, options = {}) {
     } else if (node.component === 12) {
       element.setAttribute("aria-label", node.text);
       element.dataset.applicationCurrent = node.value;
+    } else if (node.component === 40) {
+      element.dataset.applicationChoiceName = node.text;
+    } else if (node.component === 43) {
+      element.type = "checkbox";
+      element.name = view.nodes[view.nodes[node.parent].parent].text;
+      element.value = node.text;
+      element.checked = node.value === "true";
     } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
       const title = document.createElement("h3");
       title.textContent = node.text;
@@ -400,7 +414,7 @@ export function manifestApplicationView(input, root, options = {}) {
     } else {
       element.textContent = node.text;
     }
-    if (node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17) {
+    if (node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17 || node.component === 43) {
       element.dataset.applicationAvailability = node.state;
     }
     if (node.component === 15 || node.component === 16 || node.component === 17) {
@@ -430,11 +444,12 @@ export function manifestApplicationView(input, root, options = {}) {
       });
     }
     if (node.state === "busy") element.setAttribute("aria-busy", "true");
-    if ((node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17)
+    if ((node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17 || node.component === 43)
       && (node.action === null || node.state !== "ready")) element.disabled = true;
     elements.push(element);
     nodesByKey.set(node.key, node);
     if (node.parent === null) fragment.append(element);
+    else if (node.component === 43) elements[node.parent].prepend(element);
     else elements[node.parent].append(element);
   }
   const instance = rootIdentity(root);
