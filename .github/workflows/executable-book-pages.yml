@@ -405,7 +405,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-        with:
           fetch-depth: 0
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline

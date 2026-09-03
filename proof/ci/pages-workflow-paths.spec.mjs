@@ -38,6 +38,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   )].length;
   assert.ok(checkoutCount > 0);
   assert.equal(exactHeadCount, checkoutCount);
+  assert.doesNotMatch(productWorkflow, /\n        with:\n(?:          [^\n]+\n)+        with:/);
   assert.match(productWorkflow, /source_commit=\$\(git .* rev-parse HEAD\)/);
   assert.doesNotMatch(productWorkflow, /source_commit="\$GITHUB_SHA"/);
 
