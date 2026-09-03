@@ -1,11 +1,74 @@
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 let entrance;
 
 test.beforeEach(async () => { entrance = await startCreche(); });
 test.afterEach(() => entrance?.child.kill());
+
+test("one reviewed distribution fabricates materially different, capability-enforcing browser Hosts", async ({ browser }) => {
+  const viewerPage = await browser.newPage();
+  const richPage = await browser.newPage();
+  const capabilityPage = await browser.newPage();
+  const viewerRelease = await installBrowserRelease(viewerPage);
+  const richRelease = await installBrowserRelease(richPage);
+  expect(richRelease.bundle_sha256).toBe(viewerRelease.bundle_sha256);
+
+  const viewer = await fabricateBrowserHost(viewerPage, { preset: "Minimal" });
+  const rich = await fabricateBrowserHost(richPage, {
+    preset: "Interactive",
+    add: ["browser/indexeddb@1", "browser/websocket@1", "browser/webserial@1"],
+  });
+
+  expect(viewer.obtainment.distribution_sha256).toBe(rich.obtainment.distribution_sha256);
+  expect(viewer.obtainment.compiler_started).toBe(false);
+  expect(rich.obtainment.compiler_started).toBe(false);
+  expect(viewer.binding.browser_profile_id).not.toBe(rich.binding.browser_profile_id);
+  expect(viewer.obtainment.build_id).not.toBe(rich.obtainment.build_id);
+  expect(viewer.obtainment.image_id).not.toBe(rich.obtainment.image_id);
+  expect(viewer.realization.host_id).not.toBe(rich.realization.host_id);
+  expect(viewer.realization.boot_id).not.toBe(rich.realization.boot_id);
+  expect(viewer.realization.boot_observed).toBe(false);
+  expect(viewer.realization.join_created).toBe(false);
+
+  await capabilityPage.goto(`http://127.0.0.1:${process.env.CONDUIT_BROWSER_HOST_PORT ?? "4173"}/proof/browser/signal-dom-host.test.html`);
+  const viewerUse = await exerciseProfile(capabilityPage, viewer.realization, false);
+  const richUse = await exerciseProfile(capabilityPage, rich.realization, true);
+  expect(viewerUse.pointer).toBe("UnsupportedInput");
+  expect(viewerUse.storage).toBe("ImplementationNotSelected");
+  expect(richUse.storage).toEqual({ plan_id: "plan/rich/storage", value: { count: 1 } });
+  expect(richUse.pointer).toMatchObject({ plan_id: "plan/rich/pointer", schema: "input/pointer-event@1" });
+
+  const websocket = rich.realization.inspection.find(({ implementation_id }) => implementation_id === "browser/websocket@1");
+  expect(websocket).toMatchObject({ configured: true, offered: false, refusal: "EndpointUnavailable" });
+  const refreshed = await capabilityPage.evaluate(async ({ bootTruth }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    return boot.refreshBrowserBootTruth(bootTruth, {
+      "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true, endpoint_ready: true, authority_ready: true },
+    });
+  }, { bootTruth: rich.realization.boot_truth });
+  expect(refreshed.image_id).toBe(rich.realization.image_id);
+  expect(refreshed.profile_id).toBe(rich.realization.profile_id);
+  expect(refreshed.inspection.find(({ implementation_id }) => implementation_id === "browser/websocket@1")).toMatchObject({ offered: true, refusal: null });
+
+  const evidence = {
+    schema: "conduit.browser/two-profile-capstone@1",
+    distribution_sha256: viewerRelease.bundle_sha256,
+    viewer: summarizeProfile(viewer, viewerUse),
+    rich: summarizeProfile(rich, richUse),
+    prerequisite_refresh: {
+      implementation_id: "browser/websocket@1",
+      before: websocket.refusal,
+      after: refreshed.inspection.find(({ implementation_id }) => implementation_id === "browser/websocket@1").offer_id,
+      image_id_unchanged: refreshed.image_id === rich.realization.image_id,
+    },
+  };
+  await retainCapstoneReport(evidence);
+  await viewerPage.close();
+  await richPage.close();
+  await capabilityPage.close();
+});
 
 test("browser outfitting is catalog-driven, editable, and handed to checked fabrication", async ({ page }) => {
   const release = await installBrowserRelease(page);
@@ -137,4 +200,87 @@ async function installBrowserRelease(page) {
     body: JSON.stringify(manifest),
   }));
   return manifest;
+}
+
+async function fabricateBrowserHost(page, { preset, add = [] }) {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await page.getByRole("button", { name: "Birth Body" }).click();
+  await page.getByRole("button", { name: "3. Physical Host" }).click();
+  const runner = page.locator(".physical-host-runner");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
+  await runner.getByRole("button", { name: preset }).click();
+  for (const implementation of add) {
+    const button = runner.getByRole("button").filter({ hasText: implementation });
+    if ((await button.textContent()).includes("Add")) await button.click();
+  }
+  await runner.getByRole("button", { name: "Review Host" }).click();
+  await runner.getByRole("button", { name: "Bind Body invitation" }).click();
+  let evidence = JSON.parse(await runner.locator("details code").textContent());
+  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
+  evidence = JSON.parse(await runner.locator("details code").textContent());
+  return evidence;
+}
+
+async function exerciseProfile(page, realization, rich) {
+  return page.evaluate(async ({ realization, rich }) => {
+    const { openBrowserHumanInput } = await import(new URL("../../targets/browser/host/assets/browser-human-input.mjs", location.href).href);
+    const { openBrowserApplicationStorage } = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+    const root = document.createElement("button");
+    root.textContent = "capstone input surface";
+    root.style.cssText = "display:block;width:200px;height:100px";
+    document.body.append(root);
+    const input = openBrowserHumanInput({ target: root, boot: realization });
+    let pointer;
+    if (rich) {
+      pointer = await new Promise((resolve, reject) => {
+        const stop = input.observePointer((value, error) => { stop(); error ? reject(error) : resolve({ ...value, plan_id: "plan/rich/pointer" }); });
+        root.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 50, clientY: 25, buttons: 1 }));
+      });
+    } else {
+      try { input.observePointer(() => {}); pointer = "accepted"; } catch (error) { pointer = error.code; }
+    }
+    let storage;
+    try {
+      const adapter = await openBrowserApplicationStorage("conduit.form/profile-capstone", 1, `sha256:${"a".repeat(64)}`, {
+        implementationRegistry: realization.implementation_registry.map(({ id }) => id),
+      });
+      await adapter.writeJson("ordinary-plan", { count: 1 });
+      storage = { plan_id: "plan/rich/storage", value: await adapter.readJson("ordinary-plan") };
+      await adapter.clearApplication();
+      adapter.close();
+    } catch (error) { storage = error.code; }
+    input.close();
+    root.remove();
+    return { pointer, storage };
+  }, { realization, rich });
+}
+
+function summarizeProfile(evidence, use) {
+  return {
+    configuration_id: evidence.binding.browser_configuration_id,
+    configuration_source: evidence.binding.browser_configuration_source,
+    profile_id: evidence.binding.browser_profile_id,
+    build_id: evidence.obtainment.build_id,
+    image_id: evidence.obtainment.image_id,
+    spore_id: evidence.binding.spore_id,
+    host_id: evidence.realization.host_id,
+    boot_id: evidence.realization.boot_id,
+    runtime_sha256: evidence.realization.boot_truth.image.files.find(({ path }) => path === "runtime.wasm").sha256,
+    boot_module_sha256: evidence.realization.boot_module_sha256,
+    implementations: evidence.realization.implementation_registry,
+    inspection: evidence.realization.inspection,
+    active_use: use,
+  };
+}
+
+async function retainCapstoneReport(evidence) {
+  const root = new URL("../../target/proof/", import.meta.url);
+  await mkdir(root, { recursive: true });
+  const has = (profile, id) => profile.implementations.some((item) => item.id === id) ? "yes" : "no";
+  const serial = evidence.rich.inspection.find(({ implementation_id }) => implementation_id === "browser/webserial@1");
+  const markdown = `# Browser two-profile fabrication capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| presentation | ${has(evidence.viewer, "browser/dom-presentation@1")} | ${has(evidence.rich, "browser/dom-presentation@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active Plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active Plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
+  await writeFile(new URL("browser-two-profile-capstone.json", root), `${JSON.stringify(evidence, null, 2)}\n`);
+  await writeFile(new URL("browser-two-profile-capstone.md", root), markdown);
 }
