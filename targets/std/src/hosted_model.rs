@@ -80,7 +80,7 @@ pub fn invoke_hosted_model(
     if output.len() > maximum_output_bytes {
         return Err(HostedModelRefusal::AdapterFailed);
     }
-    Ok(HostedModelResult {
+    let result = HostedModelResult {
         output,
         evidence: ModelInvocationEvidence {
             artifact_identity: artifact.content_identity(),
@@ -95,5 +95,10 @@ pub fn invoke_hosted_model(
             admitted_work_units,
             terminal: ModelInvocationTerminal::Produced,
         },
-    })
+    };
+    result
+        .evidence
+        .validate()
+        .map_err(|_| HostedModelRefusal::AdapterFailed)?;
+    Ok(result)
 }

@@ -153,6 +153,7 @@ fn std_host_loads_and_invokes_one_non_llm_artifact_with_separate_evidence() {
         result.evidence.signature_identity,
         artifact.signature_identity
     );
+    result.evidence.validate().unwrap();
     assert_eq!(
         result.evidence.runtime_implementation_identity,
         "std/reference-scientific-model@1"

@@ -9,6 +9,7 @@ pub const MODEL_ARTIFACT_INFO_ID: &str = "model/artifact@1";
 pub const MODEL_CHECKPOINT_INFO_ID: &str = "model/checkpoint@1";
 pub const MODEL_CONTENT_INFO_ID: &str = "model/content@1";
 pub const MAXIMUM_RUNTIME_PROFILES: usize = 16;
+pub const MAXIMUM_MODEL_INPUT_IDENTITIES: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelArtifact {
@@ -73,6 +74,18 @@ pub enum ModelInvocationTerminal {
     Failed,
     Cancelled,
     RuntimeLost,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ModelEvidenceRefusal {
+    MissingArtifactIdentity,
+    MissingCheckpointIdentity,
+    MissingSignatureIdentity,
+    InvalidRuntimeIdentity,
+    InvalidPrecisionProfile,
+    MissingInputIdentity,
+    TooManyInputIdentities,
+    WorkNotAdmitted,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -215,6 +228,36 @@ impl ModelRuntimeRealization {
         }
         if self.loaded_artifact_identity != artifact.content_identity() {
             return Err(ModelCompatibilityRefusal::RuntimeLoadedDifferentArtifact);
+        }
+        Ok(())
+    }
+}
+
+impl ModelInvocationEvidence {
+    pub fn validate(&self) -> Result<(), ModelEvidenceRefusal> {
+        validate_nonzero(self.artifact_identity)
+            .map_err(|_| ModelEvidenceRefusal::MissingArtifactIdentity)?;
+        if self
+            .checkpoint_identity
+            .is_some_and(|identity| identity == [0; 32])
+        {
+            return Err(ModelEvidenceRefusal::MissingCheckpointIdentity);
+        }
+        validate_nonzero(self.signature_identity)
+            .map_err(|_| ModelEvidenceRefusal::MissingSignatureIdentity)?;
+        validate_identity(&self.runtime_implementation_identity)
+            .and_then(|()| validate_identity(&self.runtime_build_identity))
+            .map_err(|_| ModelEvidenceRefusal::InvalidRuntimeIdentity)?;
+        validate_identity(&self.precision_profile)
+            .map_err(|_| ModelEvidenceRefusal::InvalidPrecisionProfile)?;
+        if self.input_identities.is_empty() || self.input_identities.contains(&[0; 32]) {
+            return Err(ModelEvidenceRefusal::MissingInputIdentity);
+        }
+        if self.input_identities.len() > MAXIMUM_MODEL_INPUT_IDENTITIES {
+            return Err(ModelEvidenceRefusal::TooManyInputIdentities);
+        }
+        if self.admitted_work_units == 0 {
+            return Err(ModelEvidenceRefusal::WorkNotAdmitted);
         }
         Ok(())
     }
