@@ -1,3 +1,5 @@
+const decoder = new TextDecoder("utf-8", { fatal: true });
+
 export function createBookStatus(presentation, slot, key, initialText) {
   let revision = 0;
   const render = (component, text) => presentation.present(slot, {
@@ -18,6 +20,32 @@ export function createBookStatus(presentation, slot, key, initialText) {
 
 export function createBookRunnerStatus(presentation, slot, initialText) {
   return createBookStatus(presentation, slot, "play-status", initialText);
+}
+
+export function createBookRunnerField(presentation, slot, listingId, label, source, onInput) {
+  let revision = 0;
+  presentation.present(slot, {
+    revision: ++revision,
+    actions: [{ id: "book.source.input", event: "input" }],
+    nodes: [
+      { parent: null, component: "stack", key: "source-editor", text: "", action: null },
+      { parent: 0, component: "form-field", key: "source-field", text: "", action: null },
+      {
+        parent: 1, component: "textarea", key: listingId, text: label,
+        value: source, valueCapacity: 65_536, action: 0,
+      },
+      { parent: 1, component: "field-label", key: "source-label", text: label, action: null },
+      {
+        parent: 1, component: "field-help", key: "source-help",
+        text: "Editing checks this Form without starting a Play.", action: null,
+      },
+    ],
+  }, {
+    onEvent(event) {
+      presentation.nextEvent(slot);
+      if (event.action === "book.source.input") onInput(decoder.decode(event.value));
+    },
+  });
 }
 
 const RUN_IDENTITIES = Object.freeze([

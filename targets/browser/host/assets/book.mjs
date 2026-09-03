@@ -2,7 +2,7 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
-import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
+import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
@@ -294,6 +294,7 @@ function createRunner(source, recursive = false, presentation = {}) {
   const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
+  const fieldSlot = `book-runner-field-${runnerSlotSequence}`;
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
   const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
   const runSlot = `book-run-evidence-${runnerSlotSequence}`;
@@ -304,11 +305,8 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.innerHTML = `
     ${compactPatchbayFrame()}
     <div class="editor">
-      <div class="source-editor">
-        <label class="editor-label" for="${listingId}">Conduit · editable</label>
-        <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
-        <div data-application-slot="${actionsSlot}"></div>
-      </div>
+      <div data-application-slot="${fieldSlot}"></div>
+      <div data-application-slot="${actionsSlot}"></div>
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
@@ -322,14 +320,14 @@ function createRunner(source, recursive = false, presentation = {}) {
     </div>`;
   runner.dataset.faceBack = String(presentation.faceBack === true);
   const runnerPresentation = hostPresentationFor(runner);
-  const textarea = runner.querySelector("textarea");
-  textarea.value = readingState.drafts.get(sourceKey) ?? source;
-  attachBookSyntaxEditor(textarea, host.runtime);
-  textarea.addEventListener("input", () => {
-    readingState.drafts.set(sourceKey, textarea.value);
+  const initialSource = readingState.drafts.get(sourceKey) ?? source;
+  createBookRunnerField(runnerPresentation, fieldSlot, listingId, "Conduit · editable", initialSource, (value) => {
+    readingState.drafts.set(sourceKey, value);
     persistBookState();
-    refreshCompactPatchbay(runner, textarea.value, recursive);
+    refreshCompactPatchbay(runner, value, recursive);
   });
+  const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
+  attachBookSyntaxEditor(textarea, host.runtime);
   runner.actionControls = createBookRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
@@ -348,6 +346,7 @@ function createMultiHostRunner(source, showPlan) {
   const sourceKey = currentPage + ":" + runnerCount;
   const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
+  const fieldSlot = `book-runner-field-${runnerSlotSequence}`;
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
   const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
   const runSlot = `book-run-evidence-${runnerSlotSequence}`;
@@ -359,11 +358,8 @@ function createMultiHostRunner(source, showPlan) {
   runner.innerHTML = `
     ${compactPatchbayFrame()}
     <div class="editor">
-      <div class="source-editor">
-        <label class="editor-label" for="${listingId}">Conduit · editable · unchanged across Hosts</label>
-        <textarea id="${listingId}" spellcheck="false" aria-label="Editable Conduit listing"></textarea>
-        <div data-application-slot="${actionsSlot}"></div>
-      </div>
+      <div data-application-slot="${fieldSlot}"></div>
+      <div data-application-slot="${actionsSlot}"></div>
     </div>
     <div class="result multi-host-result">
       <div class="host-map" aria-label="Two independent browser Hosts">
@@ -382,14 +378,16 @@ function createMultiHostRunner(source, showPlan) {
     </div>`;
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
   const runnerPresentation = hostPresentationFor(runner);
-  const textarea = runner.querySelector("textarea");
-  textarea.value = readingState.drafts.get(sourceKey) ?? source;
+  const initialSource = readingState.drafts.get(sourceKey) ?? source;
+  createBookRunnerField(
+    runnerPresentation, fieldSlot, listingId, "Conduit · editable · unchanged across Hosts", initialSource, (value) => {
+      readingState.drafts.set(sourceKey, value);
+      persistBookState();
+      refreshCompactPatchbay(runner, value, false);
+    },
+  );
+  const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   attachBookSyntaxEditor(textarea, host.runtime);
-  textarea.addEventListener("input", () => {
-    readingState.drafts.set(sourceKey, textarea.value);
-    persistBookState();
-    refreshCompactPatchbay(runner, textarea.value, false);
-  });
   runner.actionControls = createBookRunnerActions(
     runnerPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),

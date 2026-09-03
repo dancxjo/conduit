@@ -4,7 +4,7 @@ const PROTOCOL = "conduit.syntax-highlight-projection@1";
 
 export function attachBookSyntaxEditor(textarea, runtime) {
   if (!(textarea instanceof HTMLTextAreaElement)) throw new TypeError("Book syntax editor requires a textarea");
-  const container = textarea.closest(".source-editor");
+  const container = textarea.closest('[data-application-key="source-field"]');
   if (!container) throw new TypeError("Book syntax editor requires its source container");
   const backdrop = document.createElement("pre");
   backdrop.className = "syntax-highlight";

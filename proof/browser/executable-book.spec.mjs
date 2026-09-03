@@ -228,15 +228,23 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
     const count = await runners.count();
     projectedListings += count;
     for (let runnerIndex = 0; runnerIndex < count; runnerIndex += 1) {
-      const patchbay = runners.nth(runnerIndex).locator(".compact-patchbay");
+      const runner = runners.nth(runnerIndex);
+      const patchbay = runner.locator(".compact-patchbay");
+      const source = runner.locator('[data-application-component="textarea"]');
+      await expect(runner.locator('[data-application-component="form-field"]')).toHaveCount(1);
+      await expect(runner.locator('[data-application-component="field-label"]')).toHaveCount(1);
+      await expect(runner.locator('[data-application-component="field-help"]')).toHaveCount(1);
+      await expect(source).toHaveAttribute("data-application-action", "book.source.input");
+      await expect(source).toHaveAttribute("maxlength", "65536");
+      await expect(source).toHaveAttribute("aria-describedby", /application-\d+-description-4/);
       await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
       await expect(patchbay.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
       await expect(patchbay.locator(".react-flow").first()).toBeVisible();
       await expect(patchbay.locator(".flow-faceplate").first()).toBeVisible();
       await expect(patchbay.locator(".compact-patchbay-text li").first()).toContainText("Gear");
-      await expect(runners.nth(runnerIndex).locator(".exact-evidence")).not.toHaveAttribute("open", "");
-      await expect(runners.nth(runnerIndex).locator(".exact-projection")).toContainText("Checked Form");
-      await expect(runners.nth(runnerIndex).locator('.exact-projection [data-application-component="definition-table"]')).toBeAttached();
+      await expect(runner.locator(".exact-evidence")).not.toHaveAttribute("open", "");
+      await expect(runner.locator(".exact-projection")).toContainText("Checked Form");
+      await expect(runner.locator('.exact-projection [data-application-component="definition-table"]')).toBeAttached();
       await expect(patchbay).not.toContainText("Host ID");
       await expect(patchbay).not.toContainText("Implementation");
     }
@@ -280,7 +288,7 @@ test("Book tour pairs narrative with Patchbay above source and output, then stac
       workbenchLeft: document.querySelector(".book-workbench").getBoundingClientRect().left,
       workbenchTop: document.querySelector(".book-workbench").getBoundingClientRect().top,
       patchbay: document.querySelector(".compact-patchbay").getBoundingClientRect().toJSON(),
-      source: document.querySelector(".source-editor").getBoundingClientRect().toJSON(),
+      source: document.querySelector('[data-application-key="source-editor"]').getBoundingClientRect().toJSON(),
       result: document.querySelector(".result").getBoundingClientRect().toJSON(),
       scroll: document.documentElement.scrollWidth,
       viewport: innerWidth,
@@ -303,7 +311,7 @@ test("Book tour pairs narrative with Patchbay above source and output, then stac
     const copy = document.querySelector(".chapter-copy").getBoundingClientRect();
     const workbench = document.querySelector(".book-workbench").getBoundingClientRect();
     const patchbay = document.querySelector(".compact-patchbay").getBoundingClientRect();
-    const source = document.querySelector(".source-editor").getBoundingClientRect();
+    const source = document.querySelector('[data-application-key="source-editor"]').getBoundingClientRect();
     const result = document.querySelector(".result").getBoundingClientRect();
     return {
       copyBottom: copy.bottom,
@@ -331,12 +339,12 @@ test("Book tour pairs narrative with Patchbay above source and output, then stac
   await expect.poll(() => listing.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(beforeResize);
   await page.setViewportSize({ width: 1200, height: 1000 });
   const interaction = await page.evaluate(() => ({
-    activeLabel: document.activeElement?.getAttribute("aria-label"),
+    activeLabel: document.activeElement?.labels?.[0]?.textContent,
     selection: document.activeElement?.selectionStart,
     scroll: document.documentElement.scrollWidth,
     viewport: innerWidth,
   }));
-  expect(interaction.activeLabel).toBe("Editable Conduit listing");
+  expect(interaction.activeLabel).toBe("Conduit · editable");
   expect(interaction.selection).toBe(7);
   expect(interaction.scroll).toBeLessThanOrEqual(interaction.viewport);
 });
