@@ -1,5 +1,7 @@
 use super::portable_keyboard::*;
-use conduit_core::BaseImplementationId;
+use conduit_core::{
+    AdmissionUnit, BaseImplementationId, DeliveryPressurePolicy, EvolutionSemantics,
+};
 use conduit_human::{
     ChordInfo, ConduitIntlKeymap, CoreChordId, KeyEvent, KeymapDisposition,
     KEY_EVENT_CONFORMANCE_VECTORS,
@@ -227,6 +229,25 @@ fn unchanged_k6_form_plans_to_truthful_native_realization_without_usb_facts() {
 
 #[test]
 fn pressure_focus_cancellation_closure_and_mapping_refusals_are_distinct() {
+    assert_eq!(
+        conduit_human::KEY_EVENT_DELIVERY_CONTRACT,
+        conduit_semantic_catalog::reviewed_delivery_contract(&conduit_core::KindId::from(
+            conduit_human::KEY_EVENT_INFO_ID,
+        ))
+        .unwrap()
+    );
+    assert_eq!(
+        conduit_human::KEY_EVENT_DELIVERY_CONTRACT.pressure_policy,
+        DeliveryPressurePolicy::PreserveOrder
+    );
+    assert_eq!(
+        conduit_human::KEY_EVENT_DELIVERY_CONTRACT.evolution,
+        EvolutionSemantics::Occurrence
+    );
+    assert_eq!(
+        conduit_human::KEY_EVENT_DELIVERY_CONTRACT.admission_unit,
+        AdmissionUnit::Value
+    );
     let mut pressure = NativeKeyboardInput::new();
     for code in [
         KeyCode::KeyA,
