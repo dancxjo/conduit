@@ -58,8 +58,9 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
   background: var(--panel); box-shadow: 0 18px 50px rgb(43 54 47 / 9%);
 }
-.editor { grid-area: editor; min-width: 0; min-height: 22rem; background: var(--patchbay-background); }
-.source-editor { position: relative; min-width: 0; min-height: 25rem; }
+.editor { position: relative; grid-area: editor; min-width: 0; min-height: 22rem; background: var(--patchbay-background); }
+[data-application-key="source-editor"] { position: relative; min-width: 0; min-height: 25rem; }
+[data-application-key="source-field"] { position: relative; min-width: 0; min-height: 25rem; }
 .syntax-highlight {
   position: absolute; inset: 0; z-index: 0; margin: 0; padding: 3rem 1.25rem 5.5rem;
   overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
@@ -80,7 +81,8 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 .syntax-number, .syntax-literal { color: #d9b8ff; }
 .syntax-operator { color: #ff9f8f; }
 .syntax-delimiter { color: #b9cbc1; }
-.editor-label { position: absolute; top: .8rem; left: 1rem; z-index: 2; color: var(--amber); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
+[data-application-key="source-label"] { position: absolute; top: .8rem; left: 1rem; z-index: 2; color: var(--amber); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
+[data-application-key="source-help"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .birth-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-content: start; padding: 1.25rem; }
 .birth-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; position: relative; }
 .birth-editor .editor-label { position: static; margin: 0; }
@@ -235,7 +237,7 @@ details dt { color: var(--ink); font-weight: 700; }
   .planned-line b { transform: rotate(90deg); }
   .projected-hosts { grid-template-columns: 1fr; }
   .editor { min-height: 20rem; }
-  .source-editor { min-height: 20rem; }
+  [data-application-key="source-editor"], [data-application-key="source-field"] { min-height: 20rem; }
   .compact-patchbay { max-height: 28rem; }
   textarea { min-height: 20rem; }
   .result { min-height: 19rem; }
