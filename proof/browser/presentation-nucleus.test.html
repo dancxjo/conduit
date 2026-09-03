@@ -101,20 +101,29 @@ try {
   assert(controls.lastRefusal() === "queue-pressure", "aggregate event byte pressure refuses distinctly");
   const selectRoot = document.createElement("section");
   document.body.append(selectRoot);
-  const selectView = encodeApplicationView({
-    revision: 3,
+  const selectView = (revision, value) => encodeApplicationView({
+    revision,
     actions: [{ id: "program.change", event: "change" }],
     nodes: [
-      { parent: null, component: "select", action: 0, key: "program", text: "Initial program", value: "morse-network@1", valueCapacity: 64 },
+      { parent: null, component: "select", action: 0, key: "program", text: "Initial program", value, valueCapacity: 64 },
+      { parent: 0, component: "option", action: null, key: "signal", text: "Signal", value: "signal@1", valueCapacity: 64 },
       { parent: 0, component: "option", action: null, key: "morse", text: "Morse Network", value: "morse-network@1", valueCapacity: 64 },
     ],
   });
-  const selection = manifestApplicationView(selectView, selectRoot);
-  const program = selectRoot.querySelector("select");
+  const selection = manifestApplicationView(selectView(3, "morse-network@1"), selectRoot);
+  let program = selectRoot.querySelector("select");
   assert(program.value === "morse-network@1", "select realizes the exact admitted option value");
-  assert(program.options.length === 1 && program.options[0].textContent === "Morse Network", "option label remains renderer-neutral text");
+  assert(program.options.length === 2 && program.options[1].textContent === "Morse Network", "non-first option label remains renderer-neutral text");
   program.dispatchEvent(new Event("change"));
   assert(new TextDecoder().decode(selection.nextEvent().value) === "morse-network@1", "select event returns the exact option value");
+  program.focus();
+  manifestApplicationView(selectView(4, "signal@1"), selectRoot);
+  program = selectRoot.querySelector("select");
+  assert(program.value === "signal@1" && document.activeElement === program, "select changes exact value and retains focus across revision");
+  let missingOptionRefusal = "";
+  try { manifestApplicationView(selectView(5, "missing@1"), selectRoot); }
+  catch (error) { missingOptionRefusal = error.code; }
+  assert(missingOptionRefusal === "invalid-control-value", "select without its exact admitted option refuses distinctly");
   const acceptedMarkup = root.innerHTML;
   let malformedRefusal = "";
   try {
