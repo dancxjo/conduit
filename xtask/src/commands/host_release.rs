@@ -4,11 +4,15 @@ use clap::ValueEnum;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+#[path = "host_release_browser.rs"]
+mod browser;
+
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub(crate) enum ReleasePlatform {
+    Browser,
     Linux,
     Windows,
     Macos,
@@ -25,6 +29,8 @@ struct ReleaseManifest<'a> {
     source_identity: &'a str,
     bundle_sha256: String,
     files: Vec<ReleaseFile>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reviewed_distribution: Option<browser::ReviewedBrowserDistribution<'a>>,
 }
 
 #[derive(Serialize)]
@@ -47,6 +53,7 @@ pub(crate) fn run(
     opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     match platform {
+        ReleasePlatform::Browser => build_browser(output, source_identity)?,
         ReleasePlatform::Linux => build_linux_set(output, source_identity)?,
         ReleasePlatform::Windows => build_windows(output, source_identity)?,
         ReleasePlatform::Macos => build_macos(output, source_identity)?,
@@ -63,11 +70,7 @@ pub(crate) fn run(
     Ok(())
 }
 
-fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
-    require_success(
-        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
-        "compile hosted Linux release",
-    )?;
+fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
         Command::new("cargo").args([
             "+stable",
@@ -82,7 +85,76 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
         ]),
         "compile browser Host release",
     )?;
+    fs::create_dir_all(output)?;
+    let browser_files = [
+        (
+            "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
+            "runtime.wasm",
+            "application/wasm",
+        ),
+        (
+            "targets/browser/host/assets/index.html",
+            "index.html",
+            "text/html; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/host.mjs",
+            "host.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/browser-host-bootstrap.mjs",
+            "browser-host-bootstrap.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/browser-host-membership.mjs",
+            "browser-host-membership.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/browser-host-identity.mjs",
+            "browser-host-identity.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/media-host.mjs",
+            "media-host.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/device-base.mjs",
+            "device-base.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
+            "targets/browser/host/assets/usb-device-base.mjs",
+            "usb-device-base.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+    ];
+    for (source, name, _) in browser_files {
+        copy(source, &output.join(name))?;
+    }
+    let manifest_files = browser_files.map(|(_, name, media)| (name, media));
+    browser::seal(
+        output,
+        "browser-page.json",
+        "browser/wasm32/page",
+        "browser-wasm@1",
+        "browser-bundle",
+        "conduit-host-browser/build-wasm@1",
+        "conduit-host-browser/load@1",
+        source_identity,
+        &manifest_files,
+    )
+}
 
+fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
+    require_success(
+        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
+        "compile hosted Linux release",
+    )?;
     fs::create_dir_all(output)?;
     copy(
         "target/release/conduit",
@@ -163,69 +235,6 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
             )],
         )?;
     }
-
-    let browser_files = [
-        (
-            "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-            "runtime.wasm",
-            "application/wasm",
-        ),
-        (
-            "targets/browser/host/assets/index.html",
-            "index.html",
-            "text/html; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/host.mjs",
-            "host.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/browser-host-bootstrap.mjs",
-            "browser-host-bootstrap.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/browser-host-membership.mjs",
-            "browser-host-membership.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/browser-host-identity.mjs",
-            "browser-host-identity.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/media-host.mjs",
-            "media-host.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/device-base.mjs",
-            "device-base.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-        (
-            "targets/browser/host/assets/usb-device-base.mjs",
-            "usb-device-base.mjs",
-            "text/javascript; charset=utf-8",
-        ),
-    ];
-    for (source, name, _) in browser_files {
-        copy(source, &output.join(name))?;
-    }
-    let browser_manifest_files = browser_files.map(|(_, name, media)| (name, media));
-    seal(
-        output,
-        "browser-page.json",
-        "browser/wasm32/page",
-        "browser-wasm@1",
-        "browser-bundle",
-        "conduit-host-browser/build-wasm@1",
-        "conduit-host-browser/load@1",
-        source_identity,
-        &browser_manifest_files,
-    )?;
 
     Ok(())
 }
@@ -323,6 +332,7 @@ fn seal(
         source_identity,
         bundle_sha256: format!("sha256:{bundle_sha256}"),
         files: entries,
+        reviewed_distribution: None,
     };
     fs::write(
         root.join(manifest_name),

@@ -41,7 +41,14 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
   const evidence = JSON.parse(await runner.locator("details code").textContent());
-  expect(evidence.obtainment.bundle_sha256).toBe(release.bundle_sha256);
+  expect(evidence.obtainment.distribution_sha256).toBe(release.bundle_sha256);
+  expect(evidence.obtainment.image_content_digest).not.toBe(release.bundle_sha256);
+  expect(evidence.obtainment.builder_adapter).toBe("conduit-host-browser/bind-prebuilt@1");
+  expect(evidence.obtainment.compiler_started).toBe(false);
+  expect(evidence.obtainment.build_id).toMatch(/^build:sha256:/);
+  expect(evidence.obtainment.image_id).toMatch(/^image:sha256:/);
+  expect(evidence.binding.image_content_digest).toBe(evidence.obtainment.image_content_digest);
+  expect(evidence.binding.spore_artifact.files).toContainEqual(expect.objectContaining({ path: "conduit-browser-image.json" }));
   expect(evidence.binding).toMatchObject({
     target_id: "browser/wasm32/page",
     browser_configuration_id: expect.stringMatching(/^sha256:/),
@@ -71,7 +78,8 @@ test("stale restored browser choices are refused before lifecycle change", async
 });
 
 async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
+  const product = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
+  const child = spawn("target/debug/conduit-browser-host", ["--application", product, "--mount", "/creche/", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -92,7 +100,9 @@ async function startCreche() {
 }
 
 async function installBrowserRelease(page) {
-  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const root = process.env.CONDUIT_CRECHE_PRODUCT_ROOT
+    ? new URL(`../../${process.env.CONDUIT_CRECHE_PRODUCT_ROOT}/artifacts/`, import.meta.url)
+    : new URL("../../target/creche-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL("browser-page.json", root), "utf8"));
   for (const file of manifest.files) {
     const bytes = await readFile(new URL(file.path, root));
