@@ -13,9 +13,8 @@ export const BROWSER_IMPLEMENTATION_CATALOG = Object.freeze([
   definition("browser/indexeddb@1", "storage/indexeddb@1", ["secure", "resource"]),
   definition("browser/websocket@1", "line/websocket@1", ["secure", "provider", "endpoint", "authority"]),
   definition("browser/webrtc-datachannel@1", "line/webrtc-datachannel@1", ["secure", "provider", "endpoint", "authority", "signaling", "session-grant"]),
-  definition("browser/media-devices-camera@1", "media/camera@1", ["secure", "permission", "resource"]),
-  definition("browser/media-devices-microphone@1", "media/microphone@1", ["secure", "permission", "resource"]),
-  definition("browser/web-audio-output@1", "media/audio-output@1", ["secure", "activation", "resource"]),
+  definition("browser/media-devices-camera@1", "media/acquire-camera@1", ["secure"]),
+  definition("browser/media-devices-microphone@1", "media/acquire-microphone@1", ["secure"]),
   definition("browser/webserial@1", "device/webserial@1", ["secure", "permission", "resource"]),
   definition("browser/webusb@1", "device/webusb@1", ["secure", "permission", "resource"]),
 ]);
@@ -118,7 +117,6 @@ export async function observeBrowserHostEnvironment(scope = globalThis) {
     "browser/webrtc-datachannel@1": observation(Boolean(scope.RTCPeerConnection), { secure_context: Boolean(scope.isSecureContext), provider_ready: true, endpoint_ready: false, authority_ready: false, signaling_ready: false, session_grant_ready: false }),
     "browser/media-devices-camera@1": observation(Boolean(navigator?.mediaDevices?.getUserMedia), { secure_context: Boolean(scope.isSecureContext) }),
     "browser/media-devices-microphone@1": observation(Boolean(navigator?.mediaDevices?.getUserMedia), { secure_context: Boolean(scope.isSecureContext) }),
-    "browser/web-audio-output@1": observation(Boolean(scope.AudioContext || scope.webkitAudioContext), { secure_context: Boolean(scope.isSecureContext) }),
     "browser/webserial@1": observation(Boolean(navigator?.serial), { secure_context: Boolean(scope.isSecureContext) }),
     "browser/webusb@1": observation(Boolean(navigator?.usb), { secure_context: Boolean(scope.isSecureContext) }),
   });

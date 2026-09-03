@@ -21,6 +21,14 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 
 Implementation availability, PROFILE selection, Boot initialization, current resource/permission truth, and immutable Plan selection are distinct. BUILD records only the first two. In particular, selecting camera, microphone, WebSerial, or WebUSB never prompts for permission and never claims a device exists.
 
+Camera and microphone selection exposes only the finite ability to request an
+acquisition through `conduit.host/acquire-human-media@1`. Permission and an
+opaque acquired track become new runtime truth after that admitted operation;
+semantic use then requires a second immutable Plan. The reviewed realization
+retains no invented stable physical-device identity. Web Audio is not presently
+advertised: API detection alone is not an accepted finite audio-output Host
+implementation.
+
 ## Reviewed distribution and ordinary BUILD
 
 The release producer compiles the browser runtime once and seals

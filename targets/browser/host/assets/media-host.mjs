@@ -45,11 +45,13 @@ async function boundedTrackValue(track, Processor = globalThis.MediaStreamTrackP
 
 export function createBrowserMediaHost({
   api, hostId, bootId,
+  selectedImplementations,
   mediaDevices = navigator.mediaDevices,
   TrackProcessor = globalThis.MediaStreamTrackProcessor,
   status = document.querySelector("#media-status"),
   output = document.querySelector("#media-evidence"),
 }) {
+  const selected = new Set(selectedImplementations ?? []);
   const required = ["conduit_browser_media_input_ptr", "conduit_browser_media_input_capacity", "conduit_browser_media_start_acquisition", "conduit_browser_media_effect_kind", "conduit_browser_media_complete_acquisition", "conduit_browser_media_start_use", "conduit_browser_media_start_use_plan", "conduit_browser_media_submit_value", "conduit_browser_media_release_value", "conduit_browser_media_close", "conduit_browser_media_device_lost", "conduit_browser_media_track_ended", "conduit_browser_media_evidence_ptr", "conduit_browser_media_evidence_len"];
   if (required.some(name => !(name in api)) || api.conduit_browser_media_input_capacity() !== INPUT_CAPACITY) throw new Error("browser media ABI is incomplete");
   let stream = null;
@@ -60,6 +62,12 @@ export function createBrowserMediaHost({
     return value;
   };
   async function acquireResource(kind) {
+    const implementation = kind === "camera"
+      ? "browser/media-devices-camera@1"
+      : kind === "microphone" ? "browser/media-devices-microphone@1" : null;
+    if (!implementation || !selected.has(implementation)) {
+      throw new Error(`browser media ${kind} implementation is absent from the selected PROFILE`);
+    }
     if (stream) throw new Error("one admitted browser media operation is already active");
     const identity = encoder.encode(hostId + bootId);
     write(api, identity);

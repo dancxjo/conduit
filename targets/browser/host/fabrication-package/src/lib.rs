@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 
 mod inventory;
 mod line;
+mod media;
 
 pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
@@ -16,6 +17,7 @@ pub use inventory::{
     REVIEWED_RUNTIME_ARTIFACT,
 };
 pub use line::{BrowserLineRealizationDescriptor, BROWSER_LINE_REALIZATIONS};
+pub use media::{BrowserMediaRealizationDescriptor, BROWSER_MEDIA_REALIZATIONS};
 
 pub struct BrowserFabricationPackage;
 
@@ -199,6 +201,37 @@ mod tests {
             assert!(prerequisites.contains("permission"));
             assert!(prerequisites.contains("device-acquisition"));
         }
+    }
+
+    #[test]
+    fn media_entries_bind_the_accepted_two_plan_realization_exactly() {
+        assert_eq!(BROWSER_MEDIA_REALIZATIONS.len(), 2);
+        for realization in BROWSER_MEDIA_REALIZATIONS {
+            let fabricated = BROWSER_IMPLEMENTATIONS
+                .iter()
+                .find(|item| item.implementation_id == realization.fabrication_implementation_id)
+                .unwrap();
+            assert_eq!(
+                fabricated.implementation_revision,
+                realization.implementation_revision
+            );
+            assert!(realization
+                .acquisition_offer_id
+                .starts_with("media/acquire-"));
+            assert_eq!(realization.maximum_acquisitions_in_flight, 1);
+            assert_eq!(realization.maximum_result_bytes, 1024);
+            assert_eq!(realization.maximum_value_bytes, 64 * 1024);
+            assert_eq!(realization.maximum_queue_items, 1);
+            assert_eq!(realization.maximum_queue_bytes, 64 * 1024);
+            assert!(!realization.stable_physical_device_identity);
+            assert!(realization.requires_subsequent_use_plan);
+        }
+        assert!(
+            !BROWSER_IMPLEMENTATIONS
+                .iter()
+                .any(|item| { item.implementation_id == "browser/web-audio-output@1" }),
+            "Web Audio API presence is not an accepted audio-output realization"
+        );
     }
 
     #[test]

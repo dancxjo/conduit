@@ -25,6 +25,25 @@ async function startEntrance() {
 
 test.afterEach(() => { while (entrances.length) entrances.pop().kill(); });
 
+test("superset adapter cannot acquire media omitted from the selected PROFILE", async ({ page }) => {
+  const url = await startEntrance();
+  await page.goto(url);
+  await expect(page.locator("#host")).toBeVisible();
+  const refusal = await page.evaluate(async () => {
+    const { createBrowserMediaHost } = await import("/media-host.mjs");
+    const media = createBrowserMediaHost({
+      api: __conduitBrowserHost.runtime,
+      hostId: __conduitBrowserHost.hostId,
+      bootId: __conduitBrowserHost.bootId,
+      selectedImplementations: ["browser/media-devices-microphone@1"],
+      mediaDevices: { getUserMedia: () => { throw new Error("must not prompt"); } },
+    });
+    try { await media.acquireResource("camera"); } catch (error) { return error.message; }
+    return "accepted";
+  });
+  expect(refusal).toContain("absent from the selected PROFILE");
+});
+
 test("two independent Hosts acquire and consume bounded camera and microphone values", async () => {
   const browser = await chromium.launch({ headless: true, args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
   try {
