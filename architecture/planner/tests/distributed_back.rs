@@ -12,8 +12,8 @@ use conduit_form::{
     StartupCatalog,
 };
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical_with_options, PlacementChoice,
-    PlacementChoices, PlanningOptions,
+    default_expanded_placements, plan_expanded_canonical_with_options, CanonicalRealizationMode,
+    PlacementChoice, PlacementChoices, PlanningOptions,
 };
 
 #[path = "distributed_back/execution.rs"]
@@ -281,6 +281,116 @@ fn direct_plan_on(part: &str) -> (conduit_form::ExpandedCanonicalForm, conduit_c
     )
     .unwrap();
     (form, plan)
+}
+
+#[test]
+fn ordinary_selection_prefers_direct_and_falls_back_to_the_exact_recursive_back() {
+    let (startup, profile, high) = catalogs();
+    let user = check_syntax_document(
+        &parse_syntax_document(&format!(
+            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source > generate > sink\n}}\n"
+        )),
+        &startup,
+    )
+    .unwrap();
+    let back = check_syntax_document(
+        &parse_syntax_document(&format!(
+            "form {HIGH} (\n in: {} > out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in > request > encode > http > decode > result > out\n}}\n",
+            VALUES[0], VALUES[5]
+        )),
+        &startup,
+    )
+    .unwrap();
+    let mut backs = CanonicalBackCatalog::new();
+    backs
+        .insert_exact(
+            &high,
+            &[],
+            &back,
+            HIGH,
+            &back.source_document_id,
+            &back.forms[0].checked_form_id,
+        )
+        .unwrap();
+    let connection_bases = BTreeMap::new();
+    let line_candidates = BTreeMap::new();
+    let options = PlanningOptions {
+        connection_bases: &connection_bases,
+        line_candidates: &line_candidates,
+        connection_item_capacity: 1,
+        connection_byte_capacity: 64,
+        authority_grants: &[],
+        protected_resource_grants: &[],
+        line_offers: &[],
+    };
+    let bases = [BaseImplementationId::from("conduit.base/local@1")];
+
+    let direct_host = host("direct-selection", &[SOURCE, HIGH, SINK]);
+    let direct = conduit_planner::plan_canonical_realization_with_options(
+        &user,
+        "distributed",
+        &profile,
+        &backs,
+        &[direct_host],
+        &bases,
+        options,
+    )
+    .unwrap();
+    assert_eq!(direct.mode, CanonicalRealizationMode::Direct);
+    assert!(direct.expanded.realization_backs.is_empty());
+
+    let mut unadmitted_direct = host(
+        "unadmitted-direct",
+        &[SOURCE, HIGH, REQUEST, ENCODE, HTTP, DECODE, RESULT, SINK],
+    );
+    unadmitted_direct
+        .capabilities
+        .iter_mut()
+        .find(|offer| offer.kind_id.as_str() == HIGH)
+        .unwrap()
+        .resource_requirements = vec![conduit_core::resource_requirement("missing/resource", 1)];
+    let admitted_recursive = conduit_planner::plan_canonical_realization_with_options(
+        &user,
+        "distributed",
+        &profile,
+        &backs,
+        &[unadmitted_direct],
+        &bases,
+        options,
+    )
+    .unwrap();
+    assert_eq!(
+        admitted_recursive.mode,
+        CanonicalRealizationMode::RecursiveBack,
+        "an unadmitted direct offer must not suppress an admitted Back"
+    );
+
+    let recursive_host = host(
+        "recursive-selection",
+        &[SOURCE, REQUEST, ENCODE, HTTP, DECODE, RESULT, SINK],
+    );
+    let recursive = conduit_planner::plan_canonical_realization_with_options(
+        &user,
+        "distributed",
+        &profile,
+        &backs,
+        &[recursive_host],
+        &bases,
+        options,
+    )
+    .unwrap();
+    assert_eq!(recursive.mode, CanonicalRealizationMode::RecursiveBack);
+    assert_eq!(recursive.expanded.realization_backs.len(), 1);
+    assert!(conduit_core::verify_plan(&direct.plan));
+    assert!(conduit_core::verify_plan(&recursive.plan));
+    assert_eq!(
+        direct.expanded.checked_form_id,
+        recursive.expanded.checked_form_id
+    );
+    assert_ne!(
+        direct.expanded.expanded_form_id,
+        recursive.expanded.expanded_form_id
+    );
 }
 
 #[test]

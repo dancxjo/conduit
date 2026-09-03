@@ -3,7 +3,7 @@ use crate::{
     CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition, StartupParameterSignature,
 };
 use alloc::collections::BTreeMap;
-use conduit_core::{CheckedFace, KindId, RealizationBack};
+use conduit_core::{CheckedFace, CheckedFormId, KindId, RealizationBack, SourceDocumentId};
 
 pub const MAXIMUM_CANONICAL_BACKS: usize = 64;
 
@@ -24,6 +24,14 @@ pub enum CanonicalBackError {
     MissingForm(String),
     DuplicateKind(String),
     FaceMismatch(String),
+    StaleSourceDocument {
+        expected: SourceDocumentId,
+        actual: SourceDocumentId,
+    },
+    StaleCheckedForm {
+        expected: CheckedFormId,
+        actual: CheckedFormId,
+    },
 }
 
 impl CanonicalBackCatalog {
@@ -49,6 +57,38 @@ impl CanonicalBackCatalog {
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
+        self.insert_checked(kind, startup, document, form_name)
+    }
+
+    /// Installs a reviewed Back only when the caller's admitted content
+    /// identities still name these exact checked bytes. A catalog refresh may
+    /// not silently retarget an existing realization choice to a newer Form.
+    pub fn insert_exact(
+        &mut self,
+        kind: &KindDefinition,
+        startup: &[StartupParameterSignature],
+        document: &CheckedSyntaxDocument,
+        form_name: &str,
+        expected_source_document_id: &SourceDocumentId,
+        expected_checked_form_id: &CheckedFormId,
+    ) -> Result<(), CanonicalBackError> {
+        if &document.source_document_id != expected_source_document_id {
+            return Err(CanonicalBackError::StaleSourceDocument {
+                expected: expected_source_document_id.clone(),
+                actual: document.source_document_id.clone(),
+            });
+        }
+        let form = document
+            .forms
+            .iter()
+            .find(|form| form.name == form_name)
+            .ok_or_else(|| CanonicalBackError::MissingForm(form_name.into()))?;
+        if &form.checked_form_id != expected_checked_form_id {
+            return Err(CanonicalBackError::StaleCheckedForm {
+                expected: expected_checked_form_id.clone(),
+                actual: form.checked_form_id.clone(),
+            });
+        }
         self.insert_checked(kind, startup, document, form_name)
     }
 
