@@ -20,3 +20,25 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 | touch and gamepad | intentionally unsupported | no reviewed production contract/implementation yet |
 
 Implementation availability, PROFILE selection, Boot initialization, current resource/permission truth, and immutable Plan selection are distinct. BUILD records only the first two. In particular, selecting camera, microphone, WebSerial, or WebUSB never prompts for permission and never claims a device exists.
+
+## Reviewed distribution and ordinary BUILD
+
+The release producer compiles the browser runtime once and seals
+`conduit.browser/reviewed-distribution@1`. Its manifest binds the exact runtime
+ABI, supported browser target, source commit, producer toolchain, finite file
+and bundle sizes, module dependency graph, and every implementation identity
+and revision to SHA-256-addressed files.
+
+Ordinary Crèche BUILD is `conduit-host-browser/bind-prebuilt@1`. It does not
+invoke Rust, wasm, npm, a registry, a compiler service, or an arbitrary module
+loader. It admits that reviewed distribution, resolves every implementation in
+the checked PROFILE, and emits `conduit.browser/bundle-image@1` plus the exact
+reviewed files. Verification recomputes configuration, PROFILE, distribution,
+artifact, implementation, BuildId, IMAGE, and aggregate bundle bindings and
+refuses undeclared files.
+
+Two PROFILEs may reuse the same superset `runtime.wasm`; their selected
+implementation closures still produce different BuildIds, IMAGE identities,
+and BrowserBundle content identities. The bundle remains Body-independent.
+Crèche adds `conduit-spore.json` with the Body invitation only afterward, so
+HostId, BootId, membership, offers, Plans, and Plays remain runtime truth.

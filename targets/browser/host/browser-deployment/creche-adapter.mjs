@@ -1,5 +1,7 @@
 import { createExistingComputerAdapter, EXISTING_COMPUTER_BOUNDS, EXISTING_COMPUTER_MODES } from "../../../creche-existing-computer.mjs";
 import { createBrowserConfigurationOutfitter, prepareCheckedBrowserSpore } from "../../../creche-browser-configuration.mjs";
+import { acquireHostRelease } from "../../../creche-release-bundle.mjs";
+import { buildBrowserBundleImage } from "./browser-bundle.mjs";
 
 const TARGET = Object.freeze({
   id: "browser/wasm32/page",
@@ -13,7 +15,7 @@ const PROFILE = Object.freeze({
   manifest_path: new URL("../../../artifacts/browser-page.json", import.meta.url).href,
   package_id: "browser-wasm@1",
   output: "browser-bundle",
-  builder_adapter: "conduit-host-browser/build-wasm@1",
+  builder_adapter: "conduit-host-browser/bind-prebuilt@1",
   deployment_adapter: "conduit-host-browser/load@1",
   os: "browser",
   architecture: "wasm32",
@@ -65,6 +67,37 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
         return root;
       },
       configuration: () => Object.freeze({ required: true, checked: outfitter?.checked() ?? null }),
+      async obtain({ mode, signal }) {
+        const checked = outfitter?.checked();
+        if (!checked) throw new Error("review the browser Host configuration before BUILD");
+        const distribution = await acquireHostRelease({
+          ...PROFILE,
+          builder_adapter: "conduit-host-browser/build-wasm@1",
+        }, signal);
+        const release = await buildBrowserBundleImage({ checked, distribution });
+        return Object.freeze({
+          resultKind: "installation",
+          private: Object.freeze({ release, distribution }),
+          evidence: Object.freeze({
+            schema: "conduit.browser/bundle-build-receipt@1",
+            mode,
+            result_kind: "installation",
+            target_id: PROFILE.target_id,
+            profile_id: checked.profile_id,
+            source_configuration_id: checked.configuration_id,
+            build_id: release.manifest.browser_build_id,
+            image_id: release.manifest.browser_image_id,
+            image_content_digest: release.manifest.bundle_sha256,
+            bundle_sha256: release.manifest.bundle_sha256,
+            distribution_id: release.manifest.distribution_id,
+            distribution_sha256: release.manifest.distribution_sha256,
+            builder_adapter: release.manifest.builder_adapter,
+            compiler_started: false,
+            network_fetches: [new URL(PROFILE.manifest_path).pathname, ...distribution.payloads.map((item) => item.path)],
+            does_not_prove: ["body-binding", "start", "boot-observation", "join", "membership"],
+          }),
+        });
+      },
       async bind(args) {
         const checked = outfitter?.checked();
         if (!checked) throw new Error("review the browser Host configuration before Body binding");

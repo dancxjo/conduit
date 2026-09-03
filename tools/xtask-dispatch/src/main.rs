@@ -203,6 +203,7 @@ fn run_host_release(arguments: &[String]) -> Result<(), String> {
             }
             "--platform" => {
                 platform = Some(match values.next().map(String::as_str) {
+                    Some("browser") => host_release::ReleasePlatform::Browser,
                     Some("linux") => host_release::ReleasePlatform::Linux,
                     Some("windows") => host_release::ReleasePlatform::Windows,
                     Some("macos") => host_release::ReleasePlatform::Macos,
