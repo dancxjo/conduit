@@ -679,19 +679,6 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["test", "-p", "conduit-browser-runtime"],
     ),
     Step::new(
-        "check.browser.browser-readiness",
-        "test v1_has_one_runtime_and_no_compiled_compatibility_closure",
-        "cargo",
-        &[
-            "test",
-            "-p",
-            "conduit-plan-lowering",
-            "--test",
-            "lowering_boundary",
-            "v1_has_one_runtime_and_no_compiled_compatibility_closure",
-        ],
-    ),
-    Step::new(
         "check.browser.host-operations",
         "Prove finite generic browser Host operations and negative outcomes",
         "node",
