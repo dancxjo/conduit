@@ -15,6 +15,7 @@ pub enum TensorElement {
     I8,
     U8,
     I16,
+    I24,
     U16,
     I32,
     U32,
@@ -29,6 +30,7 @@ impl TensorElement {
         match self {
             Self::I8 | Self::U8 => 1,
             Self::I16 | Self::U16 => 2,
+            Self::I24 => 3,
             Self::I32 | Self::U32 | Self::F32 => 4,
             Self::I64 | Self::U64 | Self::F64 => 8,
         }
@@ -39,6 +41,7 @@ impl TensorElement {
             Self::I8 => "number/i8",
             Self::U8 => "number/u8",
             Self::I16 => "number/i16-le",
+            Self::I24 => "number/i24-le",
             Self::U16 => "number/u16-le",
             Self::I32 => "number/i32-le",
             Self::U32 => "number/u32-le",
@@ -192,6 +195,7 @@ impl TensorValue {
             TensorElement::I8 => "tensor/elements-i8@1",
             TensorElement::U8 => "tensor/elements-u8@1",
             TensorElement::I16 => "tensor/elements-i16-le@1",
+            TensorElement::I24 => "tensor/elements-i24-le@1",
             TensorElement::U16 => "tensor/elements-u16-le@1",
             TensorElement::I32 => "tensor/elements-i32-le@1",
             TensorElement::U32 => "tensor/elements-u32-le@1",

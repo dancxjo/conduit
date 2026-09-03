@@ -9,8 +9,10 @@ extern crate alloc;
 
 mod audio_info;
 mod audio_render_demand;
+mod sampled_signal_mapping;
 mod sound_info;
 
 pub use audio_info::*;
 pub use audio_render_demand::*;
+pub use sampled_signal_mapping::*;
 pub use sound_info::*;
