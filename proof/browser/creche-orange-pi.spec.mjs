@@ -50,8 +50,8 @@ test.afterEach(() => entrance?.child.kill());
 test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page }) => {
   const release = await installRelease(page);
   const runner = await birthBody(page);
-  await runner.locator(".physical-target").selectOption(TARGET);
-  await expect(runner.locator(".physical-mode")).toHaveValue("fabricate-new");
+  await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET);
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
@@ -126,5 +126,5 @@ test("architecture, model, boot image, and writer refusals stay distinct", async
   }, { releaseManifest: release, imageUrl: new URL("targets/orange-pi/browser-deployment/image.mjs", entrance.url).href, adapterUrl: new URL("targets/orange-pi/browser-deployment/creche-adapter.mjs", entrance.url).href });
   expect(terminals).toEqual({ wrongModel: "WrongModel", wrongArchitecture: "WrongArchitecture", incompleteBootImage: "IncompleteBootImage", staleImage: "StaleImage", absentWriter: "AbsentWriter", acceptedWriter: "accepted" });
   const runner = await birthBody(page);
-  for (const unsupported of ["conduitos/loongarch64/orange-pi-5-rk3588s", "std/aarch64/orange-pi-5-rk3588s", "conduitos/aarch64/orange-pi-5b-rk3588s", "conduitos/aarch64/orange-pi-5-plus-rk3588"]) await expect(runner.locator(`.physical-target option[value="${unsupported}"]`)).toHaveCount(0);
+  for (const unsupported of ["conduitos/loongarch64/orange-pi-5-rk3588s", "std/aarch64/orange-pi-5-rk3588s", "conduitos/aarch64/orange-pi-5b-rk3588s", "conduitos/aarch64/orange-pi-5-plus-rk3588"]) await expect(runner.locator(`[data-application-key="physical-target"] option[value="${unsupported}"]`)).toHaveCount(0);
 });

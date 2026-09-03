@@ -1,5 +1,5 @@
 import { PHYSICAL_HOST_INTENTIONS } from "./creche-target-catalog.mjs";
-import { presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
+import { presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalSelection, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
 const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
@@ -19,12 +19,8 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
       <li data-stage="admit"><strong>5 · Admit Part + offers</strong><span>waiting</span></li>
     </ol>
     <div class="physical-selection">
-      <label>Intention
-        <span class="select-field"><select class="physical-mode"></select></span>
-      </label>
-      <label>Target
-        <span class="select-field"><select class="physical-target"></select></span>
-      </label>
+      <div class="select-field" data-application-slot="physical-mode-control"></div>
+      <div class="select-field" data-application-slot="physical-target-control"></div>
       <div class="target-options"></div>
       <div class="spore-download" data-application-slot="physical-artifact"></div>
     </div>
@@ -39,21 +35,6 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     <div class="physical-evidence" data-application-slot="physical-evidence"></div>`;
 
   const presentation = presentationFor(runner);
-  const modeControl = runner.querySelector(".physical-mode");
-  const targetControl = runner.querySelector(".physical-target");
-  for (const family of catalog.families) {
-    const heading = document.createElement("optgroup");
-    heading.label = family.label;
-    heading.dataset.familyId = family.id;
-    for (const entry of family.entries) {
-      const option = document.createElement("option");
-      option.value = entry.target.id;
-      option.textContent = entry.target.label;
-      heading.append(option);
-    }
-    targetControl.append(heading);
-  }
-
   const state = {
     presentation,
     presentationFor,
@@ -75,10 +56,12 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     admission: null,
     download: null,
     hostOperations,
+    intentions: PHYSICAL_HOST_INTENTIONS,
+    selectionDisabled: false,
   };
 
-  modeControl.addEventListener("change", () => selectMode(runner, host, state, modeControl.value));
-  targetControl.addEventListener("change", () => selectTarget(runner, host, state, targetControl.value));
+  state.changeMode = (mode) => selectMode(runner, host, state, mode);
+  state.changeTarget = (target) => selectTarget(runner, host, state, target);
   runner.querySelector(".bind").addEventListener("click", () => bindInvitation(runner, host, state));
   runner.querySelector(".realize").addEventListener("click", () => realizeHost(runner, host, state));
   runner.querySelector(".observe").addEventListener("click", () => observeJoin(runner, host, state));
@@ -105,21 +88,10 @@ function selectTarget(runner, host, state, targetId) {
   if (!entry) throw new TypeError("physical Host target is absent from the current catalog generation");
   state.entry = entry;
   state.adapter = null;
-  runner.querySelector(".physical-target").value = targetId;
-  const modeControl = runner.querySelector(".physical-mode");
-  modeControl.replaceChildren();
-  for (const intention of PHYSICAL_HOST_INTENTIONS) {
-    const support = entry.intentions.find((mode) => mode.id === intention.id);
-    const option = document.createElement("option");
-    option.value = intention.id;
-    option.textContent = `${intention.label}${support.supported ? "" : " · unavailable for this target"}`;
-    modeControl.append(option);
-  }
   const currentSupport = entry.intentions.find((mode) => mode.id === state.mode);
   if (!currentSupport?.supported) {
     state.mode = entry.intentions.find((mode) => mode.supported)?.id ?? state.mode;
   }
-  modeControl.value = state.mode;
   selectMode(runner, host, state, state.mode);
 }
 
@@ -136,8 +108,8 @@ function selectMode(runner, host, state, mode) {
   clearDownload(runner, state);
   resetStages(runner);
   setButtons(runner, null);
-  runner.querySelector(".physical-mode").disabled = false;
-  runner.querySelector(".physical-target").disabled = false;
+  state.selectionDisabled = false;
+  presentPhysicalSelection(state);
   const options = runner.querySelector(".target-options");
   options.replaceChildren();
   const support = state.entry.intentions.find((candidate) => candidate.id === state.mode);
@@ -184,8 +156,8 @@ function bindInvitation(runner, host, state) {
     state.binding = result;
     state.phase = "bound";
     completeStage(runner, "bind", short(result.prepared.spore_id));
-    runner.querySelector(".physical-mode").disabled = true;
-    runner.querySelector(".physical-target").disabled = true;
+    state.selectionDisabled = true;
+    presentPhysicalSelection(state);
     setOptionsDisabled(runner, true);
     setButtons(runner, "realize");
     renderDownload(runner, state, result.download);

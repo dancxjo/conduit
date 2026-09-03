@@ -62,7 +62,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
     navigator.usb = { requestDevice: () => globalThis.recordConduitOsAuthority("usb") };
   });
   const runner = await birthBody(page);
-  await runner.locator(".physical-target").selectOption(X86);
+  await runner.locator('[data-application-key="physical-target"]').selectOption(X86);
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.obtainment).toMatchObject({ target_id: X86, artifact_role: "product-host", image_id: release.manifest.image_id, image_sha256: release.manifest.artifact.sha256, image_bytes: release.manifest.artifact.bytes, does_not_prove: ["load", "boot", "join", "membership"] });
@@ -119,10 +119,10 @@ test("catalog exposes every reviewed ConduitOS product Host and keeps carriers e
   await installRelease(page, "conduitos-aarch64-virt-release.json");
   const runner = await birthBody(page);
   for (const target of [X86, AARCH64, ...PROMOTED.map(({ id }) => id), "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"]) {
-    await expect(runner.locator(`.physical-target option[value="${target}"]`)).toHaveCount(1);
+    await expect(runner.locator(`[data-application-key="physical-target"] option[value="${target}"]`)).toHaveCount(1);
   }
-  await expect(runner.locator('.physical-target option[value="conduitos/generic"]')).toHaveCount(0);
-  await runner.locator(".physical-target").selectOption(AARCH64);
+  await expect(runner.locator('[data-application-key="physical-target"] option[value="conduitos/generic"]')).toHaveCount(0);
+  await runner.locator('[data-application-key="physical-target"]').selectOption(AARCH64);
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry.target_profile).toMatchObject({ architecture: "aarch64", machine: "virt", artifact_role: "product-host", firmware: "QEMU_EFI.fd", boot_entry: "BOOTAA64.EFI", supported_carriers: ["downloadable-disk-image"], unavailable_carriers: ["browser-raw-disk-writer", "browser-vm-launcher", "network-boot"] });
@@ -132,7 +132,7 @@ for (const target of PROMOTED) {
   test(`${target.architecture} product IMAGE is selectable and Body-bound with exact target truth`, async ({ page }) => {
     const release = await installRelease(page, target.manifest);
     const runner = await birthBody(page);
-    await runner.locator(".physical-target").selectOption(target.id);
+    await runner.locator('[data-application-key="physical-target"]').selectOption(target.id);
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry.target_profile).toMatchObject({

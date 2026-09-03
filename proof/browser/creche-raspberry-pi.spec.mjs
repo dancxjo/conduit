@@ -62,8 +62,8 @@ test.afterEach(() => entrance?.child.kill());
 test("Raspberry Pi OS is an exact existing-machine package, not a disk image", async ({ page }) => {
   const release = await installRelease(page, PI_OS_MANIFEST);
   const runner = await birthBody(page);
-  await runner.locator(".physical-target").selectOption(PI_OS_TARGET);
-  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await runner.locator('[data-application-key="physical-target"]').selectOption(PI_OS_TARGET);
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
@@ -148,8 +148,8 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
 test("bare-metal Model B+ becomes an exact SD spore without browser block authority", async ({ page }) => {
   const release = await installRelease(page, BARE_MANIFEST);
   const runner = await birthBody(page);
-  await runner.locator(".physical-target").selectOption(BARE_TARGET);
-  await expect(runner.locator(".physical-mode")).toHaveValue("fabricate-new");
+  await runner.locator('[data-application-key="physical-target"]').selectOption(BARE_TARGET);
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
@@ -284,6 +284,6 @@ test("Pi model, architecture, boot partition, image, writer, and unsupported-mod
   });
 
   const runner = await birthBody(page);
-  await expect(runner.locator(`.physical-target option[value="std/aarch64/raspberry-pi-5"]`)).toHaveCount(0);
-  await expect(runner.locator(`.physical-target option[value="conduitos/armv7/raspberry-pi-3"]`)).toHaveCount(0);
+  await expect(runner.locator('[data-application-key="physical-target"] option[value="std/aarch64/raspberry-pi-5"]')).toHaveCount(0);
+  await expect(runner.locator('[data-application-key="physical-target"] option[value="conduitos/armv7/raspberry-pi-3"]')).toHaveCount(0);
 });

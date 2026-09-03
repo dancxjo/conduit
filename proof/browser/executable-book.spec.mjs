@@ -490,7 +490,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     const stagedBodyId = await birth.getAttribute("data-body-id");
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+    await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     let evidence = JSON.parse(await runner.locator("details code").textContent());
     const c3Manifest = JSON.parse(await readFile(
@@ -547,7 +547,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await expect(page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" })).toBeDisabled();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const conduitosRunner = page.locator(".physical-host-runner");
-    await conduitosRunner.locator(".physical-target").selectOption("conduitos/x86_64/pc");
+    await conduitosRunner.locator('[data-application-key="physical-target"]').selectOption("conduitos/x86_64/pc");
     await expect(conduitosRunner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await conduitosRunner.getByRole("button", { name: "Bind Body invitation" }).click();
     const conduitosDownload = conduitosRunner.locator('[data-application-key="download-spore"]');
@@ -617,7 +617,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
     await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+    await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
     await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence).toMatchObject({ binding: null, realization: null, observation: null, admission: null });
@@ -771,7 +771,7 @@ test("the standalone Crèche physical Host selects use only the custom dropdown 
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await birthStandaloneBody(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
-  const selects = page.locator(".physical-host-runner .physical-mode, .physical-host-runner .physical-target");
+  const selects = page.locator('.physical-host-runner [data-application-key="physical-mode"], .physical-host-runner [data-application-key="physical-target"]');
   await expect(selects).toHaveCount(2);
   const appearances = await selects.evaluateAll(
     (elements) => elements.map((element) => getComputedStyle(element).appearance),
@@ -849,41 +849,33 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   const catalogSource = await (await page.request.get(new URL("./creche-target-catalog.mjs", entrance.url).href)).text();
   expect(source).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
   expect(catalogSource).not.toMatch(/rp2040|pico|webusb|webserial|\busb\b|serial|uf2|picoboot|baud|vendor.?id|product.?id|flash/i);
-  await expect(runner.locator(".physical-mode option")).toHaveCount(3);
-  await expect(runner.locator(".physical-target optgroup")).toHaveCount(8);
-  await expect(runner.locator(".physical-target optgroup").nth(0)).toHaveAttribute("label", "RP2040 boards");
-  await expect(runner.locator(".physical-target optgroup").nth(1)).toHaveAttribute("label", "SparkFun Pro Micro");
-  await expect(runner.locator(".physical-target optgroup").nth(2)).toHaveAttribute("label", "ESP32 boards");
-  await expect(runner.locator(".physical-target optgroup").nth(3)).toHaveAttribute("label", "Hosted computers");
-  await expect(runner.locator(".physical-target optgroup").nth(4)).toHaveAttribute("label", "Browser Hosts");
-  await expect(runner.locator(".physical-target optgroup").nth(5)).toHaveAttribute("label", "Orange Pi computers");
-  await expect(runner.locator(".physical-target optgroup").nth(6)).toHaveAttribute("label", "Raspberry Pi computers");
-  await expect(runner.locator(".physical-target optgroup").nth(7)).toHaveAttribute("label", "ConduitOS machines");
-  await expect(runner.locator(".physical-target option")).toHaveText([
-    "Raspberry Pi Pico W · RP2040",
-    "Pro Micro · ATmega32U4 · 5 V / 16 MHz",
-    "ESP32-C3",
-    "ESP32-S3",
-    "ESP32-WROOM-32 · HW-463",
-    "Hosted computer · Linux · x86_64",
-    "Hosted computer · Windows · x86_64",
-    "Hosted computer · macOS · arm64",
-    "Browser page Host",
-    "Orange Pi 5 · RK3588S · bare-metal ConduitOS",
-    "Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
-    "Pi Zero 2 W rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
-    "Pi Zero 2 WH rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
-    "Model B+ v1.2 · ARMv6 · bare-metal ConduitOS",
-    "Pi Zero v1 · ARMv6 · bare-metal ConduitOS",
-    "Pi Zero W v1.1 · ARMv6 · bare-metal ConduitOS",
-    "Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
-    "x86_64 PC · product Host",
-    "AArch64 virt · product Host",
-    "IA-32 PC · product Host",
-    "RISC-V64 virt · product Host",
-    "LoongArch64 virt · product Host",
+  await expect(runner.locator('[data-application-key="physical-mode"] option')).toHaveCount(3);
+  const targetOptions = runner.locator('[data-application-key="physical-target"] option');
+  await expect(targetOptions).toHaveText([
+    "RP2040 boards · Raspberry Pi Pico W · RP2040",
+    "SparkFun Pro Micro · Pro Micro · ATmega32U4 · 5 V / 16 MHz",
+    "ESP32 boards · ESP32-C3",
+    "ESP32 boards · ESP32-S3",
+    "ESP32 boards · ESP32-WROOM-32 · HW-463",
+    "Hosted computers · Hosted computer · Linux · x86_64",
+    "Hosted computers · Hosted computer · Windows · x86_64",
+    "Hosted computers · Hosted computer · macOS · arm64",
+    "Browser Hosts · Browser page Host",
+    "Orange Pi computers · Orange Pi 5 · RK3588S · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
+    "Raspberry Pi computers · Pi Zero 2 W rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+    "Raspberry Pi computers · Pi Zero 2 WH rev 1.0 · Raspberry Pi OS Bookworm 64-bit",
+    "Raspberry Pi computers · Model B+ v1.2 · ARMv6 · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi Zero v1 · ARMv6 · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi Zero W v1.1 · ARMv6 · bare-metal ConduitOS",
+    "Raspberry Pi computers · Pi Zero WH v1.1 · ARMv6 · bare-metal ConduitOS",
+    "ConduitOS machines · x86_64 PC · product Host",
+    "ConduitOS machines · AArch64 virt · product Host",
+    "ConduitOS machines · IA-32 PC · product Host",
+    "ConduitOS machines · RISC-V64 virt · product Host",
+    "ConduitOS machines · LoongArch64 virt · product Host",
   ]);
-  await expect(runner.locator(".physical-target")).toHaveValue("conduitos/thumbv6m/pico-w");
+  await expect(runner.locator('[data-application-key="physical-target"]')).toHaveValue("conduitos/thumbv6m/pico-w");
 
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.catalog).toMatchObject({
@@ -920,7 +912,7 @@ test("the physical workflow renders one adapter-owned catalog without learning t
     maximumRetainedEvidenceBytes: 131072,
   });
 
-  await runner.locator(".physical-mode").selectOption("install-existing");
+  await runner.locator('[data-application-key="physical-mode"]').selectOption("install-existing");
   await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.intention).toMatchObject({ mode: "install-existing", result_kind: "installation", supported: false });
@@ -932,7 +924,7 @@ test("the physical workflow renders one adapter-owned catalog without learning t
   });
   expect(evidence.admitted_operations).toBe(1);
 
-  await runner.locator(".physical-mode").selectOption("attach-running");
+  await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
   await expect(runner.locator("details code")).toContainText('"terminal": "UnsupportedCombination"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.intention).toMatchObject({ mode: "attach-running", result_kind: "attachment", supported: false });
@@ -945,8 +937,8 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   const birth = await birthStandaloneBody(page, { sourceVariant: "browser-existing-computer" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("browser/wasm32/page");
-  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
   await runner.getByRole("button", { name: "Review Host" }).click();
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   let evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -1044,8 +1036,8 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   await birthStandaloneBody(page, { sourceVariant: "native-existing-computer" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("std/x86_64/computer");
-  await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("install-existing");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
@@ -1138,7 +1130,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
     await birthStandaloneBody(page, { sourceVariant: `native-${profile.os}-${index}` });
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption(profile.id);
+    await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
@@ -1177,7 +1169,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     await birthStandaloneBody(page, { sourceVariant: `esp32-${index}` });
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
-    await runner.locator(".physical-target").selectOption(profile.id);
+    await runner.locator('[data-application-key="physical-target"]').selectOption(profile.id);
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     let evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry.target.profile_id).toBe(profile.profileId);
@@ -1232,7 +1224,7 @@ test("an unavailable generic ESP32 release refuses before device authority or sp
   await birthStandaloneBody(page, { sourceVariant: "esp32-release-absent" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
   await expect(runner.locator("details code")).toContainText('"terminal": "ArtifactUnavailable"');
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ binding: null, realization: null, observation: null, admission: null });
@@ -1263,7 +1255,7 @@ test("the ESP32 Crèche adapter refuses a wrong serial port as its own terminal"
   await birthStandaloneBody(page, { sourceVariant: "esp32-wrong-port" });
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
+  await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);

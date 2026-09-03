@@ -69,7 +69,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
   const release = await installReviewedRelease(page);
   await birthBody(page);
   const runner = page.locator(".physical-host-runner");
-  await runner.locator(".physical-target").selectOption(TARGET_ID);
+  await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET_ID);
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
 
   let evidence = JSON.parse(await runner.locator("details code").textContent());

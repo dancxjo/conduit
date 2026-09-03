@@ -26,7 +26,7 @@
     { "role": "creche-lifecycle", "kind": "module", "path": "creche-lifecycle.mjs", "maximum_bytes": 24576, "dependencies": [{"role":"creche-names","specifier":"./creche-names.mjs"}] },
     { "role": "creche-names", "kind": "module", "path": "creche-names.mjs", "maximum_bytes": 53248, "dependencies": [] },
     { "role": "creche-physical", "kind": "module", "path": "creche-physical.mjs", "maximum_bytes": 32768, "dependencies": [{"role":"creche-target-catalog","specifier":"./creche-target-catalog.mjs"},{"role":"creche-physical-presentation","specifier":"./creche-physical-presentation.mjs"}] },
-    { "role": "creche-physical-presentation", "kind": "module", "path": "creche-physical-presentation.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "creche-physical-presentation", "kind": "module", "path": "creche-physical-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "creche-target-catalog", "kind": "module", "path": "creche-target-catalog.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "creche-browser-configuration", "kind": "module", "path": "creche-browser-configuration.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "creche-graduation", "kind": "module", "path": "creche-graduation.mjs", "maximum_bytes": 12288, "dependencies": [] },

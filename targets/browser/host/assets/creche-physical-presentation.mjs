@@ -38,3 +38,39 @@ export function presentPhysicalArtifact(state, artifact, onHandoff) {
     if (event.action === "artifact.handoff") void onHandoff(artifact);
   } });
 }
+
+export function presentPhysicalSelection(state) {
+  const controlState = state.selectionDisabled ? "unavailable" : "ready";
+  const support = state.entry.intentions;
+  state.presentation.present("physical-mode-control", {
+    revision: ++state.presentationRevision,
+    actions: state.selectionDisabled ? [] : [{ id: "physical.mode", event: "change" }],
+    nodes: [
+      { parent: null, component: "form-field", action: null, key: "physical-mode-field", text: "" },
+      { parent: 0, component: "field-label", action: null, key: "physical-mode-label", text: "Intention" },
+      { parent: 0, component: "select", state: controlState, action: state.selectionDisabled ? null : 0, key: "physical-mode", text: "Intention", value: state.mode, valueCapacity: 64 },
+      { parent: 0, component: "field-help", action: null, key: "physical-mode-help", text: "Choose fabrication, installation, or attachment without implying lifecycle progress." },
+      ...state.intentions.map((intention, index) => {
+        const available = support.find((candidate) => candidate.id === intention.id).supported;
+        return { parent: 2, component: "option", action: null, key: `physical-mode-${index}`, text: `${intention.label}${available ? "" : " · unavailable for this target"}`, value: intention.id, valueCapacity: 64 };
+      }),
+    ],
+  }, { onEvent(event) {
+    state.presentation.nextEvent("physical-mode-control");
+    state.changeMode(new TextDecoder().decode(event.value));
+  } });
+  state.presentation.present("physical-target-control", {
+    revision: ++state.presentationRevision,
+    actions: state.selectionDisabled ? [] : [{ id: "physical.target", event: "change" }],
+    nodes: [
+      { parent: null, component: "form-field", action: null, key: "physical-target-field", text: "" },
+      { parent: 0, component: "field-label", action: null, key: "physical-target-label", text: "Target" },
+      { parent: 0, component: "select", state: controlState, action: state.selectionDisabled ? null : 0, key: "physical-target", text: "Target", value: state.entry.target.id, valueCapacity: 256 },
+      { parent: 0, component: "field-help", action: null, key: "physical-target-help", text: "Each option retains its authoritative catalog family, model, and profile identity." },
+      ...state.catalog.entries.map((entry, index) => ({ parent: 2, component: "option", action: null, key: `physical-target-${index}`, text: `${entry.family.label} · ${entry.target.label}`, value: entry.target.id, valueCapacity: 256 })),
+    ],
+  }, { onEvent(event) {
+    state.presentation.nextEvent("physical-target-control");
+    state.changeTarget(new TextDecoder().decode(event.value));
+  } });
+}
