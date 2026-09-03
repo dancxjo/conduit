@@ -23,7 +23,9 @@ h1,h2,h3 { color:var(--amber); }
 #workspace { display:grid; gap:1rem; }
 .runner, .physical-host-runner, .graduation-runner, .creche-complete { display:grid; gap:1rem; padding:1.25rem; border:1px solid var(--line); border-radius:.85rem; background:var(--panel); }
 .editor, .result { min-width:0; }
-.birth-presentation [data-application-key="birth-editor"] { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; align-content:start; }
+.birth-presentation { display:grid; gap:1rem; }
+.birth-presentation [data-application-component="stack"] { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; align-content:start; }
+.birth-presentation [data-application-component="form-field"] { display:grid; gap:.4rem; }
 .birth-field { display:grid; grid-template-columns:minmax(0,1fr); gap:.4rem; min-width:0; position:relative; }
 .birth-presentation select, .birth-presentation input, .birth-presentation textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
 .birth-presentation select:hover, .birth-presentation input:hover, .birth-presentation textarea:hover { border-color:var(--amber); }

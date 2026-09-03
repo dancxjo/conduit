@@ -16,6 +16,9 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
+  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
+  await expect(name).toHaveAttribute("aria-describedby", /description/);
+  await expect(birth.getByLabel("Conduit Seed source")).toHaveAttribute("aria-describedby", /description/);
   await expect(tradition.locator("option")).toHaveCount(24);
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 0");
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("not the Body ID");
@@ -74,7 +77,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   await expect(name).toHaveValue("TARGUS TARGUS");
 
   await tradition.selectOption("kurmanji");
-  const slot = birth.locator('[data-application-slot="birth-controls"]');
+  const slot = birth.locator('[data-application-slot="birth-fields"]');
   const revision = Number(await slot.getAttribute("data-application-revision"));
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(revision);
