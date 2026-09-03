@@ -106,6 +106,7 @@ on:
       - proof/browser/browser-application-package.spec.mjs
       - proof/browser/browser-bundle-build.spec.mjs
       - proof/browser/browser-boot-profile.spec.mjs
+      - proof/browser/browser-form-runner.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
