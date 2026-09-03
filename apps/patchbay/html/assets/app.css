@@ -27,6 +27,7 @@ nav a,button,summary { color:inherit; background:var(--patchbay-surface); border
 nav a { text-decoration:none; }
 nav a:hover,summary:hover,button:not(:disabled):not([aria-pressed="true"]):not([aria-current="page"]):not([aria-expanded="true"]):hover { border-color:var(--patchbay-emphasis); color:var(--patchbay-emphasis); }
 .lens-controls { display:flex; gap:.25rem; }
+.place-controls nav,.lens-controls nav { position:static; inset:auto; display:flex; width:auto; max-width:none; margin:0; padding:0; gap:.25rem; border:0; background:transparent; }
 .lens-controls button[aria-pressed="true"] { color:var(--patchbay-background); background:var(--patchbay-emphasis); }
 nav a:focus-visible,button:focus-visible,[role="button"]:focus-visible,summary:focus-visible { color:var(--patchbay-background); background:var(--patchbay-focus); outline:3px solid var(--patchbay-focus); outline-offset:2px; }
 input:focus-visible,select:focus-visible,textarea:focus-visible { border-color:var(--patchbay-focus); outline:3px solid var(--patchbay-focus); outline-offset:2px; }

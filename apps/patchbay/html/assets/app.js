@@ -44,6 +44,23 @@ function presentSharedStatus(slot, text, component = "status") {
   sharedRevisions.set(slot, revision);
   applicationPresentation.present(slot, { revision, actions: [], nodes: [{ parent: null, component, key: "status", text, action: null }] });
 }
+function presentNavigation(slot, label, entries, currentKey) {
+  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
+  sharedRevisions.set(slot, revision);
+  applicationPresentation.present(slot, {
+    revision,
+    actions: entries.map((_, index) => ({ id: `navigate-${index}`, event: "activate" })),
+    nodes: [
+      { parent: null, component: "navigation", key: "navigation", text: label, value: currentKey ?? "", valueCapacity: currentKey ? 32 : 0, action: null },
+      ...entries.map((entry, index) => ({ parent: 0, component: "button", key: entry.key, text: entry.label, action: index })),
+    ],
+  }, { onEvent(event) {
+    applicationPresentation.nextEvent(slot);
+    entries[Number(event.action.slice("navigate-".length))]?.run();
+  } });
+  const controls = document.querySelector(`[data-application-slot="${slot}"]`).querySelectorAll("button");
+  controls.forEach((control, index) => entries[index].annotate?.(control));
+}
 function presentStatus(text, component = "status") {
   applicationPresentation.present("patchbay-status", {
     revision: ++statusRevision,
@@ -337,10 +354,10 @@ function renderStructuredNavigator(){
 }
 function renderNavigationControls(){
   const bundle=state.snapshot.navigation;if(!bundle)return;
-  const cursor=bundle.cursor,places=document.querySelector("#place-controls"),aspects=document.querySelector("#aspect-controls"),current=bundle.navigation.places.find(place=>place.place===cursor.place);places.replaceChildren();aspects.replaceChildren();
-  const back=document.createElement("button");back.type="button";back.textContent="Back";back.dataset.navigationBack="true";back.onclick=()=>dispatchNavigation({kind:"back"});places.append(back);
-  for(const place of bundle.navigation.places){const button=document.createElement("button");button.type="button";button.textContent=place.label;button.dataset.place=place.place;button.setAttribute("aria-pressed",String(place.place===cursor.place));button.onclick=()=>dispatchNavigation({kind:"enter",place:place.place});places.append(button);}
-  for(const aspect of current.aspects){const button=document.createElement("button");button.type="button";button.textContent=aspect.aspect;button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));button.onclick=()=>dispatchNavigation({kind:"show",aspect:aspect.aspect});aspects.append(button);}
+  const cursor=bundle.cursor,current=bundle.navigation.places.find(place=>place.place===cursor.place);
+  const places=[{key:"back",label:"Back",run:()=>dispatchNavigation({kind:"back"}),annotate:button=>button.dataset.navigationBack="true"},...bundle.navigation.places.map((place,index)=>({key:`place-${index}`,label:place.label,run:()=>dispatchNavigation({kind:"enter",place:place.place}),annotate:button=>{button.dataset.place=place.place;button.setAttribute("aria-pressed",String(place.place===cursor.place));}}))];
+  presentNavigation("place-controls","Available Places",places,`place-${bundle.navigation.places.findIndex(place=>place.place===cursor.place)}`);
+  presentNavigation("aspect-controls","Available Aspects",current.aspects.map((aspect,index)=>({key:`aspect-${index}`,label:aspect.aspect,run:()=>dispatchNavigation({kind:"show",aspect:aspect.aspect}),annotate:button=>{button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));}})),`aspect-${current.aspects.findIndex(aspect=>aspect.aspect===cursor.aspect)}`);
 }
 function selectLens(lens){const aspect=({world:"Structure",form:"Structure",plan:"Plan",play:"Play",signs:"Signs"})[lens];return state.snapshot.navigation?dispatchNavigation({kind:"show",aspect}):Promise.resolve();}
 
