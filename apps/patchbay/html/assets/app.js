@@ -313,10 +313,10 @@ function renderBodyWorkbench(workbench){
   document.querySelector("#body-workbench-status").textContent=current.status_line;
   document.querySelector("#body-workbench-placement").textContent=current.placement_line;
   const action=document.querySelector("#body-workbench-action");action.textContent=current.salient_action;action.dataset.semanticAction=current.salient_action.toLowerCase();
-  const facts=document.querySelector("#body-workbench-current dl");facts.replaceChildren();term(facts,"Program",current.program.label);term(facts,"Lifecycle",typeof current.lifecycle==="string"?current.lifecycle:Object.keys(current.lifecycle)[0]);term(facts,"Durable Parts",current.admitted_parts);term(facts,"Current Hosts",current.current_hosts.length);term(facts,"Physical Hosts","Not evidenced");
-  const exact=document.querySelector(".body-workbench-exact");exact.replaceChildren();term(exact,"Body",current.body_id);term(exact,"Source document",current.program.source_document_id);term(exact,"Checked Form",current.program.checked_form_id);term(exact,"Evidence revision",current.evidence_revision);
-  const entries=document.querySelector("#body-workbench-history>ol"),linear=document.querySelector(".body-workbench-linear");entries.replaceChildren();linear.replaceChildren();
-  for(const entry of history.entries){const item=document.createElement("li"),title=document.createElement("strong"),narrative=document.createElement("p"),evidence=document.createElement("details"),summary=document.createElement("summary"),code=document.createElement("code"),line=document.createElement("li");title.textContent=entry.title;narrative.textContent=entry.narrative;summary.textContent="Exact evidence";code.textContent=JSON.stringify(entry.exact);evidence.append(summary,code);item.append(title,narrative,evidence);entries.append(item);line.textContent=entry.linear;linear.append(line);}
+  presentDefinitions("body-workbench-facts",[["Program",current.program.label],["Lifecycle",typeof current.lifecycle==="string"?current.lifecycle:Object.keys(current.lifecycle)[0]],["Durable Parts",current.admitted_parts],["Current Hosts",current.current_hosts.length],["Physical Hosts","Not evidenced"]]);
+  presentDefinitions("body-workbench-exact",[["Body",current.body_id],["Source document",current.program.source_document_id],["Checked Form",current.program.checked_form_id],["Evidence revision",current.evidence_revision]]);
+  sharedPresentation.boundedArtifacts("body-history",history.entries.map(entry=>({title:entry.title,details:[entry.narrative],actions:[],disclosureLabel:"Exact evidence",exactValue:JSON.stringify(entry.exact),language:"json"})));
+  sharedPresentation.boundedArtifacts("body-linear",history.entries.map((entry,index)=>({title:`Evidence ${index+1}`,details:[],actions:[],exactValue:entry.linear,disclosureLabel:"BODY / SIGNS evidence"})));
 }
 
 function render(snapshot){

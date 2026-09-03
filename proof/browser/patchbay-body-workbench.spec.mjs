@@ -83,10 +83,10 @@ for (const entrance of ["hosted", "external"]) {
       await historyButton.click();
     }
     await expect(page.getByRole("heading", { name: "What has happened to it?" })).toBeVisible();
-    await expect(page.locator("#body-workbench-history>ol>li")).toHaveCount(4);
-    await expect(page.locator("#body-workbench-history>ol")).toContainText("Graduated from the Crèche");
+    await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(4);
+    await expect(page.locator("#body-history")).toContainText("Graduated from the Crèche");
     await page.getByText("Linear BODY / SIGNS evidence", { exact: true }).click();
-    await expect(page.locator(".body-workbench-linear>li")).toHaveCount(4);
+    await expect(page.locator('#body-linear [data-application-component="artifact"]')).toHaveCount(4);
     await expect(page.locator("body")).toHaveAttribute("data-place", "Body");
     await expect(page.locator("body")).toHaveAttribute("data-aspect", "Signs");
 
@@ -96,7 +96,7 @@ for (const entrance of ["hosted", "external"]) {
 
     await workbenchNavigation.getByRole("button", { name: "Body", exact: true }).click();
     await page.locator("#body-workbench-current details summary").click();
-    await expect(page.locator(".body-workbench-exact")).toContainText(snapshot.body_workbench.body_id);
+    await expect(page.locator("#body-workbench-exact")).toContainText(snapshot.body_workbench.body_id);
 
     await page.getByRole("button", { name: "Wake", exact: true }).click();
     await expect(page.locator("#front-door-feedback")).toContainText(
