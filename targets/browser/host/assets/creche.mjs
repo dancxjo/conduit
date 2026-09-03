@@ -13,11 +13,6 @@ import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "./targets/orange-pi/browse
 import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/raspberry-pi/browser-deployment/creche-adapter.mjs";
 import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/conduitos/browser-deployment/creche-adapter.mjs";
 
-const MORSE_NETWORK = await fetch(new URL("./forms/initial-body.conduit", import.meta.url), { cache: "no-store" })
-  .then((response) => {
-    if (!response.ok) throw new Error(`reviewed Form inventory unavailable (${response.status})`);
-    return response.text();
-  });
 const steps = [
   { name: "Birth", slug: "birth" },
   { name: "First Host", slug: "first-host" },
@@ -30,6 +25,7 @@ let presentationFor;
 let storage;
 let host;
 let routing;
+let initialFormSource;
 let durableWrite = Promise.resolve();
 let durabilityFailure = null;
 let currentStep = 0;
@@ -54,6 +50,7 @@ export async function startApplication(application) {
   presentation = application.presentation;
   presentationFor = application.presentationFor;
   storage = application.storage;
+  initialFormSource = application.text("reviewed-form-inventory");
   renderHostStatus("Starting browser Host…", "status");
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
   host = Object.freeze({ ...initialized, admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot });
@@ -120,7 +117,7 @@ function renderStep() {
   heading.textContent = steps[currentStep].name;
   workspace.append(heading);
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
-    source: MORSE_NETWORK, sourceKey: "standalone-creche", listingId: "creche-forms", host,
+    source: initialFormSource, sourceKey: "standalone-creche", listingId: "creche-forms", host,
     presentationFor, nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: bodyChanged,
   }));
   if (currentStep === 1) workspace.append(createFirstHostRunner({
