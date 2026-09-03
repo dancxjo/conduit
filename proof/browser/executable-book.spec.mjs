@@ -156,7 +156,7 @@ test("every Book page and Crèche step has a direct, history-aware route", async
 
   await openStandaloneCreche(page);
   await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Crèche ready");
-  await expect(page.locator('.creche-steps [data-application-component="navigation"]')).toBeVisible();
+  await expect(page.locator('.creche-steps [data-application-component="stepper"]')).toBeVisible();
   const steps = ["birth", "first-host", "physical-host", "graduate"];
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
   for (let index = 1; index < steps.length; index += 1) {
@@ -747,7 +747,7 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
     runner.getByLabel("Initial program").boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
     runner.locator('[data-application-key="seed-source"]').boundingBox(),
-    runner.locator('[data-application-key="birth-editor"]').boundingBox(),
+    runner.locator(".birth-presentation").boundingBox(),
   ]);
   for (const box of [program, name, source, editor]) expect(box).not.toBeNull();
   expect(program.y + program.height).toBeLessThanOrEqual(name.y);
