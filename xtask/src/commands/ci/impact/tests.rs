@@ -78,6 +78,23 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(semantic.workspace_shards["portable"]);
     assert!(!semantic.workspace_shards["pico"]);
 
+    let scientific_data = plan_for_paths(
+        &root,
+        vec!["semantics/data/src/scientific_observation.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!scientific_data.full_fallback);
+    assert!(!scientific_data.esp32_required);
+    assert!(scientific_data.browser_required);
+    assert!(!scientific_data.conduitos_required);
+    assert!(scientific_data.workspace_shards["lint"]);
+    assert!(scientific_data.workspace_shards["portable"]);
+    assert!(scientific_data.workspace_shards["pico"]);
+    assert!(scientific_data.workspace_shards["test-foundation"]);
+    assert!(scientific_data.workspace_shards["test-hosts"]);
+    assert!(scientific_data.workspace_shards["test-products"]);
+
     let browser = plan_for_paths(
         &root,
         vec!["targets/browser/runtime/src/lib.rs".to_owned()],
