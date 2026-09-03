@@ -195,7 +195,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-truth").click();
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
-    await expect(page.locator("#route-cards h3").first()).toContainText("Route");
+    await expect(page.locator('#route-cards [data-application-component="artifact"]').first()).toContainText("Route");
     await expect(page.locator('#diagnostics [data-application-component="code-block"]')).toHaveCount(0);
     await expect(page.locator('#realizations [data-application-component="disclosure"]').first()).toBeVisible();
     await page.locator('#realizations [data-application-component="disclosure"] summary').first().click();
@@ -215,8 +215,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/document-ready · Available");
     await expect(page.locator('#topology [data-application-component="code-block"]').first()).toContainText("boot");
-    await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/usb-cdc-acm@1"}).first()).toBeVisible();
-    await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/websocket-rfc6455@1"}).first()).toBeVisible();
+    await expect(page.locator("#route-cards")).toContainText("conduit.base/usb-cdc-acm@1");
+    await expect(page.locator("#route-cards")).toContainText("conduit.base/websocket-rfc6455@1");
     const workspace=await page.locator(".workspace").boundingBox();
     const canvas=await page.locator("#form").boundingBox();
     await page.locator("#toggle-inspector").click();
