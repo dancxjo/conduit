@@ -296,10 +296,10 @@ function renderParts(){
 
 function shortId(value){return value&&value!=="unsupported"?`${value.slice(0,10)}…`:"not present";}
 function renderStructuredNavigator(){
-  const list=document.querySelector("#structured-navigator ul"),focused=document.activeElement?.dataset?.subject;list.replaceChildren();
-  for(const subject of state.projected.subjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed",String(subject.identity===state.selected));button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}
-  for(const follow of state.projected.follows.filter(candidate=>candidate.source_subject===state.projected.cursor.focus)){const destination=state.snapshot.presentation.subjects.find(subject=>subject.identity===follow.target_subject);if(!destination)throw new Error("portable FOLLOW destination is absent");const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.follow=follow.identity;button.textContent=`Follow ${follow.relationship} to ${destination.role}: ${destination.accessibility_name}`;button.onclick=()=>dispatchNavigation({kind:"follow",relationship:follow.identity});li.append(button);list.append(li);}
-  if(focused)list.querySelector(`[data-subject="${CSS.escape(focused)}"]`)?.focus();
+  const focused=document.activeElement?.dataset?.subject,entries=state.projected.subjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.accessibility_name}`,run:()=>select(subject.identity),annotate:button=>{button.dataset.subject=subject.identity;button.dataset.role=subject.role;}}));
+  for(const follow of state.projected.follows.filter(candidate=>candidate.source_subject===state.projected.cursor.focus)){const destination=state.snapshot.presentation.subjects.find(subject=>subject.identity===follow.target_subject);if(!destination)throw new Error("portable FOLLOW destination is absent");entries.push({identity:follow.identity,text:`Follow ${follow.relationship} to ${destination.role}: ${destination.accessibility_name}`,run:()=>dispatchNavigation({kind:"follow",relationship:follow.identity}),annotate:button=>button.dataset.follow=follow.identity});}
+  sharedPresentation.boundedList("structured-subjects",entries,state.selected);
+  if(focused)document.querySelector(`#structured-subjects [data-subject="${CSS.escape(focused)}"]`)?.focus();
 }
 function renderNavigationControls(){
   const bundle=state.snapshot.navigation;if(!bundle)return;
