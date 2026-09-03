@@ -11,6 +11,19 @@ const state = { snapshot:null, projected:null, selected:null, selectedPart:null,
 const applicationPresentation = createApplicationPresentationHost();
 let admittedRuntimeBytes = null;
 let statusRevision = 0;
+const sharedRevisions = new Map();
+function presentDefinitions(slot, entries) {
+  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
+  sharedRevisions.set(slot, revision);
+  applicationPresentation.present(slot, {
+    revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "definition-table", key: "facts", text: "Exact facts", action: null },
+      ...entries.map(([name, value], index) => ({ parent: 0, component: "definition", key: `fact-${index}`, text: name, value: String(value ?? "not present"), valueCapacity: 65_536, action: null })),
+    ],
+  });
+}
 function presentStatus(text, component = "status") {
   applicationPresentation.present("patchbay-status", {
     revision: ++statusRevision,
@@ -58,12 +71,18 @@ function actionAvailability(action){
   throw new Error("unsupported semantic action availability");
 }
 function renderSemanticActions(identity){
-  const container=document.querySelector("#semantic-actions"),current=new Map([...container.querySelectorAll("button[data-semantic-action]")].map(button=>[button.dataset.semanticAction,button])),desired=semanticActions(identity),desiredIds=new Set(desired.map(action=>action.identity));
-  for(const button of current.values())if(!desiredIds.has(button.dataset.semanticAction)){document.getElementById(`${button.dataset.semanticAction}-availability`)?.remove();button.remove();}
-  for(const action of desired){
-    const availability=actionAvailability(action),button=current.get(action.identity)??document.createElement("button");button.type="button";button.textContent=action.label.toUpperCase();button.disabled=!availability.available;button.dataset.semanticAction=action.identity;button.setAttribute("aria-describedby",`${action.identity}-availability`);button.onclick=()=>dispatchSemanticAction(action);
-    let status=document.getElementById(`${action.identity}-availability`);if(!status){status=document.createElement("span");status.id=`${action.identity}-availability`;status.className="semantic-action-availability";container.append(button,status);}status.textContent=availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state;
-  }
+  const desired=semanticActions(identity),revision=(sharedRevisions.get("semantic-actions")??0)+1;sharedRevisions.set("semantic-actions",revision);
+  applicationPresentation.present("semantic-actions",{
+    revision,
+    actions:desired.map((_,index)=>({id:`semantic-${index}`,event:"activate"})),
+    nodes:[
+      {parent:null,component:"action-group",key:"semantic-actions",text:"Selected subject actions",action:null},
+      ...desired.flatMap((action,index)=>{const availability=actionAvailability(action);return [
+        {parent:0,component:"button",key:`semantic-${index}`,text:action.label.toUpperCase(),state:availability.available?"ready":"unavailable",action:availability.available?index:null},
+        {parent:0,component:availability.state==="Refused"?"refused-evidence":availability.state==="Unavailable"?"missing-evidence":"status",key:`availability-${index}`,text:availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state,action:null},
+      ];}),
+    ],
+  },{onEvent(event){const index=Number(event.action.slice("semantic-".length));dispatchSemanticAction(desired[index]);}});
 }
 function propertyText(value){
   if(value.Identity!==undefined)return value.Identity;
@@ -75,27 +94,27 @@ function propertyText(value){
 }
 
 function displaySelection(identity){
-  const focusedAction=document.activeElement?.dataset?.semanticAction;
   state.selected=identity;
   document.querySelectorAll("[data-subject]").forEach(item=>{const selected=item.dataset.subject===identity;item.classList.toggle("selected",selected);if(item.tagName==="BUTTON")item.setAttribute("aria-pressed",String(selected));});
   const subject=state.projected.subjects.find(item=>item.identity===identity);
   document.body.dataset.inspectorOpen=String(state.inspectorOpen);
   document.querySelector("#toggle-inspector").setAttribute("aria-expanded",String(state.inspectorOpen));
-  const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection"),exactFacts=exact.querySelector("dl");summary.replaceChildren();exactFacts.replaceChildren();
+  const summary=document.querySelector("#inspector .selected-summary"),exact=document.querySelector("#inspector .exact-selection");
   document.querySelector("#clear-selection").hidden=!subject;
   document.querySelector("#center-flow").disabled=!subject;
-  if(!subject){document.querySelector("#semantic-actions").replaceChildren();document.querySelector("#authoring-actions").replaceChildren();renderTimeline(null);renderWatches(null);exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
-  const depth=state.projected.cursor?.depth??"Exact";exact.hidden=!(["Detail","Exact"].includes(depth));document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;term(summary,"Meaning",subject.label);term(summary,"Subject",subject.role);
-  const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name));for(const item of visible){const name=item.name.startsWith("authored-control-")?"Authored configuration":item.name,full=propertyText(item.value);term(summary,name,summaryText(item.value),full);}
-  if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));term(summary,"Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below");}
-  if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")term(summary,"Layer",`No ${state.lens} facts for this subject; semantic selection retained`);
-  term(exactFacts,"Presentation subject",identity);for(const item of selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")))term(exactFacts,item.name,propertyText(item.value));
-  if(depth==="Exact"){const manifestation=state.snapshot.renderer.manifestation;term(exactFacts,"Body",state.snapshot.presentation.basis.body_id);term(exactFacts,"Wake",state.snapshot.presentation.basis.wake_id);term(exactFacts,"Source Plan",state.snapshot.presentation.basis.plan_id);term(exactFacts,"Source Play",state.snapshot.presentation.basis.active_play_id);term(exactFacts,"Renderer Plan",manifestation.plan_id);term(exactFacts,"Renderer Play",manifestation.active_play_id);term(exactFacts,"Manifestation",manifestation.manifestation_id);term(exactFacts,"Manifestation lifecycle",manifestation.lifecycle);}
+  if(!subject){presentDefinitions("selection-summary",[]);presentDefinitions("selection-exact",[]);renderSemanticActions(null);document.querySelector("#authoring-actions").replaceChildren();renderTimeline(null);renderWatches(null);exact.hidden=true;document.querySelector("#inspector .inspector-hint").textContent="Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.";return;}
+  const depth=state.projected.cursor?.depth??"Exact";exact.hidden=!(["Detail","Exact"].includes(depth));document.querySelector("#inspector .inspector-hint").textContent=subject.accessibility_name;
+  const selectedProperties=projectedProperties(identity),visible=selectedProperties.filter(item=>lensProperty(state.lens,item.name)),summaryFacts=[["Meaning",subject.label],["Subject",subject.role],...visible.map(item=>[item.name.startsWith("authored-control-")?"Authored configuration":item.name,summaryText(item.value)])];
+  if(state.lens==="signs"){const signs=selectedProperties.filter(item=>item.name.startsWith("sign-"));summaryFacts.push(["Evidence",signs.length?`${signs.length} subject-specific causal Sign${signs.length===1?"":"s"}`:"No subject-specific Signs; Plan-level evidence remains below"]);}
+  if(!visible.length&&state.lens!=="form"&&state.lens!=="signs")summaryFacts.push(["Layer",`No ${state.lens} facts for this subject; semantic selection retained`]);
+  presentDefinitions("selection-summary",summaryFacts);
+  const exactFacts=[["Presentation subject",identity],...selectedProperties.filter(item=>item.name==="semantic-id"||item.name.endsWith("-id")||item.name.startsWith("sign-")).map(item=>[item.name,propertyText(item.value)])];
+  if(depth==="Exact"){const manifestation=state.snapshot.renderer.manifestation;exactFacts.push(["Body",state.snapshot.presentation.basis.body_id],["Wake",state.snapshot.presentation.basis.wake_id],["Source Plan",state.snapshot.presentation.basis.plan_id],["Source Play",state.snapshot.presentation.basis.active_play_id],["Renderer Plan",manifestation.plan_id],["Renderer Play",manifestation.active_play_id],["Manifestation",manifestation.manifestation_id],["Manifestation lifecycle",manifestation.lifecycle]);}
+  presentDefinitions("selection-exact",exactFacts);
   renderSemanticActions(identity);
   renderAuthoringActions(subject);
   renderTimeline(subject);
   renderWatches(subject);
-  if(focusedAction)document.querySelector(`#semantic-actions [data-semantic-action="${CSS.escape(focusedAction)}"]`)?.focus();
 }
 
 function watchValue(entry){
@@ -264,17 +283,18 @@ function renderParts(){
   const focused=document.activeElement?.dataset?.partsAction?{action:document.activeElement.dataset.partsAction,target:document.activeElement.dataset.partsTarget}:null;
   document.querySelector("#parts-title").textContent=`Parts · ${shortId(view.body_id)}`;document.querySelector("#parts-lifecycle").textContent=view.awake?"AWAKE":"LULLED";
   const notice=document.querySelector("#parts-possibilities");notice.hidden=!view.new_realization_possibilities;notice.textContent=view.new_realization_possibilities?"New realization possibilities are available. The current Plan remains unchanged until Plan again is explicitly requested.":"";
-  const explanation=document.querySelector("#parts-truth-explanation");explanation.replaceChildren();for(const [label,key] of [["AVAILABLE","available"],["LINE READY","line_ready"],["LINE UNAVAILABLE","line_unavailable"],["IN PLAN","in_plan"],["PLAYING","playing"]]){term(explanation,label,view.truth_explanation[key]);}
+  presentDefinitions("parts-truth",[["AVAILABLE",view.truth_explanation.available],["LINE READY",view.truth_explanation.line_ready],["LINE UNAVAILABLE",view.truth_explanation.line_unavailable],["IN PLAN",view.truth_explanation.in_plan],["PLAYING",view.truth_explanation.playing]]);
   const parts=document.querySelector("#part-rows");parts.replaceChildren();
   for(const row of view.parts){const li=document.createElement("li"),summary=document.createElement("div"),stateText=document.createElement("strong"),badges=document.createElement("div"),actions=document.createElement("div");li.className="parts-row";summary.textContent=row.label;stateText.className="parts-row-state";stateText.textContent=`${row.state.toUpperCase()} · ${row.available?"AVAILABLE":"OFFLINE"}`;badges.className="parts-badges";for(const label of [row.in_plan?"IN PLAN":null,row.playing?"PLAYING":null].filter(Boolean)){const badge=document.createElement("span");badge.className="parts-badge";badge.textContent=label;badges.append(badge);}summary.append(badges);actions.className="parts-row-actions";for(const action of row.actions)actions.append(partsButton(action,row.details.part_id));li.append(summary,stateText,actions);parts.append(li);}
   const candidates=document.querySelector("#candidate-rows");candidates.replaceChildren();
   if(!view.wants_to_join.length){const li=document.createElement("li");li.textContent="No candidates currently want to join.";candidates.append(li);}
   for(const row of view.wants_to_join){const li=document.createElement("li"),summary=document.createElement("div"),stateText=document.createElement("strong"),actions=document.createElement("div");li.className="parts-row";summary.textContent=row.label;stateText.className="parts-row-state";stateText.textContent=`${row.state.replace(/([A-Z])/g," $1").trim().toUpperCase()} · AVAILABLE`;actions.className="parts-row-actions";for(const action of row.actions)actions.append(partsButton(action,row.candidate_id));li.append(summary,stateText,actions);candidates.append(li);}
   const toolbar=document.querySelector("#parts-actions");toolbar.replaceChildren();for(const action of view.actions)toolbar.append(partsButton(action,view.body_id));
-  const details=document.querySelector("#parts-details dl");details.replaceChildren();const selectedPart=view.parts.find(row=>row.details.part_id===state.snapshot.interaction.selected_part),selectedCandidate=view.wants_to_join.find(row=>row.candidate_id===state.snapshot.interaction.selected_candidate);
-  if(selectedPart){const d=selectedPart.details;term(details,"Part",d.part_id);term(details,"Host",d.host_id);term(details,"Boot",d.boot_id);term(details,"Offer generation",d.offer_generation);term(details,"Capabilities",d.capabilities.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none");term(details,"Admission proof",d.proof_reference);term(details,"Plan placements",d.planned_placements.join(", ")||"none");term(details,"Authority bindings",d.planned_authority_bindings);term(details,"Expected Signs",d.expected_signs);}
-  else if(selectedCandidate){term(details,"Candidate",selectedCandidate.candidate_id);term(details,"Host",selectedCandidate.host_id);term(details,"Boot",selectedCandidate.boot_id);term(details,"Offer generation",selectedCandidate.offer_generation);term(details,"Capabilities",selectedCandidate.capability_offers.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none");}
-  else term(details,"Selection","Inspect a Part or candidate to disclose exact facts.");
+  const selectedPart=view.parts.find(row=>row.details.part_id===state.snapshot.interaction.selected_part),selectedCandidate=view.wants_to_join.find(row=>row.candidate_id===state.snapshot.interaction.selected_candidate);let details;
+  if(selectedPart){const d=selectedPart.details;details=[["Part",d.part_id],["Host",d.host_id],["Boot",d.boot_id],["Offer generation",d.offer_generation],["Capabilities",d.capabilities.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none"],["Admission proof",d.proof_reference],["Plan placements",d.planned_placements.join(", ")||"none"],["Authority bindings",d.planned_authority_bindings],["Expected Signs",d.expected_signs]];}
+  else if(selectedCandidate)details=[["Candidate",selectedCandidate.candidate_id],["Host",selectedCandidate.host_id],["Boot",selectedCandidate.boot_id],["Offer generation",selectedCandidate.offer_generation],["Capabilities",selectedCandidate.capability_offers.map(item=>`${item.kind_id} (${item.capability_id})`).join(", ")||"none"]];
+  else details=[["Selection","Inspect a Part or candidate to disclose exact facts."]];
+  presentDefinitions("parts-details",details);
   const feedback=document.querySelector("#parts-feedback");feedback.textContent=state.snapshot.interaction.parts_feedback??"No Parts action requested.";feedback.dataset.disposition=(state.snapshot.interaction.parts_disposition??"").toLowerCase();
   if(focused)document.querySelector(`[data-parts-action="${CSS.escape(focused.action)}"][data-parts-target="${CSS.escape(focused.target)}"]`)?.focus();
 }
@@ -320,12 +340,12 @@ function render(snapshot){
   document.querySelector("#run-summary").textContent=`Manifestation ${manifestation.lifecycle} · ${b.plan_id===null?"not planned":"Plan ready"} · ${b.active_play_id===null?"not playing":"Play active"}`;
   document.querySelector("#ordinary-summary").textContent=subjects("Info").flatMap(subject=>texts(subject.identity)).join(" · ");
   document.querySelector("#plan-form").disabled=b.body_id===null||b.plan_id!==null;document.querySelector("#play-plan").disabled=b.body_id===null||b.plan_id===null||b.active_play_id!==null;const lossAction=p.actions.find(action=>action.intent==="conduit.intent/observe-line-loss@1"),lossButton=document.querySelector("#text-lab-loss");lossButton.hidden=!lossAction;lossButton.disabled=lossAction?.availability!=="Available";
-  const facts=document.querySelector("#form-facts");facts.replaceChildren();term(facts,"Seed",b.seed_id);term(facts,"Body",b.body_id);term(facts,"Wake",b.wake_id);term(facts,"Source document",b.source_document_id);term(facts,"Checked Form",b.checked_form_id);
+  presentDefinitions("form-facts",[["Seed",b.seed_id],["Body",b.body_id],["Wake",b.wake_id],["Source document",b.source_document_id],["Checked Form",b.checked_form_id]]);
   const list=document.querySelector("#subjects"),navigationSubjects=state.projected.subjects;list.replaceChildren();for(const subject of navigationSubjects){const li=document.createElement("li"),button=document.createElement("button");button.type="button";button.dataset.subject=subject.identity;button.dataset.role=subject.role;button.setAttribute("aria-pressed","false");button.textContent=`${subject.role}: ${subject.accessibility_name}`;button.onclick=()=>select(subject.identity);li.append(button);list.append(li);}renderSeedPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
-  const plan=document.querySelector("#plan dl");plan.replaceChildren();term(plan,"Expanded Form",b.expanded_form_id);term(plan,"Source Plan",b.plan_id);term(plan,"Renderer Face",placement?.kind_id);term(plan,"Renderer Plan",manifestation.plan_id);term(plan,"Renderer Play",manifestation.active_play_id);term(plan,"Manifestation",manifestation.manifestation_id);term(plan,"Lifecycle",manifestation.lifecycle);term(plan,"Placement",placement?.placement_id);term(plan,"Host",placement?.host_id);term(plan,"Boot",placement?.boot_id);term(plan,"Implementation",placement?.implementation_id);term(plan,"Artifact",placement?.artifact_id);term(plan,"Execution profile",placement?.execution_profile_id);term(plan,"Offer generation",placement?.offer_generation);term(plan,"Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined);fillLines("#realizations",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_operations.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${binding?.base??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
-  const play=document.querySelector("#play dl");play.replaceChildren();term(play,"Active Play",b.active_play_id);term(play,"Plan",b.plan_id);fillLines("#sign",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
-  const interaction=document.querySelector("#interaction-proof");interaction.replaceChildren();term(interaction,"Interaction revision",snapshot.interaction.revision);term(interaction,"Request",snapshot.interaction.last_request_id);term(interaction,"Disposition",snapshot.interaction.last_disposition);term(interaction,"Interaction Plan",snapshot.interaction.interaction_plan_id);term(interaction,"Interaction Play",snapshot.interaction.interaction_play_id);
+  presentDefinitions("plan-facts",[["Expanded Form",b.expanded_form_id],["Source Plan",b.plan_id],["Renderer Face",placement?.kind_id],["Renderer Plan",manifestation.plan_id],["Renderer Play",manifestation.active_play_id],["Manifestation",manifestation.manifestation_id],["Lifecycle",manifestation.lifecycle],["Placement",placement?.placement_id],["Host",placement?.host_id],["Boot",placement?.boot_id],["Implementation",placement?.implementation_id],["Artifact",placement?.artifact_id],["Execution profile",placement?.execution_profile_id],["Offer generation",placement?.offer_generation],["Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined]]);fillLines("#realizations",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_operations.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${binding?.base??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
+  presentDefinitions("play-facts",[["Active Play",b.active_play_id],["Plan",b.plan_id]]);fillLines("#sign",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
+  presentDefinitions("interaction-facts",[["Interaction revision",snapshot.interaction.revision],["Request",snapshot.interaction.last_request_id],["Disposition",snapshot.interaction.last_disposition],["Interaction Plan",snapshot.interaction.interaction_plan_id],["Interaction Play",snapshot.interaction.interaction_play_id]]);
   renderBodyWorkbench(snapshot.body_workbench);renderTemporalContext();const diagnosticLines=subjects("Diagnostic").flatMap(subject=>texts(subject.identity));
   fillLines("#diagnostics ol",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();fillLines("#topology ul",subjects().filter(subject=>["Seed","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.accessibility_name}`,...texts(subject.identity)]));fillLines("#linear ol",state.projected.text.map(item=>item.text));displaySelection(cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
@@ -363,12 +383,12 @@ async function dismissFurnitureSurface(name){
   const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded","false");launcher.focus();
 }
 const furniture=installPanelFurniture([
-  {name:"palette",selector:"#palette",title:"Navigate",dock:"left",onDismiss:()=>dismissFurnitureSurface("palette")},
-  {name:"parts",selector:"#parts",title:"Parts",dock:"left",onDismiss:()=>dismissFurnitureSurface("parts")},
-  {name:"inspector",selector:"#inspector",title:"Inspector",dock:"right",onDismiss:()=>dismissFurnitureSurface("inspector")},
-  {name:"truth",selector:"#deep-inspection",title:"Exact truth",dock:"right",onDismiss:()=>dismissFurnitureSurface("truth")},
-  {name:"structured",selector:"#structured-navigator",title:"Subjects",dock:"bottom",onDismiss:()=>dismissFurnitureSurface("structured")},
-]);
+  {name:"palette",slot:"palette-furniture",selector:"#palette",title:"Navigate",dock:"left",onDismiss:()=>dismissFurnitureSurface("palette")},
+  {name:"parts",slot:"parts-furniture",selector:"#parts",title:"Parts",dock:"left",onDismiss:()=>dismissFurnitureSurface("parts")},
+  {name:"inspector",slot:"inspector-furniture",selector:"#inspector",title:"Inspector",dock:"right",onDismiss:()=>dismissFurnitureSurface("inspector")},
+  {name:"truth",slot:"truth-furniture",selector:"#deep-inspection",title:"Exact truth",dock:"right",onDismiss:()=>dismissFurnitureSurface("truth")},
+  {name:"structured",slot:"structured-furniture",selector:"#structured-navigator",title:"Subjects",dock:"bottom",onDismiss:()=>dismissFurnitureSurface("structured")},
+],applicationPresentation);
 async function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)await closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next){furniture.restore(name);focusSurface(name);}else launcher.focus();}
 for(const name of ["palette","parts","structured"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();return toggleDrawer(name);};
 document.querySelector("#toggle-truth").onclick=async event=>{event.stopPropagation();const opening=document.body.dataset.truthOpen!=="true";if(opening){await withFurnitureTransition("truth",async()=>{document.body.dataset.truthOpen="true";event.currentTarget.setAttribute("aria-expanded","true");furniture.restore("truth");state.truthTransition=(async()=>{await closeSubordinateSurfaces("truth");if(state.snapshot.navigation)await dispatchNavigation({kind:"disclose",depth:"Exact"});})();await state.truthTransition;state.truthTransition=null;});focusSurface("truth");}else await dismissFurnitureSurface("truth");};

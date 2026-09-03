@@ -584,10 +584,13 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       await structured.click();
       const actions=snapshot.presentation.actions.filter(action=>action.target===target);
       await expect(page.locator("#semantic-actions button")).toHaveCount(actions.length);
-      for(const action of actions){
-        const control=page.locator(`[data-semantic-action="${action.identity.replaceAll('"','\\"')}"]`);
+      for(const [index,action] of actions.entries()){
+        const control=page.locator(`#semantic-actions [data-application-key="semantic-${index}"]`);
         await expect(control).toHaveText(action.label.toUpperCase());
         if(action.availability==="Available")await expect(control).toBeEnabled();else await expect(control).toBeDisabled();
+        const availability=page.locator(`#semantic-actions [data-application-key="availability-${index}"]`);
+        if(action.availability?.Refused)await expect(availability).toHaveAttribute("data-application-evidence","refused");
+        if(action.availability?.Unavailable)await expect(availability).toHaveAttribute("data-application-evidence","missing");
       }
       await expect(page.locator("#inspector .exact-selection")).toContainText(target);
       expect(await page.locator("#inspector").evaluate(element=>({horizontal:element.scrollWidth<=element.clientWidth,vertical:getComputedStyle(element).overflowY}))).toEqual({horizontal:true,vertical:"auto"});

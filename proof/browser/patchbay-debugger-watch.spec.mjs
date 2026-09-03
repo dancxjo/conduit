@@ -158,7 +158,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await expect(watch).toContainText("Latest41");
 
     await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
-    await expect(page.locator(".exact-selection dl")).toContainText(port);
+    await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(port);
     await page.locator("#toggle-palette").click();
     await page.locator(`#subjects button[data-subject="${cord}"]`).click();
     await page.getByRole("button", { name: "Focus events for exact subject" }).click();
@@ -207,7 +207,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await expect(page.locator(".watch-card")).toContainText("Fault 17");
     await expect(page.locator(".causal-trace-exact")).toHaveCount(2);
     await exact.nth(0).getByRole("button").click();
-    await expect(page.locator(".exact-selection dl")).toContainText(cord);
+    await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(cord);
     await page.getByRole("button", { name: "Clear causal trace" }).click();
     await expect(page.locator('.timeline-events li[data-causal-trace="exact"]')).toHaveCount(0);
     await page.locator(".timeline-events button").filter({ hasText: "seq 39" }).click();

@@ -41,6 +41,7 @@
   <main>
     <div class="workspace" data-layout-regions="finite" data-overflow="scroll-regions">
       <aside id="palette" class="side-panel" aria-labelledby="palette-title" data-region="navigator" data-priority="secondary-context">
+        <div class="furniture-bar" data-application-slot="palette-furniture"></div>
         <h2 id="palette-title">Seeds</h2>
         <section id="seed-palette" aria-labelledby="seed-palette-title">
           <h3 id="seed-palette-title">Available .conduit Seeds</h3>
@@ -57,7 +58,7 @@
           <p id="gear-results-status" role="status" aria-live="polite"></p>
           <ul id="gear-results" aria-label="Available Gear Kinds"></ul>
         </section>
-        <details><summary>Exact Form identity</summary><dl id="form-facts"></dl></details>
+        <details><summary>Exact Form identity</summary><div id="form-facts" data-application-slot="form-facts"></div></details>
         <h3 id="structure-title">World context</h3>
         <ul id="subjects" aria-label="Form graph subjects"></ul>
       </aside>
@@ -69,27 +70,29 @@
           </div>
         </div>
         <div id="flow-root" aria-label="Patchbay spatial workspace"></div>
-        <section id="structured-navigator" aria-label="Structured subject navigator"><p>Linear keyboard access to the subjects shown by the principal spatial canvas and its related Presentation.</p><ul aria-label="Canonical Presentation subjects"></ul></section>
+        <section id="structured-navigator" aria-label="Structured subject navigator"><div class="furniture-bar" data-application-slot="structured-furniture"></div><p>Linear keyboard access to the subjects shown by the principal spatial canvas and its related Presentation.</p><ul aria-label="Canonical Presentation subjects"></ul></section>
       </section>
       <aside id="inspector" class="side-panel inspector" aria-live="polite" data-region="inspector" data-priority="selected-detail" data-overflow="disclose">
-        <h2>Inspector</h2><button id="clear-selection" type="button" hidden>Clear selection</button><p class="inspector-hint">Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.</p><dl class="selected-summary"></dl><div id="authoring-actions" aria-label="Canonical Form edits"></div><div id="semantic-actions" role="toolbar" aria-label="Selected subject actions"></div><section id="debugger-control" aria-labelledby="debugger-control-title"><h3 id="debugger-control-title">Execution control</h3><p class="control-status" role="status" aria-live="assertive">Execution control unavailable.</p><div class="control-actions" role="toolbar" aria-label="Runtime debugger controls"></div></section><section id="debugger-timeline" aria-labelledby="debugger-timeline-title"><h3 id="debugger-timeline-title">Observation timeline</h3><p class="timeline-status" role="status" aria-live="polite">No retained observations available.</p><div class="timeline-controls" role="toolbar" aria-label="Observation playback controls"></div><p class="timeline-gap"></p><ol class="timeline-events" aria-label="Exact retained debugger events"></ol></section><section id="debugger-watches" aria-labelledby="debugger-watches-title"><h3 id="debugger-watches-title">Watches</h3><p class="watch-status" role="status" aria-live="polite">No debugger Watches available.</p><div class="watch-actions" role="toolbar" aria-label="Selected subject Watch actions"></div><ol class="watch-list" aria-label="Bounded debugger Watches"></ol></section><details class="exact-selection"><summary>Exact identity and provenance</summary><dl></dl></details>
+        <div class="furniture-bar" data-application-slot="inspector-furniture"></div>
+        <h2>Inspector</h2><button id="clear-selection" type="button" hidden>Clear selection</button><p class="inspector-hint">Select a Host, Body, Seed, Gear, Port, or Cord. Selection owns detail.</p><div class="selected-summary" data-application-slot="selection-summary"></div><div id="authoring-actions" aria-label="Canonical Form edits"></div><div id="semantic-actions" data-application-slot="semantic-actions"></div><section id="debugger-control" aria-labelledby="debugger-control-title"><h3 id="debugger-control-title">Execution control</h3><p class="control-status" role="status" aria-live="assertive">Execution control unavailable.</p><div class="control-actions" role="toolbar" aria-label="Runtime debugger controls"></div></section><section id="debugger-timeline" aria-labelledby="debugger-timeline-title"><h3 id="debugger-timeline-title">Observation timeline</h3><p class="timeline-status" role="status" aria-live="polite">No retained observations available.</p><div class="timeline-controls" role="toolbar" aria-label="Observation playback controls"></div><p class="timeline-gap"></p><ol class="timeline-events" aria-label="Exact retained debugger events"></ol></section><section id="debugger-watches" aria-labelledby="debugger-watches-title"><h3 id="debugger-watches-title">Watches</h3><p class="watch-status" role="status" aria-live="polite">No debugger Watches available.</p><div class="watch-actions" role="toolbar" aria-label="Selected subject Watch actions"></div><ol class="watch-list" aria-label="Bounded debugger Watches"></ol></section><details class="exact-selection"><summary>Exact identity and provenance</summary><div data-application-slot="selection-exact"></div></details>
       </aside>
     </div>
     <section id="parts" class="parts-panel" aria-labelledby="parts-title" hidden>
+      <div class="furniture-bar" data-application-slot="parts-furniture"></div>
       <div class="parts-heading">
         <div><p class="eyebrow">ACTIVE BODY</p><h2 id="parts-title">Parts</h2></div>
         <p id="parts-lifecycle"></p>
       </div>
       <p id="parts-possibilities" class="parts-notice" role="status" aria-live="polite" hidden></p>
       <h3>What the states mean</h3>
-      <dl id="parts-truth-explanation"></dl>
+      <div id="parts-truth-explanation" data-application-slot="parts-truth"></div>
       <h3>Here and membership</h3>
       <ul id="part-rows" class="parts-list" aria-label="Body Parts"></ul>
       <h3>Wants to join</h3>
       <ul id="candidate-rows" class="parts-list" aria-label="Admission candidates"></ul>
       <div id="parts-actions" class="parts-actions" role="toolbar" aria-label="Body Parts actions"></div>
       <p id="parts-feedback" role="status" aria-live="polite">No Parts action requested.</p>
-      <details id="parts-details"><summary>Exact selected Part or candidate facts</summary><dl></dl></details>
+      <details id="parts-details"><summary>Exact selected Part or candidate facts</summary><div data-application-slot="parts-details"></div></details>
     </section>
     <section id="current-status" class="status-strip" aria-label="Current run and diagnostic status">
       <strong>Current truth</strong><span id="ordinary-summary"></span><span id="run-summary">Loading…</span><span id="diagnostic-summary">Diagnostics loading…</span>
@@ -101,12 +104,13 @@
       <strong>Intent to realization</strong><button id="plan-form" type="button">Plan current Form</button><button id="play-plan" type="button" disabled>Play current Plan</button><button id="text-lab-loss" type="button" hidden>Observe browser loss</button><span id="front-door-feedback" role="status" aria-live="polite">World truth is current; planning is explicit.</span>
     </section>
     <section id="deep-inspection" class="deep-inspection" aria-labelledby="deep-title">
+      <div class="furniture-bar" data-application-slot="truth-furniture"></div>
       <h2 id="deep-title">Exact truth and accessibility</h2>
       <p>Complete deterministic facts remain available without competing with the program.</p>
       <div class="truth-grid">
         <section id="diagnostics"><h3>Checked edit diagnostic</h3><ol></ol></section>
-        <section id="plan"><h2>Exact Plan</h2><dl></dl><h3>Realization</h3><ul id="realizations"></ul></section>
-        <section id="play"><h2>Active Play and Signs</h2><button id="toggle-linear" type="button">Toggle linear view</button><dl></dl><ol id="sign"></ol><dl id="interaction-proof"></dl></section>
+        <section id="plan"><h2>Exact Plan</h2><div data-application-slot="plan-facts"></div><h3>Realization</h3><ul id="realizations"></ul></section>
+        <section id="play"><h2>Active Play and Signs</h2><button id="toggle-linear" type="button">Toggle linear view</button><div data-application-slot="play-facts"></div><ol id="sign"></ol><div id="interaction-proof" data-application-slot="interaction-facts"></div></section>
         <section id="routes"><h2>Route recovery</h2><div id="route-cards"></div></section>
         <section id="topology"><h2>Observed hosts</h2><ul></ul></section>
         <section id="linear"><h2>Deterministic linear view</h2><ol></ol></section>
