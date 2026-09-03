@@ -44,6 +44,7 @@ on:
       - targets/browser/host/browser-deployment/**
       - targets/browser/host/assets/browser-host-bootstrap.mjs
       - targets/browser/host/assets/browser-host-membership.mjs
+      - targets/browser/host/assets/browser-boot-profile.mjs
       - targets/browser/host/assets/device-base.mjs
       - targets/browser/host/assets/usb-device-base.mjs
       - targets/browser/host/assets/artifacts/**
@@ -98,6 +99,7 @@ on:
       - proof/browser/creche-browser-configuration.spec.mjs
       - proof/browser/browser-application-package.spec.mjs
       - proof/browser/browser-bundle-build.spec.mjs
+      - proof/browser/browser-boot-profile.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs

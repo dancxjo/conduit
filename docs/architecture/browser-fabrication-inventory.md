@@ -42,3 +42,27 @@ implementation closures still produce different BuildIds, IMAGE identities,
 and BrowserBundle content identities. The bundle remains Body-independent.
 Crèche adds `conduit-spore.json` with the Body invitation only afterward, so
 HostId, BootId, membership, offers, Plans, and Plays remain runtime truth.
+
+## Profile-gated Boot truth
+
+The reviewed distribution carries a self-contained
+`browser-boot-profile.mjs` entry, and the IMAGE binds its exact path and digest.
+The Host admits and imports those packaged bytes before instantiating the WASM
+runtime. Applications receive no generic module importer or browser-capability
+registry: the Host-owned entrance supplies current browser observations to the
+exact Boot module and returns only its finite truth projection.
+
+That projection contains entries only for IMAGE-selected implementation
+revisions and keeps configured, admitted, initialized, resource-ready, and
+offered states separate. Code present in the superset runtime but absent from
+the PROFILE is not registered or offered. Unsupported APIs, insecure context,
+permission state, user activation, page lifecycle, provider loss, resource
+loss, and initialization failure narrow current truth without changing the
+PROFILE or IMAGE.
+
+Offer truth is Boot-local and generation-numbered. A lost prerequisite removes
+the current offer and yields an exact invalidation for each dependent
+realization, retaining its Form and Plan identities while explicitly recording
+that neither the authored Form nor IMAGE changed. A reduced-module bundle and
+the superset bundle therefore produce the same semantic registry and offers for
+one selected PROFILE; only their artifact layout and size may differ.

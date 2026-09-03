@@ -22,6 +22,7 @@ export default defineConfig({
     "executable-book.spec.mjs",
     "browser-application-package.spec.mjs",
     "browser-bundle-build.spec.mjs",
+    "browser-boot-profile.spec.mjs",
     "pages-front-door.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",

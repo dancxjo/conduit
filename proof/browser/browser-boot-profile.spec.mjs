@@ -1,0 +1,176 @@
+import { expect, test } from "@playwright/test";
+
+const IDS = [
+  "browser/dom@1",
+  "browser/media-devices-camera@1",
+  "browser/websocket@1",
+];
+
+test.beforeEach(async ({ page }) => page.goto("/proof/browser/signal-dom-host.test.html"));
+
+test("exact IMAGE gates a superset runtime into only selected implementations and current offers", async ({ page }) => {
+  const fixture = await makeImage(IDS.slice(0, 2));
+  const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const snapshot = await boot.admitBrowserBoot({
+      imageBytes: image.bytes,
+      expectedImageId: image.id,
+      expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes),
+      bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest,
+      bootId: "boot/one",
+      availableImplementations: ids.map((id) => ({ id, revision: 1 })),
+      observations: {
+        "browser/dom@1": { api_supported: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied", resource_ready: false },
+      },
+      bundleVariant: "superset",
+    });
+    return snapshot;
+  }, { ids: IDS, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("a") });
+
+  expect(result.implementation_registry.map(({ id }) => id)).toEqual([
+    "browser/dom@1", "browser/media-devices-camera@1",
+  ]);
+  expect(result.inspection).toEqual([
+    expect.objectContaining({ implementation_id: "browser/dom@1", configured: true, admitted: true, initialized: true, resource_ready: true, offered: true }),
+    expect.objectContaining({ implementation_id: "browser/media-devices-camera@1", configured: true, admitted: true, initialized: true, resource_ready: false, offered: false, refusal: "PermissionDenied" }),
+  ]);
+  expect(result.inspection.some(({ implementation_id }) => implementation_id === "browser/websocket@1")).toBe(false);
+});
+
+test("unsupported, initialization, permission, resource, and successful offer states remain distinct", async ({ page }) => {
+  const fixture = await makeImage(IDS);
+  const states = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const availableImplementations = ids.map((id) => ({ id, revision: 1 }));
+    async function inspect(observations) {
+      const snapshot = await boot.admitBrowserBoot({
+        imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,
+        runtimeBytes: new Uint8Array(fixture.runtimeBytes), bootModuleDigest: fixture.bootModuleDigest,
+        artifactContentDigest: artifactDigest, bootId: "boot/matrix", availableImplementations, observations,
+      });
+      return Object.fromEntries(snapshot.inspection.map((item) => [item.implementation_id, item]));
+    }
+    return {
+      unsupported: await inspect({
+        "browser/dom@1": { api_supported: false },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "granted", resource_ready: true },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true },
+      }),
+      initialization: await inspect({
+        "browser/dom@1": { api_supported: true, initialization_failure: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "denied" },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: false },
+      }),
+      successful: await inspect({
+        "browser/dom@1": { api_supported: true },
+        "browser/media-devices-camera@1": { api_supported: true, secure_context: true, permission: "granted", resource_ready: true, resource_identity: "camera/front" },
+        "browser/websocket@1": { api_supported: true, secure_context: true, provider_ready: true },
+      }),
+    };
+  }, { ids: IDS, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("b") });
+
+  expect(states.unsupported["browser/dom@1"].refusal).toBe("UnsupportedApi");
+  expect(states.initialization["browser/dom@1"].refusal).toBe("InitializationFailed");
+  expect(states.initialization["browser/media-devices-camera@1"].refusal).toBe("PermissionDenied");
+  expect(states.initialization["browser/websocket@1"].refusal).toBe("ProviderUnavailable");
+  expect(states.successful["browser/media-devices-camera@1"]).toMatchObject({ offered: true, resource_ready: true, resource_identity: "camera/front" });
+});
+
+test("resource loss changes Boot offer truth and invalidates only dependent realization without rewriting Form or IMAGE", async ({ page }) => {
+  const fixture = await makeImage([IDS[1]]);
+  const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const common = {
+      imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes), bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest, bootId: "boot/loss",
+      availableImplementations: ids.map((id) => ({ id, revision: 1 })),
+      observations: { [ids[1]]: { api_supported: true, secure_context: true, permission: "granted", resource_ready: true, resource_identity: "camera/7" } },
+    };
+    const before = await boot.admitBrowserBoot(common);
+    const realization = boot.bindBrowserOfferRealization(before, {
+      realizationId: "realization/7", offerId: "media/camera@1", formId: "form/unchanged", planId: "plan/7",
+    });
+    const after = boot.refreshBrowserBootTruth(before, {
+      [ids[1]]: { api_supported: true, secure_context: true, permission: "granted", resource_ready: false, resource_lost: true },
+    });
+    return { before, after, loss: boot.reconcileBrowserOfferRealizations(before, after, [realization]) };
+  }, { ids: IDS, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("c") });
+
+  expect(result.after.image_id).toBe(result.before.image_id);
+  expect(result.after.profile_id).toBe(result.before.profile_id);
+  expect(result.after.inspection[0].refusal).toBe("ResourceLost");
+  expect(result.loss).toEqual([expect.objectContaining({
+    terminal: "CurrentOfferLost", realization_id: "realization/7", form_id: "form/unchanged",
+    image_mutated: false, authored_form_mutated: false,
+  })]);
+});
+
+test("superset and reduced bundles yield equivalent semantic truth while stale IMAGE and missing selected code refuse", async ({ page }) => {
+  const fixture = await makeImage([IDS[0], IDS[2]]);
+  const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    const observations = {
+      [ids[0]]: { api_supported: true },
+      [ids[2]]: { api_supported: true, secure_context: true, provider_ready: true },
+    };
+    const input = {
+      imageBytes: image.bytes, expectedImageId: image.id, expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes), bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest, bootId: "boot/parity", observations,
+    };
+    const superset = await boot.admitBrowserBoot({ ...input, availableImplementations: ids.map((id) => ({ id, revision: 1 })), bundleVariant: "superset" });
+    const reduced = await boot.admitBrowserBoot({ ...input, availableImplementations: [ids[0], ids[2]].map((id) => ({ id, revision: 1 })), bundleVariant: "reduced-modules" });
+    const capture = async (operation) => { try { await operation(); return "accepted"; } catch (error) { return error.code; } };
+    const changedValue = JSON.parse(new TextDecoder().decode(image.bytes));
+    changedValue.source_configuration_id = artifactDigest;
+    const changed = new TextEncoder().encode(JSON.stringify(changedValue));
+    return {
+      superset: { registry: superset.implementation_registry, offers: superset.offers, inspection: superset.inspection },
+      reduced: { registry: reduced.implementation_registry, offers: reduced.offers, inspection: reduced.inspection },
+      stale: await capture(() => boot.admitBrowserBoot({ ...input, imageBytes: changed, availableImplementations: ids.map((id) => ({ id, revision: 1 })) })),
+      absent: await boot.admitBrowserBoot({ ...input, availableImplementations: [{ id: ids[0], revision: 1 }] }),
+    };
+  }, { ids: IDS, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("d") });
+
+  expect(result.reduced).toEqual(result.superset);
+  expect(result.stale).toBe("ImageDigestMismatch");
+  expect(result.absent.inspection.find(({ implementation_id }) => implementation_id === "browser/websocket@1")).toMatchObject({ admitted: false, offered: false, refusal: "ImplementationCodeAbsent" });
+  expect(result.reduced.inspection.every(({ admitted }) => admitted)).toBe(true);
+});
+
+async function makeImage(implementations) {
+  const runtimeBytes = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]);
+  const runtimeDigest = await hash(runtimeBytes);
+  const bootModuleDigest = digest("5");
+  const payload = {
+    schema: "conduit.browser/bundle-image@1",
+    build_id: `build:${digest("1")}`,
+    target_id: "browser/wasm32/page",
+    profile_id: digest("2"),
+    source_configuration_id: digest("3"),
+    reviewed_distribution: { distribution_id: "fixture", distribution_digest: digest("4"), runtime_abi: "conduit.browser/runtime-abi@1", toolchain_identity: "fixture", source_commit: "fixture" },
+    implementations: implementations.map((id) => ({ id, revision: 1, artifact: "browser-runtime-superset.wasm" })),
+    boot_module: { role: "profile-gated-boot", path: "browser-boot-profile.mjs", sha256: bootModuleDigest },
+    files: [
+      { path: "runtime.wasm", bytes: runtimeBytes.byteLength, sha256: runtimeDigest, media_type: "application/wasm" },
+      { path: "browser-boot-profile.mjs", bytes: 1, sha256: bootModuleDigest, media_type: "text/javascript" },
+    ],
+  };
+  const imageHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(payload))));
+  const id = `image:sha256:${Array.from(imageHash, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  return { id, profileId: payload.profile_id, bytes: new TextEncoder().encode(JSON.stringify({ ...payload, image_id: id })), runtimeBytes, bootModuleDigest };
+}
+
+function digest(character) { return `sha256:${character.repeat(64)}`; }
+async function hash(bytes) {
+  const value = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return `sha256:${Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
