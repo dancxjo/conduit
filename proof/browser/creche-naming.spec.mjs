@@ -9,10 +9,16 @@ test.afterEach(() => entrance?.child.kill());
 test("Crèche suggestions expose diverse structures while remaining editable metadata", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page).toHaveURL(/\/creche\/birth\/$/);
+  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-component", "stepper");
+  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "1");
 
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
+  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
+  await expect(name).toHaveAttribute("aria-describedby", /description/);
+  await expect(birth.getByLabel("Conduit Seed source")).toHaveAttribute("aria-describedby", /description/);
   await expect(tradition.locator("option")).toHaveCount(24);
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 0");
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("not the Body ID");
@@ -71,7 +77,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   await expect(name).toHaveValue("TARGUS TARGUS");
 
   await tradition.selectOption("kurmanji");
-  const slot = birth.locator('[data-application-slot="birth-controls"]');
+  const slot = birth.locator('[data-application-slot="birth-fields"]');
   const revision = Number(await slot.getAttribute("data-application-revision"));
   await birth.getByRole("button", { name: "Suggest another name" }).click();
   expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(revision);
@@ -79,10 +85,14 @@ test("Crèche suggestions expose diverse structures while remaining editable met
 
   await name.fill("Juniper Signalhouse");
   await birth.getByRole("button", { name: "Birth Body" }).click();
-  await expect(birth.locator(".body-identities")).toContainText("Juniper Signalhouse");
+  await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
+  await expect(birth.locator('[data-application-key="body-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   const bodyId = await birth.getAttribute("data-body-id");
   await page.getByRole("button", { name: "2. First Host" }).click();
-  await page.getByRole("button", { name: "1. Birth" }).click();
+  await expect(page).toHaveURL(/\/creche\/first-host\/$/);
+  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "2");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/creche\/birth\/$/);
   const retained = page.locator(".body-birth-runner");
   await expect(retained.getByLabel("Friendly Body name")).toHaveValue("Juniper Signalhouse");
   await expect(retained).toHaveAttribute("data-body-id", bodyId);

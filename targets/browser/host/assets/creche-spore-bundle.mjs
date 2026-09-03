@@ -31,12 +31,13 @@ export async function createNativeSporeDownload({
     || filename.includes("/") || typeof format !== "string" || format.length < 1) {
     throw new TypeError("native spore download requires one bounded target filename and format");
   }
-  const blob = new Blob([payload], { type: mediaType });
   return Object.freeze({
-    schema: "conduit.spore/browser-download@2",
+    schema: "conduit.spore/browser-artifact@1",
+    artifact_id: contentDigest,
     filename,
-    blob,
-    bytes: blob.size,
+    payload,
+    bytes: payload.byteLength,
+    maximum_bytes: MAXIMUM_PAYLOAD_BYTES,
     format,
     media_type: mediaType,
     spore_id: prepared.spore_id,
@@ -82,15 +83,29 @@ export function packageSporeBundle({ prepared, artifact, filename }) {
   const header = new Uint8Array(MAGIC.byteLength + 4);
   header.set(MAGIC);
   new DataView(header.buffer).setUint32(MAGIC.byteLength, manifestBytes.byteLength, true);
-  const blob = new Blob([header, manifestBytes, ...payloads], { type: "application/vnd.conduit.spore" });
+  const bytes = concatenate([header, manifestBytes, ...payloads]);
+  if (bytes.byteLength > MAXIMUM_PAYLOAD_BYTES) {
+    throw new RangeError("spore bundle exceeds its admitted browser Host handoff bound");
+  }
   return Object.freeze({
-    schema: "conduit.spore/browser-download@1",
+    schema: "conduit.spore/browser-artifact@1",
+    artifact_id: prepared.spore_id,
     filename,
-    blob,
-    bytes: blob.size,
+    payload: bytes,
+    bytes: bytes.byteLength,
+    maximum_bytes: MAXIMUM_PAYLOAD_BYTES,
+    format: "spore",
+    media_type: "application/vnd.conduit.spore",
     spore_id: prepared.spore_id,
     image_content_digest: prepared.image_content_digest,
   });
+}
+
+function concatenate(chunks) {
+  const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0));
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes;
 }
 
 function bytesOf(value) {

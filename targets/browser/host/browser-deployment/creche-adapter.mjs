@@ -54,13 +54,13 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
     implemented_carriers: ["conduit-carrier/browser-release-download@1", "conduit-carrier/browser-local-sandbox@1", "conduit-carrier/browser-local-spawn@1"],
     unavailable_carriers: ["already-running"],
   }),
-  createAdapter: ({ host }) => {
+  createAdapter: ({ host, presentationFor }) => {
     const existing = createExistingComputerAdapter({ host, profile: PROFILE });
     let outfitter;
     return Object.freeze({
       ...existing,
       createOptions({ mode, onChange }) {
-        if (!outfitter) outfitter = createBrowserConfigurationOutfitter({ host, onChange });
+        if (!outfitter) outfitter = createBrowserConfigurationOutfitter({ host, presentationFor, onChange });
         const note = existing.createOptions({ mode });
         const root = document.createElement("div");
         root.append(note, outfitter.render());
