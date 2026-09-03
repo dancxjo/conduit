@@ -196,8 +196,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
     await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
     await expect(page.locator("#route-cards h3").first()).toContainText("Route");
-    await expect(page.locator("#diagnostics li")).toHaveCount(0);
-    await expect(page.locator("#realizations li").first()).toBeVisible();
+    await expect(page.locator('#diagnostics [data-application-component="code-block"]')).toHaveCount(0);
+    await expect(page.locator('#realizations [data-application-component="disclosure"]').first()).toBeVisible();
+    await page.locator('#realizations [data-application-component="disclosure"] summary').first().click();
     await expect(page.locator("#plan")).toContainText("presentation/renderer");
     await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
     await expect(page.locator("#plan")).toContainText("patchbay-html/dom-svg@1");
@@ -213,7 +214,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#realizations")).toContainText("base-instance patchbay-renderer/websocket-instance");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/cross-host-prepared · Prepared");
     await expect(page.locator("#sign")).toContainText("Renderer patchbay-html/document-ready · Available");
-    await expect(page.locator("#topology li").first()).toContainText("boot");
+    await expect(page.locator('#topology [data-application-component="code-block"]').first()).toContainText("boot");
     await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/usb-cdc-acm@1"}).first()).toBeVisible();
     await expect(page.locator("#route-cards li").filter({hasText:"conduit.base/websocket-rfc6455@1"}).first()).toBeVisible();
     const workspace=await page.locator(".workspace").boundingBox();
@@ -370,12 +371,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(staleAction.navigation.cursor.focus).toBe(selectedBeforeStale);
     await page.evaluate(()=>window.patchbayReload());
     await expect(page.locator("#subjects [aria-pressed=true]")).toHaveAttribute("data-subject",selectedBeforeStale);
-    const projectedTextCount=await page.evaluate(async()=>
+    const projectedText=await page.evaluate(async()=>
       (await import("/assets/portable-navigation.js")).projectCurrent(
         await (await fetch("/api/snapshot")).json(),
-      ).text.length,
+      ).text,
     );
-    await expect(page.locator("#linear li")).toHaveCount(projectedTextCount);
+    await expect(page.locator("#linear")).toContainText(projectedText[0].text);
+    expect(projectedText.length).toBeGreaterThan(0);
 
     expect(snapshot.renderer.manifestation.lifecycle).toBe("Available");
     const identitiesBefore={content:snapshot.presentation.identity,plan:snapshot.presentation.basis.plan_id,play:snapshot.presentation.basis.active_play_id,manifestation:snapshot.renderer.manifestation.manifestation_id,subjects:listSubjects};

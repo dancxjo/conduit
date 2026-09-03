@@ -119,5 +119,24 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
       }
       activeListChunks.set(slotPrefix, usedChunks);
     },
+    boundedEvidence(slotPrefix, label, lines) {
+      const slots = [];
+      for (let index = 0; ; index += 1) {
+        const slot = scope.querySelector(`[data-application-slot="${slotPrefix}-${index}"]`);
+        if (!slot) break;
+        slots.push(slot);
+      }
+      const usedChunks = Math.ceil(lines.length / 32), previousChunks = activeListChunks.get(slotPrefix) ?? 0;
+      if (usedChunks > slots.length) throw new Error(`shared ${slotPrefix} capacity exceeded`);
+      for (let slotIndex = 0; slotIndex < Math.max(usedChunks, previousChunks); slotIndex += 1) {
+        const root = slots[slotIndex], chunk = lines.slice(slotIndex * 32, slotIndex * 32 + 32), slot = `${slotPrefix}-${slotIndex}`;
+        root.hidden = chunk.length === 0;
+        present(slot, { actions: [], nodes: chunk.length ? [
+          { parent: null, component: "disclosure", key: "evidence", text: `${label} ${slotIndex + 1}`, action: null },
+          { parent: 0, component: "code-block", key: "lines", text: "text", value: chunk.join("\n"), valueCapacity: 65_536, action: null },
+        ] : [{ parent: null, component: "stack", key: "empty", text: "", action: null }] });
+      }
+      activeListChunks.set(slotPrefix, usedChunks);
+    },
   });
 }
