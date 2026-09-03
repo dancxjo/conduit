@@ -11,11 +11,7 @@
 <body>
   <header class="site-header">
     <a class="wordmark" href="/conduit" aria-label="Conduit home">conduit</a>
-    <nav aria-label="Primary">
-      <a href="/conduit/book">Book</a>
-      <a href="/conduit/creche">Crèche</a>
-      <a href="https://github.com/dancxjo/conduit">Source</a>
-    </nav>
+    <nav aria-label="Primary" data-conduit-product-navigation></nav>
   </header>
 
   <main>
@@ -63,15 +59,16 @@
     <section class="doors" aria-labelledby="doors-title">
       <div class="section-heading"><p class="eyebrow">Choose a door</p><h2 id="doors-title">Go as deep as you want.</h2></div>
       <div class="door-grid">
-        <a class="door" href="/conduit/book"><span>Learn</span><strong>The Book</strong><p>Build the mental model by running real Forms in the browser.</p></a>
-        <a class="door" href="/conduit/creche"><span>Begin</span><strong>The Crèche</strong><p>Birth a Body and prepare or attach its first machinery.</p></a>
+        <a class="door" href="/conduit/book/"><span>Learn</span><strong>The Book</strong><p>Build the mental model by running real Forms in the browser.</p></a>
+        <a class="door" href="/conduit/creche/"><span>Birth</span><strong>The Crèche</strong><p>Birth a Body and prepare or attach its first machinery.</p></a>
+        <a class="door" href="/conduit/patchbay/"><span>Work</span><strong>Patchbay</strong><p>Inspect and work with Forms, Bodies, their current realization, history, evidence, and live execution.</p></a>
         <a class="door" href="https://github.com/dancxjo/conduit"><span>Build</span><strong>Source</strong><p>Read the repository, code, architecture, and contribution guide.</p></a>
         <a class="door" href="https://github.com/dancxjo/conduit/blob/main/STATUS.md"><span>Verify</span><strong>What works today?</strong><p>See the exact accepted proof boundary before making a capability claim.</p></a>
       </div>
-      <p class="patchbay-note"><strong>Patchbay</strong> is Conduit's visual application for working with Forms, Bodies, Plans, Plays, Hosts, and evidence. Its browser deployment is still converging on the generic browser Host, so this front door does not advertise a premature public route.</p>
     </section>
   </main>
 
   <footer><p>Conduit is experimental. The site explains the direction; <a href="https://github.com/dancxjo/conduit/blob/main/STATUS.md">STATUS.md</a> says what has actually been proved.</p></footer>
 </body>
+<script type="module">import { mountProductNavigation } from "./product-navigation.mjs"; mountProductNavigation();</script>
 </html>

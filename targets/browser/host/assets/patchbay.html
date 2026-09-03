@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <script>if (/\/patchbay$/.test(location.pathname)) document.write('<base href="./patchbay/">');</script>
+  <title>Conduit Patchbay</title>
+  <meta name="conduit-application-package" content="./patchbay.application.json">
+</head>
+<body>
+  <header class="masthead site-header">
+    <a class="wordmark" href="/conduit/" aria-label="Conduit home">conduit</a>
+    <nav aria-label="Primary" data-conduit-product-navigation data-current-product="patchbay"></nav>
+    <span id="host-state" data-application-slot="patchbay-host-status"></span>
+  </header>
+  <main>
+    <header class="introduction">
+      <p class="eyebrow">Forms, Bodies, realization, and evidence</p>
+      <h1>Patchbay</h1>
+      <p>See and work with what Conduit means, what this Body currently contains, and what its exact evidence proves.</p>
+    </header>
+    <section aria-labelledby="relationship-title" class="relationship-panel">
+      <h2 id="relationship-title">Relationship to a Body</h2>
+      <div data-application-slot="patchbay-relationship"></div>
+    </section>
+    <section aria-labelledby="entrance-title" class="entrance-panel">
+      <h2 id="entrance-title">Open a Body</h2>
+      <div data-application-slot="patchbay-entrance"></div>
+      <p class="creche-route">No Body yet? <a href="/conduit/creche/">Birth one in the Crèche</a>.</p>
+    </section>
+    <section aria-labelledby="workbench-title" class="workbench-panel">
+      <h2 id="workbench-title">Workbench</h2>
+      <div data-application-slot="patchbay-workbench"></div>
+    </section>
+  </main>
+  <noscript>Patchbay requires JavaScript and WebAssembly.</noscript>
+  <script type="module" src="./browser-application-loader.mjs"></script>
+</body>
+</html>

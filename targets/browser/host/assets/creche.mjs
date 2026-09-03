@@ -12,6 +12,7 @@ import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "./targets/browser/browse
 import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "./targets/orange-pi/browser-deployment/creche-adapter.mjs";
 import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/raspberry-pi/browser-deployment/creche-adapter.mjs";
 import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/conduitos/browser-deployment/creche-adapter.mjs";
+import { mountProductNavigation } from "./product-navigation.mjs";
 
 const MORSE_NETWORK = `form morse_network {
     message: text/literal("SOS")
@@ -52,6 +53,7 @@ const targetCatalog = createPhysicalHostTargetCatalog({
 
 export async function startApplication(application) {
  try {
+  mountProductNavigation();
   presentation = application.presentation;
   presentationFor = application.presentationFor;
   storage = application.storage;

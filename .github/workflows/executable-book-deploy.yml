@@ -12,6 +12,7 @@ on:
       - scripts/ci/stage-book-product.sh
       - scripts/ci/build-browser-application-package.mjs
       - scripts/ci/stage-creche-product.sh
+      - scripts/ci/stage-patchbay-product.sh
       - scripts/ci/seal-pages-carrier.mjs
       - scripts/ci/verify-pages-carrier.mjs
       - scripts/ci/pages-product-run-selection.mjs
@@ -42,6 +43,15 @@ on:
       - targets/browser/host/assets/creche.application.template.json
       - targets/browser/host/assets/creche.css
       - targets/browser/host/assets/creche*.mjs
+      - targets/browser/host/assets/patchbay.html
+      - targets/browser/host/assets/patchbay.css
+      - targets/browser/host/assets/patchbay.mjs
+      - targets/browser/host/assets/patchbay.application.template.json
+      - targets/browser/host/assets/product-navigation.mjs
+      - apps/patchbay/browser-runtime/**
+      - apps/patchbay/html/assets/browser-membership.js
+      - apps/patchbay/html/assets/body-webrtc*.mjs
+      - apps/patchbay/html/assets/webrtc-*.mjs
       - targets/browser/host/browser-deployment/**
       - targets/browser/host/assets/browser-host-bootstrap.mjs
       - targets/browser/host/assets/browser-host-membership.mjs
@@ -102,6 +112,7 @@ on:
       - proof/browser/browser-bundle-build.spec.mjs
       - proof/browser/browser-boot-profile.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
+      - proof/browser/patchbay-product.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
       - proof/browser/creche-orange-pi.spec.mjs

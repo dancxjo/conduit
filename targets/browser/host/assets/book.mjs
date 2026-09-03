@@ -6,6 +6,7 @@ import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerF
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
+import { mountProductNavigation } from "./product-navigation.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 
 const encoder = new TextEncoder();
@@ -30,7 +31,8 @@ let hostPresentation, hostPresentationFor, hostStatus;
 let routing;
 
 export async function startApplication(application) {
-try {
+ try {
+  mountProductNavigation();
   hostPresentation = application.presentation;
   hostPresentationFor = application.presentationFor;
   hostStatus = createBookStatus(hostPresentation, "book-host-status", "host-status", "Starting browser Host…");
@@ -422,7 +424,7 @@ function createMultiHostRunner(source, showPlan) {
 
 function compactPatchbayFrame() {
   return `<figure class="compact-patchbay" aria-label="Patchbay">
-    <figcaption><span>Form · Patchbay</span><strong>Checking source…</strong></figcaption>
+    <figcaption><span>Form · <a href="/conduit/patchbay/?mode=external&amp;context=book">Open in Patchbay</a></span><strong>Checking source…</strong></figcaption>
     <div class="book-flow-root" aria-label="Real Patchbay canvas"></div>
     <ol class="compact-patchbay-text" aria-label="Ordered textual equivalent" hidden></ol>
     <section class="gear-back-expansion" hidden aria-label="Reviewed Form Back topology">

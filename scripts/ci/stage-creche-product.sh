@@ -28,6 +28,7 @@ cp targets/browser/host/assets/creche-routing.mjs "$destination/creche-routing.m
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
 cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
 cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"
+cp targets/browser/host/assets/product-navigation.mjs "$destination/product-navigation.mjs"
 cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"

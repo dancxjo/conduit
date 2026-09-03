@@ -48,6 +48,7 @@ members = [
 	# Product and application compositions.
 	"apps/conduit",
 	"apps/patchbay/hosted",
+	"apps/patchbay/browser-runtime",
 	"apps/patchbay/html",
 	"apps/patchbay/model",
 	"apps/patchbay/control",

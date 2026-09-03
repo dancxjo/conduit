@@ -1,0 +1,25 @@
+{
+  "schema": "conduit.browser/application-package-template@1",
+  "application_id": "conduit.application/patchbay",
+  "state_compatibility": { "identity": "conduit.application/patchbay-host-state", "version": 1 },
+  "host_implementations": ["browser/indexeddb@1"],
+  "resources": [
+    { "role": "application-module", "kind": "module", "path": "patchbay.mjs", "maximum_bytes": 32768, "dependencies": [
+      {"role":"browser-host-membership","specifier":"./browser-host-membership.mjs"},
+      {"role":"browser-body-membership","specifier":"./browser-body-membership.mjs"},
+      {"role":"product-navigation","specifier":"./product-navigation.mjs"}
+    ]},
+    { "role": "browser-host-membership", "kind": "module", "path": "browser-host-membership.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"browser-host-identity","specifier":"./browser-host-identity.mjs"}] },
+    { "role": "browser-host-identity", "kind": "module", "path": "browser-host-identity.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "browser-body-membership", "kind": "module", "path": "browser-body-membership.mjs", "maximum_bytes": 32768, "dependencies": [{"role":"body-webrtc-sessions","specifier":"./body-webrtc-sessions.mjs"},{"role":"browser-host-identity","specifier":"/targets/browser/host/assets/browser-host-identity.mjs"}] },
+    { "role": "body-webrtc-sessions", "kind": "module", "path": "body-webrtc-sessions.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"body-webrtc-session","specifier":"./body-webrtc-session.mjs"}] },
+    { "role": "body-webrtc-session", "kind": "module", "path": "body-webrtc-session.mjs", "maximum_bytes": 32768, "dependencies": [{"role":"webrtc-line","specifier":"./webrtc-datachannel-line.mjs"},{"role":"webrtc-runtime","specifier":"./webrtc-session-runtime.mjs"}] },
+    { "role": "webrtc-line", "kind": "module", "path": "webrtc-datachannel-line.mjs", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "webrtc-runtime", "kind": "module", "path": "webrtc-session-runtime.mjs", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "product-navigation", "kind": "module", "path": "product-navigation.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "runtime", "kind": "wasm", "path": "runtime.wasm", "maximum_bytes": 8388608, "dependencies": [] },
+    { "role": "patchbay-entrance-runtime", "kind": "wasm", "path": "patchbay-entrance-runtime.wasm", "maximum_bytes": 8388608, "dependencies": [] },
+    { "role": "shared-presentation-style", "kind": "style", "path": "application-theme.css", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "patchbay-style", "kind": "style", "path": "patchbay.css", "maximum_bytes": 8192, "dependencies": [] }
+  ]
+}

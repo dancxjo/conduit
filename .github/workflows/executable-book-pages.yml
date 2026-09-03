@@ -12,6 +12,7 @@ on:
       - scripts/ci/stage-book-product.sh
       - scripts/ci/build-browser-application-package.mjs
       - scripts/ci/stage-creche-product.sh
+      - scripts/ci/stage-patchbay-product.sh
       - scripts/ci/seal-pages-carrier.mjs
       - scripts/ci/verify-pages-carrier.mjs
       - scripts/ci/pages-product-run-selection.mjs
@@ -42,6 +43,15 @@ on:
       - targets/browser/host/assets/creche.application.template.json
       - targets/browser/host/assets/creche.css
       - targets/browser/host/assets/creche*.mjs
+      - targets/browser/host/assets/patchbay.html
+      - targets/browser/host/assets/patchbay.css
+      - targets/browser/host/assets/patchbay.mjs
+      - targets/browser/host/assets/patchbay.application.template.json
+      - targets/browser/host/assets/product-navigation.mjs
+      - apps/patchbay/browser-runtime/**
+      - apps/patchbay/html/assets/browser-membership.js
+      - apps/patchbay/html/assets/body-webrtc*.mjs
+      - apps/patchbay/html/assets/webrtc-*.mjs
       - targets/browser/host/browser-deployment/**
       - targets/browser/host/assets/browser-host-bootstrap.mjs
       - targets/browser/host/assets/browser-host-membership.mjs
@@ -103,6 +113,7 @@ on:
       - proof/browser/browser-boot-profile.spec.mjs
       - proof/browser/browser-form-runner.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
+      - proof/browser/patchbay-product.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
       - proof/browser/creche-orange-pi.spec.mjs
@@ -128,15 +139,21 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - name: Build the exact browser Host, Book runtime, and Crèche runtime
+      - name: Build the exact browser Host and three product runtimes
         run: |
           mkdir -p target/browser-product-runtimes
           cargo build --locked -p conduit-browser-host
           cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
+          cargo build --locked -p conduit-std-host --bin browser-admission-probe
+          cp target/debug/browser-admission-probe target/browser-product-runtimes/browser-admission-probe
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/book-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-host-runtime.wasm
+          cargo build --locked -p patchbay-browser-runtime --target wasm32-unknown-unknown --release
+          cp target/wasm32-unknown-unknown/release/patchbay_browser_runtime.wasm target/browser-product-runtimes/patchbay-entrance-runtime.wasm
       - uses: actions/upload-artifact@v4
         with:
           name: conduit-browser-product-runtimes
@@ -454,12 +471,15 @@ jobs:
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
           chmod 755 target/debug/conduit-browser-host
+          cp target/browser-product-runtimes/browser-admission-probe target/debug/browser-admission-probe
+          chmod 755 target/debug/browser-admission-probe
           cp target/browser-product-runtimes/book-runtime.wasm target/conduit_book_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
-          rm -rf target/pages-root target/book-product target/creche-product
+          rm -rf target/pages-root target/book-product target/creche-product target/patchbay-product
           scripts/ci/stage-pages-root.sh target/pages-root
           scripts/ci/stage-book-product.sh target/browser-product-runtimes/book-runtime.wasm target/book-product
           scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
+          scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-host-runtime.wasm target/browser-product-runtimes/patchbay-entrance-runtime.wasm target/patchbay-product
       - name: Prove the Pages products independently and together in pinned Chromium
         run: >-
           npx playwright test
@@ -471,6 +491,7 @@ jobs:
           proof/browser/browser-human-input.spec.mjs
           proof/browser/browser-form-runner.spec.mjs
           proof/browser/pages-front-door.spec.mjs
+          proof/browser/patchbay-product.spec.mjs
           proof/browser/creche-avr.spec.mjs
           proof/browser/creche-orange-pi.spec.mjs
           proof/browser/creche-raspberry-pi.spec.mjs
@@ -493,15 +514,20 @@ jobs:
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/book target/pages-site/creche
+          mkdir -p target/pages-site/book target/pages-site/creche target/pages-site/patchbay
           cp -a target/pages-root/. target/pages-site/
           cp -a target/book-product/. target/pages-site/book/
           cp -a target/creche-product/. target/pages-site/creche/
+          cp -a target/patchbay-product/. target/pages-site/patchbay/
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/book/book.application.json
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/creche/runtime.wasm
+          test -f target/pages-site/patchbay/index.html
+          test -f target/pages-site/patchbay/patchbay.application.json
+          test -f target/pages-site/patchbay/runtime.wasm
+          test -f target/pages-site/patchbay/patchbay-entrance-runtime.wasm
           source_commit=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
           source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
           node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"

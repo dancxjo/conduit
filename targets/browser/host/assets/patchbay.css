@@ -1,0 +1,24 @@
+:root { color-scheme: light dark; }
+body { margin: 0; min-height: 100vh; background: var(--conduit-background); color: var(--conduit-text); font-family: var(--conduit-font-sans); }
+.site-header { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; padding: 1rem clamp(1rem,4vw,4rem); border-bottom: 1px solid var(--conduit-border); }
+.wordmark { color: var(--conduit-emphasis); font-family: var(--conduit-font-mono); font-weight: 800; text-decoration: none; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: .9rem; justify-content: center; }
+.site-header nav a { color: var(--conduit-text-secondary); text-decoration: none; }
+.site-header nav a:hover, .site-header nav a[aria-current="page"] { color: var(--conduit-emphasis); }
+main { width: min(72rem,calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem,6vw,5rem) 0; }
+.introduction { max-width: 52rem; margin-bottom: 2rem; }
+.eyebrow { color: var(--conduit-emphasis); font-family: var(--conduit-font-mono); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; }
+h1 { font-size: clamp(2.8rem,8vw,6rem); line-height: .95; margin: .35rem 0 1rem; }
+h2 { font-size: 1.05rem; margin: 0 0 1rem; }
+.relationship-panel,.entrance-panel,.workbench-panel { border: 1px solid var(--conduit-border); border-radius: var(--conduit-radius); margin: 1rem 0; padding: 1.25rem; background: var(--conduit-surface); }
+.creche-route { color: var(--conduit-text-secondary); }
+.creche-route a { color: var(--conduit-emphasis); }
+[data-application-component="definition-table"] { display: grid; gap: .7rem; }
+[data-application-component="definition"] { display: grid; grid-template-columns: minmax(8rem,14rem) 1fr; gap: 1rem; border-top: 1px solid var(--conduit-border); padding-top: .7rem; }
+[data-application-component="action-group"] { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+button,input { font: inherit; }
+button { border: 1px solid var(--conduit-border-strong); border-radius: var(--conduit-radius); padding: .65rem .9rem; background: var(--conduit-surface-raised); color: var(--conduit-text); cursor: pointer; }
+button:hover { border-color: var(--conduit-emphasis); }
+[data-application-component="form-field"] { display: grid; gap: .35rem; margin: .75rem 0; }
+[data-application-component="text-input"] { width: min(100%,48rem); box-sizing: border-box; border: 1px solid var(--conduit-border-strong); border-radius: var(--conduit-radius); padding: .65rem; background: var(--conduit-background); color: var(--conduit-text); }
+@media (max-width: 44rem) { .site-header { grid-template-columns: 1fr; } .site-header nav { justify-content: flex-start; } [data-application-component="definition"] { grid-template-columns: 1fr; gap: .25rem; } }

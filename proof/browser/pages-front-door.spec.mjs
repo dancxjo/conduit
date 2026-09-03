@@ -11,6 +11,7 @@ async function assemblePagesCarrier() {
   await cp("target/pages-root", pagesRoot, { recursive: true });
   await cp("target/book-product", `${pagesRoot}/book`, { recursive: true });
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
+  await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
 }
 
 test.beforeAll(async () => {
@@ -23,10 +24,11 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("Conduit home, Book, and Crèche are stable sibling endpoints", async ({ page }) => {
+test("Conduit home, Book, Crèche, and Patchbay are stable sibling endpoints", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const book = `${home}/book/`;
   const creche = `${home}/creche/`;
+  const patchbay = `${home}/patchbay/`;
 
   await page.goto(`${home}/`);
   await expect(page).toHaveURL(`${home}/`);
@@ -34,9 +36,10 @@ test("Conduit home, Book, and Crèche are stable sibling endpoints", async ({ pa
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("link", { name: "Learn Conduit" })).toHaveAttribute("href", "/conduit/book");
   await expect(page.getByRole("link", { name: "Birth a Body", exact: true })).toHaveAttribute("href", "/conduit/creche");
+  await expect(page.getByRole("link", { name: "Patchbay", exact: true }).first()).toHaveAttribute("href", "/conduit/patchbay/");
   await expect(page.getByText("One physical computer")).toBeVisible();
   await expect(page.getByText("Several unlike computers")).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link")).toHaveCount(3);
+  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link")).toHaveCount(4);
 
   await page.goto(book);
   await expect(page).toHaveURL(book);
@@ -51,6 +54,12 @@ test("Conduit home, Book, and Crèche are stable sibling endpoints", async ({ pa
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Crèche" })).toHaveAttribute("aria-current", "page");
+
+  await page.goto(patchbay);
+  await expect(page).toHaveURL(patchbay);
+  await expect(page).toHaveTitle("Conduit Patchbay");
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Patchbay" })).toHaveAttribute("aria-current", "page");
 });
 
 test("published Book chapter permalinks remain deployable", async ({ page }) => {
@@ -71,10 +80,11 @@ test("the shared shell follows dark and light preferences without changing appli
   const home = entrance.url.replace(/\/$/, "");
   for (const colorScheme of ["dark", "light"]) {
     await page.emulateMedia({ colorScheme });
-    for (const path of ["", "/book/", "/creche/"]) {
+    for (const path of ["", "/book/", "/creche/", "/patchbay/"]) {
       await page.goto(path === "" ? `${home}/` : `${home}${path}`);
       if (path === "/book/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
       if (path === "/creche/") await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+      if (path === "/patchbay/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
       const palette = await page.evaluate(() => ({
         scheme: getComputedStyle(document.documentElement).colorScheme,
         background: getComputedStyle(document.documentElement).getPropertyValue(
@@ -95,7 +105,7 @@ test("the shared shell follows dark and light preferences without changing appli
       );
       const focusTarget = path === ""
         ? page.getByRole("link", { name: "Learn Conduit" })
-        : primaryNavigation.getByRole("link", { name: path === "/book/" ? "Book" : "Crèche" });
+        : primaryNavigation.getByRole("link", { name: path === "/book/" ? "Book" : path === "/creche/" ? "Crèche" : "Patchbay" });
       await page.keyboard.press("Tab");
       await focusTarget.focus();
       await expect(focusTarget).toHaveCSS(

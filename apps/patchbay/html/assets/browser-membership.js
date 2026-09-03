@@ -31,9 +31,8 @@ export function immutableWebRtcSignalFrame(frame) {
   return Object.freeze({ ...frame, signal: immutableSignal });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
-  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
-  const api = instance.exports;
+export async function joinBrowserBody({ bodyUrl, wasmBytes, host, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+  const api = host?.runtime ?? (await WebAssembly.instantiate(wasmBytes, {})).instance.exports;
   const required = [
     "memory",
     "conduit_browser_membership_input_ptr",
@@ -75,27 +74,41 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
   const requireSuccess = (status, action) => {
     if (status < 0) throw new Error(`${action} failed ${status}`);
   };
-  const identity = await openBrowserHostIdentity();
-  const hostId = identity.hostId;
-  const bootId = `browser-boot/${crypto.randomUUID()}`;
-  const seed = identity.seed.slice();
-  const host = encoder.encode(hostId);
-  const boot = encoder.encode(bootId);
-  const initialization = new Uint8Array(host.length + boot.length + seed.length);
-  initialization.set(host);
-  initialization.set(boot, host.length);
-  initialization.set(seed, host.length + boot.length);
-  writeInput(initialization);
-  requireSuccess(
-    api.conduit_browser_membership_initialize(host.length, boot.length),
-    "browser membership initialization",
-  );
-  seed.fill(0);
-  initialization.fill(0);
-  const verifyingKey = readOutput();
-  if (verifyingKey.length !== 32) throw new Error("invalid browser verifying key");
-  requireSuccess(api.conduit_browser_membership_advertisement(), "browser advertisement");
-  const advertisement = JSON.parse(decoder.decode(readOutput()));
+  let hostId;
+  let bootId;
+  let verifyingKey;
+  let advertisement;
+  if (host) {
+    hostId = host.hostId;
+    bootId = host.bootId;
+    verifyingKey = Uint8Array.from(host.verifyingKey ?? []);
+    if (verifyingKey.length !== 32 || host.membership?.hostId !== hostId || host.membership?.bootId !== bootId) {
+      throw new Error("invalid initialized browser Host incarnation");
+    }
+    advertisement = host.membership.advertisement();
+  } else {
+    const identity = await openBrowserHostIdentity();
+    hostId = identity.hostId;
+    bootId = `browser-boot/${crypto.randomUUID()}`;
+    const seed = identity.seed.slice();
+    const hostBytes = encoder.encode(hostId);
+    const bootBytes = encoder.encode(bootId);
+    const initialization = new Uint8Array(hostBytes.length + bootBytes.length + seed.length);
+    initialization.set(hostBytes);
+    initialization.set(bootBytes, hostBytes.length);
+    initialization.set(seed, hostBytes.length + bootBytes.length);
+    writeInput(initialization);
+    requireSuccess(
+      api.conduit_browser_membership_initialize(hostBytes.length, bootBytes.length),
+      "browser membership initialization",
+    );
+    seed.fill(0);
+    initialization.fill(0);
+    verifyingKey = readOutput();
+    if (verifyingKey.length !== 32) throw new Error("invalid browser verifying key");
+    requireSuccess(api.conduit_browser_membership_advertisement(), "browser advertisement");
+    advertisement = JSON.parse(decoder.decode(readOutput()));
+  }
   configureHost?.(Object.freeze({ api, hostId, bootId }));
   let state = "connecting";
   let presenceState = "unavailable";
@@ -438,6 +451,8 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
     hostId,
     bootId,
     state: () => state,
+    bodyId: () => credential?.body_id ?? null,
+    partId: () => credential?.part_id ?? null,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
     freshnessProfile: () => freshnessProfile,

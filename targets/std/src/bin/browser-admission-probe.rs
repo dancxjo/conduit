@@ -6,11 +6,14 @@ mod return_admission;
 mod return_session;
 
 use conduit_body::{
-    AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
-    CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
-    HostPresenceClockScale, HostPresenceRefusal, HostPresenceTable,
+    AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyBiographyEvidence,
+    BodyGraduationChoice, BodyGraduationEvidence, BodyMembership, CandidateInventory,
+    CandidateObservation, DiscoveryProofId, HostPresenceClock, HostPresenceClockScale,
+    HostPresenceRefusal, HostPresenceTable,
 };
-use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
+use conduit_core::{
+    CheckedFormId, ImplementationId, LinkBindingId, PlanId, SignId, SourceDocumentId,
+};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BrowserAdmissionSocketError, BROWSER_ADMISSION_PROTOCOL,
@@ -28,6 +31,10 @@ fn main() -> Result<(), String> {
     let arguments = std::env::args().skip(1).collect::<Vec<_>>();
     let live_presence = arguments.iter().any(|argument| argument == "--presence");
     let reconnect = arguments.iter().any(|argument| argument == "--reconnect");
+    let biography_path = arguments
+        .windows(2)
+        .find(|pair| pair[0] == "--biography")
+        .map(|pair| pair[1].clone());
     let clock = Instant::now();
     let body = Body::born(
         SourceDocumentId::from("source/browser-admission-probe"),
@@ -135,6 +142,42 @@ fn main() -> Result<(), String> {
             },
         )
         .map_err(|error| format!("complete admission: {error:?}"))?;
+    if let Some(path) = biography_path {
+        let changes = membership
+            .events
+            .iter()
+            .enumerate()
+            .map(|(index, event)| (event.change_id.clone(), index as u64 + 2))
+            .collect::<Vec<_>>();
+        let mut biography = BodyBiographyEvidence::born(
+            body.clone(),
+            BodyMembership::new(body.body_id.clone())
+                .map_err(|error| format!("biography membership: {error:?}"))?,
+            "Browser admission proof Body".into(),
+            "browser-admission-proof@1".into(),
+        )
+        .map_err(|error| format!("biography birth: {error:?}"))?;
+        biography
+            .append_membership_events(membership.clone(), &changes)
+            .map_err(|error| format!("biography membership events: {error:?}"))?;
+        biography
+            .graduate(BodyGraduationEvidence {
+                body_id: body.body_id.clone(),
+                sequence: changes.len() as u64 + 2,
+                sign_id: SignId::from("sign/browser-admission-probe/patchbay-graduated"),
+                choice: BodyGraduationChoice::HostedPatchbay,
+                patchbay_plan_id: Some(PlanId::from("plan/patchbay-pages-proof")),
+                patchbay_implementation_id: Some(ImplementationId::from(
+                    "browser/patchbay-surface@1",
+                )),
+            })
+            .map_err(|error| format!("biography graduation: {error:?}"))?;
+        std::fs::write(
+            path,
+            serde_json::to_vec(&biography).map_err(|error| format!("encode biography: {error}"))?,
+        )
+        .map_err(|error| format!("write biography: {error}"))?;
+    }
     socket
         .send(&BrowserAdmissionEgress::Admitted {
             protocol: BROWSER_ADMISSION_PROTOCOL,

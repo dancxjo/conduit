@@ -2642,6 +2642,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "patchbay-browser-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "patchbay-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "patchbay-control"
 version = "0.1.0"
 dependencies = [

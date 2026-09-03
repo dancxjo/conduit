@@ -39,12 +39,19 @@ export async function initializeBrowserHost(runtimeBytes, options = {}) {
   seed.fill(0);
   initialization.fill(0);
   if (status < 0) throw new Error(`browser Host initialization failed ${status}`);
+  const verifyingKey = Array.from(new Uint8Array(
+    api.memory.buffer,
+    api.conduit_browser_membership_output_ptr(),
+    api.conduit_browser_membership_output_len(),
+  ));
+  if (verifyingKey.length !== 32) throw new Error("browser Host verifying key is invalid");
   const membership = createMembershipClient(api, hostId, bootId);
   return Object.freeze({
     schema: "conduit.browser/host-incarnation@1",
     profile: identity.profile,
     hostId,
     bootId,
+    verifyingKey: Object.freeze(verifyingKey),
     runtime: api,
     membership,
     resetHostIdentity(confirmation) {

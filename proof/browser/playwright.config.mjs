@@ -27,6 +27,7 @@ export default defineConfig({
     "browser-boot-profile.spec.mjs",
     "browser-form-runner.spec.mjs",
     "pages-front-door.spec.mjs",
+    "patchbay-product.spec.mjs",
     "creche-avr.spec.mjs",
     "creche-orange-pi.spec.mjs",
     "creche-raspberry-pi.spec.mjs",
