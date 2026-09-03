@@ -185,6 +185,9 @@ pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHost
         patchbay_model::PatchbayNavigationProjection::for_embodied(&snapshot.presentation)
             .map_err(CrossHostRendererError::Presentation)?;
     snapshot.attach_navigation(navigation)?;
+    let workbench = crate::demo::demonstration_workbench(&snapshot)
+        .map_err(CrossHostRendererError::Presentation)?;
+    snapshot.attach_workbench(workbench)?;
     Ok(snapshot)
 }
 

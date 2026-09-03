@@ -81,6 +81,7 @@ impl RendererSnapshot {
             entrance,
             parts: None,
             authoring: None,
+            workbench: None,
             interaction: crate::HtmlInteractionState::default(),
         };
         value.validate()?;
@@ -135,6 +136,17 @@ impl RendererSnapshot {
             return Err(SnapshotError::InvalidIdentity);
         }
         self.authoring = Some(authoring);
+        self.validate()
+    }
+
+    pub fn attach_workbench(
+        &mut self,
+        workbench: crate::BrowserBodyWorkbench,
+    ) -> Result<(), SnapshotError> {
+        workbench
+            .validate_against(self.presentation.basis.body_id.as_ref())
+            .map_err(|_| SnapshotError::InvalidIdentity)?;
+        self.workbench = Some(workbench);
         self.validate()
     }
 
@@ -200,6 +212,11 @@ impl RendererSnapshot {
         });
         let invalid_temporal_context = project_model_temporal_context(&self.presentation)
             .map_or(true, |expected| expected != self.temporal_context);
+        let invalid_workbench = self.workbench.as_ref().is_some_and(|workbench| {
+            workbench
+                .validate_against(self.presentation.basis.body_id.as_ref())
+                .is_err()
+        });
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
@@ -213,6 +230,7 @@ impl RendererSnapshot {
             || invalid_navigation
             || invalid_authoring
             || invalid_temporal_context
+            || invalid_workbench
         {
             return Err(SnapshotError::InvalidIdentity);
         }

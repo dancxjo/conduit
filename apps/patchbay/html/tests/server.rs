@@ -74,6 +74,9 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let navigation = request("/assets/portable-navigation.js", "GET");
     assert!(navigation.starts_with("HTTP/1.1 200 OK"));
     assert!(navigation.contains("projectCurrent"));
+    let workbench = request("/assets/workbench-shell.js", "GET");
+    assert!(workbench.starts_with("HTTP/1.1 200 OK"));
+    assert!(workbench.contains("renderBodyWorkbench"));
 
     let response = request("/api/snapshot", "GET");
     let body = response.split("\r\n\r\n").nth(1).unwrap();

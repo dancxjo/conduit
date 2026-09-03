@@ -34,6 +34,21 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
         decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Prepared
     );
+    let workbench = decoded.workbench.as_ref().unwrap();
+    assert_eq!(workbench.current.friendly_name, "Roseau");
+    assert_eq!(workbench.current.program_label, "Hello");
+    assert_eq!(workbench.current.admitted_parts, 3);
+    assert_eq!(workbench.current.current_hosts.len(), 2);
+    assert_eq!(workbench.history.entries.len(), 7);
+    assert_eq!(
+        workbench
+            .history
+            .entries
+            .iter()
+            .map(|entry| entry.evidence_sequence)
+            .collect::<Vec<_>>(),
+        vec![1, 2, 3, 4, 5, 6, 7]
+    );
     assert!(decoded
         .renderer
         .validate_against(&decoded.presentation)
@@ -140,6 +155,18 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
     );
     value = serde_json::from_slice(&bytes).unwrap();
     value["temporal_context"][0]["relative_time"] = "invented age".into();
+    assert_eq!(
+        RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
+        Err(SnapshotError::InvalidIdentity)
+    );
+    value = serde_json::from_slice(&bytes).unwrap();
+    value["workbench"]["history"]["entries"][1]["evidence_sequence"] = 1.into();
+    assert_eq!(
+        RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
+        Err(SnapshotError::InvalidIdentity)
+    );
+    value = serde_json::from_slice(&bytes).unwrap();
+    value["workbench"]["current"]["body_id"] = "body/drifted".into();
     assert_eq!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::InvalidIdentity)

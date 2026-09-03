@@ -159,3 +159,57 @@ body[data-lens="signs"] .flow-faceplate { border-style:double; }
   .status-strip { display:none; }
 }
 @media (max-width:720px) { .react-flow__node-faceplate,.flow-faceplate { width:13rem; min-width:13rem; max-width:13rem; } }
+
+/* Body-first workbench hierarchy. Program remains the literal canvas; Body
+   and History are manifestations of existing Body Structure and Body Signs. */
+.topbar { width:min(47rem,calc(100% - 1.5rem)); min-height:5.6rem; align-items:flex-start; }
+.product-mark { min-width:9rem; }
+.product-mark h1 { display:block; margin:.05rem 0; font-size:1.35rem; }
+#body-program,#body-home p { margin:.1rem 0; }
+#body-program { color:var(--patchbay-text-secondary); font-size:.85rem; }
+#body-home { flex:1; min-width:0; padding-left:.75rem; border-left:1px solid var(--patchbay-structure-secondary); }
+#body-status { font-weight:700; }
+#body-placement { color:var(--patchbay-text-secondary); font-size:.76rem; }
+#body-lifecycle-action { margin-top:.35rem; border-color:var(--patchbay-emphasis); }
+.technical-status { max-width:8rem; font-size:.72rem; }
+.technical-status summary { padding:.25rem .4rem; }
+.technical-status #status { max-width:none; margin-top:.35rem; white-space:normal; }
+nav { max-width:calc(100% - 49.5rem); align-items:flex-start; }
+#workbench-places,.utility-controls { display:flex; gap:.3rem; flex-wrap:wrap; }
+#workbench-places button { min-width:5.7rem; border-color:var(--patchbay-structure-primary); font-weight:750; }
+#workbench-places button[aria-pressed="true"] { color:var(--patchbay-background); background:var(--patchbay-emphasis); border-color:var(--patchbay-emphasis); }
+.utility-controls { opacity:.86; }
+#semantic-navigation { width:100%; text-align:right; font-size:.76rem; }
+#semantic-navigation[open] { padding:.35rem; background:var(--patchbay-surface); border:1px solid var(--patchbay-structure-secondary); border-radius:.35rem; }
+#semantic-navigation .place-controls,#semantic-navigation .lens-controls { display:flex; justify-content:flex-end; gap:.25rem; margin-top:.3rem; }
+.canvas-heading { top:7.2rem; }
+#history-workspace { position:absolute; z-index:2; inset:7.2rem .75rem .75rem; overflow:auto; padding:clamp(1rem,3vw,2.5rem); background:var(--patchbay-background); }
+.history-heading { max-width:48rem; margin:0 auto 1.25rem; border-bottom:1px solid var(--patchbay-structure-secondary); }
+#history-entries { max-width:48rem; margin:auto; padding:0; list-style:none; counter-reset:biography; }
+.history-entry { position:relative; margin:0 0 1rem; padding:.85rem 1rem .85rem 1.35rem; border-left:4px solid var(--patchbay-structure-primary); border-radius:0 .45rem .45rem 0; background:var(--patchbay-surface); }
+.history-entry h3 { margin:.1rem 0 .35rem; font-size:1.05rem; }
+.history-entry>p { margin:.2rem 0; }
+.history-sequence { color:var(--patchbay-text-secondary); font-size:.74rem; letter-spacing:.08em; text-transform:uppercase; }
+#history-linear { max-width:48rem; margin:1.5rem auto; }
+#history-linear li { overflow-wrap:anywhere; font-family:monospace; font-size:.75rem; }
+body[data-workbench-view="body"] #form,body[data-workbench-view="history"] #form { display:none; }
+body[data-workbench-view="body"] #parts { display:block; position:absolute; z-index:2; inset:7.2rem .75rem .75rem; width:auto; max-height:none; margin:0; overflow:auto; box-shadow:none; }
+body[data-workbench-view="body"] #parts .furniture-bar { display:none; }
+body:not([data-workbench-view="history"]) #history-workspace { display:none; }
+body[data-workbench-view="body"] #current-status,body[data-workbench-view="body"] #temporal-context,body[data-workbench-view="body"] #front-door-actions,body[data-workbench-view="history"] #current-status,body[data-workbench-view="history"] #temporal-context,body[data-workbench-view="history"] #front-door-actions { display:none; }
+
+@media (max-width:1050px) {
+  .topbar { width:calc(100% - 1.5rem); }
+  nav { top:7rem; left:.75rem; right:.75rem; width:auto; max-width:none; justify-content:flex-start; }
+  #semantic-navigation { width:auto; text-align:left; }
+  .canvas-heading,#history-workspace,body[data-workbench-view="body"] #parts { top:12rem; }
+}
+
+@media (max-width:720px) {
+  .topbar { max-height:190px; }
+  #body-home { padding-left:0; border-left:0; }
+  nav { top:200px; max-height:200px; }
+  .canvas-heading { top:410px; }
+  #flow-root { top:min(625px,68vh); }
+  #history-workspace,body[data-workbench-view="body"] #parts { top:410px; }
+}

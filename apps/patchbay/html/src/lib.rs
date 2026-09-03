@@ -10,6 +10,7 @@ mod seed_sources;
 mod server;
 mod snapshot;
 mod transport_types;
+mod workbench;
 
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::{
@@ -23,3 +24,4 @@ pub use seed_sources::{
 pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES, MAX_THEME_CSS_BYTES};
 pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
+pub use workbench::*;

@@ -6,6 +6,8 @@ use patchbay_model::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::BrowserBodyWorkbench;
+
 pub const MAX_BROWSER_PALETTE_ENTRIES: usize = patchbay_model::MAX_PALETTE_ENTRIES;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,6 +67,8 @@ pub struct RendererSnapshot {
     pub parts: Option<PartsView>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authoring: Option<BrowserAuthoring>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workbench: Option<BrowserBodyWorkbench>,
     pub interaction: HtmlInteractionState,
 }
 
