@@ -132,6 +132,7 @@ function renderStep() {
   if (currentStep === 2) workspace.append(createPhysicalHostRunner({
     host,
     presentationFor,
+    hostOperations: routing,
     targetCatalog,
     onBodyChanged: bodyChanged,
   }));

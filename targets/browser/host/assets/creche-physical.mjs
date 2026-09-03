@@ -1,13 +1,12 @@
 import { PHYSICAL_HOST_INTENTIONS } from "./creche-target-catalog.mjs";
-import { presentPhysicalEvidence, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
-
+import { presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
 const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createPhysicalHostRunner({ host, presentationFor, targetCatalog, onBodyChanged }) {
+export function createPhysicalHostRunner({ host, hostOperations, presentationFor, targetCatalog, onBodyChanged }) {
   const catalog = requireTargetCatalog(targetCatalog);
   const runner = document.createElement("section");
   runner.className = "physical-host-runner";
@@ -27,7 +26,7 @@ export function createPhysicalHostRunner({ host, presentationFor, targetCatalog,
         <span class="select-field"><select class="physical-target"></select></span>
       </label>
       <div class="target-options"></div>
-      <div class="spore-download" aria-live="polite"></div>
+      <div class="spore-download" data-application-slot="physical-artifact"></div>
     </div>
     <div class="physical-actions">
       <button class="bind" type="button" disabled>Bind Body invitation</button>
@@ -74,7 +73,8 @@ export function createPhysicalHostRunner({ host, presentationFor, targetCatalog,
     realization: null,
     observation: null,
     admission: null,
-    downloadUrl: null,
+    download: null,
+    hostOperations,
   };
 
   modeControl.addEventListener("change", () => selectMode(runner, host, state, modeControl.value));
@@ -194,25 +194,28 @@ function bindInvitation(runner, host, state) {
 }
 
 function renderDownload(runner, state, download) {
-  if (!download || !["conduit.spore/browser-download@1", "conduit.spore/browser-download@2"].includes(download.schema)
-    || !(download.blob instanceof Blob) || typeof download.filename !== "string") {
+  if (!download || download.schema !== "conduit.spore/browser-artifact@1"
+    || !(download.payload instanceof Uint8Array) || download.payload.byteLength !== download.bytes
+    || typeof download.filename !== "string") {
     throw new TypeError("physical Host adapter omitted its downloadable spore artifact");
   }
   clearDownload(runner, state);
-  state.downloadUrl = URL.createObjectURL(download.blob);
-  const link = document.createElement("a");
-  link.className = "download-spore";
-  link.href = state.downloadUrl;
-  link.download = download.filename;
-  const format = download.format ? ` ${download.format.toUpperCase()}` : " spore";
-  link.textContent = `Download${format} · ${download.bytes} bytes`;
-  runner.querySelector(".spore-download").append(link);
+  state.download = download;
+  presentPhysicalArtifact(state, download, async (artifact) => {
+    try {
+      const outcome = await state.hostOperations.handoffArtifact(artifact);
+      if (!["completed", "handoff-offered"].includes(outcome.disposition)) {
+        status(runner, state, `Artifact handoff refused: ${outcome.disposition}`, true);
+      }
+    } catch (error) {
+      status(runner, state, `Artifact handoff refused: ${error.code ?? error.message}`, true);
+    }
+  });
 }
 
 function clearDownload(runner, state) {
-  if (state.downloadUrl) URL.revokeObjectURL(state.downloadUrl);
-  state.downloadUrl = null;
-  runner.querySelector(".spore-download")?.replaceChildren();
+  state.download = null;
+  presentPhysicalArtifact(state, null, () => {});
 }
 
 function realizeHost(runner, host, state) {

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 const X86 = "conduitos/x86_64/pc";
 const AARCH64 = "conduitos/aarch64/virt";
@@ -70,8 +71,8 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
     expect.stringMatching(/\/creche\/artifacts\/conduitos-x86_64-pc\.iso$/),
   ]);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-conduitos-native\.iso$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download ISO");
+  const handoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(handoff).toContainText("Download ISO");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: X86,
@@ -87,18 +88,15 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
       provision_bytes: 4096,
     },
   });
-  const nativeIso = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const artifact = readBodyProvisionedMedia(bytes);
-    return {
-      isoMagic: new TextDecoder().decode(bytes.subarray(32769, 32774)),
-      bytes: bytes.byteLength,
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      provision: artifact.provision,
-    };
-  });
+  const downloaded = await downloadArtifact(page, handoff);
+  expect(downloaded.filename).toMatch(/-conduitos-native\.iso$/);
+  const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+  const nativeIso = {
+    isoMagic: new TextDecoder().decode(downloaded.bytes.subarray(32769, 32774)),
+    bytes: downloaded.bytes.byteLength,
+    contentDigest: await sha256(downloaded.bytes),
+    provision: readBodyProvisionedMedia(downloaded.bytes).provision,
+  };
   expect(nativeIso).toMatchObject({
     isoMagic: "CD001",
     bytes: release.manifest.artifact.bytes + 4096,
@@ -148,7 +146,8 @@ for (const target of PROMOTED) {
     expect(evidence.obtainment).toMatchObject({ target_id: target.id, artifact_role: "product-host" });
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    await expect(runner.locator(".download-spore")).toHaveAttribute("download", /\.iso$/);
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(/\.iso$/);
     const bound = JSON.parse(await runner.locator("details code").textContent());
     expect(bound.binding).toMatchObject({
       target_id: target.id,

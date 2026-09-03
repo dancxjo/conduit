@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { installB7Devices } from "./b7-fixture.mjs";
 import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
+import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 let entrance;
 
@@ -510,25 +511,22 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     expect(requestedPaths).not.toContain("/conduit/artifacts/esp32-c3-generic-release.json");
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    const spore = runner.locator(".download-spore");
-    await expect(spore).toHaveAttribute("download", /-c3\.bin$/);
+    const spore = runner.locator('[data-application-key="download-spore"]');
     evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: c3Manifest.target_id,
       image_content_digest: evidence.obtainment.artifact.content_digest,
     });
     expect(evidence.binding.image_id).toMatch(/^image:sha256:[0-9a-f]{64}$/);
-    const artifact = await spore.evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readEsp32BodySpore } = await import(new URL("../targets/esp32/browser-deployment/index.mjs", location.href).href);
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      return {
-        magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-        bytes: bytes.byteLength,
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: readEsp32BodySpore(bytes),
-      };
-    });
+    const downloadedSpore = await downloadArtifact(page, spore);
+    expect(downloadedSpore.filename).toMatch(/-c3\.bin$/);
+    const { readEsp32BodySpore } = await import("../../targets/esp32/browser-deployment/index.mjs");
+    const artifact = {
+      magic: new TextDecoder().decode(downloadedSpore.bytes.subarray(0, 8)),
+      bytes: downloadedSpore.bytes.byteLength,
+      contentDigest: await sha256(downloadedSpore.bytes),
+      provision: readEsp32BodySpore(downloadedSpore.bytes),
+    };
     expect(artifact).toMatchObject({
       bytes: 4 * 1024 * 1024,
       provision: {
@@ -552,8 +550,7 @@ test("the staged Book and Crèche each boot with only their own product tree", a
     await conduitosRunner.locator(".physical-target").selectOption("conduitos/x86_64/pc");
     await expect(conduitosRunner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await conduitosRunner.getByRole("button", { name: "Bind Body invitation" }).click();
-    const conduitosDownload = conduitosRunner.locator(".download-spore");
-    await expect(conduitosDownload).toHaveAttribute("download", /-conduitos-native\.iso$/);
+    const conduitosDownload = conduitosRunner.locator('[data-application-key="download-spore"]');
     evidence = JSON.parse(await conduitosRunner.locator("details code").textContent());
     expect(evidence.binding).toMatchObject({
       target_id: "conduitos/x86_64/pc",
@@ -561,17 +558,14 @@ test("the staged Book and Crèche each boot with only their own product tree", a
       fabrication_package_id: "conduitos-image@1",
       deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
     });
-    const nativeIso = await conduitosDownload.evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      const artifact = readBodyProvisionedMedia(bytes);
-      return {
-        isoMagic: new TextDecoder().decode(bytes.subarray(32769, 32774)),
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: artifact.provision,
-      };
-    });
+    const downloadedIso = await downloadArtifact(page, conduitosDownload);
+    expect(downloadedIso.filename).toMatch(/-conduitos-native\.iso$/);
+    const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+    const nativeIso = {
+      isoMagic: new TextDecoder().decode(downloadedIso.bytes.subarray(32769, 32774)),
+      contentDigest: await sha256(downloadedIso.bytes),
+      provision: readBodyProvisionedMedia(downloadedIso.bytes).provision,
+    };
     expect(nativeIso).toMatchObject({
       isoMagic: "CD001",
       provision: {
@@ -634,7 +628,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
       artifact_work_started: false,
     });
     await expect(runner.getByRole("button", { name: "Bind Body invitation" })).toBeDisabled();
-    await expect(runner.locator(".download-spore")).toHaveCount(0);
+    await expect(runner.locator('[data-application-key="download-spore"]')).toHaveCount(0);
     expect(requestedPaths).toContain("/conduit/creche/artifacts/esp32-c3-generic-release.json");
     expect(requestedPaths).not.toContain("/conduit/creche/artifacts/esp32-c3-generic-release.bin");
     expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
@@ -794,19 +788,15 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    const download = runner.locator(".download-spore");
-    await expect(download).toHaveAttribute("download", /-pico-w\.uf2$/);
-    const artifact = await download.evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readRp2040BodySpore } = await import("/creche/targets/rp2040/browser-deployment/index.mjs");
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      return {
-        filename: link.download,
-        bytes: bytes.byteLength,
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: readRp2040BodySpore(bytes),
-      };
-    });
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(/-pico-w\.uf2$/);
+    const { readRp2040BodySpore } = await import("../../targets/rp2040/browser-deployment/index.mjs");
+    const artifact = {
+      filename: downloaded.filename,
+      bytes: downloaded.bytes.byteLength,
+      contentDigest: await sha256(downloaded.bytes),
+      provision: readRp2040BodySpore(downloaded.bytes),
+    };
     return { birth, artifact, evidence: JSON.parse(await runner.locator("details code").textContent()) };
   };
   const first = await prepareOne("A");
@@ -989,8 +979,8 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-browser-wasm32-page\.zip$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
+  const bundleHandoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(bundleHandoff).toContainText("Download ZIP");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     body_id: birth.bodyId,
@@ -1000,18 +990,16 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
     deployment_adapter: "conduit-host-browser/load@1",
     image_content_digest: evidence.obtainment.image_content_digest,
   });
-  const bundle = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const archive = readBodyBoundZip(bytes);
-    return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      files: Array.from(archive.entries.keys()),
-      provision: archive.provision,
-    };
-  });
+  const downloadedBundle = await downloadArtifact(page, bundleHandoff);
+  expect(downloadedBundle.filename).toMatch(/-browser-wasm32-page\.zip$/);
+  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const archive = readBodyBoundZip(downloadedBundle.bytes);
+  const bundle = {
+    magic: new TextDecoder().decode(downloadedBundle.bytes.subarray(0, 4)),
+    contentDigest: await sha256(downloadedBundle.bytes),
+    files: Array.from(archive.entries.keys()),
+    provision: archive.provision,
+  };
   expect(bundle.magic).toBe("PK\u0003\u0004");
   expect(bundle.files).toContain("runtime.wasm");
   expect(bundle.files).toContain("conduit-browser-image.json");
@@ -1060,8 +1048,8 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   await expect(runner.locator(".physical-mode")).toHaveValue("install-existing");
   await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-hosted-linux-x86_64\.zip$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
+  const hostedHandoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(hostedHandoff).toContainText("Download ZIP");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry.target_profile).toMatchObject({
     os: "linux",
@@ -1091,18 +1079,16 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
       ]),
     },
   });
-  const hostedPackage = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const archive = readBodyBoundZip(bytes);
-    return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      files: Array.from(archive.entries.keys()),
-      provision: archive.provision,
-    };
-  });
+  const downloadedHosted = await downloadArtifact(page, hostedHandoff);
+  expect(downloadedHosted.filename).toMatch(/-hosted-linux-x86_64\.zip$/);
+  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const hostedArchive = readBodyBoundZip(downloadedHosted.bytes);
+  const hostedPackage = {
+    magic: new TextDecoder().decode(downloadedHosted.bytes.subarray(0, 4)),
+    contentDigest: await sha256(downloadedHosted.bytes),
+    files: Array.from(hostedArchive.entries.keys()),
+    provision: hostedArchive.provision,
+  };
   expect(hostedPackage).toMatchObject({
     magic: "PK\u0003\u0004",
     provision: {
@@ -1155,7 +1141,8 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
     await runner.locator(".physical-target").selectOption(profile.id);
     await expect(runner.locator('[data-stage="obtain"]')).toHaveClass(/complete/);
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-    await expect(runner.locator(".download-spore")).toHaveAttribute("download", new RegExp(`-${profile.profileId}\\.zip$`));
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(new RegExp(`-${profile.profileId}\\.zip$`));
     const evidence = JSON.parse(await runner.locator("details code").textContent());
     expect(evidence.target_entry).toMatchObject({
       target: { id: profile.id, profile_id: profile.profileId },
@@ -1210,22 +1197,16 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
 
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-    await expect(runner.locator(".download-spore")).toHaveAttribute(
-      "download",
-      new RegExp(`-${profile.releaseName}\\.bin$`),
-    );
     evidence = JSON.parse(await runner.locator("details code").textContent());
-    const artifact = await runner.locator(".download-spore").evaluate(async (link) => {
-      const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-      const { readEsp32BodySpore } = await import(new URL("../targets/esp32/browser-deployment/index.mjs", location.href).href);
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-      return {
-        magic: new TextDecoder().decode(bytes.subarray(0, 8)),
-        bytes: bytes.byteLength,
-        contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-        provision: readEsp32BodySpore(bytes),
-      };
-    });
+    const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
+    expect(downloaded.filename).toMatch(new RegExp(`-${profile.releaseName}\\.bin$`));
+    const { readEsp32BodySpore } = await import("../../targets/esp32/browser-deployment/index.mjs");
+    const artifact = {
+      magic: new TextDecoder().decode(downloaded.bytes.subarray(0, 8)),
+      bytes: downloaded.bytes.byteLength,
+      contentDigest: await sha256(downloaded.bytes),
+      provision: readEsp32BodySpore(downloaded.bytes),
+    };
     expect(artifact).toMatchObject({
       bytes: 4 * 1024 * 1024,
       provision: {

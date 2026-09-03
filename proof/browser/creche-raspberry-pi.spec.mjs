@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 const PI_OS_TARGET = "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb";
 const BARE_TARGET = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
@@ -94,8 +95,8 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
   });
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute("download", /-raspios-bookworm-64-aarch64\.zip$/);
-  await expect(runner.locator(".download-spore")).toContainText("Download ZIP");
+  const handoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(handoff).toContainText("Download ZIP");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: PI_OS_TARGET,
@@ -112,18 +113,16 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
       ]),
     },
   });
-  const nativePackage = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyBoundZip } = await import(new URL("../creche-native-zip.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const archive = readBodyBoundZip(bytes);
-    return {
-      magic: new TextDecoder().decode(bytes.subarray(0, 4)),
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      files: Array.from(archive.entries.keys()),
-      provision: archive.provision,
-    };
-  });
+  const downloadedPackage = await downloadArtifact(page, handoff);
+  expect(downloadedPackage.filename).toMatch(/-raspios-bookworm-64-aarch64\.zip$/);
+  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const archive = readBodyBoundZip(downloadedPackage.bytes);
+  const nativePackage = {
+    magic: new TextDecoder().decode(downloadedPackage.bytes.subarray(0, 4)),
+    contentDigest: await sha256(downloadedPackage.bytes),
+    files: Array.from(archive.entries.keys()),
+    provision: archive.provision,
+  };
   expect(nativePackage).toMatchObject({
     magic: "PK\u0003\u0004",
     files: ["conduit-linux-aarch64", "conduit-spore.json"],
@@ -180,11 +179,8 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   ].sort());
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
-  await expect(runner.locator(".download-spore")).toHaveAttribute(
-    "download",
-    /-conduitos-raspberry-pi-model-b-plus-v1-2\.img$/,
-  );
-  await expect(runner.locator(".download-spore")).toContainText("Download IMG");
+  const imageHandoff = runner.locator('[data-application-key="download-spore"]');
+  await expect(imageHandoff).toContainText("Download IMG");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: BARE_TARGET,
@@ -200,18 +196,16 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
       provision_bytes: 4096,
     },
   });
-  const nativeImage = await runner.locator(".download-spore").evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readBodyProvisionedMedia } = await import(new URL("../creche-native-disk.mjs", location.href).href);
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const artifact = readBodyProvisionedMedia(bytes);
-    return {
-      mbrMagic: Array.from(bytes.subarray(510, 512)),
-      bytes: bytes.byteLength,
-      contentDigest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      provision: artifact.provision,
-    };
-  });
+  const downloadedImage = await downloadArtifact(page, imageHandoff);
+  expect(downloadedImage.filename).toMatch(/-conduitos-raspberry-pi-model-b-plus-v1-2\.img$/);
+  const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+  const artifact = readBodyProvisionedMedia(downloadedImage.bytes);
+  const nativeImage = {
+    mbrMagic: Array.from(downloadedImage.bytes.subarray(510, 512)),
+    bytes: downloadedImage.bytes.byteLength,
+    contentDigest: await sha256(downloadedImage.bytes),
+    provision: artifact.provision,
+  };
   expect(nativeImage).toMatchObject({
     mbrMagic: [0x55, 0xaa],
     bytes: release.artifact.bytes + 4096,

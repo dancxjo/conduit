@@ -23,3 +23,18 @@ export function presentPhysicalEvidence(state, evidence, disposition) {
     ],
   });
 }
+
+export function presentPhysicalArtifact(state, artifact, onHandoff) {
+  const ready = artifact !== null;
+  state.presentation.present("physical-artifact", {
+    revision: ++state.presentationRevision,
+    actions: ready ? [{ id: "artifact.handoff", event: "activate" }] : [],
+    nodes: ready ? [
+      { parent: null, component: "action-group", action: null, key: "physical-artifact", text: "" },
+      { parent: 0, component: "button", action: 0, key: "download-spore", text: `Download ${artifact.format.toUpperCase()} · ${artifact.bytes} bytes` },
+    ] : [{ parent: null, component: "paragraph", action: null, key: "artifact-not-ready", text: "Artifact handoff not ready" }],
+  }, { onEvent(event) {
+    state.presentation.nextEvent("physical-artifact");
+    if (event.action === "artifact.handoff") void onHandoff(artifact);
+  } });
+}

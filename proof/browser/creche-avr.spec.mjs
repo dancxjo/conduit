@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 const TARGET_ID = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";
 const MANIFEST_NAME = "avr-promicro-atmega32u4-5v-16mhz.json";
@@ -109,8 +110,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   await expect(runner.locator('[data-stage="bind"]')).toHaveClass(/complete/);
-  const download = runner.locator(".download-spore");
-  await expect(download).toHaveAttribute("download", /-pro-micro\.hex$/);
+  const download = runner.locator('[data-application-key="download-spore"]');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
     target_id: TARGET_ID,
@@ -125,18 +125,16 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
       bootstrap_flash_address: 27_648,
     },
   });
-  const native = await download.evaluate(async (link) => {
-    const bytes = new Uint8Array(await (await fetch(link.href)).arrayBuffer());
-    const { readAvrBodySpore } = await import("/creche/targets/avr/browser-deployment/image.mjs");
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    return {
-      startsWithRecord: new TextDecoder().decode(bytes.subarray(0, 1)),
-      containsLegacyEnvelope: new TextDecoder().decode(bytes).includes("CNDSPOR1"),
-      digest: `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
-      provision: readAvrBodySpore(bytes),
-      bytes: bytes.byteLength,
-    };
-  });
+  const downloaded = await downloadArtifact(page, download);
+  expect(downloaded.filename).toMatch(/-pro-micro\.hex$/);
+  const { readAvrBodySpore } = await import("../../targets/avr/browser-deployment/image.mjs");
+  const native = {
+    startsWithRecord: new TextDecoder().decode(downloaded.bytes.subarray(0, 1)),
+    containsLegacyEnvelope: new TextDecoder().decode(downloaded.bytes).includes("CNDSPOR1"),
+    digest: await sha256(downloaded.bytes),
+    provision: readAvrBodySpore(downloaded.bytes),
+    bytes: downloaded.bytes.byteLength,
+  };
   expect(native.startsWithRecord).toBe(":");
   expect(native.containsLegacyEnvelope).toBe(false);
   expect(native.bytes).toBeGreaterThan(release.artifact.byteLength);

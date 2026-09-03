@@ -13,6 +13,7 @@ export function createCrecheRouting({ host, applicationId, steps, onPopState, on
   const productRoot = new URL(".", document.baseURI);
   const routes = steps.map(({ slug }) => new URL(`${slug}/`, productRoot).pathname);
   let sequence = 0;
+  let artifactSequence = 0;
 
   const indexForLocation = () => {
     if (location.pathname === productRoot.pathname
@@ -54,6 +55,25 @@ export function createCrecheRouting({ host, applicationId, steps, onPopState, on
       if (outcome.disposition !== "completed" || outcome.path !== routes[index]) {
         throw new Error(`Crèche location ${mode} refused (${outcome.disposition})`);
       }
+    },
+    async handoffArtifact(artifact) {
+      artifactSequence = artifactSequence === MAXIMUM_LOCATION_SEQUENCE ? 1 : artifactSequence + 1;
+      return operations.handoffArtifact({
+        contract: browserHostOperationLimits.contract,
+        kind: "artifact-handoff",
+        operationId: `creche/artifact-${artifactSequence}`,
+        hostId: host.hostId,
+        bootId: host.bootId,
+        applicationId,
+        applicationGeneration: 1,
+        authorityGeneration: 1,
+        userActivation: true,
+        artifactId: artifact.artifact_id,
+        bytes: artifact.payload,
+        maximumBytes: artifact.maximum_bytes,
+        filename: artifact.filename,
+        mediaType: artifact.media_type,
+      });
     },
   });
 }
