@@ -139,6 +139,7 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   ];
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Browser Host ready");
   for (let index = 0; index < bookPages.length; index += 1) {
     const [slug, title] = bookPages[index];
     await expect(page).toHaveURL(new RegExp(`/book/${slug}/$`));
