@@ -405,10 +405,12 @@ test("browser Host refuses changed resource bytes and a changed aggregate packag
   await expect(page.locator("#chapter")).toHaveText("application resource application-module changed identity");
   expect(await page.evaluate(() => globalThis.__conduitBookHost)).toBeUndefined();
 
-  await mutatePackage(page, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Browser application refused");
-  await expect(page.locator("#chapter")).toHaveText("application package identity changed");
+  const aggregatePage = await page.context().newPage();
+  await mutatePackage(aggregatePage, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
+  await aggregatePage.goto(entrance.url);
+  await expect(aggregatePage.locator("#host-state")).toHaveText("Browser application refused");
+  await expect(aggregatePage.locator("#chapter")).toHaveText("application package identity changed");
+  await aggregatePage.close();
 });
 
 test("selected durable storage keeps scopes, lifecycle, and refusal states exact", async ({ page }) => {
