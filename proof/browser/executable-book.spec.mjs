@@ -720,13 +720,14 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page.locator('[data-application-key="attach-host"]')).toHaveAttribute("data-application-action", "host.attach");
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
   await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
+  await expect(page.locator('.first-host-runner [data-application-key="host-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   await page.getByRole("button", { name: "4. Graduate" }).click();
   await expect(page.locator('[data-application-key="without-patchbay"]')).toHaveAttribute("data-application-action", "graduate.without-patchbay");
   await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(page.locator('[data-application-key="graduation-status"]')).toHaveAttribute("data-application-component", "success-status");
   await expect(page.locator('[data-application-key="end-creche"]')).toHaveAttribute("data-application-action", "graduate.end");
   await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
-  await expect(page.locator(".body-biography li")).toHaveCount(4);
+  await expect(page.locator('.body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   const durable = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_biography();
@@ -1816,17 +1817,17 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   ]);
   await runner.getByRole("button", { name: "Host Patchbay on this Body" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
-  await expect(runner.locator(".graduation-evidence")).toContainText("browser/patchbay-surface@1");
-  await expect(runner.locator(".graduation-evidence")).toContainText("Crèche requiredfalse");
+  await expect(runner.locator('[data-application-key="graduation-identities"]')).toContainText("browser/patchbay-surface@1");
+  await expect(runner.locator('[data-application-key="graduation-identities"]')).toContainText("Crèche requiredfalse");
   const biography = runner.locator(".body-biography");
-  await expect(biography).toHaveAttribute("data-body-id", bodyId);
-  await expect(biography.locator("li")).toHaveCount(4);
-  await expect(biography.locator("strong")).toHaveText(["Born", "Part admitted", "Host joined", "Graduated from the Crèche"]);
+  await expect(biography.locator('[data-application-key="biography-records"]')).toContainText(bodyId);
+  await expect(biography.locator('[data-application-key^="biography-record-"]')).toHaveCount(4);
+  await expect(biography.locator("dt")).toHaveText(["Born", "Part admitted", "Host joined", "Graduated from the Crèche"]);
   await expect(biography).toContainText("browser/patchbay-surface@1");
   await runner.getByRole("button", { name: "End the Crèche" }).click();
   await expect(page.locator(".creche-complete")).toContainText(bodyId);
   await expect(page.locator(".creche-steps")).toHaveCount(0);
-  await expect(page.locator(".creche-complete .body-biography li")).toHaveCount(4);
+  await expect(page.locator('.creche-complete .body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   const retained = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_current();
@@ -1852,12 +1853,12 @@ test("graduation can finish without hosting Patchbay and still retain the same B
   const runner = page.locator(".graduation-runner");
   await runner.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
   await expect(runner).toHaveAttribute("data-body-id", bodyId);
-  await expect(runner.locator(".graduation-evidence")).toContainText("Patchbay Plannot hosted");
+  await expect(runner.locator('[data-application-key="graduation-identities"]')).toContainText("Patchbay Plannot hosted");
   const evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.choice).toBe("external-reader");
   expect(evidence.patchbay_plan_id).toBeNull();
   expect(evidence.creche_required).toBe(false);
-  await expect(runner.locator(".body-biography li")).toHaveCount(4);
+  await expect(runner.locator('.body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   await expect(runner.locator(".body-biography")).toContainText("compatible reader can project this same evidence later");
 });
 

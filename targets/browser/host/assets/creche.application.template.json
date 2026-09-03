@@ -27,7 +27,7 @@
     { "role": "creche-physical", "kind": "module", "path": "creche-physical.mjs", "maximum_bytes": 32768, "dependencies": [{"role":"creche-target-catalog","specifier":"./creche-target-catalog.mjs"}] },
     { "role": "creche-target-catalog", "kind": "module", "path": "creche-target-catalog.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "creche-browser-configuration", "kind": "module", "path": "creche-browser-configuration.mjs", "maximum_bytes": 16384, "dependencies": [] },
-    { "role": "creche-graduation", "kind": "module", "path": "creche-graduation.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "creche-graduation", "kind": "module", "path": "creche-graduation.mjs", "maximum_bytes": 12288, "dependencies": [] },
     { "role": "creche-existing-computer", "kind": "module", "path": "creche-existing-computer.mjs", "maximum_bytes": 32768, "dependencies": [{"role":"creche-release-bundle","specifier":"./creche-release-bundle.mjs"},{"role":"creche-spore-bundle","specifier":"./creche-spore-bundle.mjs"},{"role":"creche-native-zip","specifier":"./creche-native-zip.mjs"}] },
     { "role": "creche-release-bundle", "kind": "module", "path": "creche-release-bundle.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "creche-spore-bundle", "kind": "module", "path": "creche-spore-bundle.mjs", "maximum_bytes": 8192, "dependencies": [] },

@@ -5,12 +5,8 @@ export function createGraduationRunner({ host, presentationFor, nextSequence, on
   runner.className = "graduation-runner";
   runner.innerHTML = `
     <div data-application-slot="graduation-controls"></div>
-    <dl class="graduation-evidence"></dl>
-    <section class="body-biography" aria-label="Body biography" hidden>
-      <h3>Body biography · durable evidence</h3>
-      <ol></ol>
-    </section>
-    <details><summary>Raw graduation evidence</summary><pre><code></code></pre></details>`;
+    <div data-application-slot="graduation-evidence"></div>
+    <section class="body-biography" data-application-slot="graduation-biography"></section>`;
   const presentation = presentationFor(runner);
   const state = { revision: 0, readiness: null, graduated: false, status: "", outcome: "status" };
   try {
@@ -25,13 +21,13 @@ export function createGraduationRunner({ host, presentationFor, nextSequence, on
   const present = () => presentGraduationControls(runner, presentation, state, {
     onChoice(choice) {
       const receipt = call(host.runtime, "conduit_creche_graduate", choice, BigInt(nextSequence()));
-      renderGraduation(runner, receipt, host.runtime, state, present);
+      renderGraduation(runner, receipt, host.runtime, presentation, state, present);
       onBodyChanged?.();
     },
     onEnd() { onEnd(call(host.runtime, "conduit_creche_current"), call(host.runtime, "conduit_creche_biography")); },
   });
   const current = currentBody(host.runtime);
-  if (current?.graduation) renderGraduation(runner, current, host.runtime, state, present);
+  if (current?.graduation) renderGraduation(runner, current, host.runtime, presentation, state, present);
   else present();
   return runner;
 }
@@ -70,52 +66,58 @@ function presentGraduationControls(runner, presentation, state, { onChoice, onEn
   } });
 }
 
-function renderGraduation(runner, receipt, api, state = null, present = null) {
+function renderGraduation(runner, receipt, api, presentation, state, present) {
   const evidence = receipt.graduation;
   runner.dataset.bodyId = receipt.body_id;
-  if (state) {
-    state.graduated = true;
-    state.outcome = "success-status";
-    state.status = evidence.choice === "host-patchbay"
+  state.graduated = true;
+  state.outcome = "success-status";
+  state.status = evidence.choice === "host-patchbay"
     ? "Graduated: an ordinary immutable Plan places Patchbay on the current browser Host."
     : "Graduated: no Patchbay was hosted; a compatible reader may project this Body later.";
-    present();
-  }
+  present();
   const values = [
     ["Body", receipt.body_id], ["Choice", evidence.choice], ["Graduation Sign", evidence.sign_id],
     ["Patchbay Plan", evidence.patchbay_plan_id ?? "not hosted"],
     ["Patchbay implementation", evidence.patchbay_implementation_id ?? "not hosted"],
     ["Crèche required", String(evidence.creche_required)],
   ];
-  const list = runner.querySelector(".graduation-evidence");
-  list.replaceChildren();
-  for (const [label, value] of values) {
-    const dt = document.createElement("dt"); dt.textContent = label;
-    const dd = document.createElement("dd"); dd.textContent = value;
-    list.append(dt, dd);
-  }
-  runner.querySelector("details code").textContent = JSON.stringify(evidence, null, 2);
-  renderBiography(runner.querySelector(".body-biography"), call(api, "conduit_creche_biography"));
+  const rawEvidence = JSON.stringify(evidence, null, 2);
+  presentation.present("graduation-evidence", {
+    revision: ++state.revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "graduation-evidence", text: "Graduation evidence" },
+      { parent: 0, component: "definition-table", action: null, key: "graduation-identities", text: "Exact graduation identities" },
+      ...values.map(([label, value], index) => ({ parent: 1, component: "definition", action: null, key: `graduation-${index}`, text: label, value, valueCapacity: 256 })),
+      { parent: 0, component: "disclosure", action: null, key: "graduation-raw", text: "Raw graduation evidence" },
+      { parent: values.length + 2, component: "code-block", action: null, key: "graduation-raw-json", text: "json", value: rawEvidence, valueCapacity: 65_536 },
+    ],
+  });
+  renderBiography(presentation, "graduation-biography", call(api, "conduit_creche_biography"), ++state.revision);
 }
 
-export function renderBiography(container, biography) {
+export function renderBiography(presentation, slot, biography, revision) {
   if (!biography) return;
-  const list = container.querySelector("ol");
-  list.replaceChildren();
-  for (const record of biography.records) {
-    const [kind, facts] = Object.entries(record.kind)[0];
-    const item = document.createElement("li");
-    const heading = document.createElement("strong");
-    heading.textContent = biographyHeading(kind);
-    const explanation = document.createElement("p");
-    explanation.textContent = biographyExplanation(kind, facts, biography);
-    const proof = document.createElement("code");
-    proof.textContent = `sequence ${record.sequence} · Sign ${record.sign_id}`;
-    item.append(heading, explanation, proof);
-    list.append(item);
-  }
-  container.dataset.bodyId = biography.body_id;
-  container.hidden = false;
+  presentation.present(slot, {
+    revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "biography", text: "Body biography · durable evidence" },
+      { parent: 0, component: "definition-table", action: null, key: "biography-records", text: `Body ${biography.body_id}` },
+      ...biography.records.map((record, index) => {
+        const [kind, facts] = Object.entries(record.kind)[0];
+        return {
+          parent: 1,
+          component: "definition",
+          action: null,
+          key: `biography-record-${index}`,
+          text: biographyHeading(kind),
+          value: `${biographyExplanation(kind, facts, biography)} sequence ${record.sequence} · Sign ${record.sign_id}`,
+          valueCapacity: 1024,
+        };
+      }),
+    ],
+  });
 }
 
 function biographyHeading(kind) {

@@ -9,6 +9,8 @@ test.afterEach(() => entrance?.child.kill());
 test("Crèche suggestions expose diverse structures while remaining editable metadata", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-component", "stepper");
+  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "1");
 
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
@@ -79,9 +81,11 @@ test("Crèche suggestions expose diverse structures while remaining editable met
 
   await name.fill("Juniper Signalhouse");
   await birth.getByRole("button", { name: "Birth Body" }).click();
-  await expect(birth.locator(".body-identities")).toContainText("Juniper Signalhouse");
+  await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
+  await expect(birth.locator('[data-application-key="body-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   const bodyId = await birth.getAttribute("data-body-id");
   await page.getByRole("button", { name: "2. First Host" }).click();
+  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "2");
   await page.getByRole("button", { name: "1. Birth" }).click();
   const retained = page.locator(".body-birth-runner");
   await expect(retained.getByLabel("Friendly Body name")).toHaveValue("Juniper Signalhouse");

@@ -15,8 +15,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
         <b aria-hidden="true">BIRTH →</b>
         <article><span>durable Body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
-      <dl class="body-identities"></dl>
-      <details class="body-raw"><summary>Raw Body and membership evidence</summary><pre><code></code></pre></details>
+      <div class="body-evidence" data-application-slot="birth-evidence"></div>
     </div>`;
   const presentation = presentationFor(runner);
   const state = {
@@ -218,20 +217,22 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     ["Plan", receipt.plan_id ?? "none"],
     ["Active Play", receipt.active_play_id ?? "none"],
   ];
-  const list = runner.querySelector(".body-identities");
-  list.replaceChildren();
-  for (const [label, value] of identities) {
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    term.textContent = label;
-    description.textContent = value;
-    list.append(term, description);
-  }
-  runner.querySelector(".body-raw code").textContent = JSON.stringify({
+  const rawEvidence = JSON.stringify({
     body: receipt.raw_body,
     membership: receipt.raw_membership,
     source_interaction: receipt.source_interaction,
   }, null, 2);
+  presentationOptions.presentation.present("birth-evidence", {
+    revision: ++state.revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "body-evidence", text: "Body and membership evidence" },
+      { parent: 0, component: "definition-table", action: null, key: "body-identities", text: "Exact Body identities" },
+      ...identities.map(([label, value]) => ({ parent: 1, component: "definition", action: null, key: identityKey(label), text: label, value, valueCapacity: 65_536 })),
+      { parent: 0, component: "disclosure", action: null, key: "body-raw", text: "Raw Body and membership evidence" },
+      { parent: identities.length + 2, component: "code-block", action: null, key: "body-raw-json", text: "json", value: rawEvidence, valueCapacity: 65_536 },
+    ],
+  });
 }
 
 export function createFirstHostRunner({ host, presentationFor, nextSequence, onBodyChanged }) {
@@ -239,9 +240,7 @@ export function createFirstHostRunner({ host, presentationFor, nextSequence, onB
   runner.className = "runner first-host-runner";
   runner.innerHTML = `
     <div data-application-slot="first-host-controls"></div>
-    <div class="result">
-      <dl class="host-identities"></dl>
-    </div>`;
+    <div class="result" data-application-slot="first-host-evidence"></div>`;
   const presentation = presentationFor(runner);
   const state = {
     revision: 0,
@@ -304,15 +303,19 @@ function renderAttachedHost(runner, presentation, receipt, state) {
   state.status = `${receipt.friendly_name} now has one admitted browser Host and remains LULLED.`;
   presentFirstHostControls(runner, presentation, state, () => {});
   const values = [["Body", receipt.body_id], ["Part", receipt.here_part_id], ["Host", receipt.host_id], ["Boot", receipt.boot_id]];
-  const list = runner.querySelector(".host-identities");
-  list.replaceChildren();
-  for (const [label, value] of values) {
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    term.textContent = label;
-    description.textContent = value;
-    list.append(term, description);
-  }
+  presentation.present("first-host-evidence", {
+    revision: ++state.revision,
+    actions: [],
+    nodes: [
+      { parent: null, component: "successful-evidence", action: null, key: "host-evidence", text: "Current browser Host membership" },
+      { parent: 0, component: "definition-table", action: null, key: "host-identities", text: "Exact Host identities" },
+      ...values.map(([label, value]) => ({ parent: 1, component: "definition", action: null, key: identityKey(label), text: label, value, valueCapacity: 256 })),
+    ],
+  });
+}
+
+function identityKey(label) {
+  return label.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replaceAll(/^-|-$/g, "").slice(0, 32);
 }
 
 function readOutput(api) {

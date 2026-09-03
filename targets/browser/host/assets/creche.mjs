@@ -73,7 +73,15 @@ export async function startApplication(application) {
 
 function renderNavigation() {
   const actions = steps.map((_, index) => ({ id: `step-${index}`, event: "activate" }));
-  const nodes = [{ parent: null, component: "navigation", action: null, key: "workflow", text: "" }];
+  const nodes = [{
+    parent: null,
+    component: "stepper",
+    action: null,
+    key: "workflow",
+    text: "Birth and provision a Body",
+    value: `${currentStep + 1}/${steps.length}`,
+    valueCapacity: 11,
+  }];
   steps.forEach(({ name }, index) => {
     nodes.push({ parent: 0, component: "button", action: index === currentStep ? null : index, key: `step-${index}`, text: `${index + 1}. ${name}` });
   });
@@ -246,9 +254,9 @@ function renderComplete(receipt, biography) {
   workspace.replaceChildren();
   const section = document.createElement("section");
   section.className = "creche-complete";
-  section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><div data-application-slot="creche-complete-actions"></div><section class="body-biography" aria-label="Body biography"><h3>Body biography · compatible reader</h3><ol></ol></section>`;
-  renderBiography(section.querySelector(".body-biography"), biography);
+  section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><div data-application-slot="creche-complete-actions"></div><section class="body-biography" data-application-slot="creche-complete-biography"></section>`;
   workspace.append(section);
+  renderBiography(presentation, "creche-complete-biography", biography, ++presentationRevision);
   presentation.present("creche-complete-actions", {
     revision: ++presentationRevision,
     actions: [
