@@ -16,6 +16,7 @@ export default defineConfig({
     "r1-three-peer-input.spec.mjs",
     "triple-signal.spec.mjs",
     "presentation-nucleus.spec.mjs",
+    "fourth-product-conformance.spec.mjs",
     "browser-host-operations.spec.mjs",
     "browser-pointer.spec.mjs",
     "browser-human-input.spec.mjs",

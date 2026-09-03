@@ -556,7 +556,7 @@ mod tests {
         assert!(cancel_targets
             .iter()
             .any(|target| target.action == GuiAction::CancelBrowserPartSpawn));
-        assert!(pixels.contains(&patchbay_model::PHOSPHOR_THEME.focus.packed_rgb()));
+        assert!(pixels.contains(&patchbay_model::CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
         application
             .handle_parts_action(GuiAction::InspectPart(part_id.clone()))
             .unwrap();

@@ -228,7 +228,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(inspector.x).toBeGreaterThan(canvas.x);
     await expect(page.getByRole("navigation",{name:"Patchbay workspace"})).toContainText("Linear");
 
-    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--patchbay-theme-identity").trim())).toBe('"conduit.presentation/phosphor@1"');
+    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--conduit-theme-identity").trim())).toBe('"conduit.presentation/phosphor@1"');
     expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)).toBe("rgb(5, 7, 11)");
     expect(await page.locator("h1").evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");
     expect(await page.locator(".faceplate-title").first().evaluate(element=>getComputedStyle(element).color)).toBe("rgb(233, 163, 37)");

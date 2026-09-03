@@ -8,7 +8,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PatchbayGear, PatchbayGraph, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PatchbayGear, PatchbayGraph};
 
 pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
@@ -16,7 +16,7 @@ pub(super) fn draw_face_controls<D: DrawTarget<Color = Rgb888>>(
     gear: &PatchbayGear,
     gear_bounds: PixelRect,
     focused_action: Option<usize>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let port_rows = gear.inputs.len().max(gear.outputs.len()) as i32;

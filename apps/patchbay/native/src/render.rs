@@ -3,9 +3,9 @@
 use crate::canvas::{softbuffer_to_rgb888, SoftwareCanvas};
 use crate::font::{BitmapFont, GLYPH_HEIGHT};
 use embedded_graphics::prelude::Point;
-use patchbay_model::{PatchbayTheme, PHOSPHOR_THEME};
+use patchbay_model::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 
-pub const BACKGROUND: u32 = PHOSPHOR_THEME.background.packed_rgb();
+pub const BACKGROUND: u32 = CONDUIT_APPLICATION_THEME.background.packed_rgb();
 const LEFT_MARGIN: usize = 16;
 const TOP_MARGIN: usize = 16;
 const LINE_ADVANCE: usize = 19;
@@ -18,7 +18,7 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
         8,
         8,
         height.saturating_sub(16),
-        PHOSPHOR_THEME.structure_secondary.packed_rgb(),
+        CONDUIT_APPLICATION_THEME.structure_secondary.packed_rgb(),
     );
     for (line_index, line) in lines.iter().enumerate() {
         let y = TOP_MARGIN.saturating_add(line_index.saturating_mul(LINE_ADVANCE));
@@ -26,7 +26,7 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
             break;
         }
         let heading = is_heading(line);
-        let color = line_color(&PHOSPHOR_THEME, line, heading);
+        let color = line_color(&CONDUIT_APPLICATION_THEME, line, heading);
         let mut canvas = SoftwareCanvas::new(buffer, width, height);
         let _ = BitmapFont::draw_text(
             &mut canvas,
@@ -43,7 +43,7 @@ pub fn draw_document(buffer: &mut [u32], width: usize, height: usize, lines: &[S
                 LEFT_MARGIN,
                 y.saturating_add(GLYPH_HEIGHT + 1),
                 width.saturating_sub(LEFT_MARGIN.saturating_mul(2)).min(96),
-                PHOSPHOR_THEME.structure_primary.packed_rgb(),
+                CONDUIT_APPLICATION_THEME.structure_primary.packed_rgb(),
             );
         }
     }
@@ -70,7 +70,7 @@ fn is_heading(line: &str) -> bool {
         || line.starts_with("ROUTE DETAIL")
 }
 
-fn line_color(theme: &PatchbayTheme, line: &str, heading: bool) -> u32 {
+fn line_color(theme: &ApplicationTheme, line: &str, heading: bool) -> u32 {
     if line.starts_with("> ") {
         theme.focus.packed_rgb()
     } else if heading {

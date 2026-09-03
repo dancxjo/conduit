@@ -93,7 +93,6 @@ mod route_presentation;
 mod survival_policy_explanation;
 mod text_lab_explanation;
 mod text_lab_explanation_loss;
-mod theme;
 mod topology;
 mod topology_hosts;
 mod zero_body_authoring;
@@ -117,6 +116,7 @@ pub use build_birth::{
 };
 pub use candidate_form::PatchbayCandidateForm;
 pub use conduit_body::WakeLifecycle;
+pub use conduit_presentation::{ApplicationTheme, ThemeColor, CONDUIT_APPLICATION_THEME};
 pub use control::{
     admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
     PlayDocument, PlayExecutionProjection,
@@ -293,7 +293,6 @@ pub use survival_policy_explanation::{
 pub use text_lab_explanation::{
     text_lab_split_explanation, text_lab_split_loss_explanation, TextLabSplitExplanation,
 };
-pub use theme::{PatchbayTheme, ThemeColor, PHOSPHOR_THEME};
 pub use topology::{PatchbayTopology, TopologyDocument, TopologyViewError};
 pub use topology_hosts::current_device_for_capability;
 pub use zero_body_front_door::{

@@ -13,7 +13,7 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
-use patchbay_model::{PatchbayAction, PatchbayMode, PatchbayTheme, WakeLifecycle};
+use patchbay_model::{ApplicationTheme, PatchbayAction, PatchbayMode, WakeLifecycle};
 
 pub const MAX_LIFECYCLE_ACTIONS: usize = 2;
 
@@ -294,7 +294,7 @@ pub(super) fn draw_lifecycle_flow<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     lifecycle: &LifecycleContext,
     width: i32,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let flow = &lifecycle.flow;

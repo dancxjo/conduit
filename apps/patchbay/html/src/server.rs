@@ -2,7 +2,7 @@ use crate::{RendererSnapshot, SnapshotError};
 use conduit_browser_host::application_package;
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
-use patchbay_model::{PatchbayInteraction, PHOSPHOR_THEME};
+use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
@@ -37,7 +37,6 @@ const FLOW_SCRIPT: &[u8] = include_bytes!("../assets/flow.js");
 const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
 const FLOW_LAYOUT_SCRIPT: &[u8] = include_bytes!("../assets/flow-layout.js");
 const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js");
-const PANEL_FURNITURE_SCRIPT: &[u8] = include_bytes!("../assets/panel-furniture.js");
 const SHARED_PRESENTATION_SCRIPT: &[u8] = include_bytes!("../assets/shared-presentation.js");
 const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
 const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
@@ -47,6 +46,8 @@ const APPLICATION_PRESENTATION_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/application-presentation.mjs");
 const APPLICATION_THEME_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/application-theme.mjs");
+const APPLICATION_THEME_STYLE: &[u8] =
+    include_bytes!("../../../../targets/browser/host/assets/application-theme.css");
 const TEXT_LAB_RUNTIME_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/text-lab-live-runtime.mjs");
 const WEBSOCKET_LINE_SCRIPT: &[u8] =
@@ -155,11 +156,11 @@ impl PatchbayHtmlServer {
             "assets/webrtc-session-runtime.mjs" => Some(WEBRTC_RUNTIME_SCRIPT),
             "assets/application-presentation.mjs" => Some(APPLICATION_PRESENTATION_SCRIPT),
             "assets/application-theme.mjs" => Some(APPLICATION_THEME_SCRIPT),
+            "assets/application-theme.css" => Some(APPLICATION_THEME_STYLE),
             "assets/flow.js" => Some(FLOW_SCRIPT),
             "assets/flow-scene.js" => Some(FLOW_SCENE_SCRIPT),
             "assets/flow-layout.js" => Some(FLOW_LAYOUT_SCRIPT),
             "assets/flow-faceplate.js" => Some(FLOW_FACEPLATE_SCRIPT),
-            "assets/panel-furniture.js" => Some(PANEL_FURNITURE_SCRIPT),
             "assets/shared-presentation.js" => Some(SHARED_PRESENTATION_SCRIPT),
             "assets/portable-navigation.js" => Some(PORTABLE_NAVIGATION_SCRIPT),
             "assets/websocket-line.mjs" => Some(WEBSOCKET_LINE_SCRIPT),
@@ -194,7 +195,7 @@ impl PatchbayHtmlServer {
         snapshot.mark_available(SignId::from("patchbay-html/document-ready"))?;
         let encoded_snapshot = snapshot.encode()?;
         let navigation = navigation_state(&snapshot)?;
-        let theme_css = render_theme_css(&PHOSPHOR_THEME);
+        let theme_css = render_theme_css(&CONDUIT_APPLICATION_THEME);
         if theme_css.len() > MAX_THEME_CSS_BYTES {
             return Err(ServerError::ThemeCssTooLarge);
         }
@@ -508,11 +509,6 @@ impl PatchbayHtmlServer {
                 "text/javascript; charset=utf-8",
                 FLOW_FACEPLATE_SCRIPT,
             ),
-            "GET /assets/panel-furniture.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                PANEL_FURNITURE_SCRIPT,
-            ),
             "GET /assets/shared-presentation.js HTTP/1.1" => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
@@ -552,6 +548,9 @@ impl PatchbayHtmlServer {
                 "text/javascript; charset=utf-8",
                 APPLICATION_THEME_SCRIPT,
             ),
+            "GET /assets/application-theme.css HTTP/1.1" => {
+                ("200 OK", "text/css; charset=utf-8", APPLICATION_THEME_STYLE)
+            }
             "GET /assets/text-lab-live-runtime.mjs HTTP/1.1" => (
                 "200 OK",
                 "text/javascript; charset=utf-8",

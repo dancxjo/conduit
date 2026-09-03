@@ -1,4 +1,5 @@
 export function createPatchbaySharedPresentation(presentation, scope = document) {
+  const docks = ["left", "right", "bottom"];
   const revisions = new Map();
   const activeListChunks = new Map();
   const present = (slot, description, options = {}) => {
@@ -14,6 +15,45 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
   };
   return Object.freeze({
     present,
+    furniture(entries) {
+      const panels = new Map();
+      for (const entry of entries) {
+        const surface = scope.querySelector(entry.selector);
+        if (!surface) throw new Error(`missing furniture surface ${entry.selector}`);
+        surface.dataset.furnitureSurface = entry.name;
+        surface.dataset.furnitureDock = entry.dock;
+        surface.dataset.furnitureCollapsed = "false";
+        const manifest = () => {
+          const collapsed = surface.dataset.furnitureCollapsed === "true";
+          const dock = surface.dataset.furnitureDock;
+          present(entry.slot, {
+            actions: ["collapse", "move", "close"].map(id => ({ id, event: "activate" })),
+            nodes: [
+              { parent: null, component: "action-group", key: "furniture", text: `${entry.title} furniture`, action: null },
+              { parent: 0, component: "paragraph", key: "title", text: entry.title, action: null },
+              { parent: 0, component: "button", key: "collapse", text: `${collapsed ? "Expand" : "Collapse"} ${entry.title}`, action: 0 },
+              { parent: 0, component: "button", key: "move", text: `Move ${entry.title} to ${docks[(docks.indexOf(dock) + 1) % docks.length]}`, action: 1 },
+              { parent: 0, component: "button", key: "close", text: `Close ${entry.title}`, action: 2 },
+            ],
+          }, { onEvent(event) {
+            if (event.action === "collapse") surface.dataset.furnitureCollapsed = String(!collapsed);
+            else if (event.action === "move") surface.dataset.furnitureDock = docks[(docks.indexOf(dock) + 1) % docks.length];
+            else if (event.action === "close") { entry.onDismiss(); return; }
+            manifest();
+          } });
+        };
+        panels.set(entry.name, { surface, manifest });
+        manifest();
+      }
+      return Object.freeze({
+        restore(name) {
+          const panel = panels.get(name);
+          if (!panel) throw new Error(`unknown furniture surface ${name}`);
+          panel.surface.dataset.furnitureCollapsed = "false";
+          panel.manifest();
+        },
+      });
+    },
     definitions(slot, entries) {
       return present(slot, {
         actions: [],

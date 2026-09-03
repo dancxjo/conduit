@@ -6,7 +6,7 @@ use crate::{
     icon::Icon,
     render::BACKGROUND,
 };
-use patchbay_model::{FormEditor, PatchbayGraph, PHOSPHOR_THEME};
+use patchbay_model::{FormEditor, PatchbayGraph, CONDUIT_APPLICATION_THEME};
 use std::path::PathBuf;
 
 fn graph() -> PatchbayGraph {
@@ -82,7 +82,7 @@ fn native_renderer_consumes_exact_shared_debugger_activity_without_topology_muta
         Some(&debugger),
     );
     assert_eq!(graph, before);
-    assert!(pixels.contains(&PHOSPHOR_THEME.focus.packed_rgb()));
+    assert!(pixels.contains(&CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
 }
 
 #[test]
@@ -136,8 +136,8 @@ fn patchbay_draws_nodes_ports_cords_panels_and_bounded_hit_targets() {
     );
     assert!(!visible_gears.is_empty());
     assert!(targets.len() <= crate::gui::MAX_HIT_TARGETS);
-    assert!(pixels.contains(&PHOSPHOR_THEME.structure_primary.packed_rgb()));
-    assert!(pixels.contains(&PHOSPHOR_THEME.emphasis.packed_rgb()));
+    assert!(pixels.contains(&CONDUIT_APPLICATION_THEME.structure_primary.packed_rgb()));
+    assert!(pixels.contains(&CONDUIT_APPLICATION_THEME.emphasis.packed_rgb()));
     assert!(targets
         .iter()
         .any(|target| matches!(&target.action, GuiAction::SelectSubject(subject) if subject.subject_identity.starts_with("cord/") && subject.expanded_form_id == graph.expanded_form_id)));
@@ -357,7 +357,7 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
             patchbay_model::PatchbayAction::Lull
         ]
     );
-    assert!(pixels.contains(&patchbay_model::PHOSPHOR_THEME.focus.packed_rgb()));
+    assert!(pixels.contains(&patchbay_model::CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
 }
 
 #[test]

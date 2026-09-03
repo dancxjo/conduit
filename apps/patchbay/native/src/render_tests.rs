@@ -1,5 +1,5 @@
 use crate::render::{draw_document, BACKGROUND};
-use patchbay_model::PHOSPHOR_THEME;
+use patchbay_model::CONDUIT_APPLICATION_THEME;
 
 #[test]
 fn document_renders_unicode_scripts_on_the_software_surface() {
@@ -28,13 +28,13 @@ fn native_document_uses_every_required_phosphor_palette_role() {
         ],
     );
     for color in [
-        PHOSPHOR_THEME.background,
-        PHOSPHOR_THEME.structure_primary,
-        PHOSPHOR_THEME.structure_secondary,
-        PHOSPHOR_THEME.text_primary,
-        PHOSPHOR_THEME.text_secondary,
-        PHOSPHOR_THEME.emphasis,
-        PHOSPHOR_THEME.focus,
+        CONDUIT_APPLICATION_THEME.background,
+        CONDUIT_APPLICATION_THEME.structure_primary,
+        CONDUIT_APPLICATION_THEME.structure_secondary,
+        CONDUIT_APPLICATION_THEME.text_primary,
+        CONDUIT_APPLICATION_THEME.text_secondary,
+        CONDUIT_APPLICATION_THEME.emphasis,
+        CONDUIT_APPLICATION_THEME.focus,
     ] {
         assert!(
             buffer.contains(&color.packed_rgb()),
@@ -62,5 +62,5 @@ fn selection_keeps_its_text_marker_in_addition_to_gold_color() {
     assert!(selected.starts_with("> "));
     let mut buffer = vec![BACKGROUND; 320 * 40];
     draw_document(&mut buffer, 320, 40, &[selected.into()]);
-    assert!(buffer.contains(&PHOSPHOR_THEME.focus.packed_rgb()));
+    assert!(buffer.contains(&CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
 }

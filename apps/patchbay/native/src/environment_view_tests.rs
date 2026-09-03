@@ -6,7 +6,7 @@ use crate::{
 };
 use patchbay_model::{
     AuthoredEnvironment, AuthoredLink, AuthoredPart, EnvironmentLinkKind, MachineProfile,
-    PHOSPHOR_THEME,
+    CONDUIT_APPLICATION_THEME,
 };
 
 #[test]
@@ -53,7 +53,7 @@ fn visual_workspace_exposes_profiles_parts_links_and_truth_boundary() {
     assert!(targets
         .iter()
         .any(|target| matches!(&target.action, GuiAction::EnvironmentRemove(id) if id == "pico")));
-    assert!(pixels.contains(&PHOSPHOR_THEME.focus.packed_rgb()));
+    assert!(pixels.contains(&CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
     let baseline = pixels.clone();
     let mut status = InteractionStatusChannel::default();
     status.publish(

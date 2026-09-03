@@ -15,7 +15,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PatchbayGraph, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PatchbayGraph};
 
 #[cfg(test)]
 pub(super) fn canvas_rect(width: u32, height: u32) -> PixelRect {
@@ -171,7 +171,7 @@ pub(super) fn draw_viewport_controls<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     viewport: &CanvasViewport,
     origin: Point,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     text(

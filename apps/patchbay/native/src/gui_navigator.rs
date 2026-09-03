@@ -13,7 +13,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::PatchbayTheme;
+use patchbay_model::ApplicationTheme;
 
 pub(super) struct FormsNavigatorView<'a> {
     pub(super) entries: &'a [FormNavigatorEntry],
@@ -30,7 +30,7 @@ pub(super) fn draw_navigator<D: DrawTarget<Color = Rgb888>>(
     palette: &PaletteChooser,
     visible_subject_count: usize,
     forms: FormsNavigatorView<'_>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     text(
@@ -226,7 +226,7 @@ fn action_button<D: DrawTarget<Color = Rgb888>>(
     label: &str,
     y: i32,
     action: GuiAction,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let bounds = PixelRect {
