@@ -71,7 +71,7 @@ function presentBirthControls(runner, state, { presentation, runtime, listingId,
       state.initialForms = state.initialForms.includes(name)
         ? state.initialForms.filter((candidate) => candidate !== name)
         : [...state.initialForms, name];
-      presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth });
+      presentBirthControls(runner, state, { presentation, runtime, listingId, onDraft, onBirth });
       return;
     }
     if (event.action === "name.input") state.friendlyName = value;

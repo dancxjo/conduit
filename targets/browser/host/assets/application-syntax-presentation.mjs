@@ -45,13 +45,13 @@ function renderSyntax(source, target, owner, runtime) {
     return;
   }
   const bytes = encoder.encode(source);
-  if (bytes.length > runtime.conduit_book_input_capacity()) {
+  if (bytes.length > runtime.conduit_syntax_input_capacity()) {
     renderPlain(source, target, owner, "refused");
     return;
   }
-  new Uint8Array(runtime.memory.buffer, runtime.conduit_book_input_ptr(), bytes.length).set(bytes);
-  const status = runtime.conduit_book_project_syntax(bytes.length);
-  if (status < 0 || runtime.conduit_book_output_len() === 0) {
+  new Uint8Array(runtime.memory.buffer, runtime.conduit_syntax_input_ptr(), bytes.length).set(bytes);
+  const status = runtime.conduit_syntax_project(bytes.length);
+  if (status < 0 || runtime.conduit_syntax_output_len() === 0) {
     renderPlain(source, target, owner, "refused");
     return;
   }
@@ -59,8 +59,8 @@ function renderSyntax(source, target, owner, runtime) {
   try {
     const output = new Uint8Array(
       runtime.memory.buffer,
-      runtime.conduit_book_output_ptr(),
-      runtime.conduit_book_output_len(),
+      runtime.conduit_syntax_output_ptr(),
+      runtime.conduit_syntax_output_len(),
     );
     projection = JSON.parse(decoder.decode(output));
     validateProjection(projection, bytes);

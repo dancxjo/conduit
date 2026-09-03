@@ -2,8 +2,15 @@
 
 use conduit_form::{highlight_syntax, SyntaxHighlightKind, SyntaxHighlightRefusal};
 use serde::Serialize;
+use std::cell::RefCell;
 
-pub(super) const SYNTAX_PROJECTION_VERSION: &str = "conduit.syntax-highlight-projection@1";
+const INPUT_BYTES: usize = 8 * 1_024;
+const OUTPUT_BYTES: usize = 128 * 1_024;
+const STATUS_READY: i32 = 0;
+const ERROR_INPUT: i32 = -401;
+const ERROR_OUTPUT: i32 = -404;
+const ERROR_HIGHLIGHT: i32 = -409;
+const SYNTAX_PROJECTION_VERSION: &str = "conduit.syntax-highlight-projection@1";
 const SYNTAX_KINDS: [&str; 10] = [
     "whitespace",
     "comment",
@@ -18,7 +25,7 @@ const SYNTAX_KINDS: [&str; 10] = [
 ];
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
-pub(super) struct SyntaxProjection {
+struct SyntaxProjection {
     pub protocol: &'static str,
     pub source_bytes: u32,
     pub kinds: &'static [&'static str; 10],
@@ -29,7 +36,7 @@ pub(super) struct SyntaxProjection {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
-pub(super) enum SyntaxKind {
+enum SyntaxKind {
     Whitespace,
     Comment,
     Keyword,
@@ -42,7 +49,7 @@ pub(super) enum SyntaxKind {
     Delimiter,
 }
 
-pub(super) fn project(source: &str) -> Result<SyntaxProjection, String> {
+fn project(source: &str) -> Result<SyntaxProjection, String> {
     let source_bytes = u32::try_from(source.len())
         .map_err(|_| "Book syntax source length exceeds u32".to_owned())?;
     let spans = highlight_syntax(source)
@@ -62,6 +69,66 @@ pub(super) fn project(source: &str) -> Result<SyntaxProjection, String> {
         kinds: &SYNTAX_KINDS,
         spans,
     })
+}
+
+thread_local! {
+    static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
+    static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
+    static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_syntax_input_ptr() -> usize {
+    INPUT.with(|input| input.borrow_mut().as_mut_ptr() as usize)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_syntax_input_capacity() -> usize {
+    INPUT_BYTES
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_syntax_output_ptr() -> usize {
+    OUTPUT.with(|output| output.borrow().as_ptr() as usize)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_syntax_output_len() -> usize {
+    OUTPUT_LEN.with(|length| *length.borrow())
+}
+
+/// Projects finite exact UTF-8 byte spans from the canonical Form highlighter.
+/// Parsing and checking remain separate, so incomplete edits still project.
+#[no_mangle]
+pub extern "C" fn conduit_syntax_project(source_length: usize) -> i32 {
+    OUTPUT_LEN.with(|length| *length.borrow_mut() = 0);
+    if source_length == 0 || source_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = core::str::from_utf8(&input[..source_length])
+            .map_err(|_| "syntax source is not UTF-8".to_owned())
+            .and_then(project);
+        input[..source_length].fill(0);
+        match result {
+            Ok(projection) => write_output(&projection).unwrap_or(ERROR_OUTPUT),
+            Err(message) => {
+                let _ = write_output(&serde_json::json!({ "message": message }));
+                ERROR_HIGHLIGHT
+            }
+        }
+    })
+}
+
+fn write_output(value: &impl Serialize) -> Result<i32, i32> {
+    let encoded = serde_json::to_vec(value).map_err(|_| ERROR_OUTPUT)?;
+    if encoded.len() > OUTPUT_BYTES {
+        return Err(ERROR_OUTPUT);
+    }
+    OUTPUT.with(|output| output.borrow_mut()[..encoded.len()].copy_from_slice(&encoded));
+    OUTPUT_LEN.with(|length| *length.borrow_mut() = encoded.len());
+    Ok(STATUS_READY)
 }
 
 fn refusal(reason: SyntaxHighlightRefusal) -> String {
@@ -93,8 +160,6 @@ impl From<SyntaxHighlightKind> for SyntaxKind {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::form_runner::abi::{INPUT_BYTES, OUTPUT_BYTES};
-
     #[test]
     fn incomplete_source_projects_exact_utf8_byte_spans() {
         let source = "form café { value=text/constant(value=\"still typing\n";
@@ -116,5 +181,18 @@ mod tests {
             "{} > {OUTPUT_BYTES}",
             encoded.len()
         );
+    }
+
+    #[test]
+    fn syntax_projection_accepts_incomplete_source_and_clears_input() {
+        let source = b"form unfinished { value=\"still typing";
+        INPUT.with(|input| input.borrow_mut()[..source.len()].copy_from_slice(source));
+        assert_eq!(conduit_syntax_project(source.len()), STATUS_READY);
+        let projection: serde_json::Value = OUTPUT.with(|output| {
+            serde_json::from_slice(&output.borrow()[..conduit_syntax_output_len()]).unwrap()
+        });
+        assert_eq!(projection["protocol"], SYNTAX_PROJECTION_VERSION);
+        assert_eq!(projection["source_bytes"], source.len());
+        INPUT.with(|input| assert!(input.borrow()[..source.len()].iter().all(|byte| *byte == 0)));
     }
 }
