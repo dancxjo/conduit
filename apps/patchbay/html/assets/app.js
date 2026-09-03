@@ -1,7 +1,6 @@
 import { joinBrowserBody } from "/assets/browser-membership.js";
 import { createApplicationPresentationHost } from "/assets/application-presentation.mjs";
 import { arrangeFlow, configureFlowStorage, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
-import { installPanelFurniture } from "/assets/panel-furniture.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { createPatchbaySharedPresentation } from "/assets/shared-presentation.js";
 import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
@@ -355,13 +354,13 @@ async function dismissFurnitureSurface(name){
   else document.body.dataset[`${name}Open`]="false";
   const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded","false");launcher.focus();
 }
-const furniture=installPanelFurniture([
+const furniture=sharedPresentation.furniture([
   {name:"palette",slot:"palette-furniture",selector:"#palette",title:"Navigate",dock:"left",onDismiss:()=>dismissFurnitureSurface("palette")},
   {name:"parts",slot:"parts-furniture",selector:"#parts",title:"Parts",dock:"left",onDismiss:()=>dismissFurnitureSurface("parts")},
   {name:"inspector",slot:"inspector-furniture",selector:"#inspector",title:"Inspector",dock:"right",onDismiss:()=>dismissFurnitureSurface("inspector")},
   {name:"truth",slot:"truth-furniture",selector:"#deep-inspection",title:"Exact truth",dock:"right",onDismiss:()=>dismissFurnitureSurface("truth")},
   {name:"structured",slot:"structured-furniture",selector:"#structured-navigator",title:"Subjects",dock:"bottom",onDismiss:()=>dismissFurnitureSurface("structured")},
-],applicationPresentation);
+]);
 async function toggleDrawer(name){const key=`${name}Open`,next=document.body.dataset[key]!=="true";if(next)await closeSubordinateSurfaces(name);document.body.dataset[key]=String(next);const launcher=document.querySelector(`#toggle-${name}`);launcher.setAttribute("aria-expanded",String(next));if(next){furniture.restore(name);focusSurface(name);}else launcher.focus();}
 for(const name of ["palette","parts","structured"])document.querySelector(`#toggle-${name}`).onclick=event=>{event.stopPropagation();return toggleDrawer(name);};
 document.querySelector("#toggle-truth").onclick=async event=>{event.stopPropagation();const opening=document.body.dataset.truthOpen!=="true";if(opening){await withFurnitureTransition("truth",async()=>{document.body.dataset.truthOpen="true";event.currentTarget.setAttribute("aria-expanded","true");furniture.restore("truth");state.truthTransition=(async()=>{await closeSubordinateSurfaces("truth");if(state.snapshot.navigation)await dispatchNavigation({kind:"disclose",depth:"Exact"});})();await state.truthTransition;state.truthTransition=null;});focusSurface("truth");}else await dismissFurnitureSurface("truth");};

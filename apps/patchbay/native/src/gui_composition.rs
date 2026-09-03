@@ -11,7 +11,7 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
-use patchbay_model::{PatchbayGraph, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PatchbayGraph};
 
 const HEADER_HEIGHT: i32 = 52;
 const NAV_WIDTH: i32 = 176;
@@ -104,7 +104,7 @@ pub(super) fn draw_compositions<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     layouts: &[CompositionLayout<'_>],
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     for layout in layouts {

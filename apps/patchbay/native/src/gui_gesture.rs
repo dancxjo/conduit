@@ -9,7 +9,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PatchbayGraph, PatchbayPortCompatibility, PatchbayTheme};
+use patchbay_model::{ApplicationTheme, PatchbayGraph, PatchbayPortCompatibility};
 
 #[derive(Default)]
 pub struct GestureView<'a> {
@@ -27,7 +27,7 @@ pub(super) fn draw_gesture<D: DrawTarget<Color = Rgb888>>(
     compositions: &[CompositionLayout<'_>],
     boundaries: &[BoundaryLayout],
     gesture: &GestureView<'_>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
 ) {
     if let Some(kind) = gesture.palette_kind {
         let bounds = ghost_bounds(gesture.cursor);

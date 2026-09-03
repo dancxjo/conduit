@@ -9,7 +9,7 @@ use crate::{
     render::draw_document,
 };
 use embedded_graphics::prelude::Point;
-use patchbay_model::PHOSPHOR_THEME;
+use patchbay_model::CONDUIT_APPLICATION_THEME;
 
 pub fn draw_body_workbench(
     pixels: &mut [u32],
@@ -22,7 +22,7 @@ pub fn draw_body_workbench(
 ) -> Vec<HitTarget> {
     draw_document(pixels, width, height, lines);
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
-    let theme = &PHOSPHOR_THEME;
+    let theme = &CONDUIT_APPLICATION_THEME;
     let y = i32::try_from(height).unwrap_or(i32::MAX).saturating_sub(40);
     let mut targets = Vec::with_capacity(3 + history_entries);
     for (index, (label, destination)) in [

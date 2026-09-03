@@ -540,6 +540,11 @@ export function createApplicationPresentationHost(scope = document) {
     queuedEvents(slot) { return manifestations.get(slot)?.queuedEvents() ?? 0; },
     queuedEventBytes(slot) { return manifestations.get(slot)?.queuedEventBytes() ?? 0; },
     lastRefusal(slot) { return refusals.get(slot) ?? manifestations.get(slot)?.lastRefusal() ?? null; },
+    requestAction(slot, key, value = "") {
+      const manifestation = manifestations.get(slot);
+      if (!manifestation) refuse("unknown-component");
+      return manifestation.requestAction(key, value);
+    },
   });
 }
 

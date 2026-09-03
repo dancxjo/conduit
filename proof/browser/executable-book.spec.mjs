@@ -216,9 +216,12 @@ test("the Book navigation remains legible and interactive in both theme modes", 
 
     await previous.hover();
     await expect(previous).toHaveCSS("border-color", dark ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)");
-    await page.keyboard.press("Tab");
     await previous.focus();
-    await expect(previous).toHaveCSS("outline-color", dark ? "rgb(244, 196, 0)" : "rgb(119, 93, 0)");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect(previous).toBeFocused();
+    expect(await previous.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--conduit-focus").trim())).toBe(dark ? "#f4c400" : "#775d00");
   }
 });
 

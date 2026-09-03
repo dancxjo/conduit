@@ -26,7 +26,7 @@ use embedded_graphics::{
     primitives::Rectangle,
 };
 use patchbay_model::{
-    DebuggerPresentation, PatchbayGear, PatchbayGraph, PatchbayTheme, PHOSPHOR_THEME,
+    ApplicationTheme, DebuggerPresentation, PatchbayGear, PatchbayGraph, CONDUIT_APPLICATION_THEME,
 };
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
@@ -149,7 +149,7 @@ pub fn draw_patchbay_with_debugger(
         .iter()
         .all(|icon| !icon.accessibility_name().is_empty()));
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
-    let theme = &PHOSPHOR_THEME;
+    let theme = &CONDUIT_APPLICATION_THEME;
     let width = i32::try_from(width).unwrap_or(i32::MAX);
     let height = i32::try_from(height).unwrap_or(i32::MAX);
     let inspector_requested = selected.is_some() || palette.search_active() || exact_identity_open;
@@ -369,7 +369,7 @@ fn draw_header<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     breadcrumb: &str,
     view: (&LifecycleContext, i32, &CanvasViewport),
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let (lifecycle, width, viewport) = view;
@@ -405,7 +405,7 @@ fn draw_cords<D: DrawTarget<Color = Rgb888>>(
     ),
     selected: Option<&str>,
     presentation: (&patchbay_model::PatchbayLayout, &CanvasViewport),
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     for cord in &graph.cords {
@@ -525,7 +525,7 @@ fn draw_boundaries<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     boundaries: &[BoundaryLayout],
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     for boundary in boundaries {
@@ -556,7 +556,7 @@ fn draw_footer<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
     graph: &PatchbayGraph,
     view: FooterView<'_>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let FooterView {

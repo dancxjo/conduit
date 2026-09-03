@@ -15,7 +15,8 @@ use embedded_graphics::{
     Drawable,
 };
 use patchbay_model::{
-    GearRealizationInspection, PatchbayGraph, PatchbayLayout, PatchbayTheme, RealizationDisposition,
+    ApplicationTheme, GearRealizationInspection, PatchbayGraph, PatchbayLayout,
+    RealizationDisposition,
 };
 
 pub(super) struct GearViewContext<'a> {
@@ -31,7 +32,7 @@ pub(super) fn draw_gear<D: DrawTarget<Color = Rgb888>>(
     layout: &GearLayout<'_>,
     selected: Option<&str>,
     view: &GearViewContext<'_>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let is_selected = selected == Some(layout.gear.identity.as_str());
@@ -110,7 +111,7 @@ fn draw_realization<D: DrawTarget<Color = Rgb888>>(
     layout: &GearLayout<'_>,
     plan: Option<&conduit_core::Plan>,
     hosts: &[conduit_core::HostAdvertisement],
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let subject = graph
@@ -180,7 +181,7 @@ fn draw_flip_control<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     layout: &GearLayout<'_>,
     reversed: bool,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     let bounds = PixelRect {
@@ -211,7 +212,7 @@ fn draw_ports<D: DrawTarget<Color = Rgb888>>(
     graph: &PatchbayGraph,
     layout: &GearLayout<'_>,
     selected: Option<&str>,
-    theme: &PatchbayTheme,
+    theme: &ApplicationTheme,
     targets: &mut Vec<HitTarget>,
 ) {
     for (identity, point) in layout.inputs.iter().chain(&layout.outputs) {
