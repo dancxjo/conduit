@@ -468,6 +468,9 @@ export function manifestApplicationView(input, root, options = {}) {
       installRovingFocus(elements[index], node.value, -1);
     } else if (node.component === 38) {
       installRovingFocus(elements[index], "", Number(node.value.split("/")[0]) - 1);
+    } else if (node.component === 16) {
+      elements[index].value = node.value;
+      if (elements[index].value !== node.value) refuse("invalid-control-value");
     }
   }
   root.replaceChildren(fragment);

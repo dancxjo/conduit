@@ -77,7 +77,7 @@ impl Operation for PointerOperation {
             Self::Source {
                 empty,
                 pending,
-                maximum_output_bytes,
+                maximum_output_bytes: _maximum_output_bytes,
                 ..
             } if !*pending => {
                 *pending = true;

@@ -50,6 +50,16 @@ test("actual Chromium and native RFC 6455 lines exchange bounded binary protocol
       } catch (error) {
         invalidBinding = error.message;
       }
+      let excessiveBound;
+      try {
+        new BrowserWebSocketLine({
+          url,
+          maximumMessageBytes: 65 * 1024,
+          maximumBufferedBytes: 256 * 1024,
+        });
+      } catch (error) {
+        excessiveBound = error.message;
+      }
       const line = await new BrowserWebSocketLine({
         url,
         maximumMessageBytes: 1024,
@@ -63,6 +73,7 @@ test("actual Chromium and native RFC 6455 lines exchange bounded binary protocol
       const closed = await line.closed();
       return {
         invalidBinding,
+        excessiveBound,
         helloMagic: new TextDecoder().decode(hello.slice(0, 4)),
         helloBytes: hello.length,
         readyMagic: new TextDecoder().decode(ready.slice(0, 4)),
@@ -78,6 +89,7 @@ test("actual Chromium and native RFC 6455 lines exchange bounded binary protocol
     await exited;
     expect(stderr).toEqual([]);
     expect(result.invalidBinding).toBe(result.expectedInvalidBinding);
+    expect(result.excessiveBound).toBe(result.expectedInvalidBinding);
     expect(result.helloMagic).toBe("CNDS");
     expect(result.readyMagic).toBe("CNDS");
     expect(result.helloBytes).toBeLessThanOrEqual(1024);
