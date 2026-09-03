@@ -83,7 +83,7 @@ This is also why Conduit treats local operating-system scheduling and distribute
 | **Form** | A program: connected semantic work expressed as Gears, typed Ports, and Cords |
 | **Body** | The logical computer that can run Forms and persist while its machinery changes |
 | **Host** | One current running environment offering finite implementations and resources |
-| **Seed** | The Form from which a Body began; birth provenance, not an eternal sole program |
+| **Initial Forms** | The bounded zero-or-more Form workset active when a Body is born; ordinary Forms from revision zero onward |
 | **Wake** | A Body-wide interval in which Conduit actively maintains the Body's work |
 | **Plan** | One exact immutable realization of the Body's current workload on current machinery |
 | **Play** | The current execution of that Plan |
@@ -118,7 +118,7 @@ A Body can have one Part or many. Its current Parts may be realized by hosted Li
 
 Hosts and Boots are current machinery. They can appear, disappear, reboot, or be replaced without automatically erasing the Body.
 
-The Form used to birth a Body is its **Seed**. The Seed records where the Body began. It is not intended to limit that Body to one program forever. In the Body-wide model, additional Forms can become part of the same logical computer without replacing Body identity.
+A Body is born with a bounded initial active Form set. It may contain zero, one, or many Forms, and no member is privileged because it was present at birth. Later Form additions and removals use the same Body-wide workload mechanism without replacing Body identity.
 
 The [Crèche](https://dancxjo.github.io/conduit/creche) is the temporary application for beginning that lifecycle: birth a Body, prepare or attach machinery, observe exact joins/admission, and graduate so the nursery can go away while the Body remains.
 
