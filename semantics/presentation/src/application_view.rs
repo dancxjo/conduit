@@ -2,9 +2,11 @@
 
 use alloc::{string::String, vec::Vec};
 
-pub const APPLICATION_VIEW_VERSION: u8 = 6;
-/// Version 5 omitted exact evidence, definition, code, and artifact data.
-pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 5;
+mod structure;
+
+pub const APPLICATION_VIEW_VERSION: u8 = 7;
+/// Version 6 omitted structural form, stepper, and progress components.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 6;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -57,6 +59,12 @@ pub enum ApplicationComponent {
     Definition = 31,
     CodeBlock = 32,
     Artifact = 33,
+    FormField = 34,
+    FieldLabel = 35,
+    FieldHelp = 36,
+    FieldError = 37,
+    Stepper = 38,
+    Progress = 39,
 }
 
 /// Renderer-neutral state for an interactive presentation node.
@@ -152,6 +160,8 @@ impl ApplicationView {
                     | ApplicationComponent::Option
                     | ApplicationComponent::Definition
                     | ApplicationComponent::CodeBlock
+                    | ApplicationComponent::Stepper
+                    | ApplicationComponent::Progress
             );
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
@@ -159,7 +169,39 @@ impl ApplicationView {
                 && (value_capacity == 0
                     || value_capacity > MAX_APPLICATION_CONTROL_VALUE_BYTES
                     || node.value.len() > value_capacity)
-                || (!has_value && (value_capacity != 0 || !node.value.is_empty()))
+                || (!has_value
+                    && node.component != ApplicationComponent::Navigation
+                    && (value_capacity != 0 || !node.value.is_empty()))
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if node.component == ApplicationComponent::Navigation
+                && ((!node.value.is_empty()
+                    && (value_capacity == 0
+                        || value_capacity > MAX_APPLICATION_CONTROL_VALUE_BYTES
+                        || node.value.len() > value_capacity))
+                    || (node.value.is_empty() && value_capacity != 0))
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if matches!(
+                node.component,
+                ApplicationComponent::Stepper | ApplicationComponent::Progress
+            ) && !structure::valid_progress(&node.value)
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if node.component == ApplicationComponent::Stepper && node.value.starts_with("0/") {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if node.component == ApplicationComponent::Navigation
+                && !node.value.is_empty()
+                && !self.nodes.iter().enumerate().any(|(child_index, child)| {
+                    child_index > index
+                        && child.parent == Some(index as u8)
+                        && child.component == ApplicationComponent::Button
+                        && child.key == node.value
+                })
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
@@ -208,6 +250,7 @@ impl ApplicationView {
                 return Err(ApplicationViewRefusal::DuplicateAction);
             }
         }
+        structure::validate(&self.nodes)?;
         Ok(())
     }
 
@@ -419,6 +462,12 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         31 => Ok(ApplicationComponent::Definition),
         32 => Ok(ApplicationComponent::CodeBlock),
         33 => Ok(ApplicationComponent::Artifact),
+        34 => Ok(ApplicationComponent::FormField),
+        35 => Ok(ApplicationComponent::FieldLabel),
+        36 => Ok(ApplicationComponent::FieldHelp),
+        37 => Ok(ApplicationComponent::FieldError),
+        38 => Ok(ApplicationComponent::Stepper),
+        39 => Ok(ApplicationComponent::Progress),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

@@ -64,10 +64,62 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
         disclosureOpen: true,
         disclosureEvents: 0,
         staleRefusal: "stale-revision",
-        retiredVersion: 5,
+        retiredVersion: 6,
         retiredRefusal: "unsupported-version",
       },
     },
     missingContext: true,
   });
+});
+
+test("shared forms and navigation preserve exact keyboard interaction across revisions", async ({ page }) => {
+  await page.goto("/proof/browser/presentation-nucleus.test.html");
+  await expect(page.locator("#result")).toHaveText("ok");
+  const field = page.locator('[data-application-key="source-field"]');
+  const label = field.locator('[data-application-key="source-label"]');
+  const control = field.locator('[data-application-key="source-control"]');
+  const help = field.locator('[data-application-key="source-help"]');
+  const error = field.locator('[data-application-key="source-error"]');
+  await expect(label).toHaveAttribute("for", await control.getAttribute("id"));
+  await expect(field.getByLabel("Form source")).toHaveCount(1);
+  await expect(control).toHaveAttribute("aria-describedby", `${await help.getAttribute("id")} ${await error.getAttribute("id")}`);
+  await expect(control).toHaveAttribute("aria-errormessage", await error.getAttribute("id"));
+  await expect(control).toHaveAttribute("aria-invalid", "true");
+
+  await control.focus();
+  await control.evaluate((element) => element.setSelectionRange(2, 7, "forward"));
+  await page.evaluate(() => globalThis.__conduitFocusProof.rerender());
+  const revised = field.locator('[data-application-key="source-control"]');
+  await expect(revised).toBeFocused();
+  expect(await revised.evaluate((element) => ({ start: element.selectionStart, end: element.selectionEnd, direction: element.selectionDirection })))
+    .toEqual({ start: 2, end: 7, direction: "forward" });
+  await expect(revised).not.toHaveAttribute("aria-invalid", "true");
+  await page.evaluate(() => globalThis.__conduitFocusProof.dispatchDetached());
+  expect(await page.evaluate(() => globalThis.__conduitFocusProof.host.lastRefusal("focus"))).toBe("stale-revision");
+  expect(await page.evaluate(() => globalThis.__conduitFocusProof.host.nextEvent("focus"))).toBeNull();
+
+  const navigation = page.locator('[data-application-key="navigation"]');
+  const previous = navigation.locator('[data-application-key="page-one"]');
+  const next = navigation.locator('[data-application-key="page-two"]');
+  await expect(next).toHaveAttribute("tabindex", "0");
+  await expect(previous).toHaveAttribute("tabindex", "-1");
+  await next.focus();
+  await next.press("Home");
+  await expect(previous).toBeFocused();
+  await previous.press("End");
+  await expect(next).toBeFocused();
+  await next.press("ArrowLeft");
+  await expect(previous).toBeFocused();
+  await previous.press("ArrowDown");
+  await expect(next).toBeFocused();
+
+  const stepper = page.locator('[data-application-key="stepper"]');
+  await expect(stepper).toHaveAttribute("data-application-current", "2");
+  await expect(stepper.locator('[data-application-key="step-two"]')).toHaveAttribute("tabindex", "0");
+  const progress = page.locator('[data-application-key="progress"] progress');
+  await expect(progress).toHaveAttribute("value", "2");
+  await expect(progress).toHaveAttribute("max", "3");
+  await revised.focus();
+  await page.evaluate(() => globalThis.__conduitFocusProof.removeFocused());
+  await expect(page.locator('[data-application-key="page-two"]')).toBeFocused();
 });
