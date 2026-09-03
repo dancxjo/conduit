@@ -1,0 +1,12 @@
+host browser-rich {
+  schema = 1
+  target = {architecture: "wasm32", machine: "page"}
+  base = {kind: "presentation/graphical", implementation: "browser/dom-presentation@1"}
+  base = {kind: "human/keyboard", implementation: "browser/keyboard-events@1"}
+  base = {kind: "human/pointer", implementation: "browser/pointer-events@1"}
+  base = {kind: "storage/durable", implementation: "browser/indexeddb@1"}
+  base = {kind: "line/websocket", implementation: "browser/websocket@1"}
+  base = {kind: "device/serial", implementation: "browser/webserial@1"}
+  base = {kind: "device/usb", implementation: "browser/webusb@1"}
+  limits = {static_memory_bytes: 1048576, heap_arena_bytes: 8388608, queue_items: 512, buffered_bytes: 1048576, active_instances: 64, operation_slots: 32, timer_slots: 16, line_sessions: 4, evidence_items: 512}
+}
