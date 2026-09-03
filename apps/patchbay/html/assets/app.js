@@ -3,70 +3,20 @@ import { createApplicationPresentationHost } from "/assets/application-presentat
 import { arrangeFlow, configureFlowStorage, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { installPanelFurniture } from "/assets/panel-furniture.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
+import { createPatchbaySharedPresentation } from "/assets/shared-presentation.js";
 import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
 import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
 const schema = "conduit.patchbay.portable-presentation";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, seedQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
 const applicationPresentation = createApplicationPresentationHost();
+const sharedPresentation = createPatchbaySharedPresentation(applicationPresentation);
+const presentDefinitions = sharedPresentation.definitions;
+const presentActions = sharedPresentation.actions;
+const presentSharedStatus = sharedPresentation.status;
 let admittedRuntimeBytes = null;
-let statusRevision = 0;
-const sharedRevisions = new Map();
-function presentDefinitions(slot, entries) {
-  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
-  sharedRevisions.set(slot, revision);
-  applicationPresentation.present(slot, {
-    revision,
-    actions: [],
-    nodes: [
-      { parent: null, component: "definition-table", key: "facts", text: "Exact facts", action: null },
-      ...entries.map(([name, value], index) => ({ parent: 0, component: "definition", key: `fact-${index}`, text: name, value: String(value ?? "not present"), valueCapacity: 65_536, action: null })),
-    ],
-  });
-}
-function presentActions(slot, entries) {
-  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
-  sharedRevisions.set(slot, revision);
-  applicationPresentation.present(slot, {
-    revision,
-    actions: entries.map((_, index) => ({ id: `action-${index}`, event: "activate" })),
-    nodes: [
-      { parent: null, component: "action-group", key: "actions", text: "Available actions", action: null },
-      ...entries.map((entry, index) => ({ parent: 0, component: "button", key: `action-${index}`, text: entry.label, state: entry.disabled ? "unavailable" : "ready", action: entry.disabled ? null : index })),
-    ],
-  }, { onEvent(event) {
-    applicationPresentation.nextEvent(slot);
-    entries[Number(event.action.slice("action-".length))]?.run();
-  } });
-}
-function presentSharedStatus(slot, text, component = "status") {
-  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
-  sharedRevisions.set(slot, revision);
-  applicationPresentation.present(slot, { revision, actions: [], nodes: [{ parent: null, component, key: "status", text, action: null }] });
-}
-function presentNavigation(slot, label, entries, currentKey) {
-  const revision = (sharedRevisions.get(slot) ?? 0) + 1;
-  sharedRevisions.set(slot, revision);
-  applicationPresentation.present(slot, {
-    revision,
-    actions: entries.map((_, index) => ({ id: `navigate-${index}`, event: "activate" })),
-    nodes: [
-      { parent: null, component: "navigation", key: "navigation", text: label, value: currentKey ?? "", valueCapacity: currentKey ? 32 : 0, action: null },
-      ...entries.map((entry, index) => ({ parent: 0, component: "button", key: entry.key, text: entry.label, action: index })),
-    ],
-  }, { onEvent(event) {
-    applicationPresentation.nextEvent(slot);
-    entries[Number(event.action.slice("navigate-".length))]?.run();
-  } });
-  const controls = document.querySelector(`[data-application-slot="${slot}"]`).querySelectorAll("button");
-  controls.forEach((control, index) => entries[index].annotate?.(control));
-}
 function presentStatus(text, component = "status") {
-  applicationPresentation.present("patchbay-status", {
-    revision: ++statusRevision,
-    actions: [],
-    nodes: [{ parent: null, component, key: "renderer-status", text, action: null }],
-  });
+  sharedPresentation.status("patchbay-status", text, component);
 }
 
 function requireSnapshot(value) {
@@ -108,9 +58,8 @@ function actionAvailability(action){
   throw new Error("unsupported semantic action availability");
 }
 function renderSemanticActions(identity){
-  const desired=semanticActions(identity),revision=(sharedRevisions.get("semantic-actions")??0)+1;sharedRevisions.set("semantic-actions",revision);
-  applicationPresentation.present("semantic-actions",{
-    revision,
+  const desired=semanticActions(identity);
+  sharedPresentation.present("semantic-actions",{
     actions:desired.map((_,index)=>({id:`semantic-${index}`,event:"activate"})),
     nodes:[
       {parent:null,component:"action-group",key:"semantic-actions",text:"Selected subject actions",action:null},
@@ -119,7 +68,7 @@ function renderSemanticActions(identity){
         {parent:0,component:availability.state==="Refused"?"refused-evidence":availability.state==="Unavailable"?"missing-evidence":"status",key:`availability-${index}`,text:availability.explanation?`${availability.state}: ${availability.explanation}`:availability.state,action:null},
       ];}),
     ],
-  },{onEvent(event){applicationPresentation.nextEvent("semantic-actions");const index=Number(event.action.slice("semantic-".length));dispatchSemanticAction(desired[index]);}});
+  },{onEvent(event){const index=Number(event.action.slice("semantic-".length));dispatchSemanticAction(desired[index]);}});
 }
 function propertyText(value){
   if(value.Identity!==undefined)return value.Identity;
@@ -231,7 +180,7 @@ function renderAuthoringActions(subject){
     addButton("Remove Cord",()=>authoringEdit("remove-cord",semantic));addButton("Reroute one endpoint",()=>{state.rerouteCord=semantic;displaySelection(subject.identity);});
   }
   present();
-  function present(){const revision=(sharedRevisions.get("authoring-actions")??0)+1;sharedRevisions.set("authoring-actions",revision);applicationPresentation.present("authoring-actions",{revision,actions,nodes},{onEvent(event){applicationPresentation.nextEvent("authoring-actions");callbacks[Number(event.action.slice("authoring-".length))]?.(event);}});}
+  function present(){sharedPresentation.present("authoring-actions",{actions,nodes},{onEvent(event){callbacks[Number(event.action.slice("authoring-".length))]?.(event);}});}
 }
 function lensProperty(lens,name){if(lens==="world")return ["seed-id","body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing","activity","evidence-class","candidate-state","lifecycle","auto-run","stage","authority-state","refusal","disposition"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","offer-generation","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="play")return ["active-play-id","play-state","pressure","activity","disposition","request-id","run-id","stage","authority-state","effect-id"].includes(name);if(lens==="signs")return ["evidence-class","effect-id","request-id"].includes(name)||name.startsWith("sign-");return false;}
 
@@ -356,8 +305,8 @@ function renderNavigationControls(){
   const bundle=state.snapshot.navigation;if(!bundle)return;
   const cursor=bundle.cursor,current=bundle.navigation.places.find(place=>place.place===cursor.place);
   const places=[{key:"back",label:"Back",run:()=>dispatchNavigation({kind:"back"}),annotate:button=>button.dataset.navigationBack="true"},...bundle.navigation.places.map((place,index)=>({key:`place-${index}`,label:place.label,run:()=>dispatchNavigation({kind:"enter",place:place.place}),annotate:button=>{button.dataset.place=place.place;button.setAttribute("aria-pressed",String(place.place===cursor.place));}}))];
-  presentNavigation("place-controls","Available Places",places,`place-${bundle.navigation.places.findIndex(place=>place.place===cursor.place)}`);
-  presentNavigation("aspect-controls","Available Aspects",current.aspects.map((aspect,index)=>({key:`aspect-${index}`,label:aspect.aspect,run:()=>dispatchNavigation({kind:"show",aspect:aspect.aspect}),annotate:button=>{button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));}})),`aspect-${current.aspects.findIndex(aspect=>aspect.aspect===cursor.aspect)}`);
+  sharedPresentation.navigation("place-controls","Available Places",places,`place-${bundle.navigation.places.findIndex(place=>place.place===cursor.place)}`);
+  sharedPresentation.navigation("aspect-controls","Available Aspects",current.aspects.map((aspect,index)=>({key:`aspect-${index}`,label:aspect.aspect,run:()=>dispatchNavigation({kind:"show",aspect:aspect.aspect}),annotate:button=>{button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));}})),`aspect-${current.aspects.findIndex(aspect=>aspect.aspect===cursor.aspect)}`);
 }
 function selectLens(lens){const aspect=({world:"Structure",form:"Structure",plan:"Plan",play:"Play",signs:"Signs"})[lens];return state.snapshot.navigation?dispatchNavigation({kind:"show",aspect}):Promise.resolve();}
 

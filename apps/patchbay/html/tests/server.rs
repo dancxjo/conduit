@@ -312,7 +312,19 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let manifest: serde_json::Value =
         serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(manifest["application_id"], "conduit.application/patchbay");
-    assert_eq!(manifest["resources"].as_array().unwrap().len(), 25);
+    assert_eq!(manifest["resources"].as_array().unwrap().len(), 26);
+    assert!(manifest["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|resource| {
+            resource["role"] == "shared-presentation"
+                && resource["path"] == "assets/shared-presentation.js"
+                && resource["kind"] == "module"
+        }));
+    let shared_presentation = request("/assets/shared-presentation.js", "GET");
+    assert!(shared_presentation.starts_with("HTTP/1.1 200 OK"));
+    assert!(shared_presentation.contains("createPatchbaySharedPresentation"));
     let navigation = request("/assets/portable-navigation.js", "GET");
     assert!(navigation.starts_with("HTTP/1.1 200 OK"));
     assert!(navigation.contains("projectCurrent"));
