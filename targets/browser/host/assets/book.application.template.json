@@ -3,8 +3,10 @@
   "application_id": "conduit.application/book",
   "state_compatibility": { "identity": "conduit.application/book-reading-state", "version": 1 },
   "resources": [
-    { "role": "application-module", "kind": "module", "path": "book.mjs", "maximum_bytes": 65536, "dependencies": [{"role":"browser-host-membership","specifier":"./browser-host-membership.mjs"},{"role":"patchbay-flow","specifier":"./assets/flow.js"},{"role":"book-state","specifier":"./book-state.mjs"},{"role":"book-navigation","specifier":"./book-navigation.mjs"},{"role":"book-runner-presentation","specifier":"./book-runner-presentation.mjs"},{"role":"book-syntax-editor","specifier":"./book-syntax-editor.mjs"}] },
+    { "role": "application-module", "kind": "module", "path": "book.mjs", "maximum_bytes": 65536, "dependencies": [{"role":"browser-host-membership","specifier":"./browser-host-membership.mjs"},{"role":"book-routing","specifier":"./book-routing.mjs"},{"role":"patchbay-flow","specifier":"./assets/flow.js"},{"role":"book-state","specifier":"./book-state.mjs"},{"role":"book-navigation","specifier":"./book-navigation.mjs"},{"role":"book-runner-presentation","specifier":"./book-runner-presentation.mjs"},{"role":"book-syntax-editor","specifier":"./book-syntax-editor.mjs"}] },
     { "role": "browser-host-membership", "kind": "module", "path": "browser-host-membership.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "browser-host-operations", "kind": "module", "path": "browser-host-operations.mjs", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "book-routing", "kind": "module", "path": "book-routing.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"browser-host-operations","specifier":"./browser-host-operations.mjs"}] },
     { "role": "book-state", "kind": "module", "path": "book-state.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "book-navigation", "kind": "module", "path": "book-navigation.mjs", "maximum_bytes": 4096, "dependencies": [] },
     { "role": "book-runner-presentation", "kind": "module", "path": "book-runner-presentation.mjs", "maximum_bytes": 4096, "dependencies": [] },

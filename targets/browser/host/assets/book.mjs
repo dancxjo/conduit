@@ -4,6 +4,7 @@ import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 import { createBookRunnerStatus } from "./book-runner-presentation.mjs";
 import { attachBookSyntaxEditor, createBookSyntaxExample } from "./book-syntax-editor.mjs";
+import { createBookRouting } from "./book-routing.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -20,18 +21,20 @@ let activeDelay = null;
 let cancelActiveKeyEvent = null;
 let currentPage = 0;
 let guidedPages = [];
-let pageRoutes = [];
 let patchbaySequence = 0;
 let readingState;
 let admittedRuntimeBytes;
 let navigation;
 let hostPresentation;
+let routing;
 
 export async function startApplication(application) {
 try {
   readingState = await openBookReadingState(application.storage);
   hostPresentation = application.presentation;
-  navigation = createBookNavigation(hostPresentation, (offset) => renderPage(currentPage + offset, "push"));
+  navigation = createBookNavigation(hostPresentation, (offset) => {
+    renderPage(currentPage + offset, "push").catch(showBookFailure);
+  });
   admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
     Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
@@ -39,11 +42,18 @@ try {
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
+  routing = createBookRouting({
+    host,
+    applicationId: application.manifest.applicationId,
+    isRunning: () => running,
+    currentPage: () => currentPage,
+    render: (index) => renderPage(index),
+    onFailure: showBookFailure,
+  });
   guidedPages = parseBookPages(chapters);
-  pageRoutes = guidedPages.map(pageRoute);
-  const initialPage = pageIndexForLocation();
-  renderPage(initialPage);
-  if (isProductRoot()) replacePageRoute(initialPage);
+  const initialRoute = routing.admitPages(guidedPages);
+  await renderPage(initialRoute.index);
+  if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
   hostState.textContent = "Browser Host ready";
   globalThis.__conduitBookHost = host;
   globalThis.__conduitBookPersistence = Object.freeze({
@@ -55,6 +65,12 @@ try {
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
 }
+}
+
+function showBookFailure(error) {
+  hostState.textContent = "Browser Host unavailable";
+  chapter.textContent = error instanceof Error ? error.message : String(error);
+  chapter.classList.add("error");
 }
 
 function persistBookState() {
@@ -93,9 +109,9 @@ function parseBookPages(chapters) {
   return parsed;
 }
 
-function renderPage(index, routeChange = "none") {
+async function renderPage(index, routeChange = "none") {
   if (running) return;
-  if (routeChange === "push") history.pushState(null, "", pageRoutes[index]);
+  if (routeChange === "push") await routing.move(index, "push");
   currentPage = index;
   runnerCount = 0;
   chapter.replaceChildren();
@@ -103,43 +119,6 @@ function renderPage(index, routeChange = "none") {
   navigation.render(currentPage, guidedPages.length, running);
   document.title = (chapter.querySelector("h1")?.textContent ?? "The Book") + " · The Book";
 }
-
-function pageRoute(markdown) {
-  const title = markdown.match(/^# (.+)$/m)?.[1];
-  if (!title) throw new Error("a Book page has no title");
-  const slug = title.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  if (!slug) throw new Error("a Book page has no route identity");
-  return new URL(`${slug}/`, document.baseURI).pathname;
-}
-
-function pageIndexForLocation() {
-  if (isProductRoot()) return 0;
-  const legacyRoutes = new Map([
-    [new URL("meet-one-gear/", document.baseURI).pathname, 0],
-    [new URL("same-face-different-implementation/", document.baseURI).pathname, 1],
-  ]);
-  const index = legacyRoutes.get(location.pathname) ?? pageRoutes.indexOf(location.pathname);
-  if (index === -1) throw new Error("this Book page does not exist");
-  return index;
-}
-
-function isProductRoot() {
-  return location.pathname === new URL(".", document.baseURI).pathname
-    || location.pathname === new URL("index.html", document.baseURI).pathname;
-}
-
-function replacePageRoute(index) {
-  history.replaceState(null, "", pageRoutes[index]);
-}
-
-addEventListener("popstate", () => {
-  const index = pageIndexForLocation();
-  if (running) {
-    replacePageRoute(currentPage);
-    return;
-  }
-  renderPage(index);
-});
 
 function setNavigationDisabled(disabled) {
   if (disabled !== running) throw new Error("Book navigation state is inconsistent");

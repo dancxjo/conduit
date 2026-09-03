@@ -14,10 +14,12 @@ cp targets/browser/host/assets/book.css "$destination/book.css"
 cp targets/browser/host/assets/book.mjs "$destination/book.mjs"
 cp targets/browser/host/assets/book-state.mjs "$destination/book-state.mjs"
 cp targets/browser/host/assets/book-navigation.mjs "$destination/book-navigation.mjs"
+cp targets/browser/host/assets/book-routing.mjs "$destination/book-routing.mjs"
 cp targets/browser/host/assets/book-runner-presentation.mjs "$destination/book-runner-presentation.mjs"
 cp targets/browser/host/assets/book-syntax-editor.mjs "$destination/book-syntax-editor.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp targets/browser/host/assets/browser-host-membership.mjs "$destination/browser-host-membership.mjs"
+cp targets/browser/host/assets/browser-host-operations.mjs "$destination/browser-host-operations.mjs"
 cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
@@ -63,5 +65,5 @@ done
 node scripts/ci/build-browser-application-package.mjs \
     targets/browser/host/assets/book.application.template.json "$destination"
 
-test "$(find "$destination" -type f | wc -l)" -eq 41
+test "$(find "$destination" -type f | wc -l)" -eq 43
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"

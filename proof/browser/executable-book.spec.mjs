@@ -166,6 +166,27 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
 });
 
+test("Book route mutation crosses the finite Browser Host operation boundary", async ({ page }) => {
+  const [source, routing, manifest] = await Promise.all([
+    page.request.get(new URL("book.mjs", entrance.url).href).then((response) => response.text()),
+    page.request.get(new URL("book-routing.mjs", entrance.url).href).then((response) => response.text()),
+    page.request.get(new URL("book.application.json", entrance.url).href).then((response) => response.json()),
+  ]);
+  expect(source).toContain('from "./book-routing.mjs"');
+  expect(source).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
+  expect(routing).toContain('from "./browser-host-operations.mjs"');
+  expect(routing).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
+  expect(manifest.resources.some((resource) => resource.role === "browser-host-operations")).toBe(true);
+  expect(manifest.resources.some((resource) => resource.role === "book-routing")).toBe(true);
+
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page).toHaveURL(/\/book\/faces-backs-and-implementation\/$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/book\/a-form-you-can-run\/$/);
+});
+
 test("the Book navigation remains legible and interactive in both theme modes", async ({ page }) => {
   for (const colorScheme of ["dark", "light"]) {
     await page.emulateMedia({ colorScheme });
