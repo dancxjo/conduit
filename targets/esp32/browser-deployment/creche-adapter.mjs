@@ -373,7 +373,14 @@ async function downloadRelease(targetProfile, signal) {
 }
 
 async function browserSerial(host, targetProfile, observation = false) {
-  const devices = createBrowserDeviceBase({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, status: null, output: null });
+  const devices = createBrowserDeviceBase({
+    api: host.runtime,
+    hostId: host.hostId,
+    bootId: host.bootId,
+    selectedImplementations: ["browser/webserial@1"],
+    status: null,
+    output: null,
+  });
   return devices.acquireSerial({
     baudRate: ESP32_BROWSER_DEPLOYMENT.baudRate,
     dataBits: ESP32_BROWSER_DEPLOYMENT.dataBits,

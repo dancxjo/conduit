@@ -5,10 +5,12 @@ use conduit_host_fabrication::{
 };
 use std::collections::BTreeMap;
 
+mod device;
 mod inventory;
 mod line;
 mod media;
 
+pub use device::{BrowserDeviceRealizationDescriptor, BROWSER_DEVICE_REALIZATIONS};
 pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
     BrowserInventoryDiagnostic, BrowserRealizationDescriptor, BrowserRuntimePrerequisite,
@@ -232,6 +234,34 @@ mod tests {
                 .any(|item| { item.implementation_id == "browser/web-audio-output@1" }),
             "Web Audio API presence is not an accepted audio-output realization"
         );
+    }
+
+    #[test]
+    fn device_entries_bind_exact_chooser_and_transfer_realizations() {
+        assert_eq!(BROWSER_DEVICE_REALIZATIONS.len(), 2);
+        for realization in BROWSER_DEVICE_REALIZATIONS {
+            let fabricated = BROWSER_IMPLEMENTATIONS
+                .iter()
+                .find(|item| item.implementation_id == realization.fabrication_implementation_id)
+                .unwrap();
+            assert_eq!(
+                fabricated.implementation_revision,
+                realization.implementation_revision
+            );
+            assert!(realization
+                .acquisition_offer_id
+                .starts_with("device/acquire-"));
+            assert!(realization
+                .runtime_base_implementation_id
+                .starts_with("browser/web-"));
+            assert_eq!(realization.maximum_active_devices, 1);
+            assert_eq!(realization.maximum_transfers_in_flight, 1);
+            assert_eq!(realization.maximum_transfer_bytes, 4096);
+            assert_eq!(realization.maximum_reads_or_in_transfers, 8);
+            assert_eq!(realization.maximum_writes_or_out_transfers, 8);
+            assert!(!realization.stable_hardware_identity);
+            assert!(realization.requires_subsequent_use_plan);
+        }
     }
 
     #[test]

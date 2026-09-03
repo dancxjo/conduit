@@ -15,8 +15,8 @@ export const BROWSER_IMPLEMENTATION_CATALOG = Object.freeze([
   definition("browser/webrtc-datachannel@1", "line/webrtc-datachannel@1", ["secure", "provider", "endpoint", "authority", "signaling", "session-grant"]),
   definition("browser/media-devices-camera@1", "media/acquire-camera@1", ["secure"]),
   definition("browser/media-devices-microphone@1", "media/acquire-microphone@1", ["secure"]),
-  definition("browser/webserial@1", "device/webserial@1", ["secure", "permission", "resource"]),
-  definition("browser/webusb@1", "device/webusb@1", ["secure", "permission", "resource"]),
+  definition("browser/webserial@1", "device/acquire-webserial@1", ["secure"]),
+  definition("browser/webusb@1", "device/acquire-webusb@1", ["secure"]),
 ]);
 
 const DEFINITIONS = new Map(BROWSER_IMPLEMENTATION_CATALOG.map((item) => [item.implementation_id, item]));

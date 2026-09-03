@@ -37,6 +37,32 @@ test("durable storage is offered only when its exact implementation is selected 
   expect(result.selected.inspection[0]).toMatchObject({ implementation_id: "browser/indexeddb@1", configured: true, initialized: true, offered: true });
 });
 
+test("device PROFILE selection offers only acquisition without permission or resource claims", async ({ page }) => {
+  const ids = ["browser/webserial@1", "browser/webusb@1"];
+  const fixture = await makeImage(ids);
+  const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
+    const boot = await import(new URL("../../targets/browser/host/assets/browser-boot-profile.mjs", location.href).href);
+    const image = { ...fixture, bytes: new Uint8Array(fixture.bytes) };
+    return boot.admitBrowserBoot({
+      imageBytes: image.bytes,
+      expectedImageId: image.id,
+      expectedProfileId: image.profileId,
+      runtimeBytes: new Uint8Array(fixture.runtimeBytes),
+      bootModuleDigest: fixture.bootModuleDigest,
+      artifactContentDigest: artifactDigest,
+      bootId: "boot/devices",
+      availableImplementations: ids.map((id) => ({ id, revision: 1 })),
+      observations: Object.fromEntries(ids.map((id) => [id, {
+        api_supported: true, secure_context: true, permission: "prompt", resource_ready: false,
+      }])),
+    });
+  }, { ids, fixture: { ...fixture, bytes: Array.from(fixture.bytes) }, artifactDigest: digest("8") });
+  expect(result.offers).toEqual([
+    expect.objectContaining({ offer_id: "device/acquire-webserial@1", resource_identity: null }),
+    expect.objectContaining({ offer_id: "device/acquire-webusb@1", resource_identity: null }),
+  ]);
+});
+
 test("exact IMAGE gates a superset runtime into only selected implementations and current offers", async ({ page }) => {
   const fixture = await makeImage(IDS.slice(0, 2));
   const result = await page.evaluate(async ({ ids, fixture, artifactDigest }) => {
