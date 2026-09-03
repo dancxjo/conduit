@@ -86,6 +86,10 @@ on:
       - xtask/src/commands/esp32_firmware.rs
       - xtask/src/commands/host.rs
       - xtask/src/commands/host_release.rs
+      - xtask/src/commands/host_release_browser.rs
+      - xtask/Cargo.toml
+      - tools/xtask-dispatch/Cargo.toml
+      - Cargo.lock
       - semantics/text/src/**
       - semantics/catalog/src/value_primitives.rs
       - architecture/form/src/back_catalog.rs
@@ -93,6 +97,7 @@ on:
       - proof/browser/executable-book.spec.mjs
       - proof/browser/creche-browser-configuration.spec.mjs
       - proof/browser/browser-application-package.spec.mjs
+      - proof/browser/browser-bundle-build.spec.mjs
       - proof/browser/pages-front-door.spec.mjs
       - proof/browser/book-test-server.mjs
       - proof/browser/creche-avr.spec.mjs
