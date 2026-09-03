@@ -19,19 +19,19 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
   await expect(runner.locator('[data-application-key="physical-evidence"]')).toHaveAttribute("data-application-component", "artifact");
 
   await expect(runner.locator('[data-stage="obtain"]')).not.toHaveClass(/complete/);
-  await expect(runner.locator(".browser-configuration fieldset")).toHaveCount(6);
-  await expect(runner.locator('.browser-configuration input[type="checkbox"]')).toHaveCount(12);
-  await expect(runner.locator('.browser-configuration input[value="browser/dom@1"]')).toBeChecked();
-  await expect(runner.locator('.browser-configuration input[value="browser/keyboard-events@1"]')).toBeChecked();
+  await expect(runner.locator('[data-application-key^="configuration-group-"]')).toHaveCount(6);
+  await expect(runner.locator('[data-application-action^="implementation.toggle-"]')).toHaveCount(12);
+  await expect(runner.getByRole("button").filter({ hasText: "browser/dom@1" })).toContainText("Remove");
+  await expect(runner.getByRole("button").filter({ hasText: "browser/keyboard-events@1" })).toContainText("Remove");
 
   await runner.getByRole("button", { name: "Minimal" }).click();
-  await expect(runner.locator('.browser-configuration input[value="browser/dom-presentation@1"]')).toBeChecked();
-  await expect(runner.locator('.browser-configuration input[value="browser/keyboard-events@1"]')).not.toBeChecked();
+  await expect(runner.getByRole("button").filter({ hasText: "browser/dom-presentation@1" })).toContainText("Remove");
+  await expect(runner.getByRole("button").filter({ hasText: "browser/keyboard-events@1" })).toContainText("Add");
   await runner.getByRole("button", { name: "Interactive" }).click();
-  await runner.locator('.browser-configuration input[value="browser/indexeddb@1"]').check();
+  await runner.getByRole("button").filter({ hasText: "browser/indexeddb@1" }).click();
   await runner.getByRole("button", { name: "Review Host" }).press("Enter");
 
-  await expect(runner.locator(".browser-configuration-review")).toContainText("browser/indexeddb@1");
+  await expect(runner.locator('[data-application-key="configuration-review-values"]')).toContainText("browser/indexeddb@1");
   await expect(runner.locator(".browser-configuration pre")).toContainText("host creche-browser-page");
   await expect(runner.locator(".browser-configuration")).toContainText("self-joining Body spore (separate later step)");
   await expect(runner.locator(".browser-configuration")).toContainText("Configuration creates no HostId, BootId");
@@ -83,6 +83,7 @@ test("stale restored browser choices are refused before lifecycle change", async
     root.id = "stale-browser-configuration";
     const outfitter = createBrowserConfigurationOutfitter({
       host: globalThis.__conduitCrecheHost,
+      presentationFor: globalThis.__conduitBrowserApplication.presentationFor,
       restoredSelection: { catalog_generation: 0, implementations: ["browser/retired@1"] },
       onChange() {},
     });

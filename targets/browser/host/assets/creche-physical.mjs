@@ -39,7 +39,6 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
     <div class="physical-evidence" data-application-slot="physical-evidence"></div>`;
 
   const presentation = presentationFor(runner);
-
   const modeControl = runner.querySelector(".physical-mode");
   const targetControl = runner.querySelector(".physical-target");
   for (const family of catalog.families) {
@@ -57,6 +56,7 @@ export function createPhysicalHostRunner({ host, hostOperations, presentationFor
 
   const state = {
     presentation,
+    presentationFor,
     presentationRevision: 0,
     catalog,
     entry: null,
@@ -146,7 +146,7 @@ function selectMode(runner, host, state, mode) {
     return;
   }
   if (!state.adapter) {
-    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host });
+    state.adapter = state.catalog.createAdapter({ targetId: state.entry.target.id, host, presentationFor: state.presentationFor });
   }
   const targetOptions = state.adapter.createOptions({
     mode: state.mode,
