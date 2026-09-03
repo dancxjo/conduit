@@ -16,7 +16,8 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
   await expect(page.locator("#nucleus [data-presentation-kind=text]")).toHaveText("STRASSE");
   await expect(page.locator("#nucleus [data-application-component=shell]")).toHaveCount(1);
   await expect(page.locator("#nucleus")).toHaveAttribute("data-application-theme", "conduit.presentation/phosphor@1");
-  await expect(page.locator("#nucleus [data-application-key=heading]")).toHaveText("Browser Host presentation");
+  await expect(page.locator("#nucleus [data-application-key=heading] > h3")).toHaveText("Browser Host presentation");
+  await expect(page.locator("#nucleus [data-application-key=heading]")).toHaveAttribute("data-application-evidence", "succeeded");
   const structured = page.locator("#nucleus [data-presentation-kind=structured-info]");
   await expect(structured).toHaveAttribute("data-schema", "education/feedback@1");
   await expect(structured).toHaveAttribute("data-variant", "passed");
@@ -37,6 +38,12 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
       revision: 1,
       theme: "conduit.presentation/phosphor@1",
       heading: "Browser Host presentation",
+      evidenceIdentity: "sign-nucleus-1",
+      evidenceProvenance: "plan-nucleus-1/play-nucleus-1",
+      artifactTag: "ARTICLE",
+      rawLanguage: "json",
+      rawText: '{"content":"<script>inert</script>"}',
+      executableScripts: 0,
       action: "nucleus.continue",
       encodedEventBytes: 27,
       queuedEvents: 0,
@@ -57,7 +64,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
         disclosureOpen: true,
         disclosureEvents: 0,
         staleRefusal: "stale-revision",
-        retiredVersion: 4,
+        retiredVersion: 5,
         retiredRefusal: "unsupported-version",
       },
     },

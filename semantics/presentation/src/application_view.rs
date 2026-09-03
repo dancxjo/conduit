@@ -2,9 +2,9 @@
 
 use alloc::{string::String, vec::Vec};
 
-pub const APPLICATION_VIEW_VERSION: u8 = 5;
-/// Version 4 omitted exact action availability and warning severity.
-pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 4;
+pub const APPLICATION_VIEW_VERSION: u8 = 6;
+/// Version 5 omitted exact evidence, definition, code, and artifact data.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 5;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 32;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -48,6 +48,15 @@ pub enum ApplicationComponent {
     Option = 22,
     Summary = 23,
     WarningStatus = 24,
+    MissingEvidence = 25,
+    StaleEvidence = 26,
+    RefusedEvidence = 27,
+    FailedEvidence = 28,
+    SuccessfulEvidence = 29,
+    DefinitionTable = 30,
+    Definition = 31,
+    CodeBlock = 32,
+    Artifact = 33,
 }
 
 /// Renderer-neutral state for an interactive presentation node.
@@ -141,6 +150,8 @@ impl ApplicationView {
                     | ApplicationComponent::Select
                     | ApplicationComponent::TextArea
                     | ApplicationComponent::Option
+                    | ApplicationComponent::Definition
+                    | ApplicationComponent::CodeBlock
             );
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
@@ -399,6 +410,15 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         22 => Ok(ApplicationComponent::Option),
         23 => Ok(ApplicationComponent::Summary),
         24 => Ok(ApplicationComponent::WarningStatus),
+        25 => Ok(ApplicationComponent::MissingEvidence),
+        26 => Ok(ApplicationComponent::StaleEvidence),
+        27 => Ok(ApplicationComponent::RefusedEvidence),
+        28 => Ok(ApplicationComponent::FailedEvidence),
+        29 => Ok(ApplicationComponent::SuccessfulEvidence),
+        30 => Ok(ApplicationComponent::DefinitionTable),
+        31 => Ok(ApplicationComponent::Definition),
+        32 => Ok(ApplicationComponent::CodeBlock),
+        33 => Ok(ApplicationComponent::Artifact),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }
