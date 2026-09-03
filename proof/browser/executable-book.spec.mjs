@@ -1341,6 +1341,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await page.evaluate(async () => {
     const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
     const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
+    const { createApplicationPresentationHost } = await import("/creche/application-presentation.mjs");
     let release;
     globalThis.__fixtureCancelCount = 0;
     const target = {
@@ -1385,7 +1386,11 @@ test("the physical workflow cancels one bounded catalog operation without accept
       createAdapter: () => adapter,
     };
     const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
-    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetCatalog });
+    const runner = createPhysicalHostRunner({
+      host: globalThis.__conduitCrecheHost,
+      targetCatalog,
+      presentationFor: (scope) => createApplicationPresentationHost(scope),
+    });
     runner.dataset.fixture = "cancellation";
     document.querySelector("#workspace").append(runner);
     globalThis.__releaseFixtureObtainment = release;
@@ -1404,6 +1409,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
   await page.evaluate(async () => {
     const { createPhysicalHostRunner } = await import("/creche/creche-physical.mjs");
     const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
+    const { createApplicationPresentationHost } = await import("/creche/application-presentation.mjs");
     const target = {
       id: "fixture/evidence-bound",
       label: "Evidence-bound fixture",
@@ -1443,7 +1449,11 @@ test("the physical workflow cancels one bounded catalog operation without accept
       createAdapter: () => adapter,
     };
     const targetCatalog = createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] });
-    const runner = createPhysicalHostRunner({ host: globalThis.__conduitCrecheHost, targetCatalog });
+    const runner = createPhysicalHostRunner({
+      host: globalThis.__conduitCrecheHost,
+      targetCatalog,
+      presentationFor: (scope) => createApplicationPresentationHost(scope),
+    });
     runner.dataset.fixture = "evidence-bound";
     document.querySelector("#workspace").append(runner);
   });

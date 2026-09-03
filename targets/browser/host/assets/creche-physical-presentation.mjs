@@ -39,6 +39,35 @@ export function presentPhysicalArtifact(state, artifact, onHandoff) {
   } });
 }
 
+export function presentPhysicalActions(state) {
+  const actions = ["bind", "realize", "observe", "admit", "cancel"];
+  const labels = {
+    bind: "Bind Body invitation",
+    realize: "Realize selected Host",
+    observe: "Observe Boot and join",
+    admit: "Admit Part and offers",
+    cancel: "Cancel current operation",
+  };
+  state.presentation.present("physical-actions", {
+    revision: ++state.presentationRevision,
+    actions: actions.map((id) => ({ id: `physical.${id}`, event: "activate" })),
+    nodes: [
+      { parent: null, component: "action-group", action: null, key: "physical-actions", text: "" },
+      ...actions.map((id, index) => ({
+        parent: 0,
+        component: "button",
+        state: (id === "cancel" ? state.cancelEnabled : state.actionEnabled === id) ? "ready" : "unavailable",
+        action: (id === "cancel" ? state.cancelEnabled : state.actionEnabled === id) ? index : null,
+        key: `physical-${id}`,
+        text: labels[id],
+      })),
+    ],
+  }, { onEvent(event) {
+    state.presentation.nextEvent("physical-actions");
+    state.runAction(event.action.slice("physical.".length));
+  } });
+}
+
 export function presentPhysicalSelection(state) {
   const controlState = state.selectionDisabled ? "unavailable" : "ready";
   const support = state.entry.intentions;
