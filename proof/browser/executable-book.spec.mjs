@@ -1676,7 +1676,7 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   expect(identities.a.hostId).not.toBe(identities.b.hostId);
   expect(identities.a.bootId).not.toBe(identities.b.bootId);
   await expect(page.locator("iframe")).toHaveCount(0);
-  await expect(runner.locator(".projected-cord")).toContainText("1 item");
+  await expect(runner.locator('[data-application-key="cord"]')).toContainText("1 item");
   await expect(runner.locator(".run-identities")).toContainText("Terminal source receipt");
   await expect(runner.locator(".run-identities")).toContainText("Terminal sink receipt");
 });
@@ -1688,14 +1688,15 @@ test("Plans and Plays compact and raw views project the same exact immutable Pla
   await expect(runner.locator(".plan-view-details")).not.toHaveAttribute("open", "");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
-  const projectedPlanId = await runner.locator(".projected-plan-id").textContent();
-  const rawPlan = JSON.parse(await runner.locator(".raw-plan code").textContent());
+  const projectedPlanId = await runner.locator('[data-application-key="plan-id"]').textContent();
+  const rawPlan = JSON.parse(await runner.locator('[data-application-key="raw-plan-json"] code').textContent());
   expect(rawPlan.plan_id).toBe(projectedPlanId);
   expect(rawPlan.fragments).toHaveLength(2);
   expect(new Set(rawPlan.fragments.map((fragment) => fragment.host_id)).size).toBe(2);
-  await expect(runner.locator(".projected-hosts article")).toHaveCount(2);
-  await expect(runner.locator(".projected-hosts")).toContainText("text/literal");
-  await expect(runner.locator(".projected-hosts")).toContainText("presentation/text");
+  await expect(runner.locator('[data-application-key="hosts"] [data-application-component="artifact"]')).toHaveCount(2);
+  await expect(runner.locator('[data-application-key="hosts"]')).toContainText("text/literal");
+  await expect(runner.locator('[data-application-key="hosts"]')).toContainText("presentation/text");
+  await expect(runner.locator('[data-application-slot^="book-plan-evidence-"] [data-application-component="panel"]')).toHaveCount(1);
 });
 
 test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {

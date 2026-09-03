@@ -148,14 +148,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .planned-line small { max-width: 5.5rem; color: var(--muted); }
 .plan-view-details { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--line); }
 .plan-view { margin-top: .8rem; }
-.plan-view > p { font-size: .78rem; }
-.projected-plan-id { display: block; padding: .55rem; overflow-wrap: anywhere; border-radius: 6px; color: var(--green-dark); background: var(--paper); }
-.projected-hosts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin-top: .7rem; }
-.projected-hosts article { min-width: 0; padding: .65rem; border: 1px solid var(--line); border-radius: 8px; }
-.projected-hosts strong, .projected-hosts code { display: block; overflow-wrap: anywhere; }
-.projected-hosts ul { margin: .5rem 0 0; padding-left: 1rem; }
-.projected-cord { padding-left: .65rem; border-left: 3px solid var(--green); }
-.raw-plan pre { max-height: 22rem; overflow: auto; padding: .75rem; border-radius: 8px; color: var(--patchbay-text-primary); background: var(--patchbay-background); font-size: .68rem; }
+[data-application-slot^="book-plan-evidence-"] [data-application-key="plan-id"] { display: block; padding: .55rem; overflow-wrap: anywhere; border-radius: 6px; color: var(--green-dark); background: var(--paper); }
+[data-application-slot^="book-plan-evidence-"] [data-application-component="artifact"] code { display: block; overflow-wrap: anywhere; }
+[data-application-slot^="book-plan-evidence-"] [data-application-component="definition"] { margin-top: .5rem; }
+[data-application-slot^="book-plan-evidence-"] [data-application-key="cord"] { padding-left: .65rem; border-left: 3px solid var(--green); }
+[data-application-slot^="book-plan-evidence-"] [data-application-component="code-block"] { max-height: 22rem; overflow: auto; font-size: .68rem; }
 details { margin-top: 1rem; text-align: left; color: var(--muted); font-size: .78rem; }
 .exact-evidence > summary { color: var(--green-dark); cursor: pointer; font-weight: 750; }
 .exact-evidence h3, .exact-evidence h4 { margin: 1rem 0 .5rem; color: var(--ink); font-size: .78rem; }
