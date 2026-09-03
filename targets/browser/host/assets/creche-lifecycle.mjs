@@ -70,6 +70,8 @@ function presentBirthControls(runner, state, { presentation, listingId, onDraft,
       state.initialForms = state.initialForms.includes(name)
         ? state.initialForms.filter((candidate) => candidate !== name)
         : [...state.initialForms, name];
+      presentBirthControls(runner, state, { presentation, listingId, onDraft, onBirth });
+      return;
     }
     if (event.action === "name.input") state.friendlyName = value;
     if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, { presentation, listingId, onDraft, onBirth }); }
@@ -93,11 +95,11 @@ function birthFieldNodes(state) {
   const interactive = !state.terminal && !state.pending;
   const nodes = [
     { parent: null, component: "stack", action: null, key: "birth-fields", text: "" },
-    { parent: 0, component: "form-field", action: null, key: "program-field", text: "" },
-    { parent: 1, component: "field-label", action: null, key: "program-label", text: "Initial active Forms" },
+    { parent: 0, component: "stack", action: null, key: "program-field", text: "" },
+    { parent: 1, component: "paragraph", action: null, key: "program-label", text: "Initial active Forms" },
     { parent: 1, component: "button", action: interactive ? 0 : null, key: "morse-form", text: `${state.initialForms.includes("morse_network") ? "✓" : "○"} Morse Network` },
     { parent: 1, component: "button", action: interactive ? 1 : null, key: "memory-form", text: `${state.initialForms.includes("memory_lantern") ? "✓" : "○"} Memory Lantern` },
-    { parent: 1, component: "field-help", action: null, key: "program-help", text: `${state.initialForms.length} of 2 reviewed Forms selected; maximum 16.` },
+    { parent: 1, component: "paragraph", action: null, key: "program-help", text: `${state.initialForms.length} of 2 reviewed Forms selected; maximum 16.` },
     { parent: 0, component: "form-field", action: null, key: "friendly-name-field", text: "" },
     { parent: 6, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
     { parent: 6, component: "text-input", action: interactive ? 2 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
