@@ -1,6 +1,6 @@
 {
   "schema": "conduit.browser/application-package-template@1",
-  "application_id": "conduit.application/book",
+  "application_id": "conduit.application/tour",
   "state_compatibility": { "identity": "conduit.application/book-reading-state", "version": 1 },
   "host_implementations": ["browser/indexeddb@1"],
   "resources": [

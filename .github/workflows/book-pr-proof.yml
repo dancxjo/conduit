@@ -39,7 +39,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  book-browser:
+  tour-browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
@@ -62,16 +62,16 @@ jobs:
           cache-on-failure: true
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline
-      - name: Build and stage only the admitted Book product
+      - name: Build and stage only the admitted Tour product
         run: |
           cargo build --locked -p conduit-browser-host
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_book_runtime.wasm
-          rm -rf target/book-product
-          scripts/ci/stage-book-product.sh target/conduit_book_runtime.wasm target/book-product
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_tour_runtime.wasm
+          rm -rf target/tour-product
+          scripts/ci/stage-book-product.sh target/conduit_tour_runtime.wasm target/tour-product
       - name: Prove exact live-debugger projection
         run: node --test proof/browser/patchbay-debugger-projection.test.mjs
-      - name: Prove the real Book Patchbay and interactive workspace
+      - name: Prove the real Tour Patchbay and interactive workspace
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
