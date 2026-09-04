@@ -2128,6 +2128,10 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   await runner.getByRole("button", { name: "End the Crèche" }).click();
   await expect(page.locator(".creche-complete")).toContainText(bodyId);
   await expect(page.locator(".creche-steps")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Continue in Patchbay" })).toBeVisible();
+  await expect(page.locator(".creche-handoff code")).toHaveText(
+    `conduit patchbay --on browser --body-evidence conduit-body-${bodyId}.json`,
+  );
   await expect(page.locator('.creche-complete .body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save Body evidence" }).click();

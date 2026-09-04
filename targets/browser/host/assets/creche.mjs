@@ -269,7 +269,9 @@ function renderComplete(receipt, biography) {
   workspace.replaceChildren();
   const section = document.createElement("section");
   section.className = "creche-complete";
-  section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><div data-application-slot="creche-complete-actions"></div><section class="body-biography" data-application-slot="creche-complete-biography"></section>`;
+  const evidenceFilename = `conduit-body-${receipt.body_id}.json`;
+  const patchbayCommand = `conduit patchbay --on browser --body-evidence ${evidenceFilename}`;
+  section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><div data-application-slot="creche-complete-actions"></div><aside class="creche-handoff" aria-labelledby="creche-handoff-title"><h3 id="creche-handoff-title">Continue in Patchbay</h3><p>Save the evidence, then open that exact Body through the Conduit product entrance:</p><code>${escapeText(patchbayCommand)}</code></aside><section class="body-biography" data-application-slot="creche-complete-biography"></section>`;
   workspace.append(section);
   renderBiography(presentation, "creche-complete-biography", biography, ++presentationRevision);
   presentation.present("creche-complete-actions", {
