@@ -2,7 +2,7 @@
 
 use conduit_core::{
     resource_offer, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration, Plan,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    SignId, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, expand_canonical_form_with_backs,
@@ -44,6 +44,110 @@ pub fn patchbay_presenter_plans() -> Result<PatchbayPresenterPlans, String> {
         direct,
         recursive,
     })
+}
+
+/// Production Patchbay input for inspecting the ordinary recursive
+/// realization of the Patchbay presentation Face itself.
+pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentation, String> {
+    let proof = patchbay_presenter_plans()?;
+    let (startup, profile) = catalogs()?;
+    let editor = crate::FormEditor::from_source_with_catalogs(
+        "patchbay-recursive-form.conduit".into(),
+        USER_SOURCE.into(),
+        startup.clone(),
+        profile,
+    )
+    .map_err(|error| error.to_string())?;
+    let mut graph = crate::PatchbayGraph::from_expanded(&proof.recursive_expanded)
+        .map_err(|error| error.to_string())?;
+    for back in &proof.recursive_expanded.realization_backs {
+        let face = reviewed_back_face(back, &startup)?;
+        let projection = crate::project_recursive_form_gear(
+            &proof.recursive_expanded,
+            &back.invocation_path,
+            face,
+            false,
+        )
+        .map_err(|error| format!("recursive Form projection: {error:?}"))?;
+        graph
+            .admit_recursive_form(&projection)
+            .map_err(|error| error.to_string())?;
+    }
+    let request = crate::PatchbayRequestId::new("patchbay/recursive-form-plan")
+        .map_err(|error| format!("{error:?}"))?;
+    let plan = crate::PlanDocument::from_plan(request, &proof.recursive)
+        .map_err(|error| format!("{error:?}"))?;
+    let body = conduit_body::Body::born(
+        proof.recursive.source_document_id.clone(),
+        proof.recursive.checked_form_id.clone(),
+        0,
+        SignId::from("patchbay/recursive-form/born"),
+    )
+    .map_err(|error| error.to_string())?;
+    let (body, wake) = body
+        .wake(1, SignId::from("patchbay/recursive-form/woke"))
+        .map_err(|error| error.to_string())?;
+    let wake = wake
+        .plan_ready(
+            &proof.recursive,
+            SignId::from("patchbay/recursive-form/planned"),
+        )
+        .map_err(|error| error.to_string())?;
+    let presentation =
+        crate::PatchbayPresentation::new(1, editor.view(), Some(plan), None, None, Vec::new())
+            .map_err(|error| error.to_string())?
+            .with_graph(graph)
+            .map_err(|error| error.to_string())?
+            .to_portable(&body, &wake)
+            .map_err(|error| error.to_string())?;
+    let body_subject = format!("body/{}", body.body_id.as_str());
+    let mut subjects = presentation.subjects;
+    subjects.push(conduit_presentation::PresentationSubject {
+        identity: body_subject,
+        role: conduit_presentation::PresentationRole::Body,
+        label: "Recursive Form demonstration Body".into(),
+        accessibility_name: "Body containing one recursively realized Form".into(),
+    });
+    conduit_presentation::Presentation::new_with_semantics(
+        presentation.revision,
+        presentation.basis,
+        subjects,
+        presentation.relationships,
+        presentation.properties,
+        presentation.text,
+        presentation.actions,
+        presentation.disclosures,
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn reviewed_back_face(
+    back: &conduit_core::RealizationBack,
+    startup: &StartupCatalog,
+) -> Result<conduit_core::CheckedFace, String> {
+    for source in [
+        conduit_semantic_catalog::PATCHBAY_ROOT_BACK_SOURCE,
+        conduit_semantic_catalog::PATCHBAY_GEAR_FACE_BACK_SOURCE,
+        conduit_semantic_catalog::PATCHBAY_PORT_BACK_SOURCE,
+        conduit_semantic_catalog::PATCHBAY_CORD_BACK_SOURCE,
+    ] {
+        let document = check_syntax_document(&parse_syntax_document(source), startup)
+            .map_err(|error| format!("check reviewed Patchbay Back: {error:?}"))?;
+        if document.source_document_id != back.source_document_id {
+            continue;
+        }
+        if let Some(form) = document
+            .forms
+            .iter()
+            .find(|form| form.checked_form_id == back.checked_form_id)
+        {
+            return Ok(form.checked_face());
+        }
+    }
+    Err(format!(
+        "checked Face for recursive Back {} is absent",
+        back.kind_id.as_str()
+    ))
 }
 
 fn plan(

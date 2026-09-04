@@ -84,6 +84,7 @@ mod presenter_plans_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
+mod recursive_form_graph;
 mod recursive_form_projection;
 mod recursive_recovery_explanation;
 mod renderer_conformance;

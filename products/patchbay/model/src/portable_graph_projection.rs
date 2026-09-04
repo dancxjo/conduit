@@ -16,6 +16,98 @@ pub(super) fn append_exact_graph(
     content: &mut ContentBuilder,
 ) {
     let mut semantic_subjects = Vec::new();
+    for composition in &graph.compositions {
+        let subject = content.subject_with_identity(
+            format!("gear/{}", composition.identity),
+            PresentationRole::Gear,
+            &composition.gear_name,
+            format!(
+                "Form-backed Gear {} through checked Back {}",
+                composition.gear_name,
+                composition.checked_form_id.as_str()
+            ),
+        );
+        let parent = graph
+            .compositions
+            .iter()
+            .filter(|candidate| {
+                candidate.identity != composition.identity
+                    && composition
+                        .gear_name
+                        .starts_with(&format!("{}/", candidate.gear_name))
+            })
+            .max_by_key(|candidate| candidate.gear_name.len())
+            .map_or_else(
+                || form.to_owned(),
+                |candidate| format!("gear/{}", candidate.identity),
+            );
+        content.contains(&parent, &subject);
+        if parent != form {
+            identity(content, &subject, "recursive-parent", &parent);
+        }
+        identity(content, &subject, "semantic-id", &composition.identity);
+        identity(
+            content,
+            &subject,
+            "checked-back-id",
+            composition.checked_form_id.as_str(),
+        );
+        identity(content, &subject, "back-source", &composition.back_name);
+        text(content, &subject, "reviewed-back", "available");
+        text(content, &subject, "back-expanded", "false");
+        text(
+            content,
+            &subject,
+            "realization-layer",
+            if plan.is_some_and(|plan| {
+                plan.exact
+                    .realization_backs
+                    .iter()
+                    .any(|back| back.invocation_path == composition.gear_name)
+            }) {
+                "recursive"
+            } else {
+                "not planned"
+            },
+        );
+        for port in composition.inputs.iter().chain(&composition.outputs) {
+            let port_subject = content.subject_with_identity(
+                format!("port/{}", port.identity),
+                PresentationRole::Port,
+                port.descriptor.port_id.as_str(),
+                format!(
+                    "Stable Face {:?} Port {} carrying {}",
+                    port.descriptor.direction,
+                    port.descriptor.port_id.as_str(),
+                    port.descriptor.value_kind.as_str()
+                ),
+            );
+            content.contains(&subject, &port_subject);
+            identity(content, &port_subject, "semantic-id", &port.identity);
+            text(
+                content,
+                &port_subject,
+                "direction",
+                match port.descriptor.direction {
+                    conduit_core::PortDirection::Input => "receiving",
+                    conduit_core::PortDirection::Output => "outgoing",
+                },
+            );
+            identity(
+                content,
+                &port_subject,
+                "value-kind",
+                port.descriptor.value_kind.as_str(),
+            );
+            text(
+                content,
+                &port_subject,
+                "temporal",
+                &format!("{:?}", port.descriptor.temporal),
+            );
+            semantic_subjects.push((port.identity.as_str(), port_subject));
+        }
+    }
     for gear in &graph.gears {
         let icon = conduit_semantic_catalog::palette_metadata(&gear.kind_id)
             .map(|metadata| metadata.icon)
@@ -26,7 +118,23 @@ pub(super) fn append_exact_graph(
             gear.gear_id.as_str(),
             format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
-        content.contains(form, &subject);
+        let parent = graph
+            .compositions
+            .iter()
+            .filter(|composition| {
+                gear.gear_id
+                    .as_str()
+                    .starts_with(&format!("{}/", composition.gear_name))
+            })
+            .max_by_key(|composition| composition.gear_name.len())
+            .map_or_else(
+                || form.to_owned(),
+                |composition| format!("gear/{}", composition.identity),
+            );
+        content.contains(&parent, &subject);
+        if parent != form {
+            identity(content, &subject, "recursive-parent", &parent);
+        }
         identity(content, &subject, "semantic-id", &gear.identity);
         identity(content, &subject, "kind-id", gear.kind_id.as_str());
         identity(content, &subject, "source-form", &gear.source_form);
@@ -118,6 +226,27 @@ pub(super) fn append_exact_graph(
         identity(content, &subject, "source-port", &cord.source_port);
         identity(content, &subject, "sink-port", &cord.sink_port);
         identity(content, &subject, "value-kind", cord.value_kind.as_str());
+        for composition in &graph.compositions {
+            if let Some(binding) = composition
+                .output_bindings
+                .iter()
+                .find(|binding| binding.internal_port == cord.source_port)
+            {
+                identity(
+                    content,
+                    &subject,
+                    "collapsed-source-port",
+                    &binding.face_port,
+                );
+            }
+            if let Some(binding) = composition
+                .input_bindings
+                .iter()
+                .find(|binding| binding.internal_port == cord.sink_port)
+            {
+                identity(content, &subject, "collapsed-sink-port", &binding.face_port);
+            }
+        }
         append_cord_plan(content, &subject, graph, cord, plan, play);
         for endpoint in [&cord.source_port, &cord.sink_port] {
             if let Some((_, port_subject)) = semantic_subjects

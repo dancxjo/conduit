@@ -9,6 +9,7 @@ use patchbay_html::{
 struct Arguments {
     documentary_fixture: bool,
     debugger_watch_fixture: bool,
+    recursive_form_proof: bool,
     llm_documentary_fixture: bool,
     llm_embodiment_fixture: Option<usize>,
     text_lab_split: Option<String>,
@@ -24,6 +25,9 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
     let mut parsed = Arguments::default();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
+            "--recursive-form-proof" if parsed == Arguments::default() => {
+                parsed.recursive_form_proof = true;
+            }
             "--debugger-watch-fixture" if parsed == Arguments::default() => {
                 parsed.debugger_watch_fixture = true;
             }
@@ -166,6 +170,9 @@ fn main() -> Result<(), String> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
     let server = if arguments.debugger_watch_fixture {
         let snapshot = demonstration_snapshot()?;
+        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+    } else if arguments.recursive_form_proof {
+        let snapshot = patchbay_html::recursive_form_demonstration_snapshot()?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if let Some(hosted) = arguments.body_workbench_fixture {
         let snapshot =
