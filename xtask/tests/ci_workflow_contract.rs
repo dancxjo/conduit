@@ -21,7 +21,11 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         "workspace-check",
         "esp32-firmware",
         "browser-host",
-        "conduitos-boot",
+        "conduitos-limine",
+        "conduitos-tools",
+        "conduitos-x86",
+        "conduitos-architecture",
+        "conduitos-aarch64-product",
     ] {
         assert!(
             declared_join.contains(aggregate),
@@ -29,7 +33,14 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         );
     }
 
-    for result in ["BROWSER_HOST_RESULT", "CONDUITOS_RESULT"] {
+    for result in [
+        "BROWSER_HOST_RESULT",
+        "LIMINE_RESULT",
+        "TOOLS_RESULT",
+        "X86_RESULT",
+        "ARCHITECTURE_RESULT",
+        "AARCH64_PRODUCT_RESULT",
+    ] {
         assert!(
             required_gate.contains(result),
             "required check joins the job but does not inspect `{result}`"
@@ -43,17 +54,16 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
 }
 
 #[test]
-fn conduitos_result_join_uses_the_lightweight_automation_lane() {
+fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    assert!(!workflow.contains("\n  conduitos-boot:\n"));
     let join = workflow
-        .split("\n  conduitos-boot:\n")
+        .split("\n  check:\n")
         .nth(1)
-        .expect("locate ConduitOS result join");
-
-    assert!(join.contains("if: always()"));
-    assert!(join.contains("runs-on: ubuntu-slim"));
+        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .expect("locate final result gate");
     for result in [
         "LIMINE_RESULT",
         "TOOLS_RESULT",
@@ -66,8 +76,10 @@ fn conduitos_result_join_uses_the_lightweight_automation_lane() {
             "ConduitOS join does not inspect `{result}`"
         );
     }
-    assert!(!join.contains("actions/checkout"));
-    assert!(!join.contains("cargo "));
+    assert!(join.contains("require_result conduitos-limine"));
+    assert!(join.contains("runs-on: ubuntu-slim"));
+    assert!(workflow.contains("name: Verify the final result gate truth table"));
+    assert!(workflow.contains("node --test \"$proof\""));
 }
 
 #[test]
@@ -397,6 +409,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
     );
     assert!(workflow.contains("cancel-in-progress: false"));
+    assert!(workflow.contains("resolve:\n    runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
     assert!(workflow.contains(
@@ -409,7 +422,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
     assert!(workflow.contains(
-        "needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'"
+        "if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
+    ));
+    assert!(workflow.contains(
+        "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
     ));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert_eq!(workflow.matches("contents: write").count(), 2);

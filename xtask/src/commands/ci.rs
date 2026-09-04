@@ -1,4 +1,6 @@
 mod impact;
+#[cfg(test)]
+mod monitor;
 mod product_reconciliation;
 mod proof_graph;
 mod standalone_locks;

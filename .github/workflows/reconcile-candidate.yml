@@ -23,7 +23,7 @@ concurrency:
 jobs:
   resolve:
     runs-on: ubuntu-slim
-    timeout-minutes: 2
+    timeout-minutes: 5
     permissions:
       checks: write
       contents: write
@@ -126,7 +126,7 @@ jobs:
 
   report:
     needs: [resolve, candidate-check, candidate-products]
-    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'
+    if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 2
     permissions:
@@ -138,6 +138,7 @@ jobs:
         with:
           ref: refs/heads/${{ github.event.repository.default_branch }}
       - name: Publish the reconciliation-owned admission gate
+        if: needs.resolve.result == 'success'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -160,6 +161,7 @@ jobs:
           INTEGRATION_REF: ${{ needs.resolve.outputs.integration_ref }}
         run: git push origin ":$INTEGRATION_REF"
       - name: Summarize the published exact-head admission
+        if: needs.resolve.result == 'success'
         run: |
           printf '## Published exact-head gates\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
           cat reconciliation-result.json >> "$GITHUB_STEP_SUMMARY"

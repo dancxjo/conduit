@@ -157,6 +157,77 @@ fn dispatcher_command_implementation_has_command_local_impact() {
 }
 
 #[test]
+fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            "docs/ci-candidate-evidence.md".to_owned(),
+            "tools/xtask-dispatch/src/main.rs".to_owned(),
+            "tools/xtask-dispatch/src/ci_dispatch.rs".to_owned(),
+            "xtask/src/commands/ci.rs".to_owned(),
+            "xtask/src/commands/ci/monitor.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.ci_controller_proofs, ["ci.actions-monitor"]);
+    assert_eq!(plan.changed_packages, ["conduit-xtask-dispatch", "xtask"]);
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.workspace_shards.values().any(|required| *required));
+
+    let ambiguous = plan_for_paths(
+        &root,
+        vec!["tools/xtask-dispatch/src/ci_dispatch.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(ambiguous.full_fallback);
+}
+
+#[test]
+fn check_result_gate_contract_does_not_fabricate_products() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let complete = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/check.yml".to_owned(),
+            "proof/ci/check-result-gate.spec.mjs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(complete.ci_controller_proofs, ["ci.check-result-gate"]);
+    assert_eq!(complete.changed_packages, ["xtask"]);
+    assert!(!complete.full_fallback);
+    assert!(!complete.pages_products_required);
+    assert!(!complete.browser_required);
+    assert!(!complete.esp32_required);
+    assert!(!complete.conduitos_required);
+    assert!(complete.workspace_shards.values().any(|required| *required));
+
+    let incomplete = plan_for_paths(
+        &root,
+        vec!["proof/ci/check-result-gate.spec.mjs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(incomplete.full_fallback);
+    assert!(incomplete.pages_products_required);
+}
+
+#[test]
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
@@ -487,11 +558,37 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(!unproved_creche_presentation.full_fallback);
     assert!(unproved_creche_presentation.browser_required);
 
-    for path in ["Cargo.lock", ".github/workflows/check.yml"] {
-        let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
-        assert!(global.full_fallback, "{path}");
-        assert!(global.workspace_shards.values().all(|required| *required));
-    }
+    let global = plan_for_paths(&root, vec!["Cargo.lock".to_owned()], &packages).unwrap();
+    assert!(global.full_fallback);
+    assert!(global.workspace_shards.values().all(|required| *required));
+
+    let check_only = plan_for_paths(
+        &root,
+        vec![".github/workflows/check.yml".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!check_only.full_fallback);
+    assert!(!check_only.pages_products_required);
+    assert!(check_only.workspace_lint_full);
+    assert!(check_only
+        .workspace_shards
+        .values()
+        .all(|required| *required));
+    assert!(check_only.esp32_required);
+    assert!(check_only.browser_required);
+    assert!(check_only.conduitos_required);
+
+    let check_and_product = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/check.yml".to_owned(),
+            "products/tour/assets/book.css".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(check_and_product.pages_products_required);
 
     let path = ".github/workflows/executable-book-pages.yml";
     let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();

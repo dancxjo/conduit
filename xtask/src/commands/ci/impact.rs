@@ -50,6 +50,8 @@ const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/executable-book-pa
 struct ControllerProofSpec {
     id: &'static str,
     implementation_inputs: &'static [&'static str],
+    required_inputs: &'static [&'static str],
+    workspace_packages: &'static [&'static str],
 }
 
 const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
@@ -60,6 +62,8 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
             "proof/ci/retire-superseded-candidates.spec.mjs",
             "scripts/ci/retire-superseded-candidates.mjs",
         ],
+        required_inputs: &[],
+        workspace_packages: &[],
     },
     ControllerProofSpec {
         id: "ci.current-controller-reconciliation",
@@ -68,17 +72,60 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
             "proof/ci/reconcile-candidate-request.spec.mjs",
             "scripts/ci/reconcile-candidate-request.mjs",
         ],
+        required_inputs: &[],
+        workspace_packages: &[],
+    },
+    ControllerProofSpec {
+        id: "ci.actions-monitor",
+        implementation_inputs: &[
+            "tools/xtask-dispatch/src/main.rs",
+            "tools/xtask-dispatch/src/ci_dispatch.rs",
+            "xtask/src/commands/ci.rs",
+            "xtask/src/commands/ci/monitor.rs",
+        ],
+        // Shared dispatcher files are controller-local only when the isolated
+        // monitor implementation anchors the change. Alone they remain in the
+        // conservative fallback because they route other CI commands.
+        required_inputs: &["xtask/src/commands/ci/monitor.rs"],
+        workspace_packages: &["conduit-xtask-dispatch", "xtask"],
+    },
+    ControllerProofSpec {
+        id: "ci.check-result-gate",
+        implementation_inputs: &[
+            ".github/workflows/check.yml",
+            "proof/ci/check-result-gate.spec.mjs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // The workflow and its executable truth table anchor this bounded
+        // slice. An arbitrary planner or workflow-test edit remains global.
+        required_inputs: &[
+            ".github/workflows/check.yml",
+            "proof/ci/check-result-gate.spec.mjs",
+        ],
+        workspace_packages: &["xtask"],
     },
 ];
 
-fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
+fn active_controller_proofs(paths: &[String]) -> Vec<&'static ControllerProofSpec> {
     CONTROLLER_PROOFS
         .iter()
         .filter(|spec| {
             paths
                 .iter()
                 .any(|path| spec.implementation_inputs.contains(&path.as_str()))
+                && spec
+                    .required_inputs
+                    .iter()
+                    .all(|required| paths.iter().any(|path| path == required))
         })
+        .collect()
+}
+
+fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
+    active_controller_proofs(paths)
+        .into_iter()
         .map(|spec| spec.id)
         .collect()
 }
@@ -383,6 +430,7 @@ fn plan_for_paths(
     let mut reasons = empty_reasons();
     let mut changed_packages = BTreeSet::new();
     let mut repository_command_proofs = BTreeSet::new();
+    let mut check_workflow_changed = false;
     let substantive: Vec<_> = paths.iter().filter(|path| !path.ends_with(".md")).collect();
     if substantive.is_empty() {
         return Ok(plan(
@@ -403,8 +451,9 @@ fn plan_for_paths(
             reasons,
         ));
     }
+    let active_controller_proofs = active_controller_proofs(&paths);
     let controller_only = substantive.iter().all(|path| {
-        CONTROLLER_PROOFS
+        active_controller_proofs
             .iter()
             .any(|spec| spec.implementation_inputs.contains(&path.as_str()))
     });
@@ -491,10 +540,17 @@ fn plan_for_paths(
             .iter()
             .any(|path| path.as_str() != "Cargo.toml" && path.ends_with("/Cargo.toml"));
     for path in substantive {
-        if CONTROLLER_PROOFS
+        let owning_controller_proofs = active_controller_proofs
             .iter()
-            .any(|spec| spec.implementation_inputs.contains(&path.as_str()))
-        {
+            .filter(|spec| spec.implementation_inputs.contains(&path.as_str()))
+            .copied()
+            .collect::<Vec<_>>();
+        if !owning_controller_proofs.is_empty() {
+            changed_packages.extend(owning_controller_proofs.iter().flat_map(|spec| {
+                spec.workspace_packages
+                    .iter()
+                    .map(|package| (*package).to_owned())
+            }));
             continue;
         }
         if pages_deploy_resolver_slice {
@@ -604,6 +660,10 @@ fn plan_for_paths(
             }
             continue;
         }
+        if path == ".github/workflows/check.yml" {
+            check_workflow_changed = true;
+            continue;
+        }
         if is_repository_tool_test(path) {
             changed_packages.insert("xtask".to_owned());
             continue;
@@ -653,6 +713,17 @@ fn plan_for_paths(
             return Ok(full_plan(format!("unclassified-path:{path}"), paths));
         }
     }
+    if check_workflow_changed {
+        for suite in SUITES {
+            selected.insert(suite.to_owned(), true);
+            reasons
+                .get_mut(suite)
+                .expect("known suite")
+                .push("check-workflow-implementation".to_owned());
+        }
+        esp32 = Esp32Impact::all();
+        conduitos = ConduitosImpact::all();
+    }
     let names: Vec<_> = SUITES
         .into_iter()
         .filter(|suite| selected[*suite])
@@ -668,7 +739,12 @@ fn plan_for_paths(
         .filter(|name| packages[*name].workspace_member)
         .cloned()
         .collect();
-    let workspace_shards = if changed_packages.is_empty() && controller_only {
+    let workspace_shards = if check_workflow_changed {
+        WorkspaceShard::ALL
+            .into_iter()
+            .map(|shard| (shard.name().to_owned(), true))
+            .collect()
+    } else if changed_packages.is_empty() && controller_only {
         WorkspaceShard::ALL
             .into_iter()
             .map(|shard| (shard.name().to_owned(), false))
@@ -693,6 +769,11 @@ fn plan_for_paths(
         reasons,
     );
     result.repository_command_proofs = repository_command_proofs.into_iter().collect();
+    if check_workflow_changed {
+        result.reason = "check-workflow-implementation".to_owned();
+        result.workspace_lint_full = true;
+        result.workspace_lint_packages.clear();
+    }
     Ok(result)
 }
 

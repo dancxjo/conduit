@@ -10,10 +10,44 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some("reconcile-product") => reconcile_product(arguments),
         Some("attest-success") => attest(arguments),
         Some("standalone-locks") => standalone_locks(arguments),
+        Some("monitor") => monitor(arguments),
         Some("pages-resolver-proof") => pages_resolver::run(arguments),
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),
     }
+}
+
+fn monitor(arguments: &[String]) -> Result<(), String> {
+    let mut values = arguments.iter().skip(2);
+    let mut runs = Vec::new();
+    let mut repository = "dancxjo/conduit".to_owned();
+    let mut interval_seconds = 120;
+    let mut max_requests = 30;
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--repo" => repository = required(&mut values, "--repo value")?,
+            "--interval-seconds" => {
+                interval_seconds = required(&mut values, "--interval-seconds value")?
+                    .parse()
+                    .map_err(|_| "--interval-seconds must be an integer".to_owned())?
+            }
+            "--max-requests" => {
+                max_requests = required(&mut values, "--max-requests value")?
+                    .parse()
+                    .map_err(|_| "--max-requests must be an integer".to_owned())?
+            }
+            option if option.starts_with('-') => {
+                return Err(format!("unsupported ci monitor argument: {option}"));
+            }
+            run => runs.push(
+                run.parse()
+                    .map_err(|_| format!("invalid GitHub Actions run ID: {run}"))?,
+            ),
+        }
+    }
+    crate::monitor::run(&repository, &runs, interval_seconds, max_requests)
+        .map_err(|error| error.to_string())
 }
 
 fn reconcile_product(arguments: &[String]) -> Result<(), String> {
