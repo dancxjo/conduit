@@ -708,7 +708,7 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page).toHaveTitle("Conduit Crèche");
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  await expect(birth.locator('[data-application-key="program-field"]')).toHaveAttribute("data-application-component", "stack");
+  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "stack");
   await expect(birth.getByRole("button", { name: "Add Morse Network" })).toBeVisible();
   await expect(birth.getByRole("button", { name: "Add Memory Lantern" })).toBeVisible();
   await birth.getByLabel("Friendly Body name").fill("standalone firefly");
@@ -750,7 +750,7 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const runner = page.locator(".body-birth-runner");
   const [program, name, source, editor] = await Promise.all([
-    runner.locator('[data-application-key="program-field"]').boundingBox(),
+    runner.locator('[data-application-key="initial-forms-field"]').boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
     runner.locator('[data-application-key="form-source"]').boundingBox(),
     runner.locator(".birth-presentation").boundingBox(),

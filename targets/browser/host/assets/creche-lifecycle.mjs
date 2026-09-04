@@ -126,8 +126,8 @@ function birthSelectionNodes(state, inventory, visible, actions) {
   const interactive = !state.terminal && !state.pending;
   const action = (id) => interactive ? actions.findIndex((candidate) => candidate.id === id) : null;
   const nodes = [
-    { parent: null, component: "stack", action: null, key: "program-field", text: "" },
-    { parent: 0, component: "paragraph", action: null, key: "program-label", text: "Initial active Forms" },
+    { parent: null, component: "stack", action: null, key: "initial-forms-field", text: "" },
+    { parent: 0, component: "paragraph", action: null, key: "initial-forms-label", text: "Initial active Forms" },
     { parent: 0, component: "form-field", action: null, key: "form-search-field", text: "" },
     { parent: 2, component: "field-label", action: null, key: "form-search-label", text: "Search Forms" },
     { parent: 2, component: "text-input", action: action("forms.search"), key: "form-search", text: "Search Forms", value: state.search, valueCapacity: 128 },
@@ -139,7 +139,7 @@ function birthSelectionNodes(state, inventory, visible, actions) {
     nodes.push({ parent: 0, component: "button", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: `${selected ? "Remove" : "Add"} ${form.title}` });
     nodes.push({ parent: 0, component: "paragraph", action: null, key: `form-${form.name}-requirements`, text: form.required_kinds.join(" · ") });
   }
-  nodes.push({ parent: 0, component: "paragraph", action: null, key: "program-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
+  nodes.push({ parent: 0, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
   return nodes;
 }
 

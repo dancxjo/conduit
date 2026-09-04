@@ -22,7 +22,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   for (const title of ["Morse Network", "Memory Lantern", "Desk Telegraph"]) {
     await birth.getByRole("button", { name: `Add ${title}` }).click();
   }
-  await expect(birth.locator('[data-application-key="program-help"]')).toHaveText(
+  await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText(
     "3 of 3 reviewed Forms selected; maximum 16.",
   );
   await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());

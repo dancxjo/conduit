@@ -18,11 +18,11 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
   await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
-  await expect(birth.locator('[data-application-key="program-field"]')).toHaveAttribute("data-application-component", "stack");
+  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "stack");
   await expect(birth.getByRole("button", { name: "Add Morse Network" })).toBeVisible();
   await birth.getByRole("button", { name: "Add Memory Lantern" }).click();
   await expect(birth.getByRole("button", { name: "Remove Memory Lantern" })).toBeVisible();
-  await expect(birth.locator('[data-application-key="program-help"]')).toHaveText("1 of 3 reviewed Forms selected; maximum 16.");
+  await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText("1 of 3 reviewed Forms selected; maximum 16.");
   await expect(name).toHaveAttribute("aria-describedby", /description/);
   await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
   const source = birth.getByLabel("Conduit Form source");
