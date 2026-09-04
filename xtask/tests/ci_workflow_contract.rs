@@ -428,6 +428,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     assert!(workflow.contains("products.pages-carrier \"$SOURCE_HEAD\" \"$MERGE_COMMIT\""));
     assert!(workflow.contains("needs.resolve.outputs.disposition == 'execute'"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
+    assert!(workflow.contains("  pull-requests: read\n"));
     assert!(workflow.contains("candidate_sha: ${{ needs.resolve.outputs.merge_commit }}"));
     assert!(workflow.contains("name: Download the inherited candidate Pages carrier"));
     assert!(workflow.contains("name: Download the newly proven integration Pages carrier"));
