@@ -385,6 +385,19 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
     assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
     assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
+    assert!(workflow.contains("name: Classify candidate-to-integration proof impact"));
+    let toolchain = workflow
+        .find("name: Install the repository Rust toolchain for the impact controller")
+        .expect("reconciliation installs the controller toolchain");
+    let classify = workflow
+        .find("name: Classify candidate-to-integration proof impact")
+        .expect("reconciliation classifies integration impact");
+    assert!(
+        toolchain < classify,
+        "the dependency-light impact controller cannot be built before Rust is installed"
+    );
+    assert!(workflow.contains("ci plan \"$CANDIDATE_SHA\" \"$INTEGRATION_SHA\" --locked"));
+    assert!(workflow.contains("CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json"));
     assert_eq!(
         workflow
             .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")
@@ -396,6 +409,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
     );
     assert!(workflow.contains("cancel-in-progress: false"));
+    assert!(workflow.contains("resolve:\n    runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
     assert!(workflow.contains(
@@ -408,7 +422,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
     assert!(workflow.contains(
-        "needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'"
+        "if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
+    ));
+    assert!(workflow.contains(
+        "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
     ));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert_eq!(workflow.matches("contents: write").count(), 2);

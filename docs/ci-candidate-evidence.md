@@ -80,9 +80,11 @@ can never reverse that relationship.
 When an unchanged candidate needs policy from a newer trusted controller, the
 `reconcile-candidate` workflow is requested explicitly with the PR number and
 exact current head. Its trusted resolver refuses a stale or closed lifecycle.
-It inherits any already-successful `check` or `products-proof` aggregate
-attached to that immutable candidate and invokes the current reusable workflow
-only for a missing or failed lane. The resolver freezes the current prospective
+It considers an already-successful `check` or `products-proof` aggregate
+attached to that immutable candidate only after the trusted impact graph
+classifies the candidate-to-integration delta. A lane inherits only when that
+graph proves none of its inputs changed; a changed or unknown input executes
+the lane against the integration. The resolver freezes the current prospective
 integration commit separately from the candidate head; novel lanes execute
 against that integration commit, while inherited candidate receipts remain
 historical evidence about the immutable head. A main-only repair therefore
@@ -161,3 +163,18 @@ failure during producer lookup, a missing or ambiguous artifact, malformed
 identity, and digest mismatch fail immediately. The machine-readable transport
 record keeps a retry distinct from proof success, and no fallback rebuild can
 manufacture supposedly equivalent bytes.
+
+## Bounded run observation
+
+Use `cargo xtask ci monitor RUN_ID...` when shepherding Actions runs. The
+monitor batches the latest run states into one GitHub request, waits two minutes
+between ordinary observations, and retains every requested run identity until
+GitHub reports it terminal. `--interval-seconds` and `--max-requests` may make a
+bounded observation window smaller, but neither may be zero.
+
+Rate limits and transient observation failures are not CI results. The monitor
+honors `Retry-After` or `X-RateLimit-Reset`, otherwise applies bounded
+exponential backoff with jitter, and never restarts or cancels a run. If a
+tracked run falls outside the returned batch or the request budget expires, it
+returns an actionable error without inferring success, failure, cancellation,
+or disappearance.
