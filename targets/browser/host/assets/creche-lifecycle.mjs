@@ -29,6 +29,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
       <div class="body-evidence" data-application-slot="birth-evidence"></div>
     </div>`;
   const presentation = presentationFor(runner);
+  const selectionNotice = initialFormSelectionNotice(initialSelection);
   const state = {
     revision: 0,
     friendlyName: "Choosing a persona…",
@@ -42,12 +43,10 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     search: "",
     source,
     review: null,
-    status: initialSelection.refusals.length === 0
-      ? "Browse the reviewed Forms, compose a bounded workload, then review it before birth."
-      : `${initialSelection.refusals.length} stale or over-capacity restored Form selection(s) were refused.`,
+    status: selectionNotice ?? "Browse the reviewed Forms, compose a bounded workload, then review it before birth.",
     outcome: initialSelection.refusals.length === 0 ? "status" : "warning-status",
     terminal: false,
-    restoreRefusals: initialSelection.refusals.length,
+    selectionNotice,
   };
   const current = readCurrent(host.runtime);
   const controls = { presentation, runtime: host.runtime, listingId, inventory, onSelection: onSelection ?? (() => {}), onReview() {
@@ -62,6 +61,20 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     void suggestName(runner, state, controls);
   }
   return runner;
+}
+
+export function initialFormSelectionNotice(initialSelection) {
+  if (initialSelection.refusals.some((refusal) => refusal.origin === "gallery-handoff")) {
+    return "The Gallery Form handoff was stale or substituted and was not selected.";
+  }
+  const notices = [];
+  if (initialSelection.refusals.length > 0) {
+    notices.push(`${initialSelection.refusals.length} stale or over-capacity restored Form selection(s) were refused.`);
+  }
+  if (initialSelection.acceptedHandoff) {
+    notices.push(`${initialSelection.acceptedHandoff.title} was revalidated and preselected from Gallery. Add more ordinary Forms or review this workload; no Body has been born.`);
+  }
+  return notices.length === 0 ? null : notices.join(" ");
 }
 
 function presentBirthControls(runner, state, controls) {
@@ -217,9 +230,8 @@ async function suggestName(runner, state, controls) {
     state.friendlyName = suggestion.name;
     state.namingLabel = suggestion.system_label;
     state.pending = false;
-    state.status = state.restoreRefusals === 0
-      ? "Edit the suggestion or Form selection, then review the combined workload."
-      : `${state.restoreRefusals} stale or over-capacity restored Form selection(s) were refused.`;
+    state.status = state.selectionNotice
+      ?? "Edit the suggestion or Form selection, then review the combined workload.";
     presentBirthControls(runner, state, controls);
   } catch (error) {
     if (request !== state.namingRequest || state.terminal) return;

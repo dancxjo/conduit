@@ -93,6 +93,12 @@ test("Crèche accepts exact Gallery handoff and visibly refuses stale restored i
   handoff.searchParams.set("checked_form_id", selected.checked_form_id);
   await page.goto(handoff.href);
   await expect(page.getByLabel("Morse Network", { exact: true })).toBeChecked();
+  await expect(page.locator('[data-application-key="birth-status"]')).toContainText(
+    "Morse Network was revalidated and preselected from Gallery",
+  );
+  await expect(page.locator('[data-application-key="birth-status"]')).toContainText(
+    "no Body has been born",
+  );
 
   await page.evaluate(async () => {
     await globalThis.__conduitBrowserApplication.storage.writeJson("form-selection", {
