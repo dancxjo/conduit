@@ -1,6 +1,14 @@
 name: check
 
 on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: true
+        type: string
+      candidate_sha:
+        required: true
+        type: string
   pull_request:
   merge_group:
 
@@ -8,16 +16,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
   cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
-  CONDUIT_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || '' }}
+  CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || '' }}
   CONDUIT_INTEGRATION_SHA: ${{ github.event.merge_group.head_sha || '' }}
-  CONDUIT_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-  CONDUIT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+  CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+  CONDUIT_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
 jobs:
   classify:
@@ -49,7 +57,7 @@ jobs:
           fetch-depth: 0
       - name: Resolve the current trusted CI controller
         id: controller
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
@@ -61,7 +69,7 @@ jobs:
           echo "sha=$controller_sha" >> "$GITHUB_OUTPUT"
           printf 'Trusted controller: `%s` from `%s`\n' "$controller_sha" "$DEFAULT_BRANCH" >> "$GITHUB_STEP_SUMMARY"
       - name: Materialize the trusted controller outside the candidate workspace
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         env:
           CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
         run: |
@@ -70,8 +78,8 @@ jobs:
       - name: Classify exact change set
         id: changes
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: scripts/ci/classify-docs-only.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
       - name: Validate documentation diff
         if: steps.changes.outputs.docs_only == 'true'
@@ -99,11 +107,14 @@ jobs:
             --json-out target/ci-plans/ci-impact-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
-      - name: Verify candidate retirement controller contract
+      - name: Verify candidate lifecycle controller contracts
         if: steps.impact.outputs.ci_controller_required == 'true'
-        run: node --test proof/ci/retire-superseded-candidates.spec.mjs
+        run: >-
+          node --test
+          proof/ci/retire-superseded-candidates.spec.mjs
+          proof/ci/reconcile-candidate-request.spec.mjs
       - name: Fingerprint immutable candidate proof inputs
-        if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        if: steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
@@ -134,7 +145,7 @@ jobs:
 
   conduitos-limine:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -174,7 +185,7 @@ jobs:
       - name: Distribute the verified pinned archive
         uses: actions/upload-artifact@v7
         with:
-          name: conduitos-limine-${{ github.sha }}
+          name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor/limine-binary-12.5.2.tar.gz
           if-no-files-found: error
           retention-days: 1
@@ -182,7 +193,7 @@ jobs:
 
   conduitos-tools:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -260,7 +271,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]') }}
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]') }}
     name: workspace-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v7
@@ -280,14 +291,14 @@ jobs:
 
       - name: Run ${{ matrix.shard }} workspace check shard
         env:
-          CONDUIT_CI_LINT_FULL: ${{ github.event_name != 'pull_request' && 'true' || needs.classify.outputs.workspace_lint_full }}
+          CONDUIT_CI_LINT_FULL: ${{ (github.event_name != 'pull_request' && inputs.candidate_sha == '') && 'true' || needs.classify.outputs.workspace_lint_full }}
           CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}
           CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}
         run: cargo xtask check workspace-${{ matrix.shard }} --locked
 
   standalone-locks:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -296,7 +307,7 @@ jobs:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Materialize the trusted CI controller outside the candidate workspace
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         env:
           CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
         run: |
@@ -315,7 +326,7 @@ jobs:
 
   esp32-firmware:
     needs: [classify, standalone-locks]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.standalone-locks.result == 'success' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.standalone-locks.result == 'success' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     # A cold Xtensa row may install substantial pinned tooling. Each row owns
     # exactly one target, while exhaustive main runs retain all three rows.
@@ -323,7 +334,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.esp32_matrix || '["wroom","c3","s3"]') }}
+        target: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.esp32_matrix || '["wroom","c3","s3"]') }}
     name: esp32-firmware-${{ matrix.target }}
     env:
       GITHUB_TOKEN: ${{ github.token }}
@@ -378,7 +389,7 @@ jobs:
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:
-          name: esp32-firmware-${{ matrix.target }}-${{ github.sha }}
+          name: esp32-firmware-${{ matrix.target }}-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/esp32-firmware/*.json
           if-no-files-found: error
           retention-days: 14
@@ -401,7 +412,7 @@ jobs:
           BROWSER_HOST_RESULT: ${{ needs.browser-host.result }}
           CONDUITOS_RESULT: ${{ needs.conduitos-boot.result }}
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
-          EVENT_NAME: ${{ github.event_name }}
+          EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
           test "$CLASSIFY_RESULT" = success
           test "$CONDUITOS_RESULT" = success
@@ -420,7 +431,7 @@ jobs:
     needs: classify
     # Paused with the repository-wide visual-evidence producer. The executable
     # book owns a focused browser proof in executable-book-pages.yml.
-    if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
+    if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     container:
@@ -491,7 +502,7 @@ jobs:
     needs: [classify, browser-tools]
     # Retain the broad proof definition for an explicit future decision, but do
     # not generate or upload repository-wide visual evidence automatically.
-    if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
+    if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     # One-job cold compilation plus evidence upload and cache post-processing
     # exceeded the old ceiling after the semantic proof had already passed.
@@ -540,13 +551,13 @@ jobs:
         run: >-
           cargo xtask evidence verify --locked
           --root target/conduit-evidence/browser-host
-          --commit "${{ github.sha }}"
+          --commit "${{ env.CONDUIT_CHECKOUT_SHA }}"
           --result complete
       - name: Upload complete exact-head visual evidence
         if: steps.browser-proof.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
-          name: conduit-visual-evidence-${{ github.sha }}
+          name: conduit-visual-evidence-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduit-evidence/browser-host
           if-no-files-found: error
           retention-days: 14
@@ -556,13 +567,13 @@ jobs:
         run: >-
           cargo xtask evidence verify --locked
           --root target/conduit-evidence/browser-host
-          --commit "${{ github.sha }}"
+          --commit "${{ env.CONDUIT_CHECKOUT_SHA }}"
           --result diagnostic-incomplete
       - name: Upload failed-run diagnostic evidence
-        if: github.event_name == 'pull_request' && steps.browser-proof.outcome == 'failure'
+        if: (github.event_name == 'pull_request' || inputs.candidate_sha != '') && steps.browser-proof.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
-          name: conduit-visual-evidence-diagnostic-${{ github.sha }}
+          name: conduit-visual-evidence-diagnostic-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
             target/conduit-evidence/browser-host
           if-no-files-found: error
@@ -574,7 +585,7 @@ jobs:
 
   conduitos-proof-image:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')) && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')) && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -592,7 +603,7 @@ jobs:
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-limine-${{ github.sha }}
+          name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
@@ -620,13 +631,13 @@ jobs:
 
   conduitos-x86:
     needs: [classify, conduitos-limine, conduitos-tools, conduitos-proof-image]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        proof: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]') }}
+        proof: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]') }}
     name: conduitos-x86-${{ matrix.proof }}
     steps:
       - uses: actions/checkout@v7
@@ -646,7 +657,7 @@ jobs:
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-limine-${{ github.sha }}
+          name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
@@ -682,7 +693,7 @@ jobs:
       - name: Retain ${{ matrix.proof }} proof
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ format('{0}-{1}', matrix.proof == 'kernel' && 'conduit-conduitos-evidence' || format('conduitos-{0}-proof', matrix.proof), github.sha) }}
+          name: ${{ format('{0}-{1}', matrix.proof == 'kernel' && 'conduit-conduitos-evidence' || format('conduitos-{0}-proof', matrix.proof), env.CONDUIT_CHECKOUT_SHA) }}
           path: |
             target/conduitos/x86_64/*.json
             target/conduitos/x86_64/*.log
@@ -693,13 +704,13 @@ jobs:
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        architecture: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]') }}
+        architecture: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]') }}
     name: conduitos-architecture-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7
@@ -722,7 +733,7 @@ jobs:
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-limine-${{ github.sha }}
+          name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
@@ -740,7 +751,7 @@ jobs:
 
   conduitos-aarch64-product:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -758,7 +769,7 @@ jobs:
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8
         with:
-          name: conduitos-limine-${{ github.sha }}
+          name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
       - name: Receive the exact ConduitOS tool bundle
         uses: actions/download-artifact@v8
@@ -778,7 +789,7 @@ jobs:
       - name: Retain AArch64 product proof and final PROFILE artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: conduitos-aarch64-product-${{ github.sha }}
+          name: conduitos-aarch64-product-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
             target/conduitos/aarch64/aarch64-product-proof.json
             target/conduitos/product-readiness-matrix.json
@@ -807,7 +818,7 @@ jobs:
           X86_REQUIRED: ${{ needs.classify.outputs.conduitos_x86_matrix != '[]' }}
           ARCHITECTURE_REQUIRED: ${{ needs.classify.outputs.conduitos_architecture_matrix != '[]' }}
           AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
-          EVENT_NAME: ${{ github.event_name }}
+          EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
           test "$CLASSIFY_RESULT" = success
           if test "$DOCS_ONLY" != true && { test "$EVENT_NAME" != pull_request || test "$CONDUITOS_REQUIRED" = true; }; then

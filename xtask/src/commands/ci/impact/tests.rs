@@ -100,6 +100,32 @@ fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
 }
 
 #[test]
+fn current_controller_reconciliation_changes_run_only_their_exact_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/reconcile-candidate.yml".to_owned(),
+            "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
+            "scripts/ci/reconcile-candidate-request.mjs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(
+        plan.ci_controller_proofs,
+        ["ci.current-controller-reconciliation"]
+    );
+    assert!(!plan.full_fallback);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.workspace_shards.values().all(|required| !required));
+}
+
+#[test]
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
@@ -664,7 +690,9 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     let root = crate::workspace::workspace_root().unwrap();
     let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
 
-    assert!(workflow.contains("on:\n  pull_request:\n  merge_group:\n"));
+    assert!(workflow.contains("  workflow_call:\n"));
+    assert!(workflow.contains("  pull_request:\n"));
+    assert!(workflow.contains("  merge_group:\n"));
     assert!(!workflow.contains("\n  push:"));
 
     for output in ["esp32_required", "browser_required", "conduitos_required"] {
@@ -672,7 +700,7 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
             "{output}: ${{{{ steps.impact.outputs.{output} }}}}"
         )));
         assert!(workflow.contains(&format!(
-            "github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.{output} == 'true'"
+            "(github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.{output} == 'true'"
         )));
     }
     assert!(workflow.contains(
@@ -682,7 +710,7 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
         "esp32_matrix: ${{ steps.impact.outputs.esp32_matrix || '[\"wroom\",\"c3\",\"s3\"]' }}"
     ));
     assert!(workflow.contains(
-        "target: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.esp32_matrix"
+        "target: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.esp32_matrix"
     ));
     assert!(workflow.contains("name: esp32-firmware-${{ matrix.target }}"));
     assert!(workflow.contains(
@@ -695,10 +723,10 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
     assert!(workflow.contains("xhci-proof --prepared-image --locked"));
     assert!(workflow.contains(
-        "shard: ${{ fromJSON(github.event_name == 'pull_request' && needs.classify.outputs.workspace_matrix"
+        "shard: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.workspace_matrix"
     ));
     assert!(workflow.contains(
-        "CONDUIT_CI_LINT_FULL: ${{ github.event_name != 'pull_request' && 'true' || needs.classify.outputs.workspace_lint_full }}"
+        "CONDUIT_CI_LINT_FULL: ${{ (github.event_name != 'pull_request' && inputs.candidate_sha == '') && 'true' || needs.classify.outputs.workspace_lint_full }}"
     ));
     assert!(workflow.contains(
         "CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}"

@@ -89,13 +89,13 @@ fn candidate_workflows_pin_head_identity_and_do_not_cross_cancel() {
     let root = crate::workspace::workspace_root().unwrap();
     let check = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
     assert!(
-        check.contains("CONDUIT_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || '' }}")
+        check.contains("CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || '' }}")
     );
     assert!(
         check.contains("CONDUIT_INTEGRATION_SHA: ${{ github.event.merge_group.head_sha || '' }}")
     );
     assert!(check.contains(
-        "github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha"
+        "github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha"
     ));
     assert!(check.contains("cancel-in-progress: false"));
     assert_eq!(

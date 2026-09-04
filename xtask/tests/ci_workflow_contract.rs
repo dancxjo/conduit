@@ -124,7 +124,7 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
     // The stacked target remains the exact diff base. Only controller policy
     // comes from the current trusted default branch.
     assert!(workflow.contains(
-        "BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
+        "BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
     ));
     assert!(workflow.contains("controller_sha: ${{ steps.controller.outputs.sha }}"));
 }
@@ -205,4 +205,31 @@ fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
             "resolver proof input must be owned once: {proof}"
         );
     }
+}
+
+#[test]
+fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
+        .expect("read candidate reconciliation workflow");
+    let check =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+
+    assert!(workflow.contains(
+        "group: reconcile-candidate-${{ inputs.pr_number }}-${{ inputs.candidate_sha }}"
+    ));
+    assert!(workflow.contains("cancel-in-progress: false"));
+    assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
+    assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
+    assert!(workflow.contains("if: needs.resolve.outputs.check_inherited != 'true'"));
+    assert!(workflow.contains("if: needs.resolve.outputs.products_inherited != 'true'"));
+    assert_eq!(workflow.matches("checks: write").count(), 1);
+    assert!(workflow.contains("name: Publish stable required checks on the unchanged candidate"));
+    assert!(workflow.contains("persist-credentials: false"));
+
+    assert!(check.contains("workflow_call:"));
+    assert!(check.contains(
+        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha"
+    ));
+    assert!(!check.contains("name: conduitos-limine-${{ github.sha }}"));
 }
