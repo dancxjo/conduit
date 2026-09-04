@@ -54,7 +54,7 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
     let bytes = evidence(&snapshot);
     let attached = attach_body_workbench(
         snapshot.clone(),
-        1,
+        7,
         &bytes,
         BrowserBodyWorkbenchEntrance::ExternalReader,
     )
@@ -62,6 +62,8 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
     let workbench = attached.body_workbench.as_ref().unwrap();
     assert_eq!(workbench.encoded_evidence, bytes);
     assert_eq!(workbench.current["friendly_name"], "Roseau");
+    assert_eq!(workbench.current["workload_revision"], 1);
+    assert_eq!(workbench.current["evidence_revision"], 7);
     assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 3);
     let mut stale = workbench.clone();
     stale.body_id.push_str("-stale");

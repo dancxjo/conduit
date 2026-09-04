@@ -91,6 +91,7 @@ fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
     let frame = CurrentBodyFrame::from_attachment(7, &attachment);
 
     assert_eq!(frame.friendly_name, "Roseau");
+    assert_eq!(frame.workload_revision, 0);
     assert_eq!(frame.active_forms.len(), 1);
     assert_eq!(frame.lifecycle, CurrentBodyLifecycle::Lulled);
     assert_eq!(frame.salient_action, CurrentBodyLifecycleAction::Wake);
@@ -100,6 +101,7 @@ fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
         frame.physical_hosts,
         CurrentBodyPhysicalHostSummary::NotEvidenced
     );
+    assert!(frame.status_line.contains("workload revision 0"));
     assert!(frame
         .status_line
         .contains("physical Host classification not evidenced"));
