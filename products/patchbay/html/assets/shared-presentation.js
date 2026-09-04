@@ -88,7 +88,7 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
       const controls = scope.querySelector(`[data-application-slot="${slot}"]`).querySelectorAll("button");
       controls.forEach((control, index) => entries[index].annotate?.(control));
     },
-    boundedList(slotPrefix, label, entries, selectedIdentity) {
+    boundedActionList(slotPrefix, label, entries) {
       const slots = [];
       for (let index = 0; ; index += 1) {
         const slot = scope.querySelector(`[data-application-slot="${slotPrefix}-${index}"]`);
@@ -106,21 +106,52 @@ export function createPatchbaySharedPresentation(presentation, scope = document)
           present(slot, { actions: [], nodes: [{ parent: null, component: "stack", key: "empty", text: "", action: null }] });
           continue;
         }
-        const selected = chunk.findIndex(entry => entry.identity === selectedIdentity);
         present(slot, {
           actions: chunk.map((_, index) => ({ id: `choose-${index}`, event: "activate" })),
           nodes: [
-            { parent: null, component: "navigation", key: "items", text: label, value: selected < 0 ? "" : `item-${selected}`, valueCapacity: selected < 0 ? 0 : 32, action: null },
+            { parent: null, component: "action-group", key: "items", text: label, action: null },
             ...chunk.flatMap((entry, index) => [
               { parent: 0, component: "button", key: `item-${index}`, text: entry.text, action: index },
               ...(entry.detail ? [{ parent: 0, component: "paragraph", key: `detail-${index}`, text: entry.detail, action: null }] : []),
             ]),
           ],
         }, { onEvent(event) { chunk[Number(event.action.slice("choose-".length))]?.run(); } });
-        root.querySelectorAll("button").forEach((control, index) => {
-          control.setAttribute("aria-pressed", String(chunk[index].identity === selectedIdentity));
-          chunk[index].annotate?.(control);
+        root.querySelectorAll("button").forEach((control, index) => chunk[index].annotate?.(control));
+      }
+      activeListChunks.set(slotPrefix, usedChunks);
+    },
+    boundedChoiceList(slotPrefix, label, entries, selectedIdentity) {
+      const slots = [];
+      for (let index = 0; ; index += 1) {
+        const slot = scope.querySelector(`[data-application-slot="${slotPrefix}-${index}"]`);
+        if (!slot) break;
+        slots.push(slot);
+      }
+      if (entries.length > slots.length * 16) throw new Error(`shared ${slotPrefix} capacity exceeded`);
+      const usedChunks = Math.ceil(entries.length / 16), previousChunks = activeListChunks.get(slotPrefix) ?? 0;
+      for (let slotIndex = 0; slotIndex < Math.max(usedChunks, previousChunks); slotIndex += 1) {
+        const root = slots[slotIndex];
+        const chunk = entries.slice(slotIndex * 16, slotIndex * 16 + 16);
+        root.hidden = chunk.length === 0;
+        const slot = `${slotPrefix}-${slotIndex}`;
+        if (chunk.length === 0) {
+          present(slot, { actions: [], nodes: [{ parent: null, component: "stack", key: "empty", text: "", action: null }] });
+          continue;
+        }
+        const nodes = [
+          { parent: null, component: "choice-group", key: "items", text: `${slotPrefix}-choice`, action: null },
+          { parent: 0, component: "choice-group-label", key: "items-legend", text: label, action: null },
+        ];
+        chunk.forEach((entry, index) => {
+          const parent = nodes.length;
+          nodes.push({ parent: 0, component: "choice-option-label", key: `choice-label-${index}`, text: entry.text, action: null });
+          nodes.push({ parent, component: "exclusive-choice", key: `choice-${index}`, text: entry.identity, value: String(entry.identity === selectedIdentity), valueCapacity: 5, action: index });
         });
+        present(slot, {
+          actions: chunk.map((_, index) => ({ id: `choose-${index}`, event: "change" })),
+          nodes,
+        }, { onEvent(event) { chunk[Number(event.action.slice("choose-".length))]?.run(); } });
+        root.querySelectorAll('input[type="radio"]').forEach((control, index) => chunk[index].annotate?.(control));
       }
       activeListChunks.set(slotPrefix, usedChunks);
     },

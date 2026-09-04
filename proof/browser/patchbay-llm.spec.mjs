@@ -41,7 +41,7 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
 
     await page.goto(url);
     await page.getByRole("button",{name:"Subjects",exact:true}).click();
-    const gearButton=page.locator('#structured-navigator button[data-subject="gear/interpreter"]');
+    const gearButton=page.locator('#structured-navigator input[type="radio"][data-subject="gear/interpreter"]');
     await gearButton.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("Completed");
     const pointerSelection=await page.locator("#inspector .selected-summary").innerText();
@@ -51,27 +51,27 @@ test("LLM Gear remains an ordinary typed, bounded, provenance-explicit Patchbay 
 
     await page.getByRole("button",{name:"Body",exact:true}).click();
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    const candidate=page.locator('#structured-navigator button[data-subject="candidate-form/bird-dashboard"]');
+    const candidate=page.locator('#structured-navigator input[type="radio"][data-subject="candidate-form/bird-dashboard"]');
     await candidate.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("OPEN AND EDITABLE");
     await expect(page.locator("#inspector .selected-summary")).toContainText("false");
 
     await page.getByRole("button",{name:"Program",exact:true}).click();
-    const modelInfo=page.locator('#structured-navigator button[data-role="Info"]');
+    const modelInfo=page.locator('#structured-navigator input[type="radio"][data-role="Info"]');
     await modelInfo.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("MODEL-DERIVED INFO");
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    const proposal=page.locator('#structured-navigator button[data-subject="proposal/request-light"]');
+    const proposal=page.locator('#structured-navigator input[type="radio"][data-subject="proposal/request-light"]');
     await proposal.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("AWAITING AUTHORITY");
     await page.getByRole("button",{name:"Signs",exact:true}).click();
-    const systemSign=page.locator('#structured-navigator button[data-role="Sign"]');
+    const systemSign=page.locator('#structured-navigator input[type="radio"][data-role="Sign"]');
     await systemSign.click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("SYSTEM SIGN EVIDENCE");
     await expect(page.locator("#sign")).toContainText("SYSTEM SIGN");
 
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    const decisions=page.locator('#structured-navigator button[data-subject^="decision/"]');
+    const decisions=page.locator('#structured-navigator input[type="radio"][data-subject^="decision/"]');
     await decisions.nth(0).click();
     await expect(page.locator("#inspector .selected-summary")).toContainText("ADMITTED");
     await decisions.nth(1).click();

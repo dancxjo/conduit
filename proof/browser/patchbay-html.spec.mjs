@@ -54,6 +54,7 @@ async function prepareCanvasEvidence(page,{inspector=false,structured=false}={})
 async function expectFlowDominant(page,{inspector=false}={}) {
   await expect(page.locator("#flow-root .react-flow")).toBeVisible();
   await expect(page.locator("#flow-root .flow-faceplate").first()).toBeVisible();
+  await expect(page.locator('#flow-root .flow-faceplate input[type="radio"]').first()).toBeVisible();
   const root=await page.locator("#patchbay-root").boundingBox();
   const flow=await page.locator("#flow-root").boundingBox();
   expect(flow.width).toBeGreaterThan(root.width*(inspector ? .55 : .65));
@@ -136,13 +137,13 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const url=await server.url;
     const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
     await page.goto(url);
-    await expect(page.getByRole("navigation",{name:"Primary"}).getByRole("link")).toHaveCount(3);
+    await expect(page.getByRole("navigation",{name:"Conduit products"}).getByRole("link")).toHaveCount(5);
     await expect(page.getByRole("link",{name:"Conduit home"})).toHaveAttribute("href","/conduit");
     await expect(page.locator('style[data-application-resource="flow-style"]')).toHaveCount(1);
     await expect(page.locator("#flow-root .flow-faceplate").first()).toHaveCSS("width", "240px");
-    await expect(page.locator("#status")).toContainText("Presentation revision 1");
-    await expect(page.locator("#status")).toContainText("Manifestation Available");
-    await expect(page.locator("#status")).toHaveAttribute("data-application-revision", /^\d+$/);
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision 1");
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Manifestation Available");
+    await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
     expect(snapshot.temporal_context).toHaveLength(1);
     expect(snapshot.temporal_context[0].subject).toMatch(/^part\//);
     expect(snapshot.temporal_context[0].relative_time).toMatch(/seconds ago$/);
@@ -287,9 +288,9 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect.poll(async()=>(await cordGeometry(page,snapshot)).length).toBe(routes.length);
     expect((await cordGeometry(page,snapshot)).map(route=>[route.id,route.d])).toEqual(routes.map(route=>[route.id,route.d]));
 
-    const first=page.locator('#subjects button[data-role="Gear"]').first(); await first.focus(); await first.press("Enter");
+    const first=page.locator('#subjects input[type="radio"][data-role="Gear"]').first(); await first.focus(); await first.press("Space");
     const identity=await first.getAttribute("data-subject");
-    await expect(first).toHaveAttribute("aria-pressed","true");
+    await expect(first).toBeChecked();
     await expect(page.locator("#inspector .inspector-hint")).toContainText("Gear");
     await expect(page.locator("#inspector .exact-selection dd").first()).toHaveText(identity);
     await expect(page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`)).toHaveClass(/semantic-selected/);
@@ -303,6 +304,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const selectedFaceplate=page.locator(`#flow-root .flow-faceplate[data-subject="${identity.replaceAll('"','\\"')}"]`);
     await expect(selectedFaceplate).toBeVisible();
     await expect(selectedFaceplate).toHaveClass(/semantic-selected/);
+    await expect(selectedFaceplate.locator('input[type="radio"]')).toBeChecked();
     await expectFaceplateTextContained(page);
     await page.locator("#center-flow").click();
     const headingBox=await page.locator(".canvas-heading").boundingBox();
@@ -332,22 +334,22 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await prepareCanvasEvidence(page,{structured:true});
     await page.getByRole("button",{name:"Body",exact:true}).click();
     await page.getByRole("button",{name:"Structure",exact:true}).click();
-    const route=page.locator('#structured-navigator [data-role="Route"]').first();await route.focus();await route.press("Enter");await expect(route).toHaveAttribute("aria-pressed","true");await expect(page.locator("#inspector .selected-summary")).toContainText("Route");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
+    const route=page.locator('#structured-navigator input[type="radio"][data-role="Route"]').first();await route.focus();await route.press("Space");await expect(route).toBeChecked();await expect(page.locator("#inspector .selected-summary")).toContainText("Route");await expect(page.locator("#inspector .exact-selection")).toContainText("sign-new-plan-unsatisfied");
     const routeSnapshot=await (await fetch(`${url}/api/snapshot`)).json();expect(routeSnapshot.navigation.cursor.focus).toBe(await route.getAttribute("data-subject"));
     await expect(page.locator("#deep-inspection")).toBeHidden();
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"route-recovery",routeSnapshot,"exact-line-loss-new-plan-and-same-plan-recovery-spatially-correlated");
     await page.getByRole("button",{name:"Program",exact:true}).click();
     await page.locator("#toggle-palette").click();
-    const second=page.locator('#subjects button[data-role="Port"]').first();await second.click();
-    await expect(second).toHaveAttribute("aria-pressed","true");
+    const second=page.locator('#subjects input[type="radio"][data-role="Port"]').first();await second.click();
+    await expect(second).toBeChecked();
     await expect(page.locator("#inspector .selected-summary")).toContainText(/receiving|outgoing/);
-    await expect(page.locator(`#structured-navigator [data-subject="${(await second.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
+    await expect(page.locator(`#structured-navigator [data-subject="${(await second.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toBeChecked();
     await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     await page.locator("#toggle-palette").click();
-    const third=page.locator('#subjects button[data-role="Cord"]').filter({hasText:"Cord from"}).first();await third.click();
-    await expect(third).toHaveAttribute("aria-pressed","true");
+    const third=page.locator('#subjects [data-application-component="choice-option-label"]').filter({has:page.locator('input[type="radio"][data-role="Cord"]'),hasText:"Cord from"}).first().locator('input[type="radio"]');await third.click();
+    await expect(third).toBeChecked();
     await expect(page.locator("#inspector .selected-summary")).not.toContainText("source-port");
-    await expect(page.locator(`#structured-navigator [data-subject="${(await third.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
+    await expect(page.locator(`#structured-navigator [data-subject="${(await third.getAttribute("data-subject")).replaceAll('"','\\"')}"]`)).toBeChecked();
     await expect(page.locator("#interaction-proof")).toContainText("navigation/");
     await page.locator("#toggle-truth").click();
     await page.locator("#toggle-linear").click();
@@ -359,7 +361,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(interactionSnapshot.interaction.interaction_play_id).toBeTruthy();
     await prepareCanvasEvidence(page,{inspector:true,structured:true});
     if(canonical)await captureCanonical(page,browser,evidenceRoot,"interaction",interactionSnapshot,"control-invocation-plan-play-succeeded");
-    const selectedBeforeStale=await page.locator("#subjects [aria-pressed=true]").getAttribute("data-subject");
+    const selectedBeforeStale=await page.locator("#subjects input[type=radio]:checked").getAttribute("data-subject");
     const stale=await page.evaluate(async stateForTest=>await (await fetch("/api/interaction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:"presentation/stale",presentation_revision:stateForTest.presentation.revision,kind:"select",subject:"dom-node-should-not-apply"})})).json(), snapshot);
     expect(stale.interaction.last_disposition).toBe("Refused(StalePresentation)");
     expect(stale.navigation.cursor.focus).toBe(selectedBeforeStale);
@@ -370,7 +372,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(staleAction.interaction.last_disposition).toBe("Refused(StalePresentation)");
     expect(staleAction.navigation.cursor.focus).toBe(selectedBeforeStale);
     await page.evaluate(()=>window.patchbayReload());
-    await expect(page.locator("#subjects [aria-pressed=true]")).toHaveAttribute("data-subject",selectedBeforeStale);
+    await expect(page.locator("#subjects input[type=radio]:checked")).toHaveAttribute("data-subject",selectedBeforeStale);
     const projectedText=await page.evaluate(async()=>
       (await import("/assets/portable-navigation.js")).projectCurrent(
         await (await fetch("/api/snapshot")).json(),
@@ -395,7 +397,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#theme")).toHaveAttribute("aria-pressed","true");
     await expect(page.locator("body")).toHaveClass(/high-contrast/);
     expect(await page.locator("#subjects [data-subject]").evaluateAll(items=>items.map(item=>item.dataset.subject).sort())).toEqual(identitiesBefore.subjects);
-    await expect(page.locator("#status")).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText(identitiesBefore.content);await expect(page.locator("#plan")).toContainText(identitiesBefore.plan);await expect(page.locator("#plan")).toContainText(identitiesBefore.manifestation);await expect(page.locator("#play")).toContainText(identitiesBefore.play);
     const contrastSnapshot=await (await fetch(`${url}/api/snapshot`)).json();
     expect(contrastSnapshot.presentation.identity).toBe(identitiesBefore.content);
     expect(contrastSnapshot.presentation.basis.plan_id).toBe(identitiesBefore.plan);
@@ -408,7 +410,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id); expect(await page.locator("#plan").textContent()).toBe(planBefore);
     server.process.kill("SIGTERM"); await new Promise(resolve=>server.process.once("exit",resolve));
     await page.evaluate(()=>window.patchbayReload());
-    await expect(page.locator("#status")).toContainText("Renderer disconnected; retained revision 1");
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Renderer disconnected; retained revision 1");
     await expect(page.locator("#plan")).toContainText(snapshot.presentation.basis.plan_id);
     await prepareCanvasEvidence(page);
     await expectFlowDominant(page);
@@ -550,7 +552,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
     await expectFaceplateTextContained(page);
     expect(await page.locator("#flow-root .flow-faceplate").evaluateAll(faceplates=>faceplates.map(faceplate=>({subject:faceplate.dataset.subject,accessibilityName:faceplate.getAttribute("aria-label")})))).toEqual(exactFaceplateTruth);
     expect(await page.evaluate(()=>({height:document.scrollingElement.scrollHeight,width:document.scrollingElement.scrollWidth}))).toEqual({height:900,width:700});
-    const topbarBox=await page.locator(".topbar").boundingBox(),navBox=await page.getByRole("navigation",{name:"Patchbay workspace"}).boundingBox();
+    const topbarBox=await page.locator('[data-application-slot="product-masthead"]').boundingBox(),navBox=await page.getByRole("navigation",{name:"Patchbay workspace"}).boundingBox();
     expect(topbarBox.y+topbarBox.height).toBeLessThanOrEqual(navBox.y);
     for(const control of ["Navigate","Parts","Inspector","Exact truth","Program","Body","Structure","Plan","Play","Signs"]){
       const item=page.getByRole("button",{name:control,exact:true});

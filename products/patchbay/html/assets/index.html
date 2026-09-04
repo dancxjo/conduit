@@ -8,11 +8,7 @@
 </head>
 <body data-application-ready="false">
 <div id="patchbay-root" inert>
-  <header class="topbar">
-    <div><a class="wordmark" href="/conduit" aria-label="Conduit home">conduit</a><h1>Patchbay</h1></div>
-    <nav class="global-nav" aria-label="Primary"><a href="/conduit/tour">Tour</a><a href="/conduit/creche">Crèche</a><a href="/conduit/patchbay/" aria-current="page">Patchbay</a></nav>
-    <div id="status" data-application-slot="patchbay-status"></div>
-  </header>
+  <div data-application-slot="product-masthead"></div>
   <nav aria-label="Patchbay workspace">
     <span class="shell-launchers" role="toolbar" aria-label="Patchbay drawers"><button id="toggle-palette" type="button" aria-expanded="false" aria-controls="palette">Forms</button><button id="toggle-parts" type="button" aria-expanded="false" aria-controls="parts">Parts</button><button id="toggle-inspector" type="button" aria-expanded="false" aria-controls="inspector">Inspector</button><button id="toggle-truth" type="button" aria-expanded="false" aria-controls="deep-inspection">Exact truth</button><button id="toggle-structured" type="button" aria-expanded="false" aria-controls="structured-navigator">Subjects</button></span>
     <span id="place-controls" class="place-controls" data-application-slot="place-controls"></span><span id="aspect-controls" class="lens-controls" data-application-slot="aspect-controls"></span><a href="#linear">Linear presentation</a>

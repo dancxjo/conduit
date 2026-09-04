@@ -5,6 +5,7 @@ import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
+import { createProductMasthead } from "./product-masthead.mjs";
 import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "./targets/avr/browser-deployment/creche-adapter.mjs";
 import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
 import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/esp32/browser-deployment/creche-adapter.mjs";
@@ -35,6 +36,7 @@ let durabilityFailure = null;
 let currentStep = 0;
 let sequence = 0;
 let presentationRevision = 0;
+let productMasthead;
 const targetCatalog = createPhysicalHostTargetCatalog({
   generation: 1,
   contributions: [
@@ -53,6 +55,7 @@ export async function startApplication(application) {
  try {
   presentation = application.presentation;
   presentationFor = application.presentationFor;
+  productMasthead = createProductMasthead(presentation, "product-masthead", "creche");
   storage = application.storage;
   initialFormSource = application.text("reviewed-form-inventory");
   renderHostStatus("Starting browser Host…", "status");
@@ -110,11 +113,7 @@ function renderNavigation() {
 }
 
 function renderHostStatus(text, component) {
-  presentation.present("creche-host-status", {
-    revision: ++presentationRevision,
-    actions: [],
-    nodes: [{ parent: null, component, action: null, key: "host-status", text }],
-  });
+  productMasthead.present(text, component);
 }
 
 function renderStep() {
@@ -281,7 +280,7 @@ function renderComplete(receipt, biography) {
       { id: "creche.finish", event: "activate" },
     ],
     nodes: [
-      { parent: null, component: "action-group", action: null, key: "complete-actions", text: "" },
+      { parent: null, component: "action-group", action: null, key: "complete-actions", text: "Crèche completion actions" },
       { parent: 0, component: "button", action: 0, key: "leave-body", text: "Leave Body" },
       { parent: 0, component: "button", action: 1, key: "remove-browser", text: "Remove this browser from the Body" },
       { parent: 0, component: "button", action: 2, key: "finish-creche", text: "Finish and clear Crèche" },

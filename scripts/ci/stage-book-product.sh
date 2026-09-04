@@ -28,6 +28,7 @@ cp targets/browser/host/assets/browser-application-storage.mjs "$destination/bro
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
 cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
 cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"
+cp semantics/presentation/assets/product-masthead.mjs "$destination/product-masthead.mjs"
 cp "$runtime" "$destination/runtime.wasm"
 for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.css flow.js flow-scene.js flow-layout.js flow-faceplate.js portable-navigation.js; do
     cp "products/patchbay/html/assets/$asset" "$destination/assets/$asset"
@@ -69,5 +70,5 @@ done
 node scripts/ci/build-browser-application-package.mjs \
     targets/browser/host/assets/book.application.template.json "$destination" tour.application.json
 
-test "$(find "$destination" -type f | wc -l)" -eq 47
+test "$(find "$destination" -type f | wc -l)" -eq 48
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"

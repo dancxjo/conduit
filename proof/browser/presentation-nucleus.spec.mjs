@@ -122,7 +122,7 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   const stepper = page.locator('[data-application-key="stepper"]');
   await expect(stepper).toHaveAttribute("data-application-current", "2");
   await expect(stepper.locator('[data-application-key="step-two"]')).toHaveAttribute("tabindex", "0");
-  const progress = page.locator('[data-application-key="progress"] progress');
+  const progress = page.locator('progress[data-application-key="progress"]');
   await expect(progress).toHaveAttribute("value", "2");
   await expect(progress).toHaveAttribute("max", "3");
   await revised.focus();

@@ -32,10 +32,11 @@ async function current(page) {
 }
 
 async function selectRole(page, role, name = null) {
-  const candidates = page.locator(`#structured-navigator button[data-role="${role}"]`);
+  const candidates = page.locator('#structured-navigator [data-application-component="choice-option-label"]')
+    .filter({ has: page.locator(`input[type="radio"][data-role="${role}"]`) });
   const target = name?.startsWith("subject:")
-    ? page.locator(`#structured-navigator button[data-role="${role}"][data-subject*="${name.slice(8)}"]`).first()
-    : name ? candidates.filter({ hasText: name }).first() : candidates.first();
+    ? page.locator(`#structured-navigator input[type="radio"][data-role="${role}"][data-subject*="${name.slice(8)}"]`).first()
+    : (name ? candidates.filter({ hasText: name }).first() : candidates.first()).locator('input[type="radio"]');
   const identity = await target.getAttribute("data-subject");
   await target.click();
   await expect.poll(async () => (await current(page)).navigation.cursor.focus).toBe(identity);
@@ -99,16 +100,16 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await configure.locator("input").fill("Browser-authored truth");
     await clickEdit(page, page.locator("#authoring-actions").getByRole("button", { name: "Apply" }));
 
-    await page.locator('#structured-navigator button[data-role="Port"]').nth(0).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(0).click();
     await page.getByRole("button", { name: "Start Cord here" }).click();
-    await page.locator('#structured-navigator button[data-role="Port"]').nth(2).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(2).click();
     await clickEdit(page, page.getByRole("button", { name: "Connect selected output here" }));
     snapshot = await current(page);
     expect(snapshot.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
 
     await selectRole(page, "Cord");
     await page.getByRole("button", { name: "Reroute one endpoint" }).click();
-    await page.locator('#structured-navigator button[data-role="Port"]').nth(1).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(1).click();
     await clickEdit(page, page.getByRole("button", { name: "Reroute armed Cord here" }));
     await selectRole(page, "Cord");
     await clickEdit(page, page.getByRole("button", { name: "Remove Cord" }));
@@ -116,9 +117,9 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     await selectRole(page, "Gear", "making/literal-2 Gear");
     await clickEdit(page, page.getByRole("button", { name: "Remove Gear" }));
 
-    await page.locator('#structured-navigator button[data-role="Port"]').nth(0).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(0).click();
     await page.getByRole("button", { name: "Start Cord here" }).click();
-    await page.locator('#structured-navigator button[data-role="Port"]').nth(1).click();
+    await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(1).click();
     await clickEdit(page, page.getByRole("button", { name: "Connect selected output here" }));
     await selectRole(page, "Form");
     await page.getByRole("button", { name: "SAVE", exact: true }).click();

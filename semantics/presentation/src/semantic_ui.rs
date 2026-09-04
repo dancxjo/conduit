@@ -10,9 +10,11 @@ use crate::{
 };
 use alloc::{string::String, vec::Vec};
 
+mod choice_lowering;
 mod evidence_lowering;
 mod form_lowering;
 mod mechanism_lowering;
+use choice_lowering::lower_choice_group;
 use evidence_lowering::{
     code_node, definition_node, evidence_component, push_definition, push_evidence_state,
     validate_artifact, validate_evidence,
@@ -26,7 +28,7 @@ pub enum PresentationMechanismKind {
     Shell,
     Workbench,
     Panel,
-    ActionGroup,
+    ActionGroup { label: String },
     Action,
     Status,
     Disclosure,
@@ -35,7 +37,9 @@ pub enum PresentationMechanismKind {
     Definition,
     CodeBlock,
     FormField,
+    ChoiceGroup,
     Navigation,
+    NavigationLink,
     Stepper,
     Progress,
     Artifact,
@@ -59,7 +63,9 @@ impl PresentationMechanismKind {
             Self::Definition => "conduit.presentation/definition@1",
             Self::CodeBlock => "conduit.presentation/code-block@1",
             Self::FormField => "conduit.presentation/form-field@1",
+            Self::ChoiceGroup => "conduit.presentation/choice-group@1",
             Self::Navigation => "conduit.presentation/navigation@1",
+            Self::NavigationLink => "conduit.presentation/navigation-link@1",
             Self::Stepper => "conduit.presentation/stepper@1",
             Self::Progress => "conduit.presentation/progress@1",
             Self::Artifact => "conduit.presentation/artifact@1",
@@ -138,6 +144,41 @@ pub struct FormField {
     pub kind: FieldKind,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ChoiceMultiplicity {
+    Independent,
+    Exclusive,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChoiceOption {
+    pub identity: String,
+    pub label: String,
+    pub selected: bool,
+    pub change_action: SemanticAction,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AdmittedNavigationDestination {
+    Home,
+    Tour,
+    Creche,
+    Patchbay,
+    Source,
+}
+
+impl AdmittedNavigationDestination {
+    pub const fn identity(self) -> &'static str {
+        match self {
+            Self::Home => "home",
+            Self::Tour => "tour",
+            Self::Creche => "creche",
+            Self::Patchbay => "patchbay",
+            Self::Source => "source",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PresentationMechanism {
     Shell,
@@ -168,9 +209,18 @@ pub enum PresentationMechanism {
         code: String,
     },
     FormField(FormField),
+    ChoiceGroup {
+        label: String,
+        multiplicity: ChoiceMultiplicity,
+        options: Vec<ChoiceOption>,
+    },
     Navigation {
         label: String,
         current: String,
+    },
+    NavigationLink {
+        label: String,
+        destination: AdmittedNavigationDestination,
     },
     Stepper {
         label: String,
@@ -196,7 +246,7 @@ impl PresentationMechanism {
             Self::Shell => PresentationMechanismKind::Shell,
             Self::Workbench => PresentationMechanismKind::Workbench,
             Self::Panel { .. } => PresentationMechanismKind::Panel,
-            Self::ActionGroup => PresentationMechanismKind::ActionGroup,
+            Self::ActionGroup { .. } => PresentationMechanismKind::ActionGroup,
             Self::Action(_) => PresentationMechanismKind::Action,
             Self::Status { .. } => PresentationMechanismKind::Status,
             Self::Disclosure { .. } => PresentationMechanismKind::Disclosure,
@@ -205,7 +255,9 @@ impl PresentationMechanism {
             Self::Definition { .. } => PresentationMechanismKind::Definition,
             Self::CodeBlock { .. } => PresentationMechanismKind::CodeBlock,
             Self::FormField(_) => PresentationMechanismKind::FormField,
+            Self::ChoiceGroup { .. } => PresentationMechanismKind::ChoiceGroup,
             Self::Navigation { .. } => PresentationMechanismKind::Navigation,
+            Self::NavigationLink { .. } => PresentationMechanismKind::NavigationLink,
             Self::Stepper { .. } => PresentationMechanismKind::Stepper,
             Self::Progress { .. } => PresentationMechanismKind::Progress,
             Self::Artifact(_) => PresentationMechanismKind::Artifact,
@@ -232,8 +284,10 @@ pub struct SemanticApplicationView {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SemanticPresentationRefusal {
     InvalidActionAvailability,
+    InvalidActionGroup,
     InvalidDeviceChoice,
     InvalidField,
+    InvalidChoiceGroup,
     InvalidNavigation,
     InvalidProgress,
     InvalidEvidence,
@@ -305,6 +359,24 @@ fn lower_node(
         lower_form_field(index, &source.key, field, nodes, actions, false)?;
     } else if let PresentationMechanism::DeviceChoice(field) = &source.mechanism {
         lower_form_field(index, &source.key, field, nodes, actions, true)?;
+    } else if let PresentationMechanism::ChoiceGroup {
+        label,
+        multiplicity,
+        options,
+    } = &source.mechanism
+    {
+        if !source.children.is_empty() {
+            return Err(SemanticPresentationRefusal::InvalidChoiceGroup);
+        }
+        lower_choice_group(
+            index,
+            &source.key,
+            label,
+            *multiplicity,
+            options,
+            nodes,
+            actions,
+        )?;
     }
     for child in &source.children {
         lower_node(child, Some(index), nodes, actions)?;
@@ -351,14 +423,19 @@ fn lower_mechanism(
             None,
             ApplicationNodeState::Ready,
         ),
-        PresentationMechanism::ActionGroup => (
-            ApplicationComponent::ActionGroup,
-            empty,
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
+        PresentationMechanism::ActionGroup { label } => {
+            if label.is_empty() {
+                return Err(SemanticPresentationRefusal::InvalidActionGroup);
+            }
+            (
+                ApplicationComponent::ActionGroup,
+                label.clone(),
+                String::new(),
+                0,
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
         PresentationMechanism::Action(action) => {
             action_node(action, ApplicationComponent::Button, actions)?
         }
@@ -419,6 +496,14 @@ fn lower_mechanism(
             None,
             ApplicationNodeState::Ready,
         ),
+        PresentationMechanism::ChoiceGroup { .. } => (
+            ApplicationComponent::ChoiceGroup,
+            empty,
+            String::new(),
+            0,
+            None,
+            ApplicationNodeState::Ready,
+        ),
         PresentationMechanism::Navigation { label, current } => {
             if label.is_empty() || current.is_empty() {
                 return Err(SemanticPresentationRefusal::InvalidNavigation);
@@ -428,6 +513,20 @@ fn lower_mechanism(
                 label.clone(),
                 current.clone(),
                 u32::try_from(current.len()).unwrap_or(u32::MAX).max(1),
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
+        PresentationMechanism::NavigationLink { label, destination } => {
+            if label.is_empty() {
+                return Err(SemanticPresentationRefusal::InvalidNavigation);
+            }
+            let identity = destination.identity();
+            (
+                ApplicationComponent::NavigationLink,
+                label.clone(),
+                identity.into(),
+                u32::try_from(identity.len()).unwrap_or(u32::MAX),
                 None,
                 ApplicationNodeState::Ready,
             )

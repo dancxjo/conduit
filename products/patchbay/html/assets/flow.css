@@ -17,7 +17,7 @@
 }
 .flow-faceplate header {
   display: grid;
-  grid-template-columns: minmax(0,1.6rem) minmax(0,1fr) minmax(0,4.75rem);
+  grid-template-columns: auto minmax(0,1.6rem) minmax(0,1fr) minmax(0,4.75rem);
   gap: .35rem;
   align-items: center;
   min-height: 2.4rem;
@@ -25,6 +25,8 @@
   overflow: hidden;
   border-bottom: 1px solid var(--conduit-structure-secondary);
 }
+.faceplate-selection { margin: 0; accent-color: var(--conduit-emphasis); cursor: pointer; }
+.faceplate-selection:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 2px; }
 .faceplate-icon,.faceplate-title,.faceplate-role,.faceplate-clue,.faceplate-port-name,.faceplate-port code {
   display: block;
   min-width: 0;

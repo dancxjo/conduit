@@ -92,10 +92,10 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     expect(new Set(admitted.resourceRoles).size).toBe(admitted.resourceRoles.length);
     expect(admitted.resourceRoles).toContain("browser-host-identity");
     await expect(page.locator('script[src="/assets/app.js"]')).toHaveCount(0);
-    await expect(page.locator("#status")).toHaveAttribute("data-application-revision", /^\d+$/);
-    await expect(page.locator("#status [data-application-component='status']")).toContainText("Presentation revision");
+    await expect(page.locator('[data-application-slot="product-masthead"]')).toHaveAttribute("data-application-revision", /^\d+$/);
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
     await page.locator("#toggle-palette").click();
-    const subject = page.locator(`#subjects button[data-subject="${cord}"]`);
+    const subject = page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`);
     await subject.focus();
     await subject.press("Enter");
 
@@ -117,7 +117,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const afterReload = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterReload.watches.watches.map(item => item.subject)).toEqual([cord]);
     await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects button[data-subject="${cord}"]`).click();
+    await page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`).click();
     await expect(page.getByRole("button", { name: `Watch ${cord}`, exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Clear Watch history", exact: true }).click();
@@ -143,7 +143,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await page.goto(url);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects button[data-subject="${cord}"]`).click();
+    await page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`).click();
     await page.getByRole("button", { name: "Watch", exact: true }).click();
 
     await expect(page.locator(".timeline-status")).toContainText("Following live observations");
@@ -160,7 +160,7 @@ test("timeline replay and exact event rows stay linked to the graph and Watch", 
     await page.locator(".timeline-events button").filter({ hasText: "seq 41" }).click();
     await expect(page.locator('.exact-selection [data-application-component="definition-table"]')).toContainText(port);
     await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects button[data-subject="${cord}"]`).click();
+    await page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`).click();
     await page.getByRole("button", { name: "Focus events for exact subject" }).click();
     await expect(page.locator('.timeline-events [data-application-component="artifact"]')).toHaveCount(2);
     await page.getByRole("button", { name: "Show all events" }).click();
@@ -187,7 +187,7 @@ test("real breakpoint control and exact causal fault tracing remain distinct fro
     await page.goto(url);
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects button[data-subject="${gear}"]`).click();
+    await page.locator(`#subjects input[type="radio"][data-subject="${gear}"]`).click();
     await page.getByRole("button", { name: "Watch", exact: true }).click();
     await page.getByRole("button", { name: "Break here", exact: true }).click();
     await expect(page.locator(".control-status")).toContainText("Execution actually suspended");

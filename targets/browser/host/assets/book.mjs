@@ -2,7 +2,8 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
-import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus, createBookStatus } from "./book-runner-presentation.mjs";
+import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus } from "./book-runner-presentation.mjs";
+import { createProductMasthead } from "./product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
 import { createBookRouting } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
@@ -33,7 +34,8 @@ export async function startApplication(application) {
 try {
   hostPresentation = application.presentation;
   hostPresentationFor = application.presentationFor;
-  hostStatus = createBookStatus(hostPresentation, "book-host-status", "host-status", "Starting browser Host…");
+  hostStatus = createProductMasthead(hostPresentation, "product-masthead", "tour");
+  hostStatus.ordinary("Starting browser Host…");
   readingState = await openBookReadingState(application.storage);
   configureFlowStorage(application.storage);
   navigation = createBookNavigation(hostPresentation, (offset) => {

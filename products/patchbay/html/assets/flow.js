@@ -91,7 +91,7 @@ function presentEdges(edges) {
   }));
 }
 
-function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens }) {
+function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens, selectionGroup }) {
   const projected = projectFlowScene(snapshot, lens);
   const initial = React.useMemo(() => {
     const restored = restore(projected);
@@ -146,7 +146,7 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens })
   };
   const presentedNodes = nodes.map((node) => ({
     ...node,
-    data: { ...node.data, onActivate: onSelect, onOpenBack },
+    data: { ...node.data, onActivate: onSelect, onOpenBack, selectionGroup },
   }));
   const liveSummary = (snapshot.debugger?.activities || [])
     .slice(-8)
@@ -214,7 +214,11 @@ export function renderFlow(snapshot, handlers) {
   if (!target) throw new Error("Patchbay flow target is unavailable");
   root = rootFor(target);
   const { target: _target, ...workspaceHandlers } = handlers;
-  root.render(e(Workspace, { snapshot, ...workspaceHandlers }));
+  root.render(e(Workspace, {
+    snapshot,
+    ...workspaceHandlers,
+    selectionGroup: `patchbay-flow-${target.id || snapshot.presentation.identity}`,
+  }));
   target.dataset.renderer = "react-flow";
   target.dataset.presentationId = snapshot.presentation.identity;
   target.dataset.presentationRevision = String(snapshot.presentation.revision);

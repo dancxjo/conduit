@@ -9,7 +9,7 @@ export function createBookNavigation(presentation, navigate) {
           { id: "book.next", event: "activate" },
         ],
         nodes: [
-          { parent: null, component: "navigation", key: "navigation", text: "", action: null },
+          { parent: null, component: "navigation", key: "navigation", text: "Tour pages", action: null },
           { parent: 0, component: "status", key: "progress", text: `Page ${currentPage + 1} of ${pageCount}`, action: null },
           { parent: 0, component: "button", key: "previous", text: "Previous", action: !running && currentPage > 0 ? 0 : null },
           { parent: 0, component: "button", key: "next", text: "Next", action: !running && currentPage < pageCount - 1 ? 1 : null },
@@ -36,7 +36,7 @@ export function createBookRunnerActions(presentation, slot, runLabel, onRun, onS
           { id: "book.stop", event: "activate" },
         ],
         nodes: [
-          { parent: null, component: "action-group", key: "runner-actions", text: "", action: null },
+          { parent: null, component: "action-group", key: "runner-actions", text: "Play actions", action: null },
           { parent: 0, component: "button", key: "run", text: runLabel, action: running ? null : 0 },
           { parent: 0, component: "button", key: "stop", text: "Stop", action: running ? 1 : null },
         ],

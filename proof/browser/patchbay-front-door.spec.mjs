@@ -143,10 +143,10 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     }, "UnknownAspect");
     await expect(page.getByRole("heading", { name: "Entrance choices" })).toBeVisible();
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
-    await expect(page.locator("#status")).toContainText("Manifestation Available");
+    await expect(page.locator('[data-application-key="product-status"]')).toContainText("Manifestation Available");
     expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
-    expect(await page.locator("#subjects button").evaluateAll((buttons) =>
-      buttons.every((button) => !["Body", "Part", "Gear", "Port", "Cord", "Line"].includes(button.dataset.role)),
+    expect(await page.locator('#subjects input[type="radio"]').evaluateAll((choices) =>
+      choices.every((choice) => !["Body", "Part", "Gear", "Port", "Cord", "Line"].includes(choice.dataset.role)),
     )).toBe(true);
     const workspaceBox = await page.locator(".workspace").boundingBox();
     expect(workspaceBox.y + workspaceBox.height).toBeLessThanOrEqual(768);
@@ -268,7 +268,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     );
     expect(wakeAction.availability).toBe("Available");
     await page.getByRole("button", { name: "Navigate", exact: true }).click();
-    await page.locator(`#subjects button[data-subject="${wakeAction.target}"]`).click();
+    await page.locator(`#subjects input[type="radio"][data-subject="${wakeAction.target}"]`).click();
     await Promise.all([
       page.waitForResponse(
         (response) => response.url().endsWith("/api/interaction") && response.request().method() === "POST",
@@ -297,7 +297,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     const journeyStartCursor = playing.navigation.cursor;
     expect(playing.navigation.cursor).toMatchObject({ place: "Program", aspect: "Structure" });
     await page.getByRole("button", { name: "Navigate", exact: true }).click();
-    const upper = page.locator('#subjects button[data-role="Gear"]').filter({ hasText: "hello/upper" });
+    const upper = page.locator('#subjects [data-application-component="choice-option-label"]').filter({ hasText: "hello/upper" }).locator('input[type="radio"]');
     const upperIdentity = await upper.getAttribute("data-subject");
     expect(upperIdentity).toBeTruthy();
     let navigated = await enactNavigation(page, navigationSteps,
@@ -311,7 +311,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(navigated.navigation.cursor).toMatchObject({ place: "Program", aspect: "Plan", focus: null });
 
     await page.locator("#toggle-structured").click();
-    const upperInPlan = page.locator(`#structured-navigator button[data-subject="${upperIdentity.replaceAll('"', '\\"')}"]`);
+    const upperInPlan = page.locator(`#structured-navigator input[type="radio"][data-subject="${upperIdentity.replaceAll('"', '\\"')}"]`);
     navigated = await enactNavigation(page, navigationSteps,
       { kind: "focus-and-disclose", subject: upperIdentity, depth: "Detail" },
       () => upperInPlan.click());
@@ -337,7 +337,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       place: "Body", aspect: currentTruthAspect.aspect, focus: null, depth: "Detail",
     });
     const hostInCurrentTruth = page.locator(
-      `#structured-navigator button[data-subject="${follow.target_subject.replaceAll('"', '\\"')}"]`,
+      `#structured-navigator input[type="radio"][data-subject="${follow.target_subject.replaceAll('"', '\\"')}"]`,
     );
     navigated = await enactNavigation(page, navigationSteps,
       { kind: "focus-and-disclose", subject: follow.target_subject, depth: "Detail" },

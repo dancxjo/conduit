@@ -417,7 +417,7 @@ function presentFirstHostControls(runner, presentation, state, onAttach) {
     nodes: [
       { parent: null, component: "stack", action: null, key: "first-host", text: "" },
       { parent: 0, component: "paragraph", action: null, key: "availability", text: "This browser is available, but availability is not membership." },
-      { parent: 0, component: "action-group", action: null, key: "host-actions", text: "" },
+      { parent: 0, component: "action-group", action: null, key: "host-actions", text: "First Host actions" },
       { parent: 2, component: "button", action: state.terminal ? null : 0, key: "attach-host", text: "Give this Body its first Host" },
       { parent: 0, component: state.outcome, action: null, key: "host-status", text: state.status },
     ],

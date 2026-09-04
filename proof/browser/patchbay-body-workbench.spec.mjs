@@ -22,7 +22,7 @@ async function openWorkbench(page, entrance) {
     server.once("exit", code => reject(new Error(`Body workbench exited (${code})\n${output}`)));
   });
   await page.goto(url);
-  await expect(page.locator("#status")).toContainText("Presentation revision");
+  await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
   return url;
 }
 
