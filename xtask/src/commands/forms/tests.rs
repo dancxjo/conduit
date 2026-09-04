@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::BTreeSet;
 
 fn inventory_form() -> InventoryForm {
     InventoryForm {
@@ -48,6 +49,60 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
             .len(),
         reusable.len()
     );
+    let composition: Vec<_> = report
+        .results
+        .iter()
+        .filter(|result| result.proof_mode == "composition-check")
+        .collect();
+    assert_eq!(composition.len(), 10);
+    assert_eq!(
+        composition
+            .iter()
+            .filter(|result| result.status == "passed")
+            .count(),
+        9
+    );
+    assert_eq!(
+        composition
+            .iter()
+            .filter(|result| result.status == "unavailable")
+            .count(),
+        1
+    );
+    assert!(composition
+        .iter()
+        .all(|result| { result.source_document_id.is_some() && result.checked_form_id.is_some() }));
+    assert!(composition
+        .iter()
+        .filter(|result| result.status == "passed")
+        .all(|result| result.composition_root_checked_form_id.is_some()
+            && result.composition_root_entry.is_some()
+            && !result.gear_occurrences.is_empty()));
+}
+
+#[test]
+fn composition_check_refuses_an_inexact_occurrence_declaration() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let mut inventory = load_inventory(&root).unwrap();
+    let form = inventory
+        .forms
+        .iter_mut()
+        .find(|form| form.slug == "count")
+        .unwrap();
+    form.reusable_entries[0]
+        .composition
+        .as_mut()
+        .unwrap()
+        .occurrences = vec!["invented".into()];
+    let results = composition::check_all(
+        &root,
+        form,
+        "forms/count/main.conduit",
+        &catalogs().unwrap(),
+    );
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].status, "failed");
+    assert!(results[0].reason.contains("expected {\"invented\"}"));
 }
 
 #[test]
@@ -75,17 +130,29 @@ fn reusable_entries_refuse_empty_duplicate_and_root_identities() {
     form.reusable_entries.push(ReusableForm {
         entry: "helper".into(),
         title: "Helper".into(),
+        composition: Some(CompositionOracle {
+            parent: "composition".into(),
+            occurrences: vec!["use".into()],
+        }),
     });
-    assert!(reusable_entries_are_valid(&form));
+    assert!(inventory::reusable_entries_are_valid(&form));
 
     form.reusable_entries.push(ReusableForm {
         entry: "helper".into(),
         title: "Duplicate".into(),
+        composition: None,
     });
-    assert!(!reusable_entries_are_valid(&form));
+    assert!(!inventory::reusable_entries_are_valid(&form));
     form.reusable_entries[1].entry = "composition".into();
-    assert!(!reusable_entries_are_valid(&form));
+    assert!(!inventory::reusable_entries_are_valid(&form));
     form.reusable_entries[1].entry = "another".into();
     form.reusable_entries[1].title.clear();
-    assert!(!reusable_entries_are_valid(&form));
+    assert!(!inventory::reusable_entries_are_valid(&form));
+    form.reusable_entries.truncate(1);
+    form.reusable_entries[0]
+        .composition
+        .as_mut()
+        .unwrap()
+        .occurrences = vec!["use".into(), "use".into()];
+    assert!(!inventory::reusable_entries_are_valid(&form));
 }

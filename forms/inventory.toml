@@ -32,13 +32,13 @@ deterministic = { package = "conduit-std-host", test = "canonical_clock", case =
 slug = "count"
 title = "Count"
 entry = "count-demo"
-reusable_entries = [{ entry = "count", title = "Count Pipeline" }]
+reusable_entries = [{ entry = "count", title = "Count Pipeline", composition = { parent = "count-demo", occurrences = ["count"] } }]
 deterministic = { package = "conduit-std-host", test = "canonical_count", case = "canonical_program_four_runs_startup_flow_and_current_through_one_kernel" }
 [[forms]]
 slug = "default-welcome"
 title = "Default Welcome"
 entry = "default-welcome"
-reusable_entries = [{ entry = "greet", title = "Greeting" }]
+reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] } }]
 deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "omitted_argument_uses_the_checked_face_default_without_mutating_the_form" }
 [[forms]]
 slug = "desk-telegraph"
@@ -60,7 +60,7 @@ deterministic = { package = "conduit-std-host", test = "geometry_forms", case = 
 slug = "greet"
 title = "Greeting"
 entry = "default-welcome"
-reusable_entries = [{ entry = "greet", title = "Greeting" }]
+reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] } }]
 deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves" }
 [[forms]]
 slug = "hello"
@@ -71,7 +71,7 @@ deterministic = { package = "conduit", test = "hello", case = "canonical_hello_r
 slug = "lenia-orbium"
 title = "Lenia Orbium"
 entry = "lenia-orbium-demo"
-reusable_entries = [{ entry = "lenia", title = "Lenia" }]
+reusable_entries = [{ entry = "lenia", title = "Lenia", composition = { parent = "lenia-orbium-demo", occurrences = ["organism"] } }]
 [[forms]]
 slug = "linguistic-annotations"
 title = "Linguistic Annotations"
@@ -112,7 +112,7 @@ entry = "patchbay-front-door"
 slug = "pool-webchat"
 title = "Pool Webchat"
 entry = "pool-webchat"
-reusable_entries = [{ entry = "chat/peer", title = "Chat Peer" }]
+reusable_entries = [{ entry = "chat/peer", title = "Chat Peer", composition = { parent = "pool-webchat", occurrences = ["peers"] } }]
 deterministic = { package = "conduit-chat", features = ["form-catalog"], test = "shared_pool_chat", case = "native_pool_chat_has_explicit_fan_merge_and_no_authored_line" }
 [[forms]]
 slug = "r1-network-bootstrap"
@@ -148,7 +148,7 @@ deterministic = { package = "conduit", test = "two_std_line", case = "installed_
 slug = "socket-client"
 title = "Socket Client"
 entry = "echo-client-demo"
-reusable_entries = [{ entry = "echo-client", title = "Echo Client" }]
+reusable_entries = [{ entry = "echo-client", title = "Echo Client", composition = { parent = "echo-client-demo", occurrences = ["client"] } }]
 deterministic = { package = "conduit-net", test = "external_websocket", case = "canonical_duplex_source_checks_and_expands_to_the_external_client_leaf" }
 [[forms]]
 slug = "tabular-query"
@@ -181,8 +181,8 @@ slug = "webchat"
 title = "Webchat"
 entry = "webchat-browser-demo"
 reusable_entries = [
-  { entry = "chat/client", title = "Chat Client" },
-  { entry = "chat/server", title = "Chat Server" },
-  { entry = "chat/browser-client", title = "Browser Chat Client" },
+  { entry = "chat/client", title = "Chat Client", composition = { parent = "webchat-transport-demo", occurrences = ["client"] } },
+  { entry = "chat/server", title = "Chat Server", composition = { parent = "webchat-transport-demo", occurrences = ["server"] } },
+  { entry = "chat/browser-client", title = "Browser Chat Client", composition = { parent = "webchat-browser-demo", occurrences = ["client"] } },
 ]
 deterministic = { package = "conduit-std-host", test = "external_websocket_plan", case = "planned_listener_executes_through_kernel_host_operations_for_two_clients" }
