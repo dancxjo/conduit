@@ -103,14 +103,42 @@ pub fn body_workbench_fixture_snapshot(
     } else {
         BrowserBodyWorkbenchEntrance::ExternalReader
     };
-    let available = FormCandidate::from_source(
-        "Hello",
-        "forms/hello/main.conduit",
-        include_str!("../../../../forms/hello/main.conduit"),
+    let available = [
+        reviewed_form(
+            "Hello",
+            "forms/hello/main.conduit",
+            include_str!("../../../../forms/hello/main.conduit"),
+            5,
+        )?,
+        reviewed_form(
+            "Greet",
+            "forms/greet/main.conduit",
+            include_str!("../../../../forms/greet/main.conduit"),
+            6,
+        )?,
+        reviewed_form(
+            "Count",
+            "forms/count/main.conduit",
+            include_str!("../../../../forms/count/main.conduit"),
+            7,
+        )?,
+    ];
+    body_workbench_snapshot_with_forms(1, &encoded, entrance, &available)
+}
+
+fn reviewed_form(
+    label: &str,
+    source_name: &str,
+    source: &str,
+    freshness: u64,
+) -> Result<FormCandidate, BodyWorkbenchError> {
+    FormCandidate::from_source(
+        label,
+        source_name,
+        source,
         "reviewed canonical fixture Form",
-        SignId::from("sign/hello-reviewed"),
-        5,
+        SignId::from(format!("sign/{}-reviewed", label.to_lowercase())),
+        freshness,
     )
-    .map_err(BodyWorkbenchError::Projection)?;
-    body_workbench_snapshot_with_forms(1, &encoded, entrance, &[available])
+    .map_err(BodyWorkbenchError::Projection)
 }

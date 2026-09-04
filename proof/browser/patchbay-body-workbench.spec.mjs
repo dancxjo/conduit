@@ -78,9 +78,16 @@ for (const entrance of ["hosted", "external"]) {
     await expect(page.locator("#body-workbench-facts")).toContainText("Workload revision");
     await expect(page.locator("#body-workbench-facts")).toContainText("0");
     const availableForms = page.locator('#body-workbench-available [data-application-component="artifact"]');
+    await expect(availableForms).toHaveCount(3);
+    await expect(availableForms.filter({ hasText: "Hello" })).toHaveCount(1);
+    const reviewedSearch = page.getByRole("searchbox", { name: "Search reviewed Forms" });
+    await reviewedSearch.fill("greet");
     await expect(availableForms).toHaveCount(1);
-    await expect(availableForms).toContainText("Hello");
-    await expect(availableForms.getByRole("button", { name: "Add to Body", exact: true })).toBeEnabled();
+    await expect(availableForms.filter({ hasText: "Greet" })).toHaveCount(1);
+    await expect(page.locator("#body-form-results-status")).toHaveText("1 of 3 reviewed Forms match");
+    await reviewedSearch.fill("");
+    await expect(availableForms).toHaveCount(3);
+    await expect(availableForms.filter({ hasText: "Hello" }).getByRole("button", { name: "Add to Body", exact: true })).toBeEnabled();
     if (entrance === "external") {
       const bounds = await page.locator("#body-workbench").boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);
@@ -147,8 +154,8 @@ for (const entrance of ["hosted", "external"]) {
       expect(idle.body_workbench.current.workload_revision).toBe(2);
       expect(idle.navigation.cursor.place).toBe("Body");
 
-      await availableForms.getByRole("button", { name: "Add to Body", exact: true }).click();
-      await expect(availableForms).toHaveCount(0);
+      await availableForms.filter({ hasText: "Hello" }).getByRole("button", { name: "Add to Body", exact: true }).click();
+      await expect(availableForms).toHaveCount(2);
       await expect(activeForms).toHaveCount(1);
       await expect(activeForms.filter({ hasText: "Hello" })).toHaveCount(1);
       await expect(page.locator("#body-workbench-status")).toContainText("workload revision 3");
