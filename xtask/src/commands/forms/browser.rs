@@ -114,7 +114,60 @@ pub(super) fn run(
     preparation: &Preparation,
     opts: &GlobalOpts,
 ) -> FormProofResult {
+    let mut proof = if !matches!(
+        (&form.browser_safe, &form.browser_safe_not_applicable),
+        (Some(_), None)
+    ) {
+        availability(form, path, identities)
+    } else {
+        let oracle = form
+            .browser_safe
+            .as_ref()
+            .expect("matched browser-safe oracle");
+        match preparation {
+            Preparation::Unavailable(reason) => result(
+                form,
+                path,
+                0,
+                "unavailable",
+                reason,
+                identities,
+                "browser-safe",
+            ),
+            Preparation::Failed(reason) => {
+                result(form, path, 0, "failed", reason, identities, "browser-safe")
+            }
+            Preparation::Ready if opts.dry_run => result(
+                form,
+                path,
+                0,
+                "unavailable",
+                "dry run planned: isolated Playwright Chromium proof",
+                identities,
+                "browser-safe",
+            ),
+            Preparation::Ready => execute(root, form, path, identities, oracle),
+        }
+    };
+    proof.environment_profile = "playwright/chromium-1.62.0-worker1-retry0";
+    proof
+}
+
+pub(super) fn availability(
+    form: &InventoryForm,
+    path: &str,
+    identities: Option<(String, String)>,
+) -> FormProofResult {
     let mut proof = match (&form.browser_safe, &form.browser_safe_not_applicable) {
+        (Some(_), None) => result(
+            form,
+            path,
+            0,
+            "unavailable",
+            "declared browser-safe oracle is available through Playwright Chromium",
+            identities,
+            "browser-safe",
+        ),
         (None, Some(reason)) => result(
             form,
             path,
@@ -142,30 +195,6 @@ pub(super) fn run(
             identities,
             "browser-safe",
         ),
-        (Some(oracle), None) => match preparation {
-            Preparation::Unavailable(reason) => result(
-                form,
-                path,
-                0,
-                "unavailable",
-                reason,
-                identities,
-                "browser-safe",
-            ),
-            Preparation::Failed(reason) => {
-                result(form, path, 0, "failed", reason, identities, "browser-safe")
-            }
-            Preparation::Ready if opts.dry_run => result(
-                form,
-                path,
-                0,
-                "unavailable",
-                "dry run planned: isolated Playwright Chromium proof",
-                identities,
-                "browser-safe",
-            ),
-            Preparation::Ready => execute(root, form, path, identities, oracle),
-        },
     };
     proof.environment_profile = "playwright/chromium-1.62.0-worker1-retry0";
     proof
