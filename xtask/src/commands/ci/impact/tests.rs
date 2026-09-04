@@ -126,6 +126,37 @@ fn current_controller_reconciliation_changes_run_only_their_exact_proof() {
 }
 
 #[test]
+fn dispatcher_command_implementation_has_command_local_impact() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec!["tools/xtask-dispatch/src/ci_dispatch/pages_resolver.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.repository_command_proofs, ["ci.pages-resolver"]);
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert_eq!(plan.changed_packages, ["conduit-xtask-dispatch"]);
+
+    for shared_or_ambiguous in [
+        "tools/xtask-dispatch/src/ci_dispatch.rs",
+        "tools/xtask-dispatch/src/ci_dispatch/unknown.rs",
+    ] {
+        let broad = plan_for_paths(&root, vec![shared_or_ambiguous.to_owned()], &packages).unwrap();
+        assert!(broad.full_fallback, "{shared_or_ambiguous}");
+        assert!(broad.browser_required, "{shared_or_ambiguous}");
+        assert!(broad.esp32_required, "{shared_or_ambiguous}");
+        assert!(broad.conduitos_required, "{shared_or_ambiguous}");
+    }
+}
+
+#[test]
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
@@ -773,6 +804,9 @@ fn lightweight_dispatcher_owns_every_ci_identity_command() {
     let source = fs::read_to_string(root.join("tools/xtask-dispatch/src/main.rs")).unwrap();
     let ci_source =
         fs::read_to_string(root.join("tools/xtask-dispatch/src/ci_dispatch.rs")).unwrap();
+    let pages_resolver =
+        fs::read_to_string(root.join("tools/xtask-dispatch/src/ci_dispatch/pages_resolver.rs"))
+            .unwrap();
 
     assert!(manifest.contains("optional = true"));
     assert!(
@@ -787,4 +821,7 @@ fn lightweight_dispatcher_owns_every_ci_identity_command() {
             "missing lightweight dispatch for {command}"
         );
     }
+    assert!(ci_source.contains("pages_resolver::run(arguments)"));
+    assert!(pages_resolver.contains("proof/ci/pages-product-run-selection.spec.mjs"));
+    assert!(pages_resolver.contains("proof/ci/pages-workflow-paths.spec.mjs"));
 }

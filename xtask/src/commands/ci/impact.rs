@@ -37,7 +37,13 @@ const CONDUITOS_X86_PROOFS: [&str; 8] = [
     "rescue",
 ];
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
-const GLOBAL_PREFIXES: [&str; 4] = [".github/", ".cargo/", "xtask/", "scripts/ci/"];
+const GLOBAL_PREFIXES: [&str; 5] = [
+    ".github/",
+    ".cargo/",
+    "xtask/",
+    "scripts/ci/",
+    "tools/xtask-dispatch/",
+];
 const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
 const FOCUSED_WORKFLOW_FILES: [&str; 2] = [
     ".github/workflows/executable-book-pages.yml",
