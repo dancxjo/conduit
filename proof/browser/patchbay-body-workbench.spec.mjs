@@ -75,6 +75,22 @@ test("an invited browser remains outside the Body until explicit join", async ({
   for (const offer of advertisement.capabilities) await expect(offerFacts).toContainText(offer.capability_id);
   for (const offer of advertisement.planner_capabilities) await expect(offerFacts).toContainText(offer.profile_id);
   for (const offer of advertisement.resources) await expect(offerFacts).toContainText(offer.pool_id);
+  const inspectedOffer = advertisement.capabilities.at(-1);
+  const capabilitySelect = page.getByLabel("Inspect capability", { exact: true });
+  await capabilitySelect.selectOption(inspectedOffer.capability_id);
+  const capabilityFacts = page.locator('[data-application-slot="body-capability-facts"]');
+  await expect(capabilityFacts).toContainText(inspectedOffer.capability_id);
+  await expect(capabilityFacts).toContainText(inspectedOffer.kind_id);
+  await expect(capabilityFacts).toContainText(inspectedOffer.implementation_id);
+  await expect(capabilityFacts).toContainText(inspectedOffer.artifact_id);
+  await expect(capabilityFacts).toContainText(inspectedOffer.execution_profile_id);
+  await expect(capabilityFacts).toContainText(`active=${inspectedOffer.limits.max_active_instances}`);
+  await expect(capabilityFacts).toContainText(`queue-items=${inspectedOffer.limits.max_queue_items}`);
+  await expect(capabilityFacts).toContainText(`queue-bytes=${inspectedOffer.limits.max_queue_bytes}`);
+  for (const port of [...inspectedOffer.inputs, ...inspectedOffer.outputs]) {
+    await expect(capabilityFacts).toContainText(port.port_id);
+    await expect(capabilityFacts).toContainText(port.value_kind);
+  }
   await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
   await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
