@@ -31,7 +31,10 @@ export function immutableWebRtcSignalFrame(frame) {
   return Object.freeze({ ...frame, signal: immutableSignal });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+  if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
+    throw new Error("invalid expected Body identity");
+  }
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const api = instance.exports;
   const required = [
@@ -235,6 +238,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
       const generation = webRtcSessions.activatePlan();
       if (generation !== frame.generation) throw new Error("WebRTC Plan generation mismatch");
     } else if (frame.kind === "challenge" && frame.protocol === 1) {
+      if (expectedBodyId !== null && frame.challenge?.body_id !== expectedBodyId) {
+        deliberateClose = true;
+        setState("refused:wrong-body");
+        socket.close(1008, "Body invitation identity mismatch");
+        return;
+      }
       const bytes = encoder.encode(JSON.stringify(frame.challenge));
       writeInput(bytes);
       requireSuccess(api.conduit_browser_membership_prove(bytes.length), "browser admission proof");
@@ -272,6 +281,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, onState, onWebRtcGra
         signature: Array.from(signature),
       })));
     } else if (frame.kind === "admitted" && frame.protocol === 1) {
+      if (expectedBodyId !== null && frame.credential?.body_id !== expectedBodyId) {
+        deliberateClose = true;
+        setState("refused:wrong-body");
+        socket.close(1008, "Body credential identity mismatch");
+        return;
+      }
       credential = frame.credential;
       setState("admitted");
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
