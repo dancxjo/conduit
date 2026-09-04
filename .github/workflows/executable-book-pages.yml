@@ -38,7 +38,6 @@ jobs:
           fetch-depth: 0
       - name: Resolve the current trusted CI controller
         id: controller
-        if: github.event_name == 'pull_request'
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
@@ -50,7 +49,6 @@ jobs:
           echo "sha=$controller_sha" >> "$GITHUB_OUTPUT"
           printf 'Trusted controller: `%s` from `%s`\n' "$controller_sha" "$DEFAULT_BRANCH" >> "$GITHUB_STEP_SUMMARY"
       - name: Materialize the trusted controller outside the candidate workspace
-        if: github.event_name == 'pull_request'
         env:
           CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
         run: |
@@ -115,8 +113,19 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
+      - name: Materialize the trusted CI controller outside the candidate workspace
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
       - name: Validate every standalone fabrication lock before machine fan-out
-        run: cargo xtask ci standalone-locks --locked
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci standalone-locks --locked
 
   tour-patchbay-proof:
     needs: browser-runtimes

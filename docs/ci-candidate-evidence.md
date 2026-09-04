@@ -93,6 +93,12 @@ Controller implementation, requested base, effective candidate comparison
 base, and analyzed candidate are therefore separate explicit identities. No
 path executes candidate code with privileged credentials.
 
+Repository-policy preflights use that same trusted controller executable while
+keeping the candidate checkout as their working tree. A candidate predating a
+new CI command can therefore be validated without rebasing merely to acquire
+the command implementation; the preflight still inspects that candidate's
+exact manifests and locks.
+
 The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.
 
 Product workflow dependencies follow consumed artifacts rather than the final

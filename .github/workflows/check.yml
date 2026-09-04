@@ -295,8 +295,23 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
+      - name: Materialize the trusted CI controller outside the candidate workspace
+        if: github.event_name == 'pull_request'
+        env:
+          CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
       - name: Validate every standalone fabrication lock before machine fan-out
-        run: cargo xtask ci standalone-locks --locked
+        run: |
+          controller=(cargo xtask)
+          if test -x "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"; then
+            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
+          fi
+          "${controller[@]}" ci standalone-locks --locked
 
   esp32-firmware:
     needs: [classify, standalone-locks]

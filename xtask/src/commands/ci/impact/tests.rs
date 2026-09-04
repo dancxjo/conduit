@@ -692,7 +692,21 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
         workflow.contains("comparison_base_sha: ${{ steps.changes.outputs.comparison_base_sha }}")
     );
     assert!(workflow.contains("BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}"));
+    assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}"));
+    assert!(workflow.contains("\"${controller[@]}\" ci standalone-locks --locked"));
     assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
+}
+
+#[test]
+fn product_preflight_uses_the_trusted_controller_for_behind_candidates() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+    assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
+    assert!(workflow.contains(
+        "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci standalone-locks --locked"
+    ));
+    assert!(!workflow.contains("run: cargo xtask ci standalone-locks --locked"));
 }
 
 #[test]
