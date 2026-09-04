@@ -257,22 +257,34 @@ mod tests {
         let last = request(&server, 1, "conduit.intent/remove-form@1");
         let last: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&last).unwrap()).unwrap();
+        let workbench = last.body_workbench.as_ref().unwrap();
         assert_eq!(
             last.interaction.last_disposition.as_deref(),
-            Some("Refused(ActionUnavailable)")
+            Some("Succeeded")
         );
-        assert_eq!(last.body_workbench.unwrap().current["workload_revision"], 1);
+        assert_eq!(workbench.current["workload_revision"], 2);
+        assert!(workbench.current["active_forms"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+        assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 6);
+        let navigation = last.navigation.as_ref().unwrap();
+        assert_eq!(
+            navigation.cursor.place,
+            conduit_presentation::PresentationPlace::Body
+        );
+        assert_eq!(navigation.navigation.places.len(), 1);
 
-        let add = request(&server, 1, "conduit.intent/add-form@1");
+        let add = request(&server, 2, "conduit.intent/add-form@1");
         let added: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&add).unwrap()).unwrap();
         let workbench = added.body_workbench.unwrap();
         assert_eq!(workbench.body_id, body_id);
-        assert_eq!(workbench.current["workload_revision"], 2);
+        assert_eq!(workbench.current["workload_revision"], 3);
         assert_eq!(
             workbench.current["active_forms"].as_array().unwrap().len(),
-            2
+            1
         );
-        assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 6);
+        assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 7);
     }
 }

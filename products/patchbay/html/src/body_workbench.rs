@@ -306,19 +306,9 @@ fn workbench_presentation(
             target: form_identity.clone(),
             label: "Remove from Body".into(),
             disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: match (&evidence.body.state, workset.len()) {
-                (conduit_body::BodyState::Lulled, count) if count > 1 => {
-                    PresentationActionAvailability::Available
-                }
-                (conduit_body::BodyState::Lulled, _) => {
-                    PresentationActionAvailability::Unavailable {
-                        reason_code: "last-active-form".into(),
-                        explanation:
-                            "Patchbay cannot yet navigate an idle Body with no active Forms."
-                                .into(),
-                    }
-                }
-                (conduit_body::BodyState::Awake { .. }, _) => {
+            availability: match &evidence.body.state {
+                conduit_body::BodyState::Lulled => PresentationActionAvailability::Available,
+                conduit_body::BodyState::Awake { .. } => {
                     PresentationActionAvailability::Unavailable {
                         reason_code: "body-awake".into(),
                         explanation: "Lull the Body before changing its active Form workload."
