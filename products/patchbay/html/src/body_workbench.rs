@@ -270,11 +270,14 @@ fn workbench_presentation(
         accessibility_name: format!("Body {}", evidence.friendly_name),
     }];
     let mut relationships = Vec::new();
-    let mut properties = vec![identity_property(
-        &body_identity,
-        "body-id",
-        evidence.body_id.as_str(),
-    )];
+    let mut properties = vec![
+        identity_property(&body_identity, "body-id", evidence.body_id.as_str()),
+        PresentationProperty {
+            subject: body_identity.clone(),
+            name: "workload-revision".into(),
+            value: PresentationPropertyValue::Count(evidence.body.workload_revision),
+        },
+    ];
     let mut form_identities = Vec::with_capacity(workset.len());
     for form in workset.forms() {
         let form_identity = format!("form/{}", form.checked_form_id.as_str());
@@ -305,9 +308,10 @@ fn workbench_presentation(
     let mut text = vec![PresentationText {
         subject: body_identity.clone(),
         text: format!(
-            "{} is a durable Body running {} current Form(s).",
+            "{} is a durable Body running {} current Form(s) at workload revision {}.",
             evidence.friendly_name,
             workset.len(),
+            evidence.body.workload_revision,
         ),
     }];
     for part in &evidence.membership.parts {

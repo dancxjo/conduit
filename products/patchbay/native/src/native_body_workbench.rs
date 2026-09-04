@@ -123,9 +123,10 @@ impl NativeBodyWorkbench {
             state_text: self.current.status_line.clone(),
             detail: self.current.placement_line.into(),
             exact_basis: format!(
-                "body={} evidence-revision={} active-forms={}",
+                "body={} evidence-revision={} workload-revision={} active-forms={}",
                 self.current.body_id.as_str(),
                 self.evidence_revision,
+                self.current.workload_revision,
                 self.current.active_forms.len(),
             ),
             actions: vec![LifecycleFlowAction {
@@ -196,6 +197,7 @@ impl NativeBodyWorkbench {
         if exact {
             lines.extend([
                 format!("EXACT evidence-revision={}", self.evidence_revision),
+                format!("EXACT workload-revision={}", self.current.workload_revision),
                 format!("EXACT body={}", self.current.body_id.as_str()),
                 format!("EXACT active-forms={}", self.current.active_forms.len()),
                 format!("EXACT evidence-bytes={}", self.encoded_evidence.len()),

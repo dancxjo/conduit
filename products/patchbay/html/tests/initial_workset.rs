@@ -48,6 +48,12 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
         workbench.current["active_forms"].as_array().unwrap().len(),
         3
     );
+    assert_eq!(workbench.current["workload_revision"], 0);
+    assert!(snapshot.presentation.properties.iter().any(|property| {
+        property.subject == format!("body/{}", body.body_id.as_str())
+            && property.name == "workload-revision"
+            && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
+    }));
     let visible_forms = snapshot
         .presentation
         .subjects

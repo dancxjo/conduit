@@ -21,6 +21,7 @@ pub struct CurrentBodyFrame {
     pub evidence_revision: u64,
     pub body_id: conduit_body::BodyId,
     pub friendly_name: String,
+    pub workload_revision: u64,
     pub active_forms: Vec<CurrentBodyForm>,
     pub lifecycle: CurrentBodyLifecycle,
     pub admitted_parts: usize,
@@ -138,7 +139,8 @@ impl CurrentBodyFrame {
             CurrentBodyLifecycle::Awake { .. } => "Awake",
         };
         let status_line = format!(
-            "{lifecycle_label} · {} {} · {} current {} · physical Host classification not evidenced",
+            "{lifecycle_label} · workload revision {} · {} {} · {} current {} · physical Host classification not evidenced",
+            evidence.body.workload_revision,
             admitted_parts,
             plural(admitted_parts, "Part", "Parts"),
             current_hosts.len(),
@@ -154,6 +156,7 @@ impl CurrentBodyFrame {
             evidence_revision,
             body_id: evidence.body_id.clone(),
             friendly_name: evidence.friendly_name.clone(),
+            workload_revision: evidence.body.workload_revision,
             active_forms: evidence
                 .body
                 .workset
