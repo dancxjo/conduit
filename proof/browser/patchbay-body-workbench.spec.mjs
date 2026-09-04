@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
+import { startPresenceProbe } from "./browser-presence-support.mjs";
 
 let server;
 let hostedTruth;
 
-async function openWorkbench(page, entrance) {
-  server = spawn("target/debug/patchbay-html", ["--body-workbench-fixture", entrance], {
+async function openWorkbench(page, entrance, extraArguments = []) {
+  server = spawn("target/debug/patchbay-html", ["--body-workbench-fixture", entrance, ...extraArguments], {
     cwd: new URL("../..", import.meta.url).pathname,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -25,6 +26,20 @@ async function openWorkbench(page, entrance) {
   await expect(page.locator('[data-application-key="product-status"]')).toContainText("Presentation revision");
   return url;
 }
+
+test("an invited browser remains outside the Body until explicit join", async ({ page }) => {
+  const probe = await startPresenceProbe();
+  await openWorkbench(page, "external", ["--body-invitation", probe.url]);
+  await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeVisible();
+  await expect(page.locator("#body-membership-status")).toContainText("not a member");
+  expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
+  expect(probe.output()).not.toContain("admitted");
+  await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
+  await expect(page.locator("#body-membership-status")).toContainText("admitted");
+  await page.evaluate(() => globalThis.__patchbayMembership.close());
+  probe.process.kill();
+});
 
 test.afterEach(() => server?.kill());
 
