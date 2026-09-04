@@ -251,10 +251,8 @@ fn collect_entries(
     paths: &[&str],
     entries: &mut BTreeSet<String>,
 ) -> Result<(), String> {
-    let mut command = Command::new("git");
-    command
-        .current_dir(root)
-        .args(["ls-tree", "-r", "-z", tree, "--"]);
+    let mut command = git_command(root);
+    command.args(["ls-tree", "-r", "-z", tree, "--"]);
     command.args(paths);
     let output = command
         .output()
@@ -357,8 +355,7 @@ enum MergeTree {
 }
 
 fn merge_tree(root: &Path, base: &str, head: &str) -> Result<MergeTree, String> {
-    let output = Command::new("git")
-        .current_dir(root)
+    let output = git_command(root)
         .args(["merge-tree", "--write-tree", base, head])
         .output()
         .map_err(|error| format!("run git merge-tree: {error}"))?;
@@ -382,8 +379,7 @@ fn merge_tree(root: &Path, base: &str, head: &str) -> Result<MergeTree, String> 
 }
 
 fn git_text(root: &Path, args: &[&str]) -> Result<String, String> {
-    let output = Command::new("git")
-        .current_dir(root)
+    let output = git_command(root)
         .args(args)
         .output()
         .map_err(|error| format!("run git {}: {error}", args.join(" ")))?;
@@ -394,6 +390,15 @@ fn git_text(root: &Path, args: &[&str]) -> Result<String, String> {
         .map_err(|_| "git emitted non-UTF-8".to_owned())?
         .trim()
         .to_owned())
+}
+
+fn git_command(root: &Path) -> Command {
+    let mut command = Command::new("git");
+    command
+        .current_dir(root)
+        .arg("-c")
+        .arg(format!("safe.directory={}", root.display()));
+    command
 }
 
 fn command_error(label: &str, output: &Output) -> String {
