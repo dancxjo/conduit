@@ -139,6 +139,8 @@ async function renderPage(index, routeChange = "none") {
   runnerCount = 0;
   chapter.replaceChildren();
   renderMarkdown(guidedPages[index]);
+  chapter.scrollTop = 0;
+  if (routeChange === "push") chapter.querySelector("h1")?.focus({ preventScroll: true });
   navigation.render(currentPage, guidedPages.length, running);
   document.title = (chapter.querySelector("h1")?.textContent ?? "Tour") + " · Tour";
 }
@@ -219,6 +221,7 @@ function renderMarkdown(markdown) {
     } else if (line.startsWith("# ")) {
       flush();
       const heading = document.createElement("h1");
+      heading.tabIndex = -1;
       appendInlineMarkdown(heading, line.slice(2));
       copy.append(heading);
     } else if (line.startsWith("## ")) {
