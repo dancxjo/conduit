@@ -31,13 +31,22 @@ test("duplicate current-head events retain the established run and retire later 
   assert.deepEqual(duplicateCurrentCandidateRuns(duplicates, 7, current).map(({ id }) => id), [2]);
 });
 
-test("a successful exact-head run retires every redundant active copy", () => {
+test("historical success never retires the sole active aggregate-gate run", () => {
   const runs = [
     { id: 1, event: "pull_request", name: "check", status: "completed", conclusion: "success", head_sha: current, pull_requests: [{ number: 7 }] },
     { id: 2, event: "pull_request", name: "check", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
     { id: 3, event: "pull_request", name: "book-pr-proof", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
   ];
-  assert.deepEqual(duplicateCurrentCandidateRuns(runs, 7, current).map(({ id }) => id), [2]);
+  assert.deepEqual(duplicateCurrentCandidateRuns(runs, 7, current), []);
+});
+
+test("historical success still deduplicates multiple active runs to one survivor", () => {
+  const runs = [
+    { id: 1, event: "pull_request", name: "check", status: "completed", conclusion: "success", head_sha: current, pull_requests: [{ number: 7 }] },
+    { id: 2, event: "pull_request", name: "check", status: "in_progress", head_sha: current, pull_requests: [{ number: 7 }] },
+    { id: 3, event: "pull_request", name: "check", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
+  ];
+  assert.deepEqual(duplicateCurrentCandidateRuns(runs, 7, current).map(({ id }) => id), [3]);
 });
 
 test("cancels each exact superseded run and reports immutable provenance", async () => {

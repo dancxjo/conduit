@@ -28,9 +28,11 @@ export function duplicateCurrentCandidateRuns(runs, pullNumber, currentHead) {
         && Array.isArray(run.pull_requests)
         && run.pull_requests.some(({ number }) => number === pullNumber))
       .sort((left, right) => left.id - right.id);
-    const completedSuccess = matching.some((run) => run.status === "completed" && run.conclusion === "success");
     const active = matching.filter((run) => ACTIVE.has(run.status));
-    retired.push(...(completedSuccess ? active : active.slice(1)));
+    // A completed receipt may be reusable, but canceling the only active run
+    // replaces GitHub's stable required check with a cancelled conclusion.
+    // Keep one current lifecycle run to publish the aggregate gate.
+    retired.push(...active.slice(1));
   }
   return retired;
 }
