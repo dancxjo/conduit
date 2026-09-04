@@ -152,6 +152,12 @@ Merged branches are retired by repository machinery rather than GitHub's immedia
 
 Branch protection's stable `admission` context is the final lightweight job in the reconciliation workflow, not an ad hoc check run racing unrelated check-suite completion. Even when every proof is inherited, reconciliation reaches that job, publishes a separately named `admission-evidence` detail record, retires its temporary integration ref, and lets the job's own terminal result satisfy protection. Duplicate dispatches do not cancel one another, so a later canceled suite cannot replace the established success merely as bookkeeping.
 
+When a duplicate candidate workflow is deliberately cancelled, its aggregate
+`check` and `products-proof` joins do not manufacture new failure records while
+the cancellation propagates. Genuine dependency failures still reach those
+joins and fail normally; only an explicit workflow cancellation suppresses the
+redundant terminal aggregate.
+
 The repository's `cargo xtask` alias first enters the dependency-light
 `conduit-xtask-dispatch`. The CI identity operations (`plan`, `candidate`,
 `reconcile`, `reconcile-product`, and `attest-success`) use the same typed Rust sources there. At

@@ -16,6 +16,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         .lines()
         .find(|line| line.trim_start().starts_with("needs:"))
         .expect("required check declares its proof join");
+    assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     for aggregate in [
         "classify",
         "workspace-check",
@@ -92,7 +93,7 @@ fn required_product_gate_uses_the_lightweight_automation_lane() {
         .nth(1)
         .expect("locate the stable required product job");
 
-    assert!(required_gate.contains("if: always()"));
+    assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     assert!(required_gate.contains("runs-on: ubuntu-slim"));
     for result in [
         "TOUR_PATCHBAY_RESULT",
