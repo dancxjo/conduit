@@ -108,6 +108,28 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 }
 
 #[test]
+fn product_descendants_use_explicit_direct_result_admission() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let browser = workflow
+        .split("\n  browser-proof:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
+        .expect("locate browser proof job");
+    let carrier = workflow
+        .split("\n  pages-carrier:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  products-proof:\n").next())
+        .expect("locate Pages carrier job");
+
+    assert!(browser.contains("if: always() && needs.products-stage.result == 'success'"));
+    assert!(carrier.contains(
+        "if: always() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'"
+    ));
+}
+
+#[test]
 fn stacked_diff_base_does_not_select_the_controller_version() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow =

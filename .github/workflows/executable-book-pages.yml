@@ -593,6 +593,7 @@ jobs:
 
   browser-proof:
     needs: products-stage
+    if: always() && needs.products-stage.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     container:
@@ -663,6 +664,7 @@ jobs:
 
   pages-carrier:
     needs: [products-stage, browser-proof]
+    if: always() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
