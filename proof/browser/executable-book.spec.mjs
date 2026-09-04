@@ -1803,15 +1803,47 @@ test("Tour navigation preserves executable drafts without owning lifecycle contr
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   const listing = page.locator(".runner textarea");
-  const edited = (await listing.inputValue()).replace('"make this loud"', '"reader-ready"');
+  const canonical = await listing.inputValue();
+  const canonicalIdentity = await page.locator(".runner .compact-patchbay").getAttribute("data-source-document-id");
+  const edited = canonical.replace('"make this loud"', '"reader-ready"');
   await listing.fill(edited);
+  await expect(page.locator(".runner .compact-patchbay")).not.toHaveAttribute("data-source-document-id", canonicalIdentity);
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Previous" }).click();
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   await expect(page.locator(".runner textarea")).toHaveValue(edited);
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
+  await page.getByRole("button", { name: "Restore canonical source" }).click();
+  await expect(page.locator(".runner textarea")).toHaveValue(canonical);
+  await expect(page.locator(".runner textarea")).toBeFocused();
+  await expect(page.locator(".runner .compact-patchbay")).toHaveAttribute("data-source-document-id", canonicalIdentity);
+  await expect(page.locator('[data-application-key="play-status"]')).toHaveText(
+    "Canonical source restored. No Play is active.",
+  );
+  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.reload();
+  await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
+  await expect(page.locator(".runner textarea")).toHaveValue(canonical);
   await expect(page.getByRole("button", { name: "Reset this page" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Revisit birth page" })).toHaveCount(0);
+});
+
+test("restoring canonical source cancels the active Play and clears stale run evidence", async ({ page }) => {
+  await openStep(page, 2);
+  const runner = page.locator(".runner");
+  const listing = runner.locator("textarea");
+  const canonical = await listing.inputValue();
+  await listing.fill(`${canonical}\n`);
+  await runner.getByRole("button", { name: "Run" }).click();
+  await expect(runner.locator(".morse")).toHaveText("0");
+  await runner.getByRole("button", { name: "Restore canonical source" }).click();
+  await expect(listing).toHaveValue(canonical);
+  await expect(runner.locator(".morse")).toHaveText("ready");
+  await expect(runner.locator(".run-identities")).toContainText("none since canonical source was restored");
+  await page.waitForTimeout(650);
+  await expect(runner.locator('[data-application-key="play-status"]')).toHaveText(
+    "Canonical source restored. No Play is active.",
+  );
 });
 
 test("unsupported capability and type mismatch remain ordinary pre-Play refusals", async ({ page }) => {

@@ -22,6 +22,20 @@ export function createBookRunnerStatus(presentation, slot, initialText) {
   return createBookStatus(presentation, slot, "play-status", initialText);
 }
 
+export function restoreBookRunnerDraft({ runner, textarea, source, sourceKey, readingState, syntaxEditor, cancel, refresh }) {
+  cancel();
+  readingState.drafts.delete(sourceKey);
+  readingState.persist();
+  textarea.value = source;
+  syntaxEditor.render();
+  refresh(source);
+  runner.querySelector(".morse").textContent = "ready";
+  runner.querySelector(".indicator")?.setAttribute("aria-label", "Indicator off");
+  runner.evidence.clearRun();
+  runner.playStatus.ordinary("Canonical source restored. No Play is active.");
+  textarea.focus({ preventScroll: true });
+}
+
 export function createBookRunnerField(presentation, slot, listingId, label, source, onInput) {
   let revision = 0;
   presentation.present(slot, {
@@ -97,6 +111,12 @@ export function createBookEvidenceTables(presentation, exactSlot, runSlot) {
     appendRun(entries) {
       runEntries.push(...entries);
       presentDefinitions(presentation, runSlot, ++runRevision, "Latest run identities", "run", runEntries);
+    },
+    clearRun() {
+      runEntries = [];
+      presentDefinitions(presentation, runSlot, ++runRevision, "Latest run identities", "run", [
+        ["Latest run", "none since canonical source was restored"],
+      ]);
     },
   });
 }

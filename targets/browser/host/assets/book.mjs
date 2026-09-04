@@ -2,7 +2,7 @@ import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { conceptualTourStage, createTourStage, openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions, createBookWorkspace } from "./book-navigation.mjs";
-import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus } from "./book-runner-presentation.mjs";
+import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus, restoreBookRunnerDraft } from "./book-runner-presentation.mjs";
 import { createProductMasthead } from "./product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
 import { createBookRouting, parseBookPages } from "./book-routing.mjs";
@@ -437,10 +437,15 @@ function createRunner(source, recursive = false, presentation = {}) {
     refreshCompactPatchbay(runner, value, recursive);
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
-  attachConduitSyntaxEditor(textarea, host.runtime);
+  const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
   runner.actionControls = createBookRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
+    () => restoreBookRunnerDraft({
+      runner, textarea, source, sourceKey, readingState, syntaxEditor,
+      cancel: () => { if (running && activeRunner === runner) stopListing(runner); },
+      refresh: (value) => refreshCompactPatchbay(runner, value, recursive),
+    }),
   );
   runner.playStatus = createBookRunnerStatus(
     runnerPresentation, statusSlot, "Edit the message or timing, then run it.",
@@ -495,10 +500,15 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
     },
   );
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
-  attachConduitSyntaxEditor(textarea, host.runtime);
+  const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
   runner.actionControls = createBookRunnerActions(
     runnerPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),
+    () => restoreBookRunnerDraft({
+      runner, textarea, source, sourceKey, readingState, syntaxEditor,
+      cancel: () => { if (running && activeRunner === runner) stopListing(runner); },
+      refresh: (value) => refreshCompactPatchbay(runner, value, false),
+    }),
   );
   runner.playStatus = createBookRunnerStatus(
     runnerPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
