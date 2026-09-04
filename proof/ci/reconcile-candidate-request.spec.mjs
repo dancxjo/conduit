@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { publishCandidateResults, resolveAndPublishInherited, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
 
@@ -7,6 +8,14 @@ const base = "a".repeat(40);
 const repository = "dancxjo/conduit";
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const pull = (head = candidate) => ({ state: "open", head: { sha: head }, base: { sha: base, repo: { full_name: repository } } });
+
+test("an authoritative empty workspace plan skips its matrix without weakening classifier failure", async () => {
+  const workflow = await readFile(new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
+  assert.match(workflow, /needs\.classify\.outputs\.workspace_matrix != '\[\]'/);
+  assert.match(workflow, /WORKSPACE_MATRIX: \$\{\{ needs\.classify\.outputs\.workspace_matrix \}\}/);
+  assert.match(workflow, /if test "\$WORKSPACE_MATRIX" = '\[\]'; then\s+test "\$WORKSPACE_RESULT" = skipped/);
+  assert.match(workflow, /test "\$CLASSIFY_RESULT" = success/);
+});
 
 test("inherits only exact successful GitHub Actions aggregate evidence", () => {
   const selected = successfulLaneEvidence([
