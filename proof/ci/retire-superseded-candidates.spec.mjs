@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ancestorStackCandidateRuns,
   duplicateCurrentCandidateRuns,
   retireSupersededCandidates,
   supersededCandidateRuns,
@@ -31,6 +32,22 @@ test("duplicate current-head events retain the established run and retire later 
   }));
   assert.deepEqual(supersededCandidateRuns(duplicates, 7, current), []);
   assert.deepEqual(duplicateCurrentCandidateRuns(duplicates, 7, current).map(({ id }) => id), [2]);
+});
+
+test("a cumulative tip retires active expensive runs for exact ancestor candidates only", () => {
+  const members = [
+    { number: 5, head_ref: "victor/one", head_sha: "1".repeat(40) },
+    { number: 6, head_ref: "victor/two", head_sha: "2".repeat(40) },
+    { number: 7, head_ref: "victor/tip", head_sha: current },
+  ];
+  const runs = [
+    { id: 1, event: "pull_request", name: "check", status: "in_progress", head_sha: members[0].head_sha, pull_requests: [{ number: 5 }] },
+    { id: 2, event: "pull_request", name: "book-and-creche-products", status: "queued", head_sha: members[1].head_sha, pull_requests: [] },
+    { id: 3, event: "pull_request", name: "check", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
+    { id: 4, event: "pull_request", name: "check", status: "completed", head_sha: members[0].head_sha, pull_requests: [{ number: 5 }] },
+    { id: 5, event: "pull_request", name: "check", status: "queued", head_sha: members[0].head_sha, pull_requests: [{ number: 99 }] },
+  ];
+  assert.deepEqual(ancestorStackCandidateRuns(runs, members, 7).map(({ id }) => id), [1, 2]);
 });
 
 test("historical success never retires the sole active aggregate-gate run", () => {

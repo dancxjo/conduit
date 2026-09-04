@@ -15,6 +15,7 @@ on:
 permissions:
   actions: read
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
@@ -32,11 +33,14 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ steps.changes.outputs.docs_only }}
-      reason: ${{ steps.changes.outputs.reason }}
-      base_sha: ${{ steps.changes.outputs.base_sha }}
-      head_sha: ${{ steps.changes.outputs.head_sha }}
-      comparison_base_sha: ${{ steps.changes.outputs.comparison_base_sha }}
+      docs_only: ${{ steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
+      reason: ${{ steps.slice.outputs.reason || steps.changes.outputs.reason }}
+      base_sha: ${{ steps.slice.outputs.base_sha || steps.changes.outputs.base_sha }}
+      head_sha: ${{ steps.slice.outputs.head_sha || steps.changes.outputs.head_sha }}
+      comparison_base_sha: ${{ steps.slice.outputs.comparison_base_sha || steps.changes.outputs.comparison_base_sha }}
+      stack_role: ${{ steps.stack.outputs.role || 'independent' }}
+      stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
+      stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CHECKOUT_SHA }}
       controller_sha: ${{ steps.controller.outputs.sha }}
       esp32_required: ${{ steps.impact.outputs.esp32_required }}
       esp32_matrix: ${{ steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
@@ -76,23 +80,68 @@ jobs:
         run: |
           git fetch --no-tags origin "$CONTROLLER_SHA"
           git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+      - name: Classify this immutable candidate within its open PR stack
+        id: stack
+        if: github.event_name == 'pull_request' && inputs.candidate_sha == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          CONDUIT_STACK_ROLE_OUT: target/ci-plans/pr-stack-role.json
+        run: |
+          classifier="$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+          if test -f "$classifier"; then
+            mkdir -p target/ci-plans
+            node "$classifier"
+          else
+            echo 'role=independent' >> "$GITHUB_OUTPUT"
+            echo 'reason=trusted-controller-has-no-stack-classifier' >> "$GITHUB_OUTPUT"
+            echo 'Trusted controller predates stack classification; proving conservatively.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain cheap exact slice evidence for an intermediate PR
+        id: slice
+        if: steps.stack.outputs.role == 'intermediate'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git diff --check "$BASE_SHA" "$HEAD_SHA"
+          echo 'docs_only=true' >> "$GITHUB_OUTPUT"
+          echo 'reason=stacked-intermediate-slice' >> "$GITHUB_OUTPUT"
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "comparison_base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          printf 'Intermediate slice `%s..%s` is covered by cumulative tip PR #%s at `%s`. Expensive proof is intentionally omitted.\n' \
+            "$BASE_SHA" "$HEAD_SHA" '${{ steps.stack.outputs.tip_pr }}' '${{ steps.stack.outputs.tip_sha }}' >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain immutable intermediate slice provenance
+        if: steps.stack.outputs.role == 'intermediate'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-slice-${{ github.event.pull_request.head.sha }}
+          path: target/ci-plans/pr-stack-role.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Classify exact change set
         id: changes
+        if: steps.stack.outputs.role != 'intermediate'
         env:
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: scripts/ci/classify-docs-only.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
       - name: Validate documentation diff
-        if: steps.changes.outputs.docs_only == 'true'
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only == 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
-      - uses: dtolnay/rust-toolchain@stable
-        if: steps.changes.outputs.docs_only != 'true'
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+      - name: Verify the exact generic Rust toolchain before proof fan-out
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        run: cargo +1.98.1 xtask ci rust-toolchain-preflight --locked
       - name: Plan exact CI impact
         id: impact
-        if: steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
@@ -109,13 +158,13 @@ jobs:
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
       - name: Verify candidate lifecycle controller contracts
-        if: steps.impact.outputs.ci_controller_required == 'true'
+        if: steps.stack.outputs.role != 'intermediate' && steps.impact.outputs.ci_controller_required == 'true'
         run: >-
           node --test
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
       - name: Verify the final result gate truth table
-        if: steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
         env:
           CONDUIT_CHECK_WORKFLOW: ${{ github.workspace }}/.github/workflows/check.yml
         run: |
@@ -125,7 +174,7 @@ jobs:
           fi
           node --test "$proof"
       - name: Fingerprint immutable candidate proof inputs
-        if: steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
@@ -137,7 +186,7 @@ jobs:
             --json-out target/ci-plans/ci-proof-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Fingerprint prospective integration proof inputs
-        if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'merge_group'
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && github.event_name == 'merge_group'
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
@@ -146,7 +195,7 @@ jobs:
           --json-out target/ci-plans/ci-proof-plan.json
           --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the exact CI impact plan
-        if: steps.impact.outcome == 'success'
+        if: steps.stack.outputs.role != 'intermediate' && steps.impact.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: ci-plan-${{ steps.changes.outputs.head_sha }}
@@ -294,7 +343,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown,thumbv6m-none-eabi
       - uses: Swatinem/rust-cache@v2
@@ -322,7 +371,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Materialize the trusted CI controller outside the candidate workspace
         if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         env:
@@ -359,7 +408,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Install the pinned ESP32-C3 Rust toolchain
         if: matrix.target == 'c3'
         uses: dtolnay/rust-toolchain@1.91.1
@@ -400,9 +449,9 @@ jobs:
           shared-key: esp32-${{ matrix.target }}-v4
       - name: Check the locked standalone fabrication package
         if: matrix.target == 'wroom'
-        run: cargo +stable xtask esp32-firmware check --locked
+        run: cargo +1.98.1 xtask esp32-firmware check --locked
       - name: Build the exact ESP32 firmware image
-        run: cargo +stable xtask esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
+        run: cargo +1.98.1 xtask esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:
@@ -593,7 +642,7 @@ jobs:
           expected-digest: ${{ needs.browser-tools.outputs.artifact_digest }}
       - name: Install the exact browser-tool bundle without mirror access
         run: scripts/ci/browser-tools.sh install target/browser-tools/tool-bundle
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
@@ -656,7 +705,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -710,9 +759,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         if: matrix.proof == 'kernel' || matrix.proof == 'front-door' || matrix.proof == 'product-journey'
         with:
           components: rust-src
@@ -786,7 +835,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -830,7 +879,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none

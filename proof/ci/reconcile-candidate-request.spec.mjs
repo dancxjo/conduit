@@ -21,8 +21,8 @@ test("an authoritative empty workspace plan skips its matrix without weakening c
   const workflow = await readFile(new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
   assert.match(workflow, /needs\.classify\.outputs\.workspace_matrix != '\[\]'/);
   assert.match(workflow, /WORKSPACE_MATRIX: \$\{\{ needs\.classify\.outputs\.workspace_matrix \}\}/);
-  assert.match(workflow, /if test "\$WORKSPACE_MATRIX" = '\[\]'; then\s+test "\$WORKSPACE_RESULT" = skipped/);
-  assert.match(workflow, /test "\$CLASSIFY_RESULT" = success/);
+  assert.match(workflow, /if test "\$WORKSPACE_MATRIX" = '\[\]'; then require_result workspace "\$WORKSPACE_RESULT" skipped/);
+  assert.match(workflow, /require_result classify "\$CLASSIFY_RESULT" success/);
 });
 
 test("inherits only exact successful GitHub Actions aggregate evidence", () => {
