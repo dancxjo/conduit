@@ -192,6 +192,46 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
 }
 
 #[test]
+fn merged_branch_retirement_is_controller_work_not_product_fabrication() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/retire-merged-pr-branch.yml".to_owned(),
+            "docs/ci-candidate-evidence.md".to_owned(),
+            "proof/ci/retire-merged-pr-branch.spec.mjs".to_owned(),
+            "scripts/ci/retire-merged-pr-branch.mjs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.ci_controller_proofs, ["ci.merged-branch-retirement"]);
+    assert_eq!(plan.changed_packages, ["conduit-xtask-dispatch", "xtask"]);
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.workspace_shards.values().any(|required| *required));
+
+    let incomplete = plan_for_paths(
+        &root,
+        vec![
+            "scripts/ci/retire-merged-pr-branch.mjs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(incomplete.full_fallback);
+}
+
+#[test]
 fn check_result_gate_contract_does_not_fabricate_products() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
