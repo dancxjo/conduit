@@ -48,7 +48,7 @@ async function writeFixtureEvidence(page) {
 
 test("an invited browser remains outside the Body until explicit join", async ({ page }) => {
   const evidencePath = await writeFixtureEvidence(page);
-  membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath]);
+  membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath, "--fresh-return"]);
   const patchbayUrl = await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
   const bodyId = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(async response => (await response.json()).body_workbench.body_id);
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeVisible();
@@ -175,8 +175,36 @@ test("an invited browser remains outside the Body until explicit join", async ({
     hostId: globalThis.__patchbayMembership.hostId,
     bootId: globalThis.__patchbayMembership.bootId,
   }))).toEqual(admittedIdentity);
-  await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Return this Host", exact: true })).toBeEnabled();
   await expect.poll(membershipProbe.output).toContain("left sequence=");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Return this Host", exact: true })).toBeVisible();
+  await expect(page.locator("#body-membership-status")).toHaveText("This durable browser Host belongs to the Body and can explicitly return with a fresh Boot.");
+  expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
+  await page.getByRole("button", { name: "Return this Host", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
+  await expect(page.locator("#body-membership-status")).toHaveText("Browser Host returned with a fresh current Boot.");
+  const returned = await page.evaluate(() => ({
+    hostId: globalThis.__patchbayMembership.hostId,
+    bootId: globalThis.__patchbayMembership.bootId,
+    credential: globalThis.__patchbayMembership.membershipCredential(),
+  }));
+  expect(returned.hostId).toBe(admittedIdentity.hostId);
+  expect(returned.bootId).not.toBe(admittedIdentity.bootId);
+  expect(returned.credential.part_id).toBe(membershipCredential.credential.part_id);
+  expect(returned.credential.credential_id).not.toBe(membershipCredential.credential.credential_id);
+  expect(returned.credential.boot_id).toBe(returned.bootId);
+  await expect.poll(async () => {
+    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+    return {
+      bodyId: snapshot.body_workbench.body_id,
+      evidenceRevision: snapshot.body_workbench.evidence_revision,
+      admittedParts: snapshot.body_workbench.current.admitted_parts,
+      currentHosts: snapshot.body_workbench.current.current_hosts.length,
+    };
+  }).toEqual({ bodyId, evidenceRevision: 4, admittedParts: 2, currentHosts: 2 });
+  await expect.poll(membershipProbe.output).toContain(`returned part=${returned.credential.part_id} host=${returned.hostId} boot=${returned.bootId}`);
+  await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
 });
 
 test("an invitation for a different Body refuses before admission", async ({ page }) => {

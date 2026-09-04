@@ -65,6 +65,35 @@ pub(super) fn wait_for_return_close(
             Ok(BrowserAdmissionIngress::PresenceRenewal { .. }) => {
                 return Err("returned renewal used a stale credential".into());
             }
+            Ok(BrowserAdmissionIngress::PresenceLeave {
+                credential_id,
+                body_id,
+                part_id,
+                host_id,
+                boot_id,
+                sequence,
+                ..
+            }) if credential_id == credential.credential_id
+                && body_id == credential.body_id
+                && part_id == credential.part_id
+                && host_id == credential.host_id
+                && boot_id == credential.boot_id =>
+            {
+                presence
+                    .lose_session(
+                        membership,
+                        &credential.part_id,
+                        session,
+                        monotonic_millis(clock)?,
+                        SignId::from("sign/browser-admission-probe/returned-explicit-leave"),
+                    )
+                    .map_err(|error| format!("record returned explicit leave: {error:?}"))?;
+                println!("returned-left sequence={sequence}");
+                return Ok(());
+            }
+            Ok(BrowserAdmissionIngress::PresenceLeave { .. }) => {
+                return Err("returned leave used a stale credential".into());
+            }
             Ok(_) => return Err("returned session frame was not a renewal".into()),
             Err(BrowserAdmissionSocketError::Transport(Transport(
                 ErrorKind::TimedOut | ErrorKind::WouldBlock,

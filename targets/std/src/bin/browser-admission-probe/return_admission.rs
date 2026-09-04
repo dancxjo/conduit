@@ -1,5 +1,6 @@
 use conduit_body::{
-    AdmissionManager, BodyMembership, HostPresenceTable, MembershipCredential, PartReturnProof,
+    AdmissionManager, BodyBiographyEvidence, BodyMembership, HostPresenceTable,
+    MembershipCredential, PartReturnProof,
 };
 use conduit_core::{LinkBindingId, SignId};
 use conduit_std_host::browser_admission::{
@@ -16,6 +17,7 @@ pub(super) fn accept_return(
     admission: &mut AdmissionManager,
     presence: &mut HostPresenceTable,
     membership: &mut BodyMembership,
+    biography: &mut BodyBiographyEvidence,
     credential: &MembershipCredential,
     clock: Instant,
     lease_millis: u64,
@@ -58,6 +60,8 @@ pub(super) fn accept_return(
     let proof = receive_return_proof(&mut socket)?;
     let return_session = LinkBindingId::from("line/browser-admission-probe/session-2");
     let observed_at_millis = monotonic_millis(clock)?;
+    let prior_membership_events = membership.events.len();
+    let biography_is_current = biography.membership == *membership;
     let (returned_credential, return_sequence, expires_at_millis) = commit_return_atomically(
         admission,
         membership,
@@ -84,6 +88,29 @@ pub(super) fn accept_return(
             credential: returned_credential.clone(),
         })
         .map_err(|error| format!("send renewed return credential: {error:?}"))?;
+    if biography_is_current {
+        let returned_event = membership
+            .events
+            .get(prior_membership_events)
+            .ok_or("browser return did not append membership evidence")?;
+        let biography_sequence = biography
+            .records
+            .last()
+            .and_then(|record| record.sequence.checked_add(1))
+            .ok_or("Body biography sequence exhausted")?;
+        biography
+            .append_membership_events(
+                membership.clone(),
+                &[(returned_event.change_id.clone(), biography_sequence)],
+            )
+            .map_err(|error| format!("append return biography: {error:?}"))?;
+        socket
+            .send(&BrowserAdmissionEgress::BiographyEvidence {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                evidence: Box::new(biography.clone()),
+            })
+            .map_err(|error| format!("send return biography evidence: {error:?}"))?;
+    }
     if let Err(error) = socket.send(&BrowserAdmissionEgress::PresenceAccepted {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         sequence: return_sequence,
