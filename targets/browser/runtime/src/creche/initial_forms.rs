@@ -16,6 +16,11 @@ struct BundledForm {
     source: String,
 }
 
+struct CheckedInventoryEntry {
+    source: String,
+    checked: conduit_form::CheckedSyntaxDocument,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct InitialFormSelection {
     pub(super) name: String,
@@ -35,6 +40,7 @@ pub(super) struct ReviewedFormInventory {
 pub(super) struct ReviewedForm {
     pub(super) name: String,
     pub(super) title: String,
+    pub(super) source: String,
     pub(super) source_document_id: String,
     pub(super) checked_form_id: String,
     pub(super) required_kinds: Vec<String>,
@@ -46,8 +52,8 @@ pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedFormInventory, 
         .as_str()
         .to_string();
     let mut forms = Vec::new();
-    for checked in &checked_documents {
-        for form in &checked.forms {
+    for entry in &checked_documents {
+        for form in &entry.checked.forms {
             let mut required_kinds: Vec<String> =
                 form.gears.iter().map(|gear| gear.kind.clone()).collect();
             required_kinds.sort();
@@ -55,7 +61,8 @@ pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedFormInventory, 
             forms.push(ReviewedForm {
                 name: form.name.clone(),
                 title: title(&form.name),
-                source_document_id: checked.source_document_id.as_str().to_string(),
+                source: entry.source.clone(),
+                source_document_id: entry.checked.source_document_id.as_str().to_string(),
                 checked_form_id: form.checked_form_id.as_str().to_string(),
                 required_kinds,
             });
@@ -85,12 +92,13 @@ pub(super) fn checked_workset(
     for selection in selected {
         let (checked, checked_form) = checked_documents
             .iter()
-            .find_map(|checked| {
-                checked
+            .find_map(|entry| {
+                entry
+                    .checked
                     .forms
                     .iter()
                     .find(|form| form.name == selection.name)
-                    .map(|form| (checked, form))
+                    .map(|form| (&entry.checked, form))
             })
             .ok_or_else(|| {
                 format!(
@@ -121,9 +129,14 @@ pub(super) fn checked_workset(
     Ok((workset, receipts))
 }
 
-fn check_inventory(source: &str) -> Result<Vec<conduit_form::CheckedSyntaxDocument>, String> {
+fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>, String> {
     let Ok(bundle) = serde_json::from_str::<ReviewedFormBundle>(source) else {
-        return check_source(source).map(|checked| vec![checked]);
+        return check_source(source).map(|checked| {
+            vec![CheckedInventoryEntry {
+                source: source.to_owned(),
+                checked,
+            }]
+        });
     };
     if bundle.schema != "conduit.creche/reviewed-form-bundle@1"
         || bundle.forms.is_empty()
@@ -155,7 +168,10 @@ fn check_inventory(source: &str) -> Result<Vec<conduit_form::CheckedSyntaxDocume
                 entry.slug
             ));
         }
-        checked.push(document);
+        checked.push(CheckedInventoryEntry {
+            source: entry.source,
+            checked: document,
+        });
     }
     Ok(checked)
 }

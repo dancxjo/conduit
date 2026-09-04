@@ -206,6 +206,7 @@ fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
             name => panic!("unexpected reviewed Form {name}"),
         };
         let individually_checked = super::initial_forms::check_source(canonical).unwrap();
+        assert_eq!(form.source, canonical);
         assert_eq!(
             form.source_document_id,
             individually_checked.source_document_id.as_str()
