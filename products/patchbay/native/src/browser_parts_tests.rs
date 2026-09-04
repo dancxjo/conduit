@@ -263,7 +263,12 @@ fn run_body_spawn_return(fault: Option<ReturnPreflightFault>) {
                 signature: proof.signature.to_vec(),
             },
         );
-        receive(&mut returned, &mut encoded)
+        let first = receive(&mut returned, &mut encoded);
+        if matches!(first, BrowserAdmissionEgress::Admitted { .. }) {
+            vec![first, receive(&mut returned, &mut encoded)]
+        } else {
+            vec![first]
+        }
     });
 
     let deadline = Instant::now() + Duration::from_secs(5);
@@ -309,9 +314,10 @@ fn run_body_spawn_return(fault: Option<ReturnPreflightFault>) {
         assert!(error.contains(fault.expected_error()), "{error}");
         assert_eq!(membership, membership_before);
         assert_eq!(coordinator.atomic_return_state_for_test(), state_before);
+        let frames = client.join().unwrap();
         assert!(matches!(
-            client.join().unwrap(),
-            BrowserAdmissionEgress::Refused { code, .. }
+            frames.as_slice(),
+            [BrowserAdmissionEgress::Refused { code, .. }]
                 if code == "return-presence-not-admissible"
         ));
         return;
@@ -324,8 +330,27 @@ fn run_body_spawn_return(fault: Option<ReturnPreflightFault>) {
     assert!(returned.contains("fresh presence sequence 2"));
     assert_eq!(membership.parts.len(), 1);
     assert_eq!(membership.parts[0].part_id, credential.part_id);
+    let frames = client.join().unwrap();
+    let [renewed, accepted] = frames.as_slice() else {
+        panic!("return did not emit renewed credential and presence acceptance");
+    };
+    let BrowserAdmissionEgress::Admitted {
+        credential: renewed,
+        ..
+    } = renewed
+    else {
+        panic!("return did not renew the membership credential");
+    };
+    assert_eq!(renewed.body_id, credential.body_id);
+    assert_eq!(renewed.part_id, credential.part_id);
+    assert_eq!(renewed.host_id, credential.host_id);
+    assert_eq!(
+        renewed.boot_id,
+        membership.parts[0].current.as_ref().unwrap().boot_id
+    );
+    assert_ne!(renewed.credential_id, credential.credential_id);
     assert!(matches!(
-        client.join().unwrap(),
+        accepted,
         BrowserAdmissionEgress::PresenceAccepted { sequence: 2, .. }
     ));
 }

@@ -11,29 +11,35 @@ pub(crate) struct PreparedReturnPresence {
     initial_response_lost_sign: SignId,
     session_sequence: u64,
     sign_sequence: u64,
+    credential_index: usize,
 }
 
 impl BrowserPresenceCoordinator {
     pub(crate) fn prepare_return(
         &self,
-        credential: &MembershipCredential,
+        prior_credential: &MembershipCredential,
+        returned_credential: &MembershipCredential,
         returned_membership: &BodyMembership,
     ) -> Result<PreparedReturnPresence, String> {
         if self.workers.len() == conduit_body::MAX_BODY_PARTS {
             return Err("browser presence worker capacity exhausted".into());
         }
-        if !self
+        let credential_index = self
             .credentials
             .iter()
-            .any(|retained| retained == credential)
+            .position(|retained| retained == prior_credential)
+            .ok_or("returned browser credential is not retained exactly")?;
+        if returned_credential.body_id != prior_credential.body_id
+            || returned_credential.part_id != prior_credential.part_id
+            || returned_credential.host_id != prior_credential.host_id
         {
-            return Err("returned browser credential is not retained exactly".into());
+            return Err("renewed browser credential changed durable membership identity".into());
         }
         let retained_lease = self
             .table
             .leases
             .iter()
-            .find(|lease| lease.part_id == credential.part_id)
+            .find(|lease| lease.part_id == prior_credential.part_id)
             .ok_or("returned browser Part has no retained presence lease")?;
         if retained_lease.state != HostPresenceState::Unavailable {
             return Err("returned browser presence lease is still available".into());
@@ -41,13 +47,13 @@ impl BrowserPresenceCoordinator {
         let returned_host = returned_membership
             .parts
             .iter()
-            .find(|part| part.part_id == credential.part_id)
+            .find(|part| part.part_id == prior_credential.part_id)
             .and_then(|part| part.current.as_ref())
             .ok_or("returned browser Part has no current membership Host")?;
-        if retained_lease.host_id != credential.host_id
-            || retained_lease.boot_id != credential.boot_id
+        if retained_lease.host_id != prior_credential.host_id
+            || retained_lease.boot_id != prior_credential.boot_id
             || retained_lease.host_id != returned_host.host_id
-            || retained_lease.boot_id != returned_host.boot_id
+            || returned_credential.boot_id != returned_host.boot_id
             || retained_lease.offer_generation != returned_host.offer_generation
         {
             return Err("returned browser presence lease identity drifted".into());
@@ -69,7 +75,7 @@ impl BrowserPresenceCoordinator {
             .ok_or("browser presence Sign sequence exhausted")?;
         let session_id = LinkBindingId::from(format!(
             "patchbay/browser-presence/{}/{}",
-            credential.credential_id.as_str(),
+            returned_credential.credential_id.as_str(),
             session_sequence
         ));
         let started_sign = presence_sign("started", started_sign_sequence);
@@ -79,7 +85,7 @@ impl BrowserPresenceCoordinator {
         table
             .start(
                 returned_membership,
-                &credential.part_id,
+                &returned_credential.part_id,
                 session_id.clone(),
                 sequence,
                 observed_at_millis,
@@ -90,7 +96,7 @@ impl BrowserPresenceCoordinator {
         let expires_at_millis = table
             .leases
             .iter()
-            .find(|lease| lease.part_id == credential.part_id)
+            .find(|lease| lease.part_id == returned_credential.part_id)
             .expect("preflighted returned lease is retained")
             .expires_at_millis;
 
@@ -99,7 +105,7 @@ impl BrowserPresenceCoordinator {
         loss_table
             .lose_session(
                 &mut loss_membership,
-                &credential.part_id,
+                &returned_credential.part_id,
                 &session_id,
                 observed_at_millis,
                 initial_response_lost_sign.clone(),
@@ -114,6 +120,7 @@ impl BrowserPresenceCoordinator {
             initial_response_lost_sign,
             session_sequence,
             sign_sequence,
+            credential_index,
         })
     }
 
@@ -136,9 +143,17 @@ impl BrowserPresenceCoordinator {
         self.table = prepared.table;
         self.session_sequence = prepared.session_sequence;
         self.sign_sequence = prepared.sign_sequence;
-        if let Err(error) =
-            send_accepted(&mut socket, prepared.sequence, prepared.expires_at_millis)
-        {
+        self.credentials[prepared.credential_index] = credential.clone();
+        let initial_response = socket
+            .send(&BrowserAdmissionEgress::Admitted {
+                protocol: BROWSER_ADMISSION_PROTOCOL,
+                credential: credential.clone(),
+            })
+            .map_err(debug("send renewed browser membership credential"))
+            .and_then(|()| {
+                send_accepted(&mut socket, prepared.sequence, prepared.expires_at_millis)
+            });
+        if let Err(error) = initial_response {
             self.table
                 .lose_session(
                     membership,
