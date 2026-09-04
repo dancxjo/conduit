@@ -1,4 +1,5 @@
 const LANES = ["check", "products-proof"];
+const ADMISSION_GATE = "admission";
 
 function exactIdentity(value, label) {
   if (!/^[0-9a-f]{40,64}$/.test(value ?? "")) throw new Error(`${label} must be an exact Git identity`);
@@ -64,25 +65,27 @@ export async function publishCandidateResults({ repository, candidateSha, checkI
     { name: "check", inherited: checkInherited, result: checkResult, evidenceUrl: checkEvidenceUrl },
     { name: "products-proof", inherited: productsInherited, result: productsResult, evidenceUrl: productsEvidenceUrl },
   ];
-  const published = [];
-  for (const lane of lanes) {
-    const conclusion = lane.inherited || lane.result === "success" ? "success" : "failure";
-    const body = {
-      name: lane.name, head_sha: candidateSha, status: "completed", conclusion,
-      external_id: `conduit.current-controller-reconciliation/v1:${candidateSha}:${lane.name}`,
-      details_url: runUrl,
-      output: {
-        title: lane.inherited ? "Inherited immutable candidate evidence" : `Current-controller ${lane.name} ${conclusion}`,
-        summary: lane.inherited
-          ? `Reused exact successful ${lane.name} evidence for unchanged candidate ${candidateSha}: ${lane.evidenceUrl}`
-          : `Current trusted workflow result for unchanged candidate ${candidateSha}: ${lane.result}. Run: ${runUrl}`,
-      },
-    };
-    const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
-    if (!response.ok) throw new Error(`publish ${lane.name} check failed: HTTP ${response.status}`);
-    published.push({ name: lane.name, conclusion, checkRunId: (await response.json()).id });
+  const conclusion = lanes.every((lane) => lane.inherited || lane.result === "success") ? "success" : "failure";
+  if (conclusion !== "success") {
+    const refused = lanes.filter((lane) => !lane.inherited && lane.result !== "success").map((lane) => `${lane.name}=${lane.result}`).join(", ");
+    throw new Error(`refuse admission because reconciliation did not succeed: ${refused}`);
   }
-  return published;
+  const laneSummary = lanes.map((lane) => {
+    if (lane.inherited) return `${lane.name}: inherited exact success from ${lane.evidenceUrl}`;
+    return `${lane.name}: current-controller execution ${lane.result}`;
+  }).join("\n");
+  const body = {
+    name: ADMISSION_GATE, head_sha: candidateSha, status: "completed", conclusion,
+    external_id: `conduit.current-controller-reconciliation/v2:${candidateSha}`,
+    details_url: runUrl,
+    output: {
+      title: "Exact candidate reconciliation admitted",
+      summary: `Current-controller admission for unchanged candidate ${candidateSha}.\n\n${laneSummary}\n\nRun: ${runUrl}`,
+    },
+  };
+  const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`publish ${ADMISSION_GATE} check failed: HTTP ${response.status}`);
+  return [{ name: ADMISSION_GATE, conclusion, checkRunId: (await response.json()).id }];
 }
 
 export async function resolveAndPublishInherited(options) {

@@ -35,17 +35,15 @@ test("stale candidate and another target repository fail before evidence lookup"
   await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, token: "test", request: async () => response({ ...pull(), base: { sha: base, repo: { full_name: "other/repository" } } }) }), /target repository/);
 });
 
-test("publishes stable exact-head checks and preserves inherited versus executed truth", async () => {
+test("refuses admission without publishing a sticky failed gate", async () => {
   const bodies = [];
-  const published = await publishCandidateResults({ repository, candidateSha: candidate,
+  await assert.rejects(() => publishCandidateResults({ repository, candidateSha: candidate,
     checkInherited: true, checkResult: "skipped", checkEvidenceUrl: "https://example.test/check",
     productsInherited: false, productsResult: "failure", productsEvidenceUrl: "",
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (_url, options) => { bodies.push(JSON.parse(options.body)); return response({ id: bodies.length + 100 }, 201); },
-  });
-  assert.deepEqual(published.map(({ name, conclusion }) => ({ name, conclusion })), [{ name: "check", conclusion: "success" }, { name: "products-proof", conclusion: "failure" }]);
-  assert.ok(bodies.every(({ head_sha }) => head_sha === candidate));
-  assert.equal(bodies[0].output.title, "Inherited immutable candidate evidence");
+  }), /refuse admission.*products-proof=failure/);
+  assert.equal(bodies.length, 0);
 });
 
 test("a published successful reconciliation is reusable by an identical later request", async () => {
@@ -57,7 +55,7 @@ test("a published successful reconciliation is reusable by an identical later re
   assert.ok(result.lanes["products-proof"]);
 });
 
-test("an all-inherited request publishes both gates without allocating a report job", async () => {
+test("an all-inherited request publishes admission without allocating a report job", async () => {
   const posts = [];
   const result = await resolveAndPublishInherited({
     repository, pullNumber: 7, candidateSha: candidate,
@@ -74,8 +72,8 @@ test("an all-inherited request publishes both gates without allocating a report 
       ] });
     },
   });
-  assert.equal(result.published.length, 2);
-  assert.deepEqual(posts.map(({ name }) => name), ["check", "products-proof"]);
+  assert.equal(result.published.length, 1);
+  assert.deepEqual(posts.map(({ name }) => name), ["admission"]);
   assert.ok(posts.every(({ conclusion }) => conclusion === "success"));
 });
 

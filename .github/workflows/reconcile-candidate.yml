@@ -93,7 +93,7 @@ jobs:
         with:
           ref: refs/heads/${{ github.event.repository.default_branch }}
           persist-credentials: false
-      - name: Publish stable required checks on the unchanged candidate
+      - name: Publish the reconciliation-owned admission gate
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -108,7 +108,7 @@ jobs:
         run: |
           set -o pipefail
           node scripts/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
-      - name: Summarize published exact-head gates
+      - name: Summarize the published exact-head admission
         run: |
           printf '## Published exact-head gates\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
           cat reconciliation-result.json >> "$GITHUB_STEP_SUMMARY"
