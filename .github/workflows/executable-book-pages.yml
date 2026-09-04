@@ -118,6 +118,44 @@ jobs:
       - name: Validate every standalone fabrication lock before machine fan-out
         run: cargo xtask ci standalone-locks --locked
 
+  tour-patchbay-proof:
+    needs: browser-runtimes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Install the pinned browser proof dependency
+        run: npm ci --ignore-scripts --prefer-offline
+      - name: Download the exact browser product runtimes
+        uses: actions/download-artifact@v6
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
+      - name: Stage only the Tour and its real embedded Patchbay
+        run: |
+          mkdir -p target/debug
+          cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          chmod 755 target/debug/conduit-browser-host
+          scripts/ci/stage-book-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+      - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/executable-book.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+          --grep
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
+
   avr-release:
     needs: plan
     if: needs.plan.outputs.required == 'true'
@@ -559,6 +597,7 @@ jobs:
       - name: Restore executable Host permission
         run: chmod 755 target/debug/conduit-browser-host
       - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
+        if: matrix.shard != 'tour'
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
         run: >-
@@ -568,6 +607,17 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Prove the remaining Tour surface in pinned Chromium
+        if: matrix.shard == 'tour'
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/executable-book.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+          --grep-invert
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
       - name: Retain the browser two-profile fabrication report
         if: matrix.shard == 'creche-machines'
         uses: actions/upload-artifact@v4
@@ -650,7 +700,7 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [plan, products-stage, browser-proof, pages-carrier]
+    needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -658,6 +708,7 @@ jobs:
         env:
           PRODUCT_REQUIRED: ${{ needs.plan.outputs.required }}
           PRODUCT_PROOFS: ${{ needs.plan.outputs.proofs }}
+          TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
@@ -666,6 +717,7 @@ jobs:
             echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
             exit 0
           fi
+          test "$TOUR_PATCHBAY_RESULT" = success
           test "$STAGE_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$CARRIER_RESULT" = success

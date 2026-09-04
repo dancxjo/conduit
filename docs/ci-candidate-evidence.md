@@ -87,3 +87,12 @@ therefore three separate explicit identities. No path executes candidate code
 with privileged credentials.
 
 The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.
+
+Product workflow dependencies follow consumed artifacts rather than the final
+deployment bundle. The Tour and its embedded real Patchbay consume the browser
+Host and Tour runtime, so that proof may start as soon as those exact artifacts
+exist. It does not wait for desktop, firmware, or ConduitOS fabrication. The
+Crèche machine proofs and final Pages carrier still wait for the complete staged
+catalog because they inspect or publish those payloads. The stable
+`products-proof` gate joins the distinct results without making the early proof
+depend on the later deployment barrier.
