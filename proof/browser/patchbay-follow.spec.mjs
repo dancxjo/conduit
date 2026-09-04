@@ -16,12 +16,15 @@ test("exact Gear realization FOLLOW crosses Program and Body then returns",async
     const url=await server.url;await page.goto(url);
     const before=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-palette").click();
-    const gear=page.locator('#subjects input[type="radio"][data-role="Gear"]').first();
+    const gear=page.locator('#subjects [data-application-component="choice-option-label"]')
+      .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]');
     const gearIdentity=await gear.getAttribute("data-subject");
     await gear.click();
+    await page.getByRole("button",{name:"Plan",exact:true}).click();
     await page.locator("#toggle-structured").click();
-    const follow=page.locator("#structured-navigator [data-follow]").filter({hasText:"Host:"}).first();
-    await expect(follow).toContainText("Follow Realizes");
+    await page.locator(`#structured-navigator input[type="radio"][data-subject="${gearIdentity.replaceAll('"','\\"')}"]`).click();
+    const follow=page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Host:/}).first();
+    await expect(follow).toBeVisible();
     await follow.click();
     await expect(page.locator("#lens-label")).toHaveText("BODY · PLAN");
     const followed=await(await fetch(`${url}/api/snapshot`)).json();
@@ -30,16 +33,16 @@ test("exact Gear realization FOLLOW crosses Program and Body then returns",async
     expect(followed.presentation.identity).toBe(before.presentation.identity);
     expect(followed.presentation.basis).toEqual(before.presentation.basis);
 
-    const reverse=page.locator("#structured-navigator [data-follow]").filter({hasText:"Gear:"}).first();
-    await expect(reverse).toContainText("Follow Realizes");
+    const reverse=page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Gear:.*hello\/upper/}).first();
+    await expect(reverse).toBeVisible();
     await reverse.click();
     await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");
-    await expect(page.locator(`#structured-navigator [data-subject="${gearIdentity.replaceAll('"','\\"')}"]`)).toBeChecked();
     const returned=await(await fetch(`${url}/api/snapshot`)).json();
+    expect(returned.navigation.cursor.focus).toBe(gearIdentity);
     expect(returned.presentation.identity).toBe(before.presentation.identity);
     expect(returned.presentation.basis).toEqual(before.presentation.basis);
 
-    await page.locator('[data-navigation-back="true"]').click();
+    await page.locator('[data-navigation-back="true"]').press("Enter");
     await expect(page.locator("#lens-label")).toHaveText("BODY · PLAN");
   } finally {
     server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");
