@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
 
 let entrance;
@@ -136,6 +137,7 @@ test("Crèche launches its exact admitted graph through bounded Host context", a
   expect(admission.paths.length).toBeLessThanOrEqual(64);
   expect(admission.paths).toContain("browser-host-identity.mjs");
   expect(admission.paths).toContain("creche-names.mjs");
+  expect(admission.paths).toContain("creche-form-selection.mjs");
   expect(admission.paths).toContain("application-syntax-presentation.mjs");
   expect(admission.paths).toContain("creche-browser-configuration.mjs");
   expect(admission.paths).toContain("targets/esp32/browser-deployment/rom-loader.mjs");
@@ -153,7 +155,7 @@ test("Crèche restores one validated Body session across same-browser reloads", 
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  await birth.getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page, birth);
   const bodyId = await birth.getAttribute("data-body-id");
   await page.getByRole("button", { name: "2. First Host" }).click();
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
@@ -202,7 +204,7 @@ test("Crèche leave, rejoin, revoke, and local finish preserve Body and Host dis
   entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await page.getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page);
   const bodyId = await page.locator(".body-birth-runner").getAttribute("data-body-id");
   await page.getByRole("button", { name: "2. First Host" }).click();
   await page.getByRole("button", { name: "Give this Body its first Host" }).click();
@@ -289,7 +291,7 @@ test("Crèche refuses changed durable Body evidence before restoring authority",
   entrance = await startStaticProduct("target/creche-product", "/conduit/creche/");
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await page.getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page);
   await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
   await page.evaluate(async () => {
     const storage = globalThis.__conduitBrowserApplication.storage;

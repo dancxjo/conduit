@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
+import { reviewAndBirth } from "./creche-test-actions.mjs";
 
 let entrance;
 
@@ -16,12 +17,12 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
-  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(3);
+  await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
   await expect(birth.locator('[data-application-key="program-field"]')).toHaveAttribute("data-application-component", "stack");
-  await expect(birth.getByRole("button", { name: "✓ Morse Network" })).toBeVisible();
-  await birth.getByRole("button", { name: "✓ Memory Lantern" }).click();
-  await expect(birth.getByRole("button", { name: "○ Memory Lantern" })).toBeVisible();
-  await expect(birth.locator('[data-application-key="program-help"]')).toHaveText("1 of 2 reviewed Forms selected; maximum 16.");
+  await expect(birth.getByRole("button", { name: "Add Morse Network" })).toBeVisible();
+  await birth.getByRole("button", { name: "Add Memory Lantern" }).click();
+  await expect(birth.getByRole("button", { name: "Remove Memory Lantern" })).toBeVisible();
+  await expect(birth.locator('[data-application-key="program-help"]')).toHaveText("1 of 3 reviewed Forms selected; maximum 16.");
   await expect(name).toHaveAttribute("aria-describedby", /description/);
   await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
   const source = birth.getByLabel("Conduit Form source");
@@ -100,7 +101,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   await expect(birth.locator('[data-application-key="name-origin"]')).toContainText("variation 2");
 
   await name.fill("Juniper Signalhouse");
-  await birth.getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page, birth);
   await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
   await expect(birth.locator('[data-application-key="body-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   const bodyId = await birth.getAttribute("data-body-id");

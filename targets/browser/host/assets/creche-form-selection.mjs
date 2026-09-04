@@ -18,6 +18,25 @@ export function readReviewedFormInventory(runtime, source) {
   return validateInventory(output);
 }
 
+export function reviewInitialWorkload(runtime, hostId, bootId, source, selected) {
+  const segments = [hostId, bootId, encodedFormSelection(selected), source].map((value) => encoder.encode(value));
+  const total = segments.reduce((sum, bytes) => sum + bytes.length, 0);
+  if (segments.some((bytes) => bytes.length === 0) || total > runtime.conduit_creche_input_capacity()) {
+    throw new Error("initial workload review input is outside its admitted runtime bound");
+  }
+  const input = new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_input_ptr(), total);
+  let offset = 0;
+  for (const bytes of segments) { input.set(bytes, offset); offset += bytes.length; }
+  const code = runtime.conduit_creche_review_initial_workload(...segments.map((bytes) => bytes.length));
+  const output = JSON.parse(decoder.decode(new Uint8Array(
+    runtime.memory.buffer,
+    runtime.conduit_creche_output_ptr(),
+    runtime.conduit_creche_output_len(),
+  )));
+  if (code < 0) throw new Error(output.message ?? `initial workload review refused (${code})`);
+  return output;
+}
+
 export function openFormSelection(inventory, persisted = null, handoff = null) {
   validateInventory(inventory);
   const candidates = [];

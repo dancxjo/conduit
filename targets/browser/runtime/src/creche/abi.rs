@@ -24,6 +24,7 @@ const ERROR_ADMISSION: i32 = -456;
 const ERROR_GRADUATION: i32 = -457;
 const ERROR_RESTORE: i32 = -458;
 const ERROR_INVENTORY: i32 = -459;
+const ERROR_REVIEW: i32 = -460;
 
 thread_local! {
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
@@ -69,6 +70,63 @@ pub extern "C" fn conduit_creche_reviewed_inventory(source_length: usize) -> i32
                 .map(|()| STATUS_READY)
                 .unwrap_or(ERROR_OUTPUT),
             Err(message) => refuse(message, ERROR_INVENTORY),
+        }
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_creche_review_initial_workload(
+    host_length: usize,
+    boot_length: usize,
+    initial_forms_length: usize,
+    source_length: usize,
+) -> i32 {
+    clear_output();
+    let Some(identity_length) = host_length.checked_add(boot_length) else {
+        return ERROR_INPUT;
+    };
+    let Some(forms_end) = identity_length.checked_add(initial_forms_length) else {
+        return ERROR_INPUT;
+    };
+    let Some(total_length) = forms_end.checked_add(source_length) else {
+        return ERROR_INPUT;
+    };
+    if host_length == 0
+        || boot_length == 0
+        || initial_forms_length == 0
+        || source_length == 0
+        || total_length > INPUT_BYTES
+    {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = (|| {
+            let host = core::str::from_utf8(&input[..host_length])
+                .map_err(|_| "Host identity is not UTF-8".to_string())?;
+            let boot = core::str::from_utf8(&input[host_length..identity_length])
+                .map_err(|_| "Boot identity is not UTF-8".to_string())?;
+            let selection = core::str::from_utf8(&input[identity_length..forms_end])
+                .map_err(|_| "initial Form selection is not UTF-8".to_string())?;
+            let source = core::str::from_utf8(&input[forms_end..total_length])
+                .map_err(|_| "reviewed Form inventory is not UTF-8".to_string())?;
+            let hosts = [crate::installed_browser::advertisement(
+                conduit_core::HostId::from(host),
+                conduit_core::BootId::from(boot),
+            )];
+            super::review::review(
+                source,
+                selection,
+                &hosts,
+                &crate::installed_browser::local_bases(),
+            )
+        })();
+        input[..total_length].fill(0);
+        match result {
+            Ok(review) => write_output(&review)
+                .map(|()| STATUS_READY)
+                .unwrap_or(ERROR_OUTPUT),
+            Err(message) => refuse(message, ERROR_REVIEW),
         }
     })
 }
