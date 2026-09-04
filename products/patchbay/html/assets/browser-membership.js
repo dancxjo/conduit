@@ -303,7 +303,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       presenceState = "available";
       presenceEstablished = true;
       if (!returning) webRtcSessions.begin();
-      if (returning) setState("admitted");
+      setState("admitted");
       clearTimeout(renewalTimer);
       if (renewPresence) {
         renewalTimer = setTimeout(() => {
