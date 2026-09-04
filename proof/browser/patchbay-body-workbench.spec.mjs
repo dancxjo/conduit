@@ -57,9 +57,25 @@ test("an invited browser remains outside the Body until explicit join", async ({
   await page.getByRole("button", { name: "Join this Body", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
   await expect(page.locator("#body-membership-status")).toContainText("admitted");
+  const admittedIdentity = await page.evaluate(() => ({
+    hostId: globalThis.__patchbayMembership.hostId,
+    bootId: globalThis.__patchbayMembership.bootId,
+  }));
+  expect(admittedIdentity.hostId).toMatch(/^browser\//);
+  expect(admittedIdentity.bootId).toMatch(/^browser-boot\//);
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.hostId);
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.bootId);
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipadmitted");
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceavailable");
   await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
   await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipoffline");
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceunavailable");
+  expect(await page.evaluate(() => ({
+    hostId: globalThis.__patchbayMembership.hostId,
+    bootId: globalThis.__patchbayMembership.bootId,
+  }))).toEqual(admittedIdentity);
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeEnabled();
   await expect.poll(membershipProbe.output).toContain("unavailable reason=session-lost");
 });
