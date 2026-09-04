@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
+import { resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
 
 const head = "ef22d9e1b0f3d4cbc19fb35ac4e330f8dbf2b5dc";
 const merged = "7dccbe822271ef1ac8a0fd49e7cc37add40a943c";
@@ -68,4 +68,23 @@ test("keeps candidate carrier provenance distinct from the merged integration tr
 test("refuses an unmerged pull or a merged commit without an exact tree", async () => {
   await assert.rejects(() => resolveMergedPullSource({ merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: mergedTree } })), /not an exact merged source/);
   await assert.rejects(() => resolveMergedPullSource({ merged_at: "now", merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: headTree.slice(1) } })), /no exact source, integration base, and merged trees/);
+});
+
+test("an exact current main commit becomes one explicit fabrication source", async () => {
+  const source = await resolveExactMainSource(merged, merged, async (commit) => ({
+    sha: commit,
+    tree: { sha: mergedTree },
+    parents: [{ sha: integrationBase }],
+  }));
+  assert.deepEqual(source, {
+    mergeCommit: merged,
+    sourceHead: merged,
+    sourceTree: mergedTree,
+    integrationBase,
+    integrationTree: mergedTree,
+  });
+  await assert.rejects(
+    () => resolveExactMainSource(merged, head, async () => ({})),
+    /not the exact current branch tip/,
+  );
 });

@@ -108,8 +108,12 @@ on:
     inputs:
       pr_number:
         description: Merged pull request whose successful product carrier should be promoted
-        required: true
+        required: false
         type: number
+      main_sha:
+        description: Exact current main commit to fabricate and promote
+        required: false
+        type: string
 
 concurrency:
   group: book-and-creche-pages
@@ -137,7 +141,8 @@ jobs:
       integration_base: ${{ steps.resolve.outputs.integration_base }}
       integration_tree: ${{ steps.resolve.outputs.integration_tree }}
       pr_number: ${{ steps.resolve.outputs.pr_number }}
-      disposition: ${{ steps.reconcile.outputs.disposition }}
+      disposition: ${{ steps.direct.outputs.disposition || steps.reconcile.outputs.disposition }}
+      direct_main: ${{ steps.resolve.outputs.direct_main }}
     steps:
       - name: Check out trusted merged workflow machinery
         uses: actions/checkout@v7
@@ -154,6 +159,7 @@ jobs:
           ref: ${{ steps.resolve.outputs.merge_commit }}
           fetch-depth: 0
       - name: Fetch the immutable candidate object without executing it
+        if: steps.resolve.outputs.direct_main != 'true'
         env:
           PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
           SOURCE_HEAD: ${{ steps.resolve.outputs.source_head }}
@@ -164,6 +170,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.98.1
       - name: Reconcile exact Pages carrier inputs with the merged tree
         id: reconcile
+        if: steps.resolve.outputs.direct_main != 'true'
         env:
           SOURCE_HEAD: ${{ steps.resolve.outputs.source_head }}
           MERGE_COMMIT: ${{ steps.resolve.outputs.merge_commit }}
@@ -174,6 +181,10 @@ jobs:
             --locked --allow-execute \
             --json-out target/pages-product-reconciliation.json \
             >> "$GITHUB_OUTPUT"
+      - name: Fabricate the exact explicitly requested current main carrier
+        id: direct
+        if: steps.resolve.outputs.direct_main == 'true'
+        run: echo 'disposition=execute' >> "$GITHUB_OUTPUT"
 
   integration-products:
     needs: resolve

@@ -146,6 +146,8 @@ separate and executes trusted merged code only.
 
 Merge-group validation identifies its checkout as integration rather than candidate. The privileged `pull_request_target` Pages workflow remains separate and executes only trusted merged workflow machinery. A downloaded carrier is verified against the candidate commit and tree that actually fabricated it. `cargo xtask ci reconcile-product products.pages-carrier CANDIDATE INTEGRATION` compares those two Git trees through the typed product registry. Unrelated tree movement is inherited. When a carrier input changed, the deploy controller calls the unprivileged product workflow on the exact merged commit and admits that newly proven integration carrier instead. Candidate provenance is never rewritten to claim that old bytes came from the later merged tree.
 
+An expedited main admission does not need a ceremonial pull request solely to publish Pages. An explicit `book-and-creche-pages` dispatch may name the exact current `main` SHA. The trusted controller verifies that identity against the default-branch ref, derives its exact tree and parent, fabricates the carrier through the same unprivileged product workflow, verifies the resulting carrier, and only then promotes it. A stale or non-main SHA refuses before fabrication.
+
 The repository's `cargo xtask` alias first enters the dependency-light
 `conduit-xtask-dispatch`. The CI identity operations (`plan`, `candidate`,
 `reconcile`, `reconcile-product`, and `attest-success`) use the same typed Rust sources there. At

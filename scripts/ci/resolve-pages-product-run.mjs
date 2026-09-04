@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { appendFile, readFile } from "node:fs/promises";
-import { resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
+import { resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
 
 const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
 const repository = process.env.GITHUB_REPOSITORY;
@@ -9,42 +9,69 @@ const token = process.env.GITHUB_TOKEN;
 const output = process.env.GITHUB_OUTPUT;
 if (!repository || !token || !output) throw new Error("GitHub workflow context is incomplete");
 
-const requestedNumber = event.pull_request?.number ?? Number(event.inputs?.pr_number);
-if (!Number.isSafeInteger(requestedNumber) || requestedNumber <= 0) {
-  throw new Error("a merged pull request number is required");
+const requestedMain = event.inputs?.main_sha?.trim() ?? "";
+const eventPullNumber = event.pull_request?.number;
+const rawInputPullNumber = event.inputs?.pr_number;
+const inputPullNumber = rawInputPullNumber === undefined || rawInputPullNumber === ""
+  || rawInputPullNumber === 0 || rawInputPullNumber === "0"
+  ? undefined : Number(rawInputPullNumber);
+const requestedNumber = eventPullNumber ?? inputPullNumber;
+if (requestedMain && requestedNumber !== undefined) {
+  throw new Error("request exactly one Pages source: a merged pull request or current main");
 }
-const pull = await api(`/repos/${repository}/pulls/${requestedNumber}`);
-const source = await resolveMergedPullSource(
-  pull,
-  (commit) => api(`/repos/${repository}/git/commits/${commit}`),
-).catch((error) => {
-  throw new Error(`pull request #${requestedNumber} cannot provide merged-tree provenance: ${error.message}`);
-});
 
-const query = new URLSearchParams({ event: "pull_request", head_sha: source.sourceHead, per_page: "100" });
-const attempts = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_ATTEMPTS, 80, 1, 120);
-const intervalMilliseconds = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_INTERVAL_MS, 15_000, 0, 60_000);
-let run;
-for (let attempt = 1; attempt <= attempts; attempt += 1) {
-  const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
-  const candidate = selectExactRun(runs.workflow_runs, source.sourceHead, requestedNumber);
-  run = selectExactSuccessfulRun(runs.workflow_runs, source.sourceHead, requestedNumber);
-  if (run) break;
-  if (candidate?.status === "completed") {
-    throw new Error(`exact-head Pages product run ${candidate.id} concluded ${candidate.conclusion ?? "without a conclusion"}`);
+let source;
+let runId = "";
+let directMain = false;
+if (requestedMain) {
+  const repositoryDocument = await api(`/repos/${repository}`);
+  if (repositoryDocument.default_branch !== "main") throw new Error("Pages current-main admission requires main to be the default branch");
+  const reference = await api(`/repos/${repository}/git/ref/heads/main`);
+  source = await resolveExactMainSource(
+    requestedMain,
+    reference?.object?.sha,
+    (commit) => api(`/repos/${repository}/git/commits/${commit}`),
+  );
+  directMain = true;
+} else {
+  if (!Number.isSafeInteger(requestedNumber) || requestedNumber <= 0) {
+    throw new Error("a merged pull request number or exact current main commit is required");
   }
-  if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, intervalMilliseconds));
+  const pull = await api(`/repos/${repository}/pulls/${requestedNumber}`);
+  source = await resolveMergedPullSource(
+    pull,
+    (commit) => api(`/repos/${repository}/git/commits/${commit}`),
+  ).catch((error) => {
+    throw new Error(`pull request #${requestedNumber} cannot provide merged-tree provenance: ${error.message}`);
+  });
+
+  const query = new URLSearchParams({ event: "pull_request", head_sha: source.sourceHead, per_page: "100" });
+  const attempts = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_ATTEMPTS, 80, 1, 120);
+  const intervalMilliseconds = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_INTERVAL_MS, 15_000, 0, 60_000);
+  let run;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
+    const candidate = selectExactRun(runs.workflow_runs, source.sourceHead, requestedNumber);
+    run = selectExactSuccessfulRun(runs.workflow_runs, source.sourceHead, requestedNumber);
+    if (run) break;
+    if (candidate?.status === "completed") {
+      throw new Error(`exact-head Pages product run ${candidate.id} concluded ${candidate.conclusion ?? "without a conclusion"}`);
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, intervalMilliseconds));
+  }
+  if (!run) throw new Error(`exact-head Pages product run did not complete successfully for pull request #${requestedNumber} within the bounded wait`);
+  runId = String(run.id);
 }
-if (!run) throw new Error(`exact-head Pages product run did not complete successfully for pull request #${requestedNumber} within the bounded wait`);
 
 await appendFile(output, [
-  `run_id=${run.id}`,
+  `run_id=${runId}`,
   `merge_commit=${source.mergeCommit}`,
   `source_head=${source.sourceHead}`,
   `source_tree=${source.sourceTree}`,
   `integration_base=${source.integrationBase}`,
   `integration_tree=${source.integrationTree}`,
-  `pr_number=${requestedNumber}`,
+  `pr_number=${requestedNumber ?? ""}`,
+  `direct_main=${directMain}`,
   "",
 ].join("\n"));
 
