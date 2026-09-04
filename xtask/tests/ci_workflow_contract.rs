@@ -367,6 +367,22 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains(
         "group: reconcile-candidate-${{ inputs.pr_number }}-${{ inputs.candidate_sha }}"
     ));
+    assert!(workflow.contains("integration_sha: ${{ steps.resolve.outputs.integration_sha }}"));
+    assert!(workflow.contains("git merge-tree --write-tree \"$base_sha\" \"$CANDIDATE_SHA\""));
+    assert!(workflow
+        .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
+    assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
+    assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
+    assert_eq!(
+        workflow
+            .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")
+            .count(),
+        2
+    );
+    assert!(workflow.contains("CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}"));
+    assert!(
+        workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
+    );
     assert!(workflow.contains("cancel-in-progress: false"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
@@ -383,7 +399,9 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         "needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'"
     ));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
-    assert!(workflow.contains("persist-credentials: false"));
+    assert_eq!(workflow.matches("contents: write").count(), 2);
+    assert!(workflow.contains("candidate-check:\n    needs: resolve"));
+    assert!(workflow.contains("candidate-products:\n    needs: resolve"));
 
     assert!(check.contains("workflow_call:"));
     assert!(check.contains(
@@ -421,7 +439,7 @@ fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
     assert_eq!(retirement.matches("runs-on: ubuntu-slim").count(), 1);
     assert!(!retirement.contains("runs-on: ubuntu-latest"));
     assert_eq!(reconciliation.matches("checks: write").count(), 2);
-    assert!(!reconciliation.contains("contents: write"));
+    assert_eq!(reconciliation.matches("contents: write").count(), 2);
     assert!(reconciliation.contains("timeout-minutes: 2"));
     assert!(retirement.contains("timeout-minutes: 2"));
 }

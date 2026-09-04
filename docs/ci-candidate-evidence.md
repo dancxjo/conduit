@@ -82,9 +82,15 @@ When an unchanged candidate needs policy from a newer trusted controller, the
 exact current head. Its trusted resolver refuses a stale or closed lifecycle.
 It inherits any already-successful `check` or `products-proof` aggregate
 attached to that immutable candidate and invokes the current reusable workflow
-only for a missing or failed lane. Candidate execution has read-only
+only for a missing or failed lane. The resolver freezes the current prospective
+integration commit separately from the candidate head; novel lanes execute
+against that integration commit, while inherited candidate receipts remain
+historical evidence about the immutable head. A main-only repair therefore
+participates in integration proof without being copied into every PR branch.
+Integration execution has read-only
 permissions; a separate trusted reporter publishes one aggregate `admission`
-decision onto the exact candidate SHA. Repeating the same request therefore
+decision onto the exact candidate SHA and records the base and prospective
+integration identities in its summary. Repeating the same request therefore
 inherits the underlying lane successes rather than replaying work. This replaces empty
 commits, policy-only rebases, and close/reopen choreography.
 The controller publishes `admission` only after both lanes succeed or inherit

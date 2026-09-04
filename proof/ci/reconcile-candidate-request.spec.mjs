@@ -5,9 +5,10 @@ import { publishCandidateResults, resolveAndPublishInherited, resolveCandidateRe
 
 const candidate = "b".repeat(40);
 const base = "a".repeat(40);
+const integration = "d".repeat(40);
 const repository = "dancxjo/conduit";
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
-const pull = (head = candidate) => ({ state: "open", head: { sha: head }, base: { sha: base, repo: { full_name: repository } } });
+const pull = (head = candidate) => ({ state: "open", mergeable: true, merge_commit_sha: integration, head: { sha: head }, base: { sha: base, repo: { full_name: repository } } });
 
 test("an authoritative empty workspace plan skips its matrix without weakening classifier failure", async () => {
   const workflow = await readFile(new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
@@ -28,25 +29,27 @@ test("inherits only exact successful GitHub Actions aggregate evidence", () => {
 });
 
 test("same candidate inherits successful checks after the base moves", async () => {
-  const result = await resolveCandidateRequest({ repository, pullNumber: 2426, candidateSha: candidate, token: "test", request: async (url) => url.endsWith("/pulls/2426") ? response(pull()) : response({ check_runs: [
+  const result = await resolveCandidateRequest({ repository, pullNumber: 2426, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async (url) => url.endsWith("/pulls/2426") ? response(pull()) : response({ check_runs: [
     { id: 7, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/7", app: { slug: "github-actions" } },
     { id: 8, name: "products-proof", status: "completed", conclusion: "failure", details_url: "https://example.test/8", app: { slug: "github-actions" } },
   ] }) });
   assert.equal(result.baseSha, base);
+  assert.equal(result.integrationSha, integration);
   assert.deepEqual(result.lanes.check, { checkRunId: 7, detailsUrl: "https://example.test/7" });
   assert.equal(result.lanes["products-proof"], null);
 });
 
 test("stale candidate and another target repository fail before evidence lookup", async () => {
   let requests = 0;
-  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, token: "test", request: async () => { requests += 1; return response(pull("c".repeat(40))); } }), /not the current head/);
+  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async () => { requests += 1; return response(pull("c".repeat(40))); } }), /not the current head/);
   assert.equal(requests, 1);
-  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, token: "test", request: async () => response({ ...pull(), base: { sha: base, repo: { full_name: "other/repository" } } }) }), /target repository/);
+  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async () => response({ ...pull(), base: { sha: base, repo: { full_name: "other/repository" } } }) }), /target repository/);
 });
 
 test("refuses admission without publishing a sticky failed gate", async () => {
   const bodies = [];
   await assert.rejects(() => publishCandidateResults({ repository, candidateSha: candidate,
+    baseSha: base, integrationSha: integration,
     checkInherited: true, checkResult: "skipped", checkEvidenceUrl: "https://example.test/check",
     productsInherited: false, productsResult: "failure", productsEvidenceUrl: "",
     runUrl: "https://example.test/reconcile", token: "test",
@@ -56,7 +59,7 @@ test("refuses admission without publishing a sticky failed gate", async () => {
 });
 
 test("a published successful reconciliation is reusable by an identical later request", async () => {
-  const result = await resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, token: "test", request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
+  const result = await resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
     { id: 91, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
     { id: 92, name: "products-proof", status: "completed", conclusion: "success", details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
   ] }) });
@@ -67,7 +70,7 @@ test("a published successful reconciliation is reusable by an identical later re
 test("an all-inherited request publishes admission without allocating a report job", async () => {
   const posts = [];
   const result = await resolveAndPublishInherited({
-    repository, pullNumber: 7, candidateSha: candidate,
+    repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration,
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (url, options = {}) => {
       if (options.method === "POST") {
@@ -84,12 +87,14 @@ test("an all-inherited request publishes admission without allocating a report j
   assert.equal(result.published.length, 1);
   assert.deepEqual(posts.map(({ name }) => name), ["admission"]);
   assert.ok(posts.every(({ conclusion }) => conclusion === "success"));
+  assert.match(posts[0].output.summary, new RegExp(`Base: ${base}`));
+  assert.match(posts[0].output.summary, new RegExp(`Prospective integration: ${integration}`));
 });
 
 test("partial evidence remains fail-closed for execute then report", async () => {
   let posts = 0;
   const result = await resolveAndPublishInherited({
-    repository, pullNumber: 7, candidateSha: candidate,
+    repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration,
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (url, options = {}) => {
       if (options.method === "POST") {
