@@ -414,6 +414,7 @@ dependencies = [
  "conduit-midi",
  "conduit-presentation",
  "conduit-semantic-catalog",
+ "conduit-signal",
  "conduit-text",
  "conduit-time",
  "conduit-web",
