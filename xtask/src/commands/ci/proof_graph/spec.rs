@@ -33,7 +33,7 @@ pub(super) struct ProofSpec {
 pub(super) const PROOFS: &[ProofSpec] = &[
     ProofSpec {
         id: "workspace.products",
-        contract_version: 1,
+        contract_version: 2,
         kind: ProofKind::Workspace,
         inputs: &[
             "Cargo.toml",
@@ -41,7 +41,8 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "architecture",
             "fabrication",
             "semantics",
-            "apps",
+            "products",
+            "bodies",
             "targets/std",
         ],
         implementation_inputs: &[
@@ -56,7 +57,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     },
     ProofSpec {
         id: "browser.tour",
-        contract_version: 1,
+        contract_version: 2,
         kind: ProofKind::Browser,
         inputs: &[
             "Cargo.toml",
@@ -64,8 +65,8 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "architecture/form",
             "architecture/kernel",
             "targets/browser",
-            "apps/patchbay/html",
-            "tour/book",
+            "products/patchbay/html",
+            "products/tour",
             "site",
         ],
         implementation_inputs: &[

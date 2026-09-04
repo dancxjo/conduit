@@ -1,11 +1,13 @@
 //! Minimal compiler boundary for the repository-owned CI impact planner.
 //!
-//! `cargo xtask ci plan` dispatches here so planning does not compile unrelated
-//! hardware, product, and proof orchestration. The planner and shard metadata
-//! remain the exact source files used by the full xtask binary.
+//! `cargo xtask ci` dispatches here so planning and attestation do not compile
+//! unrelated hardware, product, and proof orchestration. The planner and shard
+//! metadata remain the exact source files used by the full xtask binary.
 
+#[cfg(feature = "host-release")]
 use std::path::PathBuf;
 
+#[cfg(feature = "host-release")]
 #[path = "../../../xtask/src/commands/host_release.rs"]
 mod host_release;
 
@@ -94,70 +96,33 @@ mod suites {
 
 #[path = "../../../xtask/src/commands/ci/impact.rs"]
 mod impact;
+#[path = "../../../xtask/src/commands/ci/proof_graph.rs"]
+mod proof_graph;
 #[path = "../../../xtask/src/workspace.rs"]
 mod workspace;
 
-struct Arguments {
-    base: String,
-    head: String,
-    json_out: Option<PathBuf>,
-    summary_out: Option<PathBuf>,
-}
-
-fn parse(arguments: &[String]) -> Result<Arguments, String> {
-    let mut values = arguments.iter().skip(2);
-    let base = values
-        .next()
-        .cloned()
-        .ok_or_else(|| "missing base commit".to_owned())?;
-    let head = values
-        .next()
-        .cloned()
-        .ok_or_else(|| "missing head commit".to_owned())?;
-    let mut json_out = None;
-    let mut summary_out = None;
-    while let Some(argument) = values.next() {
-        match argument.as_str() {
-            "--locked" => {}
-            "--json-out" => {
-                json_out = Some(PathBuf::from(
-                    values
-                        .next()
-                        .ok_or_else(|| "missing --json-out path".to_owned())?,
-                ));
-            }
-            "--summary-out" => {
-                summary_out = Some(PathBuf::from(
-                    values
-                        .next()
-                        .ok_or_else(|| "missing --summary-out path".to_owned())?,
-                ));
-            }
-            other => return Err(format!("unsupported ci plan argument: {other}")),
-        }
-    }
-    Ok(Arguments {
-        base,
-        head,
-        json_out,
-        summary_out,
-    })
-}
+mod ci_dispatch;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     if arguments.first().map(String::as_str) == Some("host")
         && arguments.get(1).map(String::as_str) == Some("release")
     {
-        if let Err(error) = run_host_release(&arguments) {
-            eprintln!("xtask error: {error}");
-            std::process::exit(1);
+        #[cfg(feature = "host-release")]
+        {
+            // The isolated directory protects the running bootstrap executable;
+            // it is not part of the Host artifact fabrication contract.
+            std::env::remove_var("CARGO_TARGET_DIR");
+            if let Err(error) = run_host_release(&arguments) {
+                eprintln!("xtask error: {error}");
+                std::process::exit(1);
+            }
+            return;
         }
-        return;
+        #[cfg(not(feature = "host-release"))]
+        launch_host_release(&arguments);
     }
-    if arguments.first().map(String::as_str) != Some("ci")
-        || arguments.get(1).map(String::as_str) != Some("plan")
-    {
+    if arguments.first().map(String::as_str) != Some("ci") {
         let status = std::process::Command::new("cargo")
             .args(["run", "--package", "xtask", "--"])
             .args(&arguments)
@@ -171,21 +136,40 @@ fn main() {
         }
     }
 
-    let result = parse(&arguments).and_then(|args| {
-        impact::run(
-            &args.base,
-            &args.head,
-            args.json_out.as_deref(),
-            args.summary_out.as_deref(),
-        )
-        .map_err(|error| error.to_string())
-    });
+    let result = ci_dispatch::run(&arguments);
     if let Err(error) = result {
         eprintln!("xtask error: {error}");
         std::process::exit(1);
     }
 }
 
+#[cfg(not(feature = "host-release"))]
+fn launch_host_release(arguments: &[String]) -> ! {
+    // Windows cannot replace the dispatcher executable while it is running.
+    // Compile the feature-bearing Host release binary in an isolated target.
+    let status = std::process::Command::new("cargo")
+        .env("CARGO_TARGET_DIR", "target/xtask-host-release")
+        .args([
+            "run",
+            "--locked",
+            "--package",
+            "conduit-xtask-dispatch",
+            "--features",
+            "host-release",
+            "--",
+        ])
+        .args(arguments)
+        .status();
+    match status {
+        Ok(status) => std::process::exit(status.code().unwrap_or(1)),
+        Err(error) => {
+            eprintln!("xtask error: cannot launch Host release dispatcher: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+#[cfg(feature = "host-release")]
 fn run_host_release(arguments: &[String]) -> Result<(), String> {
     let mut values = arguments.iter().skip(2);
     let mut output = None;
@@ -237,6 +221,7 @@ fn run_host_release(arguments: &[String]) -> Result<(), String> {
     .map_err(|error| error.to_string())
 }
 
+#[cfg(feature = "host-release")]
 fn command_identity(program: &str, arguments: &[&str]) -> Result<String, String> {
     let output = std::process::Command::new(program)
         .args(arguments)
