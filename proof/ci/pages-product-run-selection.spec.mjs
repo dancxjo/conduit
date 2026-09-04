@@ -7,6 +7,7 @@ const head = "ef22d9e1b0f3d4cbc19fb35ac4e330f8dbf2b5dc";
 const merged = "7dccbe822271ef1ac8a0fd49e7cc37add40a943c";
 const headTree = "27a9e0f98339fce62fc8360095b2f1ea0d5a9b92";
 const mergedTree = "bd48b1d15eab5989a6b452ff23e0b47cde8c67a7";
+const integrationBase = "20ce4bc5448faebb5d0874041e9c0887a273681f";
 
 test("selects the successful exact-head run when GitHub omits PR associations", () => {
   const admitted = { id: 33662354458, status: "completed", conclusion: "success", head_sha: head, pull_requests: [] };
@@ -39,7 +40,7 @@ test("keeps an exact head run bound to the requested pull when associations are 
   assert.equal(selectExactRun([otherPull], head, 2199), undefined);
 });
 
-test("derives carrier provenance from the actual merged commit tree after a concurrent base advance", async () => {
+test("keeps candidate carrier provenance distinct from the merged integration tree", async () => {
   const requested = [];
   const source = await resolveMergedPullSource({
     merged_at: "2026-09-02T00:00:00Z",
@@ -47,14 +48,24 @@ test("derives carrier provenance from the actual merged commit tree after a conc
     head: { sha: head },
   }, async (commit) => {
     requested.push(commit);
-    return { sha: commit, tree: { sha: mergedTree } };
+    return {
+      sha: commit,
+      tree: { sha: commit === head ? headTree : mergedTree },
+      parents: commit === merged ? [{ sha: integrationBase }] : [],
+    };
   });
-  assert.deepEqual(requested, [merged]);
-  assert.deepEqual(source, { mergeCommit: merged, sourceHead: head, sourceTree: mergedTree });
-  assert.notEqual(source.sourceTree, headTree);
+  assert.deepEqual(requested.sort(), [head, merged].sort());
+  assert.deepEqual(source, {
+    mergeCommit: merged,
+    sourceHead: head,
+    sourceTree: headTree,
+    integrationBase,
+    integrationTree: mergedTree,
+  });
+  assert.notEqual(source.sourceTree, source.integrationTree);
 });
 
 test("refuses an unmerged pull or a merged commit without an exact tree", async () => {
   await assert.rejects(() => resolveMergedPullSource({ merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: mergedTree } })), /not an exact merged source/);
-  await assert.rejects(() => resolveMergedPullSource({ merged_at: "now", merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: headTree.slice(1) } })), /no exact merged tree/);
+  await assert.rejects(() => resolveMergedPullSource({ merged_at: "now", merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: headTree.slice(1) } })), /no exact source, integration base, and merged trees/);
 });

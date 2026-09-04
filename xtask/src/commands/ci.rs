@@ -1,4 +1,5 @@
 mod impact;
+mod product_reconciliation;
 mod proof_graph;
 mod standalone_locks;
 
@@ -58,6 +59,21 @@ enum CiCommand {
         #[arg(long)]
         summary_out: Option<PathBuf>,
     },
+    /// Reconcile one fabricated product against an exact integration tree.
+    ReconcileProduct {
+        /// Registered product proof identifier.
+        product_id: String,
+        /// Commit whose exact artifact was fabricated and proved.
+        candidate: String,
+        /// Exact integrated commit proposed for promotion.
+        integration: String,
+        /// Write the machine-readable reconciliation to this path.
+        #[arg(long)]
+        json_out: Option<PathBuf>,
+        /// Return the execute disposition for an orchestrator to schedule.
+        #[arg(long)]
+        allow_execute: bool,
+    },
     /// Record a successful proof only after its command has completed.
     AttestSuccess {
         /// Exact candidate commit SHA or ref that was proved.
@@ -105,6 +121,19 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
             &receipts,
             json_out.as_deref(),
             summary_out.as_deref(),
+        ),
+        CiCommand::ReconcileProduct {
+            product_id,
+            candidate,
+            integration,
+            json_out,
+            allow_execute,
+        } => product_reconciliation::run(
+            &product_id,
+            &candidate,
+            &integration,
+            json_out.as_deref(),
+            allow_execute,
         ),
         CiCommand::AttestSuccess {
             head,

@@ -16,7 +16,7 @@ mod command_registry;
 #[path = "impact/git_changes.rs"]
 mod git_changes;
 #[path = "impact/product_registry.rs"]
-mod product_registry;
+pub(super) mod product_registry;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 use command_registry::{proofs_for_path, HeavySuite};
 use git_changes::candidate_changed_paths;

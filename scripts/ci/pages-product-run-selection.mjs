@@ -17,14 +17,21 @@ export async function resolveMergedPullSource(pull, loadCommit) {
     || !/^[0-9a-f]{40}$/.test(pull.head?.sha ?? "") || typeof loadCommit !== "function") {
     throw new Error("pull request is not an exact merged source");
   }
-  const mergedCommit = await loadCommit(pull.merge_commit_sha);
-  if (!/^[0-9a-f]{40}$/.test(mergedCommit?.tree?.sha ?? "")) {
-    throw new Error("pull request has no exact merged tree");
+  const [mergedCommit, sourceCommit] = await Promise.all([
+    loadCommit(pull.merge_commit_sha),
+    loadCommit(pull.head.sha),
+  ]);
+  if (!/^[0-9a-f]{40}$/.test(mergedCommit?.tree?.sha ?? "")
+    || !/^[0-9a-f]{40}$/.test(sourceCommit?.tree?.sha ?? "")
+    || !/^[0-9a-f]{40}$/.test(mergedCommit?.parents?.[0]?.sha ?? "")) {
+    throw new Error("pull request has no exact source, integration base, and merged trees");
   }
   return {
     mergeCommit: pull.merge_commit_sha,
     sourceHead: pull.head.sha,
-    sourceTree: mergedCommit.tree.sha,
+    sourceTree: sourceCommit.tree.sha,
+    integrationBase: mergedCommit.parents[0].sha,
+    integrationTree: mergedCommit.tree.sha,
   };
 }
 

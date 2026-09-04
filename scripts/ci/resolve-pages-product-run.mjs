@@ -42,6 +42,8 @@ await appendFile(output, [
   `merge_commit=${source.mergeCommit}`,
   `source_head=${source.sourceHead}`,
   `source_tree=${source.sourceTree}`,
+  `integration_base=${source.integrationBase}`,
+  `integration_tree=${source.integrationTree}`,
   `pr_number=${requestedNumber}`,
   "",
 ].join("\n"));

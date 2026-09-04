@@ -96,6 +96,8 @@ mod suites {
 
 #[path = "../../../xtask/src/commands/ci/impact.rs"]
 mod impact;
+#[path = "../../../xtask/src/commands/ci/product_reconciliation.rs"]
+mod product_reconciliation;
 #[path = "../../../xtask/src/commands/ci/proof_graph.rs"]
 mod proof_graph;
 #[path = "../../../xtask/src/commands/ci/standalone_locks.rs"]

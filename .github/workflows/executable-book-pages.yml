@@ -1,6 +1,14 @@
 name: book-and-creche-products
 
 on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: true
+        type: string
+      candidate_sha:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       base_sha:
@@ -96,7 +104,7 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
           cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-browser-product-runtimes
           path: target/browser-product-runtimes
@@ -144,7 +152,7 @@ jobs:
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline
       - name: Download the exact browser product runtimes
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-browser-product-runtimes
           path: target/browser-product-runtimes
@@ -192,7 +200,7 @@ jobs:
           key: avr-promicro-arduino-cli-1.5.1-arduino-avr-1.8.8-sparkfun-avr-1.1.13
       - name: Compile and seal the exact generic Pro Micro release
         run: cargo +stable xtask avr release --output target/creche-avr-release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-avr-promicro-release
           path: target/creche-avr-release
@@ -214,7 +222,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Compile and seal the reviewed browser distribution
         run: cargo +stable xtask host release --platform browser --output target/creche-host-releases
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-existing-computer-releases-browser
           path: target/creche-host-releases
@@ -256,7 +264,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
       - name: Compile and seal the reviewed generic existing-computer releases
         run: cargo +stable xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
           path: target/creche-host-releases
@@ -290,7 +298,7 @@ jobs:
           done
           cp target/conduitos/armv6/conduitos-rpi-*.img target/creche-rpi-release/
           cp target/conduitos/armv6/rpi-*-image.json target/creche-rpi-release/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-raspberry-pi-release
           path: target/creche-rpi-release
@@ -323,7 +331,7 @@ jobs:
           mkdir -p target/creche-orange-pi-release
           cp target/conduitos/aarch64/orange-pi-5/conduitos-orange-pi-5.img target/creche-orange-pi-release/
           cp target/conduitos/aarch64/orange-pi-5/orange-pi-5-image.json target/creche-orange-pi-release/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-orange-pi-release
           path: target/creche-orange-pi-release
@@ -380,7 +388,7 @@ jobs:
         run: >-
           cargo +stable xtask host build ${{ matrix.profile }}
           --output target/creche-conduitos-build/${{ matrix.architecture }} --locked
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-conduitos-build-${{ matrix.architecture }}
           path: target/creche-conduitos-build/${{ matrix.architecture }}
@@ -396,33 +404,33 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - name: Download the exact x86_64 ConduitOS image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-conduitos-build-x86_64
           path: target/creche-conduitos-build/x86_64
       - name: Download the exact aarch64 ConduitOS image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-conduitos-build-aarch64
           path: target/creche-conduitos-build/aarch64
       - name: Download the exact ia32 ConduitOS image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-conduitos-build-ia32
           path: target/creche-conduitos-build/ia32
       - name: Download the exact riscv64 ConduitOS image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-conduitos-build-riscv64
           path: target/creche-conduitos-build/riscv64
       - name: Download the exact loongarch64 ConduitOS image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-conduitos-build-loongarch64
           path: target/creche-conduitos-build/loongarch64
       - name: Seal the complete ConduitOS release set
         run: node targets/conduitos/fabrication/seal-creche-release.mjs target/creche-conduitos-build target/creche-conduitos-release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-conduitos-releases
           path: target/creche-conduitos-release
@@ -487,7 +495,7 @@ jobs:
           --locked
           --receipt "target/esp32-release/${{ matrix.target }}-build.json"
           --browser-artifact "target/esp32-release/esp32-${{ matrix.target }}-generic-release.bin"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: conduit-esp32-release-${{ matrix.target }}
           path: |
@@ -498,6 +506,16 @@ jobs:
 
   products-stage:
     needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
+    if: >-
+      always() &&
+      needs.avr-release.result == 'success' &&
+      needs.browser-release.result == 'success' &&
+      needs.browser-runtimes.result == 'success' &&
+      needs.esp32-release-images.result == 'success' &&
+      needs.host-releases.result == 'success' &&
+      needs.orange-pi-release.result == 'success' &&
+      needs.raspberry-pi-release.result == 'success' &&
+      needs.conduitos-releases.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -506,18 +524,18 @@ jobs:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Download the reviewed browser product runtimes
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-browser-product-runtimes
           path: target/browser-product-runtimes
       - name: Download the reviewed generic ESP32 release IMAGEs
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: conduit-esp32-release-*
           merge-multiple: true
           path: target/creche-release-artifacts
       - name: Download the reviewed generic existing-computer releases
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: conduit-existing-computer-releases-*
           merge-multiple: true
@@ -526,22 +544,22 @@ jobs:
         run: >-
           node -e 'const fs=require("node:fs"); const names=new Set(WebAssembly.Module.exports(new WebAssembly.Module(fs.readFileSync("target/creche-release-artifacts/runtime.wasm"))).map(({name})=>name)); for (const name of ["conduit_browser_form_inventory","conduit_browser_form_start","conduit_browser_form_complete","conduit_browser_form_cancel"]) if (!names.has(name)) throw new Error(`browser Host runtime lacks ${name}`);'
       - name: Download the reviewed generic Pro Micro release
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-avr-promicro-release
           path: target/creche-release-artifacts
       - name: Download the reviewed Raspberry Pi bare-metal release
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-raspberry-pi-release
           path: target/creche-release-artifacts
       - name: Download the reviewed Orange Pi bare-metal release
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-orange-pi-release
           path: target/creche-release-artifacts
       - name: Download the reviewed ConduitOS product Host releases
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-conduitos-releases
           path: target/creche-release-artifacts
@@ -559,7 +577,7 @@ jobs:
           scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Retain the exact staged products once for parallel consumers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conduit-staged-browser-products
           path: |
@@ -604,7 +622,7 @@ jobs:
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline
       - name: Receive the exact staged products
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-staged-browser-products
           path: target
@@ -634,7 +652,7 @@ jobs:
           "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
       - name: Retain the browser two-profile fabrication report
         if: matrix.shard == 'creche-machines'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-two-profile-capstone-proof
           path: |
@@ -653,7 +671,7 @@ jobs:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Receive the exact staged products
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: conduit-staged-browser-products
           path: target
@@ -705,7 +723,7 @@ jobs:
           node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
           node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
       - name: Retain the immutable Pages carrier for post-merge promotion
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: conduit-pages-carrier
           path: target/pages-carrier
