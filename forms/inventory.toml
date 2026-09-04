@@ -32,7 +32,7 @@ deterministic = { package = "conduit-std-host", test = "canonical_clock", case =
 slug = "count"
 title = "Count"
 entry = "count-demo"
-reusable_entries = [{ entry = "count", title = "Count Pipeline", composition = { parent = "count-demo", occurrences = ["count"] } }]
+reusable_entries = [{ entry = "count", title = "Count Pipeline", composition = { parent = "count-demo", occurrences = ["count"] }, deterministic = { package = "conduit-std-host", test = "reusable_count", case = "reusable_count_runs_through_two_nested_levels_in_one_kernel_play", plan_play_evidence = true } }]
 deterministic = { package = "conduit-std-host", test = "canonical_count", case = "canonical_program_four_runs_startup_flow_and_current_through_one_kernel" }
 [[forms]]
 slug = "default-welcome"
