@@ -1,0 +1,247 @@
+//! Atomic adoption of one exact post-birth membership biography extension.
+
+use super::{navigation_state, PatchbayHtmlServer, ServerError};
+use conduit_body::{BodyBiographyEvidence, BodyBiographyRecordKind, MembershipEventKind};
+use conduit_core::SignId;
+use std::net::TcpStream;
+
+const MAX_BODY_MEMBERSHIP_EVIDENCE_BYTES: usize = 65_536;
+
+impl PatchbayHtmlServer {
+    pub(super) fn deliver_body_membership_evidence(
+        &mut self,
+        stream: &mut TcpStream,
+        bytes: &[u8],
+    ) -> Result<(), ServerError> {
+        let body = match self.apply_body_membership_evidence(bytes) {
+            Ok(body) => body,
+            Err(ServerError::InvalidRequest | ServerError::Interaction(_)) => {
+                return super::write_response(
+                    stream,
+                    "400 Bad Request",
+                    "text/plain; charset=utf-8",
+                    b"invalid Body membership evidence",
+                );
+            }
+            Err(error) => return Err(error),
+        };
+        super::write_response(stream, "200 OK", "application/json; charset=utf-8", &body)
+    }
+
+    pub(super) fn apply_body_membership_evidence(
+        &mut self,
+        bytes: &[u8],
+    ) -> Result<Vec<u8>, ServerError> {
+        if bytes.is_empty() || bytes.len() > MAX_BODY_MEMBERSHIP_EVIDENCE_BYTES {
+            return Err(ServerError::InvalidRequest);
+        }
+        let candidate: BodyBiographyEvidence =
+            serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
+        candidate
+            .validate()
+            .map_err(|error| ServerError::Interaction(format!("invalid biography: {error:?}")))?;
+        let prior_session = self
+            .body_workload
+            .as_ref()
+            .ok_or_else(|| ServerError::Interaction("Body workload session is absent".into()))?;
+        validate_admission_extension(prior_session.evidence(), &candidate)?;
+
+        let encoded = serde_json::to_vec(&candidate)
+            .map_err(|error| ServerError::Interaction(error.to_string()))?;
+        let session = patchbay_model::PatchbayBodyWorkloadSession::open_serialized(
+            &encoded,
+            crate::body_workbench::model_entrance(
+                &self
+                    .snapshot
+                    .body_workbench
+                    .as_ref()
+                    .ok_or_else(|| ServerError::Interaction("Body workbench is absent".into()))?
+                    .entrance,
+            ),
+        )
+        .map_err(|error| ServerError::Interaction(format!("open updated biography: {error:?}")))?;
+        let prior = self
+            .snapshot
+            .body_workbench
+            .as_ref()
+            .ok_or_else(|| ServerError::Interaction("Body workbench is absent".into()))?;
+        let evidence_revision = prior
+            .evidence_revision
+            .checked_add(1)
+            .ok_or_else(|| ServerError::Interaction("Body evidence revision exhausted".into()))?;
+        let entrance = prior.entrance.clone();
+        let reviewed_forms = prior.reviewed_forms.clone();
+        let prior_interaction = self.snapshot.interaction.clone();
+        let mut snapshot = crate::body_workbench::body_workbench_snapshot_with_reviewed(
+            evidence_revision,
+            &encoded,
+            entrance,
+            &reviewed_forms,
+        )
+        .map_err(|error| ServerError::Interaction(error.to_string()))?;
+        snapshot.mark_available(SignId::from(format!(
+            "patchbay-html/body-membership/evidence-{evidence_revision}/available"
+        )))?;
+        snapshot.interaction = prior_interaction;
+        snapshot.interaction.revision = snapshot.interaction.revision.saturating_add(1);
+        snapshot.interaction.last_request_id = Some(format!(
+            "body-membership/admit/evidence-{evidence_revision}"
+        ));
+        snapshot.interaction.last_disposition = Some("Succeeded".into());
+        self.body_workload = Some(session);
+        self.snapshot = snapshot;
+        self.navigation = navigation_state(&self.snapshot)?;
+        self.encoded_snapshot = self.snapshot.encode()?;
+        Ok(self.encoded_snapshot.clone())
+    }
+}
+
+fn validate_admission_extension(
+    prior: &BodyBiographyEvidence,
+    candidate: &BodyBiographyEvidence,
+) -> Result<(), ServerError> {
+    let prior_record_count = prior.records.len();
+    let prior_event_count = prior.membership.events.len();
+    let prior_part_count = prior.membership.parts.len();
+    if candidate.schema != prior.schema
+        || candidate.body_id != prior.body_id
+        || candidate.friendly_name != prior.friendly_name
+        || candidate.body != prior.body
+        || candidate.graduation != prior.graduation
+        || candidate.records.get(..prior_record_count) != Some(prior.records.as_slice())
+        || candidate.membership.events.get(..prior_event_count)
+            != Some(prior.membership.events.as_slice())
+        || candidate.membership.parts.get(..prior_part_count)
+            != Some(prior.membership.parts.as_slice())
+        || candidate.records.len() != prior_record_count + 2
+        || candidate.membership.events.len() != prior_event_count + 2
+        || candidate.membership.parts.len() != prior_part_count + 1
+    {
+        return Err(ServerError::Interaction(
+            "biography is not one monotonic post-birth admission extension".into(),
+        ));
+    }
+    let admitted_record = &candidate.records[prior_record_count];
+    let joined_record = &candidate.records[prior_record_count + 1];
+    let admitted_event = &candidate.membership.events[prior_event_count];
+    let joined_event = &candidate.membership.events[prior_event_count + 1];
+    let (
+        BodyBiographyRecordKind::PartAdmitted {
+            change_id: admitted_change,
+            part_id: admitted_part,
+        },
+        BodyBiographyRecordKind::HostJoined {
+            change_id: joined_change,
+            part_id: joined_part,
+            host_id,
+            boot_id,
+        },
+        MembershipEventKind::Admitted { .. },
+        MembershipEventKind::HostAttached { observation },
+    ) = (
+        &admitted_record.kind,
+        &joined_record.kind,
+        &admitted_event.kind,
+        &joined_event.kind,
+    )
+    else {
+        return Err(ServerError::Interaction(
+            "biography extension is not Part admission followed by Host attachment".into(),
+        ));
+    };
+    let part = &candidate.membership.parts[prior_part_count];
+    if admitted_change != &admitted_event.change_id
+        || joined_change != &joined_event.change_id
+        || admitted_part != joined_part
+        || admitted_part != &admitted_event.part_id
+        || joined_part != &joined_event.part_id
+        || part.part_id != *admitted_part
+        || part.current.as_ref() != Some(observation)
+        || &observation.host_id != host_id
+        || &observation.boot_id != boot_id
+    {
+        return Err(ServerError::Interaction(
+            "biography admission identities do not agree".into(),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_body::{AuthenticatedHostObservation, MembershipProofId, PartId};
+    use conduit_core::{BootId, HostId, OfferGeneration};
+
+    fn admission_extension(prior: &BodyBiographyEvidence) -> BodyBiographyEvidence {
+        let mut membership = prior.membership.clone();
+        let part = PartId::bind(&prior.body_id, "browser/post-birth", 1).unwrap();
+        let proof = MembershipProofId::bind("proof/browser/post-birth").unwrap();
+        let admitted = membership
+            .admit(
+                &prior.body_id,
+                membership.revision,
+                part.clone(),
+                proof.clone(),
+                SignId::from("sign/browser/post-birth/admitted"),
+            )
+            .unwrap();
+        let attached = membership
+            .observe_present(
+                &prior.body_id,
+                membership.revision,
+                &part,
+                AuthenticatedHostObservation {
+                    host_id: HostId::from("browser/post-birth"),
+                    boot_id: BootId::from("browser-boot/post-birth"),
+                    offer_generation: OfferGeneration(1),
+                    proof_id: proof,
+                    sequence: 1,
+                },
+                SignId::from("sign/browser/post-birth/attached"),
+            )
+            .unwrap();
+        let first_sequence = prior.records.last().unwrap().sequence + 1;
+        let mut candidate = prior.clone();
+        candidate
+            .append_membership_events(
+                membership,
+                &[(admitted, first_sequence), (attached, first_sequence + 1)],
+            )
+            .unwrap();
+        candidate
+    }
+
+    #[test]
+    fn exact_admission_extension_is_atomic_and_replay_refuses() {
+        let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
+        let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+        let prior = server.body_workload.as_ref().unwrap().evidence().clone();
+        let candidate = admission_extension(&prior);
+        let encoded = serde_json::to_vec(&candidate).unwrap();
+
+        let adopted = server.apply_body_membership_evidence(&encoded).unwrap();
+        let adopted: crate::RendererSnapshot = serde_json::from_slice(&adopted).unwrap();
+        let workbench = adopted.body_workbench.unwrap();
+        assert_eq!(workbench.evidence_revision, 2);
+        assert_eq!(workbench.current["admitted_parts"], 2);
+        assert_eq!(
+            workbench.current["current_hosts"].as_array().unwrap().len(),
+            2
+        );
+        assert!(server.apply_body_membership_evidence(&encoded).is_err());
+    }
+
+    #[test]
+    fn altered_prior_biography_refuses_without_mutating_current_evidence() {
+        let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
+        let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
+        let prior = server.body_workload.as_ref().unwrap().evidence().clone();
+        let mut candidate = admission_extension(&prior);
+        candidate.friendly_name = "Different Body label".into();
+        let encoded = serde_json::to_vec(&candidate).unwrap();
+
+        assert!(server.apply_body_membership_evidence(&encoded).is_err());
+        assert_eq!(server.body_workload.as_ref().unwrap().evidence(), &prior);
+    }
+}
