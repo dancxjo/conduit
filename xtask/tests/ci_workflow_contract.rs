@@ -176,3 +176,25 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     assert!(products.contains("actions/upload-artifact@v7"));
     assert!(products.contains("actions/download-artifact@v8"));
 }
+
+#[test]
+fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/pages-deploy-pr-proof.yml"))
+        .expect("read Pages resolver proof workflow");
+    let dispatcher = fs::read_to_string(root.join("tools/xtask-dispatch/src/ci_dispatch.rs"))
+        .expect("read dependency-light CI dispatcher");
+
+    assert!(workflow.contains("cargo xtask ci pages-resolver-proof --locked"));
+    assert!(!workflow.contains("node --test proof/ci/"));
+    for proof in [
+        "proof/ci/pages-product-run-selection.spec.mjs",
+        "proof/ci/pages-workflow-paths.spec.mjs",
+    ] {
+        assert_eq!(
+            dispatcher.matches(proof).count(),
+            1,
+            "resolver proof input must be owned once: {proof}"
+        );
+    }
+}
