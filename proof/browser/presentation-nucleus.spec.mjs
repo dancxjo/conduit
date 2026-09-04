@@ -130,6 +130,31 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   await expect(page.locator('[data-application-key="page-two"]')).toBeFocused();
 });
 
+test("semantic product links retain their visible label and current destination", async ({ page }) => {
+  await page.goto("/proof/browser/presentation-nucleus.test.html");
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import(
+      "/targets/browser/host/assets/application-presentation.mjs"
+    );
+    const root = document.createElement("div");
+    root.id = "navigation-link-proof";
+    document.body.append(root);
+    manifestApplicationView(encodeApplicationView({
+      revision: 1,
+      actions: [],
+      nodes: [
+        { parent: null, component: "shell", key: "shell", text: "", action: null },
+        { parent: 0, component: "navigation", key: "product-navigation", text: "Conduit products", value: "tour", valueCapacity: 16, action: null },
+        { parent: 1, component: "navigation-link", key: "tour", text: "Tour", value: "tour", valueCapacity: 16, action: null },
+      ],
+    }), root);
+  });
+  const link = page.locator('#navigation-link-proof [data-application-key="tour"]');
+  await expect(link).toHaveText("Tour");
+  await expect(link).toHaveAttribute("href", "/conduit/tour/");
+  await expect(link).toHaveAttribute("aria-current", "page");
+});
+
 test("one finite theme mechanism preserves contrast and responsive layout across products", async ({ page }) => {
   await page.setViewportSize({ width: 680, height: 900 });
   await page.goto("/proof/browser/presentation-nucleus.test.html");

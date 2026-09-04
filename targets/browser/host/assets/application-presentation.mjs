@@ -440,6 +440,7 @@ export function manifestApplicationView(input, root, options = {}) {
       element.checked = node.value === "true";
     } else if (node.component === 45) {
       element.href = browserDestinationHref(node.value);
+      element.textContent = node.text;
       if (node.value === "home") element.setAttribute("aria-label", "Conduit home");
     } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
       const title = document.createElement("h3");
