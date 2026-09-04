@@ -150,7 +150,7 @@ fn command(oracle: &DeterministicOracle) -> String {
     )
 }
 
-fn bounded_reason(reason: &str) -> String {
+pub(super) fn bounded_reason(reason: &str) -> String {
     if reason.len() <= MAXIMUM_FAILURE_REASON_BYTES {
         return reason.into();
     }
@@ -173,6 +173,8 @@ mod tests {
             initial_body_order: None,
             deterministic: None,
             deterministic_not_applicable: None,
+            browser_safe: None,
+            browser_safe_not_applicable: None,
         }
     }
 

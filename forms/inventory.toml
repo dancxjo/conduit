@@ -22,6 +22,7 @@ slug = "camera-summary"
 title = "Camera Summary"
 entry = "camera-summary"
 deterministic_not_applicable = "camera acquisition requires an explicit permission and device proof mode"
+browser_safe_not_applicable = "camera acquisition requires an explicit permission and device proof mode"
 [[forms]]
 slug = "clock"
 title = "Clock"
@@ -42,6 +43,7 @@ slug = "desk-telegraph"
 title = "Desk Telegraph"
 entry = "desk_telegraph"
 initial_body_order = 3
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
 [[forms]]
 slug = "generalized-input"
 title = "Generalized Input"
@@ -76,6 +78,7 @@ slug = "memory-lantern"
 title = "Memory Lantern"
 entry = "memory_lantern"
 initial_body_order = 2
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
 [[forms]]
 slug = "messaging-delivery"
 title = "Messaging Delivery"
@@ -91,6 +94,7 @@ slug = "morse-network"
 title = "Morse Network"
 entry = "morse_network"
 initial_body_order = 1
+browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form morse-network runs browser-safe" }
 [[forms]]
 slug = "network-resolution"
 title = "Network Resolution"
