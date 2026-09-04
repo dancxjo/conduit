@@ -38,7 +38,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
 }
 
 #[test]
-fn classifier_artifacts_and_cache_are_scoped_away_from_the_controller() {
+fn classifier_artifacts_are_scoped_and_planning_has_no_workspace_cache() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
@@ -50,6 +50,35 @@ fn classifier_artifacts_and_cache_are_scoped_away_from_the_controller() {
     assert!(workflow.contains("$RUNNER_TEMP/conduit-ci-controller"));
     assert!(workflow.contains("$RUNNER_TEMP/conduit-ci-controller-target"));
     assert!(!workflow.contains("target/ci-controller"));
+
+    let classifier = workflow
+        .split("\n  classify:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  conduitos-limine:\n").next())
+        .expect("locate classifier job");
+    assert!(classifier.contains("package conduit-xtask-dispatch --locked"));
+    assert!(
+        !classifier.contains("Swatinem/rust-cache"),
+        "the dependency-light planner must not restore or upload the workspace target cache"
+    );
+}
+
+#[test]
+fn product_planner_has_no_workspace_cache() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let planner = workflow
+        .split("\n  plan:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  browser-runtimes:\n").next())
+        .expect("locate product planner job");
+
+    assert!(planner.contains("package conduit-xtask-dispatch --locked"));
+    assert!(
+        !planner.contains("Swatinem/rust-cache"),
+        "the dependency-light product planner must not transfer the workspace target cache"
+    );
 }
 
 #[test]

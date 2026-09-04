@@ -56,9 +56,6 @@ jobs:
           git fetch --no-tags origin "$CONTROLLER_SHA"
           git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci-impact-plan
       - name: Select exact product proof impact
         id: impact
         run: |
