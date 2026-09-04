@@ -1,12 +1,20 @@
 //! Isolated execution of inventory-declared deterministic proof oracles.
 
-use super::{result, DeterministicOracle, FormProofResult, InventoryForm};
+use super::{result, DeterministicOracle, FormProofResult, InventoryForm, ReusableForm};
 use crate::cli::GlobalOpts;
+use serde::Deserialize;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output};
 use std::time::Instant;
 
 const MAXIMUM_FAILURE_REASON_BYTES: usize = 512;
+const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
+
+#[derive(Deserialize)]
+struct ExecutionEvidence {
+    plan_id: String,
+    play_id: String,
+}
 
 pub(super) fn availability(
     form: &InventoryForm,
@@ -80,6 +88,80 @@ pub(super) fn run(
             "deterministic",
         );
     }
+    execute(root, form, path, identities, oracle, opts, "deterministic")
+}
+
+pub(super) fn reusable_availability(
+    form: &InventoryForm,
+    reusable: &ReusableForm,
+    path: &str,
+    identities: Option<(String, String)>,
+) -> FormProofResult {
+    let mut proof = match &reusable.deterministic {
+        Some(oracle) => result(
+            form,
+            path,
+            0,
+            "unavailable",
+            &format!(
+                "declared reusable deterministic oracle is available through {}",
+                command(oracle)
+            ),
+            identities,
+            "reusable-deterministic",
+        ),
+        None => result(
+            form,
+            path,
+            0,
+            "unavailable",
+            "no reviewed independent deterministic execution oracle is declared",
+            identities,
+            "reusable-deterministic",
+        ),
+    };
+    proof.title = reusable.title.clone();
+    proof.form_entry = reusable.entry.clone();
+    proof
+}
+
+pub(super) fn run_reusable(
+    root: &Path,
+    form: &InventoryForm,
+    reusable: &ReusableForm,
+    path: &str,
+    identities: Option<(String, String)>,
+    opts: &GlobalOpts,
+) -> FormProofResult {
+    let Some(oracle) = &reusable.deterministic else {
+        return reusable_availability(form, reusable, path, identities);
+    };
+    if opts.dry_run {
+        return reusable_availability(form, reusable, path, identities);
+    }
+    let mut proof = execute(
+        root,
+        form,
+        path,
+        identities,
+        oracle,
+        opts,
+        "reusable-deterministic",
+    );
+    proof.title = reusable.title.clone();
+    proof.form_entry = reusable.entry.clone();
+    proof
+}
+
+fn execute(
+    root: &Path,
+    form: &InventoryForm,
+    path: &str,
+    identities: Option<(String, String)>,
+    oracle: &DeterministicOracle,
+    opts: &GlobalOpts,
+    mode: &'static str,
+) -> FormProofResult {
     let started = Instant::now();
     let mut process = Command::new("cargo");
     process.current_dir(root).arg("test");
@@ -89,28 +171,45 @@ pub(super) fn run(
     if !oracle.features.is_empty() {
         process.args(["--features", &oracle.features.join(",")]);
     }
-    let output = process
-        .args([
-            "-p",
-            &oracle.package,
-            "--test",
-            &oracle.test,
-            &oracle.case,
-            "--",
-            "--exact",
-        ])
-        .output();
+    process.args([
+        "-p",
+        &oracle.package,
+        "--test",
+        &oracle.test,
+        &oracle.case,
+        "--",
+        "--exact",
+    ]);
+    if oracle.plan_play_evidence {
+        process.arg("--nocapture");
+    }
+    let output = process.output();
     let duration = started.elapsed().as_millis();
     match output {
-        Ok(output) if output.status.success() => result(
-            form,
-            path,
-            duration,
-            "passed",
-            &format!("declared deterministic oracle passed: {}", command(oracle)),
-            identities,
-            "deterministic",
-        ),
+        Ok(output) if output.status.success() => {
+            let mut proof = result(
+                form,
+                path,
+                duration,
+                "passed",
+                &format!("declared deterministic oracle passed: {}", command(oracle)),
+                identities,
+                mode,
+            );
+            if oracle.plan_play_evidence {
+                match evidence(&output) {
+                    Ok(evidence) => {
+                        proof.plan_id = Some(evidence.plan_id);
+                        proof.play_id = Some(evidence.play_id);
+                    }
+                    Err(reason) => {
+                        proof.status = "failed".into();
+                        proof.reason = reason;
+                    }
+                }
+            }
+            proof
+        }
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
             result(
@@ -120,7 +219,7 @@ pub(super) fn run(
                 "failed",
                 &bounded_reason(&format!("{} failed: {stderr}", command(oracle))),
                 identities,
-                "deterministic",
+                mode,
             )
         }
         Err(error) => result(
@@ -133,7 +232,7 @@ pub(super) fn run(
                 command(oracle)
             ),
             identities,
-            "deterministic",
+            mode,
         ),
     }
 }
@@ -144,10 +243,27 @@ fn command(oracle: &DeterministicOracle) -> String {
     } else {
         format!(" --features {}", oracle.features.join(","))
     };
+    let evidence = if oracle.plan_play_evidence {
+        " --nocapture"
+    } else {
+        ""
+    };
     format!(
-        "cargo test -p {}{} --test {} {} -- --exact",
-        oracle.package, features, oracle.test, oracle.case
+        "cargo test -p {}{} --test {} {} -- --exact{}",
+        oracle.package, features, oracle.test, oracle.case, evidence
     )
+}
+
+fn evidence(output: &Output) -> Result<ExecutionEvidence, String> {
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let encoded = stdout
+        .lines()
+        .find_map(|line| line.split_once(EVIDENCE_MARKER).map(|(_, value)| value))
+        .ok_or_else(|| {
+            "deterministic oracle passed without exact Plan/Play evidence".to_string()
+        })?;
+    serde_json::from_str(encoded)
+        .map_err(|error| format!("deterministic oracle emitted malformed evidence: {error}"))
 }
 
 pub(super) fn bounded_reason(reason: &str) -> String {
@@ -196,6 +312,7 @@ mod tests {
             features: vec![],
             test: "fixture".into(),
             case: "fixture".into(),
+            plan_play_evidence: false,
         });
         assert_eq!(
             availability(&item, "forms/fixture/main.conduit", None).status,
@@ -209,5 +326,37 @@ mod tests {
         let bounded = bounded_reason(&reason);
         assert!(bounded.len() <= MAXIMUM_FAILURE_REASON_BYTES + '…'.len_utf8());
         assert!(bounded.ends_with("terminal cause"));
+    }
+
+    #[test]
+    fn exact_plan_and_play_evidence_is_required_when_declared() {
+        let output = Output {
+            status: success_status(),
+            stdout: b"CONDUIT_FORM_EVIDENCE={\"plan_id\":\"plan/1\",\"play_id\":\"play/1\"}\n"
+                .to_vec(),
+            stderr: Vec::new(),
+        };
+        let parsed = evidence(&output).unwrap();
+        assert_eq!(parsed.plan_id, "plan/1");
+        assert_eq!(parsed.play_id, "play/1");
+
+        let missing = Output {
+            status: success_status(),
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        };
+        assert!(evidence(&missing).is_err());
+    }
+
+    #[cfg(unix)]
+    fn success_status() -> std::process::ExitStatus {
+        use std::os::unix::process::ExitStatusExt;
+        std::process::ExitStatus::from_raw(0)
+    }
+
+    #[cfg(windows)]
+    fn success_status() -> std::process::ExitStatus {
+        use std::os::windows::process::ExitStatusExt;
+        std::process::ExitStatus::from_raw(0)
     }
 }

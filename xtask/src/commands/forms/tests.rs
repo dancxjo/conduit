@@ -78,6 +78,15 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .all(|result| result.composition_root_checked_form_id.is_some()
             && result.composition_root_entry.is_some()
             && !result.gear_occurrences.is_empty()));
+    let reusable_deterministic: Vec<_> = report
+        .results
+        .iter()
+        .filter(|result| result.proof_mode == "reusable-deterministic")
+        .collect();
+    assert_eq!(reusable_deterministic.len(), 10);
+    assert!(reusable_deterministic
+        .iter()
+        .all(|result| result.status == "unavailable"));
 }
 
 #[test]
@@ -134,6 +143,7 @@ fn reusable_entries_refuse_empty_duplicate_and_root_identities() {
             parent: "composition".into(),
             occurrences: vec!["use".into()],
         }),
+        deterministic: None,
     });
     assert!(inventory::reusable_entries_are_valid(&form));
 
@@ -141,6 +151,7 @@ fn reusable_entries_refuse_empty_duplicate_and_root_identities() {
         entry: "helper".into(),
         title: "Duplicate".into(),
         composition: None,
+        deterministic: None,
     });
     assert!(!inventory::reusable_entries_are_valid(&form));
     form.reusable_entries[1].entry = "composition".into();
