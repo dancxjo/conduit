@@ -2,7 +2,22 @@ import { browserHostOperationLimits, createBrowserHostOperations } from "./brows
 
 const MAXIMUM_LOCATION_SEQUENCE = 0xffff_ffff;
 
-export function createBookRouting({ host, applicationId, isRunning, currentPage, render, onFailure }) {
+export function parseBookPages(chapters) {
+  const parsed = [];
+  let current = [];
+  for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
+    if (line.startsWith("# ") && current.length > 0) {
+      parsed.push(current.join("\n"));
+      current = [];
+    }
+    if (line.startsWith("# ") || current.length > 0) current.push(line);
+  }
+  if (current.length > 0) parsed.push(current.join("\n"));
+  if (parsed.length === 0) throw new Error("Tour has no pages");
+  return parsed;
+}
+
+export function createBookRouting({ host, applicationId, render, onFailure }) {
   const operations = createBrowserHostOperations({
     hostId: host.hostId,
     bootId: host.bootId,
@@ -48,8 +63,7 @@ export function createBookRouting({ host, applicationId, isRunning, currentPage,
   addEventListener("popstate", () => {
     (async () => {
       const index = indexForLocation();
-      if (isRunning()) await move(currentPage(), "replace");
-      else await render(index);
+      await render(index);
     })().catch(onFailure);
   });
 

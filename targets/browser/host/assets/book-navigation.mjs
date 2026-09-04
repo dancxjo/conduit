@@ -11,8 +11,8 @@ export function createBookNavigation(presentation, navigate) {
         nodes: [
           { parent: null, component: "navigation", key: "navigation", text: "Tour pages", action: null },
           { parent: 0, component: "status", key: "progress", text: `Page ${currentPage + 1} of ${pageCount}`, action: null },
-          { parent: 0, component: "button", key: "previous", text: "Previous", action: !running && currentPage > 0 ? 0 : null },
-          { parent: 0, component: "button", key: "next", text: "Next", action: !running && currentPage < pageCount - 1 ? 1 : null },
+          { parent: 0, component: "button", key: "previous", text: "Previous", action: currentPage > 0 ? 0 : null },
+          { parent: 0, component: "button", key: "next", text: "Next", action: currentPage < pageCount - 1 ? 1 : null },
         ],
       }, {
         onEvent(event) {

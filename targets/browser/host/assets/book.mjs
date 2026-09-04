@@ -1,11 +1,11 @@
 import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
-import { openBookReadingState } from "./book-state.mjs";
+import { conceptualTourStage, createTourStage, openBookReadingState } from "./book-state.mjs";
 import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
 import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus } from "./book-runner-presentation.mjs";
 import { createProductMasthead } from "./product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
-import { createBookRouting } from "./book-routing.mjs";
+import { createBookRouting, parseBookPages } from "./book-routing.mjs";
 import { presentBookInventory } from "./book-inventory-presentation.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 
@@ -16,7 +16,6 @@ let host;
 let peerHost = null;
 let generation = 0;
 let running = false;
-let runnerCount = 0;
 let runnerSlotSequence = 0;
 let activeRunner = null;
 let activeDelay = null;
@@ -29,6 +28,10 @@ let admittedRuntimeBytes;
 let navigation;
 let hostPresentation, hostPresentationFor, hostStatus;
 let routing;
+let laboratorySelectionSequence = 0;
+const laboratory = document.createElement("div");
+laboratory.className = "book-workbench";
+laboratory.dataset.applicationComponent = "tour-laboratory";
 
 export async function startApplication(application) {
 try {
@@ -67,8 +70,6 @@ try {
   routing = createBookRouting({
     host,
     applicationId: application.manifest.applicationId,
-    isRunning: () => running,
-    currentPage: () => currentPage,
     render: (index) => renderPage(index),
     onFailure: showBookFailure,
   });
@@ -78,6 +79,7 @@ try {
   if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
   hostStatus.success("Browser Host ready");
   globalThis.__conduitBookHost = host;
+  globalThis.__conduitBookLaboratory = laboratory;
   globalThis.__conduitBookPersistence = Object.freeze({
     schema: "conduit.tour/persistence@1",
     flush: readingState.flush,
@@ -117,26 +119,10 @@ function requireBookAbi(api) {
   if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
 }
 
-function parseBookPages(chapters) {
-  const parsed = [];
-  let current = [];
-  for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
-    if (line.startsWith("# ") && current.length > 0) {
-      parsed.push(current.join("\n"));
-      current = [];
-    }
-    if (line.startsWith("# ") || current.length > 0) current.push(line);
-  }
-  if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length === 0) throw new Error("Tour has no pages");
-  return parsed;
-}
-
 async function renderPage(index, routeChange = "none") {
-  if (running) return;
+  retireActiveLaboratory();
   if (routeChange === "push") await routing.move(index, "push");
   currentPage = index;
-  runnerCount = 0;
   chapter.replaceChildren();
   renderMarkdown(guidedPages[index]);
   chapter.scrollTop = 0;
@@ -154,6 +140,7 @@ function renderMarkdown(markdown) {
   const lines = markdown.replaceAll("\r\n", "\n").split("\n");
   let copy = appendCopy();
   let paragraph = [];
+  const stages = [];
   const flush = () => {
     if (paragraph.length === 0) return;
     const element = document.createElement("p");
@@ -177,7 +164,7 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      appendWorkbench(createMultiHostRunner(source.join("\n"), showPlan));
+      appendStageSelector(copy, stages, createTourStage(source.join("\n"), showPlan ? "two-host-plan" : "two-host"));
       copy = appendCopy();
     } else if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
       flush();
@@ -186,9 +173,9 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      appendWorkbench(comparison
-        ? createFaceBackRunner(source.join("\n"))
-        : createRunner(source.join("\n"), recursive));
+      appendStageSelector(copy, stages, createTourStage(
+        source.join("\n"), comparison ? "compare" : recursive ? "recursive" : "run",
+      ));
       copy = appendCopy();
     } else if (line === "```text") {
       flush();
@@ -236,6 +223,9 @@ function renderMarkdown(markdown) {
     }
   }
   flush();
+  const pageTitle = chapter.querySelector("h1")?.textContent ?? "Tour lesson";
+  selectLaboratoryStage(stages[0] ?? conceptualTourStage(pageTitle), stages);
+  chapter.append(laboratory);
 }
 
 function appendInlineMarkdown(parent, source) {
@@ -285,11 +275,49 @@ function appendCopy() {
   return copy;
 }
 
-function appendWorkbench(content) {
-  const workbench = document.createElement("div");
-  workbench.className = "book-workbench";
-  workbench.append(content);
-  chapter.append(workbench);
+function appendStageSelector(copy, stages, stage) {
+  stages.push(stage);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "tour-stage-selector";
+  button.dataset.specimenId = stage.identity;
+  button.textContent = `Load ${stage.label} in the laboratory`;
+  button.addEventListener("click", () => selectLaboratoryStage(stage, stages));
+  copy.append(button);
+}
+
+function selectLaboratoryStage(stage, stages) {
+  retireActiveLaboratory();
+  laboratory.dataset.specimenId = stage.identity;
+  laboratory.dataset.mode = stage.mode;
+  laboratory.dataset.selectionSequence = String(++laboratorySelectionSequence);
+  for (const button of chapter.querySelectorAll(".tour-stage-selector")) {
+    button.setAttribute("aria-pressed", String(button.dataset.specimenId === stage.identity
+      && stages.indexOf(stage) === [...chapter.querySelectorAll(".tour-stage-selector")].indexOf(button)));
+  }
+  if (stage.mode === "conceptual") {
+    const companion = document.createElement("section");
+    companion.className = "conceptual-laboratory";
+    companion.innerHTML = `<figure class="compact-patchbay" aria-label="Patchbay"><figcaption><span>Lesson companion · Patchbay</span><strong>No editable specimen selected</strong></figcaption><div class="conceptual-patchbay">This lesson describes Body state without inventing an executable Form.</div></figure><div class="result"><h2>Lesson state</h2><output aria-label="Planned result">No Play requested</output><p>Choose another lesson to load an executable specimen.</p></div>`;
+    laboratory.replaceChildren(companion);
+    return;
+  }
+  const runner = stage.multiHost
+    ? createMultiHostRunner(stage.source, stage.showPlan, stage.identity)
+    : createRunner(stage.source, stage.recursive, {
+      faceBack: stage.faceBack,
+      runLabel: stage.faceBack ? "Run this Form" : "Run",
+      sourceKey: stage.identity,
+    });
+  laboratory.replaceChildren(runner);
+}
+
+function retireActiveLaboratory() {
+  if (!running || !activeRunner) return;
+  const retiredIdentity = activeRunner.dataset.sourceKey;
+  stopListing(activeRunner);
+  laboratory.dataset.retiredSpecimenId = retiredIdentity;
+  laboratory.dataset.retirementDisposition = "cancelled";
 }
 
 function createCrecheCallToAction(label = "Birth a Body") {
@@ -306,17 +334,9 @@ function createCrecheCallToAction(label = "Birth a Body") {
   return callout;
 }
 
-function createFaceBackRunner(source) {
-  return createRunner(source, false, {
-    faceBack: true,
-    runLabel: "Run this Form",
-  });
-}
-
 function createRunner(source, recursive = false, presentation = {}) {
-  runnerCount += 1;
-  const sourceKey = currentPage + ":" + runnerCount;
-  const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
+  const sourceKey = presentation.sourceKey;
+  const listingId = "listing";
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
   const fieldSlot = `book-runner-field-${runnerSlotSequence}`;
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
@@ -365,10 +385,8 @@ function createRunner(source, recursive = false, presentation = {}) {
   return runner;
 }
 
-function createMultiHostRunner(source, showPlan) {
-  runnerCount += 1;
-  const sourceKey = currentPage + ":" + runnerCount;
-  const listingId = runnerCount === 1 ? "listing" : `listing-${runnerCount}`;
+function createMultiHostRunner(source, showPlan, sourceKey) {
+  const listingId = "listing";
   const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
   const fieldSlot = `book-runner-field-${runnerSlotSequence}`;
   const statusSlot = `book-runner-status-${runnerSlotSequence}`;
