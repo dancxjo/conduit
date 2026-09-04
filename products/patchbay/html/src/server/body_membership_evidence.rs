@@ -44,7 +44,7 @@ impl PatchbayHtmlServer {
             .body_workload
             .as_ref()
             .ok_or_else(|| ServerError::Interaction("Body workload session is absent".into()))?;
-        validate_admission_extension(prior_session.evidence(), &candidate)?;
+        let operation = validate_membership_extension(prior_session.evidence(), &candidate)?;
 
         let encoded = serde_json::to_vec(&candidate)
             .map_err(|error| ServerError::Interaction(error.to_string()))?;
@@ -85,7 +85,7 @@ impl PatchbayHtmlServer {
         snapshot.interaction = prior_interaction;
         snapshot.interaction.revision = snapshot.interaction.revision.saturating_add(1);
         snapshot.interaction.last_request_id = Some(format!(
-            "body-membership/admit/evidence-{evidence_revision}"
+            "body-membership/{operation}/evidence-{evidence_revision}"
         ));
         snapshot.interaction.last_disposition = Some("Succeeded".into());
         self.body_workload = Some(session);
@@ -96,10 +96,10 @@ impl PatchbayHtmlServer {
     }
 }
 
-fn validate_admission_extension(
+fn validate_membership_extension(
     prior: &BodyBiographyEvidence,
     candidate: &BodyBiographyEvidence,
-) -> Result<(), ServerError> {
+) -> Result<&'static str, ServerError> {
     let prior_record_count = prior.records.len();
     let prior_event_count = prior.membership.events.len();
     let prior_part_count = prior.membership.parts.len();
@@ -111,14 +111,25 @@ fn validate_admission_extension(
         || candidate.records.get(..prior_record_count) != Some(prior.records.as_slice())
         || candidate.membership.events.get(..prior_event_count)
             != Some(prior.membership.events.as_slice())
-        || candidate.membership.parts.get(..prior_part_count)
-            != Some(prior.membership.parts.as_slice())
-        || candidate.records.len() != prior_record_count + 2
-        || candidate.membership.events.len() != prior_event_count + 2
-        || candidate.membership.parts.len() != prior_part_count + 1
     {
         return Err(ServerError::Interaction(
-            "biography is not one monotonic post-birth admission extension".into(),
+            "biography does not preserve prior Body truth and history".into(),
+        ));
+    }
+    if candidate.records.len() == prior_record_count + 1
+        && candidate.membership.events.len() == prior_event_count + 1
+        && candidate.membership.parts.len() == prior_part_count
+    {
+        return validate_leave_extension(prior, candidate, prior_record_count, prior_event_count);
+    }
+    if candidate.records.len() != prior_record_count + 2
+        || candidate.membership.events.len() != prior_event_count + 2
+        || candidate.membership.parts.len() != prior_part_count + 1
+        || candidate.membership.parts.get(..prior_part_count)
+            != Some(prior.membership.parts.as_slice())
+    {
+        return Err(ServerError::Interaction(
+            "biography is not one bounded membership extension".into(),
         ));
     }
     let admitted_record = &candidate.records[prior_record_count];
@@ -164,7 +175,66 @@ fn validate_admission_extension(
             "biography admission identities do not agree".into(),
         ));
     }
-    Ok(())
+    Ok("admit")
+}
+
+fn validate_leave_extension(
+    prior: &BodyBiographyEvidence,
+    candidate: &BodyBiographyEvidence,
+    record_index: usize,
+    event_index: usize,
+) -> Result<&'static str, ServerError> {
+    let record = &candidate.records[record_index];
+    let event = &candidate.membership.events[event_index];
+    let (
+        BodyBiographyRecordKind::HostLeft {
+            change_id,
+            part_id,
+            prior_boot_id,
+        },
+        MembershipEventKind::HostDetached {
+            prior_boot_id: event_boot,
+        },
+    ) = (&record.kind, &event.kind)
+    else {
+        return Err(ServerError::Interaction(
+            "single-record membership extension is not Host leave".into(),
+        ));
+    };
+    let prior_part = prior
+        .membership
+        .parts
+        .iter()
+        .find(|candidate| candidate.part_id == *part_id)
+        .ok_or_else(|| ServerError::Interaction("Host leave names unknown Part".into()))?;
+    let candidate_part = candidate
+        .membership
+        .parts
+        .iter()
+        .find(|candidate| candidate.part_id == *part_id)
+        .ok_or_else(|| ServerError::Interaction("Host leave removes durable Part".into()))?;
+    let other_parts_unchanged = prior.membership.parts.iter().all(|prior_part| {
+        &prior_part.part_id == part_id
+            || candidate
+                .membership
+                .parts
+                .iter()
+                .find(|candidate| candidate.part_id == prior_part.part_id)
+                == Some(prior_part)
+    });
+    if change_id != &event.change_id
+        || part_id != &event.part_id
+        || prior_boot_id != event_boot
+        || prior_part.current.as_ref().map(|current| &current.boot_id) != Some(prior_boot_id)
+        || candidate_part.state != prior_part.state
+        || candidate_part.current.is_some()
+        || !other_parts_unchanged
+    {
+        return Err(ServerError::Interaction(
+            "Host leave identities do not agree".into(),
+        ));
+    }
+    Ok("leave")
 }
 
 #[cfg(test)]
@@ -212,8 +282,30 @@ mod tests {
         candidate
     }
 
+    fn leave_extension(prior: &BodyBiographyEvidence) -> BodyBiographyEvidence {
+        let mut membership = prior.membership.clone();
+        let part = membership.parts.last().unwrap();
+        let part_id = part.part_id.clone();
+        let boot_id = part.current.as_ref().unwrap().boot_id.clone();
+        let detached = membership
+            .observe_offline(
+                &prior.body_id,
+                membership.revision,
+                &part_id,
+                &boot_id,
+                SignId::from("sign/browser/post-birth/left"),
+            )
+            .unwrap();
+        let biography_sequence = prior.records.last().unwrap().sequence + 1;
+        let mut candidate = prior.clone();
+        candidate
+            .append_membership_events(membership, &[(detached, biography_sequence)])
+            .unwrap();
+        candidate
+    }
+
     #[test]
-    fn exact_admission_extension_is_atomic_and_replay_refuses() {
+    fn exact_admission_then_leave_are_atomic_and_replay_refuses() {
         let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
         let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
         let prior = server.body_workload.as_ref().unwrap().evidence().clone();
@@ -229,7 +321,23 @@ mod tests {
             workbench.current["current_hosts"].as_array().unwrap().len(),
             2
         );
-        assert!(server.apply_body_membership_evidence(&encoded).is_err());
+        let admitted = server.body_workload.as_ref().unwrap().evidence().clone();
+        let left = leave_extension(&admitted);
+        let left_encoded = serde_json::to_vec(&left).unwrap();
+        let adopted = server
+            .apply_body_membership_evidence(&left_encoded)
+            .unwrap();
+        let adopted: crate::RendererSnapshot = serde_json::from_slice(&adopted).unwrap();
+        let workbench = adopted.body_workbench.unwrap();
+        assert_eq!(workbench.evidence_revision, 3);
+        assert_eq!(workbench.current["admitted_parts"], 2);
+        assert_eq!(
+            workbench.current["current_hosts"].as_array().unwrap().len(),
+            1
+        );
+        assert!(server
+            .apply_body_membership_evidence(&left_encoded)
+            .is_err());
     }
 
     #[test]
