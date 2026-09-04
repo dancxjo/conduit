@@ -190,8 +190,9 @@ fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/pages-deploy-pr-proof.yml"))
         .expect("read Pages resolver proof workflow");
-    let dispatcher = fs::read_to_string(root.join("tools/xtask-dispatch/src/ci_dispatch.rs"))
-        .expect("read dependency-light CI dispatcher");
+    let dispatcher =
+        fs::read_to_string(root.join("tools/xtask-dispatch/src/ci_dispatch/pages_resolver.rs"))
+            .expect("read dependency-light Pages resolver command");
 
     assert!(workflow.contains("cargo xtask ci pages-resolver-proof --locked"));
     assert!(!workflow.contains("node --test proof/ci/"));

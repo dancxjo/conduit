@@ -29,6 +29,13 @@ impl CommandProofSpec {
 // reviewable claim that its effects do not cross the named suite boundary.
 pub(super) const COMMAND_PROOFS: &[CommandProofSpec] = &[
     CommandProofSpec {
+        id: "ci.pages-resolver",
+        exact_inputs: &["tools/xtask-dispatch/src/ci_dispatch/pages_resolver.rs"],
+        input_prefixes: &[],
+        workspace_packages: &["conduit-xtask-dispatch"],
+        heavy_suites: &[],
+    },
+    CommandProofSpec {
         id: "repository.forms",
         exact_inputs: &["forms/inventory.toml", "xtask/src/commands/forms.rs"],
         input_prefixes: &["forms/", "xtask/src/commands/forms/"],
