@@ -1,5 +1,7 @@
 //! One bounded live browser admission proof server for conformance tests.
 
+#[path = "browser-admission-probe/leave_session.rs"]
+mod leave_session;
 #[path = "browser-admission-probe/return_admission.rs"]
 mod return_admission;
 #[path = "browser-admission-probe/return_session.rs"]
@@ -19,6 +21,7 @@ use conduit_std_host::websocket::{NativeWebSocketError, NativeWebSocketError::Tr
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 
+use leave_session::record_explicit_leave;
 use return_admission::accept_return;
 
 const PRESENCE_LEASE_MILLIS: u64 = 2_000;
@@ -28,6 +31,9 @@ fn main() -> Result<(), String> {
     let arguments = std::env::args().skip(1).collect::<Vec<_>>();
     let live_presence = arguments.iter().any(|argument| argument == "--presence");
     let reconnect = arguments.iter().any(|argument| argument == "--reconnect");
+    let fresh_return = arguments
+        .iter()
+        .any(|argument| argument == "--fresh-return");
     let clock = Instant::now();
     let evidence_path = arguments
         .windows(2)
@@ -333,55 +339,24 @@ fn main() -> Result<(), String> {
                 sequence,
                 ..
             }) => {
-                if credential_id != credential.credential_id
-                    || body_id != credential.body_id
-                    || part_id != credential.part_id
-                    || host_id != credential.host_id
-                    || boot_id != credential.boot_id
-                {
-                    socket
-                        .send(&BrowserAdmissionEgress::Refused {
-                            protocol: BROWSER_ADMISSION_PROTOCOL,
-                            code: "stale-membership-credential".into(),
-                        })
-                        .map_err(|error| format!("send leave refusal: {error:?}"))?;
-                    return Ok(());
+                if record_explicit_leave(
+                    &mut socket,
+                    &mut presence,
+                    &mut membership,
+                    &mut biography,
+                    &credential,
+                    &session_binding,
+                    credential_id,
+                    body_id,
+                    part_id,
+                    host_id,
+                    boot_id,
+                    sequence,
+                    clock,
+                    fresh_return,
+                )? {
+                    break 'presence;
                 }
-                let prior_events = membership.events.len();
-                presence
-                    .lose_session(
-                        &mut membership,
-                        &credential.part_id,
-                        &session_binding,
-                        monotonic_millis(clock)?,
-                        SignId::from("sign/browser-admission-probe/explicit-leave"),
-                    )
-                    .map_err(|error| format!("record explicit leave: {error:?}"))?;
-                let event = membership
-                    .events
-                    .get(prior_events)
-                    .ok_or("explicit leave did not append membership evidence")?;
-                let biography_sequence = biography
-                    .records
-                    .last()
-                    .and_then(|record| record.sequence.checked_add(1))
-                    .ok_or("Body biography sequence exhausted")?;
-                biography
-                    .append_membership_events(
-                        membership.clone(),
-                        &[(event.change_id.clone(), biography_sequence)],
-                    )
-                    .map_err(|error| format!("append leave biography: {error:?}"))?;
-                socket
-                    .send(&BrowserAdmissionEgress::BiographyEvidence {
-                        protocol: BROWSER_ADMISSION_PROTOCOL,
-                        evidence: Box::new(biography),
-                    })
-                    .map_err(|error| format!("send leave biography evidence: {error:?}"))?;
-                println!(
-                    "left sequence={sequence} part={}",
-                    credential.part_id.as_str()
-                );
                 return Ok(());
             }
             Ok(BrowserAdmissionIngress::WebRtcGrantRequest {
@@ -467,6 +442,7 @@ fn main() -> Result<(), String> {
         &mut admission,
         &mut presence,
         &mut membership,
+        &mut biography,
         &credential,
         clock,
         PRESENCE_LEASE_MILLIS,

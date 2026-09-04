@@ -31,7 +31,20 @@ export function immutableWebRtcSignalFrame(frame) {
   return Object.freeze({ ...frame, signal: immutableSignal });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, onState, onBiographyEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = null }) {
+  const fields = ["credential_id", "body_id", "part_id", "host_id", "boot_id"];
+  if (typeof candidate !== "object" || candidate === null ||
+      fields.some(field => typeof candidate[field] !== "string" || candidate[field].length === 0 || candidate[field].length > 256) ||
+      !Number.isSafeInteger(candidate.issued_at_millis) || candidate.issued_at_millis < 0 ||
+      (expectedBodyId !== null && candidate.body_id !== expectedBodyId) ||
+      candidate.host_id !== hostId || candidate.boot_id !== bootId ||
+      (prior !== null && (candidate.part_id !== prior.part_id || candidate.credential_id === prior.credential_id))) {
+    throw new Error("invalid browser membership credential identity");
+  }
+  return Object.freeze({ ...candidate });
+}
+
+export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
@@ -102,7 +115,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   configureHost?.(Object.freeze({ api, hostId, bootId }));
   let state = "connecting";
   let presenceState = "unavailable";
-  let credential;
+  const priorCredential = retainedCredential === null ? null : requireCredential(retainedCredential, {
+    expectedBodyId,
+    hostId,
+    bootId: retainedCredential?.boot_id,
+  });
+  if (priorCredential !== null && priorCredential.boot_id === bootId) {
+    throw new Error("retained membership credential belongs to the current Boot");
+  }
+  let credential = priorCredential;
+  let credentialPersistence = Promise.resolve();
   let biographyEvidence = null;
   let renewalTimer;
   let renewalSequence = 1;
@@ -191,12 +213,12 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     requestGrant: requestWebRtcGrant,
     onState: (next) => onWebRtcState?.(next),
   });
-  const openSocket = (returning = false) => {
+  const openSocket = (returning = false, freshBoot = false) => {
     socket = new WebSocket(bodyUrl);
     socket.binaryType = "arraybuffer";
     socket.addEventListener("open", () => {
       if (returning) {
-        setState("returning");
+        setState(freshBoot ? "returning-fresh-boot" : "returning");
         socket.send(encoder.encode(JSON.stringify({
           kind: "return-advertise",
           protocol: 1,
@@ -215,7 +237,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
         freshness_sequence: 1,
       })));
     });
-    socket.addEventListener("message", (event) => {
+    socket.addEventListener("message", async (event) => {
     const frame = JSON.parse(typeof event.data === "string"
       ? event.data
       : decoder.decode(new Uint8Array(event.data)));
@@ -288,7 +310,14 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
         socket.close(1008, "Body credential identity mismatch");
         return;
       }
-      credential = frame.credential;
+      credential = requireCredential(frame.credential, {
+        expectedBodyId,
+        hostId,
+        bootId,
+        prior: returning ? credential : null,
+      });
+      credentialPersistence = Promise.resolve(onCredential?.(credential));
+      await credentialPersistence;
       setState("admitted");
     } else if (frame.kind === "biography-evidence" && frame.protocol === 1) {
       const evidence = frame.evidence;
@@ -311,6 +340,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       onBiographyEvidence?.(biographyEvidence);
       if (detached) socket.close(1000, "Body recorded browser Host leave");
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
+      await credentialPersistence;
       if (!credential || (!returning && frame.sequence !== renewalSequence)) {
         throw new Error("presence acceptance did not match the current credential sequence");
       }
@@ -415,7 +445,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       }
     });
   };
-  openSocket();
+  openSocket(priorCredential !== null, priorCredential !== null);
   function publishMediaResource(mediaEvidence) {
     if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("current Body membership is required for media resource truth"));
