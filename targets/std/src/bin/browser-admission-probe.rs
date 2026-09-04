@@ -6,8 +6,8 @@ mod return_admission;
 mod return_session;
 
 use conduit_body::{
-    AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyMembership,
-    CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
+    AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyBiographyEvidence,
+    BodyMembership, CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
     HostPresenceClockScale, HostPresenceRefusal, HostPresenceTable,
 };
 use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
@@ -29,15 +29,33 @@ fn main() -> Result<(), String> {
     let live_presence = arguments.iter().any(|argument| argument == "--presence");
     let reconnect = arguments.iter().any(|argument| argument == "--reconnect");
     let clock = Instant::now();
-    let body = Body::born(
-        SourceDocumentId::from("source/browser-admission-probe"),
-        CheckedFormId::from("checked/browser-admission-probe"),
-        1,
-        SignId::from("sign/browser-admission-probe/body-born"),
-    )
-    .map_err(|error| format!("Body birth: {error:?}"))?;
-    let mut membership = BodyMembership::new(body.body_id.clone())
-        .map_err(|error| format!("membership: {error:?}"))?;
+    let evidence_path = arguments
+        .windows(2)
+        .find(|pair| pair[0] == "--body-evidence")
+        .map(|pair| pair[1].as_str());
+    let (body, mut membership) = if let Some(path) = evidence_path {
+        let bytes = std::fs::read(path).map_err(|error| format!("read Body evidence: {error}"))?;
+        if bytes.is_empty() || bytes.len() > 65_536 {
+            return Err("Body evidence is empty or exceeds the probe bound".into());
+        }
+        let evidence: BodyBiographyEvidence = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("decode Body evidence: {error}"))?;
+        evidence
+            .validate()
+            .map_err(|error| format!("validate Body evidence: {error:?}"))?;
+        (evidence.body, evidence.membership)
+    } else {
+        let body = Body::born(
+            SourceDocumentId::from("source/browser-admission-probe"),
+            CheckedFormId::from("checked/browser-admission-probe"),
+            1,
+            SignId::from("sign/browser-admission-probe/body-born"),
+        )
+        .map_err(|error| format!("Body birth: {error:?}"))?;
+        let membership = BodyMembership::new(body.body_id.clone())
+            .map_err(|error| format!("membership: {error:?}"))?;
+        (body, membership)
+    };
     let mut candidates = CandidateInventory::new(body.body_id.clone())
         .map_err(|error| format!("candidate inventory: {error:?}"))?;
     let mut admission = AdmissionManager::new(body.body_id.clone())

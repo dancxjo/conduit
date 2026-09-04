@@ -1,12 +1,17 @@
 import { spawn } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { startPresenceProbe } from "./browser-presence-support.mjs";
 
 let server;
 let hostedTruth;
+let membershipProbe;
+let temporaryEvidenceDirectory;
 
-async function openWorkbench(page, entrance, extraArguments = []) {
-  server = spawn("target/debug/patchbay-html", ["--body-workbench-fixture", entrance, ...extraArguments], {
+async function openPatchbay(page, patchbayArguments) {
+  server = spawn("target/debug/patchbay-html", patchbayArguments, {
     cwd: new URL("../..", import.meta.url).pathname,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -27,13 +32,28 @@ async function openWorkbench(page, entrance, extraArguments = []) {
   return url;
 }
 
+async function openWorkbench(page, entrance, extraArguments = []) {
+  return openPatchbay(page, ["--body-workbench-fixture", entrance, ...extraArguments]);
+}
+
+async function writeFixtureEvidence(page) {
+  const fixtureUrl = await openWorkbench(page, "external");
+  const snapshot = await page.request.get(new URL("/api/snapshot", fixtureUrl).href).then(response => response.json());
+  temporaryEvidenceDirectory = await mkdtemp(join(tmpdir(), "conduit-patchbay-membership-"));
+  const evidencePath = join(temporaryEvidenceDirectory, "body.json");
+  await writeFile(evidencePath, Buffer.from(snapshot.body_workbench.encoded_evidence));
+  server.kill();
+  return evidencePath;
+}
+
 test("an invited browser remains outside the Body until explicit join", async ({ page }) => {
-  const probe = await startPresenceProbe();
-  await openWorkbench(page, "external", ["--body-invitation", probe.url]);
+  const evidencePath = await writeFixtureEvidence(page);
+  membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath]);
+  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeVisible();
   await expect(page.locator("#body-membership-status")).toContainText("not a member");
   expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
-  expect(probe.output()).not.toContain("admitted");
+  expect(membershipProbe.output()).not.toContain("admitted");
   await page.getByRole("button", { name: "Join this Body", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
   await expect(page.locator("#body-membership-status")).toContainText("admitted");
@@ -41,11 +61,26 @@ test("an invited browser remains outside the Body until explicit join", async ({
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
   await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeEnabled();
-  await expect.poll(probe.output).toContain("unavailable reason=session-lost");
-  probe.process.kill();
+  await expect.poll(membershipProbe.output).toContain("unavailable reason=session-lost");
 });
 
-test.afterEach(() => server?.kill());
+test("an invitation for a different Body refuses before admission", async ({ page }) => {
+  const evidencePath = await writeFixtureEvidence(page);
+  membershipProbe = await startPresenceProbe();
+  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("refused:wrong-body");
+  await expect(page.locator("#body-membership-status")).toContainText("refused:wrong-body");
+  expect(membershipProbe.output()).not.toContain("admitted");
+});
+
+test.afterEach(async () => {
+  server?.kill();
+  membershipProbe?.process.kill();
+  membershipProbe = null;
+  if (temporaryEvidenceDirectory) await rm(temporaryEvidenceDirectory, { recursive: true, force: true });
+  temporaryEvidenceDirectory = null;
+});
 
 for (const entrance of ["hosted", "external"]) {
   test(`${entrance} graduated Body opens in the same semantic workbench`, async ({ page }) => {
