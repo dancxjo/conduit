@@ -43,7 +43,7 @@ pub fn exact_distributed_signal_plan_for_endpoints(
     let sink_advertisement =
         crate::distributed_browser_advertisement_for(sink_host_id, sink_boot_id);
     let syntax = conduit_form::parse_syntax_document(include_str!(
-        "../../../../examples/signal-demo.conduit"
+        "../../../../forms/signal-demo/main.conduit"
     ));
     let checked = conduit_form::check_syntax_document(&syntax, &crate::signal_startup_catalog())
         .map_err(|error| alloc::format!("{}: {}", error.code, error.message))?;

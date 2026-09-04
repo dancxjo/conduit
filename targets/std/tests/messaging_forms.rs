@@ -19,7 +19,7 @@ use conduit_form::{
 };
 use conduit_std_host::hosted_messaging::{messaging_std_offers, MESSAGING_HOST_OPERATION};
 
-const SOURCE: &str = include_str!("../../../examples/messaging-delivery.conduit");
+const SOURCE: &str = include_str!("../../../forms/messaging-delivery/main.conduit");
 
 #[test]
 fn canonical_form_constructs_and_routes_one_structured_message() {

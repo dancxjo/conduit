@@ -11,7 +11,7 @@ use conduit_semantic_catalog::{
     install_reminder_catalogs, REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND,
 };
 
-const SOURCE: &str = include_str!("../../../examples/scheduled-reminder.conduit");
+const SOURCE: &str = include_str!("../../../forms/scheduled-reminder/main.conduit");
 
 #[test]
 fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {

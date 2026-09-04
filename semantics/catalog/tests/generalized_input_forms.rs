@@ -18,7 +18,7 @@ use conduit_semantic_catalog::{
     NORMALIZED_BIPOLAR_AXIS_PROFILE,
 };
 
-const SOURCE: &str = include_str!("../../../examples/generalized-input.conduit");
+const SOURCE: &str = include_str!("../../../forms/generalized-input/main.conduit");
 
 #[test]
 fn canonical_form_consumes_gamepad_button_pointer_touch_and_rotary_info() {

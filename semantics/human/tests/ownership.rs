@@ -2,7 +2,8 @@
 fn human_semantics_depend_only_downward() {
     let manifest = include_str!("../Cargo.toml");
     for forbidden in [
-        "apps/",
+        "products/",
+        "bodies/",
         "targets/",
         "proof/",
         "conduit-std-host",

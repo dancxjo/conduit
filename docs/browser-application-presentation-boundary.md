@@ -66,7 +66,7 @@ not semantic or runtime identities.
 
 | Current surface | Classification and split | Destination | Phase |
 |---|---|---|---|
-| `tour/book/` | Book-authored lessons and examples | Remain Book application content | 2 |
+| `products/tour/content/` | Book-authored lessons and examples | Remain Book application content | 2 |
 | `targets/browser/runtime/src/book_runner/` | Book execution/application bridge | Remain application/runtime behavior; emit bounded application state rather than DOM instructions | 2 |
 | `targets/browser/host/assets/book.mjs` | Mixed lesson navigation, application actions, markdown/content projection, bespoke DOM construction, and embedded Patchbay coordination | Keep Book state/actions/content projection; replace generic DOM work with shared presentation descriptions and events | 2 |
 | `book.html` and `book.css` | Compatibility document and a page-specific control/theme system | Reduce to Host bootstrap and Book-specific layout roles; remove duplicated generic controls and copied theme values | 2, 5 |
@@ -98,13 +98,13 @@ to a device or select a Host implementation by themselves.
 
 | Current surface | Classification and split | Destination | Phase |
 |---|---|---|---|
-| `apps/patchbay/model/src/` | Renderer-neutral Patchbay state, actions, projections, layout, and theme | Remain the authoritative application/presentation model used by browser and native renderers | 1, 4 |
-| `apps/patchbay/model/src/theme.rs` | Fixed, bounded, toolkit-independent theme roles explicitly excluded from semantic identities | Generalize or narrowly wrap as the shared presentation-theme nucleus; preserve identity exclusion | 1 |
-| `apps/patchbay/html/assets/flow.js`, `flow-scene.js`, `flow-layout.js`, and `flow-faceplate.js` | Actual React Flow browser manifestation of Patchbay projections | Become one Host-owned browser Patchbay renderer used by both Patchbay HTML and Book | 4 |
-| `apps/patchbay/html/assets/app.js` | Patchbay action orchestration mixed with generic DOM construction and updates | Keep Patchbay actions/projections in the app; move generic manifestation and event plumbing to the Host | 4 |
+| `products/patchbay/model/src/` | Renderer-neutral Patchbay state, actions, projections, layout, and theme | Remain the authoritative application/presentation model used by browser and native renderers | 1, 4 |
+| `products/patchbay/model/src/theme.rs` | Fixed, bounded, toolkit-independent theme roles explicitly excluded from semantic identities | Generalize or narrowly wrap as the shared presentation-theme nucleus; preserve identity exclusion | 1 |
+| `products/patchbay/html/assets/flow.js`, `flow-scene.js`, `flow-layout.js`, and `flow-faceplate.js` | Actual React Flow browser manifestation of Patchbay projections | Become one Host-owned browser Patchbay renderer used by both Patchbay HTML and Book | 4 |
+| `products/patchbay/html/assets/app.js` | Patchbay action orchestration mixed with generic DOM construction and updates | Keep Patchbay actions/projections in the app; move generic manifestation and event plumbing to the Host | 4 |
 | `panel-furniture.js`, `index.html`, and `app.css` | Generic panels, controls, shell, and duplicated styling | Replace with shared components/theme roles; keep only Patchbay-specific layout | 1, 4-5 |
-| `apps/patchbay/html/src/server.rs` and `src/server/*` | Patchbay HTTP compatibility server, application endpoints, theme transport, and asset serving | Preserve application endpoints until Host application loading is complete; retire duplicate HTTP/shell delivery in Phase 5 | 4-5 |
-| `apps/patchbay/native/src/` | Native renderer and native interaction adapter | Retain as a first-class independent renderer; keep consuming renderer-neutral model/theme | all |
+| `products/patchbay/html/src/server.rs` and `src/server/*` | Patchbay HTTP compatibility server, application endpoints, theme transport, and asset serving | Preserve application endpoints until Host application loading is complete; retire duplicate HTTP/shell delivery in Phase 5 | 4-5 |
+| `products/patchbay/native/src/` | Native renderer and native interaction adapter | Retain as a first-class independent renderer; keep consuming renderer-neutral model/theme | all |
 
 ## Shared protocol boundary
 

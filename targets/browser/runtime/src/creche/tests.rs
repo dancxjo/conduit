@@ -8,7 +8,13 @@ const SEED: &str = r#"form hello_across {
     message > show
 }"#;
 
-const TWO_FORMS: &str = include_str!("../../../../../forms/initial-body.conduit");
+const TWO_FORMS: &str = concat!(
+    include_str!("../../../../../forms/morse-network/main.conduit"),
+    "\n",
+    include_str!("../../../../../forms/memory-lantern/main.conduit"),
+    "\n",
+    include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+);
 
 fn selection(source: &str, names: &[&str]) -> String {
     let inventory = super::initial_forms::reviewed_inventory(source).unwrap();

@@ -31,7 +31,7 @@ test.afterAll(async () => {
 });
 
 test("dynamic browser peers join broadcast leave and continue through the planned pool", async ({ browser, request }) => {
-  const source = await request.get("/examples/pool-webchat.conduit");
+  const source = await request.get("/forms/pool-webchat/main.conduit");
   const authored = await source.text();
   expect(authored).toContain("pool peers: chat/peer(size = 32)");
   expect(authored).toContain("flow/merge(peers)");

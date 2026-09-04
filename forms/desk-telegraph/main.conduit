@@ -1,0 +1,5 @@
+form desk_telegraph {
+    message: text/literal("CALLING")
+    show: presentation/text
+    message > show
+}

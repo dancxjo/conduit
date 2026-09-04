@@ -31,7 +31,7 @@ const RENEW_AFTER_MILLIS: u64 = 30_000;
 
 fn main() -> Result<(), String> {
     let body = Body::born(
-        SourceDocumentId::from("source/examples/camera-summary.conduit"),
+        SourceDocumentId::from("source/forms/camera-summary/main.conduit"),
         CheckedFormId::from("checked/camera-summary"),
         1,
         SignId::from("sign/browser-body-camera-realization/body-born"),

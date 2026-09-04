@@ -1,6 +1,13 @@
 use std::{fs, path::Path};
 
-const ROOTS: &[&str] = &["apps", "architecture", "mechanisms", "semantics", "targets"];
+const ROOTS: &[&str] = &[
+    "architecture",
+    "bodies",
+    "mechanisms",
+    "products",
+    "semantics",
+    "targets",
+];
 const MARKERS: &[&str] = &[
     "capstone", "takeover", "r1_", "s4_", "a0_", "a1_", "a2_", "a3_", "a4_",
 ];
@@ -9,17 +16,17 @@ const MARKERS: &[&str] = &[
 // directory to accumulate more milestone vocabulary.
 const ALLOWLIST: &[(&str, &str, &str)] = &[
     (
-        "apps/patchbay/model/src/presenter_plans.rs",
+        "products/patchbay/model/src/presenter_plans.rs",
         "capstone",
         "accepted canonical Form identity is preserved without migration",
     ),
     (
-        "apps/pete/src/interaction_convergence.rs",
+        "bodies/pete/src/interaction_convergence.rs",
         "capstone",
         "accepted Body Plan and Play identities are preserved without migration",
     ),
     (
-        "apps/patchbay/native/src/bin/browser_parts_capstone/physical_body.rs",
+        "products/patchbay/native/src/bin/browser_parts_capstone/physical_body.rs",
         "r1_",
         "physical proof composition consumes the explicitly proof-owned R1 contract",
     ),

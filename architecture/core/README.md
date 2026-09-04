@@ -53,7 +53,7 @@ scheduling policy, and calendar-provider semantics live in `semantics/time`.
 | Human interaction, permission-gated media, keyboard events, chords, and keymaps | `semantics/human` |
 | JSON value and canonical codec semantics | `semantics/web` |
 | Robotics observations and hazard/input values | `semantics/robotics` |
-| Patchbay actions and control requests | `apps/patchbay/control` |
+| Patchbay actions and control requests | `products/patchbay/control` |
 
 These moves preserve their existing IDs and encodings. There are deliberately
 no compatibility re-exports from `conduit-core`; callers import the owner that

@@ -16,7 +16,7 @@ use conduit_net::{
     NETWORK_CONNECT_AUTHORITY, NETWORK_CONNECT_KIND,
 };
 
-const SOURCE: &str = include_str!("../../../examples/network-resolution.conduit");
+const SOURCE: &str = include_str!("../../../forms/network-resolution/main.conduit");
 
 #[test]
 fn ordinary_form_plans_dns_and_connection_with_explicit_resources_and_authority() {

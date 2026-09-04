@@ -6,7 +6,7 @@ use conduit_form::{
 use conduit_std_host::{StdHost, TimerAdapter};
 use std::time::Duration;
 
-const PROGRAM: &str = include_str!("../../../examples/count.conduit");
+const PROGRAM: &str = include_str!("../../../forms/count/main.conduit");
 
 #[derive(Default)]
 struct RecordingTimer {

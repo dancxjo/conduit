@@ -45,7 +45,7 @@ const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
     "xtask/src/commands/ci/impact.rs",
     "xtask/src/commands/ci/impact/tests.rs",
 ];
-const HARMLESS_PREFIXES: [&str; 2] = ["docs/", "examples/"];
+const HARMLESS_PREFIXES: [&str; 1] = ["docs/"];
 const HARMLESS_FILES: [&str; 6] = [
     "README.md",
     "STATUS.md",
@@ -65,14 +65,14 @@ const DEBUGGER_KERNEL_SLICE: [&str; 7] = [
 ];
 const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
     "Cargo.lock",
-    "apps/patchbay/html/Cargo.toml",
-    "apps/patchbay/html/assets/app.css",
-    "apps/patchbay/html/assets/app.js",
-    "apps/patchbay/html/assets/index.html",
-    "apps/patchbay/html/assets/patchbay.application.template.json",
-    "apps/patchbay/html/src/server.rs",
-    "apps/patchbay/html/src/server/http.rs",
-    "apps/patchbay/html/tests/server.rs",
+    "products/patchbay/html/Cargo.toml",
+    "products/patchbay/html/assets/app.css",
+    "products/patchbay/html/assets/app.js",
+    "products/patchbay/html/assets/index.html",
+    "products/patchbay/html/assets/patchbay.application.template.json",
+    "products/patchbay/html/src/server.rs",
+    "products/patchbay/html/src/server/http.rs",
+    "products/patchbay/html/tests/server.rs",
     "proof/browser/patchbay-debugger-watch.spec.mjs",
     "proof/browser/patchbay-html.spec.mjs",
 ];
@@ -91,8 +91,8 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     "xtask/src/commands/host_release.rs",
 ];
 const SHARED_BROWSER_THEME_SLICE: [&str; 10] = [
-    "apps/patchbay/html/assets/app.css",
-    "apps/patchbay/html/assets/index.html",
+    "products/patchbay/html/assets/app.css",
+    "products/patchbay/html/assets/index.html",
     "proof/browser/pages-front-door.spec.mjs",
     "proof/browser/patchbay-html.spec.mjs",
     "site/index.html",
@@ -105,8 +105,8 @@ const SHARED_BROWSER_THEME_SLICE: [&str; 10] = [
 
 fn is_tongues_analysis_path(path: &str) -> bool {
     path.starts_with("semantics/tongues/")
-        || path == "examples/tongues-dynamics-analysis.conduit"
-        || path == "apps/patchbay/html/src/learned_demo.rs"
+        || path == "forms/tongues-dynamics-analysis/main.conduit"
+        || path == "products/patchbay/html/src/learned_demo.rs"
         || path == "proof/browser/patchbay-debugger-watch.spec.mjs"
         || path == "xtask/src/commands/ci/impact.rs"
         || path == "xtask/src/commands/ci/impact/tests.rs"
@@ -276,7 +276,7 @@ fn direct_prefixes(suite: &str) -> &'static [&'static str] {
         "esp32" => &["targets/esp32/"],
         "browser" => &[
             "targets/browser/",
-            "apps/patchbay/",
+            "products/patchbay/",
             "proof/browser/",
             "assets/",
         ],
@@ -344,10 +344,10 @@ fn plan_for_paths(
         .all(|path| PATCHBAY_PACKAGE_SLICE.contains(&path.as_str()))
         && [
             "Cargo.lock",
-            "apps/patchbay/html/Cargo.toml",
-            "apps/patchbay/html/assets/patchbay.application.template.json",
-            "apps/patchbay/html/assets/index.html",
-            "apps/patchbay/html/src/server.rs",
+            "products/patchbay/html/Cargo.toml",
+            "products/patchbay/html/assets/patchbay.application.template.json",
+            "products/patchbay/html/assets/index.html",
+            "products/patchbay/html/src/server.rs",
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
@@ -367,8 +367,8 @@ fn plan_for_paths(
         .iter()
         .all(|path| SHARED_BROWSER_THEME_SLICE.contains(&path.as_str()))
         && [
-            "apps/patchbay/html/assets/app.css",
-            "apps/patchbay/html/assets/index.html",
+            "products/patchbay/html/assets/app.css",
+            "products/patchbay/html/assets/index.html",
             "proof/browser/pages-front-door.spec.mjs",
             "site/site.css",
             "targets/browser/host/assets/book.css",
@@ -402,7 +402,7 @@ fn plan_for_paths(
             .any(|path| path.starts_with("semantics/tongues/"))
         && substantive
             .iter()
-            .any(|path| path.as_str() == "apps/patchbay/html/src/learned_demo.rs")
+            .any(|path| path.as_str() == "products/patchbay/html/src/learned_demo.rs")
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/browser/patchbay-debugger-watch.spec.mjs")

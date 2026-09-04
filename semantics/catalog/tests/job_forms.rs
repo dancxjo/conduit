@@ -12,7 +12,7 @@ use conduit_semantic_catalog::{
     JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_RUN_KIND,
 };
 
-const SOURCE: &str = include_str!("../../../examples/bounded-job.conduit");
+const SOURCE: &str = include_str!("../../../forms/bounded-job/main.conduit");
 
 #[test]
 fn ordinary_form_plans_one_bounded_admitted_job() {

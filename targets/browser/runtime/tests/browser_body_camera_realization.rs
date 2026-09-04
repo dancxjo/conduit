@@ -21,7 +21,7 @@ use conduit_semantic_catalog::{
     MEDIA_USE_AUTHORITY, MEDIA_USE_OPERATION,
 };
 
-const SOURCE: &str = include_str!("../../../../examples/camera-summary.conduit");
+const SOURCE: &str = include_str!("../../../../forms/camera-summary/main.conduit");
 
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     HostAdvertisement {

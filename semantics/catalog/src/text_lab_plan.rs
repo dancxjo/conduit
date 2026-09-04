@@ -21,7 +21,7 @@ use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
 };
 
-pub const TEXT_LAB_SPLIT_SOURCE: &str = include_str!("../../../examples/text-lab.conduit");
+pub const TEXT_LAB_SPLIT_SOURCE: &str = include_str!("../../../forms/text-lab/main.conduit");
 pub const TEXT_LAB_NATIVE_HOST: &str = "text-lab/native";
 pub const TEXT_LAB_NATIVE_BOOT: &str = "text-lab/native/boot-1";
 pub const TEXT_LAB_BROWSER_HOST: &str = "text-lab/browser";

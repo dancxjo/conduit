@@ -6,8 +6,8 @@ import { expect, test } from "@playwright/test";
 
 function startPublicEntrance() {
   const child = spawn("target/debug/patchbay-html", [
-    "--form", "Text Lab", "examples/text-lab.conduit",
-    "--form", "Hello", "examples/hello.conduit",
+    "--form", "Text Lab", "forms/text-lab/main.conduit",
+    "--form", "Hello", "forms/hello/main.conduit",
   ], {
     stdio: ["ignore", "pipe", "pipe"],
   });

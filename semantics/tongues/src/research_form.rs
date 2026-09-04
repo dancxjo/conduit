@@ -9,11 +9,11 @@ use conduit_form::{
 };
 
 pub const TRAINING_FORM_SOURCE: &str =
-    include_str!("../../../examples/tongues-latent-training.conduit");
+    include_str!("../../../forms/tongues-latent-training/main.conduit");
 pub const INFERENCE_FORM_SOURCE: &str =
-    include_str!("../../../examples/tongues-bidirectional-inference.conduit");
+    include_str!("../../../forms/tongues-bidirectional-inference/main.conduit");
 pub const ANALYSIS_FORM_SOURCE: &str =
-    include_str!("../../../examples/tongues-dynamics-analysis.conduit");
+    include_str!("../../../forms/tongues-dynamics-analysis/main.conduit");
 
 pub fn check_research_forms() -> Result<Vec<conduit_form::ExpandedCanonicalForm>, String> {
     let (startup, profile) = research_catalogs()?;

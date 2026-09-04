@@ -214,7 +214,13 @@ mod tests {
     use super::*;
     use conduit_core::{BootId, HostId};
 
-    const THREE: &str = include_str!("../../../../../forms/initial-body.conduit");
+    const THREE: &str = concat!(
+        include_str!("../../../../../forms/morse-network/main.conduit"),
+        "\n",
+        include_str!("../../../../../forms/memory-lantern/main.conduit"),
+        "\n",
+        include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+    );
 
     fn selection(source: &str, names: &[&str]) -> String {
         let inventory = crate::creche::initial_forms::reviewed_inventory(source).unwrap();

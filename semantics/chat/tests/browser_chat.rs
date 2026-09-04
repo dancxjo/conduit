@@ -3,7 +3,7 @@ use conduit_form::{
     StartupCatalog,
 };
 
-const SOURCE: &str = include_str!("../../../examples/webchat.conduit");
+const SOURCE: &str = include_str!("../../../forms/webchat/main.conduit");
 
 #[test]
 fn canonical_browser_chat_expands_to_portable_presentation_interaction_graph() {

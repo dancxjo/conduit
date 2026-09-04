@@ -1,13 +1,15 @@
-# Reviewed Form inventory
+# Canonical reviewed Forms
 
-This directory owns canonical product-facing Form artifacts. Book, Crèche,
-Patchbay demonstrations, and conformance checks must consume these files rather
-than maintain private source copies.
+This directory owns product-facing authored Form source. Each canonical Form
+has one stable `forms/<name>/main.conduit` owner whether it is used as a workload
+root or recursively behind another Form's face. Tour, Crèche, Patchbay, CLI
+workflows, bodies, and conformance consume those same bytes; they do not own
+editable copies.
 
-| Artifact | Reviewed Forms | Product use |
-|---|---|---|
-| `initial-body.conduit` | `morse_network`, `memory_lantern`, `desk_telegraph` | bounded zero/one/many Body birth |
+`proof/fixtures/forms/` remains the explicit home for historical, malformed,
+or proof-only specimens. Directory presence alone never promotes such input
+into the reviewed inventory.
 
-Adding an artifact or changing its meaning requires checker coverage and an
-explicit consumer update. The inventory contains Forms only; it grants no Host,
-membership, authority, Plan, or Play truth.
+Adding or changing a canonical Form requires checker coverage and explicit
+consumer updates. Form source grants no Host, membership, authority, Plan, or
+Play truth.

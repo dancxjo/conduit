@@ -15,7 +15,7 @@ use conduit_semantic_catalog::{
 };
 use std::collections::BTreeMap;
 
-const SOURCE: &str = include_str!("../../../examples/lenia-orbium.conduit");
+const SOURCE: &str = include_str!("../../../forms/lenia-orbium/main.conduit");
 
 #[test]
 fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
