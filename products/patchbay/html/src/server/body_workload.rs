@@ -32,6 +32,23 @@ struct BodyWorkloadInput {
 }
 
 impl PatchbayHtmlServer {
+    pub(super) fn current_body_evidence(&self) -> Result<Vec<u8>, ServerError> {
+        self.body_workload
+            .as_ref()
+            .map(|session| session.encoded_evidence().to_vec())
+            .ok_or(ServerError::InvalidRequest)
+    }
+
+    pub(super) fn deliver_body_evidence(&self, stream: &mut TcpStream) -> Result<(), ServerError> {
+        let evidence = self.current_body_evidence()?;
+        super::write_response(
+            stream,
+            "200 OK",
+            "application/json; charset=utf-8",
+            &evidence,
+        )
+    }
+
     pub(super) fn deliver_body_workload(
         &mut self,
         stream: &mut TcpStream,
@@ -286,5 +303,10 @@ mod tests {
             1
         );
         assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 7);
+        let exported: conduit_body::BodyBiographyEvidence =
+            serde_json::from_slice(&server.current_body_evidence().unwrap()).unwrap();
+        assert_eq!(exported.body.body_id.as_str(), body_id);
+        assert_eq!(exported.body.workload_revision, 3);
+        assert_eq!(exported.body.workset.forms().len(), 1);
     }
 }

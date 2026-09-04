@@ -359,6 +359,9 @@ impl PatchbayHtmlServer {
         if first == "POST /api/body-workload HTTP/1.1" {
             return self.deliver_body_workload(&mut stream, &request.body);
         }
+        if first == "GET /api/body-evidence HTTP/1.1" {
+            return self.deliver_body_evidence(&mut stream);
+        }
         if first == "POST /api/front-door-transition HTTP/1.1" {
             let body = self.apply_front_door_transition(&request.body)?;
             return write_response(

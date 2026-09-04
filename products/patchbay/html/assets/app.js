@@ -187,6 +187,13 @@ async function dispatchBodyWorkload(action){
   if(!response.ok)throw new Error(`Body workload HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
+async function saveBodyEvidence(){
+  const workbench=state.snapshot.body_workbench;if(!workbench)throw new Error("Body evidence is unavailable");
+  const response=await fetch(apiUrl("body-evidence"),{cache:"no-store"});if(!response.ok)throw new Error(`Body evidence HTTP ${response.status}`);
+  const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length===0||bytes.length>65536)throw new Error("Body evidence exceeds the download bound");
+  const evidence=JSON.parse(new TextDecoder().decode(bytes));if(evidence.body_id!==workbench.body_id||!Array.isArray(evidence.records))throw new Error("Body evidence does not match the attached Body");
+  const url=URL.createObjectURL(new Blob([bytes],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=`conduit-body-${workbench.body_id}.json`;link.click();URL.revokeObjectURL(url);
+}
 async function dispatchNavigation(operation){
   const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
   const response=await fetch(apiUrl("navigation"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});
@@ -357,6 +364,7 @@ document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
 async function navigateWorkbench(place,aspect){if(state.snapshot.navigation.cursor.place!==place)await dispatchNavigation({kind:"enter",place});if(state.snapshot.navigation.cursor.aspect!==aspect)await dispatchNavigation({kind:"show",aspect});}
 for(const button of document.querySelectorAll("[data-workbench-destination]"))button.onclick=async()=>{const destination=button.dataset.workbenchDestination;for(const candidate of document.querySelectorAll("[data-workbench-destination]"))candidate.toggleAttribute("aria-current",candidate===button);document.querySelector("#body-workbench-current").hidden=destination!=="body";document.querySelector("#body-workbench-history").hidden=destination!=="history";if(destination==="program"){await navigateWorkbench("Program","Structure");document.querySelector("#form").scrollIntoView();}else if(destination==="body")await navigateWorkbench("Body","Structure");else await navigateWorkbench("Body","Signs");};
 document.querySelector("#body-workbench-action").onclick=()=>dispatchFrontDoorAction(document.querySelector("#body-workbench-action").dataset.semanticAction);
+document.querySelector("#save-body-evidence").onclick=()=>saveBodyEvidence();
 document.querySelector("#clear-selection").onclick=()=>{const navigation=state.snapshot.navigation,current=navigation?.navigation.places.find(place=>place.place===navigation.cursor.place);return navigation?dispatchNavigation({kind:"focus",subject:current.root_subject}):dispatchInteraction({kind:"clear"});};
 document.querySelector("#form-query").oninput=event=>{state.formQuery=event.currentTarget.value;renderFormPalette();};document.querySelector("#form-query").addEventListener("keydown",moveFormFocus);document.querySelector("#form-results").addEventListener("keydown",moveFormFocus);
 document.querySelector("#body-form-query").oninput=event=>{state.reviewedFormQuery=event.currentTarget.value;renderBodyWorkbench(state.snapshot.body_workbench);};
