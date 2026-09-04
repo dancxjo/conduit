@@ -28,7 +28,7 @@ pub enum PresentationMechanismKind {
     Shell,
     Workbench,
     Panel,
-    ActionGroup { label: String },
+    ActionGroup,
     Action,
     Status,
     Disclosure,
@@ -186,7 +186,9 @@ pub enum PresentationMechanism {
     Panel {
         title: String,
     },
-    ActionGroup,
+    ActionGroup {
+        label: String,
+    },
     Action(SemanticAction),
     Status {
         kind: StatusKind,
