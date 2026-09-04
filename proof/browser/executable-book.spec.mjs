@@ -405,12 +405,39 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   await width.press("End");
   await expect(width).toHaveValue("65");
   await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.getByText("Pane layout", { exact: true }).click();
+  const beforeLabResize = await page.evaluate(() => ({
+    editorWidth: document.querySelector(".editor").getBoundingClientRect().width,
+    resultWidth: document.querySelector(".result").getBoundingClientRect().width,
+  }));
+  const patchbayHeight = page.getByRole("slider", { name: "Patchbay height" });
+  const sourceWidth = page.getByRole("slider", { name: "Source width" });
+  await patchbayHeight.focus();
+  await patchbayHeight.press("End");
+  await sourceWidth.focus();
+  await sourceWidth.press("Home");
+  await expect(patchbayHeight).toHaveValue("70");
+  await expect(sourceWidth).toHaveValue("40");
+  const resized = await page.evaluate(() => ({
+    patchbay: document.querySelector(".compact-patchbay").getBoundingClientRect().toJSON(),
+    editor: document.querySelector(".editor").getBoundingClientRect().toJSON(),
+    result: document.querySelector(".result").getBoundingClientRect().toJSON(),
+  }));
+  expect(resized.patchbay.height).toBeGreaterThan(measures.patchbay.height);
+  expect(resized.editor.width).toBeLessThan(beforeLabResize.editorWidth);
+  expect(resized.result.width).toBeGreaterThan(beforeLabResize.resultWidth);
+  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(width).toHaveValue("65");
+  await page.getByText("Pane layout", { exact: true }).click();
+  await expect(patchbayHeight).toHaveValue("70");
+  await expect(sourceWidth).toHaveValue("40");
   await page.getByRole("button", { name: "Reset panes" }).focus();
   await page.keyboard.press("Enter");
   await expect(width).toHaveValue("46");
+  await expect(patchbayHeight).toHaveValue("55");
+  await expect(sourceWidth).toHaveValue("60");
 });
 
 test("narrow Tour switches deliberately between the lesson and the same live laboratory", async ({ page }) => {
@@ -429,6 +456,9 @@ test("narrow Tour switches deliberately between the lesson and the same live lab
   await expect(page.locator("#chapter")).toBeFocused();
   await expect(laboratory).toBeHidden();
   expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
+  await page.getByText("Pane layout", { exact: true }).click();
+  await expect(page.getByRole("slider", { name: "Patchbay height" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 
 test("long source and output remain inside their laboratory panes", async ({ page }) => {

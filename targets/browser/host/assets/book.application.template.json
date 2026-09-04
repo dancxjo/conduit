@@ -12,7 +12,7 @@
     { "role": "browser-host-operations", "kind": "module", "path": "browser-host-operations.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "book-routing", "kind": "module", "path": "book-routing.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"browser-host-operations","specifier":"./browser-host-operations.mjs"}] },
     { "role": "book-state", "kind": "module", "path": "book-state.mjs", "maximum_bytes": 8192, "dependencies": [] },
-    { "role": "book-navigation", "kind": "module", "path": "book-navigation.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "book-navigation", "kind": "module", "path": "book-navigation.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "book-inventory-presentation", "kind": "module", "path": "book-inventory-presentation.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "book-runner-presentation", "kind": "module", "path": "book-runner-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "application-syntax-presentation", "kind": "module", "path": "application-syntax-presentation.mjs", "maximum_bytes": 8192, "dependencies": [] },

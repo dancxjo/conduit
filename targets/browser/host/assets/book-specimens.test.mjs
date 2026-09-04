@@ -57,12 +57,38 @@ test("workspace geometry restores only admitted bounded presentation state", asy
   const { openBookReadingState } = await import("./book-state.mjs");
   const state = await openBookReadingState(storage);
   assert.equal(state.workspace.narrativePercent, 61);
+  assert.equal(state.workspace.patchbayPercent, 55);
+  assert.equal(state.workspace.sourcePercent, 60);
   await state.setNarrativePercent(35);
   assert.deepEqual(written, {
     key: "workspace-layout",
-    value: { schema: "conduit.tour/workspace-layout@1", narrative_percent: 35 },
+    value: {
+      schema: "conduit.tour/workspace-layout@2",
+      narrative_percent: 35,
+      patchbay_percent: 55,
+      source_percent: 60,
+    },
   });
+  await state.setPatchbayPercent(70);
+  await state.setSourcePercent(40);
+  assert.deepEqual(state.workspace, { narrativePercent: 35, patchbayPercent: 70, sourcePercent: 40 });
   assert.throws(() => state.setNarrativePercent(66), /outside its admitted bound/);
+  assert.throws(() => state.setPatchbayPercent(71), /outside its admitted bound/);
+  assert.throws(() => state.setSourcePercent(39), /outside its admitted bound/);
+});
+
+test("current workspace geometry restores all independent pane preferences", async () => {
+  const { openBookReadingState } = await import("./book-state.mjs");
+  const state = await openBookReadingState({
+    readJson: async (key) => key === "workspace-layout" ? {
+      schema: "conduit.tour/workspace-layout@2",
+      narrative_percent: 42,
+      patchbay_percent: 68,
+      source_percent: 44,
+    } : null,
+    writeJson: async () => {},
+  });
+  assert.deepEqual(state.workspace, { narrativePercent: 42, patchbayPercent: 68, sourcePercent: 44 });
 });
 
 test("malformed persisted workspace geometry refuses", async () => {

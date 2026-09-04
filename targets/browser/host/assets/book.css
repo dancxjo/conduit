@@ -29,9 +29,14 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
   min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
 }
-.tour-mode-switcher { display: flex; align-items: center; gap: .35rem; padding: .4rem clamp(1rem, 2.5vw, 2rem); border-bottom: 1px solid var(--line); background: var(--panel); }
+.tour-mode-switcher { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; padding: .4rem clamp(1rem, 2.5vw, 2rem); border-bottom: 1px solid var(--line); background: var(--panel); }
 .tour-mode-switcher button { padding: .45rem .75rem; border: 1px solid transparent; color: var(--muted); background: transparent; }
 .tour-mode-switcher button[aria-pressed="true"] { border-color: var(--line); color: var(--ink); background: var(--paper); }
+.tour-layout-controls { position: relative; margin-left: auto; color: var(--muted); font-size: .78rem; }
+.tour-layout-controls summary { cursor: pointer; font-weight: 750; }
+.tour-layout-controls[open] { flex-basis: 100%; display: grid; grid-template-columns: max-content minmax(8rem, 1fr); gap: .55rem .8rem; align-items: center; }
+.tour-layout-controls[open] summary { grid-column: 1 / -1; }
+.tour-layout-controls input { accent-color: var(--amber); }
 .tour-content {
   --tour-narrative-percent: 46%; min-width: 0; min-height: 0; display: grid;
   grid-template-columns: minmax(18rem, var(--tour-narrative-percent)) 2.5rem minmax(24rem, 1fr);
@@ -88,7 +93,7 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 }
 .runner {
   height: 100%; min-height: 0; display: grid;
-  grid-template: "patchbay patchbay" minmax(12rem, 1.15fr) "editor result" minmax(12rem, .85fr) / minmax(0, 1.45fr) minmax(14rem, 1fr);
+  grid-template: "patchbay patchbay" minmax(10rem, var(--tour-patchbay-percent, 55%)) "editor result" minmax(10rem, 1fr) / minmax(0, var(--tour-source-percent, 60%)) minmax(12rem, 1fr);
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
   background: var(--panel); box-shadow: 0 18px 50px rgb(43 54 47 / 9%);
 }

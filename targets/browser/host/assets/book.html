@@ -20,6 +20,13 @@
     <nav class="tour-mode-switcher" aria-label="Tour entrances">
       <button type="button" data-tour-mode="guided" aria-pressed="true">Guided Tour</button>
       <button type="button" data-tour-mode="gallery" aria-pressed="false">Form Gallery</button>
+      <details class="tour-layout-controls">
+        <summary>Pane layout</summary>
+        <label for="tour-patchbay-height">Patchbay height</label>
+        <input id="tour-patchbay-height" type="range" min="35" max="70" step="1" value="55">
+        <label for="tour-source-width">Source width</label>
+        <input id="tour-source-width" type="range" min="40" max="75" step="1" value="60">
+      </details>
     </nav>
     <nav class="tour-view-switcher" aria-label="Tour workspace views">
       <button type="button" data-tour-view="lesson" aria-controls="chapter" aria-pressed="true">Lesson</button>

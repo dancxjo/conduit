@@ -41,16 +41,26 @@ export async function openBookReadingState(storage) {
   const expandedBacks = new Set();
   let pending = Promise.resolve();
   let needsMigration = false;
-  const workspace = { narrativePercent: 46 };
+  const workspace = { narrativePercent: 46, patchbayPercent: 55, sourcePercent: 60 };
   const state = await storage.readJson("reading-state");
   const storedWorkspace = await storage.readJson("workspace-layout");
   if (storedWorkspace !== null) {
-    if (storedWorkspace?.schema !== "conduit.tour/workspace-layout@1"
+    if ((storedWorkspace?.schema !== "conduit.tour/workspace-layout@1"
+        && storedWorkspace?.schema !== "conduit.tour/workspace-layout@2")
       || !Number.isInteger(storedWorkspace.narrative_percent)
-      || storedWorkspace.narrative_percent < 30 || storedWorkspace.narrative_percent > 65) {
+      || storedWorkspace.narrative_percent < 30 || storedWorkspace.narrative_percent > 65
+      || (storedWorkspace.schema === "conduit.tour/workspace-layout@2"
+        && (!Number.isInteger(storedWorkspace.patchbay_percent)
+          || storedWorkspace.patchbay_percent < 35 || storedWorkspace.patchbay_percent > 70
+          || !Number.isInteger(storedWorkspace.source_percent)
+          || storedWorkspace.source_percent < 40 || storedWorkspace.source_percent > 75))) {
       throw new Error("persisted Tour workspace layout is malformed");
     }
     workspace.narrativePercent = storedWorkspace.narrative_percent;
+    if (storedWorkspace.schema === "conduit.tour/workspace-layout@2") {
+      workspace.patchbayPercent = storedWorkspace.patchbay_percent;
+      workspace.sourcePercent = storedWorkspace.source_percent;
+    }
   }
   if (state !== null) {
     if ((state?.schema !== "conduit.book/reading-state@1" && state?.schema !== "conduit.tour/reading-state@1")
@@ -82,16 +92,22 @@ export async function openBookReadingState(storage) {
     return pending;
   }
 
-  function setNarrativePercent(value) {
-    if (!Number.isInteger(value) || value < 30 || value > 65) {
-      throw new Error("Tour narrative width is outside its admitted bound");
-    }
-    workspace.narrativePercent = value;
+  function persistWorkspace() {
     pending = pending.then(() => storage.writeJson("workspace-layout", {
-      schema: "conduit.tour/workspace-layout@1",
-      narrative_percent: value,
+      schema: "conduit.tour/workspace-layout@2",
+      narrative_percent: workspace.narrativePercent,
+      patchbay_percent: workspace.patchbayPercent,
+      source_percent: workspace.sourcePercent,
     }));
     return pending;
+  }
+
+  function setWorkspacePercent(key, value, minimum, maximum, label) {
+    if (!Number.isInteger(value) || value < minimum || value > maximum) {
+      throw new Error(`Tour ${label} is outside its admitted bound`);
+    }
+    workspace[key] = value;
+    return persistWorkspace();
   }
 
   if (needsMigration) persist();
@@ -101,7 +117,9 @@ export async function openBookReadingState(storage) {
     drafts,
     expandedBacks,
     workspace,
-    setNarrativePercent,
+    setNarrativePercent: (value) => setWorkspacePercent("narrativePercent", value, 30, 65, "narrative width"),
+    setPatchbayPercent: (value) => setWorkspacePercent("patchbayPercent", value, 35, 70, "Patchbay height"),
+    setSourcePercent: (value) => setWorkspacePercent("sourcePercent", value, 40, 75, "source width"),
     persist,
     flush: () => pending,
   });
