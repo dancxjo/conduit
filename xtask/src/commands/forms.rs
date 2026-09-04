@@ -8,6 +8,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+#[path = "forms/browser.rs"]
+mod browser;
 #[path = "forms/deterministic.rs"]
 mod deterministic;
 
@@ -64,6 +66,8 @@ pub(super) struct InventoryForm {
     initial_body_order: Option<u8>,
     pub(super) deterministic: Option<DeterministicOracle>,
     pub(super) deterministic_not_applicable: Option<String>,
+    pub(super) browser_safe: Option<BrowserOracle>,
+    pub(super) browser_safe_not_applicable: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,6 +76,12 @@ pub(super) struct DeterministicOracle {
     #[serde(default)]
     pub(super) features: Vec<String>,
     pub(super) test: String,
+    pub(super) case: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct BrowserOracle {
+    pub(super) spec: String,
     pub(super) case: String,
 }
 
@@ -126,7 +136,7 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
             let report = if deterministic {
                 build_report(&root, true, opts)?
             } else {
-                browser_report(&root, opts)?
+                browser::build_report(&root, opts)?
             };
             render(&report, true)?;
             if report
@@ -239,20 +249,6 @@ fn build_report(
     })
 }
 
-fn browser_report(root: &Path, opts: &GlobalOpts) -> Result<Report, String> {
-    let mut report = build_report(root, false, opts)?;
-    for result in &mut report.results {
-        if result.proof_mode == "deterministic" {
-            result.proof_mode = "browser-safe";
-            result.environment_profile = "browser/current-environment@1";
-            result.status = "unavailable".into();
-            result.reason =
-                "browser proof aggregation is not yet connected to the conformance seam".into();
-        }
-    }
-    Ok(report)
-}
-
 fn result(
     form: &InventoryForm,
     path: &str,
@@ -290,6 +286,7 @@ fn load_inventory(root: &Path) -> Result<Inventory, String> {
         return Err("reviewed Form inventory violates its schema or finite bound".into());
     }
     let mut slugs = BTreeSet::new();
+    let mut browser_oracles = BTreeSet::new();
     for form in &inventory.forms {
         if form.slug.is_empty()
             || form.title.is_empty()
@@ -297,6 +294,21 @@ fn load_inventory(root: &Path) -> Result<Inventory, String> {
             || !slugs.insert(&form.slug)
         {
             return Err("reviewed Form inventory contains an empty or duplicate identity".into());
+        }
+        if let Some(oracle) = &form.browser_safe {
+            if oracle.case.is_empty()
+                || oracle.case.len() > 160
+                || !oracle.spec.starts_with("proof/browser/")
+                || !oracle.spec.ends_with(".spec.mjs")
+                || oracle.spec.contains("..")
+                || !root.join(&oracle.spec).is_file()
+                || !browser_oracles.insert((&oracle.spec, &oracle.case))
+            {
+                return Err(format!(
+                    "reviewed Form '{}' has an invalid or duplicate browser-safe oracle",
+                    form.slug
+                ));
+            }
         }
     }
     let declared: BTreeSet<String> = slugs.into_iter().cloned().collect();
