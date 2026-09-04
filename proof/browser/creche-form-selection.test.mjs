@@ -9,6 +9,7 @@ import {
   setFormSelected,
   toggleForm,
 } from "../../targets/browser/host/assets/creche-form-selection.mjs";
+import { initialFormSelectionNotice } from "../../targets/browser/host/assets/creche-lifecycle.mjs";
 
 const inventory = Object.freeze({
   schema: "conduit.creche/reviewed-form-inventory@1",
@@ -47,6 +48,22 @@ test("restoration and Gallery handoff revalidate exact identities without privil
   const opened = openFormSelection(inventory, retained, inventory.forms[1]);
   assert.deepEqual(opened.selected.map(({ name }) => name), ["clock", "desk_telegraph"]);
   assert.equal(opened.refusals[0].disposition, "stale-form-identity");
+  assert.equal(opened.refusals[0].origin, "restored");
+  assert.strictEqual(opened.acceptedHandoff, inventory.forms[1]);
+  assert.match(initialFormSelectionNotice(opened), /Desk Telegraph was revalidated and preselected from Gallery/);
+  assert.match(initialFormSelectionNotice(opened), /no Body has been born/);
+
+  const staleHandoff = openFormSelection(inventory, null, {
+    name: "desk_telegraph",
+    source_document_id: "source/stale",
+    checked_form_id: "checked/telegraph",
+  });
+  assert.equal(staleHandoff.acceptedHandoff, null);
+  assert.equal(staleHandoff.refusals[0].origin, "gallery-handoff");
+  assert.equal(
+    initialFormSelectionNotice(staleHandoff),
+    "The Gallery Form handoff was stale or substituted and was not selected.",
+  );
 });
 
 test("invalid, duplicate, and over-capacity state is explicit", () => {

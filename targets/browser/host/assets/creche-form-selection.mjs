@@ -46,25 +46,27 @@ export function openFormSelection(inventory, persisted = null, handoff = null) {
       || persisted.forms.length > inventory.maximum_selection) {
       throw new Error("persisted Crèche Form selection is malformed or over capacity");
     }
-    candidates.push(...persisted.forms);
+    candidates.push(...persisted.forms.map((candidate) => ({ origin: "restored", candidate })));
   }
-  if (handoff !== null) candidates.push(handoff);
+  if (handoff !== null) candidates.push({ origin: "gallery-handoff", candidate: handoff });
   const selected = [];
   const refusals = [];
-  for (const candidate of candidates) {
+  let acceptedHandoff = null;
+  for (const { origin, candidate } of candidates) {
     const current = exactCurrent(inventory, candidate);
     if (!current) {
-      refusals.push({ disposition: "stale-form-identity", candidate });
+      refusals.push({ disposition: "stale-form-identity", origin, candidate });
       continue;
     }
+    if (origin === "gallery-handoff") acceptedHandoff = current;
     if (selected.some((form) => form.checked_form_id === current.checked_form_id)) continue;
     if (selected.length === inventory.maximum_selection) {
-      refusals.push({ disposition: "selection-capacity-exhausted", candidate });
+      refusals.push({ disposition: "selection-capacity-exhausted", origin, candidate });
       continue;
     }
     selected.push(current);
   }
-  return Object.freeze({ selected, refusals });
+  return Object.freeze({ selected, refusals, acceptedHandoff });
 }
 
 export function toggleForm(inventory, selected, name) {
