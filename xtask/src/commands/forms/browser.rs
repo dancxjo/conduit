@@ -156,35 +156,17 @@ pub(super) fn run(
     preparation: &Preparation,
     opts: &GlobalOpts,
 ) -> FormProofResult {
-    let mut proof = match (&form.browser_safe, &form.browser_safe_not_applicable) {
-        (None, Some(reason)) => result(
-            form,
-            path,
-            0,
-            "not_applicable",
-            reason,
-            identities,
-            "browser-safe",
-        ),
-        (None, None) => result(
-            form,
-            path,
-            0,
-            "unavailable",
-            "no reviewed browser-safe execution oracle is declared",
-            identities,
-            "browser-safe",
-        ),
-        (Some(_), Some(_)) => result(
-            form,
-            path,
-            0,
-            "refused",
-            "inventory declares both a browser-safe oracle and not-applicable reason",
-            identities,
-            "browser-safe",
-        ),
-        (Some(oracle), None) => match preparation {
+    let mut proof = if !matches!(
+        (&form.browser_safe, &form.browser_safe_not_applicable),
+        (Some(_), None)
+    ) {
+        availability(form, path, identities)
+    } else {
+        let oracle = form
+            .browser_safe
+            .as_ref()
+            .expect("matched browser-safe oracle");
+        match preparation {
             Preparation::Unavailable(reason) => result(
                 form,
                 path,
@@ -218,7 +200,54 @@ pub(super) fn run(
             )
             .pop()
             .expect("one batch request produces one result"),
-        },
+        }
+    };
+    proof.environment_profile = "playwright/chromium-1.62.0-worker1-retry0";
+    proof
+}
+
+pub(super) fn availability(
+    form: &InventoryForm,
+    path: &str,
+    identities: Option<(String, String)>,
+) -> FormProofResult {
+    let mut proof = match (&form.browser_safe, &form.browser_safe_not_applicable) {
+        (Some(_), None) => result(
+            form,
+            path,
+            0,
+            "unavailable",
+            "declared browser-safe oracle is available through Playwright Chromium",
+            identities,
+            "browser-safe",
+        ),
+        (None, Some(reason)) => result(
+            form,
+            path,
+            0,
+            "not_applicable",
+            reason,
+            identities,
+            "browser-safe",
+        ),
+        (None, None) => result(
+            form,
+            path,
+            0,
+            "unavailable",
+            "no reviewed browser-safe execution oracle is declared",
+            identities,
+            "browser-safe",
+        ),
+        (Some(_), Some(_)) => result(
+            form,
+            path,
+            0,
+            "refused",
+            "inventory declares both a browser-safe oracle and not-applicable reason",
+            identities,
+            "browser-safe",
+        ),
     };
     proof.environment_profile = "playwright/chromium-1.62.0-worker1-retry0";
     proof
