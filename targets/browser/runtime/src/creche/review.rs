@@ -40,7 +40,7 @@ pub(super) fn review(
     if selected.len() > conduit_body::MAX_BODY_FORMS {
         return Err("initial Form selection exceeds Body capacity".into());
     }
-    let checked = super::initial_forms::check_source(source)?;
+    let checked_documents = super::initial_forms::check_inventory(source)?;
     let (_, profile) = crate::installed_browser::catalogs()?;
     let backs = crate::installed_browser::backs(
         &{
@@ -54,10 +54,16 @@ pub(super) fn review(
     let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
 
     for selected_form in &selected {
-        let form = checked
-            .forms
+        let (checked, form) = checked_documents
             .iter()
-            .find(|form| form.name == selected_form.name)
+            .find_map(|entry| {
+                entry
+                    .checked
+                    .forms
+                    .iter()
+                    .find(|form| form.name == selected_form.name)
+                    .map(|form| (&entry.checked, form))
+            })
             .ok_or_else(|| {
                 format!(
                     "selected initial Form {:?} is absent from checked inventory",
@@ -73,7 +79,7 @@ pub(super) fn review(
             ));
         }
         let expanded =
-            conduit_form::expand_canonical_form_with_backs(&checked, &form.name, &profile, &backs)
+            conduit_form::expand_canonical_form_with_backs(checked, &form.name, &profile, &backs)
                 .map_err(|error| format!("expand reviewed Form {:?}: {error:?}", form.name))?;
         required_kinds.extend(
             expanded
@@ -271,6 +277,31 @@ mod tests {
             assert!(!result.authority_acquired);
             assert!(!result.resources_acquired);
         }
+    }
+
+    #[test]
+    fn reviewed_bundle_resolves_each_selection_against_its_own_checked_document() {
+        let source = serde_json::to_string(&serde_json::json!({
+            "schema": "conduit.creche/reviewed-form-bundle@1",
+            "forms": [
+                { "slug": "morse-network", "source": include_str!("../../../../../forms/morse-network/main.conduit") },
+                { "slug": "memory-lantern", "source": include_str!("../../../../../forms/memory-lantern/main.conduit") },
+                { "slug": "desk-telegraph", "source": include_str!("../../../../../forms/desk-telegraph/main.conduit") },
+            ],
+        }))
+        .unwrap();
+        let result = review(
+            &source,
+            &selection(
+                &source,
+                &["morse_network", "memory_lantern", "desk_telegraph"],
+            ),
+            &[browser("browser/bundle")],
+            &crate::installed_browser::local_bases(),
+        )
+        .unwrap();
+        assert_eq!(result.selected_form_count, 3);
+        assert_eq!(result.reviewed_realization_count, 3);
     }
 
     #[test]
