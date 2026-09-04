@@ -149,6 +149,11 @@ test("an invited browser remains outside the Body until explicit join", async ({
   await expect(plannerFacts).toContainText("Planner selectionnone · advertisement only");
   await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
+  await expect.poll(() => page.evaluate(() => {
+    const credential = globalThis.__patchbayMembership.membershipCredential();
+    const evidence = globalThis.__patchbayMembership.biographyEvidence();
+    return evidence?.membership.parts.find(part => part.part_id === credential.part_id)?.current;
+  })).toBeNull();
   await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipoffline");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceunavailable");
@@ -158,7 +163,7 @@ test("an invited browser remains outside the Body until explicit join", async ({
     bootId: globalThis.__patchbayMembership.bootId,
   }))).toEqual(admittedIdentity);
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeEnabled();
-  await expect.poll(membershipProbe.output).toContain("unavailable reason=session-lost");
+  await expect.poll(membershipProbe.output).toContain("left sequence=");
 });
 
 test("an invitation for a different Body refuses before admission", async ({ page }) => {
