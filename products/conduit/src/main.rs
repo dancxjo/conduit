@@ -57,12 +57,11 @@ fn patchbay_process(
     if let Some(url) = body_invitation {
         command.arg("--body-invitation").arg(url);
     }
-    let mut pairs = reviewed_forms.chunks_exact(2);
-    for pair in &mut pairs {
-        command.arg("--form").arg(&pair[0]).arg(&pair[1]);
-    }
-    if !pairs.remainder().is_empty() {
+    if !reviewed_forms.len().is_multiple_of(2) {
         return Err("each reviewed Form requires an exact LABEL and PATH".into());
+    }
+    for pair in reviewed_forms.chunks(2) {
+        command.arg("--form").arg(&pair[0]).arg(&pair[1]);
     }
     Ok(command)
 }
