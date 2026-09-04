@@ -5,11 +5,43 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some("plan") => plan(arguments),
         Some("candidate") => candidate(arguments),
         Some("reconcile") => reconcile(arguments),
+        Some("reconcile-product") => reconcile_product(arguments),
         Some("attest-success") => attest(arguments),
         Some("standalone-locks") => standalone_locks(arguments),
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),
     }
+}
+
+fn reconcile_product(arguments: &[String]) -> Result<(), String> {
+    let mut values = arguments.iter().skip(2);
+    let product_id = required(&mut values, "product proof id")?;
+    let candidate = required(&mut values, "candidate commit")?;
+    let integration = required(&mut values, "integration commit")?;
+    let mut json_out = None;
+    let mut allow_execute = false;
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--allow-execute" => allow_execute = true,
+            "--json-out" => {
+                json_out = Some(PathBuf::from(required(&mut values, "--json-out path")?))
+            }
+            other => {
+                return Err(format!(
+                    "unsupported ci reconcile-product argument: {other}"
+                ))
+            }
+        }
+    }
+    crate::product_reconciliation::run(
+        &product_id,
+        &candidate,
+        &integration,
+        json_out.as_deref(),
+        allow_execute,
+    )
+    .map_err(|error| error.to_string())
 }
 
 fn standalone_locks(arguments: &[String]) -> Result<(), String> {

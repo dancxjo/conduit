@@ -86,11 +86,11 @@ ConduitOS fabrication. Product ownership therefore lives in Rust rather than a
 second workflow path taxonomy. The privileged post-merge Pages workflow stays
 separate and executes trusted merged code only.
 
-Merge-group validation identifies its checkout as integration rather than candidate. The privileged `pull_request_target` Pages workflow remains separate and executes only trusted merged workflow machinery; it promotes an already-proven, source-tree-sealed carrier.
+Merge-group validation identifies its checkout as integration rather than candidate. The privileged `pull_request_target` Pages workflow remains separate and executes only trusted merged workflow machinery. A downloaded carrier is verified against the candidate commit and tree that actually fabricated it. `cargo xtask ci reconcile-product products.pages-carrier CANDIDATE INTEGRATION` compares those two Git trees through the typed product registry. Unrelated tree movement is inherited. When a carrier input changed, the deploy controller calls the unprivileged product workflow on the exact merged commit and admits that newly proven integration carrier instead. Candidate provenance is never rewritten to claim that old bytes came from the later merged tree.
 
 The repository's `cargo xtask` alias first enters the dependency-light
-`conduit-xtask-dispatch`. All four CI identity operations (`plan`, `candidate`,
-`reconcile`, and `attest-success`) use the same typed Rust sources there. At
+`conduit-xtask-dispatch`. The CI identity operations (`plan`, `candidate`,
+`reconcile`, `reconcile-product`, and `attest-success`) use the same typed Rust sources there. At
 this migration point its default graph has 35 normal dependency packages,
 compared with 265 for full `xtask`; browser Host fabrication is compiled only
 for the separate on-demand Host-release feature.

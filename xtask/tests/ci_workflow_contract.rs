@@ -82,6 +82,32 @@ fn product_planner_has_no_workspace_cache() {
 }
 
 #[test]
+fn product_stage_joins_exact_required_results_after_optional_skips() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let stage = workflow
+        .split("\n  products-stage:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  browser-proof:\n").next())
+        .expect("locate product staging job");
+
+    assert!(stage.contains("if: >-\n      always() &&"));
+    for prerequisite in [
+        "avr-release",
+        "browser-release",
+        "browser-runtimes",
+        "esp32-release-images",
+        "host-releases",
+        "orange-pi-release",
+        "raspberry-pi-release",
+        "conduitos-releases",
+    ] {
+        assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
+    }
+}
+
+#[test]
 fn stacked_diff_base_does_not_select_the_controller_version() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow =
@@ -119,4 +145,34 @@ fn tour_proof_has_one_authoritative_candidate_workflow() {
     assert!(proof.contains("proof/browser/patchbay-debugger-projection.test.mjs"));
     assert!(proof.contains("proof/browser/playwright-config.test.mjs"));
     assert!(proof.contains("real Patchbay renderer|animated Cords"));
+}
+
+#[test]
+fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-deploy.yml"))
+        .expect("read Pages deployment workflow");
+
+    assert!(workflow.contains("refs/pull/$PR_NUMBER/head"));
+    assert!(workflow.contains("test \"$(git rev-parse FETCH_HEAD)\" = \"$SOURCE_HEAD\""));
+    assert!(workflow.contains("reconcile-product \\"));
+    assert!(workflow.contains("products.pages-carrier \"$SOURCE_HEAD\" \"$MERGE_COMMIT\""));
+    assert!(workflow.contains("needs.resolve.outputs.disposition == 'execute'"));
+    assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
+    assert!(workflow.contains("candidate_sha: ${{ needs.resolve.outputs.merge_commit }}"));
+    assert!(workflow.contains("name: Download the inherited candidate Pages carrier"));
+    assert!(workflow.contains("name: Download the newly proven integration Pages carrier"));
+    assert!(workflow.contains(
+        "needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree"
+    ));
+
+    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    for source in [&workflow, &products] {
+        assert!(!source.contains("actions/upload-artifact@v4"));
+        assert!(!source.contains("actions/download-artifact@v6"));
+    }
+    assert!(workflow.contains("actions/download-artifact@v8"));
+    assert!(products.contains("actions/upload-artifact@v7"));
+    assert!(products.contains("actions/download-artifact@v8"));
 }

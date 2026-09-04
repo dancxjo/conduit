@@ -63,12 +63,16 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
     ],
 }];
 
-pub(super) fn proofs_for_paths(paths: &[String]) -> Vec<&'static str> {
+pub(crate) fn proofs_for_paths(paths: &[String]) -> Vec<&'static str> {
     PRODUCT_PROOFS
         .iter()
         .filter(|spec| paths.iter().any(|path| spec.owns(path)))
         .map(|spec| spec.id)
         .collect()
+}
+
+pub(crate) fn contains(proof_id: &str) -> bool {
+    PRODUCT_PROOFS.iter().any(|proof| proof.id == proof_id)
 }
 
 #[derive(Debug)]
