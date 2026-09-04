@@ -66,7 +66,8 @@ pub fn body_workbench_fixture_snapshot(
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     use conduit_body::{
         AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyGraduationChoice,
-        BodyGraduationEvidence, BodyMembership, MembershipProofId, PartId,
+        BodyGraduationEvidence, BodyMembership, BodyWorkset, MembershipProofId, PartId,
+        ResidentForm,
     };
     use conduit_core::{bind_sign, CheckedFormId, OfferGeneration, SourceDocumentId};
 
@@ -74,9 +75,18 @@ pub fn body_workbench_fixture_snapshot(
     const IMPLEMENTATION: &str = "browser/patchbay-surface@1";
     let host = HostId::from("host/roseau");
     let boot = BootId::from("boot/roseau/1");
-    let body = Body::born(
-        SourceDocumentId::from("source/roseau-program"),
-        CheckedFormId::from("checked/roseau-program"),
+    let body = Body::born_with_forms(
+        BodyWorkset::from_forms([
+            ResidentForm::new(
+                SourceDocumentId::from("source/roseau-program"),
+                CheckedFormId::from("checked/roseau-program"),
+            ),
+            ResidentForm::new(
+                SourceDocumentId::from("source/roseau-recorder"),
+                CheckedFormId::from("checked/roseau-recorder"),
+            ),
+        ])
+        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?,
         1,
         bind_sign(&host, &boot, None, 1).sign_id,
     )
@@ -238,7 +248,9 @@ pub(crate) fn validate_body_workbench(
     Ok(())
 }
 
-fn model_entrance(entrance: &BrowserBodyWorkbenchEntrance) -> PatchbayBodyApplicationEntrance {
+pub(crate) fn model_entrance(
+    entrance: &BrowserBodyWorkbenchEntrance,
+) -> PatchbayBodyApplicationEntrance {
     match entrance {
         BrowserBodyWorkbenchEntrance::Hosted {
             plan_id,
@@ -279,6 +291,18 @@ fn workbench_presentation(
         },
     ];
     let mut form_identities = Vec::with_capacity(workset.len());
+    let (action_name, action_label, action_intent) = match evidence.body.state {
+        conduit_body::BodyState::Lulled => ("wake", "Wake", "conduit.intent/wake@1"),
+        conduit_body::BodyState::Awake { .. } => ("lull", "Lull", "conduit.intent/lull@1"),
+    };
+    let mut actions = vec![PresentationAction {
+        identity: format!("action/{action_name}/{body_identity}"),
+        intent: action_intent.into(),
+        target: body_identity.clone(),
+        label: action_label.into(),
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: PresentationActionAvailability::Available,
+    }];
     for form in workset.forms() {
         let form_identity = format!("form/{}", form.checked_form_id.as_str());
         let label = form.checked_form_id.as_str().to_owned();
@@ -303,6 +327,37 @@ fn workbench_presentation(
             "checked-form-id",
             form.checked_form_id.as_str(),
         ));
+        actions.push(PresentationAction {
+            identity: format!(
+                "action/remove-form/{}/{}",
+                form.checked_form_id.as_str(),
+                evidence.body.workload_revision
+            ),
+            intent: "conduit.intent/remove-form@1".into(),
+            target: form_identity.clone(),
+            label: "Remove from Body".into(),
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: match (&evidence.body.state, workset.len()) {
+                (conduit_body::BodyState::Lulled, count) if count > 1 => {
+                    PresentationActionAvailability::Available
+                }
+                (conduit_body::BodyState::Lulled, _) => {
+                    PresentationActionAvailability::Unavailable {
+                        reason_code: "last-active-form".into(),
+                        explanation:
+                            "Patchbay cannot yet navigate an idle Body with no active Forms."
+                                .into(),
+                    }
+                }
+                (conduit_body::BodyState::Awake { .. }, _) => {
+                    PresentationActionAvailability::Unavailable {
+                        reason_code: "body-awake".into(),
+                        explanation: "Lull the Body before changing its active Form workload."
+                            .into(),
+                    }
+                }
+            },
+        });
         form_identities.push(form_identity);
     }
     let mut text = vec![PresentationText {
@@ -370,10 +425,6 @@ fn workbench_presentation(
             text: format!("{:?}", record.kind),
         });
     }
-    let (action_name, action_label, action_intent) = match evidence.body.state {
-        conduit_body::BodyState::Lulled => ("wake", "Wake", "conduit.intent/wake@1"),
-        conduit_body::BodyState::Awake { .. } => ("lull", "Lull", "conduit.intent/lull@1"),
-    };
     Presentation::new_with_semantics(
         revision,
         PresentationBasis {
@@ -397,14 +448,7 @@ fn workbench_presentation(
         relationships,
         properties,
         text,
-        vec![PresentationAction {
-            identity: format!("action/{action_name}/{body_identity}"),
-            intent: action_intent.into(),
-            target: body_identity.clone(),
-            label: action_label.into(),
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
-        }],
+        actions,
         vec![PresentationDisclosure {
             subject: body_identity,
             level: PresentationDisclosureLevel::Primary,

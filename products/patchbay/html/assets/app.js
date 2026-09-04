@@ -180,6 +180,12 @@ async function dispatchInteraction(input,presentationBasis=currentPresentationBa
   if(!response.ok)throw new Error(`interaction delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
 }
+async function dispatchBodyWorkload(action){
+  const workbench=state.snapshot.body_workbench;if(!workbench)throw new Error("Body workload is unavailable");
+  const response=await fetch(apiUrl("body-workload"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,workload_revision:workbench.current.workload_revision,action_id:action.identity})});
+  if(!response.ok)throw new Error(`Body workload HTTP ${response.status}`);
+  const next=requireSnapshot(await response.json());render(next);return next;
+}
 async function dispatchNavigation(operation){
   const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
   const response=await fetch(apiUrl("navigation"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});
@@ -304,7 +310,7 @@ function renderBodyWorkbench(workbench){
   document.querySelector("#body-workbench-placement").textContent=current.placement_line;
   const action=document.querySelector("#body-workbench-action");action.textContent=current.salient_action;action.dataset.semanticAction=current.salient_action.toLowerCase();
   presentDefinitions("body-workbench-facts",[["Active Forms",current.active_forms.length],["Workload revision",current.workload_revision],["Lifecycle",typeof current.lifecycle==="string"?current.lifecycle:Object.keys(current.lifecycle)[0]],["Durable Parts",current.admitted_parts],["Current Hosts",current.current_hosts.length],["Physical Hosts","Not evidenced"]]);
-  sharedPresentation.boundedArtifacts("body-workbench-forms",current.active_forms.map(form=>({title:form.checked_form_id,details:[],actions:[],definitions:[["Source document",form.source_document_id],["Checked Form",form.checked_form_id]],disclosureLabel:"Exact active Form identity"})));
+  sharedPresentation.boundedArtifacts("body-workbench-forms",current.active_forms.map(form=>{const identity=`form/${form.checked_form_id}`,remove=state.snapshot.presentation.actions.find(action=>action.target===identity&&action.intent==="conduit.intent/remove-form@1"),availability=remove&&actionAvailability(remove);return {title:form.checked_form_id,details:availability&&!availability.available?[availability.explanation]:[],actions:remove?[{label:remove.label,run:()=>dispatchBodyWorkload(remove),annotate:button=>{button.disabled=!availability.available;if(availability.explanation)button.title=availability.explanation;}}]:[],definitions:[["Source document",form.source_document_id],["Checked Form",form.checked_form_id]],disclosureLabel:"Exact active Form identity"};}));
   presentDefinitions("body-workbench-exact",[["Body",current.body_id],["Workload revision",current.workload_revision],["Active Forms",current.active_forms.length],["Evidence revision",current.evidence_revision]]);
   sharedPresentation.boundedArtifacts("body-history",history.entries.map(entry=>({title:entry.title,details:[entry.narrative],actions:[],disclosureLabel:"Exact evidence",exactValue:JSON.stringify(entry.exact),language:"json"})));
   sharedPresentation.boundedArtifacts("body-linear",history.entries.map((entry,index)=>({title:`Evidence ${index+1}`,details:[],actions:[],exactValue:entry.linear,disclosureLabel:"BODY / SIGNS evidence"})));

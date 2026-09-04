@@ -6,6 +6,7 @@ use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+mod body_workload;
 mod browser_membership;
 mod debug_control;
 mod front_door;
@@ -139,6 +140,7 @@ pub struct PatchbayHtmlServer {
     front_door: Option<std::sync::Arc<std::sync::Mutex<patchbay_model::LocalFrontDoor>>>,
     zero_body_front_door:
         Option<std::sync::Arc<std::sync::Mutex<patchbay_model::ZeroBodyFrontDoor>>>,
+    body_workload: Option<patchbay_model::PatchbayBodyWorkloadSession>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
@@ -202,6 +204,7 @@ impl PatchbayHtmlServer {
             return Err(ServerError::ThemeCssTooLarge);
         }
         let debug_runtime = DocumentaryDebuggerRuntime::from_snapshot(&snapshot)?;
+        let body_workload = body_workload::open(&snapshot)?;
         Ok(Self {
             listener,
             snapshot,
@@ -214,6 +217,7 @@ impl PatchbayHtmlServer {
             navigation,
             front_door: None,
             zero_body_front_door: None,
+            body_workload,
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
@@ -351,6 +355,9 @@ impl PatchbayHtmlServer {
                 "application/json; charset=utf-8",
                 &body,
             );
+        }
+        if first == "POST /api/body-workload HTTP/1.1" {
+            return self.deliver_body_workload(&mut stream, &request.body);
         }
         if first == "POST /api/front-door-transition HTTP/1.1" {
             let body = self.apply_front_door_transition(&request.body)?;
