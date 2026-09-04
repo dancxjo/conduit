@@ -40,6 +40,13 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
 .chapter-copy:empty { display: none; }
 [data-application-slot="book-navigation"] { width: 100%; max-width: 96rem; margin-right: auto; margin-left: auto; padding: 0 clamp(1rem, 2.5vw, 2rem); }
 .book-workbench { grid-column: 2; width: 100%; min-width: 0; margin: 0; }
+.tour-stage-selector {
+  width: 100%; margin: .55rem 0; padding: .7rem .85rem; border: 1px solid var(--line);
+  border-radius: 9px; background: var(--panel); color: var(--ink); text-align: left; cursor: pointer;
+}
+.tour-stage-selector[aria-pressed="true"] { border-color: var(--amber); box-shadow: inset .25rem 0 var(--amber); }
+.conceptual-laboratory { display: grid; gap: 1rem; }
+.conceptual-patchbay { min-height: 12rem; display: grid; place-items: center; padding: 1rem; color: var(--muted); text-align: center; }
 h1 { margin: 0 0 .65rem; color:var(--amber); font: 750 clamp(2.35rem, 7vw, 5rem)/.95 Georgia, serif; letter-spacing: -.045em; }
 h2,h3 { color:var(--amber); }
 h2 { margin-top: 2rem; font-size: 1.2rem; }

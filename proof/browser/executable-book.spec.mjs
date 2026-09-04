@@ -231,11 +231,12 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
   let projectedListings = 0;
   for (let pageIndex = 0; pageIndex < 7; pageIndex += 1) {
     await openStep(page, pageIndex);
-    const runners = page.locator(".runner");
-    const count = await runners.count();
+    const selectors = page.locator(".tour-stage-selector");
+    const count = await selectors.count();
     projectedListings += count;
     for (let runnerIndex = 0; runnerIndex < count; runnerIndex += 1) {
-      const runner = runners.nth(runnerIndex);
+      await selectors.nth(runnerIndex).click();
+      const runner = page.locator(".runner");
       const patchbay = runner.locator(".compact-patchbay");
       const source = runner.locator('[data-application-component="textarea"]');
       await expect(runner.locator('[data-application-component="form-field"]')).toHaveCount(1);
@@ -373,6 +374,62 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
   expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
 });
 
+test("one persistent Tour laboratory switches stable specimens in place and restores their drafts", async ({ page }) => {
+  await openStep(page, 0);
+  const laboratory = page.locator('[data-application-component="tour-laboratory"]');
+  await expect(laboratory).toHaveCount(1);
+  await expect(page.locator(".book-workbench")).toHaveCount(1);
+  await expect(page.locator(".runner")).toHaveCount(1);
+  await expect(page.locator(".tour-stage-selector")).toHaveCount(3);
+  expect(await page.evaluate(() => globalThis.__conduitBookLaboratory === document.querySelector(".book-workbench"))).toBe(true);
+
+  const listing = laboratory.locator("textarea");
+  const firstIdentity = await laboratory.getAttribute("data-specimen-id");
+  const firstDraft = (await listing.inputValue()).replace('"hello"', '"draft alpha"');
+  await listing.fill(firstDraft);
+  const firstPatchbayIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-checked-form-id");
+
+  await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
+  await expect(laboratory).toHaveAttribute("data-specimen-id", "canonical-form:edit-one-gear");
+  await expect(laboratory.locator("textarea")).toHaveValue(/make this loud/);
+  await expect(laboratory.locator(".morse")).toHaveText("ready");
+  expect(await laboratory.locator(".compact-patchbay").getAttribute("data-checked-form-id")).not.toBe(firstPatchbayIdentity);
+
+  await page.getByRole("button", { name: "Load meet-one-gear in the laboratory" }).click();
+  await expect(laboratory).toHaveAttribute("data-specimen-id", firstIdentity);
+  await expect(laboratory.locator("textarea")).toHaveValue(firstDraft);
+  await expect(page.locator(".runner")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Next" }).click();
+  expect(await page.evaluate(() => globalThis.__conduitBookLaboratory === document.querySelector(".book-workbench"))).toBe(true);
+});
+
+test("laboratory replacement cancels the active Play before selecting the next lesson state", async ({ page }) => {
+  await openStep(page, 2);
+  const laboratory = page.locator('[data-application-component="tour-laboratory"]');
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  await expect(laboratory.locator(".morse")).toHaveText("0");
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "One Form across several Hosts" })).toBeVisible();
+  await expect(laboratory).toHaveAttribute("data-retired-specimen-id", "canonical-form:count-over-time");
+  await expect(laboratory).toHaveAttribute("data-retirement-disposition", "cancelled");
+  await expect(laboratory).toHaveAttribute("data-specimen-id", "canonical-form:hello-across");
+  await expect(page.locator(".runner")).toHaveCount(1);
+  await page.waitForTimeout(650);
+  await expect(laboratory.locator(".morse")).toHaveText("ready");
+
+  const selectors = page.locator(".tour-stage-selector");
+  await expect(selectors).toHaveCount(2);
+  expect(await selectors.nth(0).getAttribute("data-specimen-id")).toBe(
+    await selectors.nth(1).getAttribute("data-specimen-id"),
+  );
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(laboratory).toHaveAttribute("data-mode", "conceptual");
+  await expect(laboratory.locator("textarea")).toHaveCount(0);
+  await expect(laboratory.getByText("No editable specimen selected")).toBeVisible();
+  await expect(laboratory.getByLabel("Planned result")).toHaveText("No Play requested");
+});
+
 test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains the repair", async ({ page }) => {
   await openStep(page, 0);
   const runner = page.locator(".runner").first();
@@ -430,7 +487,8 @@ test("read-only Conduit prose examples use the admitted canonical syntax project
 
 test("Tour Patchbay keeps branching explicit and opens one reviewed Back beneath its Face", async ({ page }) => {
   await openStep(page, 0);
-  const fanout = page.locator(".runner").nth(2).locator(".compact-patchbay");
+  await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
+  const fanout = page.locator(".runner .compact-patchbay");
   await expect(fanout.locator(".react-flow__edge")).toHaveCount(4);
   await expect(fanout.locator(".compact-patchbay-text")).toContainText("branch-a-cord/source output text to branch-a-cord/loud input text");
   await expect(fanout.locator(".compact-patchbay-text")).toContainText("branch-a-cord/source output text to branch-a-cord/morse input text");
@@ -675,7 +733,7 @@ test("the Tour renders admitted Markdown emphasis semantically and leaves raw HT
   });
   await openStep(page, 0);
   await expect(page.locator("em")).toHaveText(["asterisk", "underscore"]);
-  await expect(page.locator("strong")).toHaveText(["strong asterisk", "strong underscore"]);
+  await expect(page.locator(".chapter-copy strong")).toHaveText(["strong asterisk", "strong underscore"]);
   await expect(page.locator("#chapter")).not.toContainText("*asterisk*");
   await expect(page.locator("#chapter")).not.toContainText("_underscore_");
   await expect(page.locator("#chapter img")).toHaveCount(0);
@@ -1512,7 +1570,8 @@ test("the guided arc names each idea after the reader has met the prior one", as
 test("the first chapter builds from one Gear to branch, then hands off to Face/Back", async ({ page }) => {
   await openStep(page, 0);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
-  let runner = page.locator(".runner").nth(1);
+  await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
+  let runner = page.locator(".runner");
   await expect(runner.locator('[data-application-component="action-group"]')).toHaveCount(1);
   await expect(runner.getByRole("button", { name: "Run" })).toHaveAttribute("data-application-action", "book.run");
   await expect(runner.getByRole("button", { name: "Stop" })).toBeDisabled();
@@ -1522,7 +1581,8 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
   await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
-  runner = page.locator(".runner").nth(2);
+  await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
+  runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("··· ——— ···");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
@@ -1571,12 +1631,14 @@ test("the Face plate flips open its checked Back without replacing the runner", 
 test("Tour navigation preserves executable drafts without owning lifecycle controls", async ({ page }) => {
   await openStep(page, 0);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
-  const listing = page.locator(".runner").nth(1).locator("textarea");
+  await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
+  const listing = page.locator(".runner textarea");
   const edited = (await listing.inputValue()).replace('"make this loud"', '"reader-ready"');
   await listing.fill(edited);
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Previous" }).click();
-  await expect(page.locator(".runner").nth(1).locator("textarea")).toHaveValue(edited);
+  await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
+  await expect(page.locator(".runner textarea")).toHaveValue(edited);
   expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
   await expect(page.getByRole("button", { name: "Reset this page" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Revisit birth page" })).toHaveCount(0);
@@ -1584,7 +1646,7 @@ test("Tour navigation preserves executable drafts without owning lifecycle contr
 
 test("unsupported capability and type mismatch remain ordinary pre-Play refusals", async ({ page }) => {
   await openStep(page, 0);
-  const runner = page.locator(".runner").nth(1);
+  const runner = page.locator(".runner");
   const listing = runner.locator("textarea");
   await listing.fill(`form unavailable {
     source: text/literal("still planned")
@@ -1705,7 +1767,8 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
 test("Plans and Plays compact and raw views project the same exact immutable Plan", async ({ page }) => {
   await openStep(page, 3);
   await expect(page.getByRole("heading", { name: "One Form across several Hosts" })).toBeVisible();
-  const runner = page.locator(".multi-host-runner").nth(1);
+  await page.locator(".tour-stage-selector").nth(1).click();
+  const runner = page.locator(".multi-host-runner");
   await expect(runner.locator(".plan-view-details")).not.toHaveAttribute("open", "");
   await runner.getByRole("button", { name: "Run across two Hosts" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");

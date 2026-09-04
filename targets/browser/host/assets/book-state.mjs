@@ -3,6 +3,34 @@ const MAXIMUM_DRAFTS = 32;
 const MAXIMUM_EXPANDED_BACKS = 16;
 const MAXIMUM_STATE_KEY_BYTES = 128;
 const MAXIMUM_DRAFT_BYTES = 4096;
+const FORM_NAME = /^\s*form\s+([a-z][a-z0-9-]*)\s*\{/m;
+
+export function identifyTourSpecimen(source) {
+  const name = source.match(FORM_NAME)?.[1];
+  if (!name) throw new Error("a runnable Tour specimen has no stable Form identity");
+  return `canonical-form:${name}`;
+}
+
+export function createTourStage(source, mode) {
+  const identity = identifyTourSpecimen(source);
+  return Object.freeze({
+    identity,
+    label: source.match(FORM_NAME)[1],
+    source,
+    mode,
+    recursive: mode === "recursive",
+    faceBack: mode === "compare",
+    multiHost: mode === "two-host" || mode === "two-host-plan",
+    showPlan: mode === "two-host-plan",
+  });
+}
+
+export function conceptualTourStage(pageTitle) {
+  const slug = pageTitle.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (!slug) throw new Error("a conceptual Tour lesson has no stable identity");
+  return Object.freeze({ identity: `tour-concept:${slug}`, label: pageTitle, mode: "conceptual" });
+}
 
 function validKey(value) {
   return typeof value === "string" && value.length > 0 && encoder.encode(value).length <= MAXIMUM_STATE_KEY_BYTES;
