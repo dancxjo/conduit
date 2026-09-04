@@ -1,6 +1,35 @@
 const LANES = ["check", "products-proof"];
 const ADMISSION_GATE = "admission";
 
+function exactArray(value, label) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) throw new Error(`${label} must be a string array`);
+  return value;
+}
+
+export function laneInputsUnchanged(plan, lane) {
+  if (!plan || typeof plan !== "object") throw new Error("reconciliation impact plan is required");
+  if (typeof plan.pages_products_required !== "boolean" || typeof plan.full_fallback !== "boolean") throw new Error("reconciliation impact plan has unknown boolean fields");
+  if (lane === "products-proof") return !plan.full_fallback && !plan.pages_products_required;
+  if (lane !== "check") throw new Error(`unknown reconciliation lane ${lane}`);
+  const shards = plan.workspace_shards;
+  if (!shards || typeof shards !== "object" || Array.isArray(shards) || Object.values(shards).some((required) => typeof required !== "boolean")) {
+    throw new Error("reconciliation workspace shard plan is malformed");
+  }
+  const controllerProofs = exactArray(plan.ci_controller_proofs, "controller proofs");
+  const commandProofs = exactArray(plan.repository_command_proofs, "repository command proofs");
+  for (const field of ["esp32_required", "browser_required", "conduitos_required", "conduitos_aarch64_product_required"]) {
+    if (typeof plan[field] !== "boolean") throw new Error(`reconciliation impact plan has unknown ${field}`);
+  }
+  return !plan.full_fallback
+    && controllerProofs.length === 0
+    && commandProofs.length === 0
+    && !plan.esp32_required
+    && !plan.browser_required
+    && !plan.conduitos_required
+    && !plan.conduitos_aarch64_product_required
+    && Object.values(shards).every((required) => !required);
+}
+
 function exactIdentity(value, label) {
   if (!/^[0-9a-f]{40,64}$/.test(value ?? "")) throw new Error(`${label} must be an exact Git identity`);
   return value;
@@ -29,7 +58,7 @@ export function successfulLaneEvidence(checkRuns, lane) {
     .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
 }
 
-export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, baseSha, integrationSha, token, request = fetch }) {
+export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, baseSha, integrationSha, reconciliationPlan, token, request = fetch }) {
   validate(repository, pullNumber, candidateSha);
   exactIdentity(baseSha, "base SHA");
   exactIdentity(integrationSha, "integration SHA");
@@ -53,9 +82,11 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
   return {
     pullNumber, candidateSha, baseSha, integrationSha,
     lanes: Object.fromEntries(LANES.map((lane) => {
+      if (!laneInputsUnchanged(reconciliationPlan, lane)) return [lane, null];
       const evidence = successfulLaneEvidence(checkRuns, lane);
       return [lane, evidence && { checkRunId: evidence.id, detailsUrl: evidence.details_url }];
     })),
+    laneInputsUnchanged: Object.fromEntries(LANES.map((lane) => [lane, laneInputsUnchanged(reconciliationPlan, lane)])),
   };
 }
 
@@ -122,12 +153,15 @@ async function appendOutput(name, value) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv[2] === "resolve") {
+    const { readFile } = await import("node:fs/promises");
+    const reconciliationPlan = JSON.parse(await readFile(process.env.CONDUIT_RECONCILIATION_PLAN, "utf8"));
     const { resolved: result, published } = await resolveAndPublishInherited({
       repository: process.env.GITHUB_REPOSITORY,
       pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
       candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
       baseSha: process.env.CONDUIT_BASE_SHA,
       integrationSha: process.env.CONDUIT_INTEGRATION_SHA,
+      reconciliationPlan,
       runUrl: process.env.CONDUIT_RUN_URL,
       token: process.env.GH_TOKEN,
     });
