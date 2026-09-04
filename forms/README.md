@@ -20,3 +20,10 @@ forms check` validates every declared entry and ratchets every canonical
 source by scanning for `.conduit` files. `cargo xtask forms report` emits the
 machine-readable per-Form result seam. Gated execution remains `unavailable`
 until its deterministic, browser, device, or physical owner supplies evidence.
+
+`cargo xtask forms run --deterministic` executes every inventory-declared
+deterministic oracle in fresh process state and continues through individual
+failures. `cargo xtask forms run --browser` reports the still-unconnected
+browser proof seam without prompting for permission or acquiring a device.
+`forms report` executes the deterministic declarations before emitting its
+aggregate report; `--dry-run` lists them as unavailable planned work.
