@@ -230,10 +230,21 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Materialize the trusted attestation controller
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags origin "$CONTROLLER_SHA"
+          git -c safe.directory="$GITHUB_WORKSPACE" worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
       - name: Attest the exact successful debugger proof key
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
         run: >-
-          cargo xtask ci attest-success "$CONDUIT_CANDIDATE_SHA"
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci attest-success "$CONDUIT_CANDIDATE_SHA"
           browser.patchbay-debugger
           --evidence patchbay-model-debugger
           --evidence kernel-debug-observation

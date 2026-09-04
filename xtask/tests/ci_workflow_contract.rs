@@ -393,6 +393,19 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
 }
 
 #[test]
+fn new_product_proofs_are_attested_by_the_trusted_controller_against_candidate_bytes() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+
+    assert!(workflow.contains("name: Materialize the trusted attestation controller"));
+    assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
+    assert!(workflow.contains("git -c safe.directory=\"$GITHUB_WORKSPACE\" fetch --no-tags origin \"$CONTROLLER_SHA\""));
+    assert!(workflow.contains("\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci attest-success \"$CONDUIT_CANDIDATE_SHA\""));
+    assert!(!workflow.contains("cargo xtask ci attest-success \"$CONDUIT_CANDIDATE_SHA\"\n          browser.patchbay-debugger"));
+}
+
+#[test]
 fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let reconciliation = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
