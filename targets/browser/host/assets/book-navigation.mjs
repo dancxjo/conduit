@@ -29,9 +29,11 @@ export function createBookWorkspace(root, readingState) {
   const content = root.querySelector(".tour-content");
   const laboratory = root.querySelector("#laboratory-slot");
   const width = root.querySelector("#tour-narrative-width");
+  const patchbayHeight = root.querySelector("#tour-patchbay-height");
+  const sourceWidth = root.querySelector("#tour-source-width");
   const reset = root.querySelector("[data-tour-reset-layout]");
   const viewButtons = [...root.querySelectorAll("[data-tour-view]")];
-  if (!content || !laboratory || !width || !reset || viewButtons.length !== 2) {
+  if (!content || !laboratory || !width || !patchbayHeight || !sourceWidth || !reset || viewButtons.length !== 2) {
     throw new Error("Tour workspace controls are incomplete");
   }
 
@@ -44,6 +46,12 @@ export function createBookWorkspace(root, readingState) {
     content.style.setProperty("--tour-narrative-percent", `${admitted}%`);
     if (persist) readingState.setNarrativePercent(admitted);
   };
+  const setLaboratoryGeometry = (control, property, setter, value, persist) => {
+    const admitted = Number(value);
+    control.value = String(admitted);
+    laboratory.style.setProperty(property, `${admitted}%`);
+    if (persist) setter(admitted);
+  };
   const show = (view, focus = false) => {
     if (view !== "lesson" && view !== "laboratory") throw new Error("Tour workspace view is not admitted");
     content.dataset.narrowView = view;
@@ -52,8 +60,16 @@ export function createBookWorkspace(root, readingState) {
   };
 
   setWidth(readingState.workspace.narrativePercent, false);
+  setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, readingState.workspace.patchbayPercent, false);
+  setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, readingState.workspace.sourcePercent, false);
   width.addEventListener("input", () => setWidth(width.value, true));
-  reset.addEventListener("click", () => setWidth(46, true));
+  patchbayHeight.addEventListener("input", () => setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, patchbayHeight.value, true));
+  sourceWidth.addEventListener("input", () => setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, sourceWidth.value, true));
+  reset.addEventListener("click", () => {
+    setWidth(46, true);
+    setLaboratoryGeometry(patchbayHeight, "--tour-patchbay-percent", readingState.setPatchbayPercent, 55, true);
+    setLaboratoryGeometry(sourceWidth, "--tour-source-percent", readingState.setSourcePercent, 60, true);
+  });
   for (const button of viewButtons) button.addEventListener("click", () => show(button.dataset.tourView, true));
   return Object.freeze({
     showLesson: (focus = false) => show("lesson", focus),
