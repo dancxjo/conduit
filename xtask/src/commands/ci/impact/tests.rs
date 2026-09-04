@@ -35,6 +35,77 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/retire-superseded-candidates.yml".to_owned(),
+            "proof/ci/retire-superseded-candidates.spec.mjs".to_owned(),
+            "scripts/ci/retire-superseded-candidates.mjs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.ci_controller_proofs, ["ci.candidate-retirement"]);
+    assert!(!plan.full_fallback);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.workspace_shards.values().all(|required| !required));
+
+    let mixed = plan_for_paths(
+        &root,
+        vec![
+            "scripts/ci/retire-superseded-candidates.mjs".to_owned(),
+            "unclassified-controller-neighbor.bin".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(mixed.full_fallback);
+    assert_eq!(mixed.ci_controller_proofs, ["ci.candidate-retirement"]);
+}
+
+#[test]
+fn registered_form_commands_do_not_fabricate_unrelated_machines() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            "forms/inventory.toml".to_owned(),
+            "xtask/src/commands/forms.rs".to_owned(),
+            "xtask/src/commands/forms/deterministic.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.repository_command_proofs, ["repository.forms"]);
+    assert!(!plan.full_fallback);
+    assert!(plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.changed_packages.contains(&"xtask".to_owned()));
+    assert!(plan.workspace_shards["lint"]);
+    assert!(plan.workspace_shards["test-products"]);
+
+    let cross_product = plan_for_paths(
+        &root,
+        vec!["xtask/src/commands/host_release.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(cross_product.full_fallback);
+    assert!(cross_product.esp32_required);
+    assert!(cross_product.browser_required);
+    assert!(cross_product.conduitos_required);
+}
+
+#[test]
 fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();

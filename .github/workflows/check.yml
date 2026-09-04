@@ -39,6 +39,7 @@ jobs:
       workspace_lint_full: ${{ steps.impact.outputs.workspace_lint_full || 'true' }}
       workspace_lint_packages: ${{ steps.impact.outputs.workspace_lint_packages || '[]' }}
       workspace_test_packages: ${{ steps.impact.outputs.workspace_test_packages || '[]' }}
+      ci_controller_required: ${{ steps.impact.outputs.ci_controller_required }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -63,8 +64,6 @@ jobs:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
-      - name: Verify candidate retirement controller contract
-        run: node --test proof/ci/retire-superseded-candidates.spec.mjs
       - uses: dtolnay/rust-toolchain@stable
         if: steps.changes.outputs.docs_only != 'true'
       - uses: Swatinem/rust-cache@v2
@@ -86,9 +85,12 @@ jobs:
             controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
           fi
           "${controller[@]}" ci plan "$BASE_SHA" "$HEAD_SHA" --locked \
-            --json-out target/ci-impact-plan.json \
+            --json-out target/ci-plans/ci-impact-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
+      - name: Verify candidate retirement controller contract
+        if: steps.impact.outputs.ci_controller_required == 'true'
+        run: node --test proof/ci/retire-superseded-candidates.spec.mjs
       - name: Fingerprint immutable candidate proof inputs
         if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
         env:
@@ -99,7 +101,7 @@ jobs:
             controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
           fi
           "${controller[@]}" ci candidate "$HEAD_SHA" --locked \
-            --json-out target/ci-proof-plan.json \
+            --json-out target/ci-plans/ci-proof-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Fingerprint prospective integration proof inputs
         if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'merge_group'
@@ -108,16 +110,14 @@ jobs:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: >-
           cargo xtask ci reconcile "$BASE_SHA" "$HEAD_SHA" --locked
-          --json-out target/ci-proof-plan.json
+          --json-out target/ci-plans/ci-proof-plan.json
           --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the exact CI impact plan
         if: steps.impact.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: ci-plan-${{ steps.changes.outputs.head_sha }}
-          path: |
-            target/ci-impact-plan.json
-            target/ci-proof-plan.json
+          path: target/ci-plans
           if-no-files-found: error
           retention-days: 14
 

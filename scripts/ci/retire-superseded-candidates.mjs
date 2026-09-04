@@ -28,17 +28,22 @@ export function duplicateCurrentCandidateRuns(runs, pullNumber, currentHead) {
         && Array.isArray(run.pull_requests)
         && run.pull_requests.some(({ number }) => number === pullNumber))
       .sort((left, right) => left.id - right.id);
-    const completedSuccess = matching.some((run) => run.status === "completed" && run.conclusion === "success");
     const active = matching.filter((run) => ACTIVE.has(run.status));
-    retired.push(...(completedSuccess ? active : active.slice(1)));
+    // A completed receipt may be reusable, but canceling the only active run
+    // replaces GitHub's stable required check with a cancelled conclusion.
+    // Keep one current lifecycle run to publish the aggregate gate.
+    retired.push(...active.slice(1));
   }
   return retired;
 }
 
-export async function retireSupersededCandidates({ repository, pullNumber, currentHead, token, request = fetch, pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) }) {
+export async function retireSupersededCandidates({ repository, pullNumber, currentHead, headRef, token, request = fetch, pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) }) {
   if (!/^[^/]+\/[^/]+$/.test(repository)) throw new Error("repository must be owner/name");
   if (!Number.isSafeInteger(pullNumber) || pullNumber < 1) throw new Error("pull number must be positive");
   if (!/^[0-9a-f]{40,64}$/.test(currentHead)) throw new Error("current head must be an exact Git identity");
+  if (typeof headRef !== "string" || headRef.length === 0 || headRef.length > 255 || /[\u0000-\u001f\u007f]/.test(headRef)) {
+    throw new Error("head ref must be a bounded branch identity");
+  }
   if (!token) throw new Error("GitHub token is required");
 
   const headers = {
@@ -48,7 +53,13 @@ export async function retireSupersededCandidates({ repository, pullNumber, curre
   };
   const runs = [];
   for (let page = 1; page <= 10; page += 1) {
-    const response = await request(`https://api.github.com/repos/${repository}/actions/runs?event=pull_request&per_page=100&page=${page}`, { headers });
+    const query = new URLSearchParams({
+      event: "pull_request",
+      branch: headRef,
+      per_page: "100",
+      page: String(page),
+    });
+    const response = await request(`https://api.github.com/repos/${repository}/actions/runs?${query}`, { headers });
     if (!response.ok) throw new Error(`list candidate runs failed: HTTP ${response.status}`);
     const body = await response.json();
     if (!Array.isArray(body.workflow_runs)) throw new Error("candidate run response is malformed");
@@ -108,6 +119,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     repository: process.env.GITHUB_REPOSITORY ?? "",
     pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
     currentHead: process.env.CONDUIT_CANDIDATE_SHA ?? "",
+    headRef: process.env.CONDUIT_HEAD_REF ?? "",
     token: process.env.GH_TOKEN ?? "",
   });
   process.stdout.write(`${JSON.stringify({

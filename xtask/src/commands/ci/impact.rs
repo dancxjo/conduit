@@ -12,7 +12,10 @@ use crate::suites::{
 
 #[path = "impact/cargo_graph.rs"]
 mod cargo_graph;
+#[path = "impact/command_registry.rs"]
+mod command_registry;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
+use command_registry::{proofs_for_path, HeavySuite};
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
 const ESP32_TARGETS: [&str; 3] = ["wroom", "c3", "s3"];
@@ -34,6 +37,32 @@ const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/patchbay-debugger-pr-proof.yml",
 ];
+
+struct ControllerProofSpec {
+    id: &'static str,
+    implementation_inputs: &'static [&'static str],
+}
+
+const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[ControllerProofSpec {
+    id: "ci.candidate-retirement",
+    implementation_inputs: &[
+        ".github/workflows/retire-superseded-candidates.yml",
+        "proof/ci/retire-superseded-candidates.spec.mjs",
+        "scripts/ci/retire-superseded-candidates.mjs",
+    ],
+}];
+
+fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
+    CONTROLLER_PROOFS
+        .iter()
+        .filter(|spec| {
+            paths
+                .iter()
+                .any(|path| spec.implementation_inputs.contains(&path.as_str()))
+        })
+        .map(|spec| spec.id)
+        .collect()
+}
 const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/executable-book-deploy.yml",
@@ -136,6 +165,8 @@ fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
+    ci_controller_proofs: Vec<&'static str>,
+    repository_command_proofs: Vec<&'static str>,
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
@@ -301,6 +332,7 @@ fn plan_for_paths(
     let mut conduitos = ConduitosImpact::default();
     let mut reasons = empty_reasons();
     let mut changed_packages = BTreeSet::new();
+    let mut repository_command_proofs = BTreeSet::new();
     let substantive: Vec<_> = paths.iter().filter(|path| !path.ends_with(".md")).collect();
     if substantive.is_empty() {
         return Ok(plan(
@@ -321,6 +353,11 @@ fn plan_for_paths(
             reasons,
         ));
     }
+    let controller_only = substantive.iter().all(|path| {
+        CONTROLLER_PROOFS
+            .iter()
+            .any(|spec| spec.implementation_inputs.contains(&path.as_str()))
+    });
 
     // The scheduler façade is normally a whole-platform dependency. Admit the
     // narrower classification only for the complete, recognizable debugger
@@ -417,7 +454,37 @@ fn plan_for_paths(
             .iter()
             .any(|path| path.as_str() != "Cargo.toml" && path.ends_with("/Cargo.toml"));
     for path in substantive {
+        if CONTROLLER_PROOFS
+            .iter()
+            .any(|spec| spec.implementation_inputs.contains(&path.as_str()))
+        {
+            continue;
+        }
         if pages_deploy_resolver_slice {
+            continue;
+        }
+        let command_proofs = proofs_for_path(path);
+        if !command_proofs.is_empty() {
+            for spec in command_proofs {
+                repository_command_proofs.insert(spec.id);
+                changed_packages.extend(
+                    spec.workspace_packages
+                        .iter()
+                        .map(|name| (*name).to_owned()),
+                );
+                for suite in spec.heavy_suites {
+                    let suite = match suite {
+                        HeavySuite::Browser => "browser",
+                        HeavySuite::Conduitos => "conduitos",
+                        HeavySuite::Esp32 => "esp32",
+                    };
+                    selected.insert(suite.to_owned(), true);
+                    reasons
+                        .get_mut(suite)
+                        .expect("known suite")
+                        .push(format!("repository-command:{}:{path}", spec.id));
+                }
+            }
             continue;
         }
         if tongues_analysis_slice {
@@ -557,10 +624,17 @@ fn plan_for_paths(
         .filter(|name| packages[*name].workspace_member)
         .cloned()
         .collect();
-    let workspace_shards = workspace_shards_for(root, packages, &affected)?;
+    let workspace_shards = if changed_packages.is_empty() && controller_only {
+        WorkspaceShard::ALL
+            .into_iter()
+            .map(|shard| (shard.name().to_owned(), false))
+            .collect()
+    } else {
+        workspace_shards_for(root, packages, &affected)?
+    };
     selected.insert("esp32".to_owned(), esp32.required());
     selected.insert("conduitos".to_owned(), conduitos.required());
-    Ok(plan(
+    let mut result = plan(
         selected,
         MachineImpact { esp32, conduitos },
         false,
@@ -573,7 +647,9 @@ fn plan_for_paths(
             shards: workspace_shards,
         },
         reasons,
-    ))
+    );
+    result.repository_command_proofs = repository_command_proofs.into_iter().collect();
+    Ok(result)
 }
 
 fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
@@ -724,6 +800,8 @@ fn plan(
         workspace.lint_packages.into_iter().collect()
     };
     ImpactPlan {
+        ci_controller_proofs: controller_proofs(&changed_paths),
+        repository_command_proofs: Vec::new(),
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
@@ -811,6 +889,15 @@ fn changed_paths(root: &Path, base: &str, head: &str) -> Result<Vec<String>, Str
 }
 
 fn write_github_outputs(plan: &ImpactPlan) {
+    println!(
+        "ci_controller_required={}",
+        !plan.ci_controller_proofs.is_empty()
+    );
+    println!(
+        "ci_controller_proofs={}",
+        serde_json::to_string(&plan.ci_controller_proofs)
+            .expect("CI controller proof list serializes")
+    );
     println!("esp32_required={}", plan.esp32_required);
     println!(
         "esp32_matrix={}",
@@ -857,6 +944,20 @@ fn write_github_outputs(plan: &ImpactPlan) {
 
 fn markdown_summary(plan: &ImpactPlan) -> String {
     let mut rows = String::new();
+    let controller_reason = if plan.ci_controller_proofs.is_empty() {
+        "no controller implementation input".to_owned()
+    } else {
+        plan.ci_controller_proofs.join(", ")
+    };
+    rows.push_str(&format!(
+        "| ci/controller | {} | {} |\n",
+        if plan.ci_controller_proofs.is_empty() {
+            "skip"
+        } else {
+            "run"
+        },
+        controller_reason
+    ));
     for suite in SUITES {
         let reasons = &plan.suite_reasons[suite];
         let why = if reasons.is_empty() {
