@@ -162,11 +162,19 @@ function renderGallery() {
   chapter.replaceChildren();
   const crecheUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content;
   if (!crecheUrl) throw new Error("Crèche product handoff is unavailable");
-  const { surface, heading } = createReviewedFormGallery(document, gallery, crecheUrl, (form) => {
+  const gallerySurface = createReviewedFormGallery(document, gallery, crecheUrl, (form, action) => {
     selectLaboratoryStage(reviewedFormStage(form), [], true);
+    gallerySurface.select(form.checked_form_id);
+    if (action === "inspect") {
+      const patchbay = laboratory.querySelector(".compact-patchbay");
+      patchbay.tabIndex = -1;
+      patchbay.focus({ preventScroll: true });
+    }
   });
+  const { surface, heading } = gallerySurface;
   chapter.append(surface);
   selectLaboratoryStage(reviewedFormStage(gallery.forms[0]), []);
+  gallerySurface.select(gallery.forms[0].checked_form_id);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
   chapter.scrollTop = 0;
   heading.focus({ preventScroll: true });

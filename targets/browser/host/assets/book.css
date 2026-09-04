@@ -65,6 +65,7 @@ body[data-tour-mode="gallery"] [data-application-slot="book-navigation"] { displ
 .form-gallery-search input { min-height: 2.75rem; padding: .65rem .8rem; border: 1px solid var(--line); border-radius: .55rem; color: var(--ink); background: var(--panel); font: inherit; }
 .form-gallery-list { display: grid; gap: .8rem; padding: 0; list-style: none; }
 .form-gallery-card { padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--panel); }
+.form-gallery-card[aria-current="true"] { border-color: var(--amber); box-shadow: inset .25rem 0 var(--amber); }
 .form-gallery-card h2 { margin: 0 0 .35rem; }
 .form-gallery-card p { margin: .35rem 0; }
 .form-gallery-card code { overflow-wrap: anywhere; font-size: .68rem; }

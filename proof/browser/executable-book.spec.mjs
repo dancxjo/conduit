@@ -881,9 +881,12 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
 
   const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
   const reviewedIdentity = await memory.locator("code").textContent();
-  await memory.getByRole("button", { name: "Open in laboratory" }).click();
+  await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
   const laboratory = page.locator(".book-workbench");
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
+  await expect(memory).toHaveAttribute("aria-current", "true");
+  await expect(cards.first()).not.toHaveAttribute("aria-current", "true");
+  await expect(laboratory.locator(".compact-patchbay")).toBeFocused();
   await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
   await laboratory.getByRole("button", { name: "Run" }).click();
