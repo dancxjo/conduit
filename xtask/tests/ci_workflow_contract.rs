@@ -374,6 +374,16 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
     assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
     assert!(workflow.contains("name: Classify candidate-to-integration proof impact"));
+    let toolchain = workflow
+        .find("name: Install the repository Rust toolchain for the impact controller")
+        .expect("reconciliation installs the controller toolchain");
+    let classify = workflow
+        .find("name: Classify candidate-to-integration proof impact")
+        .expect("reconciliation classifies integration impact");
+    assert!(
+        toolchain < classify,
+        "the dependency-light impact controller cannot be built before Rust is installed"
+    );
     assert!(workflow.contains("ci plan \"$CANDIDATE_SHA\" \"$INTEGRATION_SHA\" --locked"));
     assert!(workflow.contains("CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json"));
     assert_eq!(
