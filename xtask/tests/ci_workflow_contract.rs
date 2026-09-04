@@ -318,3 +318,21 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     ));
     assert!(!check.contains("name: conduitos-limine-${{ github.sha }}"));
 }
+
+#[test]
+fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let reconciliation = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
+        .expect("read candidate reconciliation workflow");
+    let retirement =
+        fs::read_to_string(root.join(".github/workflows/retire-superseded-candidates.yml"))
+            .expect("read candidate retirement workflow");
+
+    assert_eq!(reconciliation.matches("runs-on: ubuntu-slim").count(), 2);
+    assert!(!reconciliation.contains("runs-on: ubuntu-latest"));
+    assert_eq!(retirement.matches("runs-on: ubuntu-slim").count(), 1);
+    assert!(!retirement.contains("runs-on: ubuntu-latest"));
+    assert_eq!(reconciliation.matches("checks: write").count(), 1);
+    assert!(reconciliation.contains("timeout-minutes: 2"));
+    assert!(retirement.contains("timeout-minutes: 2"));
+}
