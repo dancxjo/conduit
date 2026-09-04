@@ -16,6 +16,18 @@ const TWO_FORMS: &str = concat!(
     include_str!("../../../../../forms/desk-telegraph/main.conduit"),
 );
 
+fn reviewed_bundle() -> String {
+    serde_json::json!({
+        "schema": "conduit.creche/reviewed-form-bundle@1",
+        "forms": [
+            { "slug": "morse-network", "source": include_str!("../../../../../forms/morse-network/main.conduit") },
+            { "slug": "memory-lantern", "source": include_str!("../../../../../forms/memory-lantern/main.conduit") },
+            { "slug": "desk-telegraph", "source": include_str!("../../../../../forms/desk-telegraph/main.conduit") },
+        ],
+    })
+    .to_string()
+}
+
 fn selection(source: &str, names: &[&str]) -> String {
     let inventory = super::initial_forms::reviewed_inventory(source).unwrap();
     serde_json::to_string(
@@ -178,29 +190,47 @@ fn duplicate_absent_and_over_capacity_initial_selections_refuse_before_birth() {
 
 #[test]
 fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
-    let inventory = super::initial_forms::reviewed_inventory(TWO_FORMS).unwrap();
+    let source = reviewed_bundle();
+    let inventory = super::initial_forms::reviewed_inventory(&source).unwrap();
     assert_eq!(inventory.forms.len(), 3);
-    assert_eq!(inventory.forms[0].title, "Desk Telegraph");
+    assert_eq!(inventory.forms[0].title, "Morse Network");
     assert!(inventory
         .forms
         .iter()
-        .all(|form| form.source_document_id == inventory.source_document_id));
+        .all(|form| form.source_document_id != inventory.source_document_id));
+    for form in &inventory.forms {
+        let canonical = match form.name.as_str() {
+            "morse_network" => include_str!("../../../../../forms/morse-network/main.conduit"),
+            "memory_lantern" => include_str!("../../../../../forms/memory-lantern/main.conduit"),
+            "desk_telegraph" => include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+            name => panic!("unexpected reviewed Form {name}"),
+        };
+        let individually_checked = super::initial_forms::check_source(canonical).unwrap();
+        assert_eq!(
+            form.source_document_id,
+            individually_checked.source_document_id.as_str()
+        );
+        assert_eq!(
+            form.checked_form_id,
+            individually_checked.forms[0].checked_form_id.as_str()
+        );
+    }
     assert!(inventory
         .forms
         .iter()
         .all(|form| !form.required_kinds.is_empty()));
 
     let mut stale: Vec<super::initial_forms::InitialFormSelection> =
-        serde_json::from_str(&selection(TWO_FORMS, &["memory_lantern"])).unwrap();
+        serde_json::from_str(&selection(&source, &["memory_lantern"])).unwrap();
     stale[0].checked_form_id = "checked/stale".into();
     session::clear_for_test();
-    let interaction = admit_source(TWO_FORMS.as_bytes(), 29).unwrap();
+    let interaction = admit_source(source.as_bytes(), 29).unwrap();
     let refusal = session::birth(
         "browser/creche",
         "browser-boot/creche",
         "stale lantern",
         &serde_json::to_string(&stale).unwrap(),
-        TWO_FORMS,
+        &source,
         29,
         interaction,
     )

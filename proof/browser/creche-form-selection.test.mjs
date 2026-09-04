@@ -15,9 +15,9 @@ const inventory = Object.freeze({
   source_document_id: "source/current",
   maximum_selection: 3,
   forms: [
-    { name: "clock", title: "Clock", source_document_id: "source/current", checked_form_id: "checked/clock", required_kinds: ["time/every"] },
-    { name: "desk_telegraph", title: "Desk Telegraph", source_document_id: "source/current", checked_form_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
-    { name: "memory_lantern", title: "Memory Lantern", source_document_id: "source/current", checked_form_id: "checked/lantern", required_kinds: ["presentation/text"] },
+    { name: "clock", title: "Clock", source_document_id: "source/clock", checked_form_id: "checked/clock", required_kinds: ["time/every"] },
+    { name: "desk_telegraph", title: "Desk Telegraph", source_document_id: "source/telegraph", checked_form_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
+    { name: "memory_lantern", title: "Memory Lantern", source_document_id: "source/lantern", checked_form_id: "checked/lantern", required_kinds: ["presentation/text"] },
   ],
 });
 
@@ -34,8 +34,8 @@ test("browse, search, add, remove, and exact encoding share one bounded inventor
   let selected = toggleForm(inventory, [], "clock");
   selected = toggleForm(inventory, selected, "desk_telegraph");
   assert.deepEqual(JSON.parse(encodedFormSelection(selected)), [
-    { name: "clock", source_document_id: "source/current", checked_form_id: "checked/clock" },
-    { name: "desk_telegraph", source_document_id: "source/current", checked_form_id: "checked/telegraph" },
+    { name: "clock", source_document_id: "source/clock", checked_form_id: "checked/clock" },
+    { name: "desk_telegraph", source_document_id: "source/telegraph", checked_form_id: "checked/telegraph" },
   ]);
   selected = toggleForm(inventory, selected, "clock");
   assert.deepEqual(selected.map(({ name }) => name), ["desk_telegraph"]);

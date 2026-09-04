@@ -238,19 +238,31 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
     {
         return Err("initial Body inventory order must be unique and contiguous from one".into());
     }
-    let mut bundled = String::new();
+    #[derive(Serialize)]
+    struct BundledForm<'a> {
+        slug: &'a str,
+        source: String,
+    }
+    #[derive(Serialize)]
+    struct InitialBodyBundle<'a> {
+        schema: &'static str,
+        forms: Vec<BundledForm<'a>>,
+    }
+    let mut forms = Vec::with_capacity(selected.len());
     for form in selected {
         let path = root.join("forms").join(&form.slug).join("main.conduit");
         let source =
             fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))?;
-        if !bundled.is_empty() {
-            bundled.push('\n');
-        }
-        bundled.push_str(&source);
-        if !source.ends_with('\n') {
-            bundled.push('\n');
-        }
+        forms.push(BundledForm {
+            slug: &form.slug,
+            source,
+        });
     }
+    let bundled = serde_json::to_vec_pretty(&InitialBodyBundle {
+        schema: "conduit.creche/reviewed-form-bundle@1",
+        forms,
+    })
+    .map_err(|error| error.to_string())?;
     fs::write(output, bundled).map_err(|error| error.to_string())
 }
 

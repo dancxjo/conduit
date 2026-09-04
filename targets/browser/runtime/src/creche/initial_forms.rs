@@ -2,6 +2,19 @@
 
 use super::protocol::InitialFormReceipt;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+
+#[derive(Deserialize)]
+struct ReviewedFormBundle {
+    schema: String,
+    forms: Vec<BundledForm>,
+}
+
+#[derive(Deserialize)]
+struct BundledForm {
+    slug: String,
+    source: String,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(super) struct InitialFormSelection {
@@ -28,25 +41,26 @@ pub(super) struct ReviewedForm {
 }
 
 pub(super) fn reviewed_inventory(source: &str) -> Result<ReviewedFormInventory, String> {
-    let checked = check_source(source)?;
-    let source_document_id = checked.source_document_id.as_str().to_string();
-    let forms = checked
-        .forms
-        .iter()
-        .map(|form| {
+    let checked_documents = check_inventory(source)?;
+    let source_document_id = conduit_form::source_document_identity(source)
+        .as_str()
+        .to_string();
+    let mut forms = Vec::new();
+    for checked in &checked_documents {
+        for form in &checked.forms {
             let mut required_kinds: Vec<String> =
                 form.gears.iter().map(|gear| gear.kind.clone()).collect();
             required_kinds.sort();
             required_kinds.dedup();
-            ReviewedForm {
+            forms.push(ReviewedForm {
                 name: form.name.clone(),
                 title: title(&form.name),
-                source_document_id: source_document_id.clone(),
+                source_document_id: checked.source_document_id.as_str().to_string(),
                 checked_form_id: form.checked_form_id.as_str().to_string(),
                 required_kinds,
-            }
-        })
-        .collect();
+            });
+        }
+    }
     Ok(ReviewedFormInventory {
         schema: "conduit.creche/reviewed-form-inventory@1",
         source_document_id,
@@ -65,14 +79,19 @@ pub(super) fn checked_workset(
         return Err("initial Form selection exceeds Body capacity".into());
     }
 
-    let checked = check_source(source)?;
+    let checked_documents = check_inventory(source)?;
     let mut receipts = Vec::with_capacity(selected.len());
     let mut workset = conduit_body::BodyWorkset::default();
     for selection in selected {
-        let checked_form = checked
-            .forms
+        let (checked, checked_form) = checked_documents
             .iter()
-            .find(|form| form.name == selection.name)
+            .find_map(|checked| {
+                checked
+                    .forms
+                    .iter()
+                    .find(|form| form.name == selection.name)
+                    .map(|form| (checked, form))
+            })
             .ok_or_else(|| {
                 format!(
                     "selected initial Form {:?} is absent from checked inventory",
@@ -100,6 +119,45 @@ pub(super) fn checked_workset(
         });
     }
     Ok((workset, receipts))
+}
+
+fn check_inventory(source: &str) -> Result<Vec<conduit_form::CheckedSyntaxDocument>, String> {
+    let Ok(bundle) = serde_json::from_str::<ReviewedFormBundle>(source) else {
+        return check_source(source).map(|checked| vec![checked]);
+    };
+    if bundle.schema != "conduit.creche/reviewed-form-bundle@1"
+        || bundle.forms.is_empty()
+        || bundle.forms.len() > conduit_body::MAX_BODY_FORMS
+    {
+        return Err("reviewed Form bundle is malformed or over capacity".into());
+    }
+    let mut checked = Vec::with_capacity(bundle.forms.len());
+    let mut names = BTreeSet::new();
+    let mut identities = BTreeSet::new();
+    for entry in bundle.forms {
+        if entry.slug.is_empty() || entry.source.is_empty() {
+            return Err("reviewed Form bundle entry is malformed".into());
+        }
+        let document = check_source(&entry.source)?;
+        if document.forms.len() != 1 {
+            return Err(format!(
+                "reviewed Form bundle entry {:?} must own exactly one Form",
+                entry.slug
+            ));
+        }
+        let form = &document.forms[0];
+        if entry.slug.replace('-', "_") != form.name
+            || !names.insert(form.name.clone())
+            || !identities.insert(form.checked_form_id.as_str().to_string())
+        {
+            return Err(format!(
+                "reviewed Form bundle entry {:?} has mismatched or duplicate provenance",
+                entry.slug
+            ));
+        }
+        checked.push(document);
+    }
+    Ok(checked)
 }
 
 pub(super) fn check_source(source: &str) -> Result<conduit_form::CheckedSyntaxDocument, String> {
