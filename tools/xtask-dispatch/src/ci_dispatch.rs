@@ -6,9 +6,21 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some("candidate") => candidate(arguments),
         Some("reconcile") => reconcile(arguments),
         Some("attest-success") => attest(arguments),
+        Some("standalone-locks") => standalone_locks(arguments),
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),
     }
+}
+
+fn standalone_locks(arguments: &[String]) -> Result<(), String> {
+    for argument in arguments.iter().skip(2) {
+        if argument != "--locked" {
+            return Err(format!(
+                "unsupported ci standalone-locks argument: {argument}"
+            ));
+        }
+    }
+    crate::standalone_locks::run().map_err(|error| error.to_string())
 }
 
 fn plan(arguments: &[String]) -> Result<(), String> {

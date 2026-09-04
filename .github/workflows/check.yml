@@ -284,9 +284,22 @@ jobs:
           CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}
         run: cargo xtask check workspace-${{ matrix.shard }} --locked
 
-  esp32-firmware:
+  standalone-locks:
     needs: classify
     if: always() && needs.classify.outputs.docs_only != 'true' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate every standalone fabrication lock before machine fan-out
+        run: cargo xtask ci standalone-locks --locked
+
+  esp32-firmware:
+    needs: [classify, standalone-locks]
+    if: always() && needs.classify.outputs.docs_only != 'true' && needs.standalone-locks.result == 'success' && (github.event_name != 'pull_request' || needs.classify.result != 'success' || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     # A cold Xtensa row may install substantial pinned tooling. Each row owns
     # exactly one target, while exhaustive main runs retain all three rows.
@@ -358,7 +371,7 @@ jobs:
     # This is the sole branch-protection gate. Keep every independently
     # selectable proof aggregate in this join so success cannot precede a late
     # proof failure.
-    needs: [classify, workspace-check, esp32-firmware, browser-host, conduitos-boot]
+    needs: [classify, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-boot]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -368,6 +381,7 @@ jobs:
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
           WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
           ESP32_RESULT: ${{ needs.esp32-firmware.result }}
+          STANDALONE_LOCKS_RESULT: ${{ needs.standalone-locks.result }}
           BROWSER_HOST_RESULT: ${{ needs.browser-host.result }}
           CONDUITOS_RESULT: ${{ needs.conduitos-boot.result }}
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
@@ -379,6 +393,7 @@ jobs:
           if test "$DOCS_ONLY" != true; then
             test "$WORKSPACE_RESULT" = success
             if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then
+              test "$STANDALONE_LOCKS_RESULT" = success
               test "$ESP32_RESULT" = success
             else
               test "$ESP32_RESULT" = skipped

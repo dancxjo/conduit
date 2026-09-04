@@ -29,6 +29,7 @@ jobs:
     outputs:
       required: ${{ steps.impact.outputs.pages_products_required || 'true' }}
       proofs: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
+      standalone_locks_required: ${{ steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
@@ -103,6 +104,19 @@ jobs:
           path: target/browser-product-runtimes
           if-no-files-found: error
           retention-days: 7
+
+  standalone-locks:
+    needs: plan
+    if: needs.plan.outputs.required == 'true' && needs.plan.outputs.standalone_locks_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate every standalone fabrication lock before machine fan-out
+        run: cargo xtask ci standalone-locks --locked
 
   avr-release:
     needs: plan
@@ -364,8 +378,8 @@ jobs:
           retention-days: 7
 
   esp32-release-images:
-    needs: plan
-    if: needs.plan.outputs.required == 'true'
+    needs: [plan, standalone-locks]
+    if: always() && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

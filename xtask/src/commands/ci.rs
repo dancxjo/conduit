@@ -1,5 +1,6 @@
 mod impact;
 mod proof_graph;
+mod standalone_locks;
 
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
@@ -12,6 +13,8 @@ pub struct CiArgs {
 
 #[derive(Subcommand, Debug)]
 enum CiCommand {
+    /// Fail fast when a separately rooted fabrication lock is stale.
+    StandaloneLocks,
     /// Plan heavyweight CI obligations for one exact Git diff.
     Plan {
         /// Exact base commit SHA.
@@ -72,6 +75,7 @@ enum CiCommand {
 
 pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        CiCommand::StandaloneLocks => standalone_locks::run(),
         CiCommand::Plan {
             base,
             head,
