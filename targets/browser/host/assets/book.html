@@ -17,6 +17,10 @@
 <body>
   <div data-application-slot="product-masthead"></div>
   <div class="tour-workspace">
+    <nav class="tour-mode-switcher" aria-label="Tour entrances">
+      <button type="button" data-tour-mode="guided" aria-pressed="true">Guided Tour</button>
+      <button type="button" data-tour-mode="gallery" aria-pressed="false">Form Gallery</button>
+    </nav>
     <nav class="tour-view-switcher" aria-label="Tour workspace views">
       <button type="button" data-tour-view="lesson" aria-controls="chapter" aria-pressed="true">Lesson</button>
       <button type="button" data-tour-view="laboratory" aria-controls="laboratory-slot" aria-pressed="false">Laboratory</button>

@@ -70,6 +70,17 @@ pub extern "C" fn conduit_book_human_machinery() -> i32 {
     .unwrap_or(ERROR_OUTPUT)
 }
 
+#[no_mangle]
+pub extern "C" fn conduit_book_reviewed_gallery() -> i32 {
+    clear_output();
+    match super::gallery::reviewed_gallery() {
+        Ok(gallery) => write_output(&gallery)
+            .map(|()| STATUS_READY)
+            .unwrap_or(ERROR_OUTPUT),
+        Err(_) => ERROR_OUTPUT,
+    }
+}
+
 /// Projects the exact checked Form beside its Book source without planning or
 /// starting a Play.
 #[no_mangle]

@@ -3,6 +3,7 @@
 pub(crate) mod abi;
 mod compact_patchbay;
 mod engine;
+mod gallery;
 mod host_abi;
 mod multihost;
 mod protocol;

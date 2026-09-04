@@ -6,7 +6,7 @@ import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerF
 import { createProductMasthead } from "./product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
 import { createBookRouting, parseBookPages } from "./book-routing.mjs";
-import { presentBookInventory } from "./book-inventory-presentation.mjs";
+import { createReviewedFormGallery, presentBookInventory, readReviewedGallery, reviewedFormStage } from "./book-inventory-presentation.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 
 const encoder = new TextEncoder();
@@ -29,6 +29,7 @@ let navigation;
 let hostPresentation, hostPresentationFor, hostStatus;
 let routing;
 let workspace;
+let gallery;
 let laboratorySelectionSequence = 0;
 const laboratory = document.createElement("div");
 laboratory.className = "book-workbench";
@@ -53,6 +54,7 @@ try {
   ]);
   host = initialized;
   requireBookAbi(host.runtime);
+  gallery = readReviewedGallery(host.runtime);
   if (host.runtime.conduit_browser_form_human_machinery() < 0) {
     throw new Error("browser Host selected machinery is unavailable");
   }
@@ -76,6 +78,7 @@ try {
     onFailure: showBookFailure,
   });
   guidedPages = parseBookPages(chapters);
+  setupTourModes();
   const initialRoute = routing.admitPages(guidedPages);
   await renderPage(initialRoute.index);
   if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
@@ -109,6 +112,7 @@ function requireBookAbi(api) {
     "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
+    "conduit_browser_form_reviewed_gallery",
     "conduit_book_project_patchbay", "conduit_book_project_patchbay_recursive",
     "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
     "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project",
@@ -125,6 +129,7 @@ async function renderPage(index, routeChange = "none") {
   retireActiveLaboratory();
   if (routeChange === "push") await routing.move(index, "push");
   currentPage = index;
+  setTourMode("guided");
   workspace.showLesson();
   chapter.replaceChildren();
   renderMarkdown(guidedPages[index]);
@@ -132,6 +137,38 @@ async function renderPage(index, routeChange = "none") {
   if (routeChange === "push") chapter.querySelector("h1")?.focus({ preventScroll: true });
   navigation.render(currentPage, guidedPages.length, running);
   document.title = guidedPages[index].title + " · Tour";
+}
+
+function setupTourModes() {
+  const guided = document.querySelector('[data-tour-mode="guided"]');
+  const galleryButton = document.querySelector('[data-tour-mode="gallery"]');
+  if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
+  guided.addEventListener("click", () => renderPage(currentPage).catch(showBookFailure));
+  galleryButton.addEventListener("click", () => renderGallery());
+}
+
+function setTourMode(mode) {
+  if (mode !== "guided" && mode !== "gallery") throw new Error("Tour entrance is not admitted");
+  document.body.dataset.tourMode = mode;
+  for (const button of document.querySelectorAll("[data-tour-mode]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.tourMode === mode));
+  }
+}
+
+function renderGallery() {
+  retireActiveLaboratory();
+  setTourMode("gallery");
+  workspace.showLesson();
+  chapter.replaceChildren();
+  const { surface, heading } = createReviewedFormGallery(document, gallery, (form) => {
+    selectLaboratoryStage(reviewedFormStage(form), [], true);
+  });
+  chapter.append(surface);
+  selectLaboratoryStage(reviewedFormStage(gallery.forms[0]), []);
+  document.querySelector("#laboratory-slot").replaceChildren(laboratory);
+  chapter.scrollTop = 0;
+  heading.focus({ preventScroll: true });
+  document.title = "Form Gallery · Tour";
 }
 
 function setNavigationDisabled(disabled) {
@@ -322,6 +359,13 @@ function selectLaboratoryStage(stage, stages, reveal = false) {
       sourceKey: stage.identity,
     });
   laboratory.replaceChildren(runner);
+  if (stage.checkedFormId) {
+    const patchbay = runner.querySelector(".compact-patchbay");
+    if (patchbay.dataset.sourceDocumentId !== stage.sourceDocumentId
+      || patchbay.dataset.checkedFormId !== stage.checkedFormId) {
+      throw new Error("Gallery source does not project its exact reviewed Form identity");
+    }
+  }
 }
 
 function retireActiveLaboratory() {
