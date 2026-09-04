@@ -8,7 +8,7 @@ import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
 import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
 const schema = "conduit.patchbay.portable-presentation";
-const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", reviewedFormQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null };
+const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", reviewedFormQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null, savedEvidenceBody:null, savedEvidenceRevision:null };
 const apiUrl=path=>new URL(`api/${path}`,document.baseURI).href;
 const applicationPresentation = createApplicationPresentationHost();
 const sharedPresentation = createPatchbaySharedPresentation(applicationPresentation);
@@ -192,7 +192,11 @@ async function saveBodyEvidence(){
   const response=await fetch(apiUrl("body-evidence"),{cache:"no-store"});if(!response.ok)throw new Error(`Body evidence HTTP ${response.status}`);
   const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length===0||bytes.length>65536)throw new Error("Body evidence exceeds the download bound");
   const evidence=JSON.parse(new TextDecoder().decode(bytes));if(evidence.body_id!==workbench.body_id||!Array.isArray(evidence.records))throw new Error("Body evidence does not match the attached Body");
-  const url=URL.createObjectURL(new Blob([bytes],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=`conduit-body-${workbench.body_id}.json`;link.click();URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(new Blob([bytes],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=`conduit-body-${workbench.body_id}.json`;link.click();URL.revokeObjectURL(url);state.savedEvidenceBody=workbench.body_id;state.savedEvidenceRevision=workbench.evidence_revision;renderBodyEvidenceStatus(workbench);
+}
+function renderBodyEvidenceStatus(workbench){
+  const status=document.querySelector("#body-evidence-status");if(state.savedEvidenceBody!==workbench.body_id){state.savedEvidenceBody=workbench.body_id;state.savedEvidenceRevision=workbench.evidence_revision;}
+  status.textContent=state.savedEvidenceRevision===workbench.evidence_revision?`Evidence revision ${workbench.evidence_revision} matches the saved biography.`:`Evidence revision ${workbench.evidence_revision} has unsaved workload changes.`;
 }
 async function dispatchNavigation(operation){
   const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
@@ -313,6 +317,7 @@ function renderCards(){const entries=[];for(const route of subjects("Route")){en
 function renderBodyWorkbench(workbench){
   const root=document.querySelector("#body-workbench");root.hidden=!workbench;if(!workbench)return;
   const current=workbench.current,history=workbench.history;
+  renderBodyEvidenceStatus(workbench);
   document.querySelector('[data-workbench-destination="program"]').hidden=!state.snapshot.navigation.navigation.places.some(place=>place.place==="Program");
   document.querySelector("#body-workbench-title").textContent=current.friendly_name;
   document.querySelector("#body-workbench-status").textContent=current.status_line;
