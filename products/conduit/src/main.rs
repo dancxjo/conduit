@@ -24,21 +24,25 @@ use std::path::Path;
 fn patchbay_process(
     host: cli::PatchbayHost,
     body_evidence: Option<&Path>,
+    body_invitation: Option<&str>,
     reviewed_forms: &[OsString],
 ) -> Result<std::process::Command, String> {
     let executable = match host {
         cli::PatchbayHost::Native => "patchbay-native",
         cli::PatchbayHost::Browser => "patchbay-html",
     };
-    if host == cli::PatchbayHost::Native && (body_evidence.is_some() || !reviewed_forms.is_empty())
+    if host == cli::PatchbayHost::Native
+        && (body_evidence.is_some() || body_invitation.is_some() || !reviewed_forms.is_empty())
     {
         return Err(
             "opening exported Body evidence or reviewed Forms currently requires `conduit patchbay --on browser`"
                 .into(),
         );
     }
-    if body_evidence.is_none() && !reviewed_forms.is_empty() {
-        return Err("reviewed Forms require exact exported Body evidence".into());
+    if body_evidence.is_none() && (body_invitation.is_some() || !reviewed_forms.is_empty()) {
+        return Err(
+            "a Body invitation or reviewed Forms require exact exported Body evidence".into(),
+        );
     }
     let mut command = std::process::Command::new(executable);
     if host == cli::PatchbayHost::Native {
@@ -49,6 +53,9 @@ fn patchbay_process(
             .arg("--body-evidence")
             .arg(path)
             .arg("--external-reader");
+    }
+    if let Some(url) = body_invitation {
+        command.arg("--body-invitation").arg(url);
     }
     let mut pairs = reviewed_forms.chunks_exact(2);
     for pair in &mut pairs {
@@ -63,9 +70,10 @@ fn patchbay_process(
 fn enter_patchbay(
     host: cli::PatchbayHost,
     body_evidence: Option<&Path>,
+    body_invitation: Option<&str>,
     reviewed_forms: &[OsString],
 ) -> Result<(), String> {
-    let mut command = patchbay_process(host, body_evidence, reviewed_forms)?;
+    let mut command = patchbay_process(host, body_evidence, body_invitation, reviewed_forms)?;
     let executable = match host {
         cli::PatchbayHost::Native => "patchbay-native",
         cli::PatchbayHost::Browser => "patchbay-html",
@@ -158,8 +166,14 @@ fn main() {
         cli::Command::Patchbay {
             on,
             body_evidence,
+            body_invitation,
             reviewed_form,
-        } => enter_patchbay(on, body_evidence.as_deref(), &reviewed_form),
+        } => enter_patchbay(
+            on,
+            body_evidence.as_deref(),
+            body_invitation.as_deref(),
+            &reviewed_form,
+        ),
         cli::Command::Run {
             form,
             placements,
@@ -198,7 +212,7 @@ mod patchbay_entrance_tests {
     #[test]
     fn exported_body_evidence_enters_the_browser_external_reader_exactly() {
         let path = Path::new("roseau-body.json");
-        let command = patchbay_process(cli::PatchbayHost::Browser, Some(path), &[]).unwrap();
+        let command = patchbay_process(cli::PatchbayHost::Browser, Some(path), None, &[]).unwrap();
         assert_eq!(command.get_program(), "patchbay-html");
         assert_eq!(
             command.get_args().collect::<Vec<_>>(),
@@ -208,12 +222,13 @@ mod patchbay_entrance_tests {
 
     #[test]
     fn native_front_door_stays_distinct_from_unsupported_evidence_open() {
-        let command = patchbay_process(cli::PatchbayHost::Native, None, &[]).unwrap();
+        let command = patchbay_process(cli::PatchbayHost::Native, None, None, &[]).unwrap();
         assert_eq!(command.get_program(), "patchbay-native");
         assert_eq!(command.get_args().collect::<Vec<_>>(), ["--front-door"]);
         assert!(patchbay_process(
             cli::PatchbayHost::Native,
             Some(Path::new("roseau-body.json")),
+            None,
             &[],
         )
         .unwrap_err()
@@ -231,6 +246,7 @@ mod patchbay_entrance_tests {
         let command = patchbay_process(
             cli::PatchbayHost::Browser,
             Some(Path::new("roseau-body.json")),
+            None,
             &forms,
         )
         .unwrap();
@@ -252,12 +268,44 @@ mod patchbay_entrance_tests {
         assert!(patchbay_process(
             cli::PatchbayHost::Browser,
             Some(Path::new("roseau-body.json")),
+            None,
             &forms[..1],
         )
         .unwrap_err()
         .contains("LABEL and PATH"));
-        assert!(patchbay_process(cli::PatchbayHost::Browser, None, &forms)
-            .unwrap_err()
-            .contains("Body evidence"));
+        assert!(
+            patchbay_process(cli::PatchbayHost::Browser, None, None, &forms)
+                .unwrap_err()
+                .contains("Body evidence")
+        );
+    }
+
+    #[test]
+    fn exact_body_invitation_is_forwarded_without_joining_in_the_cli() {
+        let command = patchbay_process(
+            cli::PatchbayHost::Browser,
+            Some(Path::new("roseau-body.json")),
+            Some("ws://127.0.0.1:4173/body"),
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            command.get_args().collect::<Vec<_>>(),
+            [
+                "--body-evidence",
+                "roseau-body.json",
+                "--external-reader",
+                "--body-invitation",
+                "ws://127.0.0.1:4173/body",
+            ]
+            .map(std::ffi::OsStr::new)
+        );
+        assert!(patchbay_process(
+            cli::PatchbayHost::Native,
+            None,
+            Some("ws://127.0.0.1:4173/body"),
+            &[],
+        )
+        .is_err());
     }
 }

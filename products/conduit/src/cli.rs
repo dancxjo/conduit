@@ -22,6 +22,9 @@ pub(crate) enum Command {
         /// Open exact exported Body biography evidence in an external reader.
         #[arg(long)]
         body_evidence: Option<PathBuf>,
+        /// Offer one explicit local Body invitation to this browser Host.
+        #[arg(long, requires = "body_evidence")]
+        body_invitation: Option<String>,
         /// Admit a reviewed Form label and canonical source for Body workload changes.
         #[arg(long, value_names = ["LABEL", "PATH"], num_args = 2, action = clap::ArgAction::Append, requires = "body_evidence")]
         reviewed_form: Vec<OsString>,
@@ -129,6 +132,7 @@ mod tests {
             Command::Patchbay {
                 on: PatchbayHost::Browser,
                 body_evidence: None,
+                body_invitation: None,
                 reviewed_form,
             } if reviewed_form.is_empty()
         ));
@@ -146,6 +150,7 @@ mod tests {
             Command::Patchbay {
                 on: PatchbayHost::Browser,
                 body_evidence: Some(path),
+                body_invitation: None,
                 reviewed_form,
             } if path == std::path::Path::new("roseau.json") && reviewed_form.is_empty()
         ));
@@ -159,6 +164,31 @@ mod tests {
             .command,
             Command::Patchbay { reviewed_form, .. } if reviewed_form.len() == 4
         ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "patchbay",
+                "--on",
+                "browser",
+                "--body-evidence",
+                "roseau.json",
+                "--body-invitation",
+                "ws://127.0.0.1:4173/body",
+            ])
+            .expect("explicit local Body invitation parses")
+            .command,
+            Command::Patchbay { body_invitation: Some(url), .. }
+                if url == "ws://127.0.0.1:4173/body"
+        ));
+        assert!(Cli::try_parse_from([
+            "conduit",
+            "patchbay",
+            "--on",
+            "browser",
+            "--body-invitation",
+            "ws://127.0.0.1:4173/body",
+        ])
+        .is_err());
         assert!(Cli::try_parse_from([
             "conduit",
             "patchbay",
