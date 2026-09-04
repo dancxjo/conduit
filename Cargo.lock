@@ -448,7 +448,6 @@ dependencies = [
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
- "conduit-signal-conformance",
  "conduit-std-host",
  "conduit-std-offers",
  "conduit-time",

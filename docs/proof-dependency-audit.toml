@@ -1,16 +1,9 @@
 schema = "conduit.proof-dependency-audit/v1"
-maximum_edges = 18
+maximum_edges = 17
 
 # This inventory contains every non-dev Cargo dependency from outside proof/
 # whose path enters proof/. `cargo test -p xtask --test proof_dependency_boundary`
 # rejects additions, removals, and dependency-kind changes.
-
-[[edges]]
-manifest = "products/conduit/Cargo.toml"
-dependency = "conduit-signal-conformance"
-kind = "dependencies"
-classification = "fixed-proof-scenario"
-resolution = "Rebuild or demote the public distributed Signal scenario without importing fixed proof identities."
 
 [[edges]]
 manifest = "products/patchbay/model/Cargo.toml"
