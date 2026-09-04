@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 /// Product command-line entrance for installed Conduit workflows.
@@ -21,6 +22,9 @@ pub(crate) enum Command {
         /// Open exact exported Body biography evidence in an external reader.
         #[arg(long)]
         body_evidence: Option<PathBuf>,
+        /// Admit a reviewed Form label and canonical source for Body workload changes.
+        #[arg(long, value_names = ["LABEL", "PATH"], num_args = 2, action = clap::ArgAction::Append, requires = "body_evidence")]
+        reviewed_form: Vec<OsString>,
     },
     /// Check, plan, admit, and execute a Form on available local Hosts.
     Run {
@@ -125,7 +129,8 @@ mod tests {
             Command::Patchbay {
                 on: PatchbayHost::Browser,
                 body_evidence: None,
-            }
+                reviewed_form,
+            } if reviewed_form.is_empty()
         ));
         assert!(matches!(
             Cli::try_parse_from([
@@ -141,8 +146,29 @@ mod tests {
             Command::Patchbay {
                 on: PatchbayHost::Browser,
                 body_evidence: Some(path),
-            } if path == std::path::Path::new("roseau.json")
+                reviewed_form,
+            } if path == std::path::Path::new("roseau.json") && reviewed_form.is_empty()
         ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit", "patchbay", "--on", "browser", "--body-evidence", "roseau.json",
+                "--reviewed-form", "Greet", "forms/greet/greet.conduit", "--reviewed-form",
+                "Count", "forms/count/count.conduit",
+            ])
+            .expect("reviewed adult Form inventory parses")
+            .command,
+            Command::Patchbay { reviewed_form, .. } if reviewed_form.len() == 4
+        ));
+        assert!(Cli::try_parse_from([
+            "conduit",
+            "patchbay",
+            "--on",
+            "browser",
+            "--reviewed-form",
+            "Greet",
+            "forms/greet/greet.conduit",
+        ])
+        .is_err());
         assert!(matches!(
             Cli::try_parse_from(["conduit", "run", "hello.conduit"])
                 .expect("run command parses")
