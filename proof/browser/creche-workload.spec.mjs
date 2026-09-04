@@ -25,11 +25,15 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText(
     "3 of 3 reviewed Forms selected; maximum 16.",
   );
+  await birth.getByRole("button", { name: "Review workload" }).click();
+  await expect(birth.getByRole("button", { name: "Birth Body" })).toBeEnabled();
   await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
 
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   birth = page.locator(".body-birth-runner");
+  await expect(birth.getByRole("button", { name: "Birth Body" })).toBeDisabled();
+  await expect(birth.locator('[data-application-key="review-basis"]')).toContainText("not reviewed");
   for (const title of ["Morse Network", "Memory Lantern", "Desk Telegraph"]) {
     await expect(birth.getByRole("button", { name: `Remove ${title}` })).toBeVisible();
   }
