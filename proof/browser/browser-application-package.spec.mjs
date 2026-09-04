@@ -385,7 +385,7 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
       revision: 1_000,
       actions: [{ id: "proof.activate", event: "activate" }],
       nodes: [
-        { parent: null, component: "navigation", key: "proof-nav", text: "", action: null },
+        { parent: null, component: "navigation", key: "proof-nav", text: "Proof navigation", action: null },
         { parent: 0, component: "button", key: "proof-button", text: "Pressure", action: 0 },
       ],
     }, { eventCapacity: 1 });
