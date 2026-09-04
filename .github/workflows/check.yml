@@ -13,6 +13,7 @@ on:
   merge_group:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -148,6 +149,8 @@ jobs:
     if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    outputs:
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -183,6 +186,7 @@ jobs:
           test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/xtask/profile.rs)" = 1
           echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
       - name: Distribute the verified pinned archive
+        id: upload
         uses: actions/upload-artifact@v7
         with:
           name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
@@ -196,6 +200,8 @@ jobs:
     if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.conduitos_required == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
+    outputs:
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -254,9 +260,10 @@ jobs:
       - name: Verify the restored or prepared tool bundle
         run: scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle
       - name: Distribute the exact ConduitOS tool bundle
+        id: upload
         uses: actions/upload-artifact@v7
         with:
-          name: conduitos-tools-${{ github.run_id }}
+          name: conduitos-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/tool-bundle
           if-no-files-found: error
           retention-days: 1
@@ -434,6 +441,8 @@ jobs:
     if: ${{ false && always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     container:
       image: mcr.microsoft.com/playwright:v1.62.0-noble
     steps:
@@ -489,9 +498,10 @@ jobs:
       - name: Verify the restored or prepared browser-tool bundle
         run: scripts/ci/browser-tools.sh verify target/browser-tools/tool-bundle
       - name: Distribute the exact browser-tool bundle
+        id: upload
         uses: actions/upload-artifact@v7
         with:
-          name: browser-tools-${{ github.run_id }}
+          name: browser-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/browser-tools/tool-bundle
           if-no-files-found: error
           retention-days: 1
@@ -525,10 +535,11 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Receive the exact browser-tool bundle
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
-          name: browser-tools-${{ github.run_id }}
+          name: browser-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/browser-tools/tool-bundle
+          expected-digest: ${{ needs.browser-tools.outputs.artifact_digest }}
       - name: Install the exact browser-tool bundle without mirror access
         run: scripts/ci/browser-tools.sh install target/browser-tools/tool-bundle
       - uses: dtolnay/rust-toolchain@stable
@@ -588,6 +599,8 @@ jobs:
     if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')) && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
+    outputs:
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -601,23 +614,26 @@ jobs:
           cache-on-failure: false
           shared-key: conduitos-x86-proof-image
       - name: Receive the verified pinned bootloader archive
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
           name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
+          expected-digest: ${{ needs.conduitos-limine.outputs.artifact_digest }}
       - name: Receive the exact ConduitOS tool bundle
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
-          name: conduitos-tools-${{ github.run_id }}
+          name: conduitos-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/tool-bundle
+          expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: BUILD one exact immutable x86 proof image
         run: cargo xtask conduitos prepare-proof-image --locked
       - name: Distribute the exact prepared proof image
+        id: upload
         uses: actions/upload-artifact@v7
         with:
-          name: conduitos-proof-image-${{ github.run_id }}
+          name: conduitos-proof-image-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
             target/conduitos/x86_64/conduitos
             target/conduitos/x86_64/conduitos.iso
@@ -655,15 +671,17 @@ jobs:
           cache-on-failure: false
           shared-key: conduitos-x86-${{ matrix.proof }}
       - name: Receive the verified pinned bootloader archive
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
           name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
+          expected-digest: ${{ needs.conduitos-limine.outputs.artifact_digest }}
       - name: Receive the exact ConduitOS tool bundle
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
-          name: conduitos-tools-${{ github.run_id }}
+          name: conduitos-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/tool-bundle
+          expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Preserve the prepared-image BUILD gate
@@ -673,10 +691,11 @@ jobs:
         run: test "$PREPARED_IMAGE_RESULT" = success
       - name: Receive the exact prepared proof image
         if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
-          name: conduitos-proof-image-${{ github.run_id }}
+          name: conduitos-proof-image-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/x86_64
+          expected-digest: ${{ needs.conduitos-proof-image.outputs.artifact_digest }}
       - name: Run ${{ matrix.proof }} proof
         run: |
           case '${{ matrix.proof }}' in
@@ -731,15 +750,17 @@ jobs:
           path: target/conduitos/toolchain/qemu-efi-loongarch64.deb
           key: conduitos-qemu-efi-loongarch64-2025.02-8-deb13u1-2a1bd3b00413af313d6105f38bda3f8156be514f5026f3ec29ba8e81b68f0633
       - name: Receive the verified pinned bootloader archive
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
           name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
+          expected-digest: ${{ needs.conduitos-limine.outputs.artifact_digest }}
       - name: Receive the exact ConduitOS tool bundle
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
-          name: conduitos-tools-${{ github.run_id }}
+          name: conduitos-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/tool-bundle
+          expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
@@ -767,15 +788,17 @@ jobs:
           cache-on-failure: false
           shared-key: conduitos-aarch64-product
       - name: Receive the verified pinned bootloader archive
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
           name: conduitos-limine-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/vendor
+          expected-digest: ${{ needs.conduitos-limine.outputs.artifact_digest }}
       - name: Receive the exact ConduitOS tool bundle
-        uses: actions/download-artifact@v8
+        uses: ./.github/actions/download-exact-artifact
         with:
-          name: conduitos-tools-${{ github.run_id }}
+          name: conduitos-tools-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/tool-bundle
+          expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Build the checked AArch64 product PROFILE and prove two fresh boots

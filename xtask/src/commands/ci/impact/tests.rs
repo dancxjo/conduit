@@ -825,3 +825,36 @@ fn lightweight_dispatcher_owns_every_ci_identity_command() {
     assert!(pages_resolver.contains("proof/ci/pages-product-run-selection.spec.mjs"));
     assert!(pages_resolver.contains("proof/ci/pages-workflow-paths.spec.mjs"));
 }
+
+#[test]
+fn exact_artifact_handoff_retries_transport_but_verifies_digest_once() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let action =
+        fs::read_to_string(root.join(".github/actions/download-exact-artifact/action.yml"))
+            .unwrap();
+    let transport =
+        fs::read_to_string(root.join("scripts/ci/download-exact-artifact.mjs")).unwrap();
+    let proof = fs::read_to_string(root.join("proof/ci/download-exact-artifact.spec.mjs")).unwrap();
+    let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+    assert!(action.contains("node scripts/ci/download-exact-artifact.mjs"));
+    assert!(action.contains("CONDUIT_ARTIFACT_RUN_ID"));
+    assert!(action.contains("CONDUIT_ARTIFACT_EXPECTED_DIGEST"));
+    assert!(!action.contains("actions/download-artifact"));
+    assert!(!action.contains("continue-on-error"));
+    assert!(!action.contains("digest-mismatch: ignore"));
+    assert!(transport.contains("conduit.ci.artifact-transport/v1"));
+    assert!(transport.contains("response.status === 429 || response.status >= 500"));
+    assert!(transport.contains("`${stage}-intermediary-403`"));
+    assert!(transport.contains("artifact digest mismatch"));
+    assert!(transport.contains("actualDigest !== expectedDigest"));
+    assert!(action.find("download-exact-artifact.mjs").unwrap() < action.find("unzip -q").unwrap());
+    for refusal in [
+        "permanent authorization failure does not retry",
+        "missing exact producer is permanent",
+        "digest mismatch does not retry or extract",
+    ] {
+        assert!(proof.contains(refusal));
+    }
+    assert!(!workflow.lines().any(|line| line.contains("name:")
+        && (line.contains("${{ github.sha }}") || line.contains("${{ github.run_id }}"))));
+}

@@ -134,3 +134,20 @@ Crèche machine proofs and final Pages carrier still wait for the complete stage
 catalog because they inspect or publish those payloads. The stable
 `products-proof` gate joins the distinct results without making the early proof
 depend on the later deployment barrier.
+
+## Exact intra-run artifact transport
+
+Candidate-capable workflows name artifacts with `CONDUIT_CHECKOUT_SHA`, never
+the synthetic pull-request merge SHA or a workflow run ID. Producers expose the
+digest returned by `actions/upload-artifact`; consumers require that exact
+digest.
+
+The repository composite downloader permits at most three transport attempts.
+It resolves one live exact name inside the exact producer run, downloads the
+raw archive, verifies the producer's exact SHA-256, and only then extracts it.
+Only network errors, 429/5xx responses, and an explicitly identified
+intermediary 403 are retryable. Authorization
+failure during producer lookup, a missing or ambiguous artifact, malformed
+identity, and digest mismatch fail immediately. The machine-readable transport
+record keeps a retry distinct from proof success, and no fallback rebuild can
+manufacture supposedly equivalent bytes.
