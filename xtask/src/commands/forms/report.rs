@@ -58,6 +58,14 @@ pub(super) fn build(root: &Path) -> Result<Report, String> {
         }
         results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
         results.extend(composition::check_all(root, &form, &source_path, &catalogs));
+        results.extend(reusable::deterministic_all(
+            root,
+            &form,
+            &source_path,
+            &catalogs,
+            false,
+            &crate::cli::GlobalOpts::default(),
+        ));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,
@@ -76,11 +84,16 @@ mod tests {
     fn static_report_has_every_mode_without_execution_claims() {
         let root = crate::workspace::workspace_root().unwrap();
         let report = build(&root).unwrap();
-        assert_eq!(report.results.len(), 35 * 3 + 10 * 2);
+        assert_eq!(report.results.len(), 35 * 3 + 10 * 3);
         for slug in report
             .results
             .iter()
-            .filter(|result| !matches!(result.proof_mode, "reusable-check" | "composition-check"))
+            .filter(|result| {
+                !matches!(
+                    result.proof_mode,
+                    "reusable-check" | "composition-check" | "reusable-deterministic"
+                )
+            })
             .map(|result| &result.slug)
             .collect::<std::collections::BTreeSet<_>>()
         {
@@ -89,7 +102,10 @@ mod tests {
                 .iter()
                 .filter(|result| {
                     &result.slug == slug
-                        && !matches!(result.proof_mode, "reusable-check" | "composition-check")
+                        && !matches!(
+                            result.proof_mode,
+                            "reusable-check" | "composition-check" | "reusable-deterministic"
+                        )
                 })
                 .map(|result| result.proof_mode)
                 .collect::<std::collections::BTreeSet<_>>();
