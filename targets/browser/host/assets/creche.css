@@ -26,7 +26,7 @@ h1,h2,h3 { color:var(--amber); }
 .birth-presentation [data-application-key="form-source"] summary { margin:.25rem 0 .65rem; cursor:pointer; }
 .form-source { width:100%; min-width:0; margin:0; position:relative; clear:both; }
 .form-source summary { margin:.25rem 0 .65rem; cursor:pointer; }
-.actions, .physical-actions, [data-application-key="graduation-actions"] { display:flex; flex-wrap:wrap; gap:.55rem; }
+.actions, .physical-actions, [data-application-key="graduation-actions"], [data-application-key="complete-actions"] { display:flex; flex-wrap:wrap; gap:.55rem; }
 .physical-selection { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:1rem; align-items:start; }
 .physical-selection label, .target-options label { display:grid; gap:.4rem; min-width:0; }
 .physical-selection select, .physical-selection output { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }

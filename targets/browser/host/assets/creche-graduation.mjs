@@ -1,4 +1,5 @@
 const decoder = new TextDecoder();
+const MAX_BODY_EVIDENCE_EXPORT_BYTES = 65_536;
 
 export function createGraduationRunner({ host, presentationFor, nextSequence, onBodyChanged, onEnd }) {
   const runner = document.createElement("section");
@@ -118,6 +119,22 @@ export function renderBiography(presentation, slot, biography, revision) {
       }),
     ],
   });
+}
+
+export function exportBodyEvidence(biography) {
+  if (!biography || typeof biography.body_id !== "string" || !Array.isArray(biography.records)) {
+    throw new Error("Body biography evidence is unavailable");
+  }
+  const encoded = new TextEncoder().encode(`${JSON.stringify(biography, null, 2)}\n`);
+  if (encoded.length === 0 || encoded.length > MAX_BODY_EVIDENCE_EXPORT_BYTES) {
+    throw new Error("Body biography evidence exceeds the export bound");
+  }
+  const url = URL.createObjectURL(new Blob([encoded], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `conduit-body-${biography.body_id}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function biographyHeading(kind) {
