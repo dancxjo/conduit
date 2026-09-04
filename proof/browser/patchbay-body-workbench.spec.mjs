@@ -86,7 +86,8 @@ test("an invitation for a different Body refuses before admission", async ({ pag
   await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
   await page.getByRole("button", { name: "Join this Body", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("refused:wrong-body");
-  await expect(page.locator("#body-membership-status")).toContainText("refused:wrong-body");
+  await expect(page.locator("#body-membership-status")).toHaveText("Invitation refused: it belongs to a different Body than the evidence open here.");
+  await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeDisabled();
   expect(membershipProbe.output()).not.toContain("admitted");
 });
 
