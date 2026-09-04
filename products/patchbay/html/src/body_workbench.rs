@@ -291,7 +291,7 @@ fn workbench_presentation(
         relationships.push(PresentationRelationship {
             source: body_identity.clone(),
             target: form_identity.clone(),
-            kind: PresentationRelationshipKind::Realizes,
+            kind: PresentationRelationshipKind::Contains,
         });
         properties.push(identity_property(
             &form_identity,
