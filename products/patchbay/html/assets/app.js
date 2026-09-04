@@ -3,6 +3,7 @@ import { createApplicationPresentationHost } from "/assets/application-presentat
 import { arrangeFlow, configureFlowStorage, fitFlow, flowStorageSettled, flowViewport, focusFlow, panFlow, renderFlow, zoomFlow } from "/assets/flow.js";
 import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { createPatchbaySharedPresentation } from "/assets/shared-presentation.js";
+import { createProductMasthead } from "/assets/product-masthead.mjs";
 import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
 import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
@@ -11,12 +12,13 @@ const state = { snapshot:null, projected:null, selected:null, selectedPart:null,
 const apiUrl=path=>new URL(`api/${path}`,document.baseURI).href;
 const applicationPresentation = createApplicationPresentationHost();
 const sharedPresentation = createPatchbaySharedPresentation(applicationPresentation);
+const productMasthead = createProductMasthead(applicationPresentation, "product-masthead", "patchbay");
 const presentDefinitions = sharedPresentation.definitions;
 const presentActions = sharedPresentation.actions;
 const presentSharedStatus = sharedPresentation.status;
 let admittedRuntimeBytes = null;
 function presentStatus(text, component = "status") {
-  sharedPresentation.status("patchbay-status", text, component);
+  productMasthead.present(text, component);
 }
 
 function requireSnapshot(value) {
@@ -80,7 +82,7 @@ function propertyText(value){
 
 function displaySelection(identity){
   state.selected=identity;
-  document.querySelectorAll("[data-subject]").forEach(item=>{const selected=item.dataset.subject===identity;item.classList.toggle("selected",selected);if(item.tagName==="BUTTON")item.setAttribute("aria-pressed",String(selected));});
+  document.querySelectorAll("[data-subject]").forEach(item=>{const selected=item.dataset.subject===identity;item.classList.toggle("selected",selected);if(item instanceof HTMLInputElement&&item.type==="radio")item.checked=selected;});
   const subject=state.projected.subjects.find(item=>item.identity===identity);
   document.body.dataset.inspectorOpen=String(state.inspectorOpen);
   document.querySelector("#toggle-inspector").setAttribute("aria-expanded",String(state.inspectorOpen));
@@ -215,7 +217,7 @@ async function openForm(identity){
 function renderFormPalette(){
   const list=document.querySelector("#form-results"),focusedForm=document.activeElement?.dataset?.form,query=state.formQuery.trim().toLocaleLowerCase(),all=projectedSubjects("Form");
   const visible=all.filter(subject=>[subject.label,subject.accessibility_name,...texts(subject.identity)].join(" ").toLocaleLowerCase().includes(query));
-  sharedPresentation.boundedList("form-results","Available Forms",visible.map(subject=>({identity:subject.identity,text:subject.label,detail:texts(subject.identity)[0]??subject.accessibility_name,run:()=>openForm(subject.identity),annotate:button=>{button.dataset.form=subject.identity;button.dataset.subject=subject.identity;button.setAttribute("aria-label",`Open Form ${subject.label}`);}})),null);
+  sharedPresentation.boundedActionList("form-results","Available Forms",visible.map(subject=>({identity:subject.identity,text:subject.label,detail:texts(subject.identity)[0]??subject.accessibility_name,run:()=>openForm(subject.identity),annotate:button=>{button.dataset.form=subject.identity;button.dataset.subject=subject.identity;button.setAttribute("aria-label",`Open Form ${subject.label}`);}})));
   presentSharedStatus("form-results-status",`${visible.length} of ${all.length} Forms available`);
   if(focusedForm)list.querySelector(`[data-form="${CSS.escape(focusedForm)}"]`)?.focus();
 }
@@ -223,7 +225,7 @@ function renderFormPalette(){
 function renderGearPalette(){
   const list=document.querySelector("#gear-results"),focused=document.activeElement?.dataset?.kind,all=state.snapshot.authoring?.palette??[],query=state.gearQuery.trim().toLocaleLowerCase();
   const visible=all.filter(entry=>[entry.name,entry.kind_id,entry.summary,entry.category,...entry.tags,...entry.inputs.map(port=>`${port.identity} ${port.info}`),...entry.outputs.map(port=>`${port.identity} ${port.info}`)].join(" ").toLocaleLowerCase().includes(query));
-  sharedPresentation.boundedList("gear-results","Available Gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}`,run:()=>authoringEdit("place-gear",entry.kind_id),annotate:button=>{button.dataset.kind=entry.kind_id;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})),null);presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
+  sharedPresentation.boundedActionList("gear-results","Available Gear Kinds",visible.map(entry=>({identity:entry.kind_id,text:`${entry.name} · ${entry.category}`,detail:`${entry.summary} · ${entry.inputs.length} in · ${entry.outputs.length} out · ${entry.kind_id}`,run:()=>authoringEdit("place-gear",entry.kind_id),annotate:button=>{button.dataset.kind=entry.kind_id;button.setAttribute("aria-label",`Place ${entry.name} Gear`);}})));presentSharedStatus("gear-results-status",`${visible.length} of ${all.length} Gears available from the canonical catalog`);if(focused)list.querySelector(`[data-kind="${CSS.escape(focused)}"]`)?.focus();
 }
 
 function moveFormFocus(event){
@@ -279,15 +281,15 @@ function shortId(value){return value&&value!=="unsupported"?`${value.slice(0,10)
 function renderStructuredNavigator(){
   const focused=document.activeElement?.dataset?.subject,entries=state.projected.subjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.accessibility_name}`,run:()=>select(subject.identity),annotate:button=>{button.dataset.subject=subject.identity;button.dataset.role=subject.role;}}));
   for(const follow of state.projected.follows.filter(candidate=>candidate.source_subject===state.projected.cursor.focus)){const destination=state.snapshot.presentation.subjects.find(subject=>subject.identity===follow.target_subject);if(!destination)throw new Error("portable FOLLOW destination is absent");entries.push({identity:follow.identity,text:`Follow ${follow.relationship} to ${destination.role}: ${destination.accessibility_name}`,run:()=>dispatchNavigation({kind:"follow",relationship:follow.identity}),annotate:button=>button.dataset.follow=follow.identity});}
-  sharedPresentation.boundedList("structured-subjects","Canonical Presentation subjects",entries,state.selected);
+  sharedPresentation.boundedChoiceList("structured-subjects","Canonical Presentation subjects",entries,state.selected);
   if(focused)document.querySelector(`#structured-subjects [data-subject="${CSS.escape(focused)}"]`)?.focus();
 }
 function renderNavigationControls(){
   const bundle=state.snapshot.navigation;if(!bundle)return;
   const cursor=bundle.cursor,current=bundle.navigation.places.find(place=>place.place===cursor.place);
-  const places=[{key:"back",label:"Back",run:()=>dispatchNavigation({kind:"back"}),annotate:button=>button.dataset.navigationBack="true"},...bundle.navigation.places.map((place,index)=>({key:`place-${index}`,label:place.label,run:()=>dispatchNavigation({kind:"enter",place:place.place}),annotate:button=>{button.dataset.place=place.place;button.setAttribute("aria-pressed",String(place.place===cursor.place));}}))];
+  const places=[{key:"back",label:"Back",run:()=>dispatchNavigation({kind:"back"}),annotate:button=>button.dataset.navigationBack="true"},...bundle.navigation.places.map((place,index)=>({key:`place-${index}`,label:place.label,run:()=>dispatchNavigation({kind:"enter",place:place.place}),annotate:button=>{button.dataset.place=place.place;}}))];
   sharedPresentation.navigation("place-controls","Available Places",places,`place-${bundle.navigation.places.findIndex(place=>place.place===cursor.place)}`);
-  sharedPresentation.navigation("aspect-controls","Available Aspects",current.aspects.map((aspect,index)=>({key:`aspect-${index}`,label:aspect.aspect,run:()=>dispatchNavigation({kind:"show",aspect:aspect.aspect}),annotate:button=>{button.dataset.aspect=aspect.aspect;button.setAttribute("aria-pressed",String(aspect.aspect===cursor.aspect));}})),`aspect-${current.aspects.findIndex(aspect=>aspect.aspect===cursor.aspect)}`);
+  sharedPresentation.navigation("aspect-controls","Available Aspects",current.aspects.map((aspect,index)=>({key:`aspect-${index}`,label:aspect.aspect,run:()=>dispatchNavigation({kind:"show",aspect:aspect.aspect}),annotate:button=>{button.dataset.aspect=aspect.aspect;}})),`aspect-${current.aspects.findIndex(aspect=>aspect.aspect===cursor.aspect)}`);
 }
 function selectLens(lens){const aspect=({world:"Structure",form:"Structure",plan:"Plan",play:"Play",signs:"Signs"})[lens];return state.snapshot.navigation?dispatchNavigation({kind:"show",aspect}):Promise.resolve();}
 
@@ -316,7 +318,7 @@ function render(snapshot){
   document.querySelector("#ordinary-summary").textContent=subjects("Info").flatMap(subject=>texts(subject.identity)).join(" · ");
   const lossAction=p.actions.find(action=>action.intent==="conduit.intent/observe-line-loss@1"),frontDoorActions=[{label:"Plan current Form",disabled:b.body_id===null||b.plan_id!==null,run:()=>dispatchFrontDoorAction("Plan"),annotate:button=>button.id="plan-form"},{label:"Play current Plan",disabled:b.body_id===null||b.plan_id===null||b.active_play_id!==null,run:()=>dispatchFrontDoorAction("Play"),annotate:button=>button.id="play-plan"},...(lossAction?[{label:"Observe browser loss",disabled:lossAction.availability!=="Available",run:()=>observeTextLabLoss().catch(error=>presentSharedStatus("front-door-feedback",`Text Lab loss failed: ${error.message}`,"failed-evidence")),annotate:button=>button.id="text-lab-loss"}]:[])];presentActions("front-door-controls",frontDoorActions);
   presentDefinitions("form-facts",[["Body",b.body_id],["Wake",b.wake_id],["Source document",b.source_document_id],["Checked Form",b.checked_form_id]]);
-  const navigationSubjects=state.projected.subjects;sharedPresentation.boundedList("subjects","Form graph subjects",navigationSubjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.accessibility_name}`,run:()=>select(subject.identity),annotate:button=>{button.dataset.subject=subject.identity;button.dataset.role=subject.role;}})),cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);renderFormPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
+  const navigationSubjects=state.projected.subjects;sharedPresentation.boundedChoiceList("subjects","Form graph subjects",navigationSubjects.map(subject=>({identity:subject.identity,text:`${subject.role}: ${subject.accessibility_name}`,run:()=>select(subject.identity),annotate:control=>{control.dataset.subject=subject.identity;control.dataset.role=subject.role;}})),cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);renderFormPalette();renderGearPalette();renderParts();renderFlow(snapshot,{onSelect:select,onConnect:(source,sink)=>authoringEdit("connect-ports",semanticIdentity(source),{secondary:semanticIdentity(sink)}),onClear:()=>snapshot.navigation?dispatchNavigation({kind:"focus",subject:snapshot.navigation.navigation.places.find(place=>place.place===cursor.place).root_subject}):dispatchInteraction({kind:"clear"}),lens:state.lens});renderStructuredNavigator();
   const placements=renderer.plan.fragments.flatMap(fragment=>fragment.placements);const placement=placements.find(item=>item.placement_id===manifestation.placement_id);const connections=[...new Map(renderer.plan.fragments.flatMap(fragment=>fragment.connections).map(connection=>[connection.connection_id,connection])).values()];
   presentDefinitions("plan-facts",[["Expanded Form",b.expanded_form_id],["Source Plan",b.plan_id],["Renderer Face",placement?.kind_id],["Renderer Plan",manifestation.plan_id],["Renderer Play",manifestation.active_play_id],["Manifestation",manifestation.manifestation_id],["Lifecycle",manifestation.lifecycle],["Placement",placement?.placement_id],["Host",placement?.host_id],["Boot",placement?.boot_id],["Implementation",placement?.implementation_id],["Artifact",placement?.artifact_id],["Execution profile",placement?.execution_profile_id],["Offer generation",placement?.offer_generation],["Limits",placement?`active=${placement.limits.max_active_instances} queue-items=${placement.limits.max_queue_items} queue-bytes=${placement.limits.max_queue_bytes}`:undefined]]);sharedPresentation.boundedEvidence("realizations","Realization evidence",[...placements.flatMap(item=>[`${item.gear_id} · host ${item.host_id} · boot ${item.boot_id} · implementation ${item.implementation_id} · artifact ${item.artifact_id}`,...item.inputs.concat(item.outputs).map(port=>`Port ${port.port_id} · ${port.direction} · Info ${port.value_kind} · ${port.temporal}`),...item.resources.map(resource=>`Resource ${resource.pool_id} · class ${resource.class_id} · units ${resource.units}`),...item.host_operations.map(operation=>`Base ${operation.contract_id} · target ${operation.target_kind??"not present"} · in-flight ${operation.maximum_in_flight} · input-bytes ${operation.maximum_input_bytes} · output-bytes ${operation.maximum_output_bytes}`)]),...connections.map(connection=>{const line=connection.selected_line,binding=line?.binding;return `Cord ${connection.connection_id} · ${connection.source_port_id} -> ${connection.sink_port_id} · Info ${connection.value_kind} · Line ${line?.line_id??"not present"} · base ${binding?.base??"not present"} · binding ${binding?.binding_id??"not present"} · base-instance ${binding?.base_instance_id??"not present"}`;})]);
   presentDefinitions("play-facts",[["Active Play",b.active_play_id],["Plan",b.plan_id]]);sharedPresentation.boundedEvidence("sign","Sign evidence",[...subjects("Sign").map(subject=>subject.label),...manifestation.signs.map(sign=>`Renderer ${sign.sign_id} · ${sign.lifecycle}`)]);
@@ -347,7 +349,7 @@ document.querySelector("#clear-selection").onclick=()=>{const navigation=state.s
 document.querySelector("#form-query").oninput=event=>{state.formQuery=event.currentTarget.value;renderFormPalette();};document.querySelector("#form-query").addEventListener("keydown",moveFormFocus);document.querySelector("#form-results").addEventListener("keydown",moveFormFocus);
 document.querySelector("#gear-query").oninput=event=>{state.gearQuery=event.currentTarget.value;renderGearPalette();};
 const furnitureSurface={palette:"palette",parts:"parts",truth:"deep-inspection",structured:"structured-navigator",inspector:"inspector"};
-function focusSurface(name){const surface=document.querySelector(`#${furnitureSurface[name]}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
+function focusSurface(name){const surface=document.querySelector(`#${furnitureSurface[name]}`),candidate=[...(surface?.querySelectorAll('button:not([disabled]),a[href],summary,input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')??[])].find(item=>!item.hidden&&item.getClientRects().length);candidate?.focus();}
 async function withFurnitureTransition(name,transition,settle=()=>{}){const surface=document.querySelector(`#${furnitureSurface[name]}`),controls=[...surface.querySelectorAll("button")].filter(control=>control!==document.activeElement);surface.setAttribute("aria-busy","true");for(const control of controls)control.disabled=true;try{return await transition();}finally{surface.removeAttribute("aria-busy");for(const control of controls)control.disabled=false;settle();}}
 async function dismissFurnitureSurface(name){
   if(name==="inspector"){if(state.inspectorTransition)await state.inspectorTransition;const returnFromDetail=state.inspectorDepth;state.inspectorOpen=false;state.inspectorDepth=false;displaySelection(state.selected);if(returnFromDetail)await dispatchNavigation({kind:"back"});}

@@ -16,7 +16,7 @@ test("Inspector and Exact truth enact portable Depth and Back",async({page})=>{
     const url=await server.url;await page.goto(url);
     const original=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-palette").click();
-    const gear=page.locator('#subjects button[data-role="Gear"]').first();
+    const gear=page.locator('#subjects input[type="radio"][data-role="Gear"]').first();
     const identity=await gear.getAttribute("data-subject");
     await gear.click();
     const detail=await(await fetch(`${url}/api/snapshot`)).json();

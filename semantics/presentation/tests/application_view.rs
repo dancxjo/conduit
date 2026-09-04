@@ -118,6 +118,123 @@ fn action_availability_state_round_trips_and_refuses_inconsistent_actions() {
 }
 
 #[test]
+fn grouped_independent_choices_keep_semantic_identity_through_encoding() {
+    let choices = ApplicationView {
+        revision: 8,
+        actions: vec![ApplicationAction {
+            id: "form.morse.change".into(),
+            event: ApplicationEventKind::Change,
+        }],
+        nodes: vec![
+            ApplicationViewNode {
+                parent: None,
+                component: ApplicationComponent::ChoiceGroup,
+                key: "forms".into(),
+                text: "active_forms".into(),
+                value: String::new(),
+                value_capacity: 0,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::ChoiceGroupLabel,
+                key: "forms-legend".into(),
+                text: "Initial active Forms".into(),
+                value: String::new(),
+                value_capacity: 0,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::ChoiceOptionLabel,
+                key: "morse-label".into(),
+                text: "Morse Network".into(),
+                value: String::new(),
+                value_capacity: 0,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(2),
+                component: ApplicationComponent::IndependentChoice,
+                key: "morse".into(),
+                text: "morse-network".into(),
+                value: "true".into(),
+                value_capacity: 5,
+                action: Some(0),
+                state: ApplicationNodeState::Ready,
+            },
+        ],
+    };
+
+    assert_eq!(
+        ApplicationView::decode(&choices.encode().unwrap()),
+        Ok(choices.clone())
+    );
+    let mut malformed = choices;
+    malformed.nodes[3].value = "selected".into();
+    assert_eq!(
+        malformed.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+}
+
+#[test]
+fn navigation_links_admit_destinations_without_becoming_actions() {
+    let links = ApplicationView {
+        revision: 8,
+        actions: vec![],
+        nodes: vec![
+            ApplicationViewNode {
+                parent: None,
+                component: ApplicationComponent::Navigation,
+                key: "products".into(),
+                text: "Conduit products".into(),
+                value: "tour".into(),
+                value_capacity: 16,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+            ApplicationViewNode {
+                parent: Some(0),
+                component: ApplicationComponent::NavigationLink,
+                key: "tour".into(),
+                text: "Tour".into(),
+                value: "tour".into(),
+                value_capacity: 16,
+                action: None,
+                state: ApplicationNodeState::Ready,
+            },
+        ],
+    };
+    assert_eq!(
+        ApplicationView::decode(&links.encode().unwrap()),
+        Ok(links.clone())
+    );
+
+    let mut arbitrary = links.clone();
+    arbitrary.nodes[1].value = "https://example.invalid".into();
+    arbitrary.nodes[1].value_capacity = 32;
+    assert_eq!(
+        arbitrary.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+
+    let mut action_link = links;
+    action_link.actions.push(ApplicationAction {
+        id: "tour.activate".into(),
+        event: ApplicationEventKind::Activate,
+    });
+    action_link.nodes[1].action = Some(0);
+    assert_eq!(
+        action_link.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+}
+
+#[test]
 fn malformed_oversized_and_noncanonical_views_refuse() {
     let encoded = view().encode().unwrap();
     assert_eq!(

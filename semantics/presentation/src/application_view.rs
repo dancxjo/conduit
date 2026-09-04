@@ -4,9 +4,9 @@ use alloc::{string::String, vec::Vec};
 
 mod structure;
 
-pub const APPLICATION_VIEW_VERSION: u8 = 7;
-/// Version 6 omitted structural form, stepper, and progress components.
-pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 6;
+pub const APPLICATION_VIEW_VERSION: u8 = 8;
+/// Version 7 omitted semantic grouped choices and admitted navigation links.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 7;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 40;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -65,6 +65,12 @@ pub enum ApplicationComponent {
     FieldError = 37,
     Stepper = 38,
     Progress = 39,
+    ChoiceGroup = 40,
+    ChoiceGroupLabel = 41,
+    ChoiceOptionLabel = 42,
+    IndependentChoice = 43,
+    ExclusiveChoice = 44,
+    NavigationLink = 45,
 }
 
 /// Renderer-neutral state for an interactive presentation node.
@@ -152,6 +158,21 @@ impl ApplicationView {
             {
                 return Err(ApplicationViewRefusal::TextTooLong);
             }
+            if matches!(
+                node.component,
+                ApplicationComponent::ActionGroup
+                    | ApplicationComponent::Navigation
+                    | ApplicationComponent::ChoiceGroup
+                    | ApplicationComponent::ChoiceGroupLabel
+                    | ApplicationComponent::ChoiceOptionLabel
+                    | ApplicationComponent::IndependentChoice
+                    | ApplicationComponent::ExclusiveChoice
+                    | ApplicationComponent::NavigationLink
+                    | ApplicationComponent::Progress
+            ) && node.text.is_empty()
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
             let has_value = matches!(
                 node.component,
                 ApplicationComponent::TextInput
@@ -162,6 +183,9 @@ impl ApplicationView {
                     | ApplicationComponent::CodeBlock
                     | ApplicationComponent::Stepper
                     | ApplicationComponent::Progress
+                    | ApplicationComponent::IndependentChoice
+                    | ApplicationComponent::ExclusiveChoice
+                    | ApplicationComponent::NavigationLink
             );
             let value_capacity = usize::try_from(node.value_capacity)
                 .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
@@ -170,7 +194,10 @@ impl ApplicationView {
                     || value_capacity > MAX_APPLICATION_CONTROL_VALUE_BYTES
                     || node.value.len() > value_capacity)
                 || (!has_value
-                    && node.component != ApplicationComponent::Navigation
+                    && !matches!(
+                        node.component,
+                        ApplicationComponent::Navigation | ApplicationComponent::NavigationLink
+                    )
                     && (value_capacity != 0 || !node.value.is_empty()))
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
@@ -181,6 +208,14 @@ impl ApplicationView {
                         || value_capacity > MAX_APPLICATION_CONTROL_VALUE_BYTES
                         || node.value.len() > value_capacity))
                     || (node.value.is_empty() && value_capacity != 0))
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if node.component == ApplicationComponent::NavigationLink
+                && !matches!(
+                    node.value.as_str(),
+                    "home" | "tour" | "creche" | "patchbay" | "source"
+                )
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
@@ -199,7 +234,10 @@ impl ApplicationView {
                 && !self.nodes.iter().enumerate().any(|(child_index, child)| {
                     child_index > index
                         && child.parent == Some(index as u8)
-                        && child.component == ApplicationComponent::Button
+                        && matches!(
+                            child.component,
+                            ApplicationComponent::Button | ApplicationComponent::NavigationLink
+                        )
                         && child.key == node.value
                 })
             {
@@ -226,6 +264,17 @@ impl ApplicationView {
             {
                 return Err(ApplicationViewRefusal::UnknownAction);
             }
+            if node.component == ApplicationComponent::NavigationLink && node.action.is_some() {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
+            if matches!(
+                node.component,
+                ApplicationComponent::IndependentChoice | ApplicationComponent::ExclusiveChoice
+            ) && node.action.is_some_and(|action| {
+                self.actions[usize::from(action)].event != ApplicationEventKind::Change
+            }) {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
             if node.state != ApplicationNodeState::Ready
                 && (node.action.is_some()
                     || !matches!(
@@ -234,6 +283,8 @@ impl ApplicationView {
                             | ApplicationComponent::TextInput
                             | ApplicationComponent::Select
                             | ApplicationComponent::TextArea
+                            | ApplicationComponent::IndependentChoice
+                            | ApplicationComponent::ExclusiveChoice
                     ))
             {
                 return Err(ApplicationViewRefusal::InvalidNodeState);
@@ -468,6 +519,12 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         37 => Ok(ApplicationComponent::FieldError),
         38 => Ok(ApplicationComponent::Stepper),
         39 => Ok(ApplicationComponent::Progress),
+        40 => Ok(ApplicationComponent::ChoiceGroup),
+        41 => Ok(ApplicationComponent::ChoiceGroupLabel),
+        42 => Ok(ApplicationComponent::ChoiceOptionLabel),
+        43 => Ok(ApplicationComponent::IndependentChoice),
+        44 => Ok(ApplicationComponent::ExclusiveChoice),
+        45 => Ok(ApplicationComponent::NavigationLink),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

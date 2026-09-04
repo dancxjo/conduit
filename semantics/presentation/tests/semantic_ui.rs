@@ -44,7 +44,9 @@ fn shared_vocabulary_lowers_deterministically_without_host_truth() {
                     ),
                     node(
                         "actions",
-                        PresentationMechanism::ActionGroup,
+                        PresentationMechanism::ActionGroup {
+                            label: "Play actions".into(),
+                        },
                         vec![
                             node("run", PresentationMechanism::Action(run.clone()), vec![]),
                             node("download", PresentationMechanism::Download(run), vec![]),
@@ -113,7 +115,9 @@ fn every_vocabulary_identity_is_distinct_and_versioned() {
         PresentationMechanismKind::Definition,
         PresentationMechanismKind::CodeBlock,
         PresentationMechanismKind::FormField,
+        PresentationMechanismKind::ChoiceGroup,
         PresentationMechanismKind::Navigation,
+        PresentationMechanismKind::NavigationLink,
         PresentationMechanismKind::Stepper,
         PresentationMechanismKind::Progress,
         PresentationMechanismKind::Artifact,
@@ -127,6 +131,122 @@ fn every_vocabulary_identity_is_distinct_and_versioned() {
             .iter()
             .any(|other| other.identity() == kind.identity()));
     }
+}
+
+#[test]
+fn choices_and_links_lower_from_meaning_without_host_manifestation_terms() {
+    let change = |identity: &str, label: &str| SemanticAction {
+        identity: identity.into(),
+        event: ApplicationEventKind::Change,
+        label: label.into(),
+        availability: ActionAvailability::Available,
+    };
+    let lowered = SemanticApplicationView {
+        revision: 8,
+        root: node(
+            "shell",
+            PresentationMechanism::Shell,
+            vec![
+                node(
+                    "forms",
+                    PresentationMechanism::ChoiceGroup {
+                        label: "Initial active forms".into(),
+                        multiplicity: ChoiceMultiplicity::Independent,
+                        options: vec![
+                            ChoiceOption {
+                                identity: "morse-network".into(),
+                                label: "Morse Network".into(),
+                                selected: false,
+                                change_action: change("form.morse.change", "Change Morse Network"),
+                            },
+                            ChoiceOption {
+                                identity: "memory-lantern".into(),
+                                label: "Memory Lantern".into(),
+                                selected: true,
+                                change_action: change(
+                                    "form.memory.change",
+                                    "Change Memory Lantern",
+                                ),
+                            },
+                        ],
+                    },
+                    vec![],
+                ),
+                node(
+                    "products",
+                    PresentationMechanism::Navigation {
+                        label: "Conduit products".into(),
+                        current: "tour".into(),
+                    },
+                    vec![node(
+                        "tour",
+                        PresentationMechanism::NavigationLink {
+                            label: "Tour".into(),
+                            destination: AdmittedNavigationDestination::Tour,
+                        },
+                        vec![],
+                    )],
+                ),
+            ],
+        ),
+    }
+    .lower()
+    .unwrap();
+
+    assert_eq!(
+        lowered.nodes[1].component,
+        ApplicationComponent::ChoiceGroup
+    );
+    assert_eq!(lowered.nodes[1].text, "forms");
+    assert_eq!(
+        lowered.nodes[2].component,
+        ApplicationComponent::ChoiceGroupLabel
+    );
+    assert_eq!(
+        lowered.nodes[4].component,
+        ApplicationComponent::IndependentChoice
+    );
+    assert_eq!(lowered.nodes[4].value, "false");
+    assert_eq!(lowered.nodes[6].value, "true");
+    assert_eq!(lowered.nodes[7].component, ApplicationComponent::Navigation);
+    assert_eq!(
+        lowered.nodes[8].component,
+        ApplicationComponent::NavigationLink
+    );
+    assert_eq!(lowered.nodes[8].value, "tour");
+    assert_eq!(
+        ApplicationView::decode(&lowered.encode().unwrap()),
+        Ok(lowered)
+    );
+}
+
+#[test]
+fn exclusive_choices_refuse_multiple_selected_meanings() {
+    let option = |identity: &str| ChoiceOption {
+        identity: identity.into(),
+        label: identity.into(),
+        selected: true,
+        change_action: SemanticAction {
+            identity: format!("{identity}.change"),
+            event: ApplicationEventKind::Change,
+            label: "Change selection".into(),
+            availability: ActionAvailability::Available,
+        },
+    };
+    let result = SemanticApplicationView {
+        revision: 1,
+        root: node(
+            "subject",
+            PresentationMechanism::ChoiceGroup {
+                label: "Subject".into(),
+                multiplicity: ChoiceMultiplicity::Exclusive,
+                options: vec![option("one"), option("two")],
+            },
+            vec![],
+        ),
+    }
+    .lower();
+    assert_eq!(result, Err(SemanticPresentationRefusal::InvalidChoiceGroup));
 }
 
 #[test]

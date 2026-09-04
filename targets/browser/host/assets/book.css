@@ -24,16 +24,6 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); }
-.masthead {
-  min-height: 3.75rem; padding: .7rem max(1.25rem, calc((100vw - 96rem) / 2));
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 1.5rem; color: var(--ink); background: var(--panel); border-bottom: 1px solid var(--line); font-size: .82rem;
-}
-.masthead a { color: var(--muted); text-decoration: none; font-weight: 720; letter-spacing: .02em; }
-.masthead .wordmark { margin-right: auto; color: var(--green); font-family: ui-monospace, monospace; letter-spacing: .08em; }
-.masthead nav { display:flex; gap:1.35rem; }
-.masthead nav a:hover { color:var(--ink); }
-.masthead nav a[aria-current="page"] { color:var(--amber); }
 #chapter {
   width: 100%; margin: 0 auto; padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 2.5vw, 2rem);
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense;
@@ -198,9 +188,6 @@ details dt { color: var(--ink); font-weight: 700; }
 .physical-stages li.complete { border-color: var(--green); background: color-mix(in srgb, var(--paper) 92%, var(--green)); }
 
 @media (max-width: 42rem) {
-  .masthead { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; }
-  .masthead nav { order:3; width:100%; }
-  .masthead #host-state { margin-left:auto; }
 }
 .physical-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1rem; }
 .image-picker { display: inline-flex; align-items: center; border-radius: 999px; padding: .7rem 1.15rem; color: #10271c; background: #77daa8; font-weight: 700; cursor: pointer; }

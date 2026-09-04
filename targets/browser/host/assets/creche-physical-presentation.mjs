@@ -30,7 +30,7 @@ export function presentPhysicalArtifact(state, artifact, onHandoff) {
     revision: ++state.presentationRevision,
     actions: ready ? [{ id: "artifact.handoff", event: "activate" }] : [],
     nodes: ready ? [
-      { parent: null, component: "action-group", action: null, key: "physical-artifact", text: "" },
+      { parent: null, component: "action-group", action: null, key: "physical-artifact", text: "Prepared spore artifact" },
       { parent: 0, component: "button", action: 0, key: "download-spore", text: `Download ${artifact.format.toUpperCase()} · ${artifact.bytes} bytes` },
     ] : [{ parent: null, component: "paragraph", action: null, key: "artifact-not-ready", text: "Artifact handoff not ready" }],
   }, { onEvent(event) {
@@ -52,7 +52,7 @@ export function presentPhysicalActions(state) {
     revision: ++state.presentationRevision,
     actions: actions.map((id) => ({ id: `physical.${id}`, event: "activate" })),
     nodes: [
-      { parent: null, component: "action-group", action: null, key: "physical-actions", text: "" },
+      { parent: null, component: "action-group", action: null, key: "physical-actions", text: "Physical Host actions" },
       ...actions.map((id, index) => ({
         parent: 0,
         component: "button",

@@ -31,7 +31,7 @@ test("the same model gains expression and protected power only through exact For
         await page.goto(url);
         await page.getByRole("button",{name:"Signs",exact:true}).click();
         await page.getByRole("button",{name:"Subjects",exact:true}).click();
-        await page.locator('#structured-navigator button[data-role="Sign"]').click();
+        await page.locator('#structured-navigator input[type="radio"][data-role="Sign"]').click();
         await expect(page.locator("#inspector .selected-summary")).toContainText("SYSTEM SIGN EVIDENCE");
       }
     } finally {

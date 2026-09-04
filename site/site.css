@@ -50,27 +50,6 @@ body { margin: 0; min-height: 100vh; background:
 a { color: inherit; }
 a:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; }
 
-.site-header {
-  width: min(112rem, calc(100% - 3rem));
-  margin: 0 auto;
-  padding: 1.25rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--conduit-text-primary) 16%, transparent);
-}
-.wordmark {
-  text-decoration: none;
-  font: 700 1.08rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: .08em;
-  text-transform: lowercase;
-  color: var(--conduit-structure-primary);
-}
-nav { display: flex; gap: 1.35rem; flex-wrap: wrap; }
-nav a { text-decoration: none; color: var(--conduit-text-secondary); font-size: .94rem; }
-nav a:hover { color: var(--conduit-emphasis); }
-
 main { width: 100%; }
 .hero {
   width: min(82rem, calc(100% - 3rem));
@@ -184,14 +163,11 @@ footer a { color: var(--conduit-text-primary); }
 }
 
 @media (max-width: 40rem) {
-  .site-header,
   .hero,
   .body-contrast,
   .model,
   .doors,
   footer { width: min(100% - 2rem, 112rem); }
-  .site-header { align-items: flex-start; }
-  nav { justify-content: flex-end; gap: .8rem; }
   h1 { font-size: clamp(3rem, 17vw, 5rem); }
   .concepts,
   .door-grid { grid-template-columns: 1fr; }

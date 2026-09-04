@@ -53,7 +53,7 @@ function presentGraduationControls(runner, presentation, state, { onChoice, onEn
       { parent: 1, component: "panel", action: null, key: "birth-evidence", text: `Bound BIRTH evidence · ${readiness.birth_evidence ? "ready" : "waiting"}` },
       { parent: 1, component: "panel", action: null, key: "current-part", text: `Current admitted Part · ${readiness.current_admitted_part ? "ready" : "waiting"}` },
       { parent: 0, component: state.outcome, action: null, key: "graduation-status", text: state.status },
-      { parent: 0, component: "action-group", action: null, key: "graduation-actions", text: "" },
+      { parent: 0, component: "action-group", action: null, key: "graduation-actions", text: "Graduation actions" },
       { parent: 6, component: "button", action: choiceOne, key: "host-patchbay", text: "Host Patchbay on this Body" },
       { parent: 6, component: "button", action: choiceTwo, key: "without-patchbay", text: "Finish without hosted Patchbay" },
       { parent: 6, component: "button", action: endAction, key: "end-creche", text: "End the Crèche" },

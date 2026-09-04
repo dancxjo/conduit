@@ -312,7 +312,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     let manifest: serde_json::Value =
         serde_json::from_str(package.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(manifest["application_id"], "conduit.application/patchbay");
-    assert_eq!(manifest["resources"].as_array().unwrap().len(), 26);
+    assert_eq!(manifest["resources"].as_array().unwrap().len(), 27);
     assert!(manifest["resources"]
         .as_array()
         .unwrap()
@@ -320,6 +320,15 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
         .any(|resource| {
             resource["role"] == "shared-presentation"
                 && resource["path"] == "assets/shared-presentation.js"
+                && resource["kind"] == "module"
+        }));
+    assert!(manifest["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|resource| {
+            resource["role"] == "product-masthead"
+                && resource["path"] == "assets/product-masthead.mjs"
                 && resource["kind"] == "module"
         }));
     let shared_presentation = request("/assets/shared-presentation.js", "GET");
@@ -368,6 +377,7 @@ fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
             "/assets/application-presentation.mjs",
             "createApplicationPresentationHost",
         ),
+        ("/assets/product-masthead.mjs", "createProductMasthead"),
         ("/assets/application-theme.mjs", "applicationThemeLimits"),
         (
             "/assets/body-webrtc-sessions.mjs",

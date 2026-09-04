@@ -56,7 +56,7 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
           nodes: [
             { parent: null, component: "stack", action: null, key: "browser-configuration", text: "" },
             { parent: 0, component: "heading", action: null, key: "configuration-heading", text: "Browser Host capabilities" },
-            { parent: 0, component: "action-group", action: null, key: "configuration-presets", text: "" },
+            { parent: 0, component: "action-group", action: null, key: "configuration-presets", text: "Configuration presets" },
             ...presets.map(([label], index) => ({ parent: 2, component: "button", action: index, key: `preset-${index}`, text: label })),
             { parent: 0, component: "button", action: 3, key: "review-browser-configuration", text: "Review Host" },
             ...(diagnostic ? [{ parent: 0, component: "failure-status", action: null, key: "configuration-diagnostic", text: diagnostic }] : []),
@@ -80,30 +80,31 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, res
       function presentGroup(view, group, groupIndex, viewRevision) {
         const entries = catalog.entries.filter((entry) => entry.group === group);
         const slot = `browser-configuration-group-${groupIndex}`;
+        const nodes = [
+          { parent: null, component: "choice-group", action: null, key: `configuration-group-${groupIndex}`, text: `browser_capabilities_${groupIndex}` },
+          { parent: 0, component: "choice-group-label", action: null, key: `configuration-group-${groupIndex}-legend`, text: group },
+        ];
+        entries.forEach((entry, index) => {
+          const label = nodes.length;
+          nodes.push({ parent: 0, component: "choice-option-label", action: null, key: `implementation-label-${index}`, text: `${entry.label} · ${entry.implementation_id}` });
+          nodes.push({ parent: label, component: "independent-choice", action: index, key: `implementation-${index}`, text: entry.implementation_id, value: String(selected.has(entry.implementation_id)), valueCapacity: 5 });
+          entry.runtime_prerequisites.forEach((item, prerequisiteIndex) => nodes.push({
+            parent: 0,
+            component: "paragraph",
+            action: null,
+            key: `prerequisite-${index}-${prerequisiteIndex}`,
+            text: `Future runtime condition: ${item.detail}. Not claimed satisfied here.`,
+          }));
+        });
         view.present(slot, {
           revision: viewRevision,
-          actions: entries.map((_, index) => ({ id: `implementation.toggle-${index}`, event: "activate" })),
-          nodes: [
-            { parent: null, component: "panel", action: null, key: `configuration-group-${groupIndex}`, text: group },
-            ...entries.flatMap((entry, index) => {
-              const action = selected.has(entry.implementation_id) ? "Remove" : "Add";
-              return [
-                { parent: 0, component: "button", action: index, key: `implementation-${index}`, text: `${action} ${entry.label} · ${entry.implementation_id}` },
-                ...entry.runtime_prerequisites.map((item, prerequisiteIndex) => ({
-                  parent: 0,
-                  component: "paragraph",
-                  action: null,
-                  key: `prerequisite-${index}-${prerequisiteIndex}`,
-                  text: `Future runtime condition: ${item.detail}. Not claimed satisfied here.`,
-                })),
-              ];
-            }),
-          ],
+          actions: entries.map((_, index) => ({ id: `implementation.change-${index}`, event: "change" })),
+          nodes,
         }, { onEvent(event) {
           view.nextEvent(slot);
           const entry = entries[Number(event.action.split("-").at(-1))];
-          if (selected.has(entry.implementation_id)) selected.delete(entry.implementation_id);
-          else selected.add(entry.implementation_id);
+          if (decoder.decode(event.value) === "true") selected.add(entry.implementation_id);
+          else selected.delete(entry.implementation_id);
           diagnostic = null;
           onChange();
         } });

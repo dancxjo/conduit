@@ -9,13 +9,23 @@
       "kind": "module",
       "path": "application.mjs",
       "maximum_bytes": 16384,
-      "dependencies": [{ "role": "runtime", "specifier": "./state.mjs" }]
+      "dependencies": [
+        { "role": "runtime", "specifier": "./state.mjs" },
+        { "role": "product-masthead", "specifier": "./product-masthead.mjs" }
+      ]
     },
     {
       "role": "runtime",
       "kind": "module",
       "path": "state.mjs",
       "maximum_bytes": 4096,
+      "dependencies": []
+    },
+    {
+      "role": "product-masthead",
+      "kind": "module",
+      "path": "product-masthead.mjs",
+      "maximum_bytes": 8192,
       "dependencies": []
     }
   ]

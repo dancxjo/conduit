@@ -107,6 +107,13 @@ The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestati
 
 A presentation may summarize or arrange runtime facts. It may not manufacture them.
 
+Web manifestations use the native HTML control whose semantics match the
+operation: checkboxes for independent choices, radio buttons for one choice
+among alternatives, selects for bounded lists, buttons for actions, anchors
+for navigation, and fieldsets with legends for grouped choices. Presentation
+may alter their appearance, but does not recreate native interaction semantics
+when the platform control already expresses the operation.
+
 An already-resolved bounded graphics scene may cross one terminal presentation
 Face to request manifestation. That Face names no framebuffer, DOM, window,
 pixel format, or toolkit object: the selected implementation, admitted host

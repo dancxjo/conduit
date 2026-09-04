@@ -42,6 +42,13 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
             }
+            ApplicationComponent::NavigationLink => {
+                if node.parent.is_none_or(|parent| {
+                    nodes[usize::from(parent)].component != ApplicationComponent::Navigation
+                }) {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
             ApplicationComponent::Stepper => {
                 let total = node
                     .value
@@ -55,6 +62,69 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                 {
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
+            }
+            ApplicationComponent::ChoiceGroup => {
+                let children = children.collect::<Vec<_>>();
+                let option_parents = nodes
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, child)| {
+                        child.parent == Some(index as u8)
+                            && child.component == ApplicationComponent::ChoiceOptionLabel
+                    })
+                    .map(|(child_index, _)| Some(child_index as u8))
+                    .collect::<Vec<_>>();
+                let has_independent = nodes.iter().any(|child| {
+                    option_parents.contains(&child.parent)
+                        && child.component == ApplicationComponent::IndependentChoice
+                });
+                let has_exclusive = nodes.iter().any(|child| {
+                    option_parents.contains(&child.parent)
+                        && child.component == ApplicationComponent::ExclusiveChoice
+                });
+                if children
+                    .iter()
+                    .filter(|child| child.component == ApplicationComponent::ChoiceGroupLabel)
+                    .count()
+                    != 1
+                    || option_parents.is_empty()
+                    || (has_independent && has_exclusive)
+                {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
+            ApplicationComponent::ChoiceGroupLabel => {
+                if node.parent.is_none_or(|parent| {
+                    nodes[usize::from(parent)].component != ApplicationComponent::ChoiceGroup
+                }) {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
+            ApplicationComponent::ChoiceOptionLabel => {
+                if node.parent.is_none_or(|parent| {
+                    nodes[usize::from(parent)].component != ApplicationComponent::ChoiceGroup
+                }) || children
+                    .filter(|child| {
+                        matches!(
+                            child.component,
+                            ApplicationComponent::IndependentChoice
+                                | ApplicationComponent::ExclusiveChoice
+                        )
+                    })
+                    .count()
+                    != 1
+                {
+                    return Err(ApplicationViewRefusal::InvalidControlValue);
+                }
+            }
+            ApplicationComponent::IndependentChoice | ApplicationComponent::ExclusiveChoice
+                if !matches!(node.value.as_str(), "true" | "false")
+                    || node.parent.is_none_or(|parent| {
+                        nodes[usize::from(parent)].component
+                            != ApplicationComponent::ChoiceOptionLabel
+                    }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             _ => {}
         }

@@ -6,13 +6,6 @@ button, input, select, textarea { font:inherit; }
 button { min-height:2.5rem; padding:.55rem .85rem; border:1px solid var(--green); border-radius:.55rem; background:var(--field); color:var(--green-dark); cursor:pointer; }
 button:not(:disabled):not([aria-current="step"]):hover { border-color:var(--amber); color:var(--amber); }
 button:disabled { cursor:not-allowed; opacity:.5; }
-.masthead { display:flex; gap:1.5rem; align-items:center; padding:.7rem max(1.25rem,calc((100vw - 96rem)/2)); min-height:3.75rem; border-bottom:1px solid var(--line); background:var(--panel); }
-.masthead a { color:var(--muted); font-weight:800; text-decoration:none; }
-.masthead .wordmark { margin-right:auto; color:var(--green); font-family:ui-monospace,monospace; letter-spacing:.08em; }
-.masthead nav { display:flex; gap:1.35rem; }
-.masthead nav a:hover { color:var(--ink); }
-.masthead nav a[aria-current="page"] { color:var(--amber); }
-.masthead span { margin-left:auto; color:var(--muted); }
 main { width:min(70rem, calc(100% - 2rem)); margin:2rem auto 5rem; }
 .introduction { max-width:48rem; }
 .eyebrow { color:var(--green-dark); font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
@@ -25,8 +18,8 @@ h1,h2,h3 { color:var(--amber); }
 .birth-presentation { display:grid; gap:1rem; }
 .birth-presentation [data-application-component="stack"] { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; align-content:start; }
 .birth-field { display:grid; grid-template-columns:minmax(0,1fr); gap:.4rem; min-width:0; position:relative; }
-.birth-presentation select, .birth-presentation input, .birth-presentation textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
-.birth-presentation select:hover, .birth-presentation input:hover, .birth-presentation textarea:hover { border-color:var(--amber); }
+.birth-presentation select, .birth-presentation input:not([type="checkbox"]):not([type="radio"]), .birth-presentation textarea { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
+.birth-presentation select:hover, .birth-presentation input:not([type="checkbox"]):not([type="radio"]):hover, .birth-presentation textarea:hover { border-color:var(--amber); }
 .select-field { min-width:0; }
 .birth-presentation textarea { min-height:11rem; resize:vertical; font-family:ui-monospace, monospace; }
 .birth-presentation [data-application-syntax="conduit"] { --conduit-syntax-padding:.65rem; }
@@ -55,4 +48,3 @@ pre { max-height:20rem; overflow:auto; padding:.8rem; background:#1f2824; color:
 .error { color:var(--failure); }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
 @media (max-width:650px) { .body-chain { grid-template-columns:1fr; } .body-chain > b { transform:rotate(90deg); justify-self:center; } }
-@media (max-width:650px) { .masthead { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } .masthead nav { order:3; width:100%; } }

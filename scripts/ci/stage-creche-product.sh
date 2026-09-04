@@ -31,6 +31,7 @@ cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
 cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
 cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"
+cp semantics/presentation/assets/product-masthead.mjs "$destination/product-masthead.mjs"
 cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"

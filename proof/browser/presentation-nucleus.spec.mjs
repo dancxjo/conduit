@@ -70,7 +70,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
         disclosureOpen: true,
         disclosureEvents: 0,
         staleRefusal: "stale-revision",
-        retiredVersion: 6,
+        retiredVersion: 7,
         retiredRefusal: "unsupported-version",
       },
     },
@@ -122,12 +122,37 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   const stepper = page.locator('[data-application-key="stepper"]');
   await expect(stepper).toHaveAttribute("data-application-current", "2");
   await expect(stepper.locator('[data-application-key="step-two"]')).toHaveAttribute("tabindex", "0");
-  const progress = page.locator('[data-application-key="progress"] progress');
+  const progress = page.locator('progress[data-application-key="progress"]');
   await expect(progress).toHaveAttribute("value", "2");
   await expect(progress).toHaveAttribute("max", "3");
   await revised.focus();
   await page.evaluate(() => globalThis.__conduitFocusProof.removeFocused());
   await expect(page.locator('[data-application-key="page-two"]')).toBeFocused();
+});
+
+test("semantic product links retain their visible label and current destination", async ({ page }) => {
+  await page.goto("/proof/browser/presentation-nucleus.test.html");
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import(
+      "/targets/browser/host/assets/application-presentation.mjs"
+    );
+    const root = document.createElement("div");
+    root.id = "navigation-link-proof";
+    document.body.append(root);
+    manifestApplicationView(encodeApplicationView({
+      revision: 1,
+      actions: [],
+      nodes: [
+        { parent: null, component: "shell", key: "shell", text: "", action: null },
+        { parent: 0, component: "navigation", key: "product-navigation", text: "Conduit products", value: "tour", valueCapacity: 16, action: null },
+        { parent: 1, component: "navigation-link", key: "tour", text: "Tour", value: "tour", valueCapacity: 16, action: null },
+      ],
+    }), root);
+  });
+  const link = page.locator('#navigation-link-proof [data-application-key="tour"]');
+  await expect(link).toHaveText("Tour");
+  await expect(link).toHaveAttribute("href", "/conduit/tour/");
+  await expect(link).toHaveAttribute("aria-current", "page");
 });
 
 test("one finite theme mechanism preserves contrast and responsive layout across products", async ({ page }) => {

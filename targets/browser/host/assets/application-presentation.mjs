@@ -1,7 +1,7 @@
 import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
 
-const VERSION = 7;
-const RETIRED_VERSION = 6;
+const VERSION = 8;
+const RETIRED_VERSION = 7;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 40;
 const MAX_DEPTH = 8;
@@ -59,12 +59,16 @@ const COMPONENTS = Object.freeze({
   24: ["output", "warning-status"],
   25: ["section", "missing-evidence"], 26: ["section", "stale-evidence"],
   27: ["section", "refused-evidence"], 28: ["section", "failed-evidence"],
-  29: ["section", "successful-evidence"], 30: ["section", "definition-table"],
-  31: ["dl", "definition"], 32: ["pre", "code-block"],
+  29: ["section", "successful-evidence"], 30: ["dl", "definition-table"],
+  31: ["div", "definition"], 32: ["pre", "code-block"],
   33: ["article", "artifact"],
   34: ["div", "form-field"], 35: ["label", "field-label"],
   36: ["p", "field-help"], 37: ["p", "field-error"],
-  38: ["nav", "stepper"], 39: ["div", "progress"],
+  38: ["nav", "stepper"], 39: ["progress", "progress"],
+  40: ["fieldset", "choice-group"], 41: ["legend", "choice-group-label"],
+  42: ["label", "choice-option-label"], 43: ["input", "independent-choice"],
+  44: ["input", "exclusive-choice"],
+  45: ["a", "navigation-link"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -128,17 +132,20 @@ export function decodeApplicationView(input) {
     if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
     const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((valueLength > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity)) || (valueLength === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
-    const stateful = component === 8 || component === 15 || component === 16 || component === 17;
+    if (component === 45 && action !== null) refuse("invalid-control-value");
+    if ((component === 43 || component === 44) && action !== null && actions[action].event !== "change") refuse("invalid-control-value");
+    const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43 || component === 44;
     if (state !== "ready" && (!stateful || action !== null)) refuse("invalid-node-state");
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
     const value = cursor.text(valueLength);
+    if ([12, 14, 39, 40, 41, 42, 43, 44, 45].includes(component) && text.length === 0) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(value)) refuse("invalid-control-value");
     if (component === 38 && value.startsWith("0/")) refuse("invalid-control-value");
     if (keys.has(key)) refuse("duplicate-key");
@@ -149,7 +156,7 @@ export function decodeApplicationView(input) {
     return Object.freeze({ parent, component, state, action, key, text, value, valueCapacity });
   });
   for (const [index, node] of nodes.entries()) {
-    if (node.component === 12 && node.value && !nodes.some((child, childIndex) => childIndex > index && child.parent === index && child.component === 8 && child.key === node.value)) refuse("invalid-control-value");
+    if (node.component === 12 && node.value && !nodes.some((child, childIndex) => childIndex > index && child.parent === index && (child.component === 8 || child.component === 45) && child.key === node.value)) refuse("invalid-control-value");
     const children = nodes.filter((child) => child.parent === index);
     if (node.component === 34) {
       const count = (component) => children.filter((child) => child.component === component).length;
@@ -159,6 +166,18 @@ export function decodeApplicationView(input) {
       && (node.parent === null || nodes[node.parent].component !== 34)) refuse("invalid-control-value");
     if (node.component === 22 && (node.parent === null || nodes[node.parent].component !== 16)) refuse("invalid-control-value");
     if (node.component === 38 && children.filter((child) => child.component === 8).length !== Number(node.value.split("/")[1])) refuse("invalid-control-value");
+    if (node.component === 40) {
+      const labels = children.filter((child) => child.component === 42);
+      const kinds = new Set(labels.flatMap((label) => {
+        const labelIndex = nodes.indexOf(label);
+        return nodes.filter((child) => child.parent === labelIndex && (child.component === 43 || child.component === 44)).map((child) => child.component);
+      }));
+      if (children.filter((child) => child.component === 41).length !== 1 || labels.length === 0 || kinds.size !== 1) refuse("invalid-control-value");
+    }
+    if (node.component === 41 && (node.parent === null || nodes[node.parent].component !== 40)) refuse("invalid-control-value");
+    if (node.component === 42 && (node.parent === null || nodes[node.parent].component !== 40 || children.filter((child) => child.component === 43 || child.component === 44).length !== 1)) refuse("invalid-control-value");
+    if ((node.component === 43 || node.component === 44) && (!['true', 'false'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 42)) refuse("invalid-control-value");
+    if (node.component === 45 && (!['home', 'tour', 'creche', 'patchbay', 'source'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 12)) refuse("invalid-control-value");
   }
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
@@ -196,14 +215,14 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((value.length > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || value.length > valueCapacity)) || (value.length === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(new TextDecoder().decode(value))) refuse("invalid-control-value");
     if (component === 38 && new TextDecoder().decode(value).startsWith("0/")) refuse("invalid-control-value");
-    const stateful = component === 8 || component === 15 || component === 16 || component === 17;
+    const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43 || component === 44;
     if (state !== NODE_STATE_IDENTITIES.ready && (!stateful || action !== 255)) refuse("invalid-node-state");
     const nodeHeader = new Uint8Array(15);
     nodeHeader.set([parent, component, state, action, key.length, content.length & 0xff, content.length >>> 8]);
@@ -222,8 +241,26 @@ export function encodeApplicationView(view) {
 }
 
 function eventValue(event) {
+  if (event.currentTarget instanceof HTMLInputElement
+    && (event.currentTarget.type === "checkbox" || event.currentTarget.type === "radio")) {
+    return event.currentTarget.checked ? "true" : "false";
+  }
   if (event.currentTarget instanceof HTMLInputElement || event.currentTarget instanceof HTMLTextAreaElement || event.currentTarget instanceof HTMLSelectElement) return event.currentTarget.value;
   return "";
+}
+
+const NAVIGATION_DESTINATIONS = Object.freeze({
+  home: "/conduit",
+  tour: "/conduit/tour/",
+  creche: "/conduit/creche/",
+  patchbay: "/conduit/patchbay/",
+  source: "https://github.com/dancxjo/conduit",
+});
+
+export function browserDestinationHref(destination) {
+  const href = NAVIGATION_DESTINATIONS[destination];
+  if (!href) refuse("invalid-control-value");
+  return href;
 }
 
 function rootIdentity(root) {
@@ -374,15 +411,16 @@ export function manifestApplicationView(input, root, options = {}) {
       code.textContent = node.value;
       element.dataset.applicationLanguage = node.text;
       element.append(code);
+    } else if (node.component === 14) {
+      element.setAttribute("role", "group");
+      if (node.text) element.setAttribute("aria-label", node.text);
     } else if (node.component === 30) {
       element.setAttribute("aria-label", node.text);
     } else if (node.component === 39) {
-      const progress = document.createElement("progress");
       const [current, total] = node.value.split("/").map(Number);
-      progress.value = current;
-      progress.max = total;
-      progress.setAttribute("aria-label", node.text);
-      element.append(progress);
+      element.value = current;
+      element.max = total;
+      element.setAttribute("aria-label", node.text);
       element.dataset.applicationCurrent = String(current);
       element.dataset.applicationTotal = String(total);
     } else if (node.component === 38) {
@@ -393,6 +431,17 @@ export function manifestApplicationView(input, root, options = {}) {
     } else if (node.component === 12) {
       element.setAttribute("aria-label", node.text);
       element.dataset.applicationCurrent = node.value;
+    } else if (node.component === 40) {
+      element.dataset.applicationChoiceName = node.text;
+    } else if (node.component === 43 || node.component === 44) {
+      element.type = node.component === 43 ? "checkbox" : "radio";
+      element.name = `${options.choiceScope ?? rootIdentity(root)}-${view.nodes[view.nodes[node.parent].parent].text}`;
+      element.value = node.text;
+      element.checked = node.value === "true";
+    } else if (node.component === 45) {
+      element.href = browserDestinationHref(node.value);
+      element.textContent = node.text;
+      if (node.value === "home") element.setAttribute("aria-label", "Conduit home");
     } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
       const title = document.createElement("h3");
       title.textContent = node.text;
@@ -400,7 +449,7 @@ export function manifestApplicationView(input, root, options = {}) {
     } else {
       element.textContent = node.text;
     }
-    if (node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17) {
+    if (node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17 || node.component === 43 || node.component === 44) {
       element.dataset.applicationAvailability = node.state;
     }
     if (node.component === 15 || node.component === 16 || node.component === 17) {
@@ -414,6 +463,10 @@ export function manifestApplicationView(input, root, options = {}) {
       element.dataset.applicationStatus = severity;
       element.setAttribute("role", node.component === 21 ? "alert" : "status");
       element.setAttribute("aria-live", node.component === 21 ? "assertive" : "polite");
+      const existingHostState = document.getElementById("host-state");
+      if (node.key === "product-status" && (!existingHostState || root.contains(existingHostState))) {
+        element.id = "host-state";
+      }
     }
     if (node.component in EVIDENCE_DISPOSITIONS) {
       const disposition = EVIDENCE_DISPOSITIONS[node.component];
@@ -430,11 +483,12 @@ export function manifestApplicationView(input, root, options = {}) {
       });
     }
     if (node.state === "busy") element.setAttribute("aria-busy", "true");
-    if ((node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17)
+    if ((node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17 || node.component === 43 || node.component === 44)
       && (node.action === null || node.state !== "ready")) element.disabled = true;
     elements.push(element);
     nodesByKey.set(node.key, node);
     if (node.parent === null) fragment.append(element);
+    else if (node.component === 43 || node.component === 44) elements[node.parent].prepend(element);
     else elements[node.parent].append(element);
   }
   const instance = rootIdentity(root);
@@ -466,8 +520,17 @@ export function manifestApplicationView(input, root, options = {}) {
       }
     } else if (node.component === 12) {
       installRovingFocus(elements[index], node.value, -1);
+      for (const [childIndex, child] of view.nodes.entries()) {
+        if (child.parent === index && (child.component === 8 || child.component === 45) && child.key === node.value) {
+          elements[childIndex].setAttribute("aria-current", "page");
+        }
+      }
     } else if (node.component === 38) {
       installRovingFocus(elements[index], "", Number(node.value.split("/")[0]) - 1);
+      const current = view.nodes
+        .map((child, childIndex) => ({ child, childIndex }))
+        .filter(({ child }) => child.parent === index && child.component === 8)[Number(node.value.split("/")[0]) - 1];
+      if (current) elements[current.childIndex].setAttribute("aria-current", "step");
     } else if (node.component === 16) {
       elements[index].value = node.value;
       if (elements[index].value !== node.value) refuse("invalid-control-value");
@@ -504,6 +567,7 @@ export function createApplicationPresentationHost(scope = document) {
   const manifestations = new Map();
   const revisions = new Map();
   const refusals = new Map();
+  const choiceScope = rootIdentity(scope);
   const rootFor = (slot) => {
     if (typeof slot !== "string" || !/^[a-z][a-z0-9-]{0,47}$/.test(slot)) refuse("unknown-component");
     const matches = Array.from(scope.querySelectorAll("[data-application-slot]"))
@@ -520,6 +584,7 @@ export function createApplicationPresentationHost(scope = document) {
       const manifestation = manifestApplicationView(encoded, rootFor(slot), {
         eventCapacity: options.eventCapacity,
         eventByteCapacity: options.eventByteCapacity,
+        choiceScope,
         theme: options.theme,
         onEvent(event) {
           if (revisions.get(slot) !== event.revision) {

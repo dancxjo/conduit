@@ -21,6 +21,7 @@ async function stageFixture() {
     "application.html", "application-presentation.mjs", "application-theme.mjs",
     "application-theme.css", "browser-application-loader.mjs", "browser-application-storage.mjs",
   ]) await cp(join(sharedAssets, path), join(stagedFixture, path));
+  await cp(join(repository, "semantics/presentation/assets/product-masthead.mjs"), join(stagedFixture, "product-masthead.mjs"));
   await cp(join(stagedFixture, "application.html"), join(stagedFixture, "index.html"));
   for (const path of ["application.mjs", "state.mjs"]) {
     await cp(join(fixtureSource, path), join(stagedFixture, path));
@@ -69,6 +70,28 @@ async function expectSharedComponents(page, names) {
 test.beforeAll(stageFixture);
 test.afterAll(async () => { if (stagedFixture) await rm(stagedFixture, { recursive: true, force: true }); });
 
+test("one semantic ProductMasthead composition replaces product-private global chrome", async () => {
+  const productSurfaces = [
+    ["Tour", "targets/browser/host/assets/book.html", "targets/browser/host/assets/book.css", "targets/browser/host/assets/book.mjs"],
+    ["Crèche", "targets/browser/host/assets/creche.html", "targets/browser/host/assets/creche.css", "targets/browser/host/assets/creche.mjs"],
+    ["Patchbay", "apps/patchbay/html/assets/index.html", "apps/patchbay/html/assets/app.css", "apps/patchbay/html/assets/app.js"],
+  ];
+  for (const [name, htmlPath, cssPath, modulePath] of productSurfaces) {
+    const [html, css, module] = await Promise.all([
+      readFile(join(repository, htmlPath), "utf8"),
+      readFile(join(repository, cssPath), "utf8"),
+      readFile(join(repository, modulePath), "utf8"),
+    ]);
+    expect(html.match(/data-application-slot="product-masthead"/g), `${name} masthead slot`).toHaveLength(1);
+    expect(html, `${name} private global chrome`).not.toMatch(/class="(?:topbar|site-header|global-nav|wordmark)"/);
+    expect(css, `${name} private global chrome CSS`).not.toMatch(/\.(?:topbar|site-header|global-nav|wordmark)\b/);
+    expect(module, `${name} shared composition consumer`).toContain("createProductMasthead");
+  }
+  const pages = await readFile(join(repository, "site/index.html"), "utf8");
+  expect(pages).toContain("<!-- conduit-product-masthead -->");
+  expect(pages).not.toMatch(/<nav[^>]*>[^]*?(?:Tour|Crèche|Patchbay)[^]*?<\/nav>/);
+});
+
 test("fourth application is admitted without product HTML, CSS, DOM, or browser effects", async ({ page }) => {
   const entrance = await startStaticProduct(stagedFixture);
   try {
@@ -95,12 +118,17 @@ test("fourth application is admitted without product HTML, CSS, DOM, or browser 
       resources: [
         { role: "application-module", kind: "module", path: "application.mjs" },
         { role: "runtime", kind: "module", path: "state.mjs" },
+        { role: "product-masthead", kind: "module", path: "product-masthead.mjs" },
       ],
     });
     for (const path of ["application.mjs", "state.mjs"]) {
       const source = await readFile(join(fixtureSource, path), "utf8");
       expect(source, basename(path)).not.toMatch(/\b(?:document|window|navigator|fetch)\b|createElement|querySelector|innerHTML|addEventListener|\.css\b/);
     }
+
+    const productNavigation = page.getByRole("navigation", { name: "Conduit products" });
+    await expect(productNavigation.getByRole("link")).toHaveCount(5);
+    await expect(productNavigation.getByRole("link", { name: "Tour" })).toHaveAttribute("href", /\/conduit\/tour$/);
 
     const navigation = page.getByRole("navigation", { name: "Field Notes destinations" });
     await navigation.getByRole("button", { name: "Overview" }).focus();
@@ -157,17 +185,27 @@ test("fourth application keeps every required refusal and Host failure distinct"
 
 test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contracts", async ({ page }) => {
   const products = [
-    ["Tour", () => startStaticProduct(bookProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
-    ["Crèche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "disclosure"]],
-    ["Patchbay", startPatchbay, ["navigation", "artifact", "disclosure"]],
-    ["Field Notes", () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
+    ["Tour", "tour", () => startStaticProduct(bookProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
+    ["Crèche", "creche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "disclosure"]],
+    ["Patchbay", "patchbay", startPatchbay, ["navigation", "artifact", "disclosure"]],
+    ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
   ];
-  for (const [name, start, components] of products) {
+  const expectedLabels = ["conduit", "Tour", "Crèche", "Patchbay", "Source"];
+  const expectedDestinations = ["home", "tour", "creche", "patchbay", "source"];
+  for (const [name, current, start, components] of products) {
     const entrance = await start();
     try {
       await page.goto(entrance.url);
       try { await expectSharedComponents(page, components); }
       catch (error) { throw new Error(`${name}: ${error.message}`); }
+      const masthead = page.locator('[data-application-key="product-masthead"]');
+      const navigation = masthead.getByRole("navigation", { name: "Conduit products" });
+      const links = navigation.locator('[data-application-component="navigation-link"]');
+      await expect(links, `${name} shared masthead links`).toHaveCount(5);
+      expect(await links.allTextContents(), `${name} shared masthead labels`).toEqual(expectedLabels);
+      expect(await links.evaluateAll((elements) => elements.map((element) => element.dataset.applicationKey)), `${name} admitted destinations`).toEqual(expectedDestinations);
+      await expect(navigation.locator('[aria-current="page"]')).toHaveCount(current === null ? 0 : 1);
+      if (current !== null) await expect(navigation.locator(`[data-application-key="${current}"]`)).toHaveAttribute("aria-current", "page");
       expect(await page.locator("[data-application-component]").count(), name).toBeGreaterThan(0);
     } finally { entrance.child.kill(); }
   }

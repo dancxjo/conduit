@@ -1,10 +1,15 @@
 use super::{
-    ActionAvailability, FieldKind, FormField, SemanticAction, SemanticPresentationRefusal,
+    ActionAvailability, ChoiceMultiplicity, ChoiceOption, FieldKind, FormField, SemanticAction,
+    SemanticPresentationRefusal,
 };
 use crate::{
     ApplicationAction, ApplicationComponent, ApplicationNodeState, ApplicationViewRefusal,
 };
-use alloc::{format, string::String, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 type LoweredNode = (
     ApplicationComponent,
@@ -50,6 +55,31 @@ pub(super) fn field_node(
         field.value.clone(),
         field.value_capacity,
         index,
+        state,
+    ))
+}
+
+pub(super) fn choice_node(
+    option: &ChoiceOption,
+    multiplicity: ChoiceMultiplicity,
+    actions: &mut Vec<ApplicationAction>,
+) -> Result<LoweredNode, SemanticPresentationRefusal> {
+    if option.change_action.event != crate::ApplicationEventKind::Change {
+        return Err(SemanticPresentationRefusal::InvalidChoiceGroup);
+    }
+    let (_, state) = availability_label(&option.change_action)?;
+    let action = (state == ApplicationNodeState::Ready)
+        .then(|| admit_action(&option.change_action, actions))
+        .transpose()?;
+    Ok((
+        match multiplicity {
+            ChoiceMultiplicity::Independent => ApplicationComponent::IndependentChoice,
+            ChoiceMultiplicity::Exclusive => ApplicationComponent::ExclusiveChoice,
+        },
+        option.identity.clone(),
+        option.selected.to_string(),
+        5,
+        action,
         state,
     ))
 }

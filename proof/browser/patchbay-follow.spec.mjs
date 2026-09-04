@@ -16,7 +16,7 @@ test("exact Gear realization FOLLOW crosses Program and Body then returns",async
     const url=await server.url;await page.goto(url);
     const before=await(await fetch(`${url}/api/snapshot`)).json();
     await page.locator("#toggle-palette").click();
-    const gear=page.locator('#subjects button[data-role="Gear"]').first();
+    const gear=page.locator('#subjects input[type="radio"][data-role="Gear"]').first();
     const gearIdentity=await gear.getAttribute("data-subject");
     await gear.click();
     await page.locator("#toggle-structured").click();
@@ -34,7 +34,7 @@ test("exact Gear realization FOLLOW crosses Program and Body then returns",async
     await expect(reverse).toContainText("Follow Realizes");
     await reverse.click();
     await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");
-    await expect(page.locator(`#structured-navigator [data-subject="${gearIdentity.replaceAll('"','\\"')}"]`)).toHaveAttribute("aria-pressed","true");
+    await expect(page.locator(`#structured-navigator [data-subject="${gearIdentity.replaceAll('"','\\"')}"]`)).toBeChecked();
     const returned=await(await fetch(`${url}/api/snapshot`)).json();
     expect(returned.presentation.identity).toBe(before.presentation.identity);
     expect(returned.presentation.basis).toEqual(before.presentation.basis);
