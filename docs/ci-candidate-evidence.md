@@ -163,3 +163,18 @@ failure during producer lookup, a missing or ambiguous artifact, malformed
 identity, and digest mismatch fail immediately. The machine-readable transport
 record keeps a retry distinct from proof success, and no fallback rebuild can
 manufacture supposedly equivalent bytes.
+
+## Bounded run observation
+
+Use `cargo xtask ci monitor RUN_ID...` when shepherding Actions runs. The
+monitor batches the latest run states into one GitHub request, waits two minutes
+between ordinary observations, and retains every requested run identity until
+GitHub reports it terminal. `--interval-seconds` and `--max-requests` may make a
+bounded observation window smaller, but neither may be zero.
+
+Rate limits and transient observation failures are not CI results. The monitor
+honors `Retry-After` or `X-RateLimit-Reset`, otherwise applies bounded
+exponential backoff with jitter, and never restarts or cancels a run. If a
+tracked run falls outside the returned batch or the request budget expires, it
+returns an actionable error without inferring success, failure, cancellation,
+or disappearance.
