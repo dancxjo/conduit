@@ -63,6 +63,25 @@ fn patchbay_handoff_projects_every_initial_form_as_ordinary_active_work() {
         .collect::<Vec<_>>();
     for form in initial {
         assert!(visible_forms.contains(&form.checked_form_id.as_str()));
+        assert!(snapshot
+            .presentation
+            .relationships
+            .iter()
+            .any(|relationship| {
+                relationship.source == format!("body/{}", body.body_id.as_str())
+                    && relationship.target == format!("form/{}", form.checked_form_id.as_str())
+                    && relationship.kind
+                        == conduit_presentation::PresentationRelationshipKind::Contains
+            }));
     }
+    assert!(!snapshot
+        .presentation
+        .relationships
+        .iter()
+        .any(|relationship| {
+            relationship.source == format!("body/{}", body.body_id.as_str())
+                && relationship.kind == conduit_presentation::PresentationRelationshipKind::Realizes
+                && relationship.target.starts_with("form/")
+        }));
     assert_eq!(snapshot.presentation.basis.body_id, Some(body.body_id));
 }
