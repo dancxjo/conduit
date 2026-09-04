@@ -1,8 +1,8 @@
 //! Fresh-process execution of inventory-declared browser-safe Form proofs.
 
 use super::{
-    catalogs, check_one, deterministic::bounded_reason, load_inventory, result, FormProofResult,
-    InventoryForm, Report, REPORT_SCHEMA,
+    catalogs, check_one, deterministic::bounded_reason, load_inventory, result, reusable,
+    FormProofResult, InventoryForm, Report, REPORT_SCHEMA,
 };
 use crate::cli::GlobalOpts;
 use serde::Deserialize;
@@ -63,6 +63,7 @@ pub(super) fn build_report(root: &Path, opts: &GlobalOpts) -> Result<Report, Str
                 "check",
             )),
         }
+        results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,
@@ -313,6 +314,7 @@ mod tests {
             slug: "fixture".into(),
             title: "Fixture".into(),
             entry: "fixture".into(),
+            reusable_entries: Vec::new(),
             initial_body_order: None,
             deterministic: None,
             deterministic_not_applicable: None,
