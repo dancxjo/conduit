@@ -1,3 +1,9 @@
+---
+page: faces-and-backs
+route: faces-backs-and-implementation
+companion: recursive-form
+stage: canonical-form:same-morse-caller|compare
+---
 # Faces, Backs, and implementation
 
 When one Gear calls another, it depends on the called Gear's **Face**: meaning plus typed Port contract. It does not need the callee's implementation details.

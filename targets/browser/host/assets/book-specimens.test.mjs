@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { conceptualTourStage, createTourStage, identifyTourSpecimen } from "./book-state.mjs";
+import { parseBookPages } from "./book-routing.mjs";
 
 const source = (name, message = "hello") => `form ${name} {\n  words: text/literal("${message}")\n}`;
 
@@ -19,9 +20,30 @@ test("two uses of one canonical Form share identity across presentation modes", 
 });
 
 test("lesson-local conceptual state is explicit and finite", () => {
-  assert.deepEqual(conceptualTourStage("The Body"), {
-    identity: "tour-concept:the-body", label: "The Body", mode: "conceptual",
+  assert.deepEqual(conceptualTourStage("The Body", "body-continuity"), {
+    identity: "tour-companion:body-continuity", label: "The Body", mode: "conceptual",
   });
+});
+
+test("Tour page metadata owns stable route, companion, and stage topology", () => {
+  const source = `---
+page: first-form
+route: a-form
+companion: form-laboratory
+stage: canonical-form:hello|run
+---
+# A Form
+
+\`\`\`conduit run
+form hello {}
+\`\`\``;
+  assert.deepEqual(parseBookPages([source])[0], {
+    identity: "first-form", route: "a-form", companion: "form-laboratory", title: "A Form",
+    stages: [{ identity: "canonical-form:hello", mode: "run" }],
+    markdown: "# A Form\n\n```conduit run\nform hello {}\n```",
+  });
+  assert.throws(() => parseBookPages(["# Accidental topology"]), /metadata is missing/);
+  assert.throws(() => parseBookPages([source, source]), /duplicated/);
 });
 
 test("workspace geometry restores only admitted bounded presentation state", async () => {

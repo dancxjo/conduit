@@ -25,11 +25,11 @@ export function createTourStage(source, mode) {
   });
 }
 
-export function conceptualTourStage(pageTitle) {
-  const slug = pageTitle.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  if (!slug) throw new Error("a conceptual Tour lesson has no stable identity");
-  return Object.freeze({ identity: `tour-concept:${slug}`, label: pageTitle, mode: "conceptual" });
+export function conceptualTourStage(pageTitle, companionIdentity) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(companionIdentity)) {
+    throw new Error("a conceptual Tour lesson has no admitted companion identity");
+  }
+  return Object.freeze({ identity: `tour-companion:${companionIdentity}`, label: pageTitle, mode: "conceptual" });
 }
 
 function validKey(value) {

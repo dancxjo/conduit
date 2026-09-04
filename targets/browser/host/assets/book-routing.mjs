@@ -1,20 +1,51 @@
 import { browserHostOperationLimits, createBrowserHostOperations } from "./browser-host-operations.mjs";
 
 const MAXIMUM_LOCATION_SEQUENCE = 0xffff_ffff;
+const MAXIMUM_TOUR_PAGES = 16;
+const MAXIMUM_STAGES_PER_PAGE = 8;
+const IDENTITY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function parseBookPages(chapters) {
-  const parsed = [];
-  let current = [];
-  for (const line of chapters.join("\n").replaceAll("\r\n", "\n").split("\n")) {
-    if (line.startsWith("# ") && current.length > 0) {
-      parsed.push(current.join("\n"));
-      current = [];
-    }
-    if (line.startsWith("# ") || current.length > 0) current.push(line);
+  if (!Array.isArray(chapters) || chapters.length === 0 || chapters.length > MAXIMUM_TOUR_PAGES) {
+    throw new Error("Tour page count is outside its admitted bound");
   }
-  if (current.length > 0) parsed.push(current.join("\n"));
-  if (parsed.length === 0) throw new Error("Tour has no pages");
-  return parsed;
+  const identities = new Set();
+  const routes = new Set();
+  return Object.freeze(chapters.map((source) => {
+    const normalized = source.replaceAll("\r\n", "\n");
+    const match = /^---\n([\s\S]*?)\n---\n([\s\S]+)$/.exec(normalized);
+    if (!match) throw new Error("Tour page metadata is missing");
+    const metadata = new Map();
+    const stages = [];
+    for (const line of match[1].split("\n")) {
+      const separator = line.indexOf(":");
+      if (separator < 1) throw new Error("Tour page metadata is malformed");
+      const key = line.slice(0, separator).trim();
+      const value = line.slice(separator + 1).trim();
+      if (key === "stage") {
+        const [identity, mode, extra] = value.split("|");
+        if (extra !== undefined || !/^canonical-form:[a-z][a-z0-9-]*$/.test(identity)
+          || !["run", "recursive", "compare", "two-host", "two-host-plan"].includes(mode)
+          || stages.length === MAXIMUM_STAGES_PER_PAGE) throw new Error("Tour stage metadata is malformed or over capacity");
+        stages.push(Object.freeze({ identity, mode }));
+      } else {
+        if (!["page", "route", "companion"].includes(key) || metadata.has(key) || !IDENTITY.test(value)) {
+          throw new Error("Tour page metadata is malformed");
+        }
+        metadata.set(key, value);
+      }
+    }
+    const identity = metadata.get("page");
+    const route = metadata.get("route");
+    const companion = metadata.get("companion");
+    const title = match[2].match(/^# (.+)$/m)?.[1];
+    if (!identity || !route || !companion || !title || identities.has(identity) || routes.has(route)) {
+      throw new Error("Tour page identity, route, companion, or title is invalid or duplicated");
+    }
+    identities.add(identity);
+    routes.add(route);
+    return Object.freeze({ identity, route, companion, title, stages: Object.freeze(stages), markdown: match[2] });
+  }));
 }
 
 export function createBookRouting({ host, applicationId, render, onFailure }) {
@@ -68,15 +99,8 @@ export function createBookRouting({ host, applicationId, render, onFailure }) {
   });
 
   return Object.freeze({
-    admitPages(markdownPages) {
-      routes = markdownPages.map((markdown) => {
-        const title = markdown.match(/^# (.+)$/m)?.[1];
-        if (!title) throw new Error("a Tour page has no title");
-        const slug = title.toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "")
-          .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        if (!slug) throw new Error("a Tour page has no route identity");
-        return new URL(`${slug}/`, document.baseURI).pathname;
-      });
+    admitPages(pages) {
+      routes = pages.map((page) => new URL(`${page.route}/`, document.baseURI).pathname);
       return Object.freeze({ index: indexForLocation(), normalize: isProductRoot() });
     },
     move,

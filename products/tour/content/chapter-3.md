@@ -1,3 +1,9 @@
+---
+page: host-realization
+route: hosts-make-forms-real
+companion: host-inventory
+stage: canonical-form:count-over-time|run
+---
 # Hosts make Forms real
 
 A **Host** is a current running environment with finite truthful offers: implementations, resources, and effects. The browser running this Book is itself a real Host.

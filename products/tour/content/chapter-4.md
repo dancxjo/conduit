@@ -1,3 +1,10 @@
+---
+page: multi-host-form
+route: one-form-across-several-hosts
+companion: multi-host-plan
+stage: canonical-form:hello-across|two-host
+stage: canonical-form:hello-across|two-host-plan
+---
 # One Form across several Hosts
 
 Now keep the same Form semantics but realize it across two Hosts.

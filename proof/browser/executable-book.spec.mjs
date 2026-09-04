@@ -794,7 +794,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
 });
 
 test("the Tour renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
-  const body = "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>";
+  const body = "---\npage: markdown-proof\nroute: markdown-proof\ncompanion: prose-proof\n---\n# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>";
   await page.route("**/tour/chapter-1.md", (route) => route.fulfill({
     contentType: "text/markdown; charset=utf-8",
     body,
@@ -815,6 +815,40 @@ test("the Tour renders admitted Markdown emphasis semantically and leaves raw HT
   await expect(page.locator("#chapter img")).toHaveCount(0);
   await expect(page.locator("#chapter")).toContainText("<img src=x onerror=globalThis.__rawHtmlRan=true>");
   expect(await page.evaluate(() => globalThis.__rawHtmlRan)).toBeUndefined();
+});
+
+test("Tour refuses runnable Markdown that is absent from its admitted page topology", async ({ page }) => {
+  const body = `---
+page: mismatch-proof
+route: mismatch-proof
+companion: form-laboratory
+stage: canonical-form:declared-form|run
+---
+# Mismatch proof
+
+\`\`\`conduit run
+form substituted-form {
+    words: text/literal("not admitted")
+    result: presentation/text
+    words > result
+}
+\`\`\``;
+  await page.route("**/tour/chapter-1.md", (route) => route.fulfill({
+    contentType: "text/markdown; charset=utf-8",
+    body,
+  }));
+  await page.route("**/tour/tour.application.json", async (route) => {
+    const response = await route.fetch();
+    const manifest = await response.json();
+    manifest.resources.find((resource) => resource.role === "chapter-1").sha256 =
+      `sha256:${createHash("sha256").update(body).digest("hex")}`;
+    manifest.package_digest = browserApplicationPackageDigest(manifest);
+    await route.fulfill({ response, contentType: "application/json", body: JSON.stringify(manifest) });
+  });
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host unavailable");
+  await expect(page.locator("#chapter")).toHaveText("Tour runnable source does not match its admitted page stage");
+  await expect(page.locator(".runner")).toHaveCount(0);
 });
 
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {

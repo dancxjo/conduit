@@ -1,3 +1,8 @@
+---
+page: birth-and-spores
+route: birth-spores-and-the-creche
+companion: creche-handoff
+---
 # Birth, spores, and the Crèche
 
 A durable Body needs a beginning. The Crèche owns that bootstrap path:
