@@ -97,7 +97,7 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     await page.locator("#toggle-palette").click();
     const subject = page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`);
     await subject.focus();
-    await subject.press("Enter");
+    await subject.press("Space");
 
     const addWatch = page.getByRole("button", { name: "Watch", exact: true });
     await addWatch.focus();
@@ -117,7 +117,8 @@ test("an exact Cord Watch is keyboard operable, finite, and survives reload", as
     const afterReload = await (await fetch(`${url}/api/snapshot`)).json();
     expect(afterReload.watches.watches.map(item => item.subject)).toEqual([cord]);
     await page.locator("#toggle-palette").click();
-    await page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`).click();
+    await expect(page.locator(`#subjects input[type="radio"][data-subject="${cord}"]`)).toBeChecked();
+    await page.locator("#toggle-inspector").click();
     await expect(page.getByRole("button", { name: `Watch ${cord}`, exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Clear Watch history", exact: true }).click();

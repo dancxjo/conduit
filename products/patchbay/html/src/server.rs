@@ -43,6 +43,8 @@ const HOST_IDENTITY_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/browser-host-identity.mjs");
 const APPLICATION_PRESENTATION_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/application-presentation.mjs");
+const PRODUCT_MASTHEAD_SCRIPT: &[u8] =
+    include_bytes!("../../../../semantics/presentation/assets/product-masthead.mjs");
 const APPLICATION_THEME_SCRIPT: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/application-theme.mjs");
 const APPLICATION_THEME_STYLE: &[u8] =
@@ -154,6 +156,7 @@ impl PatchbayHtmlServer {
             "assets/webrtc-datachannel-line.mjs" => Some(WEBRTC_LINE_SCRIPT),
             "assets/webrtc-session-runtime.mjs" => Some(WEBRTC_RUNTIME_SCRIPT),
             "assets/application-presentation.mjs" => Some(APPLICATION_PRESENTATION_SCRIPT),
+            "assets/product-masthead.mjs" => Some(PRODUCT_MASTHEAD_SCRIPT),
             "assets/application-theme.mjs" => Some(APPLICATION_THEME_SCRIPT),
             "assets/application-theme.css" => Some(APPLICATION_THEME_STYLE),
             "assets/flow.js" => Some(FLOW_SCRIPT),
@@ -541,6 +544,11 @@ impl PatchbayHtmlServer {
                 "200 OK",
                 "text/javascript; charset=utf-8",
                 APPLICATION_PRESENTATION_SCRIPT,
+            ),
+            "GET /assets/product-masthead.mjs HTTP/1.1" => (
+                "200 OK",
+                "text/javascript; charset=utf-8",
+                PRODUCT_MASTHEAD_SCRIPT,
             ),
             "GET /assets/application-theme.mjs HTTP/1.1" => (
                 "200 OK",
