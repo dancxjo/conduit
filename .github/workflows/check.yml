@@ -27,6 +27,7 @@ jobs:
       reason: ${{ steps.changes.outputs.reason }}
       base_sha: ${{ steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.changes.outputs.head_sha }}
+      comparison_base_sha: ${{ steps.changes.outputs.comparison_base_sha }}
       controller_sha: ${{ steps.controller.outputs.sha }}
       esp32_required: ${{ steps.impact.outputs.esp32_required }}
       esp32_matrix: ${{ steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
@@ -75,7 +76,7 @@ jobs:
       - name: Validate documentation diff
         if: steps.changes.outputs.docs_only == 'true'
         env:
-          BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+          BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
       - uses: dtolnay/rust-toolchain@stable

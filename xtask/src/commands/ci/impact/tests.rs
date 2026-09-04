@@ -688,6 +688,10 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     assert!(workflow
         .contains("cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
+    assert!(
+        workflow.contains("comparison_base_sha: ${{ steps.changes.outputs.comparison_base_sha }}")
+    );
+    assert!(workflow.contains("BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}"));
     assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
 }
 

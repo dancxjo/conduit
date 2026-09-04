@@ -3,9 +3,10 @@ set -euo pipefail
 
 base_sha="${1:-}"
 head_sha="${2:-}"
+comparison_base_sha=""
 
 full() {
-  printf 'docs_only=false\nreason=%s\nbase_sha=%s\nhead_sha=%s\n' "$1" "$base_sha" "$head_sha"
+  printf 'docs_only=false\nreason=%s\nbase_sha=%s\nhead_sha=%s\ncomparison_base_sha=%s\n' "$1" "$base_sha" "$head_sha" "$comparison_base_sha"
   exit 0
 }
 
@@ -15,10 +16,14 @@ full() {
 git cat-file -e "${base_sha}^{commit}" 2>/dev/null || full "unavailable-base"
 git cat-file -e "${head_sha}^{commit}" 2>/dev/null || full "unavailable-head"
 
+mapfile -t merge_bases < <(git merge-base --all "$base_sha" "$head_sha")
+((${#merge_bases[@]} == 1)) || full "missing-or-ambiguous-merge-base"
+comparison_base_sha="${merge_bases[0]}"
+
 paths=()
 while IFS= read -r -d '' path; do
   paths+=("$path")
-done < <(git diff --name-only -z --diff-filter=ACDMRTUXB "$base_sha" "$head_sha")
+done < <(git diff --name-only -z --diff-filter=ACDMRTUXB "$comparison_base_sha" "$head_sha")
 
 ((${#paths[@]} > 0)) || full "empty-change-set"
 for path in "${paths[@]}"; do
@@ -36,4 +41,4 @@ if git cat-file -e "$head_sha:docs/visual-evidence.md" 2>/dev/null; then
   fi
 fi
 
-printf 'docs_only=true\nreason=all-markdown\nbase_sha=%s\nhead_sha=%s\n' "$base_sha" "$head_sha"
+printf 'docs_only=true\nreason=all-markdown\nbase_sha=%s\nhead_sha=%s\ncomparison_base_sha=%s\n' "$base_sha" "$head_sha" "$comparison_base_sha"

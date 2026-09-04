@@ -2,7 +2,6 @@ use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use crate::suites::workspace_shards::WorkspaceShard;
 use crate::suites::{
@@ -14,10 +13,13 @@ use crate::suites::{
 mod cargo_graph;
 #[path = "impact/command_registry.rs"]
 mod command_registry;
+#[path = "impact/git_changes.rs"]
+mod git_changes;
 #[path = "impact/product_registry.rs"]
 mod product_registry;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 use command_registry::{proofs_for_path, HeavySuite};
+use git_changes::candidate_changed_paths;
 use product_registry::{
     browser_presentation_proofs_for_path, proofs_for_paths as product_proofs_for_paths,
 };
@@ -161,6 +163,9 @@ fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
+    requested_base_sha: Option<String>,
+    candidate_sha: Option<String>,
+    candidate_comparison_base_sha: Option<String>,
     ci_controller_proofs: Vec<&'static str>,
     repository_command_proofs: Vec<&'static str>,
     pages_product_proofs: Vec<&'static str>,
@@ -246,13 +251,20 @@ pub(super) fn run(
     summary_out: Option<&Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = crate::workspace::workspace_root()?;
-    let plan = match changed_paths(&root, base, head)
-        .and_then(|paths| discover(&root).map(|packages| (paths, packages)))
+    let mut comparison_base = None;
+    let mut plan = match candidate_changed_paths(&root, base, head)
+        .and_then(|change_set| {
+            comparison_base = Some(change_set.comparison_base);
+            discover(&root).map(|packages| (change_set.paths, packages))
+        })
         .and_then(|(paths, packages)| plan_for_paths(&root, paths, &packages))
     {
         Ok(plan) => plan,
         Err(error) => full_plan(format!("planner-error:{error}"), Vec::new()),
     };
+    plan.requested_base_sha = Some(base.to_owned());
+    plan.candidate_sha = Some(head.to_owned());
+    plan.candidate_comparison_base_sha = comparison_base;
 
     write_github_outputs(&plan);
     if let Some(path) = json_out {
@@ -794,6 +806,9 @@ fn plan(
     let pages_product_proofs = product_proofs_for_paths(&changed_paths);
     let pages_products_required = full_fallback || !pages_product_proofs.is_empty();
     ImpactPlan {
+        requested_base_sha: None,
+        candidate_sha: None,
+        candidate_comparison_base_sha: None,
         ci_controller_proofs: controller_proofs(&changed_paths),
         repository_command_proofs: Vec::new(),
         pages_product_proofs,
@@ -845,43 +860,6 @@ fn full_plan(reason: String, paths: Vec<String>) -> ImpactPlan {
         },
         suite_reasons,
     )
-}
-
-fn changed_paths(root: &Path, base: &str, head: &str) -> Result<Vec<String>, String> {
-    for (value, label) in [(base, "base"), (head, "head")] {
-        if value.len() != 40 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err(format!("invalid {label} SHA"));
-        }
-        let status = Command::new("git")
-            .args(["cat-file", "-e", &format!("{value}^{{commit}}")])
-            .current_dir(root)
-            .status()
-            .map_err(|error| error.to_string())?;
-        if !status.success() {
-            return Err(format!("unknown {label} commit"));
-        }
-    }
-    let output = Command::new("git")
-        .args([
-            "diff",
-            "--name-only",
-            "-z",
-            "--diff-filter=ACDMRTUXB",
-            base,
-            head,
-        ])
-        .current_dir(root)
-        .output()
-        .map_err(|error| error.to_string())?;
-    if !output.status.success() {
-        return Err("git diff failed".to_owned());
-    }
-    output
-        .stdout
-        .split(|byte| *byte == 0)
-        .filter(|entry| !entry.is_empty())
-        .map(|entry| String::from_utf8(entry.to_vec()).map_err(|error| error.to_string()))
-        .collect()
 }
 
 fn write_github_outputs(plan: &ImpactPlan) {
@@ -1069,7 +1047,7 @@ fn markdown_summary(plan: &ImpactPlan) -> String {
             "no dependency/ownership path to product"
         }
     ));
-    format!("## CI impact plan\n\nReason: `{}`\n\nChanged packages: {}\n\nAffected test packages: {}\n\n| obligation | decision | reason |\n| --- | --- | --- |\n{}\n> Pull requests may use this plan selectively. Main and merge-queue runs remain exhaustive.\n", plan.reason, if plan.changed_packages.is_empty() { "(none)".to_owned() } else { plan.changed_packages.join(", ") }, if plan.affected_test_packages.is_empty() { "(none)".to_owned() } else { plan.affected_test_packages.join(", ") }, rows)
+    format!("## CI impact plan\n\nRequested base: `{}`  \nCandidate: `{}`  \nCandidate comparison base: `{}`\n\nReason: `{}`\n\nChanged packages: {}\n\nAffected test packages: {}\n\n| obligation | decision | reason |\n| --- | --- | --- |\n{}\n> Pull requests may use this plan selectively. Main and merge-queue runs remain exhaustive.\n", plan.requested_base_sha.as_deref().unwrap_or("unavailable"), plan.candidate_sha.as_deref().unwrap_or("unavailable"), plan.candidate_comparison_base_sha.as_deref().unwrap_or("unavailable; conservative fallback"), plan.reason, if plan.changed_packages.is_empty() { "(none)".to_owned() } else { plan.changed_packages.join(", ") }, if plan.affected_test_packages.is_empty() { "(none)".to_owned() } else { plan.affected_test_packages.join(", ") }, rows)
 }
 
 fn required(plan: &ImpactPlan, suite: &str) -> bool {
