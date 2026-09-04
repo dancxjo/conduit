@@ -80,11 +80,6 @@ jobs:
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
       - uses: dtolnay/rust-toolchain@stable
         if: steps.changes.outputs.docs_only != 'true'
-      - uses: Swatinem/rust-cache@v2
-        if: steps.changes.outputs.docs_only != 'true'
-        with:
-          cache-on-failure: true
-          shared-key: ci-impact-plan
       - name: Plan exact CI impact
         id: impact
         if: steps.changes.outputs.docs_only != 'true'
