@@ -291,7 +291,7 @@ fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
         proof
             .matches("if: needs.plan.outputs.patchbay_debugger_required == 'true'")
             .count(),
-        9
+        10
     );
 }
 
