@@ -158,6 +158,19 @@ test("an invited browser remains outside the Body until explicit join", async ({
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipoffline");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceunavailable");
   await expect(offerFacts).toContainText("Offer availabilityUnavailable · retained advertisement only");
+  await expect.poll(async () => {
+    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+    return {
+      bodyId: snapshot.body_workbench.body_id,
+      evidenceRevision: snapshot.body_workbench.evidence_revision,
+      admittedParts: snapshot.body_workbench.current.admitted_parts,
+      currentHosts: snapshot.body_workbench.current.current_hosts.length,
+    };
+  }).toEqual({ bodyId, evidenceRevision: 3, admittedParts: 2, currentHosts: 1 });
+  const leftEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
+  expect(leftEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
+  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 3 has unsaved Body changes.");
+  await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 1 current Host");
   expect(await page.evaluate(() => ({
     hostId: globalThis.__patchbayMembership.hostId,
     bootId: globalThis.__patchbayMembership.bootId,
