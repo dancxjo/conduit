@@ -72,8 +72,9 @@ for (const entrance of ["hosted", "external"]) {
       entrance === "hosted" ? "hosted by this Body" : "external Patchbay",
     );
     const activeForms = page.locator('#body-workbench-forms [data-application-component="artifact"]');
-    await expect(activeForms).toHaveCount(1);
-    await expect(activeForms).toContainText("checked/roseau-program");
+    await expect(activeForms).toHaveCount(2);
+    await expect(activeForms.filter({ hasText: "checked/roseau-program" })).toHaveCount(1);
+    await expect(activeForms.filter({ hasText: "checked/roseau-recorder" })).toHaveCount(1);
     await expect(page.locator("#body-workbench-facts")).toContainText("Workload revision");
     await expect(page.locator("#body-workbench-facts")).toContainText("0");
     if (entrance === "external") {
@@ -115,6 +116,21 @@ for (const entrance of ["hosted", "external"]) {
     );
     const afterAction = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
     expect(afterAction.body_workbench.encoded_evidence).toEqual(originalEvidence);
+
+    if (entrance === "external") {
+      const recorder = activeForms.filter({ hasText: "checked/roseau-recorder" });
+      await recorder.getByRole("button", { name: "Remove from Body", exact: true }).click();
+      await expect(activeForms).toHaveCount(1);
+      await expect(page.locator("#body-workbench-status")).toContainText("workload revision 1");
+      await expect(activeForms).toContainText("Patchbay cannot yet navigate an idle Body");
+      await expect(activeForms.getByRole("button", { name: "Remove from Body", exact: true })).toBeDisabled();
+      await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(5);
+      const changed = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
+      expect(changed.body_workbench.body_id).toBe(snapshot.body_workbench.body_id);
+      expect(changed.body_workbench.current.active_forms).toHaveLength(1);
+      expect(changed.body_workbench.current.workload_revision).toBe(1);
+      expect(changed.interaction.last_disposition).toBe("Succeeded");
+    }
 
     server.kill();
     await expect(page.getByRole("heading", { name: "Roseau", exact: true })).toBeVisible();
