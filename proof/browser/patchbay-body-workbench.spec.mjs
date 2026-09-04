@@ -67,11 +67,20 @@ test("an invited browser remains outside the Body until explicit join", async ({
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.bootId);
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipadmitted");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceavailable");
+  const advertisement = await page.evaluate(() => globalThis.__patchbayMembership.advertisement);
+  const offerFacts = page.locator('[data-application-slot="body-membership-offers"]');
+  await expect(offerFacts).toContainText("Offer availabilityAvailable from current presence");
+  await expect(offerFacts).toContainText(advertisement.profile);
+  await expect(offerFacts).toContainText(`Offer generation${advertisement.offer_generation}`);
+  for (const offer of advertisement.capabilities) await expect(offerFacts).toContainText(offer.capability_id);
+  for (const offer of advertisement.planner_capabilities) await expect(offerFacts).toContainText(offer.profile_id);
+  for (const offer of advertisement.resources) await expect(offerFacts).toContainText(offer.pool_id);
   await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
   await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipoffline");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceunavailable");
+  await expect(offerFacts).toContainText("Offer availabilityUnavailable · retained advertisement only");
   expect(await page.evaluate(() => ({
     hostId: globalThis.__patchbayMembership.hostId,
     bootId: globalThis.__patchbayMembership.bootId,
