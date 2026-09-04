@@ -114,7 +114,7 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
     let challenge = manager
         .begin_return(&membership, &part_id, &returned, [63; 32], 2_100, 3_100)
         .unwrap();
-    manager
+    let returned_credential = manager
         .complete_return(
             &mut membership,
             &returned,
@@ -123,6 +123,21 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
             SignId::from("sign/host-returned"),
         )
         .unwrap();
+    assert_eq!(returned_credential.body_id, membership.body_id);
+    assert_eq!(returned_credential.part_id, part_id);
+    assert_eq!(
+        returned_credential.host_id,
+        HostId::from("host/durable-browser")
+    );
+    assert_eq!(returned_credential.boot_id, BootId::from("boot/fresh"));
+    assert_ne!(
+        returned_credential.credential_id,
+        manager.receipts[0].credential.credential_id
+    );
+    assert_eq!(
+        manager.receipts.last().unwrap().credential,
+        returned_credential
+    );
     assert_eq!(membership.parts[0].part_id, part_id);
     assert_eq!(
         membership.parts[0].current.as_ref().unwrap().boot_id,

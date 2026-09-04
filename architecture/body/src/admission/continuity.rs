@@ -3,11 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     admission_transcript, verify_signature, AdmissionManager, AdmissionRefusal,
-    ADMISSION_SIGNATURE_BYTES, MAX_ADMISSION_ATTEMPTS, MAX_ADMISSION_TTL_MILLIS,
-    MAX_PENDING_ADMISSIONS,
+    ADMISSION_SIGNATURE_BYTES, MAX_ADMISSION_ATTEMPTS, MAX_ADMISSION_RECEIPTS,
+    MAX_ADMISSION_TTL_MILLIS, MAX_PENDING_ADMISSIONS,
 };
 use crate::{
-    AdmissionId, AuthenticatedHostObservation, BodyId, BodyMembership, MembershipProofId, PartId,
+    AdmissionId, AuthenticatedHostObservation, BodyId, BodyMembership, MembershipCredential,
+    MembershipCredentialId, MembershipProofId, PartId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -191,13 +192,16 @@ impl AdmissionManager {
         proof: &PartReturnProof,
         now_millis: u64,
         attached_sign: SignId,
-    ) -> Result<(), AdmissionRefusal> {
+    ) -> Result<MembershipCredential, AdmissionRefusal> {
         let index = self
             .pending_returns
             .iter()
             .position(|pending| pending.challenge.admission_id == proof.admission_id)
             .ok_or(AdmissionRefusal::UnknownAdmission)?;
         let pending = self.pending_returns[index].clone();
+        if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
+            return Err(AdmissionRefusal::ReceiptCapacityExhausted);
+        }
         if pending.attempts >= MAX_ADMISSION_ATTEMPTS {
             return Err(AdmissionRefusal::AttemptsExhausted);
         }
@@ -259,8 +263,27 @@ impl AdmissionManager {
             },
             attached_sign,
         )?;
+        let credential = MembershipCredential {
+            credential_id: MembershipCredentialId::bound(crate::identity::bind_identity(
+                "membership-return-credential",
+                &[
+                    self.body_id.as_str(),
+                    challenge.part_id.as_str(),
+                    advertisement.host_id.as_str(),
+                    advertisement.boot_id.as_str(),
+                    challenge.admission_id.as_str(),
+                ],
+                now_millis,
+            )),
+            body_id: self.body_id.clone(),
+            part_id: challenge.part_id.clone(),
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            issued_at_millis: now_millis,
+        };
         self.pending_returns.remove(index);
+        self.retain_receipt(challenge.admission_id.clone(), credential.clone())?;
         *membership = next;
-        Ok(())
+        Ok(credential)
     }
 }

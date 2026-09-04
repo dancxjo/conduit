@@ -286,17 +286,24 @@ pub(super) fn complete_with_presence(
     ));
     let mut next_manager = manager.clone();
     let mut next_membership = membership.clone();
-    if let Err(error) = next_manager.complete_return(
+    let returned_credential = match next_manager.complete_return(
         &mut next_membership,
         &arrival.advertisement,
         &arrival.proof,
         now_millis,
         attached_sign,
     ) {
-        let _ = refuse(&mut arrival.socket, "return-proof-refused");
-        return Err(format!("complete browser return: {error:?}"));
-    }
-    let prepared = match presence.prepare_return(&arrival.credential, &next_membership) {
+        Ok(credential) => credential,
+        Err(error) => {
+            let _ = refuse(&mut arrival.socket, "return-proof-refused");
+            return Err(format!("complete browser return: {error:?}"));
+        }
+    };
+    let prepared = match presence.prepare_return(
+        &arrival.credential,
+        &returned_credential,
+        &next_membership,
+    ) {
         Ok(prepared) => prepared,
         Err(error) => {
             let _ = refuse(&mut arrival.socket, "return-presence-not-admissible");
@@ -307,12 +314,12 @@ pub(super) fn complete_with_presence(
         let _ = refuse(&mut arrival.socket, "return-session-not-admissible");
         return Err(error);
     }
-    let part_id = arrival.credential.part_id.clone();
+    let part_id = returned_credential.part_id.clone();
     *sign_sequence = next_sign_sequence;
     *manager = next_manager;
     *membership = next_membership;
     let sequence =
-        presence.commit_return(arrival.socket, arrival.credential, membership, prepared)?;
+        presence.commit_return(arrival.socket, returned_credential, membership, prepared)?;
     Ok((part_id, sequence))
 }
 

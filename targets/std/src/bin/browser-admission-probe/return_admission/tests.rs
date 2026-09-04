@@ -134,7 +134,7 @@ fn assert_failed_transaction_is_unchanged(
             .expect("other body");
             next_admission.body_id = other.body_id.clone();
             next_membership.body_id = other.body_id;
-            Ok(())
+            Ok(credential())
         },
     )
     .expect_err("transaction must refuse");
@@ -228,7 +228,7 @@ fn available_presence_refuses_without_committing_any_store() {
             )
             .expect("other body");
             next_admission.body_id = other.body_id;
-            Ok(())
+            Ok(credential.clone())
         },
     )
     .expect_err("available presence must refuse");

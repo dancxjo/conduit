@@ -58,7 +58,7 @@ pub(super) fn accept_return(
     let proof = receive_return_proof(&mut socket)?;
     let return_session = LinkBindingId::from("line/browser-admission-probe/session-2");
     let observed_at_millis = monotonic_millis(clock)?;
-    let (return_sequence, expires_at_millis) = commit_return_atomically(
+    let (returned_credential, return_sequence, expires_at_millis) = commit_return_atomically(
         admission,
         membership,
         presence,
@@ -78,6 +78,12 @@ pub(super) fn accept_return(
                 .map_err(|error| format!("complete browser return: {error:?}"))
         },
     )?;
+    socket
+        .send(&BrowserAdmissionEgress::Admitted {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            credential: returned_credential.clone(),
+        })
+        .map_err(|error| format!("send renewed return credential: {error:?}"))?;
     if let Err(error) = socket.send(&BrowserAdmissionEgress::PresenceAccepted {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         sequence: return_sequence,
@@ -87,7 +93,7 @@ pub(super) fn accept_return(
         presence
             .lose_session(
                 membership,
-                &credential.part_id,
+                &returned_credential.part_id,
                 &return_session,
                 monotonic_millis(clock)?,
                 SignId::from("sign/browser-admission-probe/return-acceptance-lost"),
@@ -97,15 +103,15 @@ pub(super) fn accept_return(
     }
     println!(
         "returned part={} host={} boot={} sequence={return_sequence}",
-        credential.part_id.as_str(),
-        credential.host_id.as_str(),
-        credential.boot_id.as_str()
+        returned_credential.part_id.as_str(),
+        returned_credential.host_id.as_str(),
+        returned_credential.boot_id.as_str()
     );
     wait_for_return_close(
         &mut socket,
         presence,
         membership,
-        credential,
+        &returned_credential,
         &return_session,
         clock,
         lease_millis,
@@ -154,14 +160,20 @@ fn commit_return_atomically<F>(
     observed_at_millis: u64,
     lease_millis: u64,
     complete_membership: F,
-) -> Result<(u64, u64), String>
+) -> Result<(MembershipCredential, u64, u64), String>
 where
-    F: FnOnce(&mut AdmissionManager, &mut BodyMembership) -> Result<(), String>,
+    F: FnOnce(&mut AdmissionManager, &mut BodyMembership) -> Result<MembershipCredential, String>,
 {
     let mut next_admission = admission.clone();
     let mut next_membership = membership.clone();
     let mut next_presence = presence.clone();
-    complete_membership(&mut next_admission, &mut next_membership)?;
+    let returned_credential = complete_membership(&mut next_admission, &mut next_membership)?;
+    if returned_credential.body_id != credential.body_id
+        || returned_credential.part_id != credential.part_id
+        || returned_credential.host_id != credential.host_id
+    {
+        return Err("renewed return credential changed durable membership identity".into());
+    }
     let sequence = next_presence
         .leases
         .iter()
@@ -190,7 +202,7 @@ where
     *admission = next_admission;
     *membership = next_membership;
     *presence = next_presence;
-    Ok((sequence, expires_at_millis))
+    Ok((returned_credential, sequence, expires_at_millis))
 }
 
 fn monotonic_millis(clock: Instant) -> Result<u64, String> {
