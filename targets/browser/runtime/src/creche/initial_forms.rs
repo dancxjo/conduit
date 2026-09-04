@@ -16,9 +16,9 @@ struct BundledForm {
     source: String,
 }
 
-struct CheckedInventoryEntry {
-    source: String,
-    checked: conduit_form::CheckedSyntaxDocument,
+pub(super) struct CheckedInventoryEntry {
+    pub(super) source: String,
+    pub(super) checked: conduit_form::CheckedSyntaxDocument,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -129,7 +129,7 @@ pub(super) fn checked_workset(
     Ok((workset, receipts))
 }
 
-fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>, String> {
+pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>, String> {
     let Ok(bundle) = serde_json::from_str::<ReviewedFormBundle>(source) else {
         return check_source(source).map(|checked| {
             vec![CheckedInventoryEntry {
