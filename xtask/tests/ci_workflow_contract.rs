@@ -36,3 +36,15 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         );
     }
 }
+
+#[test]
+fn classifier_upload_is_scoped_away_from_the_controller_checkout() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+
+    assert!(workflow.contains("--json-out target/ci-plans/ci-impact-plan.json"));
+    assert!(workflow.contains("--json-out target/ci-plans/ci-proof-plan.json"));
+    assert!(workflow.contains("path: target/ci-plans"));
+    assert!(!workflow.contains("path: |\n            target/ci-impact-plan.json"));
+}
