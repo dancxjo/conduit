@@ -12,6 +12,9 @@ body[data-application-ready="false"] #patchbay-root { pointer-events:none; }
 #body-workbench-history ol { display:grid; gap:.65rem; }
 #body-workbench-history li { padding:.65rem; border-left:3px solid var(--conduit-structure-secondary); }
 #body-workbench-history li p { margin:.25rem 0; }
+.body-form-search { display:grid; gap:.3rem; margin:.5rem 0 .2rem; color:var(--conduit-text-secondary); font-size:.82rem; }
+.body-form-search input { width:100%; color:inherit; background:var(--conduit-background); border:1px solid var(--conduit-structure-secondary); border-radius:.35rem; padding:.5rem .6rem; }
+#body-form-results-status { min-height:1.5em; margin:.15rem 0 .45rem; color:var(--conduit-text-secondary); font-size:.78rem; }
 body.high-contrast section,body.high-contrast nav:not([data-application-key="product-navigation"]),body.high-contrast aside { background:var(--conduit-background); }
 nav:not([data-application-key="product-navigation"]),main { width:min(100%,1600px); margin:auto; }
 h2,h3 { color:var(--conduit-emphasis); }
