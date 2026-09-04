@@ -271,14 +271,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-data"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-form",
-]
-
-[[package]]
 name = "conduit-bluetooth"
 version = "0.1.0"
 dependencies = [
@@ -309,6 +301,14 @@ dependencies = [
 [[package]]
 name = "conduit-create-oi"
 version = "0.1.0"
+
+[[package]]
+name = "conduit-data"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
 
 [[package]]
 name = "conduit-embedded-build"
@@ -530,6 +530,7 @@ dependencies = [
  "conduit-midi",
  "conduit-presentation",
  "conduit-semantic-catalog",
+ "conduit-signal",
  "conduit-text",
  "conduit-time",
  "conduit-web",
