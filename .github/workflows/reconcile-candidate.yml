@@ -1,0 +1,106 @@
+name: reconcile-candidate
+run-name: reconcile PR #${{ inputs.pr_number }} at ${{ inputs.candidate_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open pull request number
+        required: true
+        type: number
+      candidate_sha:
+        description: Exact unchanged current pull-request head
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reconcile-candidate-${{ inputs.pr_number }}-${{ inputs.candidate_sha }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: read
+    outputs:
+      base_sha: ${{ steps.resolve.outputs.base_sha }}
+      check_inherited: ${{ steps.resolve.outputs.check_inherited }}
+      check_evidence_url: ${{ steps.resolve.outputs.check_evidence_url }}
+      products_inherited: ${{ steps.resolve.outputs.products_inherited }}
+      products_evidence_url: ${{ steps.resolve.outputs.products_evidence_url }}
+    steps:
+      - name: Check out only the current trusted controller
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Resolve the unchanged candidate and reusable aggregate evidence
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_PR_NUMBER: ${{ inputs.pr_number }}
+          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: node scripts/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
+      - name: Summarize reconciliation request
+        run: |
+          printf '## Current-controller candidate reconciliation\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+          cat reconciliation-request.json >> "$GITHUB_STEP_SUMMARY"
+          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+
+  candidate-check:
+    needs: resolve
+    if: needs.resolve.outputs.check_inherited != 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/check.yml
+    with:
+      base_sha: ${{ needs.resolve.outputs.base_sha }}
+      candidate_sha: ${{ inputs.candidate_sha }}
+
+  candidate-products:
+    needs: resolve
+    if: needs.resolve.outputs.products_inherited != 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/executable-book-pages.yml
+    with:
+      base_sha: ${{ needs.resolve.outputs.base_sha }}
+      candidate_sha: ${{ inputs.candidate_sha }}
+
+  report:
+    needs: [resolve, candidate-check, candidate-products]
+    if: always() && needs.resolve.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - name: Check out only the current trusted reporter
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Publish stable required checks on the unchanged candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CONDUIT_CHECK_INHERITED: ${{ needs.resolve.outputs.check_inherited }}
+          CONDUIT_CHECK_RESULT: ${{ needs.candidate-check.result }}
+          CONDUIT_CHECK_EVIDENCE_URL: ${{ needs.resolve.outputs.check_evidence_url }}
+          CONDUIT_PRODUCTS_INHERITED: ${{ needs.resolve.outputs.products_inherited }}
+          CONDUIT_PRODUCTS_RESULT: ${{ needs.candidate-products.result }}
+          CONDUIT_PRODUCTS_EVIDENCE_URL: ${{ needs.resolve.outputs.products_evidence_url }}
+          CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
+      - name: Summarize published exact-head gates
+        run: |
+          printf '## Published exact-head gates\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+          cat reconciliation-result.json >> "$GITHUB_STEP_SUMMARY"
+          printf '```\n' >> "$GITHUB_STEP_SUMMARY"

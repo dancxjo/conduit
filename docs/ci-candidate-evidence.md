@@ -77,6 +77,17 @@ head before it lists candidate runs. A delayed synchronize event for B1 becomes
 inert after the PR advances to B2, so only B2 may retire B1; event arrival order
 can never reverse that relationship.
 
+When an unchanged candidate needs policy from a newer trusted controller, the
+`reconcile-candidate` workflow is requested explicitly with the PR number and
+exact current head. Its trusted resolver refuses a stale or closed lifecycle.
+It inherits any already-successful `check` or `products-proof` aggregate
+attached to that immutable candidate and invokes the current reusable workflow
+only for a missing or failed lane. Candidate execution has read-only
+permissions; a separate trusted reporter publishes the stable aggregate names
+onto the exact candidate SHA. Repeating the same request therefore inherits the
+newly published successes rather than replaying work. This replaces empty
+commits, policy-only rebases, and close/reopen choreography.
+
 The `book-and-creche-products` workflow follows the same controller model. It
 triggers cheaply for every pull request, checks out the immutable candidate and
 the current trusted default-branch controller as separate trees, and asks the

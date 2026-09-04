@@ -49,14 +49,24 @@ struct ControllerProofSpec {
     implementation_inputs: &'static [&'static str],
 }
 
-const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[ControllerProofSpec {
-    id: "ci.candidate-retirement",
-    implementation_inputs: &[
-        ".github/workflows/retire-superseded-candidates.yml",
-        "proof/ci/retire-superseded-candidates.spec.mjs",
-        "scripts/ci/retire-superseded-candidates.mjs",
-    ],
-}];
+const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
+    ControllerProofSpec {
+        id: "ci.candidate-retirement",
+        implementation_inputs: &[
+            ".github/workflows/retire-superseded-candidates.yml",
+            "proof/ci/retire-superseded-candidates.spec.mjs",
+            "scripts/ci/retire-superseded-candidates.mjs",
+        ],
+    },
+    ControllerProofSpec {
+        id: "ci.current-controller-reconciliation",
+        implementation_inputs: &[
+            ".github/workflows/reconcile-candidate.yml",
+            "proof/ci/reconcile-candidate-request.spec.mjs",
+            "scripts/ci/reconcile-candidate-request.mjs",
+        ],
+    },
+];
 
 fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
     CONTROLLER_PROOFS
