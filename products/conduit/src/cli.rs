@@ -18,6 +18,9 @@ pub(crate) enum Command {
         /// Select the Host realization used to manifest Patchbay.
         #[arg(long, value_enum, default_value_t = PatchbayHost::Native)]
         on: PatchbayHost,
+        /// Open exact exported Body biography evidence in an external reader.
+        #[arg(long)]
+        body_evidence: Option<PathBuf>,
     },
     /// Check, plan, admit, and execute a Form on available local Hosts.
     Run {
@@ -120,8 +123,25 @@ mod tests {
                 .expect("Patchbay browser entrance parses")
                 .command,
             Command::Patchbay {
-                on: PatchbayHost::Browser
+                on: PatchbayHost::Browser,
+                body_evidence: None,
             }
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "patchbay",
+                "--on",
+                "browser",
+                "--body-evidence",
+                "roseau.json"
+            ])
+            .expect("exported Body evidence entrance parses")
+            .command,
+            Command::Patchbay {
+                on: PatchbayHost::Browser,
+                body_evidence: Some(path),
+            } if path == std::path::Path::new("roseau.json")
         ));
         assert!(matches!(
             Cli::try_parse_from(["conduit", "run", "hello.conduit"])

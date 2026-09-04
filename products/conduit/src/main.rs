@@ -20,15 +20,39 @@ use conduit_observatory::{build_report, render_text_report};
 use std::io;
 use std::path::Path;
 
-fn enter_patchbay(host: cli::PatchbayHost) -> Result<(), String> {
+fn patchbay_process(
+    host: cli::PatchbayHost,
+    body_evidence: Option<&Path>,
+) -> Result<std::process::Command, String> {
     let executable = match host {
         cli::PatchbayHost::Native => "patchbay-native",
         cli::PatchbayHost::Browser => "patchbay-html",
     };
+    if host == cli::PatchbayHost::Native && body_evidence.is_some() {
+        return Err(
+            "opening exported Body evidence currently requires `conduit patchbay --on browser`"
+                .into(),
+        );
+    }
     let mut command = std::process::Command::new(executable);
     if host == cli::PatchbayHost::Native {
         command.arg("--front-door");
     }
+    if let Some(path) = body_evidence {
+        command
+            .arg("--body-evidence")
+            .arg(path)
+            .arg("--external-reader");
+    }
+    Ok(command)
+}
+
+fn enter_patchbay(host: cli::PatchbayHost, body_evidence: Option<&Path>) -> Result<(), String> {
+    let mut command = patchbay_process(host, body_evidence)?;
+    let executable = match host {
+        cli::PatchbayHost::Native => "patchbay-native",
+        cli::PatchbayHost::Browser => "patchbay-html",
+    };
     let status = command.status().map_err(|error| {
         format!(
             "{executable} is unavailable ({error}); install the selected Patchbay renderer or use `cargo xtask demo patchbay --on {}` from a Conduit checkout",
@@ -114,7 +138,9 @@ fn main() {
     let command = cli::Cli::parse().command;
     let result = match command {
         cli::Command::Creche => enter_creche(),
-        cli::Command::Patchbay { on } => enter_patchbay(on),
+        cli::Command::Patchbay { on, body_evidence } => {
+            enter_patchbay(on, body_evidence.as_deref())
+        }
         cli::Command::Run {
             form,
             placements,
@@ -143,5 +169,34 @@ fn main() {
     if let Err(err) = result {
         eprintln!("error: {err}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod patchbay_entrance_tests {
+    use super::*;
+
+    #[test]
+    fn exported_body_evidence_enters_the_browser_external_reader_exactly() {
+        let path = Path::new("roseau-body.json");
+        let command = patchbay_process(cli::PatchbayHost::Browser, Some(path)).unwrap();
+        assert_eq!(command.get_program(), "patchbay-html");
+        assert_eq!(
+            command.get_args().collect::<Vec<_>>(),
+            ["--body-evidence", "roseau-body.json", "--external-reader"].map(std::ffi::OsStr::new)
+        );
+    }
+
+    #[test]
+    fn native_front_door_stays_distinct_from_unsupported_evidence_open() {
+        let command = patchbay_process(cli::PatchbayHost::Native, None).unwrap();
+        assert_eq!(command.get_program(), "patchbay-native");
+        assert_eq!(command.get_args().collect::<Vec<_>>(), ["--front-door"]);
+        assert!(patchbay_process(
+            cli::PatchbayHost::Native,
+            Some(Path::new("roseau-body.json"))
+        )
+        .unwrap_err()
+        .contains("--on browser"));
     }
 }
