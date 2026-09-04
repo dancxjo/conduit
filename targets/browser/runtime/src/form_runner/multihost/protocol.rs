@@ -95,7 +95,7 @@ pub(super) enum Output {
     #[serde(rename = "manifestation")]
     Manifestation {
         schema: &'static str,
-        manifestation: Box<super::super::protocol::BookEffect>,
+        manifestation: Box<super::super::protocol::TourEffect>,
         accepted_frame: Box<LineFrame>,
         plan_projection: Box<PlanProjection>,
     },
@@ -164,7 +164,7 @@ pub(super) fn projection(plan: &Plan, play_sequence: u64) -> Result<PlanProjecti
     }
     hosts.sort_by(|left, right| left.label.cmp(right.label));
     Ok(PlanProjection {
-        schema: "conduit.book/plan-projection@1",
+        schema: "conduit.tour/plan-projection@1",
         explanation: "The Form says what; current Host offers constrain what is possible; this immutable Plan says exactly how this Play is realized.",
         source_document_id: plan.source_document_id.as_str().into(),
         checked_form_id: plan.checked_form_id.as_str().into(),

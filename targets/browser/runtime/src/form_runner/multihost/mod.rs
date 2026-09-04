@@ -1,4 +1,4 @@
-//! Shared executable-book runner extended across two exact browser fragments.
+//! Shared executable-tour runner extended across two exact browser fragments.
 
 mod abi;
 mod plan;

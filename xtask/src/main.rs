@@ -59,7 +59,7 @@ fn main() {
         },
         Command::Pete(args) => commands::pete_std_observe::run(args, &opts),
         Command::Demo(args) => match args.command {
-            DemoCommand::Book => commands::demo::run_book(&opts),
+            DemoCommand::Tour => commands::demo::run_tour(&opts),
             DemoCommand::Std => commands::demo::run_std(&opts),
             DemoCommand::Triple => commands::demo::run_triple(&opts),
             DemoCommand::Patchbay(args) => commands::demo::run_patchbay(&args, &opts),

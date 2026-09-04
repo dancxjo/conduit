@@ -418,7 +418,7 @@ fn forms_navigation_stepper_and_progress_keep_exact_shared_contracts() {
                 node(
                     "pages",
                     PresentationMechanism::Navigation {
-                        label: "Book pages".into(),
+                        label: "Tour pages".into(),
                         current: "page-two".into(),
                     },
                     vec![

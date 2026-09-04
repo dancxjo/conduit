@@ -1,12 +1,12 @@
 import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
-import { conceptualTourStage, createTourStage, openBookReadingState } from "./book-state.mjs";
-import { createBookNavigation, createBookRunnerActions, createBookWorkspace } from "./book-navigation.mjs";
-import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus, restoreBookRunnerDraft } from "./book-runner-presentation.mjs";
+import { conceptualTourStage, createTourStage, openTourReadingState } from "./book-state.mjs";
+import { createTourNavigation, createTourRunnerActions, createTourWorkspace } from "./book-navigation.mjs";
+import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./book-runner-presentation.mjs";
 import { createProductMasthead } from "./product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
-import { createBookRouting, parseBookPages } from "./book-routing.mjs";
-import { createReviewedFormGallery, presentBookInventory, readReviewedGallery, reviewedFormStage } from "./book-inventory-presentation.mjs";
+import { createTourRouting, parseTourPages } from "./book-routing.mjs";
+import { createReviewedFormGallery, presentTourInventory, readReviewedGallery, reviewedFormStage } from "./book-inventory-presentation.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 
 const encoder = new TextEncoder();
@@ -41,11 +41,11 @@ try {
   hostPresentationFor = application.presentationFor;
   hostStatus = createProductMasthead(hostPresentation, "product-masthead", "tour");
   hostStatus.ordinary("Starting browser Host…");
-  readingState = await openBookReadingState(application.storage);
-  workspace = createBookWorkspace(document, readingState);
+  readingState = await openTourReadingState(application.storage);
+  workspace = createTourWorkspace(document, readingState);
   configureFlowStorage(application.storage);
-  navigation = createBookNavigation(hostPresentation, (offset) => {
-    renderPage(currentPage + offset, "push").catch(showBookFailure);
+  navigation = createTourNavigation(hostPresentation, (offset) => {
+    renderPage(currentPage + offset, "push").catch(showTourFailure);
   });
   admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
@@ -53,7 +53,7 @@ try {
     initializeBrowserHost(admittedRuntimeBytes),
   ]);
   host = initialized;
-  requireBookAbi(host.runtime);
+  requireTourAbi(host.runtime);
   gallery = readReviewedGallery(host.runtime);
   if (host.runtime.conduit_browser_form_human_machinery() < 0) {
     throw new Error("browser Host selected machinery is unavailable");
@@ -71,21 +71,21 @@ try {
       implementation_registry: selectedMachinery.implementations,
     },
   });
-  routing = createBookRouting({
+  routing = createTourRouting({
     host,
     applicationId: application.manifest.applicationId,
     render: (index) => renderPage(index),
-    onFailure: showBookFailure,
+    onFailure: showTourFailure,
   });
-  guidedPages = parseBookPages(chapters);
+  guidedPages = parseTourPages(chapters);
   setupTourModes();
   const initialRoute = routing.admitPages(guidedPages);
   await renderPage(initialRoute.index);
   if (initialRoute.normalize) await routing.move(initialRoute.index, "replace");
   hostStatus.success("Browser Host ready");
-  globalThis.__conduitBookHost = host;
-  globalThis.__conduitBookLaboratory = laboratory;
-  globalThis.__conduitBookPersistence = Object.freeze({
+  globalThis.__conduitTourHost = host;
+  globalThis.__conduitTourLaboratory = laboratory;
+  globalThis.__conduitTourPersistence = Object.freeze({
     schema: "conduit.tour/persistence@1",
     flush: readingState.flush,
   });
@@ -96,33 +96,33 @@ try {
 }
 }
 
-function showBookFailure(error) {
+function showTourFailure(error) {
   hostStatus.failure("Browser Host unavailable");
   chapter.textContent = error instanceof Error ? error.message : String(error);
   chapter.classList.add("error");
 }
 
-function persistBookState() {
+function persistTourState() {
   return readingState.persist();
 }
 
-function requireBookAbi(api) {
+function requireTourAbi(api) {
   const required = [
     "memory", "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
     "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
-    "conduit_book_project_patchbay", "conduit_book_project_patchbay_recursive",
+    "conduit_tour_project_patchbay", "conduit_tour_project_patchbay_recursive",
     "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
     "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project",
-    "conduit_book_multi_input_ptr", "conduit_book_multi_input_capacity",
-    "conduit_book_multi_output_ptr", "conduit_book_multi_output_len",
-    "conduit_book_multi_admit_source_interaction", "conduit_book_multi_start_source",
-    "conduit_book_multi_start_sink",
-    "conduit_book_multi_ingest", "conduit_book_multi_complete", "conduit_book_multi_cancel",
+    "conduit_tour_multi_input_ptr", "conduit_tour_multi_input_capacity",
+    "conduit_tour_multi_output_ptr", "conduit_tour_multi_output_len",
+    "conduit_tour_multi_admit_source_interaction", "conduit_tour_multi_start_source",
+    "conduit_tour_multi_start_sink",
+    "conduit_tour_multi_ingest", "conduit_tour_multi_complete", "conduit_tour_multi_cancel",
   ];
-  if (required.some((name) => !(name in api))) throw new Error("executable-book ABI is incomplete");
+  if (required.some((name) => !(name in api))) throw new Error("executable-tour ABI is incomplete");
 }
 
 async function renderPage(index, routeChange = "none") {
@@ -143,7 +143,7 @@ function setupTourModes() {
   const guided = document.querySelector('[data-tour-mode="guided"]');
   const galleryButton = document.querySelector('[data-tour-mode="gallery"]');
   if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
-  guided.addEventListener("click", () => renderPage(currentPage).catch(showBookFailure));
+  guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
   galleryButton.addEventListener("click", () => renderGallery());
 }
 
@@ -182,7 +182,7 @@ function renderGallery() {
 }
 
 function setNavigationDisabled(disabled) {
-  if (disabled !== running) throw new Error("Book navigation state is inconsistent");
+  if (disabled !== running) throw new Error("Tour navigation state is inconsistent");
   navigation.render(currentPage, guidedPages.length, running);
 }
 
@@ -431,26 +431,26 @@ function createRunner(source, recursive = false, presentation = {}) {
   runner.dataset.faceBack = String(presentation.faceBack === true);
   const runnerPresentation = hostPresentationFor(runner);
   const initialSource = readingState.drafts.get(sourceKey) ?? source;
-  createBookRunnerField(runnerPresentation, fieldSlot, listingId, "Conduit · editable", initialSource, (value) => {
+  createTourRunnerField(runnerPresentation, fieldSlot, listingId, "Conduit · editable", initialSource, (value) => {
     readingState.drafts.set(sourceKey, value);
-    persistBookState();
+    persistTourState();
     refreshCompactPatchbay(runner, value, recursive);
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
-  runner.actionControls = createBookRunnerActions(
+  runner.actionControls = createTourRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
-    () => restoreBookRunnerDraft({
+    () => restoreTourRunnerDraft({
       runner, textarea, source, sourceKey, readingState, syntaxEditor,
       cancel: () => { if (running && activeRunner === runner) stopListing(runner); },
       refresh: (value) => refreshCompactPatchbay(runner, value, recursive),
     }),
   );
-  runner.playStatus = createBookRunnerStatus(
+  runner.playStatus = createTourRunnerStatus(
     runnerPresentation, statusSlot, "Edit the message or timing, then run it.",
   );
-  runner.evidence = createBookEvidenceTables(runnerPresentation, exactSlot, runSlot);
+  runner.evidence = createTourEvidenceTables(runnerPresentation, exactSlot, runSlot);
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, recursive);
   return runner;
@@ -492,29 +492,29 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
   const runnerPresentation = hostPresentationFor(runner);
   const initialSource = readingState.drafts.get(sourceKey) ?? source;
-  createBookRunnerField(
+  createTourRunnerField(
     runnerPresentation, fieldSlot, listingId, "Conduit · editable · unchanged across Hosts", initialSource, (value) => {
       readingState.drafts.set(sourceKey, value);
-      persistBookState();
+      persistTourState();
       refreshCompactPatchbay(runner, value, false);
     },
   );
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
-  runner.actionControls = createBookRunnerActions(
+  runner.actionControls = createTourRunnerActions(
     runnerPresentation, actionsSlot, "Run across two Hosts",
     () => runMultiHostListing(runner, textarea.value), () => stopListing(runner),
-    () => restoreBookRunnerDraft({
+    () => restoreTourRunnerDraft({
       runner, textarea, source, sourceKey, readingState, syntaxEditor,
       cancel: () => { if (running && activeRunner === runner) stopListing(runner); },
       refresh: (value) => refreshCompactPatchbay(runner, value, false),
     }),
   );
-  runner.playStatus = createBookRunnerStatus(
+  runner.playStatus = createTourRunnerStatus(
     runnerPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
   );
-  runner.evidence = createBookEvidenceTables(runnerPresentation, exactSlot, runSlot);
-  runner.planEvidence = createBookPlanPresentation(runnerPresentation, planSlot);
+  runner.evidence = createTourEvidenceTables(runnerPresentation, exactSlot, runSlot);
+  runner.planEvidence = createTourPlanPresentation(runnerPresentation, planSlot);
   queueMicrotask(() => runner.actionControls.render(false));
   refreshCompactPatchbay(runner, textarea.value, false);
   return runner;
@@ -552,8 +552,8 @@ function refreshCompactPatchbay(runner, source, recursive) {
     sourceBytes.length,
   ).set(sourceBytes);
   const project = recursive
-    ? host.runtime.conduit_book_project_patchbay_recursive
-    : host.runtime.conduit_book_project_patchbay;
+    ? host.runtime.conduit_tour_project_patchbay_recursive
+    : host.runtime.conduit_tour_project_patchbay;
   const code = project(sourceBytes.length, BigInt(expected));
   const output = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0) {
@@ -645,7 +645,7 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
   if (sourceKey) {
     if (opening) readingState.expandedBacks.add(sourceKey);
     else readingState.expandedBacks.delete(sourceKey);
-    persistBookState();
+    persistTourState();
   }
   renderCompactPatchbayProjection(figure, faceProjection);
   if (!opening) return;
@@ -659,7 +659,7 @@ function toggleGearBack(figure, faceProjection, subjectIdentity) {
     host.runtime.conduit_browser_form_input_ptr(),
     sourceBytes.length,
   ).set(sourceBytes);
-  const code = host.runtime.conduit_book_project_patchbay_recursive(sourceBytes.length, BigInt(expected));
+  const code = host.runtime.conduit_tour_project_patchbay_recursive(sourceBytes.length, BigInt(expected));
   const back = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0 || !back || back.sequence !== expected) {
     renderFlowRefusal(expansion.querySelector(".gear-back-flow"), back?.message ?? "Reviewed Back unavailable.");
@@ -756,18 +756,18 @@ class BrowserMemoryLine {
       throw new Error("browser-memory Line payload exceeds its exact Plan bound");
     }
     const encoded = encoder.encode(JSON.stringify(frame));
-    if (encoded.length > this.maximumFrameBytes || encoded.length > targetApi.conduit_book_multi_input_capacity()) {
+    if (encoded.length > this.maximumFrameBytes || encoded.length > targetApi.conduit_tour_multi_input_capacity()) {
       throw new Error("browser-memory Line frame exceeds its exact admitted bound");
     }
     this.pending = encoded;
     const input = new Uint8Array(
       targetApi.memory.buffer,
-      targetApi.conduit_book_multi_input_ptr(),
+      targetApi.conduit_tour_multi_input_ptr(),
       encoded.length,
     );
     input.set(this.pending);
     this.pending = null;
-    const code = targetApi.conduit_book_multi_ingest(encoded.length);
+    const code = targetApi.conduit_tour_multi_ingest(encoded.length);
     if (code < 0) throw new Error(`browser-memory Line ingest refused (${code})`);
     return readMultiOutput(targetApi);
   }
@@ -782,12 +782,12 @@ let activeMemoryLine = null;
 async function ensurePeerHost() {
   if (peerHost !== null) return peerHost;
   const initialized = await initializeBrowserHost(admittedRuntimeBytes, { durable: false });
-  requireBookAbi(initialized.runtime);
+  requireTourAbi(initialized.runtime);
   if (initialized.hostId === host.hostId || initialized.bootId === host.bootId) {
     throw new Error("second browser Host did not receive independent Host and Boot identity");
   }
   peerHost = initialized;
-  globalThis.__conduitBookPeerHost = peerHost;
+  globalThis.__conduitTourPeerHost = peerHost;
   return peerHost;
 }
 
@@ -842,7 +842,7 @@ async function runMultiHostListing(runner, source) {
     renderPlanProjection(runner, presentation.plan_projection);
     runner.playStatus.ordinary("Host B observed the planned presentation; acknowledging delivery…");
     if (!await nextPaint(current)) return;
-    const completion = peer.runtime.conduit_book_multi_complete();
+    const completion = peer.runtime.conduit_tour_multi_complete();
     if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
     const delivered = readMultiOutput(peer.runtime);
     const close = line.transfer(delivered.frame, host.runtime);
@@ -867,13 +867,13 @@ async function runMultiHostListing(runner, source) {
 }
 
 function admitMultiSource(api, sourceBytes, sequence) {
-  if (sourceBytes.length > api.conduit_book_multi_input_capacity()) {
+  if (sourceBytes.length > api.conduit_tour_multi_input_capacity()) {
     throw new Error("The listing exceeds the admitted multi-Host input bound.");
   }
-  new Uint8Array(api.memory.buffer, api.conduit_book_multi_input_ptr(), sourceBytes.length).set(sourceBytes);
-  const code = api.conduit_book_multi_admit_source_interaction(sourceBytes.length, BigInt(sequence));
+  new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), sourceBytes.length).set(sourceBytes);
+  const code = api.conduit_tour_multi_admit_source_interaction(sourceBytes.length, BigInt(sequence));
   if (code < 0) {
-    const refusal = api.conduit_book_multi_output_len() > 0 ? readMultiOutput(api) : null;
+    const refusal = api.conduit_tour_multi_output_len() > 0 ? readMultiOutput(api) : null;
     throw new Error(refusal?.message ?? `multi-Host source interaction refused (${code})`);
   }
 }
@@ -882,17 +882,17 @@ function startMultiSource(api, sourceHost, sinkHost, sourceBytes, sequence) {
   const fields = [sourceHost.hostId, sourceHost.bootId, sinkHost.hostId, sinkHost.bootId]
     .map((value) => encoder.encode(value));
   const total = fields.reduce((sum, field) => sum + field.length, sourceBytes.length);
-  if (total > api.conduit_book_multi_input_capacity()) {
+  if (total > api.conduit_tour_multi_input_capacity()) {
     throw new Error("multi-Host start frame exceeds its admitted input bound");
   }
-  const input = new Uint8Array(api.memory.buffer, api.conduit_book_multi_input_ptr(), total);
+  const input = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), total);
   let offset = 0;
   for (const field of fields) {
     input.set(field, offset);
     offset += field.length;
   }
   input.set(sourceBytes, offset);
-  const code = api.conduit_book_multi_start_source(
+  const code = api.conduit_tour_multi_start_source(
     fields[0].length,
     fields[1].length,
     fields[2].length,
@@ -901,7 +901,7 @@ function startMultiSource(api, sourceHost, sinkHost, sourceBytes, sequence) {
     BigInt(sequence),
   );
   if (code < 0) {
-    const refusal = api.conduit_book_multi_output_len() > 0 ? readMultiOutput(api) : null;
+    const refusal = api.conduit_tour_multi_output_len() > 0 ? readMultiOutput(api) : null;
     throw new Error(refusal?.message
       ? `The Form was refused before multi-Host Play · ${refusal.category}: ${refusal.message}`
       : `multi-Host Play start refused (${code})`);
@@ -913,23 +913,23 @@ function startMultiSink(api, sinkHost, plan, sequence) {
   const fields = [sinkHost.hostId, sinkHost.bootId, JSON.stringify(plan)]
     .map((value) => encoder.encode(value));
   const total = fields.reduce((sum, field) => sum + field.length, 0);
-  if (total > api.conduit_book_multi_input_capacity()) {
+  if (total > api.conduit_tour_multi_input_capacity()) {
     throw new Error("exact multi-Host Plan exceeds its admitted sink input bound");
   }
-  const input = new Uint8Array(api.memory.buffer, api.conduit_book_multi_input_ptr(), total);
+  const input = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), total);
   let offset = 0;
   for (const field of fields) {
     input.set(field, offset);
     offset += field.length;
   }
-  const code = api.conduit_book_multi_start_sink(
+  const code = api.conduit_tour_multi_start_sink(
     fields[0].length,
     fields[1].length,
     fields[2].length,
     BigInt(sequence),
   );
   if (code < 0) {
-    const refusal = api.conduit_book_multi_output_len() > 0 ? readMultiOutput(api) : null;
+    const refusal = api.conduit_tour_multi_output_len() > 0 ? readMultiOutput(api) : null;
     throw new Error(refusal?.message
       ? `Host B refused the exact Plan before Play · ${refusal.message}`
       : `multi-Host sink Plan admission refused (${code})`);
@@ -940,8 +940,8 @@ function startMultiSink(api, sinkHost, plan, sequence) {
 function readMultiOutput(api) {
   const bytes = new Uint8Array(
     api.memory.buffer,
-    api.conduit_book_multi_output_ptr(),
-    api.conduit_book_multi_output_len(),
+    api.conduit_tour_multi_output_ptr(),
+    api.conduit_tour_multi_output_len(),
   );
   return JSON.parse(decoder.decode(bytes));
 }
@@ -1092,8 +1092,8 @@ function stopListing(runner) {
 function cancelMultiSessions() {
   activeMemoryLine?.cancel();
   activeMemoryLine = null;
-  host?.runtime.conduit_book_multi_cancel();
-  peerHost?.runtime.conduit_book_multi_cancel();
+  host?.runtime.conduit_tour_multi_cancel();
+  peerHost?.runtime.conduit_tour_multi_cancel();
 }
 
 function readOutput(api) {
@@ -1112,7 +1112,7 @@ function renderInventory(inventory) {
   const slot = document.createElement("div");
   slot.dataset.applicationSlot = "book-inventory";
   copy.append(slot);
-  presentBookInventory(hostPresentation, inventory);
+  presentTourInventory(hostPresentation, inventory);
 }
 
 function setIndicator(runner, level) {

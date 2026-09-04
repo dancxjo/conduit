@@ -8,9 +8,9 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
         || receipt.schema != "conduit.creche/body-birth@2"
         || receipt.disposition != "born"
         || receipt.state != "LULLED"
-        || receipt.source_interaction.schema != "conduit.book/source-interaction@1"
+        || receipt.source_interaction.schema != "conduit.tour/source-interaction@1"
         || receipt.source_interaction.disposition != "accepted"
-        || receipt.source_interaction.semantic_id != "interaction/executable-book-source"
+        || receipt.source_interaction.semantic_id != "interaction/executable-tour-source"
         || receipt.source_interaction.value_kind != conduit_human::TEXT_INFO_ID
         || receipt.initial_review.schema != "conduit.creche/initial-workload-review@1"
         || receipt.initial_review.disposition != "realizable"

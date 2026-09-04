@@ -152,7 +152,7 @@ function createGalleryCard(document, form, crecheUrl, onOpen) {
   return item;
 }
 
-export function presentBookInventory(presentation, inventory) {
+export function presentTourInventory(presentation, inventory) {
   const installed = inventory.entries.filter((entry) => entry.implementation_id !== null);
   const nodes = [
     {

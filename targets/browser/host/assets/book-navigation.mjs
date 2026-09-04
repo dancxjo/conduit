@@ -1,4 +1,4 @@
-export function createBookNavigation(presentation, navigate) {
+export function createTourNavigation(presentation, navigate) {
   let revision = 0;
   return Object.freeze({
     render(currentPage, pageCount, running) {
@@ -25,7 +25,7 @@ export function createBookNavigation(presentation, navigate) {
   });
 }
 
-export function createBookWorkspace(root, readingState) {
+export function createTourWorkspace(root, readingState) {
   const content = root.querySelector(".tour-content");
   const laboratory = root.querySelector("#laboratory-slot");
   const width = root.querySelector("#tour-narrative-width");
@@ -77,7 +77,7 @@ export function createBookWorkspace(root, readingState) {
   });
 }
 
-export function createBookRunnerActions(presentation, slot, runLabel, onRun, onStop, onRestore) {
+export function createTourRunnerActions(presentation, slot, runLabel, onRun, onStop, onRestore) {
   let revision = 0;
   return Object.freeze({
     render(running) {

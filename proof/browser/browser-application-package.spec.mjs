@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
-import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
+import { openTourStep, startTour, startStaticProduct } from "./book-test-server.mjs";
 
 let entrance;
 
-test.beforeEach(async () => { entrance = await startBook(); });
+test.beforeEach(async () => { entrance = await startTour(); });
 test.afterEach(() => entrance?.child.kill());
 
 async function mutatePackage(page, mutate) {
@@ -59,7 +59,7 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   const membershipClient = await page.evaluate(() => {
-    const host = globalThis.__conduitBookHost;
+    const host = globalThis.__conduitTourHost;
     return {
       schema: host.membership.schema,
       hostId: host.hostId,
@@ -99,7 +99,7 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   const patchbay = page.locator(".compact-patchbay");
   await patchbay.getByRole("button", { name: "Open reviewed Back for same-morse-caller/morse" }).click();
   await expect(patchbay.locator(".gear-back-expansion")).toBeVisible();
-  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
 
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
@@ -113,11 +113,11 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   }
 });
 
-test("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
+test("Tour migrates the finite legacy Tour reading state without changing its compatibility identity", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const legacy = {
-    schema: "conduit.book/reading-state@1",
+    schema: "conduit.tour/reading-state@1",
     drafts: [["runner-0", "legacy draft"]],
     expandedBacks: ["same-morse-caller/morse"],
   };
@@ -125,7 +125,7 @@ test("Tour migrates the finite legacy Book reading state without changing its co
 
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   const migrated = await page.evaluate(async () => ({
     applicationIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
     state: await globalThis.__conduitBrowserApplication.storage.readJson("reading-state"),
@@ -355,11 +355,11 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
   await expect(navigation.getByRole("button", { name: "Next" })).toBeEnabled();
 
   await page.evaluate(() => {
-    globalThis.__staleBookNavigationButton = document.querySelector('[data-application-key="next"]');
-    globalThis.__staleBookNavigationButton.click();
+    globalThis.__staleTourNavigationButton = document.querySelector('[data-application-key="next"]');
+    globalThis.__staleTourNavigationButton.click();
   });
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
-  await page.evaluate(() => globalThis.__staleBookNavigationButton.click());
+  await page.evaluate(() => globalThis.__staleTourNavigationButton.click());
   expect(await page.evaluate(() => globalThis.__conduitBrowserApplication.presentation.lastRefusal("book-navigation"))).toBe("stale-revision");
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
 
@@ -429,7 +429,7 @@ test("browser Host refuses changed resource bytes and a changed aggregate packag
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser application refused");
   await expect(page.locator("#chapter")).toHaveText("application resource application-module changed identity");
-  expect(await page.evaluate(() => globalThis.__conduitBookHost)).toBeUndefined();
+  expect(await page.evaluate(() => globalThis.__conduitTourHost)).toBeUndefined();
 
   const aggregatePage = await page.context().newPage();
   await mutatePackage(aggregatePage, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
@@ -440,7 +440,7 @@ test("browser Host refuses changed resource bytes and a changed aggregate packag
 });
 
 test("selected durable storage keeps scopes, lifecycle, and refusal states exact", async ({ page }) => {
-  await openBookStep(page, entrance, 0);
+  await openTourStep(page, entrance, 0);
   const result = await page.evaluate(async () => {
     const module = await import(new URL("../browser-application-storage.mjs", location.href).href);
     const digest = `sha256:${"a".repeat(64)}`;
@@ -517,10 +517,10 @@ test("selected durable storage keeps scopes, lifecycle, and refusal states exact
 });
 
 test("browser Host storage refuses capacity exhaustion and malformed durable Tour state", async ({ page }) => {
-  await openBookStep(page, entrance, 0);
+  await openTourStep(page, entrance, 0);
   const capacityRefusal = await page.evaluate(async () => {
     const storage = globalThis.__conduitBrowserApplication.storage;
-    await storage.writeJson("reading-state", { schema: "conduit.book/unknown-state@9", drafts: [], expandedBacks: [] });
+    await storage.writeJson("reading-state", { schema: "conduit.tour/unknown-state@9", drafts: [], expandedBacks: [] });
     for (let index = 0; index <= storage.bounds.maximumRecords; index += 1) {
       try { await storage.writeJson(`proof-${index}`, index); }
       catch (error) { return { code: error.code, message: error.message }; }

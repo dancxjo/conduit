@@ -1,6 +1,6 @@
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
-export function createBookStatus(presentation, slot, key, initialText) {
+export function createTourStatus(presentation, slot, key, initialText) {
   let revision = 0;
   const render = (component, text) => presentation.present(slot, {
     revision: ++revision,
@@ -18,11 +18,11 @@ export function createBookStatus(presentation, slot, key, initialText) {
   return status;
 }
 
-export function createBookRunnerStatus(presentation, slot, initialText) {
-  return createBookStatus(presentation, slot, "play-status", initialText);
+export function createTourRunnerStatus(presentation, slot, initialText) {
+  return createTourStatus(presentation, slot, "play-status", initialText);
 }
 
-export function restoreBookRunnerDraft({ runner, textarea, source, sourceKey, readingState, syntaxEditor, cancel, refresh }) {
+export function restoreTourRunnerDraft({ runner, textarea, source, sourceKey, readingState, syntaxEditor, cancel, refresh }) {
   cancel();
   readingState.drafts.delete(sourceKey);
   readingState.persist();
@@ -36,7 +36,7 @@ export function restoreBookRunnerDraft({ runner, textarea, source, sourceKey, re
   textarea.focus({ preventScroll: true });
 }
 
-export function createBookRunnerField(presentation, slot, listingId, label, source, onInput) {
+export function createTourRunnerField(presentation, slot, listingId, label, source, onInput) {
   let revision = 0;
   presentation.present(slot, {
     revision: ++revision,
@@ -73,7 +73,7 @@ const MAXIMUM_EVIDENCE_DEFINITIONS = 16;
 
 function presentDefinitions(presentation, slot, revision, label, key, entries) {
   if (entries.length === 0 || entries.length > MAXIMUM_EVIDENCE_DEFINITIONS) {
-    throw new Error("Book evidence definition count exceeds its admitted bound");
+    throw new Error("Tour evidence definition count exceeds its admitted bound");
   }
   const nodes = [{ parent: null, component: "definition-table", key, text: label, action: null }];
   for (const [index, [name, value]] of entries.entries()) {
@@ -85,7 +85,7 @@ function presentDefinitions(presentation, slot, revision, label, key, entries) {
   presentation.present(slot, { revision, actions: [], nodes });
 }
 
-export function createBookEvidenceTables(presentation, exactSlot, runSlot) {
+export function createTourEvidenceTables(presentation, exactSlot, runSlot) {
   let exactRevision = 0;
   let runRevision = 0;
   let runEntries = [];
@@ -125,18 +125,18 @@ const MAXIMUM_PROJECTED_HOSTS = 4;
 const MAXIMUM_GEARS_PER_HOST = 4;
 const MAXIMUM_RAW_PLAN_BYTES = 65_536;
 
-export function createBookPlanPresentation(presentation, slot) {
+export function createTourPlanPresentation(presentation, slot) {
   let revision = 0;
   return Object.freeze({
     render(plan) {
       if (!Array.isArray(plan.hosts) || plan.hosts.length === 0 || plan.hosts.length > MAXIMUM_PROJECTED_HOSTS
         || plan.hosts.some((host) => !Array.isArray(host.gears)
           || host.gears.length === 0 || host.gears.length > MAXIMUM_GEARS_PER_HOST)) {
-        throw new Error("Book Plan projection exceeds its admitted Host or Gear bound");
+        throw new Error("Tour Plan projection exceeds its admitted Host or Gear bound");
       }
       const rawPlan = JSON.stringify(plan.raw_plan, null, 2);
       if (new TextEncoder().encode(rawPlan).length > MAXIMUM_RAW_PLAN_BYTES) {
-        throw new Error("Book raw Plan evidence exceeds its admitted byte bound");
+        throw new Error("Tour raw Plan evidence exceeds its admitted byte bound");
       }
 
       const nodes = [

@@ -22,7 +22,7 @@ function awaitUrl(child, pattern, label) {
   });
 }
 
-export async function startBook() {
+export async function startTour() {
   const child = spawn("target/debug/conduit-browser-host", ["--application", "target/tour-product", "--mount", "/tour/", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
     env: process.env,
@@ -41,7 +41,7 @@ export async function startStaticProduct(root, mount = "/") {
   return { child, url };
 }
 
-export async function openBookStep(page, entrance, index) {
+export async function openTourStep(page, entrance, index) {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   for (let current = 0; current < index; current += 1) {

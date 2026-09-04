@@ -29,7 +29,7 @@ struct SyntaxProjection {
     pub protocol: &'static str,
     pub source_bytes: u32,
     pub kinds: &'static [&'static str; 10],
-    /// Compact tuples keep every admitted Book projection inside the shared
+    /// Compact tuples keep every admitted Tour projection inside the shared
     /// 128 KiB application-presentation aggregate bound.
     pub spans: Vec<(u32, u32, u8)>,
 }
@@ -51,15 +51,15 @@ enum SyntaxKind {
 
 fn project(source: &str) -> Result<SyntaxProjection, String> {
     let source_bytes = u32::try_from(source.len())
-        .map_err(|_| "Book syntax source length exceeds u32".to_owned())?;
+        .map_err(|_| "Tour syntax source length exceeds u32".to_owned())?;
     let spans = highlight_syntax(source)
         .map_err(refusal)?
         .into_iter()
         .map(|span| {
             let start = u32::try_from(span.start)
-                .map_err(|_| "Book syntax span start exceeds u32".to_owned())?;
+                .map_err(|_| "Tour syntax span start exceeds u32".to_owned())?;
             let end = u32::try_from(span.end)
-                .map_err(|_| "Book syntax span end exceeds u32".to_owned())?;
+                .map_err(|_| "Tour syntax span end exceeds u32".to_owned())?;
             Ok((start, end, SyntaxKind::from(span.kind) as u8))
         })
         .collect::<Result<Vec<_>, String>>()?;
@@ -133,9 +133,9 @@ fn write_output(value: &impl Serialize) -> Result<i32, i32> {
 
 fn refusal(reason: SyntaxHighlightRefusal) -> String {
     match reason {
-        SyntaxHighlightRefusal::SourceTooLarge => "Book syntax source exceeds its byte bound",
-        SyntaxHighlightRefusal::TooManyTokens => "Book syntax source exceeds its token bound",
-        SyntaxHighlightRefusal::TooManySpans => "Book syntax source exceeds its span bound",
+        SyntaxHighlightRefusal::SourceTooLarge => "Tour syntax source exceeds its byte bound",
+        SyntaxHighlightRefusal::TooManyTokens => "Tour syntax source exceeds its token bound",
+        SyntaxHighlightRefusal::TooManySpans => "Tour syntax source exceeds its span bound",
     }
     .to_owned()
 }

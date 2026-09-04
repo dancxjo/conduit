@@ -5,7 +5,7 @@ const MAXIMUM_TOUR_PAGES = 16;
 const MAXIMUM_STAGES_PER_PAGE = 8;
 const IDENTITY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export function parseBookPages(chapters) {
+export function parseTourPages(chapters) {
   if (!Array.isArray(chapters) || chapters.length === 0 || chapters.length > MAXIMUM_TOUR_PAGES) {
     throw new Error("Tour page count is outside its admitted bound");
   }
@@ -48,7 +48,7 @@ export function parseBookPages(chapters) {
   }));
 }
 
-export function createBookRouting({ host, applicationId, render, onFailure }) {
+export function createTourRouting({ host, applicationId, render, onFailure }) {
   const operations = createBrowserHostOperations({
     hostId: host.hostId,
     bootId: host.bootId,
