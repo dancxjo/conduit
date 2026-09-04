@@ -110,6 +110,9 @@ fn main() {
     {
         #[cfg(feature = "host-release")]
         {
+            // The isolated directory protects the running bootstrap executable;
+            // it is not part of the Host artifact fabrication contract.
+            std::env::remove_var("CARGO_TARGET_DIR");
             if let Err(error) = run_host_release(&arguments) {
                 eprintln!("xtask error: {error}");
                 std::process::exit(1);

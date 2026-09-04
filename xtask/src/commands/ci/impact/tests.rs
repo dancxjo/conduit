@@ -581,6 +581,7 @@ fn lightweight_dispatcher_owns_every_ci_identity_command() {
     );
     assert!(source.contains("mod proof_graph;"));
     assert!(source.contains(".env(\"CARGO_TARGET_DIR\", \"target/xtask-host-release\")"));
+    assert!(source.contains("std::env::remove_var(\"CARGO_TARGET_DIR\")"));
     for command in ["plan", "candidate", "reconcile", "attest-success"] {
         assert!(
             ci_source.contains(&format!("Some(\"{command}\")")),
