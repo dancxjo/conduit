@@ -6,8 +6,10 @@
 
 use conduit_body::{
     AdmissionChallenge, AdmissionId, BodyBiographyEvidence, BodyId, HostOfferProjection,
-    MembershipCredential, MembershipCredentialId, PartId, PartReturnChallenge, SpawnInvitationId,
-    ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
+    MembershipCredential, MembershipCredentialId, OfferDisclosureRequest, OfferDisclosureStage,
+    PartId, PartReturnChallenge, SpawnInvitationId, ADMISSION_SIGNATURE_BYTES,
+    MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES, MAX_DISCLOSED_CAPABILITIES,
+    MAX_DISCLOSED_RESOURCES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
 use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
@@ -77,6 +79,15 @@ pub enum BrowserAdmissionIngress {
         host_id: HostId,
         boot_id: BootId,
         sequence: u64,
+    },
+    OfferDisclosureRequest {
+        protocol: u16,
+        credential_id: MembershipCredentialId,
+        body_id: BodyId,
+        part_id: PartId,
+        host_id: HostId,
+        boot_id: BootId,
+        request: OfferDisclosureRequest,
     },
     MediaResourceTruth {
         protocol: u16,
@@ -198,6 +209,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidMediaResource,
     InvalidBiographyEvidence,
     InvalidOfferEvidence,
+    InvalidOfferDisclosureRequest,
     InvalidSignal,
     InvalidGrant,
     OutputTooSmall,
@@ -385,6 +397,26 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
                 || !resource.flow_bounds.is_finite_and_valid()
             {
                 return Err(BrowserAdmissionFrameError::InvalidMediaResource);
+            }
+            protocol
+        }
+        BrowserAdmissionIngress::OfferDisclosureRequest {
+            protocol, request, ..
+        } => {
+            if request.stage != OfferDisclosureStage::Planning
+                || request.capability_ids.len() > MAX_DISCLOSED_CAPABILITIES
+                || request.resource_pool_ids.len() > MAX_DISCLOSED_RESOURCES
+                || (request.capability_ids.is_empty() && request.resource_pool_ids.is_empty())
+                || request
+                    .capability_ids
+                    .windows(2)
+                    .any(|pair| pair[0] >= pair[1])
+                || request
+                    .resource_pool_ids
+                    .windows(2)
+                    .any(|pair| pair[0] >= pair[1])
+            {
+                return Err(BrowserAdmissionFrameError::InvalidOfferDisclosureRequest);
             }
             protocol
         }

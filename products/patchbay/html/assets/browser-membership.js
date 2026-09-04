@@ -344,21 +344,26 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     } else if (frame.kind === "offer-evidence" && frame.protocol === 1) {
       const evidence = frame.evidence;
       const summary = evidence?.capability_summary;
-      if (!credential || evidence?.stage !== "AdmittedMembership" || evidence.protocol_version !== 1 ||
+      const admittedSummary = evidence?.stage === "AdmittedMembership";
+      const planningDetail = evidence?.stage === "Planning";
+      if (!credential || (!admittedSummary && !planningDetail) || evidence.protocol_version !== 1 ||
           evidence.host_id !== credential.host_id || evidence.boot_id !== credential.boot_id ||
           evidence.offer_generation !== advertisement.offer_generation ||
           typeof evidence.observation_sign_id !== "string" || evidence.observation_sign_id.length === 0 ||
           !Number.isSafeInteger(evidence.freshness_sequence) || evidence.freshness_sequence < 1 ||
           typeof evidence.profile !== "string" || evidence.profile !== advertisement.profile ||
-          !Array.isArray(summary) || summary.length > 16 || !Array.isArray(evidence.capabilities) ||
-          evidence.capabilities.length !== 0 || !Array.isArray(evidence.resources) || evidence.resources.length !== 0 ||
+          !Array.isArray(summary) || summary.length > 16 || !Array.isArray(evidence.capabilities) || evidence.capabilities.length > 16 || !Array.isArray(evidence.resources) || evidence.resources.length > 16 ||
+          (admittedSummary && (evidence.capabilities.length !== 0 || evidence.resources.length !== 0)) ||
+          (planningDetail && (summary.length !== 0 || evidence.capabilities.length + evidence.resources.length === 0)) ||
           summary.some((item, index) => typeof item?.capability_id !== "string" || item.capability_id.length === 0 ||
             typeof item.implementation_id !== "string" || item.implementation_id.length === 0 ||
             (index > 0 && summary[index - 1].capability_id >= item.capability_id))) {
         throw new Error("invalid admitted browser offer evidence");
       }
       const advertised = new Map(advertisement.capabilities.map(offer => [offer.capability_id, offer.implementation_id]));
-      if (summary.some(item => advertised.get(item.capability_id) !== item.implementation_id)) {
+      if (summary.some(item => advertised.get(item.capability_id) !== item.implementation_id) ||
+          evidence.capabilities.some(item => !advertisement.capabilities.some(offer => offer.capability_id === item.capability_id && JSON.stringify(offer) === JSON.stringify(item))) ||
+          evidence.resources.some(item => !advertisement.resources.some(offer => offer.pool_id === item.pool_id && JSON.stringify(offer) === JSON.stringify(item)))) {
         throw new Error("browser offer evidence does not match the current advertisement");
       }
       const freeze = value => { if (value && typeof value === "object" && !Object.isFrozen(value)) { Object.values(value).forEach(freeze);Object.freeze(value); } return value; };
@@ -525,12 +530,19 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       pendingMediaPlan = { resourceHandle: mediaEvidence.resource_handle, resolve, reject, timeout };
     });
   }
+  function requestOfferEvidence({ capabilityIds = [], resourcePoolIds = [] }) {
+    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) throw new Error("current Body membership is required for offer disclosure");
+    const canonical = values => Array.isArray(values) && values.length > 0 && values.length <= 16 && values.every((value, index) => typeof value === "string" && value.length > 0 && (index === 0 || values[index - 1] < value));
+    if ((!canonical(capabilityIds) && capabilityIds.length !== 0) || (!canonical(resourcePoolIds) && resourcePoolIds.length !== 0) || capabilityIds.length + resourcePoolIds.length === 0) throw new Error("offer disclosure selection must be finite and canonical");
+    socket.send(encoder.encode(JSON.stringify({kind:"offer-disclosure-request",protocol:1,credential_id:credential.credential_id,body_id:credential.body_id,part_id:credential.part_id,host_id:hostId,boot_id:bootId,request:{stage:"Planning",capability_ids:capabilityIds,resource_pool_ids:resourcePoolIds}})));
+  }
   return Object.freeze({
     hostId,
     bootId,
     membershipCredential: () => credential === undefined ? null : Object.freeze({ ...credential }),
     biographyEvidence: () => biographyEvidence,
     offerEvidence: () => offerEvidence,
+    requestOfferEvidence,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
