@@ -397,6 +397,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
     );
     assert!(workflow.contains("cancel-in-progress: false"));
+    assert!(workflow.contains("resolve:\n    runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
     assert!(workflow.contains(
@@ -409,7 +410,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
     assert!(workflow.contains(
-        "needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'"
+        "if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
+    ));
+    assert!(workflow.contains(
+        "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
     ));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert_eq!(workflow.matches("contents: write").count(), 2);
