@@ -80,6 +80,12 @@ test("an invited browser remains outside the Body until explicit join", async ({
   expect(admittedOfferEvidence.evidence.boot_id).toBe(admittedIdentity.bootId);
   expect(admittedOfferEvidence.evidence.capabilities).toEqual([]);
   expect(admittedOfferEvidence.evidence.resources).toEqual([]);
+  await expect.poll(async () => {
+    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+    return snapshot.body_host_offer_evidence?.boot_id;
+  }).toBe(admittedIdentity.bootId);
+  await expect(page.locator('[data-application-slot="body-membership-offers"]')).toContainText("SelfReported · display or diagnostic only");
+  await expect(page.locator('[data-application-slot="body-membership-offers"]')).toContainText(admittedOfferEvidence.evidence.observation_sign_id);
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()?.body_id)).toBe(bodyId);
   const admissionBiography = await page.evaluate(() => {
     const evidence = globalThis.__patchbayMembership.biographyEvidence();
@@ -179,6 +185,7 @@ test("an invited browser remains outside the Body until explicit join", async ({
   }).toEqual({ bodyId, evidenceRevision: 3, admittedParts: 2, currentHosts: 1 });
   const leftEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
   expect(leftEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
+  expect(await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json())).not.toHaveProperty("body_host_offer_evidence");
   await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 3 has unsaved Body changes.");
   await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 1 current Host");
   expect(await page.evaluate(() => ({
@@ -208,6 +215,10 @@ test("an invited browser remains outside the Body until explicit join", async ({
   const returnedOfferEvidence = await page.evaluate(() => globalThis.__patchbayMembership.offerEvidence());
   expect(returnedOfferEvidence.observation_sign_id).not.toBe(admittedOfferEvidence.evidence.observation_sign_id);
   expect(returnedOfferEvidence.capability_summary).toEqual(admittedOfferEvidence.evidence.capability_summary);
+  await expect.poll(async () => {
+    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+    return snapshot.body_host_offer_evidence?.boot_id;
+  }).toBe(returned.bootId);
   await expect.poll(async () => {
     const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
     return {
