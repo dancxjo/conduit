@@ -35,8 +35,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: book-pr-proof-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: book-pr-proof-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
 
 jobs:
   tour-browser:
@@ -50,6 +50,9 @@ jobs:
       NPM_CONFIG_FUND: "false"
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - name: Install the native Rust linker
         run: |
           apt-get update
@@ -81,3 +84,16 @@ jobs:
           --retries 0
           --grep
           "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
+      - name: Retain immutable Tour candidate evidence
+        run: >-
+          cargo xtask ci attest-success "${{ github.event.pull_request.head.sha }}" browser.tour
+          --evidence "workflow:${{ github.workflow }}"
+          --evidence "job:tour-browser"
+          --out target/ci-evidence/browser.tour.json
+      - name: Upload the content-addressed proof receipt
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-candidate-evidence-${{ github.event.pull_request.head.sha }}-browser-tour
+          path: target/ci-evidence/browser.tour.json
+          if-no-files-found: error
+          retention-days: 30

@@ -8,12 +8,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
+  CONDUIT_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || '' }}
+  CONDUIT_INTEGRATION_SHA: ${{ github.event.merge_group.head_sha || '' }}
+  CONDUIT_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+  CONDUIT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
 jobs:
   classify:
@@ -38,6 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
           fetch-depth: 0
       - name: Classify exact change set
         id: changes
@@ -69,12 +74,31 @@ jobs:
           --json-out target/ci-impact-plan.json
           --summary-out "$GITHUB_STEP_SUMMARY"
           >> "$GITHUB_OUTPUT"
+      - name: Fingerprint immutable candidate proof inputs
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
+        run: >-
+          cargo xtask ci candidate "$HEAD_SHA" --locked
+          --json-out target/ci-proof-plan.json
+          --summary-out "$GITHUB_STEP_SUMMARY"
+      - name: Fingerprint prospective integration proof inputs
+        if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'merge_group'
+        env:
+          BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
+        run: >-
+          cargo xtask ci reconcile "$BASE_SHA" "$HEAD_SHA" --locked
+          --json-out target/ci-proof-plan.json
+          --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the exact CI impact plan
         if: steps.impact.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
-          name: ci-impact-plan-${{ github.sha }}
-          path: target/ci-impact-plan.json
+          name: ci-plan-${{ steps.changes.outputs.head_sha }}
+          path: |
+            target/ci-impact-plan.json
+            target/ci-proof-plan.json
           if-no-files-found: error
           retention-days: 14
 
@@ -85,6 +109,8 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Restore the pinned bootloader archive
         id: limine-cache
         uses: actions/cache@v6
@@ -131,6 +157,8 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Prove mismatched tool identity refuses
         run: |
           bundle=$(mktemp -d)
@@ -206,6 +234,8 @@ jobs:
     name: workspace-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown,thumbv6m-none-eabi
@@ -241,6 +271,8 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Install the pinned ESP32-C3 Rust toolchain
         if: matrix.target == 'c3'
@@ -328,6 +360,8 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.62.0-noble
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Prove mismatched browser-tool identity refuses
         run: |
           bundle=$(mktemp -d)
@@ -410,6 +444,8 @@ jobs:
           test "$CLASSIFY_RESULT" = success
           test "$TOOLS_RESULT" = success
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Receive the exact browser-tool bundle
         uses: actions/download-artifact@v8
         with:
@@ -476,6 +512,8 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
@@ -525,6 +563,8 @@ jobs:
     name: conduitos-x86-${{ matrix.proof }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
       - uses: dtolnay/rust-toolchain@stable
@@ -596,6 +636,8 @@ jobs:
     name: conduitos-architecture-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
@@ -636,6 +678,8 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src

@@ -1,4 +1,5 @@
 mod impact;
+mod proof_graph;
 
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
@@ -24,6 +25,49 @@ enum CiCommand {
         #[arg(long)]
         summary_out: Option<PathBuf>,
     },
+    /// Plan proofs for one immutable candidate head.
+    Candidate {
+        /// Exact candidate commit SHA or ref.
+        head: String,
+        /// Previously retained proof receipts to consider, if any.
+        #[arg(long = "receipt")]
+        receipts: Vec<PathBuf>,
+        /// Write the machine-readable candidate plan to this path.
+        #[arg(long)]
+        json_out: Option<PathBuf>,
+        /// Write a Markdown summary to this path.
+        #[arg(long)]
+        summary_out: Option<PathBuf>,
+    },
+    /// Reconcile an immutable candidate with a current target base.
+    Reconcile {
+        /// Current target-branch commit SHA or ref.
+        base: String,
+        /// Exact immutable candidate commit SHA or ref.
+        head: String,
+        /// Previously retained proof receipts to consider, if any.
+        #[arg(long = "receipt")]
+        receipts: Vec<PathBuf>,
+        /// Write the machine-readable reconciliation plan to this path.
+        #[arg(long)]
+        json_out: Option<PathBuf>,
+        /// Write a Markdown summary to this path.
+        #[arg(long)]
+        summary_out: Option<PathBuf>,
+    },
+    /// Record a successful proof only after its command has completed.
+    AttestSuccess {
+        /// Exact candidate commit SHA or ref that was proved.
+        head: String,
+        /// Registered proof identifier whose command just succeeded.
+        proof_id: String,
+        /// Non-empty machine-readable or human-readable evidence locator.
+        #[arg(long)]
+        evidence: Vec<String>,
+        /// Write the canonical receipt to this path.
+        #[arg(long)]
+        out: PathBuf,
+    },
 }
 
 pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
@@ -34,5 +78,35 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
             json_out,
             summary_out,
         } => impact::run(&base, &head, json_out.as_deref(), summary_out.as_deref()),
+        CiCommand::Candidate {
+            head,
+            receipts,
+            json_out,
+            summary_out,
+        } => proof_graph::candidate(
+            &head,
+            &receipts,
+            json_out.as_deref(),
+            summary_out.as_deref(),
+        ),
+        CiCommand::Reconcile {
+            base,
+            head,
+            receipts,
+            json_out,
+            summary_out,
+        } => proof_graph::reconcile(
+            &base,
+            &head,
+            &receipts,
+            json_out.as_deref(),
+            summary_out.as_deref(),
+        ),
+        CiCommand::AttestSuccess {
+            head,
+            proof_id,
+            evidence,
+            out,
+        } => proof_graph::attest_success(&head, &proof_id, &evidence, &out),
     }
 }
