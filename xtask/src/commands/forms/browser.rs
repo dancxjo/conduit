@@ -1,8 +1,8 @@
 //! Fresh-process execution of inventory-declared browser-safe Form proofs.
 
 use super::{
-    catalogs, check_one, deterministic::bounded_reason, load_inventory, result, reusable,
-    FormProofResult, InventoryForm, Report, REPORT_SCHEMA,
+    catalogs, check_one, composition, deterministic::bounded_reason, load_inventory, result,
+    reusable, FormProofResult, InventoryForm, Report, REPORT_SCHEMA,
 };
 use crate::cli::GlobalOpts;
 use std::collections::BTreeMap;
@@ -98,6 +98,7 @@ pub(super) fn build_report(root: &Path, opts: &GlobalOpts) -> Result<Report, Str
             results.push(proof);
         }
         results.extend(reusable::check_all(root, form, &source_path, &catalogs));
+        results.extend(composition::check_all(root, form, &source_path, &catalogs));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,

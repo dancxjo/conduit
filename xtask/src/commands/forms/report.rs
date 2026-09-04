@@ -1,8 +1,8 @@
 //! Side-effect-free projection of checked Form and declared proof availability.
 
 use super::{
-    browser, catalogs, check_one, deterministic, load_inventory, result, reusable, Report,
-    REPORT_SCHEMA,
+    browser, catalogs, check_one, composition, deterministic, load_inventory, result, reusable,
+    Report, REPORT_SCHEMA,
 };
 use std::path::Path;
 use std::time::Instant;
@@ -57,6 +57,7 @@ pub(super) fn build(root: &Path) -> Result<Report, String> {
             }
         }
         results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
+        results.extend(composition::check_all(root, &form, &source_path, &catalogs));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,
@@ -75,28 +76,33 @@ mod tests {
     fn static_report_has_every_mode_without_execution_claims() {
         let root = crate::workspace::workspace_root().unwrap();
         let report = build(&root).unwrap();
-        assert_eq!(report.results.len(), 35 * 3 + 10);
+        assert_eq!(report.results.len(), 35 * 3 + 10 * 2);
         for slug in report
             .results
             .iter()
-            .filter(|result| result.proof_mode != "reusable-check")
+            .filter(|result| !matches!(result.proof_mode, "reusable-check" | "composition-check"))
             .map(|result| &result.slug)
             .collect::<std::collections::BTreeSet<_>>()
         {
             let modes = report
                 .results
                 .iter()
-                .filter(|result| &result.slug == slug && result.proof_mode != "reusable-check")
+                .filter(|result| {
+                    &result.slug == slug
+                        && !matches!(result.proof_mode, "reusable-check" | "composition-check")
+                })
                 .map(|result| result.proof_mode)
                 .collect::<std::collections::BTreeSet<_>>();
             assert_eq!(modes, ["browser-safe", "check", "deterministic"].into());
         }
         assert!(report.results.iter().all(|result| {
-            matches!(result.proof_mode, "check" | "reusable-check")
-                || (result.plan_id.is_none()
-                    && result.play_id.is_none()
-                    && result.duration_millis == 0
-                    && result.status != "passed")
+            matches!(
+                result.proof_mode,
+                "check" | "reusable-check" | "composition-check"
+            ) || (result.plan_id.is_none()
+                && result.play_id.is_none()
+                && result.duration_millis == 0
+                && result.status != "passed")
         }));
     }
 }

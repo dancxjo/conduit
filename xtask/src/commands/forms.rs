@@ -3,15 +3,18 @@
 use crate::cli::GlobalOpts;
 use clap::{Args, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 #[path = "forms/browser.rs"]
 mod browser;
+#[path = "forms/composition.rs"]
+mod composition;
 #[path = "forms/deterministic.rs"]
 mod deterministic;
+#[path = "forms/inventory.rs"]
+mod inventory;
 #[path = "forms/report.rs"]
 mod report;
 #[path = "forms/reusable.rs"]
@@ -20,9 +23,11 @@ mod reusable;
 #[path = "forms/tests.rs"]
 mod tests;
 
+use inventory::load_inventory;
+
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
-const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v2";
+const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v3";
 
 #[derive(Args, Debug)]
 pub struct FormsArgs {
@@ -83,6 +88,13 @@ pub(super) struct InventoryForm {
 pub(super) struct ReusableForm {
     pub(super) entry: String,
     pub(super) title: String,
+    pub(super) composition: Option<CompositionOracle>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CompositionOracle {
+    pub(super) parent: String,
+    pub(super) occurrences: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +129,9 @@ pub(super) struct FormProofResult {
     form_entry: String,
     source_document_id: Option<String>,
     checked_form_id: Option<String>,
+    composition_root_entry: Option<String>,
+    composition_root_checked_form_id: Option<String>,
+    gear_occurrences: Vec<String>,
     proof_mode: &'static str,
     environment_profile: &'static str,
     duration_millis: u128,
@@ -260,6 +275,7 @@ fn build_report(
             )),
         }
         results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
+        results.extend(composition::check_all(root, &form, &source_path, &catalogs));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,
@@ -286,6 +302,9 @@ fn result(
         form_entry: form.entry.clone(),
         source_document_id: identities.as_ref().map(|item| item.0.clone()),
         checked_form_id: identities.map(|item| item.1),
+        composition_root_entry: None,
+        composition_root_checked_form_id: None,
+        gear_occurrences: Vec::new(),
         proof_mode: mode,
         environment_profile: "repository/standard-semantic-catalog@1",
         duration_millis: duration,
@@ -296,85 +315,6 @@ fn result(
         reason: reason.into(),
         evidence_artifacts: vec![INVENTORY_PATH.into(), path.into()],
     }
-}
-
-fn load_inventory(root: &Path) -> Result<Inventory, String> {
-    let bytes = fs::read_to_string(root.join(INVENTORY_PATH)).map_err(|error| error.to_string())?;
-    let inventory: Inventory = toml::from_str(&bytes).map_err(|error| error.to_string())?;
-    let reviewed_subjects = inventory
-        .forms
-        .iter()
-        .map(|form| 1 + form.reusable_entries.len())
-        .sum::<usize>();
-    if inventory.schema != INVENTORY_SCHEMA
-        || inventory.forms.is_empty()
-        || reviewed_subjects > inventory.maximum_forms
-    {
-        return Err("reviewed Form inventory violates its schema or finite bound".into());
-    }
-    let mut slugs = BTreeSet::new();
-    let mut browser_oracles = BTreeSet::new();
-    for form in &inventory.forms {
-        if form.slug.is_empty()
-            || form.title.is_empty()
-            || form.entry.is_empty()
-            || !slugs.insert(&form.slug)
-        {
-            return Err("reviewed Form inventory contains an empty or duplicate identity".into());
-        }
-        if !reusable_entries_are_valid(form) {
-            return Err(format!(
-                "reviewed Form '{}' contains an empty or duplicate reusable identity",
-                form.slug
-            ));
-        }
-        if let Some(oracle) = &form.browser_safe {
-            if oracle.case.is_empty()
-                || oracle.case.len() > 160
-                || !oracle.spec.starts_with("proof/browser/")
-                || !oracle.spec.ends_with(".spec.mjs")
-                || oracle.spec.contains("..")
-                || !root.join(&oracle.spec).is_file()
-                || !browser_oracles.insert((&oracle.spec, &oracle.case))
-            {
-                return Err(format!(
-                    "reviewed Form '{}' has an invalid or duplicate browser-safe oracle",
-                    form.slug
-                ));
-            }
-        }
-    }
-    let declared: BTreeSet<String> = slugs.into_iter().cloned().collect();
-    let mut present = BTreeSet::new();
-    for entry in fs::read_dir(root.join("forms")).map_err(|error| error.to_string())? {
-        let entry = entry.map_err(|error| error.to_string())?;
-        if entry
-            .file_type()
-            .map_err(|error| error.to_string())?
-            .is_dir()
-            && entry.path().join("main.conduit").is_file()
-        {
-            present.insert(
-                entry
-                    .file_name()
-                    .into_string()
-                    .map_err(|_| "non-UTF-8 Form path")?,
-            );
-        }
-    }
-    if declared != present {
-        return Err(format!("reviewed Form inventory mismatch: declared {declared:?}, canonical sources {present:?}"));
-    }
-    Ok(inventory)
-}
-
-fn reusable_entries_are_valid(form: &InventoryForm) -> bool {
-    let mut entries = BTreeSet::from([form.entry.as_str()]);
-    form.reusable_entries.iter().all(|reusable| {
-        !reusable.entry.is_empty()
-            && !reusable.title.is_empty()
-            && entries.insert(reusable.entry.as_str())
-    })
 }
 
 fn check_one(
