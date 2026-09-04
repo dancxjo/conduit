@@ -1,10 +1,9 @@
 use super::*;
-use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
 use conduit_core::{
     bind_active_play, AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId,
-    CheckedFormId, ConnectionId, FragmentId, HostProfileId, KindId, LineId, LinkBindingId,
-    LinkEndpointId, LinkLimits, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
-    SignId, SourceDocumentId, PROTOCOL_VERSION,
+    ConnectionId, FragmentId, HostProfileId, KindId, LineId, LinkBindingId, LinkEndpointId,
+    LinkLimits, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId, SignId,
+    PROTOCOL_VERSION,
 };
 use conduit_human::{MediaConstraints, MediaFlowBounds};
 use conduit_wire::{
@@ -126,42 +125,6 @@ fn bounded_advertisement_round_trips_without_creating_membership() {
 }
 
 #[test]
-fn bounded_validated_biography_evidence_round_trips_separately_from_admission() {
-    let body = Body::born(
-        SourceDocumentId::from("source/browser-biography-frame"),
-        CheckedFormId::from("checked/browser-biography-frame"),
-        1,
-        SignId::from("sign/browser-biography-frame/born"),
-    )
-    .unwrap();
-    let membership = BodyMembership::new(body.body_id.clone()).unwrap();
-    let evidence = BodyBiographyEvidence::born(body, membership, "Biography frame".into()).unwrap();
-    let frame = BrowserAdmissionEgress::BiographyEvidence {
-        protocol: BROWSER_ADMISSION_PROTOCOL,
-        evidence: Box::new(evidence.clone()),
-    };
-    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
-    let length = encode_browser_admission_frame(&frame, &mut output).unwrap();
-    assert_eq!(
-        serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),
-        frame
-    );
-
-    let mut malformed = evidence;
-    malformed.body_id = serde_json::from_str("\"body/wrong\"").unwrap();
-    assert_eq!(
-        encode_browser_admission_frame(
-            &BrowserAdmissionEgress::BiographyEvidence {
-                protocol: BROWSER_ADMISSION_PROTOCOL,
-                evidence: Box::new(malformed),
-            },
-            &mut output,
-        ),
-        Err(BrowserAdmissionFrameError::InvalidBiographyEvidence)
-    );
-}
-
-#[test]
 fn acquired_media_truth_and_later_use_plan_are_exact_bounded_frames() {
     let resource = AcquiredMediaResource {
         host_id: HostId::from("browser/media"),
@@ -227,6 +190,11 @@ fn acquired_media_truth_and_later_use_plan_are_exact_bounded_frames() {
         plan
     );
 }
+
+#[path = "biography_evidence_tests.rs"]
+mod biography_evidence_tests;
+#[path = "offer_evidence_tests.rs"]
+mod offer_evidence_tests;
 
 #[test]
 fn malformed_oversized_and_bad_key_frames_are_distinct() {

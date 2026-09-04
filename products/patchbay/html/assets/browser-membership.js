@@ -44,7 +44,7 @@ function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = 
   return Object.freeze({ ...candidate });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
@@ -126,6 +126,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   let credential = priorCredential;
   let credentialPersistence = Promise.resolve();
   let biographyEvidence = null;
+  let offerEvidence = null;
   let renewalTimer;
   let renewalSequence = 1;
   let socket;
@@ -316,6 +317,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
         bootId,
         prior: returning ? credential : null,
       });
+      offerEvidence = null;
       credentialPersistence = Promise.resolve(onCredential?.(credential));
       await credentialPersistence;
       setState("admitted");
@@ -339,6 +341,29 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       biographyEvidence = freeze(evidence);
       onBiographyEvidence?.(biographyEvidence);
       if (detached) socket.close(1000, "Body recorded browser Host leave");
+    } else if (frame.kind === "offer-evidence" && frame.protocol === 1) {
+      const evidence = frame.evidence;
+      const summary = evidence?.capability_summary;
+      if (!credential || evidence?.stage !== "AdmittedMembership" || evidence.protocol_version !== 1 ||
+          evidence.host_id !== credential.host_id || evidence.boot_id !== credential.boot_id ||
+          evidence.offer_generation !== advertisement.offer_generation ||
+          typeof evidence.observation_sign_id !== "string" || evidence.observation_sign_id.length === 0 ||
+          !Number.isSafeInteger(evidence.freshness_sequence) || evidence.freshness_sequence < 1 ||
+          typeof evidence.profile !== "string" || evidence.profile !== advertisement.profile ||
+          !Array.isArray(summary) || summary.length > 16 || !Array.isArray(evidence.capabilities) ||
+          evidence.capabilities.length !== 0 || !Array.isArray(evidence.resources) || evidence.resources.length !== 0 ||
+          summary.some((item, index) => typeof item?.capability_id !== "string" || item.capability_id.length === 0 ||
+            typeof item.implementation_id !== "string" || item.implementation_id.length === 0 ||
+            (index > 0 && summary[index - 1].capability_id >= item.capability_id))) {
+        throw new Error("invalid admitted browser offer evidence");
+      }
+      const advertised = new Map(advertisement.capabilities.map(offer => [offer.capability_id, offer.implementation_id]));
+      if (summary.some(item => advertised.get(item.capability_id) !== item.implementation_id)) {
+        throw new Error("browser offer evidence does not match the current advertisement");
+      }
+      const freeze = value => { if (value && typeof value === "object" && !Object.isFrozen(value)) { Object.values(value).forEach(freeze);Object.freeze(value); } return value; };
+      offerEvidence = freeze(evidence);
+      onOfferEvidence?.(offerEvidence);
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
       await credentialPersistence;
       if (!credential || (!returning && frame.sequence !== renewalSequence)) {
@@ -505,6 +530,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     bootId,
     membershipCredential: () => credential === undefined ? null : Object.freeze({ ...credential }),
     biographyEvidence: () => biographyEvidence,
+    offerEvidence: () => offerEvidence,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,

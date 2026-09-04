@@ -70,6 +70,16 @@ test("an invited browser remains outside the Body until explicit join", async ({
   expect(membershipCredential.credential.body_id).toBe(bodyId);
   expect(membershipCredential.credential.host_id).toBe(admittedIdentity.hostId);
   expect(membershipCredential.credential.boot_id).toBe(admittedIdentity.bootId);
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.host_id)).toBe(admittedIdentity.hostId);
+  const admittedOfferEvidence = await page.evaluate(() => {
+    const evidence = globalThis.__patchbayMembership.offerEvidence();
+    return { evidence, frozen: Object.isFrozen(evidence) && Object.isFrozen(evidence.capability_summary) };
+  });
+  expect(admittedOfferEvidence.frozen).toBe(true);
+  expect(admittedOfferEvidence.evidence.stage).toBe("AdmittedMembership");
+  expect(admittedOfferEvidence.evidence.boot_id).toBe(admittedIdentity.bootId);
+  expect(admittedOfferEvidence.evidence.capabilities).toEqual([]);
+  expect(admittedOfferEvidence.evidence.resources).toEqual([]);
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()?.body_id)).toBe(bodyId);
   const admissionBiography = await page.evaluate(() => {
     const evidence = globalThis.__patchbayMembership.biographyEvidence();
@@ -194,6 +204,10 @@ test("an invited browser remains outside the Body until explicit join", async ({
   expect(returned.credential.part_id).toBe(membershipCredential.credential.part_id);
   expect(returned.credential.credential_id).not.toBe(membershipCredential.credential.credential_id);
   expect(returned.credential.boot_id).toBe(returned.bootId);
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.boot_id)).toBe(returned.bootId);
+  const returnedOfferEvidence = await page.evaluate(() => globalThis.__patchbayMembership.offerEvidence());
+  expect(returnedOfferEvidence.observation_sign_id).not.toBe(admittedOfferEvidence.evidence.observation_sign_id);
+  expect(returnedOfferEvidence.capability_summary).toEqual(admittedOfferEvidence.evidence.capability_summary);
   await expect.poll(async () => {
     const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
     return {

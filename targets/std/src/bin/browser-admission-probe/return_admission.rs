@@ -1,6 +1,6 @@
 use conduit_body::{
-    AdmissionManager, BodyBiographyEvidence, BodyMembership, HostPresenceTable,
-    MembershipCredential, PartReturnProof,
+    AdmissionManager, BodyBiographyEvidence, BodyMembership, CandidateObservation,
+    DiscoveryProofId, HostPresenceTable, MembershipCredential, PartReturnProof,
 };
 use conduit_core::{LinkBindingId, SignId};
 use conduit_std_host::browser_admission::{
@@ -9,6 +9,7 @@ use conduit_std_host::browser_admission::{
 };
 use std::time::Instant;
 
+use super::offer_evidence::send_admitted_offer_evidence;
 use super::return_session::wait_for_return_close;
 
 #[allow(clippy::too_many_arguments)]
@@ -26,10 +27,10 @@ pub(super) fn accept_return(
     let mut socket = listener
         .accept()
         .map_err(|error| format!("accept returning browser: {error:?}"))?;
-    let (return_credential, advertisement) = match socket
-        .receive()
-        .map_err(|error| format!("receive return advertisement: {error:?}"))?
-    {
+    let (frame, encoded_bytes) = socket
+        .receive_with_size()
+        .map_err(|error| format!("receive return advertisement: {error:?}"))?;
+    let (return_credential, advertisement) = match frame {
         BrowserAdmissionIngress::ReturnAdvertise {
             credential: returned,
             advertisement,
@@ -58,6 +59,23 @@ pub(super) fn accept_return(
         })
         .map_err(|error| format!("send return challenge: {error:?}"))?;
     let proof = receive_return_proof(&mut socket)?;
+    let return_sign = SignId::from("sign/browser-admission-probe/returned");
+    let offer_observation = CandidateObservation {
+        advertisement: advertisement.clone(),
+        friendly_label: "Returning browser".into(),
+        observed_binding_id: LinkBindingId::from(
+            "line/browser-admission-probe/return-advertisement",
+        ),
+        observation_sign_id: return_sign.clone(),
+        proof_id: DiscoveryProofId::bind(proof.admission_id.as_str())
+            .map_err(|error| format!("bind return offer proof: {error:?}"))?,
+        freshness_sequence: membership
+            .revision
+            .0
+            .checked_add(1)
+            .ok_or("return offer freshness sequence exhausted")?,
+        encoded_bytes,
+    };
     let return_session = LinkBindingId::from("line/browser-admission-probe/session-2");
     let observed_at_millis = monotonic_millis(clock)?;
     let prior_membership_events = membership.events.len();
@@ -77,7 +95,7 @@ pub(super) fn accept_return(
                     &advertisement,
                     &proof,
                     observed_at_millis,
-                    SignId::from("sign/browser-admission-probe/returned"),
+                    return_sign,
                 )
                 .map_err(|error| format!("complete browser return: {error:?}"))
         },
@@ -111,6 +129,7 @@ pub(super) fn accept_return(
             })
             .map_err(|error| format!("send return biography evidence: {error:?}"))?;
     }
+    send_admitted_offer_evidence(&mut socket, &offer_observation)?;
     if let Err(error) = socket.send(&BrowserAdmissionEgress::PresenceAccepted {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         sequence: return_sequence,
