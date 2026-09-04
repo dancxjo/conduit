@@ -71,6 +71,9 @@ pub struct RendererSnapshot {
     /// Current, display-only evidence reported by an admitted Host.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_host_offer_evidence: Option<conduit_body::HostOfferProjection>,
+    /// Explicitly policy-admitted current offer detail; not itself a Plan.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_host_planning_offer: Option<conduit_body::HostOfferProjection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debugger: Option<DebuggerPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

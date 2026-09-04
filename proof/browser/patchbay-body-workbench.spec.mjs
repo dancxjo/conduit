@@ -95,6 +95,12 @@ test("an invited browser remains outside the Body until explicit join", async ({
   expect(requestedEvidence.resources).toEqual([]);
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
   await expect(page.locator("#body-capability-evidence-status")).toContainText("display only");
+  await page.getByRole("button", { name: "Allow as planning input", exact: true }).click();
+  await expect(page.locator("#body-capability-evidence-status")).toHaveText("Current self-report admitted by explicit policy for planning · replan not requested.");
+  const planningInput = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+  expect(planningInput.body_host_planning_offer.stage).toBe("Planning");
+  expect(planningInput.body_host_planning_offer.capabilities.map(offer => offer.capability_id)).toEqual([selectedCapability]);
+  expect(planningInput.interaction.last_disposition).toBe("Succeeded(PlanningInputAdmitted;ReplanNotRequested)");
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()?.body_id)).toBe(bodyId);
   const admissionBiography = await page.evaluate(() => {
     const evidence = globalThis.__patchbayMembership.biographyEvidence();
@@ -195,6 +201,7 @@ test("an invited browser remains outside the Body until explicit join", async ({
   const leftEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
   expect(leftEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
   expect(await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json())).not.toHaveProperty("body_host_offer_evidence");
+  expect(await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json())).not.toHaveProperty("body_host_planning_offer");
   await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 3 has unsaved Body changes.");
   await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 1 current Host");
   expect(await page.evaluate(() => ({

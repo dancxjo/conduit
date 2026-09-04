@@ -184,6 +184,7 @@ impl PatchbayHtmlServer {
         ));
         snapshot.interaction.last_disposition = Some("Succeeded".into());
         snapshot.body_host_offer_evidence = self.snapshot.body_host_offer_evidence.clone();
+        snapshot.body_host_planning_offer = self.snapshot.body_host_planning_offer.clone();
         self.body_workload = Some(candidate);
         self.snapshot = snapshot;
         self.navigation = super::navigation_state(&self.snapshot)?;
