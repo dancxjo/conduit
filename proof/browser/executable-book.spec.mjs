@@ -851,6 +851,51 @@ form substituted-form {
   await expect(page.locator(".runner")).toHaveCount(0);
 });
 
+test("Form Gallery browses exact canonical Forms in the one production laboratory", async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.__galleryAuthorityRequests = 0;
+    for (const name of ["mediaDevices", "serial", "usb"]) {
+      const value = name === "mediaDevices"
+        ? { getUserMedia: async () => { globalThis.__galleryAuthorityRequests += 1; throw new Error("unexpected media authority"); } }
+        : { [name === "serial" ? "requestPort" : "requestDevice"]: async () => { globalThis.__galleryAuthorityRequests += 1; throw new Error("unexpected device authority"); } };
+      Object.defineProperty(navigator, name, { configurable: true, value });
+    }
+  });
+  await openStep(page, 0);
+  await page.getByRole("button", { name: "Form Gallery" }).click();
+  await expect(page).toHaveTitle("Form Gallery · Tour");
+  await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
+  const cards = page.locator(".form-gallery-card");
+  await expect(cards).toHaveCount(3);
+  await expect(page.locator(".book-workbench")).toHaveCount(1);
+  await expect(page.locator(".runner")).toHaveCount(1);
+  await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
+
+  const search = page.getByRole("searchbox", { name: "Search reviewed Forms" });
+  await search.fill("memory presentation/text");
+  await expect(page.locator(".form-gallery-card:visible")).toHaveCount(1);
+  await expect(page.getByRole("status").filter({ hasText: "1 reviewed Form" })).toBeVisible();
+  await search.fill("🌀".repeat(40));
+  await expect(page.getByRole("status").filter({ hasText: "outside the admitted 128-byte bound" })).toBeVisible();
+  await search.fill("");
+
+  const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
+  const reviewedIdentity = await memory.locator("code").textContent();
+  await memory.getByRole("button", { name: "Open in laboratory" }).click();
+  const laboratory = page.locator(".book-workbench");
+  await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
+  await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
+  await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  await expect(laboratory.locator(".morse")).toHaveText("READY");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
+  await expect(page.getByRole("link", { name: "Add to new Body" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Guided Tour" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeVisible();
+});
+
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));

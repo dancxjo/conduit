@@ -38,6 +38,11 @@ pub extern "C" fn conduit_browser_form_human_machinery() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_form_reviewed_gallery() -> i32 {
+    abi::conduit_book_reviewed_gallery()
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_form_admit_source_interaction(
     source_length: usize,
     sequence: u64,
