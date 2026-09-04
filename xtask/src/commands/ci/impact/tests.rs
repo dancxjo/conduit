@@ -487,11 +487,37 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(!unproved_creche_presentation.full_fallback);
     assert!(unproved_creche_presentation.browser_required);
 
-    for path in ["Cargo.lock", ".github/workflows/check.yml"] {
-        let global = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
-        assert!(global.full_fallback, "{path}");
-        assert!(global.workspace_shards.values().all(|required| *required));
-    }
+    let global = plan_for_paths(&root, vec!["Cargo.lock".to_owned()], &packages).unwrap();
+    assert!(global.full_fallback);
+    assert!(global.workspace_shards.values().all(|required| *required));
+
+    let check_only = plan_for_paths(
+        &root,
+        vec![".github/workflows/check.yml".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(!check_only.full_fallback);
+    assert!(!check_only.pages_products_required);
+    assert!(check_only.workspace_lint_full);
+    assert!(check_only
+        .workspace_shards
+        .values()
+        .all(|required| *required));
+    assert!(check_only.esp32_required);
+    assert!(check_only.browser_required);
+    assert!(check_only.conduitos_required);
+
+    let check_and_product = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/check.yml".to_owned(),
+            "products/tour/assets/book.css".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(check_and_product.pages_products_required);
 
     let path = ".github/workflows/executable-book-pages.yml";
     let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
