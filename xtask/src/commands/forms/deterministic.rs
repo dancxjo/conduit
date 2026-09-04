@@ -14,6 +14,7 @@ const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 struct ExecutionEvidence {
     plan_id: String,
     play_id: String,
+    workload_revision: Option<u64>,
 }
 
 pub(super) fn availability(
@@ -153,7 +154,7 @@ pub(super) fn run_reusable(
     proof
 }
 
-fn execute(
+pub(super) fn execute(
     root: &Path,
     form: &InventoryForm,
     path: &str,
@@ -201,6 +202,13 @@ fn execute(
                     Ok(evidence) => {
                         proof.plan_id = Some(evidence.plan_id);
                         proof.play_id = Some(evidence.play_id);
+                        proof.workload_revision = evidence.workload_revision;
+                        if oracle.workload_revision_evidence && proof.workload_revision.is_none() {
+                            proof.status = "failed".into();
+                            proof.reason =
+                                "deterministic oracle passed without exact workload revision evidence"
+                                    .into();
+                        }
                     }
                     Err(reason) => {
                         proof.status = "failed".into();
@@ -313,6 +321,7 @@ mod tests {
             test: "fixture".into(),
             case: "fixture".into(),
             plan_play_evidence: false,
+            workload_revision_evidence: false,
         });
         assert_eq!(
             availability(&item, "forms/fixture/main.conduit", None).status,
@@ -339,6 +348,7 @@ mod tests {
         let parsed = evidence(&output).unwrap();
         assert_eq!(parsed.plan_id, "plan/1");
         assert_eq!(parsed.play_id, "play/1");
+        assert_eq!(parsed.workload_revision, None);
 
         let missing = Output {
             status: success_status(),

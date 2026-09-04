@@ -1,6 +1,6 @@
 //! Finite reviewed Form inventory loading and structural validation.
 
-use super::{Inventory, InventoryForm, INVENTORY_PATH, INVENTORY_SCHEMA};
+use super::{CombinedWorkload, Inventory, InventoryForm, INVENTORY_PATH, INVENTORY_SCHEMA};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
@@ -16,8 +16,22 @@ pub(super) fn load_inventory(root: &Path) -> Result<Inventory, String> {
     if inventory.schema != INVENTORY_SCHEMA
         || inventory.forms.is_empty()
         || reviewed_subjects > inventory.maximum_forms
+        || inventory.combined_workloads.is_empty()
+        || inventory.maximum_combined_workloads == 0
+        || inventory.combined_workloads.len() > inventory.maximum_combined_workloads
     {
         return Err("reviewed Form inventory violates its schema or finite bound".into());
+    }
+    let mut workload_slugs = BTreeSet::new();
+    for workload in &inventory.combined_workloads {
+        if !combined_workload_is_valid(workload, &inventory.forms)
+            || !workload_slugs.insert(workload.slug.as_str())
+        {
+            return Err(format!(
+                "reviewed combined workload '{}' is invalid or duplicate",
+                workload.slug
+            ));
+        }
     }
     let mut slugs = BTreeSet::new();
     let mut browser_oracles = BTreeSet::new();
@@ -75,6 +89,22 @@ pub(super) fn load_inventory(root: &Path) -> Result<Inventory, String> {
         ));
     }
     Ok(inventory)
+}
+
+fn combined_workload_is_valid(workload: &CombinedWorkload, forms: &[InventoryForm]) -> bool {
+    let mut entries = BTreeSet::new();
+    !workload.slug.is_empty()
+        && !workload.title.is_empty()
+        && workload.entries.len() >= 2
+        && workload.entries.len() <= conduit_body::MAX_BODY_FORMS
+        && workload.deterministic.plan_play_evidence
+        && workload.deterministic.workload_revision_evidence
+        && workload.entries.iter().all(|entry| {
+            entries.insert((entry.slug.as_str(), entry.entry.as_str()))
+                && forms
+                    .iter()
+                    .any(|form| form.slug == entry.slug && form.entry == entry.entry)
+        })
 }
 
 pub(super) fn reusable_entries_are_valid(form: &InventoryForm) -> bool {

@@ -184,6 +184,7 @@ fn one_source_failure_does_not_prevent_later_inventory_results() {
         root.join("forms/inventory.toml"),
         r#"schema = "conduit.reviewed-form-inventory/v1"
 maximum_forms = 2
+maximum_combined_workloads = 1
 
 [[forms]]
 slug = "bad"
@@ -196,6 +197,16 @@ title = "Good"
 entry = "good"
 deterministic_not_applicable = "checking-only fixture"
 browser_safe_not_applicable = "checking-only fixture"
+
+[[combined_workloads]]
+slug = "fixture-workload"
+title = "Fixture Workload"
+workload_revision = 0
+entries = [
+  { slug = "bad", entry = "bad" },
+  { slug = "good", entry = "good" },
+]
+deterministic = { package = "fixture", test = "fixture", case = "fixture", plan_play_evidence = true, workload_revision_evidence = true }
 "#,
     )
     .unwrap();
@@ -214,5 +225,35 @@ browser_safe_not_applicable = "checking-only fixture"
         result.slug == "good"
             && result.proof_mode == "deterministic"
             && result.status == "not_applicable"
+    }));
+}
+
+#[test]
+fn combined_workload_is_projected_without_static_execution_claims() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
+    let combined = report
+        .results
+        .iter()
+        .filter(|result| result.proof_mode == "combined-deterministic")
+        .collect::<Vec<_>>();
+    assert_eq!(combined.len(), 3);
+    assert_eq!(
+        combined
+            .iter()
+            .map(|result| result.slug.as_str())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["desk-telegraph", "memory-lantern", "morse-network"])
+    );
+    assert!(combined.iter().all(|result| {
+        result.status == "unavailable"
+            && result.workload_slug.as_deref() == Some("initial-three-form-body")
+            && result.workload_title.as_deref() == Some("Initial Three-Form Body")
+            && result.duration_millis == 0
+            && result.workload_revision.is_none()
+            && result.plan_id.is_none()
+            && result.play_id.is_none()
+            && result.source_document_id.is_some()
+            && result.checked_form_id.is_some()
     }));
 }
