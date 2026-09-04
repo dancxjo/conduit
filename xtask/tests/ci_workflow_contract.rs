@@ -220,6 +220,12 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
         .expect("read proof registry");
     assert!(registry.contains("environment: \"ubuntu-rust-1.98.1-v1\""));
     assert!(!registry.contains("ubuntu-stable-rust"));
+    let host_release = fs::read_to_string(root.join("xtask/src/commands/host_release.rs"))
+        .expect("read Host release fabrication");
+    assert!(
+        !host_release.contains("+stable"),
+        "Host release must inherit the exact repository toolchain"
+    );
 
     let check = fs::read_to_string(workflows.join("check.yml")).expect("read check workflow");
     let products = fs::read_to_string(workflows.join("executable-book-pages.yml"))
