@@ -90,12 +90,9 @@ pub fn live_indicator_advertisement(
         return Err(IndicatorRefusal::UnsupportedMode);
     }
 
-    let source = conduit_signal_conformance::distributed_source_advertisement_for(
-        observation.host_id.clone(),
-        observation.boot_id.clone(),
-    );
-    let mut pulse = source.capabilities[0].clone();
+    let mut pulse = conduit_std_offers::signal_pulse_offer();
     pulse.capability_id = CapabilityId::from("pete/create1-indicator-pulse@1");
+    pulse.limits.max_active_instances = 1;
     pulse.limits.max_queue_items = 4;
     pulse.limits.max_queue_bytes = 4 * conduit_signal::SIGNAL_ENCODED_LEN;
     let present_authority =
@@ -283,6 +280,15 @@ mod tests {
         let plan = create_indicator_plan(&observation(), true).unwrap();
         assert_eq!(plan.fragments.len(), 1);
         assert_eq!(plan.fragments[0].placements.len(), 2);
+        let pulse = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| placement.kind_id == conduit_signal::pulse_kind())
+            .expect("plan selects the std pulse offer");
+        assert_eq!(
+            pulse.implementation_id.as_str(),
+            conduit_std_offers::SIGNAL_PULSE_STD_IMPLEMENTATION
+        );
         let encoded = serde_json::to_string(&plan).unwrap();
         assert!(encoded.contains(INDICATOR_IMPLEMENTATION));
         assert!(!encoded.contains(crate::CREATE_DRIVE_IMPLEMENTATION));

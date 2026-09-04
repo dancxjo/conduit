@@ -37,7 +37,8 @@ const SOURCE_BOOT: &str = "product/std-source/boot-1";
 #[cfg(test)]
 const SINK_BOOT: &str = "product/std-sink/boot-1";
 const MAXIMUM_VALUES: usize = 16;
-const MAXIMUM_FRAME_BYTES: u32 = conduit_signal_conformance::DISTRIBUTED_MAXIMUM_FRAME_BYTES;
+pub(crate) const PRODUCT_WEBSOCKET_MAXIMUM_FRAME_BYTES: u32 = 2_048;
+const MAXIMUM_FRAME_BYTES: u32 = PRODUCT_WEBSOCKET_MAXIMUM_FRAME_BYTES;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 pub(crate) struct ExecutionEvidence {

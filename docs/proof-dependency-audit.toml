@@ -1,0 +1,125 @@
+schema = "conduit.proof-dependency-audit/v1"
+maximum_edges = 17
+
+# This inventory contains every non-dev Cargo dependency from outside proof/
+# whose path enters proof/. `cargo test -p xtask --test proof_dependency_boundary`
+# rejects additions, removals, and dependency-kind changes.
+
+[[edges]]
+manifest = "products/patchbay/model/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "dependencies"
+classification = "product-demo-fixture"
+resolution = "Move fixed route/topology demonstrations behind proof ownership; retain only reusable model contracts."
+
+[[edges]]
+manifest = "products/patchbay/native/Cargo.toml"
+dependency = "conduit-r1-network-conformance"
+kind = "dependencies"
+classification = "product-demo-fixture"
+resolution = "Move the R1 capstone scenario to a repository proof entrance or rebuild it from target-owned offers."
+
+[[edges]]
+manifest = "targets/std/Cargo.toml"
+dependency = "conduit-alife-distributed-conformance"
+kind = "dependencies"
+classification = "target-proof-fixture"
+resolution = "Separate reusable target implementation from fixed distributed ALife scenarios."
+
+[[edges]]
+manifest = "targets/std/Cargo.toml"
+dependency = "conduit-r1-network-conformance"
+kind = "dependencies"
+classification = "target-proof-fixture"
+resolution = "Keep R1 scenario topology in proof while extracting only justified target offers."
+
+[[edges]]
+manifest = "targets/std/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "dependencies"
+classification = "target-proof-fixture"
+resolution = "Separate std target operations from fixed Signal hosts, Lines, and identities."
+
+[[edges]]
+manifest = "targets/browser/runtime/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "dependencies"
+classification = "target-proof-fixture"
+resolution = "Move fixed distributed browser scenarios behind proof-facing feature or harness ownership."
+
+[[edges]]
+manifest = "targets/esp32/firmware/c3-signal/Cargo.toml"
+dependency = "conduit-alife-distributed-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware fabrication."
+
+[[edges]]
+manifest = "targets/esp32/firmware/c3-signal/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Separate reusable ESP32 offers from fixed build-time Signal topology."
+
+[[edges]]
+manifest = "targets/esp32/firmware/s3-signal/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Separate reusable ESP32 offers from fixed build-time Signal topology."
+
+[[edges]]
+manifest = "targets/esp32/firmware/wroom-signal/Cargo.toml"
+dependency = "conduit-alife-distributed-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware fabrication."
+
+[[edges]]
+manifest = "targets/esp32/firmware/wroom-signal/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Separate reusable ESP32 offers from fixed build-time Signal topology."
+
+[[edges]]
+manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
+dependency = "conduit-r1-network-conformance"
+kind = "dependencies"
+classification = "firmware-runtime-fixture"
+resolution = "Replace optional runtime access to the fixed R1 scenario with target-owned protocol truth."
+
+[[edges]]
+manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
+dependency = "conduit-alife-distributed-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Supply exact proof plans from the proof build entrance, not ordinary firmware fabrication."
+
+[[edges]]
+manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
+dependency = "conduit-r1-network-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Keep fixed R1 plans in proof and pass sealed artifacts into target fabrication."
+
+[[edges]]
+manifest = "targets/rp2040/firmware/pico-w-signal/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "build-dependencies"
+classification = "firmware-build-fixture"
+resolution = "Separate reusable Pico offers from fixed build-time Signal topology."
+
+[[edges]]
+manifest = "xtask/Cargo.toml"
+dependency = "conduit-r1-network-conformance"
+kind = "dependencies"
+classification = "repository-proof-entrance"
+resolution = "Retain: cargo xtask is the admitted repository proof entrance."
+
+[[edges]]
+manifest = "xtask/Cargo.toml"
+dependency = "conduit-signal-conformance"
+kind = "dependencies"
+classification = "repository-proof-entrance"
+resolution = "Retain: cargo xtask is the admitted repository proof entrance."

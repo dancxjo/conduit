@@ -60,6 +60,18 @@ fn body_line_executor_runs_two_std_kernels_over_exact_line() {
         assert!(!source.contains(forbidden), "Form contains {forbidden}");
     }
     let (_, plan) = planned();
+    let selected_line = plan.fragments[0].connections[0]
+        .selected_line
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        selected_line.binding.limits.maximum_frame_bytes,
+        two_std_line::PRODUCT_WEBSOCKET_MAXIMUM_FRAME_BYTES
+    );
+    assert!(
+        selected_line.binding.limits.maximum_frame_bytes
+            >= selected_line.binding.limits.maximum_payload_bytes
+    );
     let evidence = two_std_line::execute(&plan).unwrap();
     assert_eq!(evidence.received, 16);
     assert_eq!(evidence.pressure_retries, 1);
