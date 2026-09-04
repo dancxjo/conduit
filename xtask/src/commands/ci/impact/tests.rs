@@ -555,7 +555,35 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     assert!(workflow.contains(
         "CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}"
     ));
-    assert!(workflow.contains("cargo xtask ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
+    assert!(workflow.contains("\"${controller[@]}\" ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
+    assert!(workflow.contains("name: Check out the trusted versioned CI controller"));
+    assert!(workflow.contains("ref: ${{ github.event.pull_request.base.sha }}"));
+    assert!(workflow.contains("controller=(cargo xtask)"));
+    assert!(
+        workflow.contains("controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)")
+    );
+    assert!(workflow.contains("cargo build --manifest-path target/ci-controller/Cargo.toml"));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
     assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
+}
+
+#[test]
+fn lightweight_dispatcher_owns_every_ci_identity_command() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let manifest = fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml")).unwrap();
+    let source = fs::read_to_string(root.join("tools/xtask-dispatch/src/main.rs")).unwrap();
+    let ci_source =
+        fs::read_to_string(root.join("tools/xtask-dispatch/src/ci_dispatch.rs")).unwrap();
+
+    assert!(manifest.contains("optional = true"));
+    assert!(
+        manifest.contains("clap = { version = \"4\", features = [\"derive\"], optional = true }")
+    );
+    assert!(source.contains("mod proof_graph;"));
+    for command in ["plan", "candidate", "reconcile", "attest-success"] {
+        assert!(
+            ci_source.contains(&format!("Some(\"{command}\")")),
+            "missing lightweight dispatch for {command}"
+        );
+    }
 }

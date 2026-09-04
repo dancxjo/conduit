@@ -37,6 +37,11 @@ The canonical receipt has schema `conduit.ci.proof-receipt/v1`. Attestation is a
 
 Receipt reuse fails closed. Unknown schemas, incomplete results, wrong IDs or contract versions, changed input/proof/environment digests, missing artifact identities, and malformed evidence all produce `execute`.
 
+Every registered source and proof-implementation root must resolve in the
+analyzed Git tree. A repository ownership move therefore updates the registry
+and bumps the affected proof contract atomically. A stale path is a planning
+error, never an empty input set that can accidentally inherit an old receipt.
+
 ## Reconciliation
 
 `cargo xtask ci reconcile BASE HEAD --receipt RECEIPT...` asks Git for the prospective integration tree with `git merge-tree --write-tree`. It never rebases or mutates `HEAD`.
@@ -53,5 +58,20 @@ For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges
 Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. The stable externally required `check` job remains unchanged.
 
 Merge-group validation identifies its checkout as integration rather than candidate. The privileged `pull_request_target` Pages workflow remains separate and executes only trusted merged workflow machinery; it promotes an already-proven, source-tree-sealed carrier.
+
+The repository's `cargo xtask` alias first enters the dependency-light
+`conduit-xtask-dispatch`. All four CI identity operations (`plan`, `candidate`,
+`reconcile`, and `attest-success`) use the same typed Rust sources there. At
+this migration point its default graph has 35 normal dependency packages,
+compared with 265 for full `xtask`; browser Host fabrication is compiled only
+for the separate on-demand Host-release feature.
+
+For pull requests, `check.yml` also checks out the exact target-base commit in
+an isolated controller directory. Once that base contains the versioned
+dispatcher, Actions compiles that trusted controller and runs it from the
+candidate worktree. Controller implementation and analyzed candidate are thus
+separate explicit identities. During the one-time migration, a base without
+the dispatcher uses the candidate's compatible `cargo xtask` implementation.
+Neither path executes candidate code with privileged credentials.
 
 The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.

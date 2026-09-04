@@ -7,7 +7,9 @@ use std::process::{Command, Output};
 
 const PLAN_SCHEMA: &str = "conduit.ci.reconciliation-plan/v1";
 
+#[path = "proof_graph/receipt.rs"]
 mod receipt;
+#[path = "proof_graph/spec.rs"]
 mod spec;
 use receipt::{load_receipts, ProofReceipt, ReceiptLoad, RECEIPT_SCHEMA};
 use spec::{Applicability, ProofKind, ProofSpec, PROOFS};
@@ -51,6 +53,7 @@ pub(super) fn candidate(
     let root = crate::workspace::workspace_root()?;
     let candidate_sha = resolve_commit(&root, head)?;
     let tree = resolve_tree(&root, &candidate_sha)?;
+    validate_registry_paths(&root, &tree)?;
     let receipts = load_receipts(receipt_paths);
     let plan = build_plan(
         &root,
@@ -78,6 +81,7 @@ pub(super) fn reconcile(
     let base_sha = resolve_commit(&root, base)?;
     let candidate_sha = resolve_commit(&root, head)?;
     let candidate_tree = resolve_tree(&root, &candidate_sha)?;
+    validate_registry_paths(&root, &candidate_tree)?;
     let receipts = load_receipts(receipt_paths);
     let candidate_evidence_status = evidence_status(&root, &candidate_tree, &receipts)?;
     let integration = merge_tree(&root, &base_sha, &candidate_sha)?;
@@ -133,6 +137,7 @@ pub(super) fn attest_success(
     let root = crate::workspace::workspace_root()?;
     let candidate_sha = resolve_commit(&root, head)?;
     let source_tree = resolve_tree(&root, &candidate_sha)?;
+    validate_registry_paths(&root, &source_tree)?;
     let input_digest = fingerprint(&root, &source_tree, spec)?;
     let receipt = ProofReceipt {
         schema: RECEIPT_SCHEMA.to_owned(),
@@ -172,6 +177,7 @@ fn build_plan(
         .integration_tree
         .as_deref()
         .unwrap_or(&context.candidate_tree);
+    validate_registry_paths(root, proof_tree)?;
     let mut proofs = Vec::new();
     for spec in PROOFS {
         let input_digest = fingerprint(root, proof_tree, spec)?;
@@ -242,6 +248,30 @@ fn fingerprint(root: &Path, tree: &str, spec: &ProofSpec) -> Result<String, Stri
         hash_field(&mut hash, "git", entry.as_bytes());
     }
     Ok(format!("sha256:{:x}", hash.finalize()))
+}
+
+fn validate_registry_paths(root: &Path, tree: &str) -> Result<(), String> {
+    for spec in PROOFS {
+        for (class, paths) in [
+            ("input", spec.inputs),
+            ("implementation", spec.implementation_inputs),
+        ] {
+            for path in paths {
+                let object = format!("{tree}:{path}");
+                let output = git_command(root)
+                    .args(["cat-file", "-e", &object])
+                    .output()
+                    .map_err(|error| format!("run git cat-file: {error}"))?;
+                if !output.status.success() {
+                    return Err(format!(
+                        "proof {} required {class} path {path} is absent from tree {tree}",
+                        spec.id
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn collect_entries(

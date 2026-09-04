@@ -44,6 +44,13 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
           fetch-depth: 0
+      - name: Check out the trusted versioned CI controller
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: target/ci-controller
+          persist-credentials: false
       - name: Classify exact change set
         id: changes
         env:
@@ -69,19 +76,29 @@ jobs:
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
-        run: >-
-          cargo xtask ci plan "$BASE_SHA" "$HEAD_SHA" --locked
-          --json-out target/ci-impact-plan.json
-          --summary-out "$GITHUB_STEP_SUMMARY"
-          >> "$GITHUB_OUTPUT"
+        run: |
+          controller=(cargo xtask)
+          if test -f target/ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs; then
+            cargo build --manifest-path target/ci-controller/Cargo.toml \
+              --package conduit-xtask-dispatch --locked
+            controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
+          fi
+          "${controller[@]}" ci plan "$BASE_SHA" "$HEAD_SHA" --locked \
+            --json-out target/ci-impact-plan.json \
+            --summary-out "$GITHUB_STEP_SUMMARY" \
+            >> "$GITHUB_OUTPUT"
       - name: Fingerprint immutable candidate proof inputs
         if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
         env:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
-        run: >-
-          cargo xtask ci candidate "$HEAD_SHA" --locked
-          --json-out target/ci-proof-plan.json
-          --summary-out "$GITHUB_STEP_SUMMARY"
+        run: |
+          controller=(cargo xtask)
+          if test -f target/ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs; then
+            controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
+          fi
+          "${controller[@]}" ci candidate "$HEAD_SHA" --locked \
+            --json-out target/ci-proof-plan.json \
+            --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Fingerprint prospective integration proof inputs
         if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'merge_group'
         env:

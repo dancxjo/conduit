@@ -102,8 +102,9 @@ fn candidate_workflows_pin_head_identity_and_do_not_cross_cancel() {
         check
             .matches("ref: ${{ env.CONDUIT_CHECKOUT_SHA }}")
             .count(),
-        check.matches("uses: actions/checkout@v7").count()
+        check.matches("uses: actions/checkout@v7").count() - 1
     );
+    assert!(check.contains("ref: ${{ github.event.pull_request.base.sha }}"));
     assert!(!check.contains("$GITHUB_SHA"));
     for workflow in [
         ".github/workflows/book-pr-proof.yml",
@@ -165,6 +166,28 @@ fn proof_key_changes_only_for_relevant_git_or_contract_inputs() {
         proof_key(browser, &initial, &BTreeMap::new()),
         proof_key(&bumped, &initial, &BTreeMap::new())
     );
+}
+
+#[test]
+fn registry_refuses_a_missing_required_input_root() {
+    let repo = Repository::new();
+    repo.write("targets/browser/host/app.js", "browser");
+    let commit = repo.commit("incomplete tree");
+    let tree = resolve_tree(&repo.root, &commit).unwrap();
+    let error = validate_registry_paths(&repo.root, &tree).unwrap_err();
+    assert!(error.contains("required input path"));
+    assert!(error.contains("is absent from tree"));
+}
+
+#[test]
+fn current_registry_uses_live_product_ownership_roots() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let tree = resolve_tree(&root, "HEAD").unwrap();
+    validate_registry_paths(&root, &tree).unwrap();
+    let browser = spec("browser.tour");
+    assert!(browser.inputs.contains(&"products/patchbay/html"));
+    assert!(browser.inputs.contains(&"products/tour"));
+    assert!(!browser.inputs.iter().any(|path| path.starts_with("apps/")));
 }
 
 #[test]
