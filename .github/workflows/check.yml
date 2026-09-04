@@ -39,6 +39,7 @@ jobs:
       workspace_lint_full: ${{ steps.impact.outputs.workspace_lint_full || 'true' }}
       workspace_lint_packages: ${{ steps.impact.outputs.workspace_lint_packages || '[]' }}
       workspace_test_packages: ${{ steps.impact.outputs.workspace_test_packages || '[]' }}
+      ci_controller_required: ${{ steps.impact.outputs.ci_controller_required }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -63,8 +64,6 @@ jobs:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
-      - name: Verify candidate retirement controller contract
-        run: node --test proof/ci/retire-superseded-candidates.spec.mjs
       - uses: dtolnay/rust-toolchain@stable
         if: steps.changes.outputs.docs_only != 'true'
       - uses: Swatinem/rust-cache@v2
@@ -89,6 +88,9 @@ jobs:
             --json-out target/ci-impact-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
+      - name: Verify candidate retirement controller contract
+        if: steps.impact.outputs.ci_controller_required == 'true'
+        run: node --test proof/ci/retire-superseded-candidates.spec.mjs
       - name: Fingerprint immutable candidate proof inputs
         if: steps.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
         env:

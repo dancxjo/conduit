@@ -34,6 +34,32 @@ const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/patchbay-debugger-pr-proof.yml",
 ];
+
+struct ControllerProofSpec {
+    id: &'static str,
+    implementation_inputs: &'static [&'static str],
+}
+
+const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[ControllerProofSpec {
+    id: "ci.candidate-retirement",
+    implementation_inputs: &[
+        ".github/workflows/retire-superseded-candidates.yml",
+        "proof/ci/retire-superseded-candidates.spec.mjs",
+        "scripts/ci/retire-superseded-candidates.mjs",
+    ],
+}];
+
+fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
+    CONTROLLER_PROOFS
+        .iter()
+        .filter(|spec| {
+            paths
+                .iter()
+                .any(|path| spec.implementation_inputs.contains(&path.as_str()))
+        })
+        .map(|spec| spec.id)
+        .collect()
+}
 const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/executable-book-deploy.yml",
@@ -136,6 +162,7 @@ fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
 
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
+    ci_controller_proofs: Vec<&'static str>,
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
@@ -417,6 +444,12 @@ fn plan_for_paths(
             .iter()
             .any(|path| path.as_str() != "Cargo.toml" && path.ends_with("/Cargo.toml"));
     for path in substantive {
+        if CONTROLLER_PROOFS
+            .iter()
+            .any(|spec| spec.implementation_inputs.contains(&path.as_str()))
+        {
+            continue;
+        }
         if pages_deploy_resolver_slice {
             continue;
         }
@@ -557,7 +590,14 @@ fn plan_for_paths(
         .filter(|name| packages[*name].workspace_member)
         .cloned()
         .collect();
-    let workspace_shards = workspace_shards_for(root, packages, &affected)?;
+    let workspace_shards = if changed_packages.is_empty() {
+        WorkspaceShard::ALL
+            .into_iter()
+            .map(|shard| (shard.name().to_owned(), false))
+            .collect()
+    } else {
+        workspace_shards_for(root, packages, &affected)?
+    };
     selected.insert("esp32".to_owned(), esp32.required());
     selected.insert("conduitos".to_owned(), conduitos.required());
     Ok(plan(
@@ -724,6 +764,7 @@ fn plan(
         workspace.lint_packages.into_iter().collect()
     };
     ImpactPlan {
+        ci_controller_proofs: controller_proofs(&changed_paths),
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
@@ -811,6 +852,15 @@ fn changed_paths(root: &Path, base: &str, head: &str) -> Result<Vec<String>, Str
 }
 
 fn write_github_outputs(plan: &ImpactPlan) {
+    println!(
+        "ci_controller_required={}",
+        !plan.ci_controller_proofs.is_empty()
+    );
+    println!(
+        "ci_controller_proofs={}",
+        serde_json::to_string(&plan.ci_controller_proofs)
+            .expect("CI controller proof list serializes")
+    );
     println!("esp32_required={}", plan.esp32_required);
     println!(
         "esp32_matrix={}",
@@ -857,6 +907,20 @@ fn write_github_outputs(plan: &ImpactPlan) {
 
 fn markdown_summary(plan: &ImpactPlan) -> String {
     let mut rows = String::new();
+    let controller_reason = if plan.ci_controller_proofs.is_empty() {
+        "no controller implementation input".to_owned()
+    } else {
+        plan.ci_controller_proofs.join(", ")
+    };
+    rows.push_str(&format!(
+        "| ci/controller | {} | {} |\n",
+        if plan.ci_controller_proofs.is_empty() {
+            "skip"
+        } else {
+            "run"
+        },
+        controller_reason
+    ));
     for suite in SUITES {
         let reasons = &plan.suite_reasons[suite];
         let why = if reasons.is_empty() {
