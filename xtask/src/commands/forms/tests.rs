@@ -127,10 +127,9 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
     assert!(source.contains("form morse_network"));
     assert!(source.contains("form memory_lantern"));
     assert!(source.contains("form desk_telegraph"));
-    assert_eq!(
-        source.matches("\nform ").count() + usize::from(source.starts_with("form ")),
-        3
-    );
+    let bundle: serde_json::Value = serde_json::from_str(&source).unwrap();
+    assert_eq!(bundle["schema"], "conduit.creche/reviewed-form-bundle@1");
+    assert_eq!(bundle["forms"].as_array().unwrap().len(), 3);
 }
 
 #[test]

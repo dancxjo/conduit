@@ -141,7 +141,7 @@ function validateInventory(inventory) {
   const identities = new Set();
   for (const form of inventory.forms) {
     if (typeof form?.name !== "string" || typeof form.title !== "string"
-      || form.source_document_id !== inventory.source_document_id
+      || typeof form.source_document_id !== "string"
       || typeof form.checked_form_id !== "string" || !Array.isArray(form.required_kinds)
       || names.has(form.name) || identities.has(form.checked_form_id)) {
       throw new Error("reviewed Form inventory contains an invalid or duplicate entry");
