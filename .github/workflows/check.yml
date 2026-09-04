@@ -114,6 +114,16 @@ jobs:
           node --test
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
+      - name: Verify the final result gate truth table
+        if: steps.changes.outputs.docs_only != 'true'
+        env:
+          CONDUIT_CHECK_WORKFLOW: ${{ github.workspace }}/.github/workflows/check.yml
+        run: |
+          proof=proof/ci/check-result-gate.spec.mjs
+          if test -f "$RUNNER_TEMP/conduit-ci-controller/$proof"; then
+            proof="$RUNNER_TEMP/conduit-ci-controller/$proof"
+          fi
+          node --test "$proof"
       - name: Fingerprint immutable candidate proof inputs
         if: steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
@@ -405,7 +415,7 @@ jobs:
     # This is the sole branch-protection gate. Keep every independently
     # selectable proof aggregate in this join so success cannot precede a late
     # proof failure.
-    needs: [classify, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-boot]
+    needs: [classify, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
     if: always()
     # This gate only inspects completed dependency results. Keep it on the
     # single-CPU automation lane so machine builds cannot occupy its runner.
@@ -420,26 +430,60 @@ jobs:
           ESP32_RESULT: ${{ needs.esp32-firmware.result }}
           STANDALONE_LOCKS_RESULT: ${{ needs.standalone-locks.result }}
           BROWSER_HOST_RESULT: ${{ needs.browser-host.result }}
-          CONDUITOS_RESULT: ${{ needs.conduitos-boot.result }}
+          LIMINE_RESULT: ${{ needs.conduitos-limine.result }}
+          TOOLS_RESULT: ${{ needs.conduitos-tools.result }}
+          X86_RESULT: ${{ needs.conduitos-x86.result }}
+          ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
+          AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
+          CONDUITOS_REQUIRED: ${{ needs.classify.outputs.conduitos_required }}
+          X86_REQUIRED: ${{ needs.classify.outputs.conduitos_x86_matrix != '[]' }}
+          ARCHITECTURE_REQUIRED: ${{ needs.classify.outputs.conduitos_architecture_matrix != '[]' }}
+          AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
           EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
-          test "$CLASSIFY_RESULT" = success
-          test "$CONDUITOS_RESULT" = success
-          test "$BROWSER_HOST_RESULT" = success || test "$BROWSER_HOST_RESULT" = skipped
-          if test "$DOCS_ONLY" != true; then
-            if test "$WORKSPACE_MATRIX" = '[]'; then
-              test "$WORKSPACE_RESULT" = skipped
-            else
-              test "$WORKSPACE_RESULT" = success
+          require_result() {
+            local name=$1 actual=$2 expected=$3
+            if test "$actual" != "$expected"; then
+              printf '%s result: expected %s, got %s\n' "$name" "$expected" "$actual" >&2
+              return 1
             fi
+          }
+          require_result classify "$CLASSIFY_RESULT" success
+          if test "$BROWSER_HOST_RESULT" != success && test "$BROWSER_HOST_RESULT" != skipped; then
+            printf 'browser-host result: expected success or skipped, got %s\n' "$BROWSER_HOST_RESULT" >&2
+            exit 1
+          fi
+          if test "$DOCS_ONLY" != true; then
+            if test "$WORKSPACE_MATRIX" = '[]'; then require_result workspace "$WORKSPACE_RESULT" skipped; else require_result workspace "$WORKSPACE_RESULT" success; fi
             if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then
-              test "$STANDALONE_LOCKS_RESULT" = success
-              test "$ESP32_RESULT" = success
+              require_result standalone-locks "$STANDALONE_LOCKS_RESULT" success
+              require_result esp32 "$ESP32_RESULT" success
             else
-              test "$ESP32_RESULT" = skipped
+              require_result esp32 "$ESP32_RESULT" skipped
+            fi
+            if test "$EVENT_NAME" != pull_request || test "$CONDUITOS_REQUIRED" = true; then
+              require_result conduitos-limine "$LIMINE_RESULT" success
+              require_result conduitos-tools "$TOOLS_RESULT" success
+              if test "$EVENT_NAME" != pull_request || test "$X86_REQUIRED" = true; then require_result conduitos-x86 "$X86_RESULT" success; else require_result conduitos-x86 "$X86_RESULT" skipped; fi
+              if test "$EVENT_NAME" != pull_request || test "$ARCHITECTURE_REQUIRED" = true; then require_result conduitos-architecture "$ARCHITECTURE_RESULT" success; else require_result conduitos-architecture "$ARCHITECTURE_RESULT" skipped; fi
+              if test "$EVENT_NAME" != pull_request || test "$AARCH64_PRODUCT_REQUIRED" = true; then require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" success; else require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" skipped; fi
+            else
+              require_result conduitos-limine "$LIMINE_RESULT" skipped
+              require_result conduitos-tools "$TOOLS_RESULT" skipped
+              require_result conduitos-x86 "$X86_RESULT" skipped
+              require_result conduitos-architecture "$ARCHITECTURE_RESULT" skipped
+              require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" skipped
             fi
           fi
+          {
+            printf '## Final proof results\n\n'
+            printf -- '- ConduitOS Limine: `%s`\n' "$LIMINE_RESULT"
+            printf -- '- ConduitOS tools: `%s`\n' "$TOOLS_RESULT"
+            printf -- '- ConduitOS x86: `%s`\n' "$X86_RESULT"
+            printf -- '- ConduitOS architectures: `%s`\n' "$ARCHITECTURE_RESULT"
+            printf -- '- ConduitOS AArch64 product: `%s`\n' "$AARCH64_PRODUCT_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   browser-tools:
     needs: classify
@@ -829,40 +873,3 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
-
-  conduitos-boot:
-    needs: [classify, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
-    if: always()
-    # This domain join only inspects completed dependency results. Do not make
-    # it queue behind the QEMU and cross-architecture jobs it aggregates.
-    runs-on: ubuntu-slim
-    steps:
-      - name: Preserve the stable required ConduitOS gate
-        env:
-          CLASSIFY_RESULT: ${{ needs.classify.result }}
-          DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
-          LIMINE_RESULT: ${{ needs.conduitos-limine.result }}
-          TOOLS_RESULT: ${{ needs.conduitos-tools.result }}
-          X86_RESULT: ${{ needs.conduitos-x86.result }}
-          ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
-          AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
-          CONDUITOS_REQUIRED: ${{ needs.classify.outputs.conduitos_required }}
-          X86_REQUIRED: ${{ needs.classify.outputs.conduitos_x86_matrix != '[]' }}
-          ARCHITECTURE_REQUIRED: ${{ needs.classify.outputs.conduitos_architecture_matrix != '[]' }}
-          AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
-          EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
-        run: |
-          test "$CLASSIFY_RESULT" = success
-          if test "$DOCS_ONLY" != true && { test "$EVENT_NAME" != pull_request || test "$CONDUITOS_REQUIRED" = true; }; then
-            test "$LIMINE_RESULT" = success
-            test "$TOOLS_RESULT" = success
-            if test "$EVENT_NAME" != pull_request || test "$X86_REQUIRED" = true; then test "$X86_RESULT" = success; else test "$X86_RESULT" = skipped; fi
-            if test "$EVENT_NAME" != pull_request || test "$ARCHITECTURE_REQUIRED" = true; then test "$ARCHITECTURE_RESULT" = success; else test "$ARCHITECTURE_RESULT" = skipped; fi
-            if test "$EVENT_NAME" != pull_request || test "$AARCH64_PRODUCT_REQUIRED" = true; then test "$AARCH64_PRODUCT_RESULT" = success; else test "$AARCH64_PRODUCT_RESULT" = skipped; fi
-          elif test "$DOCS_ONLY" != true; then
-            test "$LIMINE_RESULT" = skipped
-            test "$TOOLS_RESULT" = skipped
-            test "$X86_RESULT" = skipped
-            test "$ARCHITECTURE_RESULT" = skipped
-            test "$AARCH64_PRODUCT_RESULT" = skipped
-          fi
