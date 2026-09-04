@@ -46,3 +46,33 @@ fn admitted_offer_evidence_round_trips_without_becoming_planning_detail() {
         Err(BrowserAdmissionFrameError::InvalidOfferEvidence)
     );
 }
+
+#[test]
+fn planning_disclosure_request_requires_current_identity_and_canonical_selection() {
+    let request = BrowserAdmissionIngress::OfferDisclosureRequest {
+        protocol: BROWSER_ADMISSION_PROTOCOL,
+        credential_id: serde_json::from_value(serde_json::json!("credential/browser-offer"))
+            .unwrap(),
+        body_id: serde_json::from_value(serde_json::json!("body/browser-offer")).unwrap(),
+        part_id: serde_json::from_value(serde_json::json!("part/browser-offer")).unwrap(),
+        host_id: HostId::from("browser/offer-frame"),
+        boot_id: BootId::from("browser-boot/offer-frame"),
+        request: conduit_body::OfferDisclosureRequest {
+            stage: OfferDisclosureStage::Planning,
+            capability_ids: vec![conduit_core::CapabilityId::from("browser/capability")],
+            resource_pool_ids: vec![],
+        },
+    };
+    let encoded = serde_json::to_vec(&request).unwrap();
+    assert_eq!(decode_browser_admission_frame(&encoded).unwrap(), request);
+
+    let mut empty = request;
+    let BrowserAdmissionIngress::OfferDisclosureRequest { request, .. } = &mut empty else {
+        unreachable!()
+    };
+    request.capability_ids.clear();
+    assert_eq!(
+        decode_browser_admission_frame(&serde_json::to_vec(&empty).unwrap()),
+        Err(BrowserAdmissionFrameError::InvalidOfferDisclosureRequest)
+    );
+}

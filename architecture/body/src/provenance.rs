@@ -161,7 +161,8 @@ pub enum OfferDisclosureStage {
     PrepareSelected,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OfferDisclosureRequest {
     pub stage: OfferDisclosureStage,
     pub capability_ids: Vec<CapabilityId>,

@@ -158,6 +158,7 @@ pub(super) fn accept_return(
         presence,
         membership,
         &returned_credential,
+        &offer_observation,
         &return_session,
         clock,
         lease_millis,
