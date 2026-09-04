@@ -162,7 +162,9 @@ test("the shared shell follows dark and light preferences without changing appli
         : path === "/patchbay/" ? "#e5eff4" : "#eef5f8");
       const primaryNavigation = page.getByRole("navigation", { name: "Conduit products" });
       await expect(primaryNavigation).toBeVisible();
-      const hoverTarget = primaryNavigation.getByRole("link", { name: "Patchbay" });
+      const hoverTarget = primaryNavigation.getByRole("link", {
+        name: path === "/patchbay/" ? "conduit" : "Patchbay",
+      });
       await hoverTarget.hover();
       await expect(hoverTarget).toHaveCSS(
         "color",

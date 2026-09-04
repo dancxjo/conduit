@@ -281,7 +281,16 @@ export async function loadBrowserApplication(manifestReference) {
 const manifest = document.querySelector('meta[name="conduit-application-package"]')?.content.trim();
 if (!manifest) throw new Error("browser application package is not declared");
 loadBrowserApplication(manifest).catch((error) => {
-  const status = document.querySelector("#host-state");
+  let status = document.querySelector("#host-state");
+  if (!status) {
+    const masthead = document.querySelector('[data-application-slot="product-masthead"]');
+    if (masthead) {
+      status = document.createElement("output");
+      status.id = "host-state";
+      status.setAttribute("role", "status");
+      masthead.replaceChildren(status);
+    }
+  }
   const target = document.querySelector("#chapter") ?? document.body;
   if (status) status.textContent = "Browser application refused";
   target.replaceChildren(document.createTextNode(error instanceof Error ? error.message : String(error)));

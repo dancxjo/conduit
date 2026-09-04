@@ -68,15 +68,26 @@ export function openFormSelection(inventory, persisted = null, handoff = null) {
 }
 
 export function toggleForm(inventory, selected, name) {
-  const form = inventory.forms.find((candidate) => candidate.name === name);
-  if (!form) throw new Error(`reviewed Form ${JSON.stringify(name)} is absent`);
-  if (selected.some((candidate) => candidate.checked_form_id === form.checked_form_id)) {
-    return selected.filter((candidate) => candidate.checked_form_id !== form.checked_form_id);
-  }
+  const form = reviewedForm(inventory, name);
+  return setFormSelected(inventory, selected, name, !selected.some((candidate) => candidate.checked_form_id === form.checked_form_id));
+}
+
+export function setFormSelected(inventory, selected, name, desired) {
+  if (typeof desired !== "boolean") throw new Error("reviewed Form selection must be boolean");
+  const form = reviewedForm(inventory, name);
+  const present = selected.some((candidate) => candidate.checked_form_id === form.checked_form_id);
+  if (present === desired) return selected;
+  if (!desired) return selected.filter((candidate) => candidate.checked_form_id !== form.checked_form_id);
   if (selected.length >= inventory.maximum_selection) {
     throw new Error("initial Form selection capacity is exhausted");
   }
   return [...selected, form];
+}
+
+function reviewedForm(inventory, name) {
+  const form = inventory.forms.find((candidate) => candidate.name === name);
+  if (!form) throw new Error(`reviewed Form ${JSON.stringify(name)} is absent`);
+  return form;
 }
 
 export function searchForms(inventory, query) {

@@ -6,6 +6,7 @@ import {
   openFormSelection,
   persistedFormSelection,
   searchForms,
+  setFormSelected,
   toggleForm,
 } from "../../targets/browser/host/assets/creche-form-selection.mjs";
 
@@ -18,6 +19,14 @@ const inventory = Object.freeze({
     { name: "desk_telegraph", title: "Desk Telegraph", source_document_id: "source/current", checked_form_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
     { name: "memory_lantern", title: "Memory Lantern", source_document_id: "source/current", checked_form_id: "checked/lantern", required_kinds: ["presentation/text"] },
   ],
+});
+
+test("native checkbox values set selection idempotently", () => {
+  const once = setFormSelected(inventory, [], "clock", true);
+  assert.strictEqual(setFormSelected(inventory, once, "clock", true), once);
+  assert.deepEqual(setFormSelected(inventory, once, "clock", false), []);
+  assert.strictEqual(setFormSelected(inventory, [], "clock", false).length, 0);
+  assert.throws(() => setFormSelected(inventory, [], "clock", "true"), /boolean/);
 });
 
 test("browse, search, add, remove, and exact encoding share one bounded inventory", () => {

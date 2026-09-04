@@ -71,6 +71,7 @@
 :where([data-application-component="navigation-link"]):hover { color:var(--conduit-text-primary); }
 :where([data-application-component="navigation-link"]):focus-visible { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:3px; }
 :where([data-application-component="navigation-link"])[aria-current="page"] { color:var(--conduit-emphasis); }
+:where([data-application-component="navigation-link"])[aria-current="page"]:hover { color:var(--conduit-text-primary); }
 :where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:ui-monospace,monospace; letter-spacing:.08em; }
 :where([data-application-key="product-status"]) { margin-inline-start:auto; color:var(--conduit-text-secondary); text-align:end; }
 @media (max-width:650px) { :where([data-application-key="product-masthead"]) { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } :where([data-application-key="product-navigation"]) { order:3; width:100%; } }

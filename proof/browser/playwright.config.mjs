@@ -35,6 +35,7 @@ export default defineConfig({
     "creche-native-zip.spec.mjs",
     "creche-native-disk.spec.mjs",
     "creche-browser-configuration.spec.mjs",
+    "creche-workload.spec.mjs",
     "creche-naming.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-device-base.spec.mjs",

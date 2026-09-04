@@ -4,7 +4,7 @@ import {
   encodedFormSelection,
   reviewInitialWorkload,
   searchForms,
-  toggleForm,
+  setFormSelected,
 } from "./creche-form-selection.mjs";
 
 const encoder = new TextEncoder();
@@ -90,7 +90,12 @@ function presentBirthControls(runner, state, controls) {
       return;
     }
     if (event.action.startsWith("form.toggle.")) {
-      state.initialForms = toggleForm(inventory, state.initialForms, event.action.slice("form.toggle.".length));
+      state.initialForms = setFormSelected(
+        inventory,
+        state.initialForms,
+        event.action.slice("form.toggle.".length),
+        value === "true",
+      );
       state.review = null;
       state.status = "Selection changed; review the combined workload before birth.";
       state.outcome = "status";
@@ -133,13 +138,13 @@ function birthSelectionNodes(state, inventory, visible, actions) {
     { parent: 1, component: "field-help", action: null, key: "form-search-help", text: "Filter the finite reviewed inventory by name or required kind." },
     { parent: 0, component: "paragraph", action: null, key: "selected-heading", text: `Selected (${state.initialForms.length})` },
     { parent: 0, component: "choice-group", action: null, key: "initial-forms-field", text: "active_forms" },
-    { parent: 6, component: "choice-legend", action: null, key: "initial-forms-label", text: "Initial active Forms" },
+    { parent: 6, component: "choice-group-label", action: null, key: "initial-forms-label", text: "Initial active Forms" },
   ];
   for (const form of visible) {
     const selected = state.initialForms.some((candidate) => candidate.checked_form_id === form.checked_form_id);
     const label = nodes.length;
-    nodes.push({ parent: 6, component: "choice-label", action: null, key: `form-${form.name}-label`, text: form.title });
-    nodes.push({ parent: label, component: "checkbox", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: form.name, value: String(selected), valueCapacity: 5 });
+    nodes.push({ parent: 6, component: "choice-option-label", action: null, key: `form-${form.name}-label`, text: form.title });
+    nodes.push({ parent: label, component: "independent-choice", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: form.name, value: String(selected), valueCapacity: 5 });
     nodes.push({ parent: 6, component: "paragraph", action: null, key: `form-${form.name}-requirements`, text: form.required_kinds.join(" · ") });
   }
   nodes.push({ parent: 6, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
@@ -188,7 +193,7 @@ function birthSourceNodes(state, listingId) {
     { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
     { parent: 7, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
     { parent: 7, component: "definition", action: null, key: "review-basis", text: "Realization basis", value: state.review ? `${state.review.proposed_hosts.length} current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created` : "not reviewed", valueCapacity: 1024 },
-    { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" },
+    { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "Birth actions" },
     { parent: 10, component: "button", action: interactive ? 0 : null, key: "review", text: "Review workload" },
     { parent: 10, component: "button", action: interactive && state.review ? 1 : null, key: "birth", text: "Birth Body" },
     { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },

@@ -210,10 +210,11 @@ async function fabricateBrowserHost(page, { preset, add = [] }) {
   await page.getByRole("button", { name: "3. Physical Host" }).click();
   const runner = page.locator(".physical-host-runner");
   await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
+  const edit = runner.getByRole("button", { name: "Back / Edit" });
+  if (await edit.isVisible()) await edit.click();
   await runner.getByRole("button", { name: preset }).click();
   for (const implementation of add) {
-    const button = runner.getByRole("button").filter({ hasText: implementation });
-    if ((await button.textContent()).includes("Add")) await button.click();
+    await runner.getByRole("checkbox", { name: implementation }).check();
   }
   await runner.getByRole("button", { name: "Review Host" }).click();
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();

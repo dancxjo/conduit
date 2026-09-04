@@ -284,7 +284,9 @@ function restoreInteraction(root, snapshot) {
     target = root;
   }
   target.focus();
-  if ((target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) && snapshot.selection) {
+  const textSelection = target instanceof HTMLTextAreaElement
+    || (target instanceof HTMLInputElement && ["text", "search", "tel", "url", "password"].includes(target.type));
+  if (textSelection && snapshot.selection) {
     const end = target.value.length;
     target.setSelectionRange(Math.min(snapshot.selection.start, end), Math.min(snapshot.selection.end, end), snapshot.selection.direction);
   }
