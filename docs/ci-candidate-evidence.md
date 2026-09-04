@@ -70,7 +70,7 @@ For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges
 
 ## GitHub workflow boundary
 
-Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. The stable externally required `check` job remains unchanged.
+Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. Candidate workflows retain `check` and `products-proof` as immutable evidence lanes. Branch protection uses the distinct reconciliation-owned `admission` gate. This separation is necessary because GitHub preserves a failed native workflow check in the commit rollup even after a newer same-name Checks API result succeeds; reusing a native lane name cannot unambiguously replace stale admission state.
 
 The privileged retirement controller re-resolves the pull request's current
 head before it lists candidate runs. A delayed synchronize event for B1 becomes
@@ -83,16 +83,20 @@ exact current head. Its trusted resolver refuses a stale or closed lifecycle.
 It inherits any already-successful `check` or `products-proof` aggregate
 attached to that immutable candidate and invokes the current reusable workflow
 only for a missing or failed lane. Candidate execution has read-only
-permissions; a separate trusted reporter publishes the stable aggregate names
-onto the exact candidate SHA. Repeating the same request therefore inherits the
-newly published successes rather than replaying work. This replaces empty
+permissions; a separate trusted reporter publishes one aggregate `admission`
+decision onto the exact candidate SHA. Repeating the same request therefore
+inherits the underlying lane successes rather than replaying work. This replaces empty
 commits, policy-only rebases, and close/reopen choreography.
+The controller publishes `admission` only after both lanes succeed or inherit
+exact success. A refusal fails the reconciliation run without creating a
+sticky failed admission check; absence of the required admission is the
+fail-closed state.
 
 The `book-and-creche-products` workflow follows the same controller model. It
 triggers cheaply for every pull request, checks out the immutable candidate and
 the current trusted default-branch controller as separate trees, and asks the
 typed product proof registry whether the Pages carrier is affected. Unrelated changes retain the
-stable `products-proof` result without starting browser, desktop, firmware, or
+successful product evidence without starting browser, desktop, firmware, or
 ConduitOS fabrication. Product ownership therefore lives in Rust rather than a
 second workflow path taxonomy. The privileged post-merge Pages workflow stays
 separate and executes trusted merged code only.

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { publishCandidateResults, resolveAndPublishInherited, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
 
@@ -7,6 +8,14 @@ const base = "a".repeat(40);
 const repository = "dancxjo/conduit";
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const pull = (head = candidate) => ({ state: "open", head: { sha: head }, base: { sha: base, repo: { full_name: repository } } });
+
+test("an authoritative empty workspace plan skips its matrix without weakening classifier failure", async () => {
+  const workflow = await readFile(new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
+  assert.match(workflow, /needs\.classify\.outputs\.workspace_matrix != '\[\]'/);
+  assert.match(workflow, /WORKSPACE_MATRIX: \$\{\{ needs\.classify\.outputs\.workspace_matrix \}\}/);
+  assert.match(workflow, /if test "\$WORKSPACE_MATRIX" = '\[\]'; then\s+test "\$WORKSPACE_RESULT" = skipped/);
+  assert.match(workflow, /test "\$CLASSIFY_RESULT" = success/);
+});
 
 test("inherits only exact successful GitHub Actions aggregate evidence", () => {
   const selected = successfulLaneEvidence([
@@ -35,17 +44,15 @@ test("stale candidate and another target repository fail before evidence lookup"
   await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, token: "test", request: async () => response({ ...pull(), base: { sha: base, repo: { full_name: "other/repository" } } }) }), /target repository/);
 });
 
-test("publishes stable exact-head checks and preserves inherited versus executed truth", async () => {
+test("refuses admission without publishing a sticky failed gate", async () => {
   const bodies = [];
-  const published = await publishCandidateResults({ repository, candidateSha: candidate,
+  await assert.rejects(() => publishCandidateResults({ repository, candidateSha: candidate,
     checkInherited: true, checkResult: "skipped", checkEvidenceUrl: "https://example.test/check",
     productsInherited: false, productsResult: "failure", productsEvidenceUrl: "",
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (_url, options) => { bodies.push(JSON.parse(options.body)); return response({ id: bodies.length + 100 }, 201); },
-  });
-  assert.deepEqual(published.map(({ name, conclusion }) => ({ name, conclusion })), [{ name: "check", conclusion: "success" }, { name: "products-proof", conclusion: "failure" }]);
-  assert.ok(bodies.every(({ head_sha }) => head_sha === candidate));
-  assert.equal(bodies[0].output.title, "Inherited immutable candidate evidence");
+  }), /refuse admission.*products-proof=failure/);
+  assert.equal(bodies.length, 0);
 });
 
 test("a published successful reconciliation is reusable by an identical later request", async () => {
@@ -57,7 +64,7 @@ test("a published successful reconciliation is reusable by an identical later re
   assert.ok(result.lanes["products-proof"]);
 });
 
-test("an all-inherited request publishes both gates without allocating a report job", async () => {
+test("an all-inherited request publishes admission without allocating a report job", async () => {
   const posts = [];
   const result = await resolveAndPublishInherited({
     repository, pullNumber: 7, candidateSha: candidate,
@@ -74,8 +81,8 @@ test("an all-inherited request publishes both gates without allocating a report 
       ] });
     },
   });
-  assert.equal(result.published.length, 2);
-  assert.deepEqual(posts.map(({ name }) => name), ["check", "products-proof"]);
+  assert.equal(result.published.length, 1);
+  assert.deepEqual(posts.map(({ name }) => name), ["admission"]);
   assert.ok(posts.every(({ conclusion }) => conclusion === "success"));
 });
 

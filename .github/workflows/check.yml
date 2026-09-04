@@ -272,7 +272,7 @@ jobs:
 
   workspace-check:
     needs: classify
-    if: always() && needs.classify.outputs.docs_only != 'true'
+    if: always() && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -416,6 +416,7 @@ jobs:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
           WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
+          WORKSPACE_MATRIX: ${{ needs.classify.outputs.workspace_matrix }}
           ESP32_RESULT: ${{ needs.esp32-firmware.result }}
           STANDALONE_LOCKS_RESULT: ${{ needs.standalone-locks.result }}
           BROWSER_HOST_RESULT: ${{ needs.browser-host.result }}
@@ -427,7 +428,11 @@ jobs:
           test "$CONDUITOS_RESULT" = success
           test "$BROWSER_HOST_RESULT" = success || test "$BROWSER_HOST_RESULT" = skipped
           if test "$DOCS_ONLY" != true; then
-            test "$WORKSPACE_RESULT" = success
+            if test "$WORKSPACE_MATRIX" = '[]'; then
+              test "$WORKSPACE_RESULT" = skipped
+            else
+              test "$WORKSPACE_RESULT" = success
+            fi
             if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then
               test "$STANDALONE_LOCKS_RESULT" = success
               test "$ESP32_RESULT" = success

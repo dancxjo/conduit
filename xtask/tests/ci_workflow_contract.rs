@@ -382,7 +382,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains(
         "needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'"
     ));
-    assert!(workflow.contains("name: Publish stable required checks on the unchanged candidate"));
+    assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert!(workflow.contains("persist-credentials: false"));
 
     assert!(check.contains("workflow_call:"));
