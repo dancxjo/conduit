@@ -167,3 +167,52 @@ fn reusable_entries_refuse_empty_duplicate_and_root_identities() {
         .occurrences = vec!["use".into(), "use".into()];
     assert!(!inventory::reusable_entries_are_valid(&form));
 }
+
+#[test]
+fn one_source_failure_does_not_prevent_later_inventory_results() {
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "conduit-form-failure-isolation-{}-{unique}",
+        std::process::id()
+    ));
+    fs::create_dir_all(root.join("forms/bad")).unwrap();
+    fs::create_dir_all(root.join("forms/good")).unwrap();
+    fs::write(
+        root.join("forms/inventory.toml"),
+        r#"schema = "conduit.reviewed-form-inventory/v1"
+maximum_forms = 2
+
+[[forms]]
+slug = "bad"
+title = "Bad"
+entry = "bad"
+
+[[forms]]
+slug = "good"
+title = "Good"
+entry = "good"
+deterministic_not_applicable = "checking-only fixture"
+browser_safe_not_applicable = "checking-only fixture"
+"#,
+    )
+    .unwrap();
+    fs::write(root.join("forms/bad/main.conduit"), "form bad {\n").unwrap();
+    fs::write(root.join("forms/good/main.conduit"), "form good {\n}\n").unwrap();
+
+    let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
+    fs::remove_dir_all(&root).unwrap();
+    assert!(report.results.iter().any(|result| {
+        result.slug == "bad" && result.proof_mode == "check" && result.status == "failed"
+    }));
+    assert!(report.results.iter().any(|result| {
+        result.slug == "good" && result.proof_mode == "check" && result.status == "passed"
+    }));
+    assert!(report.results.iter().any(|result| {
+        result.slug == "good"
+            && result.proof_mode == "deterministic"
+            && result.status == "not_applicable"
+    }));
+}
