@@ -407,7 +407,9 @@ jobs:
     # proof failure.
     needs: [classify, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-boot]
     if: always()
-    runs-on: ubuntu-latest
+    # This gate only inspects completed dependency results. Keep it on the
+    # single-CPU automation lane so machine builds cannot occupy its runner.
+    runs-on: ubuntu-slim
     steps:
       - name: Preserve the stable required workspace gate
         env:

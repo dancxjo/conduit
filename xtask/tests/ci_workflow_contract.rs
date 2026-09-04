@@ -35,6 +35,36 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
             "required check joins the job but does not inspect `{result}`"
         );
     }
+
+    assert!(
+        required_gate.contains("runs-on: ubuntu-slim"),
+        "the terminal gate must not compete with heavyweight proof runners"
+    );
+}
+
+#[test]
+fn required_product_gate_uses_the_lightweight_automation_lane() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let required_gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate the stable required product job");
+
+    assert!(required_gate.contains("if: always()"));
+    assert!(required_gate.contains("runs-on: ubuntu-slim"));
+    for result in [
+        "TOUR_PATCHBAY_RESULT",
+        "STAGE_RESULT",
+        "BROWSER_RESULT",
+        "CARRIER_RESULT",
+    ] {
+        assert!(
+            required_gate.contains(result),
+            "product gate does not inspect `{result}`"
+        );
+    }
 }
 
 #[test]
