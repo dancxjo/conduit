@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./book-test-server.mjs";
+import { selectBirthForm } from "./creche-test-actions.mjs";
 
 let entrance;
 
@@ -16,11 +17,14 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
 
   const search = birth.getByLabel("Search Forms");
   await search.fill("lantern");
-  await expect(birth.getByRole("button", { name: "Add Memory Lantern" })).toBeVisible();
-  await expect(birth.getByRole("button", { name: "Add Morse Network", exact: true })).toHaveCount(0);
+  await expect(birth.getByLabel("Memory Lantern", { exact: true })).toBeVisible();
+  await expect(birth.getByLabel("Morse Network", { exact: true })).toHaveCount(0);
   await search.fill("");
-  for (const title of ["Morse Network", "Memory Lantern", "Desk Telegraph"]) {
-    await birth.getByRole("button", { name: `Add ${title}` }).click();
+  for (const [index, title] of ["Morse Network", "Memory Lantern", "Desk Telegraph"].entries()) {
+    await selectBirthForm(birth, title);
+    await expect(birth.locator('[data-application-key="initial-forms-help"]')).toContainText(
+      `${index + 1} of 3 reviewed Forms selected`,
+    );
   }
   await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText(
     "3 of 3 reviewed Forms selected; maximum 16.",
@@ -35,11 +39,11 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   await expect(birth.getByRole("button", { name: "Birth Body" })).toBeDisabled();
   await expect(birth.locator('[data-application-key="review-basis"]')).toContainText("not reviewed");
   for (const title of ["Morse Network", "Memory Lantern", "Desk Telegraph"]) {
-    await expect(birth.getByRole("button", { name: `Remove ${title}` })).toBeVisible();
+    await expect(birth.getByLabel(title, { exact: true })).toBeChecked();
   }
-  await birth.getByRole("button", { name: "Remove Desk Telegraph" }).click();
-  await expect(birth.getByRole("button", { name: "Add Desk Telegraph" })).toBeVisible();
-  await birth.getByRole("button", { name: "Add Desk Telegraph" }).click();
+  await selectBirthForm(birth, "Desk Telegraph", false);
+  await expect(birth.getByLabel("Desk Telegraph", { exact: true })).not.toBeChecked();
+  await selectBirthForm(birth, "Desk Telegraph");
 
   await birth.getByRole("button", { name: "Review workload" }).click();
   await expect(birth.locator('[data-application-key="review-basis"]')).toContainText(
@@ -76,7 +80,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
 test("Crèche accepts exact Gallery handoff and visibly refuses stale restored identity", async ({ page }) => {
   await page.goto(entrance.url);
   const birth = page.locator(".body-birth-runner");
-  await birth.getByRole("button", { name: "Add Morse Network" }).click();
+  await selectBirthForm(birth, "Morse Network");
   await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
   const selected = await page.evaluate(async () => (
     await globalThis.__conduitBrowserApplication.storage.readJson("form-selection")
@@ -88,7 +92,7 @@ test("Crèche accepts exact Gallery handoff and visibly refuses stale restored i
   handoff.searchParams.set("source_document_id", selected.source_document_id);
   handoff.searchParams.set("checked_form_id", selected.checked_form_id);
   await page.goto(handoff.href);
-  await expect(page.getByRole("button", { name: "Remove Morse Network" })).toBeVisible();
+  await expect(page.getByLabel("Morse Network", { exact: true })).toBeChecked();
 
   await page.evaluate(async () => {
     await globalThis.__conduitBrowserApplication.storage.writeJson("form-selection", {
@@ -101,5 +105,5 @@ test("Crèche accepts exact Gallery handoff and visibly refuses stale restored i
   await expect(page.locator('[data-application-key="birth-status"]')).toContainText(
     "1 stale or over-capacity restored Form selection(s) were refused",
   );
-  await expect(page.getByRole("button", { name: "Add Morse Network" })).toBeVisible();
+  await expect(page.getByLabel("Morse Network", { exact: true })).not.toBeChecked();
 });

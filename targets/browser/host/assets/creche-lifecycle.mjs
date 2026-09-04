@@ -4,7 +4,7 @@ import {
   encodedFormSelection,
   reviewInitialWorkload,
   searchForms,
-  toggleForm,
+  setFormSelected,
 } from "./creche-form-selection.mjs";
 
 const encoder = new TextEncoder();
@@ -90,7 +90,12 @@ function presentBirthControls(runner, state, controls) {
       return;
     }
     if (event.action.startsWith("form.toggle.")) {
-      state.initialForms = toggleForm(inventory, state.initialForms, event.action.slice("form.toggle.".length));
+      state.initialForms = setFormSelected(
+        inventory,
+        state.initialForms,
+        event.action.slice("form.toggle.".length),
+        value === "true",
+      );
       state.review = null;
       state.status = "Selection changed; review the combined workload before birth.";
       state.outcome = "status";

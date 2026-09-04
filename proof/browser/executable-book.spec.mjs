@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth } from "./creche-test-actions.mjs";
+import { reviewAndBirth, selectBirthForm } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
 import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
@@ -63,7 +63,7 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
     const extraForm = sourceVariant === "B" || sourceVariant.includes("specialized")
       ? "Memory Lantern"
       : "Desk Telegraph";
-    await birth.getByRole("button", { name: `Add ${extraForm}` }).click();
+    await selectBirthForm(birth, extraForm);
   }
   await reviewAndBirth(page, birth);
   const identity = await birth.evaluate((element) => ({
@@ -143,7 +143,7 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
   ];
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Browser Host ready");
+  await expect(page.locator("#host-state")).toHaveAttribute("data-application-component", "success-status");
   for (let index = 0; index < bookPages.length; index += 1) {
     const [slug, title] = bookPages[index];
     await expect(page).toHaveURL(new RegExp(`/tour/${slug}/$`));
@@ -157,7 +157,7 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(new RegExp(`/tour/${bookPages.at(-2)[0]}/$`));
 
   await openStandaloneCreche(page);
-  await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Crèche ready");
+  await expect(page.locator("#host-state")).toHaveAttribute("data-application-component", "success-status");
   await expect(page.locator('.creche-steps [data-application-component="stepper"]')).toBeVisible();
   const steps = ["birth", "first-host", "physical-host", "graduate"];
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
