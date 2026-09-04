@@ -30,6 +30,7 @@ test.afterEach(() => server?.kill());
 
 for (const entrance of ["hosted", "external"]) {
   test(`${entrance} graduated Body opens in the same semantic workbench`, async ({ page }) => {
+    if (entrance === "external") await page.setViewportSize({ width: 390, height: 844 });
     await openWorkbench(page, entrance);
     const snapshot = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
     const originalEvidence = snapshot.body_workbench.encoded_evidence;
@@ -48,7 +49,8 @@ for (const entrance of ["hosted", "external"]) {
     const history = snapshot.body_workbench.history;
     const projectedTruth = {
       body_id: snapshot.body_workbench.body_id,
-      program: current.program,
+      active_forms: current.active_forms,
+      workload_revision: current.workload_revision,
       lifecycle: current.lifecycle,
       current_hosts: current.current_hosts,
       biography_identity: history.entries.map(entry => ({
@@ -64,12 +66,21 @@ for (const entrance of ["hosted", "external"]) {
     expect(JSON.stringify(history)).not.toMatch(/timestamp|wall.?clock|utc/i);
     expect(history.entries.every(entry => entry.linear.includes(snapshot.body_workbench.body_id))).toBe(true);
 
-    await expect(page.getByRole("heading", { name: "Roseau" })).toBeVisible();
-    await expect(page.locator("#body-workbench-status")).toContainText("Lulled · 1 Part · 1 current Host");
+    await expect(page.getByRole("heading", { name: "Roseau", exact: true })).toBeVisible();
+    await expect(page.locator("#body-workbench-status")).toContainText("Lulled · workload revision 0 · 1 Part · 1 current Host");
     await expect(page.locator("#body-workbench-placement")).toContainText(
       entrance === "hosted" ? "hosted by this Body" : "external Patchbay",
     );
-    await expect(page.locator("#body-workbench-current")).toContainText("Morse relay");
+    const activeForms = page.locator('#body-workbench-forms [data-application-component="artifact"]');
+    await expect(activeForms).toHaveCount(1);
+    await expect(activeForms).toContainText("checked/roseau-program");
+    await expect(page.locator("#body-workbench-facts")).toContainText("Workload revision");
+    await expect(page.locator("#body-workbench-facts")).toContainText("0");
+    if (entrance === "external") {
+      const bounds = await page.locator("#body-workbench").boundingBox();
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    }
     await expect(page.getByRole("button", { name: "Wake", exact: true })).toBeVisible();
     const workbenchNavigation = page.getByRole("navigation", { name: "Body workbench" });
     await expect(workbenchNavigation.getByRole("button"))
@@ -95,7 +106,7 @@ for (const entrance of ["hosted", "external"]) {
     await expect(page.locator("body")).toHaveAttribute("data-aspect", "Structure");
 
     await workbenchNavigation.getByRole("button", { name: "Body", exact: true }).click();
-    await page.locator("#body-workbench-current details summary").click();
+    await page.getByText("Exact Body and workload identity", { exact: true }).click();
     await expect(page.locator("#body-workbench-exact")).toContainText(snapshot.body_workbench.body_id);
 
     await page.getByRole("button", { name: "Wake", exact: true }).click();
@@ -106,7 +117,7 @@ for (const entrance of ["hosted", "external"]) {
     expect(afterAction.body_workbench.encoded_evidence).toEqual(originalEvidence);
 
     server.kill();
-    await expect(page.getByRole("heading", { name: "Roseau" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Roseau", exact: true })).toBeVisible();
     expect(snapshot.body_workbench.encoded_evidence).toEqual(originalEvidence);
   });
 }

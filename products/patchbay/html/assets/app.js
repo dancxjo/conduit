@@ -303,8 +303,9 @@ function renderBodyWorkbench(workbench){
   document.querySelector("#body-workbench-status").textContent=current.status_line;
   document.querySelector("#body-workbench-placement").textContent=current.placement_line;
   const action=document.querySelector("#body-workbench-action");action.textContent=current.salient_action;action.dataset.semanticAction=current.salient_action.toLowerCase();
-  presentDefinitions("body-workbench-facts",[["Program",current.program.label],["Lifecycle",typeof current.lifecycle==="string"?current.lifecycle:Object.keys(current.lifecycle)[0]],["Durable Parts",current.admitted_parts],["Current Hosts",current.current_hosts.length],["Physical Hosts","Not evidenced"]]);
-  presentDefinitions("body-workbench-exact",[["Body",current.body_id],["Source document",current.program.source_document_id],["Checked Form",current.program.checked_form_id],["Evidence revision",current.evidence_revision]]);
+  presentDefinitions("body-workbench-facts",[["Active Forms",current.active_forms.length],["Workload revision",current.workload_revision],["Lifecycle",typeof current.lifecycle==="string"?current.lifecycle:Object.keys(current.lifecycle)[0]],["Durable Parts",current.admitted_parts],["Current Hosts",current.current_hosts.length],["Physical Hosts","Not evidenced"]]);
+  sharedPresentation.boundedArtifacts("body-workbench-forms",current.active_forms.map(form=>({title:form.checked_form_id,details:[],actions:[],definitions:[["Source document",form.source_document_id],["Checked Form",form.checked_form_id]],disclosureLabel:"Exact active Form identity"})));
+  presentDefinitions("body-workbench-exact",[["Body",current.body_id],["Workload revision",current.workload_revision],["Active Forms",current.active_forms.length],["Evidence revision",current.evidence_revision]]);
   sharedPresentation.boundedArtifacts("body-history",history.entries.map(entry=>({title:entry.title,details:[entry.narrative],actions:[],disclosureLabel:"Exact evidence",exactValue:JSON.stringify(entry.exact),language:"json"})));
   sharedPresentation.boundedArtifacts("body-linear",history.entries.map((entry,index)=>({title:`Evidence ${index+1}`,details:[],actions:[],exactValue:entry.linear,disclosureLabel:"BODY / SIGNS evidence"})));
 }
