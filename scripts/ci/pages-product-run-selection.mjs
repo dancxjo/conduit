@@ -35,6 +35,25 @@ export async function resolveMergedPullSource(pull, loadCommit) {
   };
 }
 
+export async function resolveExactMainSource(requestedSha, currentSha, loadCommit) {
+  if (!/^[0-9a-f]{40}$/.test(requestedSha ?? "")
+    || requestedSha !== currentSha || typeof loadCommit !== "function") {
+    throw new Error("requested main commit is not the exact current branch tip");
+  }
+  const commit = await loadCommit(requestedSha);
+  if (!/^[0-9a-f]{40}$/.test(commit?.tree?.sha ?? "")
+    || !/^[0-9a-f]{40}$/.test(commit?.parents?.[0]?.sha ?? "")) {
+    throw new Error("current main has no exact tree and integration base");
+  }
+  return {
+    mergeCommit: requestedSha,
+    sourceHead: requestedSha,
+    sourceTree: commit.tree.sha,
+    integrationBase: commit.parents[0].sha,
+    integrationTree: commit.tree.sha,
+  };
+}
+
 function belongsToPull(candidate, pullNumber) {
   if (pullNumber === undefined) return true;
   if (!Number.isSafeInteger(pullNumber) || pullNumber <= 0) return false;
