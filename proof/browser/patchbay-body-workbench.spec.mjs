@@ -165,6 +165,16 @@ for (const entrance of ["hosted", "external"]) {
       expect(added.body_workbench.current.active_forms).toHaveLength(1);
       expect(added.body_workbench.current.active_forms.some(form => form.checked_form_id === added.body_workbench.reviewed_forms[0].checked_form_id)).toBe(true);
       expect(added.body_workbench.current.workload_revision).toBe(3);
+      const downloadPromise = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Save Body evidence", exact: true }).click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toBe(`conduit-body-${snapshot.body_workbench.body_id}.json`);
+      const chunks = [];
+      for await (const chunk of await download.createReadStream()) chunks.push(chunk);
+      const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      expect(exported.body_id).toBe(snapshot.body_workbench.body_id);
+      expect(exported.body.workload_revision).toBe(3);
+      expect(exported.body.workset.forms).toHaveLength(1);
     }
 
     server.kill();
