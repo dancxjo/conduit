@@ -65,6 +65,8 @@ jobs:
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "integration_sha=$integration_sha" >> "$GITHUB_OUTPUT"
           echo "integration_ref=$integration_ref" >> "$GITHUB_OUTPUT"
+      - name: Install the repository Rust toolchain for the impact controller
+        uses: dtolnay/rust-toolchain@stable
       - name: Classify candidate-to-integration proof impact
         env:
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
