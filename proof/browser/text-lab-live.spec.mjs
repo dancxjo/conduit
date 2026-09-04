@@ -43,7 +43,7 @@ function processOutcome(child) {
 }
 
 test("unchanged Text Lab executes both exact Lines through browser WASM", async ({ page }) => {
-  const sourceText = readFileSync("examples/text-lab.conduit", "utf8").toLowerCase();
+  const sourceText = readFileSync("forms/text-lab/main.conduit", "utf8").toLowerCase();
   for (const forbidden of ["browser", "websocket", "127.0.0.1", "host", "line", "address"]) {
     expect(sourceText).not.toContain(forbidden);
   }

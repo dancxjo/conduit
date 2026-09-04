@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { projectFlowScene } from "../../apps/patchbay/html/assets/flow-scene.js";
+import { projectFlowScene } from "../../products/patchbay/html/assets/flow-scene.js";
 
 function snapshot(reducedMotion = false) {
   const gear = "gear/source";

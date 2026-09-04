@@ -1,10 +1,12 @@
 use std::{fs, path::Path};
 
 const PACKAGE_ROOTS: &[&str] = &[
-    "apps",
     "architecture",
+    "bodies",
     "fabrication",
+    "forms",
     "mechanisms",
+    "products",
     "proof",
     "semantics",
     "targets",
@@ -18,10 +20,28 @@ fn packages_live_under_an_explicit_ownership_root() {
         .parent()
         .expect("xtask has repository parent");
 
-    for retired in ["crates", "hosts", "firmware", "fixtures"] {
+    for retired in [
+        "apps", "crates", "examples", "firmware", "fixtures", "hosts", "tour",
+    ] {
         assert!(
             !repository.join(retired).exists(),
             "retired catch-all root returned: {retired}"
+        );
+    }
+    assert!(
+        !repository.join("products/book").exists(),
+        "a future Book product must not be reserved before it exists"
+    );
+    for current in [
+        "products/conduit",
+        "products/tour",
+        "products/creche",
+        "products/patchbay",
+        "bodies/pete",
+    ] {
+        assert!(
+            repository.join(current).is_dir(),
+            "current ownership root is absent: {current}"
         );
     }
 
@@ -46,6 +66,43 @@ fn packages_live_under_an_explicit_ownership_root() {
             relative.display()
         );
     }
+}
+
+#[test]
+fn canonical_forms_have_stable_owners_and_proof_fixtures_stay_separate() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("xtask has repository parent");
+    let forms = repository.join("forms");
+    let mut canonical_count = 0;
+    for entry in fs::read_dir(&forms)
+        .expect("read canonical Forms")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("read canonical Form entry")
+    {
+        let path = entry.path();
+        if path.is_file() {
+            assert_eq!(
+                path.file_name().and_then(|name| name.to_str()),
+                Some("README.md"),
+                "canonical Form source cannot be loose at forms root: {}",
+                path.display()
+            );
+            continue;
+        }
+        assert!(path.is_dir(), "unexpected Forms entry: {}", path.display());
+        assert!(
+            path.join("main.conduit").is_file(),
+            "canonical Form owner lacks main.conduit: {}",
+            path.display()
+        );
+        canonical_count += 1;
+    }
+    assert!(
+        canonical_count >= 32,
+        "canonical Form inventory was truncated"
+    );
+    assert!(repository.join("proof/fixtures/forms").is_dir());
 }
 
 fn collect_manifests(repository: &Path, directory: &Path, manifests: &mut Vec<std::path::PathBuf>) {

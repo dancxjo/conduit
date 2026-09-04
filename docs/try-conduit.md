@@ -74,7 +74,7 @@ Part, Host/Boot, Sign, and Manifestation outcomes.
 The smallest useful program is canonical `hello.conduit`:
 
 ```bash
-CARGO_BUILD_JOBS=1 just run examples/hello.conduit
+CARGO_BUILD_JOBS=1 just run forms/hello/main.conduit
 ```
 
 This parses and checks canonical source, expands it, plans it onto the actual
@@ -179,7 +179,7 @@ press keys.
 A native run can emit a neutral runtime-report artifact:
 
 ```bash
-conduit run examples/hello.conduit \
+conduit run forms/hello/main.conduit \
   --report /tmp/conduit-run.json
 ```
 

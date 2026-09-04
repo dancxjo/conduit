@@ -15,7 +15,7 @@ use conduit_semantic_catalog::{
     RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME,
 };
 
-const SOURCE: &str = include_str!("../../../examples/robotics-diversity.conduit");
+const SOURCE: &str = include_str!("../../../forms/robotics-diversity/main.conduit");
 
 #[test]
 fn canonical_form_consumes_structured_observations_and_motion_intent() {

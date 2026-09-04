@@ -32,7 +32,7 @@ The Form asks for uppercase text and presentation. It does not ask for Linux, st
 From a source checkout, run an example with:
 
 ```sh
-conduit run examples/hello.conduit
+conduit run forms/hello/main.conduit
 ```
 
 Open Patchbay with:
@@ -169,7 +169,7 @@ Read **[STATUS.md](STATUS.md)** before making a capability claim. It is intentio
 - **[Try Conduit](docs/try-conduit.md)**: repository-oriented runnable guide.
 - **[Conduit canon](docs/conduit-canon.md)**: durable architecture and design distinctions.
 - **[STATUS.md](STATUS.md)**: exact current proof and capability boundary.
-- **[Patchbay](apps/patchbay/README.md)**: visual application and projection over Form, Body, Plan, Play, Host, and evidence truth.
+- **[Patchbay](products/patchbay/README.md)**: visual application and projection over Form, Body, Plan, Play, Host, and evidence truth.
 
 ## From a source checkout
 

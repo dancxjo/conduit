@@ -97,9 +97,9 @@ fn current_hosts_depend_only_on_exact_lowering_and_kernel_execution() {
 fn product_entrance_does_not_reason_in_numeric_kernel_identity() {
     let root = repository_root();
     for relative in [
-        "apps/conduit/src/main.rs",
-        "apps/conduit/src/product_execution.rs",
-        "apps/conduit/src/body_product.rs",
+        "products/conduit/src/main.rs",
+        "products/conduit/src/product_execution.rs",
+        "products/conduit/src/body_product.rs",
     ] {
         let source = read(&root, relative);
         for numeric_identity in ["NodeId", "CordId", "conduit_kernel::PortId"] {

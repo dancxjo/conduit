@@ -12,8 +12,13 @@ mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr
 cp targets/browser/host/assets/creche.html "$destination/index.html"
 cp targets/browser/host/assets/creche.css "$destination/creche.css"
 cp targets/browser/host/assets/creche.mjs "$destination/creche.mjs"
-cp forms/initial-body.conduit "$destination/forms/initial-body.conduit"
+awk 'FNR == 1 && NR != 1 { print "" } { print }' \
+  forms/morse-network/main.conduit \
+  forms/memory-lantern/main.conduit \
+  forms/desk-telegraph/main.conduit \
+  > "$destination/forms/initial-body.conduit"
 cp targets/browser/host/assets/creche-lifecycle.mjs "$destination/creche-lifecycle.mjs"
+cp targets/browser/host/assets/creche-form-selection.mjs "$destination/creche-form-selection.mjs"
 cp targets/browser/host/assets/creche-names.mjs "$destination/creche-names.mjs"
 cp targets/browser/host/assets/creche-physical.mjs "$destination/creche-physical.mjs"
 cp targets/browser/host/assets/creche-physical-presentation.mjs "$destination/creche-physical-presentation.mjs"

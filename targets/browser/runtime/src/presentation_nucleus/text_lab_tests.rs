@@ -10,7 +10,7 @@ use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
 use super::offers::text_advertisement;
 
-const SOURCE: &str = include_str!("../../../../../examples/text-lab.conduit");
+const SOURCE: &str = include_str!("../../../../../forms/text-lab/main.conduit");
 const LOCAL_HOST: &str = "text-lab/native";
 
 fn checked_form() -> conduit_form::CheckedForm {

@@ -1442,7 +1442,7 @@ mod tests {
         )
         .expect("triple signal form parses");
         let placements = conduit_planner::parse_placements(include_str!(
-            "../../../examples/triple-local.placements"
+            "../../../proof/fixtures/placements/triple-local.placements"
         ))
         .expect("triple local placements parse");
         let plan = host

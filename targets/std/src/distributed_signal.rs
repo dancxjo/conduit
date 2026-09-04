@@ -700,7 +700,7 @@ mod tests {
 
     #[test]
     fn unchanged_form_prepares_exact_independent_remote_fragments() {
-        let canonical_source = include_str!("../../../examples/signal-demo.conduit");
+        let canonical_source = include_str!("../../../forms/signal-demo/main.conduit");
         for realization_fact in ["std", "browser", "websocket", "host", "line"] {
             assert!(!canonical_source
                 .to_ascii_lowercase()

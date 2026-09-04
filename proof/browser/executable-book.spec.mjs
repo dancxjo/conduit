@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
 import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
@@ -58,12 +59,13 @@ async function birthStandaloneBody(page, { attachFirstHost = false, sourceVarian
   await openStandaloneCreche(page);
   const birth = page.locator(".body-birth-runner");
   if (sourceVariant) {
-    const sourceDisclosure = birth.locator('[data-application-key="form-source"]');
-    await sourceDisclosure.locator("summary").click();
-    const source = sourceDisclosure.getByRole("textbox", { name: "Conduit Form source" });
-    await source.fill((await source.inputValue()).replace('"SOS"', `"SOS ${sourceVariant}"`));
+    await birth.getByLabel("Friendly Body name").fill(`body ${sourceVariant}`);
+    const extraForm = sourceVariant === "B" || sourceVariant.includes("specialized")
+      ? "Memory Lantern"
+      : "Desk Telegraph";
+    await birth.getByRole("button", { name: `Add ${extraForm}` }).click();
   }
-  await birth.getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page, birth);
   const identity = await birth.evaluate((element) => ({
     bodyId: element.dataset.bodyId,
     birthSignId: element.dataset.birthSignId,
@@ -489,7 +491,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
       expect((await page.request.get(`${creche.url}artifacts/${artifact}`)).status()).toBe(200);
     }
     const birth = page.locator(".body-birth-runner");
-    await birth.getByRole("button", { name: "Birth Body" }).click();
+    await reviewAndBirth(page, birth);
     const stagedBodyId = await birth.getAttribute("data-body-id");
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
@@ -617,7 +619,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
   try {
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
+    await reviewAndBirth(page);
     await page.getByRole("button", { name: "3. Physical Host" }).click();
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption("esp32/riscv32imc/usb-dcf8355d-esp32-c3");
@@ -706,11 +708,11 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page).toHaveTitle("Conduit Crèche");
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const birth = page.locator(".body-birth-runner");
-  await expect(birth.locator('[data-application-key="program-field"]')).toHaveAttribute("data-application-component", "stack");
-  await expect(birth.getByRole("button", { name: "✓ Morse Network" })).toBeVisible();
-  await expect(birth.getByRole("button", { name: "✓ Memory Lantern" })).toBeVisible();
+  await expect(birth.locator('[data-application-key="initial-forms-field"]')).toHaveAttribute("data-application-component", "stack");
+  await expect(birth.getByRole("button", { name: "Add Morse Network" })).toBeVisible();
+  await expect(birth.getByRole("button", { name: "Add Memory Lantern" })).toBeVisible();
   await birth.getByLabel("Friendly Body name").fill("standalone firefly");
-  await birth.getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page, birth);
   const bodyId = await birth.getAttribute("data-body-id");
   expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
   await expect(page.locator('.creche-body-context [data-application-component="panel"]')).toContainText("standalone firefly");
@@ -748,7 +750,7 @@ test("the standalone Crèche birth controls remain separated at a narrow viewpor
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   const runner = page.locator(".body-birth-runner");
   const [program, name, source, editor] = await Promise.all([
-    runner.locator('[data-application-key="program-field"]').boundingBox(),
+    runner.locator('[data-application-key="initial-forms-field"]').boundingBox(),
     runner.getByLabel("Friendly Body name").boundingBox(),
     runner.locator('[data-application-key="form-source"]').boundingBox(),
     runner.locator(".birth-presentation").boundingBox(),

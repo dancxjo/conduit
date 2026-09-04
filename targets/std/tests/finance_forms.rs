@@ -16,7 +16,7 @@ use conduit_form::{
 use conduit_std_host::hosted_data::{finance_std_offers, FINANCE_HOST_OPERATION};
 use core::cmp::Ordering;
 
-const SOURCE: &str = include_str!("../../../examples/money-quote.conduit");
+const SOURCE: &str = include_str!("../../../forms/money-quote/main.conduit");
 
 #[test]
 fn canonical_form_flows_money_quotes_events_and_exact_comparison() {

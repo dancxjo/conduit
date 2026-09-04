@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 const TARGET_ID = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";
@@ -55,7 +56,7 @@ async function installReviewedRelease(page) {
 async function birthBody(page) {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" }).click();
+  await reviewAndBirth(page);
   await page.getByRole("button", { name: "3. Physical Host" }).click();
 }
 

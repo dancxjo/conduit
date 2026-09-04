@@ -34,7 +34,7 @@ pub(super) struct InteractionFrame {
     pub(super) value: String,
 }
 
-const SOURCE: &str = include_str!("../../../../../examples/webchat.conduit");
+const SOURCE: &str = include_str!("../../../../../forms/webchat/main.conduit");
 const NODES: usize = 6;
 const CORDS: usize = 8;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;

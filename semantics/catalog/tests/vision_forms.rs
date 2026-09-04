@@ -16,7 +16,7 @@ use conduit_semantic_catalog::{
     VISION_IMAGE_CONTENT_PROFILE,
 };
 
-const SOURCE: &str = include_str!("../../../examples/vision-metadata.conduit");
+const SOURCE: &str = include_str!("../../../forms/vision-metadata/main.conduit");
 
 #[test]
 fn image_resource_and_detection_metadata_flow_through_one_ordinary_form() {

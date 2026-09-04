@@ -35,7 +35,7 @@ test("every browser product admits the complete shared presentation theme", () =
   for (const path of [
     "targets/browser/host/assets/book.application.template.json",
     "targets/browser/host/assets/creche.application.template.json",
-    "apps/patchbay/html/assets/patchbay.application.template.json",
+    "products/patchbay/html/assets/patchbay.application.template.json",
   ]) {
     const manifest = JSON.parse(readFileSync(path, "utf8"));
     const resource = manifest.resources.find(({ role }) => role === "shared-presentation-style");

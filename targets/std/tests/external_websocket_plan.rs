@@ -14,7 +14,7 @@ use std::sync::mpsc;
 use std::thread;
 use tungstenite::protocol::Message;
 
-const SOURCE: &str = include_str!("../../../examples/webchat.conduit");
+const SOURCE: &str = include_str!("../../../forms/webchat/main.conduit");
 
 fn browser() -> HostAdvertisement {
     let family = conduit_net::browser_external_websocket_family();

@@ -4,6 +4,7 @@ import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
 import { createCrecheRouting } from "./creche-routing.mjs";
+import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "./targets/avr/browser-deployment/creche-adapter.mjs";
 import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "./targets/rp2040/browser-deployment/creche-adapter.mjs";
 import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "./targets/esp32/browser-deployment/creche-adapter.mjs";
@@ -26,6 +27,9 @@ let storage;
 let host;
 let routing;
 let initialFormSource;
+let reviewedFormInventory;
+let initialFormSelection;
+let selectionWrite = Promise.resolve();
 let durableWrite = Promise.resolve();
 let durabilityFailure = null;
 let currentStep = 0;
@@ -55,6 +59,8 @@ export async function startApplication(application) {
   const initialized = await initializeBrowserHost({ runtimeBytes: application.bytes("runtime") });
   host = Object.freeze({ ...initialized, admitProfileGatedBrowserBoot: application.admitProfileGatedBrowserBoot });
   requireCrecheAbi(host.runtime);
+  reviewedFormInventory = readReviewedFormInventory(host.runtime, initialFormSource);
+  initialFormSelection = openFormSelection(reviewedFormInventory, await storage.readJson("form-selection"), galleryHandoff());
   routing = createCrecheRouting({
     host,
     applicationId: application.manifest.applicationId,
@@ -118,7 +124,8 @@ function renderStep() {
   workspace.append(heading);
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
     source: initialFormSource, sourceKey: "standalone-creche", listingId: "creche-forms", host,
-    presentationFor, nextSequence: () => ++sequence, onDraft: () => {}, onBodyChanged: bodyChanged,
+    presentationFor, inventory: reviewedFormInventory, initialSelection: initialFormSelection,
+    onSelection: retainFormSelection, nextSequence: () => ++sequence, onBodyChanged: bodyChanged,
   }));
   if (currentStep === 1) workspace.append(createFirstHostRunner({
     host, presentationFor,
@@ -137,6 +144,25 @@ function renderStep() {
     onEnd: renderComplete,
   }));
   refreshContext();
+}
+
+function galleryHandoff() {
+  const parameters = new URLSearchParams(globalThis.location.search);
+  const values = ["form", "source_document_id", "checked_form_id"].map((key) => parameters.get(key));
+  if (values.every((value) => value === null)) return null;
+  if (values.some((value) => value === null || value.length === 0)) {
+    throw new Error("Gallery handoff must carry one complete exact Form identity");
+  }
+  return { name: values[0], source_document_id: values[1], checked_form_id: values[2] };
+}
+
+function retainFormSelection(selected) {
+  initialFormSelection = selected === null
+    ? openFormSelection(reviewedFormInventory)
+    : Object.freeze({ selected: [...selected], refusals: [] });
+  selectionWrite = selectionWrite.then(() => selected === null
+    ? storage.deleteJson("form-selection")
+    : storage.writeJson("form-selection", persistedFormSelection(reviewedFormInventory, selected)));
 }
 
 async function navigateToStep(index) {
@@ -231,7 +257,7 @@ function retainDurableBody() {
 }
 
 async function durabilitySettled() {
-  await durableWrite;
+  await Promise.all([durableWrite, selectionWrite]);
   if (durabilityFailure) throw durabilityFailure;
 }
 
@@ -303,7 +329,7 @@ async function finishCrecheLocally() {
 }
 
 function requireCrecheAbi(api) {
-  const required = ["memory", "conduit_syntax_input_ptr", "conduit_syntax_input_capacity", "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_leave_here", "conduit_creche_revoke_here", "conduit_creche_forget_local", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_browser_configuration_catalog", "conduit_creche_review_browser_configuration", "conduit_creche_prepare_selected_browser_spore", "conduit_creche_admit_physical_spore"];
+  const required = ["memory", "conduit_syntax_input_ptr", "conduit_syntax_input_capacity", "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project", "conduit_creche_input_ptr", "conduit_creche_input_capacity", "conduit_creche_output_ptr", "conduit_creche_output_len", "conduit_creche_reviewed_inventory", "conduit_creche_review_initial_workload", "conduit_creche_admit_source_interaction", "conduit_creche_birth", "conduit_creche_current", "conduit_creche_biography", "conduit_creche_durable_snapshot", "conduit_creche_restore_durable", "conduit_creche_attach_here", "conduit_creche_leave_here", "conduit_creche_revoke_here", "conduit_creche_forget_local", "conduit_creche_graduation_readiness", "conduit_creche_graduate", "conduit_creche_prepare_selected_physical_spore", "conduit_creche_prepare_selected_physical_spore_for_target", "conduit_creche_browser_configuration_catalog", "conduit_creche_review_browser_configuration", "conduit_creche_prepare_selected_browser_spore", "conduit_creche_admit_physical_spore"];
   if (required.some((name) => !(name in api))) throw new Error("Crèche runtime ABI is incomplete");
 }
 

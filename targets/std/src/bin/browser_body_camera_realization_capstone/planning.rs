@@ -21,7 +21,7 @@ use conduit_semantic_catalog::{
 use conduit_std_host::browser_admission::browser_webrtc_line_contract;
 use conduit_wire::SessionBinding;
 
-const SOURCE: &str = include_str!("../../../../../examples/camera-summary.conduit");
+const SOURCE: &str = include_str!("../../../../../forms/camera-summary/main.conduit");
 
 pub(super) struct CameraRealization {
     pub(super) plan: Plan,

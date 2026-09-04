@@ -16,7 +16,7 @@ use conduit_semantic_catalog::{
     WorkflowTimingOutcome, SCHEDULE_ASSESS_KIND, SCHEDULE_FIXTURE_KIND,
 };
 
-const SOURCE: &str = include_str!("../../../examples/scheduling-workflow.conduit");
+const SOURCE: &str = include_str!("../../../forms/scheduling-workflow/main.conduit");
 
 #[test]
 fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {

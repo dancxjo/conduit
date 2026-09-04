@@ -45,7 +45,7 @@ conduit-time = { path = "../semantics/time" }
 conduit-text = { path = "../semantics/text" }
 conduitos = { path = "../targets/conduitos", features = ["hosted-tools"] }
 conduit-net = { path = "../semantics/net" }
-conduit-pete = { path = "../apps/pete" }
+conduit-pete = { path = "../bodies/pete" }
 conduit-observatory = { path = "../architecture/observatory" }
 conduit-signal = { path = "../semantics/signal" }
 conduit-synth = { path = "../mechanisms/implementations/synth" }
@@ -54,7 +54,7 @@ conduit-presentation = { path = "../semantics/presentation", features = ["form-c
 conduit-plan-lowering = { path = "../architecture/plan-lowering", default-features = false }
 conduit-std-host = { path = "../targets/std", features = ["local-model-proof", "pete-create"] }
 conduit-wire = { path = "../architecture/wire" }
-patchbay-model = { path = "../apps/patchbay/model" }
+patchbay-model = { path = "../products/patchbay/model" }
 
 [dev-dependencies]
 libc = "0.2"

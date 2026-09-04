@@ -42,7 +42,7 @@ not a claim that browser allocation can be measured reliably from JavaScript.
 ## Explicit external-WebSocket webchat
 
 `webchat.test.html` instantiates one independent WASM kernel per page. Rust
-checks and expands `examples/webchat.conduit`, plans the exact browser fragment,
+checks and expands `forms/webchat/main.conduit`, plans the exact browser fragment,
 and surfaces correlated native socket and DOM host operations. JavaScript owns
 the browser `WebSocket`, input event, and list mutation only; it does not own
 chat history bounds, operation lifecycle, Plan identity, or terminal truth.

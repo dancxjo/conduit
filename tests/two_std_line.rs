@@ -12,7 +12,7 @@ fn installed_run_reports_two_hosts_one_line_and_terminal_values() {
             "run",
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../examples/signal-demo.conduit"
+                "/../../forms/signal-demo/main.conduit"
             ),
             "--body",
             concat!(
@@ -22,7 +22,7 @@ fn installed_run_reports_two_hosts_one_line_and_terminal_values() {
             "--placements",
             concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../examples/std-body-line.placements"
+                "/../../proof/fixtures/placements/std-body-line.placements"
             ),
             "--report",
         ])

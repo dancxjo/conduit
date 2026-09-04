@@ -75,7 +75,7 @@ pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
             "conduit",
             "--",
             "run",
-            "examples/hello.conduit",
+            "forms/hello/main.conduit",
         ],
         opts,
     )
@@ -93,7 +93,7 @@ pub fn run_triple(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
             "run",
             "proof/fixtures/forms/triple-signal.conduit",
             "--placements",
-            "examples/triple-local.placements",
+            "proof/fixtures/placements/triple-local.placements",
         ],
         opts,
     )
@@ -143,7 +143,7 @@ pub fn run_patchbay(
             "patchbay-native",
             "--",
             "--form",
-            "examples/default-welcome.conduit",
+            "forms/default-welcome/main.conduit",
             "--first-run-proof",
         ][..]
     } else if args.on == PatchbayHost::Native {
@@ -156,19 +156,19 @@ pub fn run_patchbay(
             "--",
             "--seed",
             "Text Lab",
-            "examples/text-lab.conduit",
+            "forms/text-lab/main.conduit",
             "--seed",
             "Hello",
-            "examples/hello.conduit",
+            "forms/hello/main.conduit",
             "--seed",
             "Greet",
-            "examples/greet.conduit",
+            "forms/greet/main.conduit",
             "--seed",
             "Clock",
-            "examples/clock.conduit",
+            "forms/clock/main.conduit",
             "--seed",
             "Count",
-            "examples/count.conduit",
+            "forms/count/main.conduit",
         ][..]
     };
     let step = Step::new(
@@ -203,7 +203,7 @@ pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
             "patchbay-native",
             "--",
             "--environment",
-            "examples/maker-workbench.json",
+            "products/patchbay/native/assets/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -223,9 +223,9 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
             "--",
             "--prewake",
             "--form",
-            "examples/hello.conduit",
+            "forms/hello/main.conduit",
             "--environment",
-            "examples/maker-workbench.json",
+            "products/patchbay/native/assets/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -246,9 +246,9 @@ pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
             "--prewake",
             "--prewake-hold",
             "--form",
-            "examples/text-lab.conduit",
+            "forms/text-lab/main.conduit",
             "--environment",
-            "examples/maker-workbench.json",
+            "products/patchbay/native/assets/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;

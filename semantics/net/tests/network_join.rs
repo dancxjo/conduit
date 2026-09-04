@@ -253,7 +253,7 @@ fn canonical_bootstrap_form_carries_no_credentials_or_platform_facts() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_net::install_network_bootstrap_catalogs(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../examples/r1-network-bootstrap.conduit");
+    let source = include_str!("../../../forms/r1-network-bootstrap/main.conduit");
     let document = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&document, &startup).unwrap();
     assert_eq!(checked.forms.len(), 1);

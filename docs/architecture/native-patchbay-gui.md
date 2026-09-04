@@ -51,7 +51,7 @@ The first composition contains:
   the existing Body/Wake and Plan/Play controllers;
 - framed Open Back, Save, and linear-view action targets;
 - a navigator, central canvas, inspector, and status region;
-- at least three primitive Gears for `examples/hello.conduit`, including the checked literal Gear;
+- at least three primitive Gears for `forms/hello/main.conduit`, including the checked literal Gear;
 - explicit typed input/output jacks and elbow Cords between their exact endpoints;
 - pointer selection and wraparound arrow-key traversal across Gears, Ports, and Cords;
 - a selected-subject inspector with exact identity, Kind/Port/Info facts, and wrapped exact

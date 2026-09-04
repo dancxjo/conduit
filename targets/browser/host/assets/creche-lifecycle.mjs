@@ -1,15 +1,22 @@
 import { nameFor, NAMING_SYSTEM_OPTIONS } from "./creche-names.mjs";
 import { attachConduitSyntaxEditor } from "./application-syntax-presentation.mjs";
+import {
+  encodedFormSelection,
+  reviewInitialWorkload,
+  searchForms,
+  toggleForm,
+} from "./creche-form-selection.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBodyBirthRunner({ source, sourceKey, listingId, host, presentationFor, draft, onDraft, nextSequence, onBodyChanged }) {
+export function createBodyBirthRunner({ source, sourceKey, listingId, host, presentationFor, inventory, initialSelection, onSelection, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
     <div class="birth-presentation">
+      <div data-application-slot="birth-selection"></div>
       <div data-application-slot="birth-fields"></div>
       <div data-application-slot="birth-source"></div>
     </div>
@@ -31,14 +38,21 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     variation: 0,
     namingRequest: 0,
     pending: true,
-    initialForms: ["morse_network", "memory_lantern"],
-    source: draft ?? source,
-    status: "Review the Forms, choose the bounded initial workload, then explicitly birth one Body.",
-    outcome: "status",
+    initialForms: [...initialSelection.selected],
+    search: "",
+    source,
+    review: null,
+    status: initialSelection.refusals.length === 0
+      ? "Browse the reviewed Forms, compose a bounded workload, then review it before birth."
+      : `${initialSelection.refusals.length} stale or over-capacity restored Form selection(s) were refused.`,
+    outcome: initialSelection.refusals.length === 0 ? "status" : "warning-status",
     terminal: false,
+    restoreRefusals: initialSelection.refusals.length,
   };
   const current = readCurrent(host.runtime);
-  const controls = { presentation, runtime: host.runtime, listingId, onDraft, onBirth() {
+  const controls = { presentation, runtime: host.runtime, listingId, inventory, onSelection: onSelection ?? (() => {}), onReview() {
+    review(runner, host, state, controls);
+  }, onBirth() {
     birth(runner, host, state, nextSequence(), onBodyChanged, controls);
   } };
   if (current) {
@@ -50,40 +64,55 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
   return runner;
 }
 
-function presentBirthControls(runner, state, { presentation, runtime, listingId, onDraft, onBirth = () => {} }) {
+function presentBirthControls(runner, state, controls) {
+  const { presentation, runtime, listingId, inventory, onSelection, onReview = () => {}, onBirth = () => {} } = controls;
   const interactive = !state.terminal && !state.pending;
+  const visible = searchForms(inventory, state.search);
+  const selectionActions = interactive ? [
+    { id: "forms.search", event: "input" },
+    ...visible.map((form) => ({ id: `form.toggle.${form.name}`, event: "activate" })),
+  ] : [];
   const fieldActions = interactive ? [
-    { id: "form.morse.toggle", event: "activate" },
-    { id: "form.memory.toggle", event: "activate" },
     { id: "name.input", event: "input" },
     { id: "name-system.change", event: "change" },
     { id: "name.refresh", event: "activate" },
   ] : [];
   const sourceActions = interactive ? [
-    { id: "source.input", event: "input" },
+    { id: "workload.review", event: "activate" },
     { id: "birth.activate", event: "activate" },
   ] : [];
   const onEvent = (slot) => (event) => {
     presentation.nextEvent(slot);
     const value = decoder.decode(event.value);
-    if (event.action.startsWith("form.")) {
-      const name = event.action === "form.morse.toggle" ? "morse_network" : "memory_lantern";
-      state.initialForms = state.initialForms.includes(name)
-        ? state.initialForms.filter((candidate) => candidate !== name)
-        : [...state.initialForms, name];
-      presentBirthControls(runner, state, { presentation, runtime, listingId, onDraft, onBirth });
+    if (event.action === "forms.search") {
+      state.search = value;
+      presentBirthControls(runner, state, controls);
+      return;
+    }
+    if (event.action.startsWith("form.toggle.")) {
+      state.initialForms = toggleForm(inventory, state.initialForms, event.action.slice("form.toggle.".length));
+      state.review = null;
+      state.status = "Selection changed; review the combined workload before birth.";
+      state.outcome = "status";
+      onSelection(state.initialForms);
+      presentBirthControls(runner, state, controls);
       return;
     }
     if (event.action === "name.input") state.friendlyName = value;
-    if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, { presentation, runtime, listingId, onDraft, onBirth }); }
-    if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, { presentation, runtime, listingId, onDraft, onBirth }); }
-    if (event.action === "source.input") { state.source = value; onDraft(value); }
+    if (event.action === "name-system.change") { state.namingSystem = value; void suggestName(runner, state, controls); }
+    if (event.action === "name.refresh") { state.variation += 1; void suggestName(runner, state, controls); }
+    if (event.action === "workload.review") onReview();
     if (event.action === "birth.activate") onBirth();
   };
+  presentation.present("birth-selection", {
+    revision: ++state.revision,
+    actions: selectionActions,
+    nodes: birthSelectionNodes(state, inventory, visible, selectionActions),
+  }, { onEvent: onEvent("birth-selection") });
   presentation.present("birth-fields", {
     revision: ++state.revision,
     actions: fieldActions,
-    nodes: birthFieldNodes(state),
+    nodes: birthFieldNodes(state, inventory, visible, fieldActions),
   }, { onEvent: onEvent("birth-fields") });
   presentation.present("birth-source", {
     revision: ++state.revision,
@@ -93,29 +122,53 @@ function presentBirthControls(runner, state, { presentation, runtime, listingId,
   attachConduitSyntaxEditor(runner.querySelector(`[data-application-key="${listingId}"]`), runtime);
 }
 
-function birthFieldNodes(state) {
+function birthSelectionNodes(state, inventory, visible, actions) {
   const interactive = !state.terminal && !state.pending;
+  const action = (id) => interactive ? actions.findIndex((candidate) => candidate.id === id) : null;
+  const nodes = [
+    { parent: null, component: "stack", action: null, key: "initial-forms-field", text: "" },
+    { parent: 0, component: "paragraph", action: null, key: "initial-forms-label", text: "Initial active Forms" },
+    { parent: 0, component: "form-field", action: null, key: "form-search-field", text: "" },
+    { parent: 2, component: "field-label", action: null, key: "form-search-label", text: "Search Forms" },
+    { parent: 2, component: "text-input", action: action("forms.search"), key: "form-search", text: "Search Forms", value: state.search, valueCapacity: 128 },
+    { parent: 2, component: "field-help", action: null, key: "form-search-help", text: "Filter the finite reviewed inventory by name or required kind." },
+    { parent: 0, component: "paragraph", action: null, key: "selected-heading", text: `Selected (${state.initialForms.length})` },
+  ];
+  for (const form of visible) {
+    const selected = state.initialForms.some((candidate) => candidate.checked_form_id === form.checked_form_id);
+    nodes.push({ parent: 0, component: "button", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: `${selected ? "Remove" : "Add"} ${form.title}` });
+    nodes.push({ parent: 0, component: "paragraph", action: null, key: `form-${form.name}-requirements`, text: form.required_kinds.join(" · ") });
+  }
+  nodes.push({ parent: 0, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
+  return nodes;
+}
+
+function birthFieldNodes(state, _inventory, _visible, actions) {
+  const interactive = !state.terminal && !state.pending;
+  const action = (id) => interactive ? actions.findIndex((candidate) => candidate.id === id) : null;
   const nodes = [
     { parent: null, component: "stack", action: null, key: "birth-fields", text: "" },
-    { parent: 0, component: "stack", action: null, key: "program-field", text: "" },
-    { parent: 1, component: "paragraph", action: null, key: "program-label", text: "Initial active Forms" },
-    { parent: 1, component: "button", action: interactive ? 0 : null, key: "morse-form", text: `${state.initialForms.includes("morse_network") ? "✓" : "○"} Morse Network` },
-    { parent: 1, component: "button", action: interactive ? 1 : null, key: "memory-form", text: `${state.initialForms.includes("memory_lantern") ? "✓" : "○"} Memory Lantern` },
-    { parent: 1, component: "paragraph", action: null, key: "program-help", text: `${state.initialForms.length} of 2 reviewed Forms selected; maximum 16.` },
-    { parent: 0, component: "form-field", action: null, key: "friendly-name-field", text: "" },
-    { parent: 6, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
-    { parent: 6, component: "text-input", action: interactive ? 2 : null, key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
-    { parent: 6, component: "field-help", action: null, key: "friendly-name-help", text: "Editable metadata; the durable Body identity remains distinct." },
-    { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
-    { parent: 0, component: "form-field", action: null, key: "name-system-field", text: "" },
-    { parent: 11, component: "field-label", action: null, key: "name-system-label", text: "Naming tradition" },
-    { parent: 11, component: "select", action: interactive ? 3 : null, key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
-    { parent: 11, component: "field-help", action: null, key: "name-system-help", text: "Select one bounded naming system for the next suggestion." },
   ];
+  const nameField = nodes.length;
+  nodes.push(
+    { parent: 0, component: "form-field", action: null, key: "friendly-name-field", text: "" },
+    { parent: nameField, component: "field-label", action: null, key: "friendly-name-label", text: "Friendly Body name" },
+    { parent: nameField, component: "text-input", action: action("name.input"), key: "body-friendly-name", text: "Friendly Body name", value: state.friendlyName, valueCapacity: 64 },
+    { parent: nameField, component: "field-help", action: null, key: "friendly-name-help", text: "Editable metadata; the durable Body identity remains distinct." },
+    { parent: 0, component: "paragraph", action: null, key: "name-origin", text: nameOriginText(state) },
+  );
+  const systemField = nodes.length;
+  nodes.push(
+    { parent: 0, component: "form-field", action: null, key: "name-system-field", text: "" },
+    { parent: systemField, component: "field-label", action: null, key: "name-system-label", text: "Naming tradition" },
+    { parent: systemField, component: "select", action: action("name-system.change"), key: "name-system", text: "Naming tradition", value: state.namingSystem, valueCapacity: 32 },
+    { parent: systemField, component: "field-help", action: null, key: "name-system-help", text: "Select one bounded naming system for the next suggestion." },
+  );
+  const selectIndex = systemField + 2;
   for (const option of NAMING_SYSTEM_OPTIONS) {
-    nodes.push({ parent: 13, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
+    nodes.push({ parent: selectIndex, component: "option", action: null, key: `name-${option.id}`, text: option.label, value: option.id, valueCapacity: 32 });
   }
-  nodes.push({ parent: 0, component: "button", action: interactive ? 4 : null, key: "another-name", text: "Suggest another name" });
+  nodes.push({ parent: 0, component: "button", action: action("name.refresh"), key: "another-name", text: "Suggest another name" });
   return nodes;
 }
 
@@ -127,12 +180,21 @@ function birthSourceNodes(state, listingId) {
     { parent: 1, component: "summary", action: null, key: "form-summary", text: "Reviewed Form source" },
     { parent: 1, component: "form-field", action: null, key: "form-source-field", text: "" },
     { parent: 3, component: "field-label", action: null, key: "form-source-label", text: "Conduit Form source" },
-    { parent: 3, component: "textarea", action: interactive ? 0 : null, key: listingId, text: "Conduit Form source", value: state.source, valueCapacity: 65_536 },
-    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "These checked meanings contain no Host, Boot, device, or transport facts." },
+    { parent: 3, component: "textarea", action: null, key: listingId, text: "Conduit Form source", value: state.source, valueCapacity: 65_536 },
+    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "Read-only reviewed source. These checked meanings contain no Host, Boot, device, or transport facts." },
+    { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
+    { parent: 7, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
+    { parent: 7, component: "definition", action: null, key: "review-basis", text: "Realization basis", value: state.review ? `${state.review.proposed_hosts.length} current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created` : "not reviewed", valueCapacity: 1024 },
     { parent: 0, component: "action-group", action: null, key: "birth-actions", text: "" },
-    { parent: 7, component: "button", action: interactive ? 1 : null, key: "birth", text: "Birth Body" },
+    { parent: 10, component: "button", action: interactive ? 0 : null, key: "review", text: "Review workload" },
+    { parent: 10, component: "button", action: interactive && state.review ? 1 : null, key: "birth", text: "Birth Body" },
     { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
   ];
+}
+
+function combinedKinds(state) {
+  const kinds = [...new Set(state.initialForms.flatMap((form) => form.required_kinds))].sort();
+  return kinds.join(", ") || "none (idle Body)";
 }
 
 async function suggestName(runner, state, controls) {
@@ -147,7 +209,9 @@ async function suggestName(runner, state, controls) {
     state.friendlyName = suggestion.name;
     state.namingLabel = suggestion.system_label;
     state.pending = false;
-    state.status = "Edit the suggestion or the Forms, then explicitly birth one Body.";
+    state.status = state.restoreRefusals === 0
+      ? "Edit the suggestion or Form selection, then review the combined workload."
+      : `${state.restoreRefusals} stale or over-capacity restored Form selection(s) were refused.`;
     presentBirthControls(runner, state, controls);
   } catch (error) {
     if (request !== state.namingRequest || state.terminal) return;
@@ -163,13 +227,32 @@ function nameOriginText(state) {
   return `${state.namingLabel} · persona seed ${state.personaUuid.slice(0, 8)} · variation ${state.variation}. The seed chooses a suggestion; it is not the Body ID.`;
 }
 
+function review(runner, host, state, controls) {
+  try {
+    state.review = reviewInitialWorkload(
+      host.runtime,
+      host.hostId,
+      host.bootId,
+      state.source,
+      state.initialForms,
+    );
+    state.status = `Review accepted ${state.initialForms.length} Form(s) against ${state.review.proposed_hosts.length} current Host OFFER(s). No permission or resource was acquired; no Body Plan or Play exists.`;
+    state.outcome = "success-status";
+  } catch (error) {
+    state.review = null;
+    state.status = `Workload review refused: ${error instanceof Error ? error.message : String(error)}`;
+    state.outcome = "failure-status";
+  }
+  presentBirthControls(runner, state, controls);
+}
+
 function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
   const api = host.runtime;
   const sourceBytes = encoder.encode(state.source);
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const nameBytes = encoder.encode(state.friendlyName.trim());
-  const formsBytes = encoder.encode(JSON.stringify(state.initialForms));
+  const formsBytes = encoder.encode(encodedFormSelection(state.initialForms));
   const total = hostBytes.length + bootBytes.length + nameBytes.length + formsBytes.length + sourceBytes.length;
   if (total > api.conduit_creche_input_capacity()) {
     state.status = "The Form selection and exact Host identities exceed the admitted BIRTH input bound.";
@@ -230,7 +313,13 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   runner.dataset.birthSignId = receipt.birth_sign_id;
   state.terminal = true;
   state.friendlyName = receipt.friendly_name;
-  state.initialForms = receipt.initial_forms.map((form) => form.name);
+  state.initialForms = receipt.initial_forms.map((form) => {
+    const current = presentationOptions.inventory.forms.find((candidate) => candidate.name === form.name
+      && candidate.source_document_id === form.source_document_id
+      && candidate.checked_form_id === form.checked_form_id);
+    if (!current) throw new Error(`Body receipt carries stale initial Form identity ${JSON.stringify(form.name)}`);
+    return current;
+  });
   runner.querySelector(".initial-forms").textContent = `${receipt.initial_forms.length} active`;
   runner.querySelector(".body-id").textContent = receipt.body_id;
   runner.querySelector(".body-state").textContent = receipt.state;
@@ -238,6 +327,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
     : `Born — ${receipt.initial_forms.length} checked Form(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
   state.outcome = "success-status";
+  if (!retained) presentationOptions.onSelection(null);
   presentBirthControls(runner, state, presentationOptions);
   const identities = [
     ["Friendly name", receipt.friendly_name],
@@ -248,6 +338,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     ["Current Host", receipt.host_id ?? "none yet"],
     ["Current Boot", receipt.boot_id ?? "none yet"],
     ["Membership revision", String(receipt.membership_revision)],
+    ["Workload revision", String(receipt.workload_revision)],
     ["Wake", receipt.wake_id ?? "none"],
     ["Plan", receipt.plan_id ?? "none"],
     ["Active Play", receipt.active_play_id ?? "none"],
@@ -255,6 +346,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   const rawEvidence = JSON.stringify({
     body: receipt.raw_body,
     membership: receipt.raw_membership,
+    initial_workload_review: receipt.initial_review,
     source_interaction: receipt.source_interaction,
   }, null, 2);
   presentationOptions.presentation.present("birth-evidence", {

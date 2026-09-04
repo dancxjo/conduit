@@ -8,7 +8,35 @@ const SEED: &str = r#"form hello_across {
     message > show
 }"#;
 
-const TWO_FORMS: &str = include_str!("../../../../../forms/initial-body.conduit");
+const TWO_FORMS: &str = concat!(
+    include_str!("../../../../../forms/morse-network/main.conduit"),
+    "\n",
+    include_str!("../../../../../forms/memory-lantern/main.conduit"),
+    "\n",
+    include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+);
+
+fn selection(source: &str, names: &[&str]) -> String {
+    let inventory = super::initial_forms::reviewed_inventory(source).unwrap();
+    serde_json::to_string(
+        &names
+            .iter()
+            .map(|name| {
+                let form = inventory
+                    .forms
+                    .iter()
+                    .find(|form| form.name == *name)
+                    .unwrap();
+                super::initial_forms::InitialFormSelection {
+                    name: form.name.clone(),
+                    source_document_id: form.source_document_id.clone(),
+                    checked_form_id: form.checked_form_id.clone(),
+                }
+            })
+            .collect::<Vec<_>>(),
+    )
+    .unwrap()
+}
 
 fn birth(sequence: u64) -> super::protocol::BirthReceipt {
     let interaction = admit_source(SEED.as_bytes(), sequence).unwrap();
@@ -16,7 +44,7 @@ fn birth(sequence: u64) -> super::protocol::BirthReceipt {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &selection(SEED, &["hello_across"]),
         SEED,
         sequence,
         interaction,
@@ -68,7 +96,7 @@ fn duplicate_birth_and_changed_source_refuse_without_mutating_the_body() {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &selection(SEED, &["hello_across"]),
         SEED,
         22,
         duplicate,
@@ -84,7 +112,7 @@ fn duplicate_birth_and_changed_source_refuse_without_mutating_the_body() {
         "browser/creche",
         "browser-boot/creche",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &selection(SEED, &["hello_across"]),
         &changed,
         23,
         admitted,
@@ -102,26 +130,34 @@ fn birth_activates_multiple_selected_forms_as_one_revision_zero_workload() {
         "browser/creche",
         "browser-boot/creche",
         "shared lantern",
-        r#"["memory_lantern","morse_network"]"#,
+        &selection(
+            TWO_FORMS,
+            &["memory_lantern", "morse_network", "desk_telegraph"],
+        ),
         TWO_FORMS,
         24,
         interaction,
     )
     .unwrap();
-    assert_eq!(receipt.initial_forms.len(), 2);
+    assert_eq!(receipt.initial_forms.len(), 3);
+    assert_eq!(receipt.workload_revision, 0);
     assert_eq!(receipt.raw_body.workload_revision, 0);
-    assert_eq!(receipt.raw_body.workset.len(), 2);
+    assert_eq!(receipt.raw_body.workset.len(), 3);
     assert!(receipt.raw_body.validate().is_ok());
 }
 
 #[test]
 fn duplicate_absent_and_over_capacity_initial_selections_refuse_before_birth() {
     for (sequence, selection) in [
-        (25, r#"["hello_across","hello_across"]"#.to_string()),
-        (26, r#"["absent"]"#.to_string()),
+        (25, selection(SEED, &["hello_across", "hello_across"])),
+        (26, r#"[{"name":"absent","source_document_id":"source/stale","checked_form_id":"checked/stale"}]"#.to_string()),
         (
             27,
-            serde_json::to_string(&vec!["hello_across"; conduit_body::MAX_BODY_FORMS + 1]).unwrap(),
+            serde_json::to_string(&vec![super::initial_forms::InitialFormSelection {
+                name: "hello_across".into(),
+                source_document_id: "source/over-capacity".into(),
+                checked_form_id: "checked/over-capacity".into(),
+            }; conduit_body::MAX_BODY_FORMS + 1]).unwrap(),
         ),
     ] {
         session::clear_for_test();
@@ -141,6 +177,39 @@ fn duplicate_absent_and_over_capacity_initial_selections_refuse_before_birth() {
 }
 
 #[test]
+fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
+    let inventory = super::initial_forms::reviewed_inventory(TWO_FORMS).unwrap();
+    assert_eq!(inventory.forms.len(), 3);
+    assert_eq!(inventory.forms[0].title, "Desk Telegraph");
+    assert!(inventory
+        .forms
+        .iter()
+        .all(|form| form.source_document_id == inventory.source_document_id));
+    assert!(inventory
+        .forms
+        .iter()
+        .all(|form| !form.required_kinds.is_empty()));
+
+    let mut stale: Vec<super::initial_forms::InitialFormSelection> =
+        serde_json::from_str(&selection(TWO_FORMS, &["memory_lantern"])).unwrap();
+    stale[0].checked_form_id = "checked/stale".into();
+    session::clear_for_test();
+    let interaction = admit_source(TWO_FORMS.as_bytes(), 29).unwrap();
+    let refusal = session::birth(
+        "browser/creche",
+        "browser-boot/creche",
+        "stale lantern",
+        &serde_json::to_string(&stale).unwrap(),
+        TWO_FORMS,
+        29,
+        interaction,
+    )
+    .unwrap_err();
+    assert!(refusal.contains("stale or substituted exact identity"));
+    assert!(session::current().is_none());
+}
+
+#[test]
 fn malformed_or_empty_form_source_is_refused_before_body_creation() {
     session::clear_for_test();
     let malformed = "form broken { nope: missing/kind }";
@@ -149,7 +218,7 @@ fn malformed_or_empty_form_source_is_refused_before_body_creation() {
         "browser/tour",
         "browser-boot/tour",
         "brisk lantern",
-        r#"["hello_across"]"#,
+        &selection(SEED, &["hello_across"]),
         malformed,
         31,
         interaction
@@ -167,7 +236,7 @@ fn friendly_name_is_metadata_and_cannot_change_durable_body_identity() {
         "browser/creche",
         "browser-boot/creche",
         "patient firefly",
-        r#"["hello_across"]"#,
+        &selection(SEED, &["hello_across"]),
         SEED,
         41,
         first_interaction,
@@ -179,7 +248,7 @@ fn friendly_name_is_metadata_and_cannot_change_durable_body_identity() {
         "browser/creche",
         "browser-boot/creche",
         "steady willow",
-        r#"["hello_across"]"#,
+        &selection(SEED, &["hello_across"]),
         SEED,
         41,
         second_interaction,
@@ -194,13 +263,13 @@ fn friendly_name_is_metadata_and_cannot_change_durable_body_identity() {
         "browser/creche",
         "browser-boot/creche",
         "steady willow",
-        r#"["absent_form"]"#,
+        r#"[{"name":"absent_form","source_document_id":"source/absent","checked_form_id":"checked/absent"}]"#,
         SEED,
         42,
         unsupported,
     )
     .unwrap_err()
-    .contains("absent from checked source"));
+    .contains("absent from checked inventory"));
 }
 
 #[test]
