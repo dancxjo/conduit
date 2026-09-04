@@ -561,6 +561,9 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert_eq!(workflow.matches("contents: write").count(), 2);
     assert!(workflow.contains("candidate-check:\n    needs: resolve"));
+    assert!(workflow.contains(
+        "candidate-check:\n    needs: resolve\n    if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
+    ));
     assert!(workflow.contains("candidate-products:\n    needs: resolve"));
 
     assert!(check.contains("workflow_call:"));

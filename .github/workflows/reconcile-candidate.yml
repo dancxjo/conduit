@@ -109,6 +109,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/check.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
