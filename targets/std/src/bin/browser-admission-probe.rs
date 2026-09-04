@@ -33,7 +33,7 @@ fn main() -> Result<(), String> {
         .windows(2)
         .find(|pair| pair[0] == "--body-evidence")
         .map(|pair| pair[1].as_str());
-    let (body, mut membership) = if let Some(path) = evidence_path {
+    let (body, mut membership, mut biography) = if let Some(path) = evidence_path {
         let bytes = std::fs::read(path).map_err(|error| format!("read Body evidence: {error}"))?;
         if bytes.is_empty() || bytes.len() > 65_536 {
             return Err("Body evidence is empty or exceeds the probe bound".into());
@@ -43,7 +43,7 @@ fn main() -> Result<(), String> {
         evidence
             .validate()
             .map_err(|error| format!("validate Body evidence: {error:?}"))?;
-        (evidence.body, evidence.membership)
+        (evidence.body.clone(), evidence.membership.clone(), evidence)
     } else {
         let body = Body::born(
             SourceDocumentId::from("source/browser-admission-probe"),
@@ -54,7 +54,13 @@ fn main() -> Result<(), String> {
         .map_err(|error| format!("Body birth: {error:?}"))?;
         let membership = BodyMembership::new(body.body_id.clone())
             .map_err(|error| format!("membership: {error:?}"))?;
-        (body, membership)
+        let biography = BodyBiographyEvidence::born(
+            body.clone(),
+            membership.clone(),
+            "Browser admission proof".into(),
+        )
+        .map_err(|error| format!("biography: {error:?}"))?;
+        (body, membership, biography)
     };
     let mut candidates = CandidateInventory::new(body.body_id.clone())
         .map_err(|error| format!("candidate inventory: {error:?}"))?;
@@ -140,6 +146,7 @@ fn main() -> Result<(), String> {
         },
         _ => return Err("second browser admission frame was not an ambient proof".into()),
     };
+    let prior_membership_events = membership.events.len();
     let credential = admission
         .complete_ambient(
             &mut candidates,
@@ -153,12 +160,37 @@ fn main() -> Result<(), String> {
             },
         )
         .map_err(|error| format!("complete admission: {error:?}"))?;
+    let biography_sequence = biography
+        .records
+        .last()
+        .and_then(|record| record.sequence.checked_add(1))
+        .ok_or("Body biography sequence exhausted")?;
+    let mut biography_events = Vec::with_capacity(2);
+    for (index, event) in membership.events[prior_membership_events..]
+        .iter()
+        .enumerate()
+    {
+        let offset = u64::try_from(index).map_err(|_| "Body biography sequence exhausted")?;
+        let sequence = biography_sequence
+            .checked_add(offset)
+            .ok_or("Body biography sequence exhausted")?;
+        biography_events.push((event.change_id.clone(), sequence));
+    }
+    biography
+        .append_membership_events(membership.clone(), &biography_events)
+        .map_err(|error| format!("append admission biography: {error:?}"))?;
     socket
         .send(&BrowserAdmissionEgress::Admitted {
             protocol: BROWSER_ADMISSION_PROTOCOL,
             credential: credential.clone(),
         })
         .map_err(|error| format!("send credential: {error:?}"))?;
+    socket
+        .send(&BrowserAdmissionEgress::BiographyEvidence {
+            protocol: BROWSER_ADMISSION_PROTOCOL,
+            evidence: Box::new(biography),
+        })
+        .map_err(|error| format!("send biography evidence: {error:?}"))?;
     println!(
         "admitted body={} part={} host={} boot={} candidates={} members={}",
         credential.body_id.as_str(),
