@@ -742,7 +742,9 @@ jobs:
   products-proof:
     needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier]
     if: always()
-    runs-on: ubuntu-latest
+    # This gate only inspects completed dependency results. Keep it on the
+    # single-CPU automation lane so product fabrication cannot occupy its runner.
+    runs-on: ubuntu-slim
     steps:
       - name: Preserve the stable required product gate
         env:
