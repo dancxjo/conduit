@@ -139,7 +139,7 @@ jobs:
           cargo build --locked -p conduit-browser-host
           cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/book-runtime.wasm
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
@@ -520,11 +520,11 @@ jobs:
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
           chmod 755 target/debug/conduit-browser-host
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
-          cp target/browser-product-runtimes/book-runtime.wasm target/conduit_book_runtime.wasm
+          cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
-          rm -rf target/pages-root target/book-product target/creche-product target/patchbay-product
+          rm -rf target/pages-root target/tour-product target/creche-product target/patchbay-product
           scripts/ci/stage-pages-root.sh target/pages-root
-          scripts/ci/stage-book-product.sh target/browser-product-runtimes/book-runtime.wasm target/book-product
+          scripts/ci/stage-book-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Retain the exact staged products once for parallel consumers
@@ -534,7 +534,7 @@ jobs:
           path: |
             target/debug/conduit-browser-host
             target/pages-root
-            target/book-product
+            target/tour-product
             target/creche-product
             target/patchbay-product
           if-no-files-found: error
@@ -617,13 +617,41 @@ jobs:
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/book target/pages-site/creche target/pages-site/patchbay
+          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/patchbay
           cp -a target/pages-root/. target/pages-site/
-          cp -a target/book-product/. target/pages-site/book/
+          cp -a target/tour-product/. target/pages-site/tour/
           cp -a target/creche-product/. target/pages-site/creche/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
+          cat > target/pages-site/book/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=../tour/">
+            <title>Redirecting to Tour</title>
+            <script>location.replace("../tour/");</script>
+          </head>
+          <body><p>Redirecting to <a href="../tour/">../tour/</a>.</p></body>
+          </html>
+          HTML
+          for route in a-form-you-can-run faces-backs-and-implementation hosts-make-forms-real one-form-across-several-hosts the-body-one-computer-one-machine-or-many many-forms-one-body-wide-realization birth-spores-and-the-creche meet-one-gear same-face-different-implementation; do
+            mkdir -p "target/pages-site/book/$route"
+            cat > "target/pages-site/book/$route/index.html" <<HTML
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=../../tour/$route/">
+            <title>Redirecting to Tour</title>
+            <script>location.replace("../../tour/$route/");</script>
+          </head>
+          <body><p>Redirecting to <a href="../../tour/$route/">../../tour/$route/</a>.</p></body>
+          </html>
+          HTML
+          done
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
-          test -f target/pages-site/book/book.application.json
+          test -f target/pages-site/tour/tour.application.json
+          test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/creche/runtime.wasm

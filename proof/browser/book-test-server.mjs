@@ -23,12 +23,12 @@ function awaitUrl(child, pattern, label) {
 }
 
 export async function startBook() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/book-product", "--mount", "/book/", "--no-open"], {
+  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/tour-product", "--mount", "/tour/", "--no-open"], {
     cwd: new URL("../..", import.meta.url).pathname,
     env: process.env,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  const url = await awaitUrl(child, /CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/book\/)/, "executable Book");
+  const url = await awaitUrl(child, /CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/tour\/)/, "executable Tour");
   return { child, url };
 }
 

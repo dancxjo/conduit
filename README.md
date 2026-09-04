@@ -14,7 +14,7 @@ Conduit is still experimental. [STATUS.md](STATUS.md) is the authoritative recor
 
 ## Try the smallest thing
 
-The fastest introduction is the [executable Conduit Book](https://dancxjo.github.io/conduit/book). It lets you edit real Forms, run them in a browser Host, and inspect them through the real Patchbay renderer.
+The fastest introduction is the [Conduit Tour](https://dancxjo.github.io/conduit/tour). It lets you edit real Forms, run them in a browser Host, and inspect them through the real Patchbay renderer.
 
 A small Form looks like this:
 
@@ -110,7 +110,7 @@ A surrounding Form depends on a Gear's **Face**, not on one particular implement
 
 That separation is what lets the same program survive changes in placement and machinery without pretending those machines are identical.
 
-For a guided explanation, use the [Book](https://dancxjo.github.io/conduit/book) rather than treating this README as the language manual. The deeper architectural contract lives in [the Conduit canon](docs/conduit-canon.md).
+For a guided explanation, use the [Tour](https://dancxjo.github.io/conduit/tour) rather than treating this README as the language manual. The deeper architectural contract lives in [the Conduit canon](docs/conduit-canon.md).
 
 ## The Body is the computer
 
@@ -164,7 +164,7 @@ Read **[STATUS.md](STATUS.md)** before making a capability claim. It is intentio
 ## Explore Conduit
 
 - **[Conduit home](https://dancxjo.github.io/conduit)**: the public front door.
-- **[Executable Book](https://dancxjo.github.io/conduit/book)**: learn Conduit by running it.
+- **[Conduit Tour](https://dancxjo.github.io/conduit/tour)**: learn Conduit by running it.
 - **[Crèche](https://dancxjo.github.io/conduit/creche)**: birth and provision a Body.
 - **[Try Conduit](docs/try-conduit.md)**: repository-oriented runnable guide.
 - **[Conduit canon](docs/conduit-canon.md)**: durable architecture and design distinctions.

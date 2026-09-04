@@ -131,7 +131,7 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("every Book page and Crèche step has a direct, history-aware route", async ({ page }) => {
+test("every Tour page and Crèche step has a direct, history-aware route", async ({ page }) => {
   const bookPages = [
     ["a-form-you-can-run", "A Form you can run"],
     ["faces-backs-and-implementation", "Faces, Backs, and implementation"],
@@ -146,15 +146,15 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Browser Host ready");
   for (let index = 0; index < bookPages.length; index += 1) {
     const [slug, title] = bookPages[index];
-    await expect(page).toHaveURL(new RegExp(`/book/${slug}/$`));
+    await expect(page).toHaveURL(new RegExp(`/tour/${slug}/$`));
     await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
     if (index + 1 < bookPages.length) await page.getByRole("button", { name: "Next" }).click();
   }
   await page.reload();
-  await expect(page).toHaveURL(new RegExp(`/book/${bookPages.at(-1)[0]}/$`));
+  await expect(page).toHaveURL(new RegExp(`/tour/${bookPages.at(-1)[0]}/$`));
   await expect(page.locator("#chapter")).toContainText("Birth, spores, and the Cr");
   await page.goBack();
-  await expect(page).toHaveURL(new RegExp(`/book/${bookPages.at(-2)[0]}/$`));
+  await expect(page).toHaveURL(new RegExp(`/tour/${bookPages.at(-2)[0]}/$`));
 
   await openStandaloneCreche(page);
   await expect(page.locator('#host-state [data-application-component="success-status"]')).toHaveText("Crèche ready");
@@ -171,11 +171,11 @@ test("every Book page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
 });
 
-test("Book route mutation crosses the finite Browser Host operation boundary", async ({ page }) => {
+test("Tour route mutation crosses the finite Browser Host operation boundary", async ({ page }) => {
   const [source, routing, manifest] = await Promise.all([
     page.request.get(new URL("book.mjs", entrance.url).href).then((response) => response.text()),
     page.request.get(new URL("book-routing.mjs", entrance.url).href).then((response) => response.text()),
-    page.request.get(new URL("book.application.json", entrance.url).href).then((response) => response.json()),
+    page.request.get(new URL("tour.application.json", entrance.url).href).then((response) => response.json()),
   ]);
   expect(source).toContain('from "./book-routing.mjs"');
   expect(source).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
@@ -187,12 +187,12 @@ test("Book route mutation crosses the finite Browser Host operation boundary", a
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page).toHaveURL(/\/book\/faces-backs-and-implementation\/$/);
+  await expect(page).toHaveURL(/\/tour\/faces-backs-and-implementation\/$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/book\/a-form-you-can-run\/$/);
+  await expect(page).toHaveURL(/\/tour\/a-form-you-can-run\/$/);
 });
 
-test("the Book navigation remains legible and interactive in both theme modes", async ({ page }) => {
+test("the Tour navigation remains legible and interactive in both theme modes", async ({ page }) => {
   for (const colorScheme of ["dark", "light"]) {
     await page.emulateMedia({ colorScheme });
     await page.goto(entrance.url);
@@ -282,7 +282,7 @@ test("same-named input and output Ports keep distinct animated Cords", async ({ 
   await expect(patchbay.locator(".react-flow__edge-path").first()).toHaveCSS("stroke-dasharray", "none");
 });
 
-test("Book tour pairs narrative with Patchbay above source and output, then stacks coherently", async ({ page }) => {
+test("Tour pairs narrative with Patchbay above source and output, then stacks coherently", async ({ page }) => {
   for (const width of [1440, 1600]) {
     await page.setViewportSize({ width, height: 1000 });
     await openStep(page, 1);
@@ -356,7 +356,7 @@ test("Book tour pairs narrative with Patchbay above source and output, then stac
   expect(interaction.scroll).toBeLessThanOrEqual(interaction.viewport);
 });
 
-test("Book Patchbay shows an invalid Form, marks its broken Cord, and explains the repair", async ({ page }) => {
+test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains the repair", async ({ page }) => {
   await openStep(page, 0);
   const runner = page.locator(".runner").first();
   const listing = runner.locator("textarea");
@@ -374,7 +374,7 @@ test("Book Patchbay shows an invalid Form, marks its broken Cord, and explains t
   await expect(highlight.locator(".syntax-string")).toHaveText('"still typing');
   await expect(patchbay).toHaveAttribute("data-disposition", "refused");
   await expect(patchbay.locator(".flow-faceplate")).toHaveCount(0);
-  await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("parse compact Book Patchbay");
+  await expect(patchbay.locator(".compact-patchbay-refusal")).toContainText("parse compact Tour Patchbay");
 
   await listing.fill(original.replace("change: text/upper", "change: text/morse(80)"));
   await expect(patchbay).toHaveAttribute("data-disposition", "invalid");
@@ -411,7 +411,7 @@ test("read-only Conduit prose examples use the admitted canonical syntax project
   await expect(page.locator(".concept-diagram [class^=syntax-]")).toHaveCount(0);
 });
 
-test("Book Patchbay keeps branching explicit and opens one reviewed Back beneath its Face", async ({ page }) => {
+test("Tour Patchbay keeps branching explicit and opens one reviewed Back beneath its Face", async ({ page }) => {
   await openStep(page, 0);
   const fanout = page.locator(".runner").nth(2).locator(".compact-patchbay");
   await expect(fanout.locator(".react-flow__edge")).toHaveCount(4);
@@ -439,15 +439,15 @@ test("Book Patchbay keeps branching explicit and opens one reviewed Back beneath
   await expect(runner.locator("textarea")).toHaveValue(sourceBefore);
 });
 
-test("the staged Book and Crèche each boot with only their own product tree", async ({ page }) => {
-  const book = await startStaticProduct("target/book-product");
+test("the staged Tour and Crèche each boot with only their own product tree", async ({ page }) => {
+  const book = await startStaticProduct("target/tour-product");
   try {
     await page.goto(`${book.url}a-form-you-can-run/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
-    await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./book.application.json");
-    await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/book");
+    await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./tour.application.json");
+    await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/tour");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
     expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
@@ -642,13 +642,13 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
   }
 });
 
-test("the Book renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
+test("the Tour renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
   const body = "# Markdown proof\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>";
-  await page.route("**/book/chapter-1.md", (route) => route.fulfill({
+  await page.route("**/tour/chapter-1.md", (route) => route.fulfill({
     contentType: "text/markdown; charset=utf-8",
     body,
   }));
-  await page.route("**/book/book.application.json", async (route) => {
+  await page.route("**/tour/tour.application.json", async (route) => {
     const response = await route.fetch();
     const manifest = await response.json();
     manifest.resources.find((resource) => resource.role === "chapter-1").sha256 =
@@ -666,12 +666,12 @@ test("the Book renders admitted Markdown emphasis semantically and leaves raw HT
   expect(await page.evaluate(() => globalThis.__rawHtmlRan)).toBeUndefined();
 });
 
-test("the Book opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
+test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));
   await openStep(page, 0);
   await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
-  await expect(page).toHaveTitle(/The Book$/);
+  await expect(page).toHaveTitle(/Tour$/);
   await expect(page.locator("#chapter")).toContainText("one logical computer");
   await expect(page.locator("#chapter")).toContainText("one or many physical or virtual computers");
   await expect(page.locator("#chapter")).toContainText("Gear, Port, Cord, Form");
@@ -692,14 +692,14 @@ test("the Book opens with one logical Body premise and keeps Crèche machinery l
   const bookRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
   expect(bookRuntimeExports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
   expect((await page.request.get(new URL("/creche/", entrance.url).href)).status()).toBe(404);
-  expect((await page.request.get(new URL("/book/creche-lifecycle.mjs", entrance.url).href)).status()).toBe(404);
+  expect((await page.request.get(new URL("/tour/creche-lifecycle.mjs", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.includes("creche-lifecycle") || path.includes("creche-physical") || path.includes("creche-graduation"))).toBe(false);
   await page.reload();
   await expect(page.getByRole("heading", { name: "Birth, spores, and the Crèche" })).toBeVisible();
   await expect(page.locator(".body-birth-runner")).toHaveCount(0);
 });
 
-test("the standalone Crèche runs the same durable birth and graduation path without Book assets", async ({ page }) => {
+test("the standalone Crèche runs the same durable birth and graduation path without Tour assets", async ({ page }) => {
   entrance.child.kill();
   entrance = await startCreche();
   const responses = [];
@@ -738,8 +738,8 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   expect(durable.schema).toBe("conduit.body/biography-evidence@2");
   const crecheRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
   expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
-  expect((await page.request.get(new URL("/book/", entrance.url).href)).status()).toBe(404);
-  expect(responses.some((path) => path.startsWith("/book/") || path.includes("chapter-"))).toBe(false);
+  expect((await page.request.get(new URL("/tour/", entrance.url).href)).status()).toBe(404);
+  expect(responses.some((path) => path.startsWith("/tour/") || path.includes("chapter-"))).toBe(false);
 });
 
 test("the standalone Crèche birth controls remain separated at a narrow viewport", async ({ page }) => {
@@ -1551,7 +1551,7 @@ test("the Face plate flips open its checked Back without replacing the runner", 
   await expect(listing).toHaveValue(source);
 });
 
-test("Book navigation preserves executable drafts without owning lifecycle controls", async ({ page }) => {
+test("Tour navigation preserves executable drafts without owning lifecycle controls", async ({ page }) => {
   await openStep(page, 0);
   const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
   const listing = page.locator(".runner").nth(1).locator("textarea");
@@ -1653,7 +1653,7 @@ test("Hosts chapter shows the exact installed offers from the planning advertise
   ]));
   const [source, manifest] = await Promise.all([
     page.request.get(new URL("book.mjs", entrance.url).href).then((response) => response.text()),
-    page.request.get(new URL("book.application.json", entrance.url).href).then((response) => response.json()),
+    page.request.get(new URL("tour.application.json", entrance.url).href).then((response) => response.json()),
   ]);
   expect(source).toContain('from "./book-inventory-presentation.mjs"');
   expect(source).not.toContain('className = "gear-inventory"');

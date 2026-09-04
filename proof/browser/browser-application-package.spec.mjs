@@ -8,7 +8,7 @@ test.beforeEach(async () => { entrance = await startBook(); });
 test.afterEach(() => entrance?.child.kill());
 
 async function mutatePackage(page, mutate) {
-  await page.route("**/book.application.json", async (route) => {
+  await page.route("**/tour.application.json", async (route) => {
     const response = await route.fetch();
     const manifest = await response.json();
     mutate(manifest);
@@ -34,9 +34,9 @@ async function deleteStoredApplicationRecord(page, applicationIdentity, version,
   }, { applicationIdentity, version, key });
 }
 
-test("Book drafts and an open reviewed Back endure a same-browser reload", async ({ page }) => {
+test("Tour drafts and an open reviewed Back endure a same-browser reload", async ({ page }) => {
   entrance.child.kill();
-  entrance = await startStaticProduct("target/book-product", "/conduit/book/");
+  entrance = await startStaticProduct("target/tour-product", "/conduit/tour/");
   const requests = [];
   page.on("request", (request) => {
     if (request.url().startsWith("http:")) requests.push(new URL(request.url()).pathname);
@@ -45,6 +45,7 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   const admission = await page.evaluate(() => ({
+    applicationId: globalThis.__conduitBrowserApplication.manifest.applicationId,
     packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
     stateIdentity: globalThis.__conduitBrowserApplication.manifest.stateCompatibility.identity,
     storageIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
@@ -53,6 +54,8 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
     resourceUrls: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.url.href),
   }));
   expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+  expect(admission.applicationId).toBe("conduit.application/tour");
+  expect(admission.stateIdentity).toBe("conduit.application/book-reading-state");
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   const membershipClient = await page.evaluate(() => {
@@ -108,6 +111,27 @@ test("Book drafts and an open reviewed Back endure a same-browser reload", async
     const pathname = new URL(admission.resourceUrls[index]).pathname;
     expect(requests.filter((request) => request === pathname), path).toHaveLength(2);
   }
+});
+
+test("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  const legacy = {
+    schema: "conduit.book/reading-state@1",
+    drafts: [["runner-0", "legacy draft"]],
+    expandedBacks: ["same-morse-caller/morse"],
+  };
+  await page.evaluate((state) => globalThis.__conduitBrowserApplication.storage.writeJson("reading-state", state), legacy);
+
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  const migrated = await page.evaluate(async () => ({
+    applicationIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
+    state: await globalThis.__conduitBrowserApplication.storage.readJson("reading-state"),
+  }));
+  expect(migrated.applicationIdentity).toBe("conduit.application/book-reading-state");
+  expect(migrated.state).toEqual({ ...legacy, schema: "conduit.tour/reading-state@1" });
 });
 
 test("Crèche launches its exact admitted graph through bounded Host context", async ({ page }) => {
@@ -321,7 +345,7 @@ test("Crèche refuses changed admitted code before application manifestation", a
   expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
 });
 
-test("Book navigation is one finite Host-manifested view with stale and pressure refusal", async ({ page }) => {
+test("Tour navigation is one finite Host-manifested view with stale and pressure refusal", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const navigation = page.locator('[data-application-slot="book-navigation"]');
@@ -492,7 +516,7 @@ test("selected durable storage keeps scopes, lifecycle, and refusal states exact
   });
 });
 
-test("browser Host storage refuses capacity exhaustion and malformed durable Book state", async ({ page }) => {
+test("browser Host storage refuses capacity exhaustion and malformed durable Tour state", async ({ page }) => {
   await openBookStep(page, entrance, 0);
   const capacityRefusal = await page.evaluate(async () => {
     const storage = globalThis.__conduitBrowserApplication.storage;
@@ -506,5 +530,5 @@ test("browser Host storage refuses capacity exhaustion and malformed durable Boo
   expect(capacityRefusal).toEqual({ code: "ApplicationCapacityExhausted", message: "application storage capacity is exhausted" });
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host unavailable");
-  await expect(page.locator("#chapter")).toHaveText("persisted Book state is malformed");
+  await expect(page.locator("#chapter")).toHaveText("persisted Tour state is malformed");
 });

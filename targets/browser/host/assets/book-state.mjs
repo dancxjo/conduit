@@ -12,29 +12,31 @@ export async function openBookReadingState(storage) {
   const drafts = new Map();
   const expandedBacks = new Set();
   let pending = Promise.resolve();
+  let needsMigration = false;
   const state = await storage.readJson("reading-state");
   if (state !== null) {
-    if (state?.schema !== "conduit.book/reading-state@1"
+    if ((state?.schema !== "conduit.book/reading-state@1" && state?.schema !== "conduit.tour/reading-state@1")
       || !Array.isArray(state.drafts) || state.drafts.length > MAXIMUM_DRAFTS
       || !Array.isArray(state.expandedBacks) || state.expandedBacks.length > MAXIMUM_EXPANDED_BACKS) {
-      throw new Error("persisted Book state is malformed");
+      throw new Error("persisted Tour state is malformed");
     }
+    needsMigration = state.schema === "conduit.book/reading-state@1";
     for (const entry of state.drafts) {
       if (!Array.isArray(entry) || entry.length !== 2 || !validKey(entry[0])
         || typeof entry[1] !== "string" || encoder.encode(entry[1]).length > MAXIMUM_DRAFT_BYTES) {
-        throw new Error("persisted Book draft is outside its admitted bound");
+        throw new Error("persisted Tour draft is outside its admitted bound");
       }
       drafts.set(entry[0], entry[1]);
     }
     for (const key of state.expandedBacks) {
-      if (!validKey(key)) throw new Error("persisted Book Back state is outside its admitted bound");
+      if (!validKey(key)) throw new Error("persisted Tour Back state is outside its admitted bound");
       expandedBacks.add(key);
     }
   }
 
   function persist() {
     const document = {
-      schema: "conduit.book/reading-state@1",
+      schema: "conduit.tour/reading-state@1",
       drafts: [...drafts.entries()].slice(0, MAXIMUM_DRAFTS),
       expandedBacks: [...expandedBacks].slice(0, MAXIMUM_EXPANDED_BACKS),
     };
@@ -42,8 +44,10 @@ export async function openBookReadingState(storage) {
     return pending;
   }
 
+  if (needsMigration) persist();
+
   return Object.freeze({
-    schema: "conduit.book/reading-state-handle@1",
+    schema: "conduit.tour/reading-state-handle@1",
     drafts,
     expandedBacks,
     persist,
