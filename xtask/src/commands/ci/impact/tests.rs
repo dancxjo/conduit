@@ -580,6 +580,7 @@ fn lightweight_dispatcher_owns_every_ci_identity_command() {
         manifest.contains("clap = { version = \"4\", features = [\"derive\"], optional = true }")
     );
     assert!(source.contains("mod proof_graph;"));
+    assert!(source.contains(".env(\"CARGO_TARGET_DIR\", \"target/xtask-host-release\")"));
     for command in ["plan", "candidate", "reconcile", "attest-success"] {
         assert!(
             ci_source.contains(&format!("Some(\"{command}\")")),

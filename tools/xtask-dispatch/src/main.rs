@@ -142,7 +142,10 @@ fn main() {
 
 #[cfg(not(feature = "host-release"))]
 fn launch_host_release(arguments: &[String]) -> ! {
+    // Windows cannot replace the dispatcher executable while it is running.
+    // Compile the feature-bearing Host release binary in an isolated target.
     let status = std::process::Command::new("cargo")
+        .env("CARGO_TARGET_DIR", "target/xtask-host-release")
         .args([
             "run",
             "--locked",
