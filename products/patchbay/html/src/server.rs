@@ -6,6 +6,7 @@ use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+mod body_membership_evidence;
 mod body_workload;
 mod browser_membership;
 mod debug_control;
@@ -24,7 +25,7 @@ use crate::theme::render_theme_css;
 use debug_control::DocumentaryDebuggerRuntime;
 use http::{read_request, write_response};
 
-pub const MAX_HTTP_REQUEST_BYTES: usize = 8 * 1024;
+pub const MAX_HTTP_REQUEST_BYTES: usize = 72 * 1024;
 pub const MAX_THEME_CSS_BYTES: usize = 2 * 1024;
 const INDEX: &[u8] = include_bytes!("../assets/index.html");
 const APPLICATION_TEMPLATE: &[u8] = include_bytes!("../assets/patchbay.application.template.json");
@@ -358,6 +359,9 @@ impl PatchbayHtmlServer {
         }
         if first == "POST /api/body-workload HTTP/1.1" {
             return self.deliver_body_workload(&mut stream, &request.body);
+        }
+        if first == "POST /api/body-membership-evidence HTTP/1.1" {
+            return self.deliver_body_membership_evidence(&mut stream, &request.body);
         }
         if first == "GET /api/body-evidence HTTP/1.1" {
             return self.deliver_body_evidence(&mut stream);

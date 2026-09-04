@@ -86,6 +86,18 @@ test("an invited browser remains outside the Body until explicit join", async ({
   expect(admissionBiography.part.current.host_id).toBe(admittedIdentity.hostId);
   expect(admissionBiography.part.current.boot_id).toBe(admittedIdentity.bootId);
   expect(admissionBiography.recordCount).toBeGreaterThan(1);
+  await expect.poll(async () => {
+    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+    return {
+      evidenceRevision: snapshot.body_workbench.evidence_revision,
+      admittedParts: snapshot.body_workbench.current.admitted_parts,
+      currentHosts: snapshot.body_workbench.current.current_hosts.length,
+    };
+  }).toEqual({ evidenceRevision: 2, admittedParts: 2, currentHosts: 2 });
+  const adoptedEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
+  expect(adoptedEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
+  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 2 has unsaved Body changes.");
+  await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 2 current Hosts");
   expect(admittedIdentity.hostId).toMatch(/^browser\//);
   expect(admittedIdentity.bootId).toMatch(/^browser-boot\//);
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.hostId);
@@ -295,7 +307,7 @@ for (const entrance of ["hosted", "external"]) {
       await recorder.getByRole("button", { name: "Remove from Body", exact: true }).click();
       await expect(activeForms).toHaveCount(1);
       await expect(page.locator("#body-workbench-status")).toContainText("workload revision 1");
-      await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 2 has unsaved workload changes.");
+      await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 2 has unsaved Body changes.");
       expect(await page.evaluate(() => {
         const event = new Event("beforeunload", { cancelable: true });
         window.dispatchEvent(event);
