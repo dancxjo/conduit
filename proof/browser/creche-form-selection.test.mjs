@@ -9,16 +9,16 @@ import {
   setFormSelected,
   toggleForm,
 } from "../../targets/browser/host/assets/creche-form-selection.mjs";
-import { initialFormSelectionNotice } from "../../targets/browser/host/assets/creche-lifecycle.mjs";
+import { initialFormSelectionNotice, selectedCanonicalSource } from "../../targets/browser/host/assets/creche-lifecycle.mjs";
 
 const inventory = Object.freeze({
   schema: "conduit.creche/reviewed-form-inventory@1",
   source_document_id: "source/current",
   maximum_selection: 3,
   forms: [
-    { name: "clock", title: "Clock", source_document_id: "source/clock", checked_form_id: "checked/clock", required_kinds: ["time/every"] },
-    { name: "desk_telegraph", title: "Desk Telegraph", source_document_id: "source/telegraph", checked_form_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
-    { name: "memory_lantern", title: "Memory Lantern", source_document_id: "source/lantern", checked_form_id: "checked/lantern", required_kinds: ["presentation/text"] },
+    { name: "clock", title: "Clock", source: "form clock {}\n", source_document_id: "source/clock", checked_form_id: "checked/clock", required_kinds: ["time/every"] },
+    { name: "desk_telegraph", title: "Desk Telegraph", source: "form desk_telegraph {}\n", source_document_id: "source/telegraph", checked_form_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
+    { name: "memory_lantern", title: "Memory Lantern", source: "form memory_lantern {}\n", source_document_id: "source/lantern", checked_form_id: "checked/lantern", required_kinds: ["presentation/text"] },
   ],
 });
 
@@ -40,6 +40,11 @@ test("browse, search, add, remove, and exact encoding share one bounded inventor
   ]);
   selected = toggleForm(inventory, selected, "clock");
   assert.deepEqual(selected.map(({ name }) => name), ["desk_telegraph"]);
+  assert.equal(
+    selectedCanonicalSource([inventory.forms[0], inventory.forms[1]]),
+    "form clock {}\n\nform desk_telegraph {}",
+  );
+  assert.equal(selectedCanonicalSource([]), "");
 });
 
 test("restoration and Gallery handoff revalidate exact identities without privilege", () => {

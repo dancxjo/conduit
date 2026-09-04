@@ -41,7 +41,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     pending: true,
     initialForms: [...initialSelection.selected],
     search: "",
-    source,
+    inventorySource: source,
     review: null,
     status: selectionNotice ?? "Browse the reviewed Forms, compose a bounded workload, then review it before birth.",
     outcome: initialSelection.refusals.length === 0 ? "status" : "warning-status",
@@ -195,14 +195,15 @@ function birthFieldNodes(state, _inventory, _visible, actions) {
 
 function birthSourceNodes(state, listingId) {
   const interactive = !state.terminal && !state.pending;
+  const source = selectedCanonicalSource(state.initialForms);
   return [
     { parent: null, component: "stack", action: null, key: "birth-source", text: "" },
     { parent: 0, component: "disclosure", action: null, key: "form-source", text: "" },
-    { parent: 1, component: "summary", action: null, key: "form-summary", text: "Reviewed Form source" },
+    { parent: 1, component: "summary", action: null, key: "form-summary", text: "Selected canonical Form source" },
     { parent: 1, component: "form-field", action: null, key: "form-source-field", text: "" },
-    { parent: 3, component: "field-label", action: null, key: "form-source-label", text: "Conduit Form source" },
-    { parent: 3, component: "textarea", action: null, key: listingId, text: "Conduit Form source", value: state.source, valueCapacity: 65_536 },
-    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "Read-only reviewed source. These checked meanings contain no Host, Boot, device, or transport facts." },
+    { parent: 3, component: "field-label", action: null, key: "form-source-label", text: "Selected Conduit Form source" },
+    { parent: 3, component: "textarea", action: null, key: listingId, text: "Selected Conduit Form source", value: source, valueCapacity: 65_536 },
+    { parent: 3, component: "field-help", action: null, key: "form-source-help", text: "Read-only exact canonical source for the selected Forms. The internal reviewed package envelope is not authored meaning." },
     { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
     { parent: 7, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
     { parent: 7, component: "definition", action: null, key: "review-basis", text: "Realization basis", value: state.review ? `${state.review.proposed_hosts.length} current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created` : "not reviewed", valueCapacity: 1024 },
@@ -211,6 +212,10 @@ function birthSourceNodes(state, listingId) {
     { parent: 10, component: "button", action: interactive && state.review ? 1 : null, key: "birth", text: "Birth Body" },
     { parent: 0, component: state.outcome, action: null, key: "birth-status", text: state.status },
   ];
+}
+
+export function selectedCanonicalSource(forms) {
+  return forms.map((form) => form.source.trimEnd()).join("\n\n");
 }
 
 function combinedKinds(state) {
@@ -253,7 +258,7 @@ function review(runner, host, state, controls) {
       host.runtime,
       host.hostId,
       host.bootId,
-      state.source,
+      state.inventorySource,
       state.initialForms,
     );
     state.status = `Review accepted ${state.initialForms.length} Form(s) against ${state.review.proposed_hosts.length} current Host OFFER(s). No permission or resource was acquired; no Body Plan or Play exists.`;
@@ -268,7 +273,7 @@ function review(runner, host, state, controls) {
 
 function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
   const api = host.runtime;
-  const sourceBytes = encoder.encode(state.source);
+  const sourceBytes = encoder.encode(state.inventorySource);
   const hostBytes = encoder.encode(host.hostId);
   const bootBytes = encoder.encode(host.bootId);
   const nameBytes = encoder.encode(state.friendlyName.trim());

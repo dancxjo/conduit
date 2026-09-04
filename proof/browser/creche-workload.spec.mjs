@@ -26,6 +26,11 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
       `${index + 1} of 3 reviewed Forms selected`,
     );
   }
+  const selectedSource = birth.getByLabel("Selected Conduit Form source");
+  await expect(selectedSource).toContainText("form morse_network");
+  await expect(selectedSource).toContainText("form memory_lantern");
+  await expect(selectedSource).toContainText("form desk_telegraph");
+  await expect(selectedSource).not.toContainText("conduit.creche/reviewed-form-bundle");
   await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText(
     "3 of 3 reviewed Forms selected; maximum 16.",
   );
