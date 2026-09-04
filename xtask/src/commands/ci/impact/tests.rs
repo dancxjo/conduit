@@ -836,9 +836,11 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
             "{output}: ${{{{ steps.impact.outputs.{output} }}}}"
         )));
         assert!(workflow.contains(&format!(
-            "(github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.result != 'success' || needs.classify.outputs.{output} == 'true'"
+            "(github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.{output} == 'true'"
         )));
     }
+    assert!(!workflow.contains("needs.classify.result != 'success'"));
+    assert!(workflow.contains("needs.classify.result == 'success'"));
     assert!(workflow.contains(
         "workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '[\"lint\",\"test-foundation\",\"test-hosts\",\"test-products\",\"portable\",\"pico\"]' }}"
     ));
@@ -881,9 +883,9 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     assert!(workflow
         .contains("cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
-    assert!(
-        workflow.contains("comparison_base_sha: ${{ steps.changes.outputs.comparison_base_sha }}")
-    );
+    assert!(workflow.contains(
+        "comparison_base_sha: ${{ steps.slice.outputs.comparison_base_sha || steps.changes.outputs.comparison_base_sha }}"
+    ));
     assert!(workflow.contains("BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}"));
     assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}"));
     assert!(workflow.contains("\"${controller[@]}\" ci standalone-locks --locked"));
