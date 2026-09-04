@@ -861,7 +861,9 @@ jobs:
 
   products-proof:
     needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier]
-    if: always()
+    # A deliberately cancelled duplicate lifecycle run is not new proof
+    # failure. Real dependency failures still reach this gate and fail it.
+    if: ${{ always() && !cancelled() }}
     # This gate only inspects completed dependency results. Keep it on the
     # single-CPU automation lane so product fabrication cannot occupy its runner.
     runs-on: ubuntu-slim

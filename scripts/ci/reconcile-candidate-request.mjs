@@ -1,5 +1,5 @@
 const LANES = ["check", "products-proof"];
-const ADMISSION_GATE = "admission";
+const ADMISSION_EVIDENCE = "admission-evidence";
 
 function exactArray(value, label) {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) throw new Error(`${label} must be a string array`);
@@ -109,7 +109,7 @@ export async function publishCandidateResults({ repository, candidateSha, baseSh
     return `${lane.name}: current-controller execution ${lane.result}`;
   }).join("\n");
   const body = {
-    name: ADMISSION_GATE, head_sha: candidateSha, status: "completed", conclusion,
+    name: ADMISSION_EVIDENCE, head_sha: candidateSha, status: "completed", conclusion,
     external_id: `conduit.current-controller-reconciliation/v3:${candidateSha}:${baseSha}:${integrationSha}`,
     details_url: runUrl,
     output: {
@@ -118,31 +118,8 @@ export async function publishCandidateResults({ repository, candidateSha, baseSh
     },
   };
   const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
-  if (!response.ok) throw new Error(`publish ${ADMISSION_GATE} check failed: HTTP ${response.status}`);
-  return [{ name: ADMISSION_GATE, conclusion, checkRunId: (await response.json()).id }];
-}
-
-export async function resolveAndPublishInherited(options) {
-  const resolved = await resolveCandidateRequest(options);
-  if (!LANES.every((lane) => Boolean(resolved.lanes[lane]))) {
-    return { resolved, published: null };
-  }
-  const published = await publishCandidateResults({
-    repository: options.repository,
-    candidateSha: options.candidateSha,
-    baseSha: resolved.baseSha,
-    integrationSha: resolved.integrationSha,
-    checkInherited: true,
-    checkResult: "skipped",
-    checkEvidenceUrl: resolved.lanes.check.detailsUrl,
-    productsInherited: true,
-    productsResult: "skipped",
-    productsEvidenceUrl: resolved.lanes["products-proof"].detailsUrl,
-    runUrl: options.runUrl,
-    token: options.token,
-    request: options.request,
-  });
-  return { resolved, published };
+  if (!response.ok) throw new Error(`publish ${ADMISSION_EVIDENCE} check failed: HTTP ${response.status}`);
+  return [{ name: ADMISSION_EVIDENCE, conclusion, checkRunId: (await response.json()).id }];
 }
 
 async function appendOutput(name, value) {
@@ -155,7 +132,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv[2] === "resolve") {
     const { readFile } = await import("node:fs/promises");
     const reconciliationPlan = JSON.parse(await readFile(process.env.CONDUIT_RECONCILIATION_PLAN, "utf8"));
-    const { resolved: result, published } = await resolveAndPublishInherited({
+    const result = await resolveCandidateRequest({
       repository: process.env.GITHUB_REPOSITORY,
       pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
       candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
@@ -172,8 +149,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await appendOutput(`${prefix}_inherited`, String(Boolean(result.lanes[lane])));
       await appendOutput(`${prefix}_evidence_url`, result.lanes[lane]?.detailsUrl ?? "");
     }
-    await appendOutput("published", String(Boolean(published)));
-    process.stdout.write(`${JSON.stringify({ ...result, published }, null, 2)}\n`);
+    await appendOutput("published", "false");
+    process.stdout.write(`${JSON.stringify({ ...result, published: null }, null, 2)}\n`);
   } else if (process.argv[2] === "publish") {
     const published = await publishCandidateResults({
       repository: process.env.GITHUB_REPOSITORY, candidateSha: process.env.CONDUIT_CANDIDATE_SHA,

@@ -109,6 +109,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/check.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
@@ -119,14 +120,16 @@ jobs:
     if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'
     permissions:
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/executable-book-pages.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
 
   report:
+    name: admission
     needs: [resolve, candidate-check, candidate-products]
-    if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'
+    if: always() && needs.resolve.outputs.integration_ref != ''
     runs-on: ubuntu-slim
     timeout-minutes: 2
     permissions:

@@ -467,7 +467,9 @@ jobs:
     # selectable proof aggregate in this join so success cannot precede a late
     # proof failure.
     needs: [classify, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
-    if: always()
+    # A deliberately cancelled duplicate lifecycle run is not new proof
+    # failure. Real dependency failures still reach this gate and fail it.
+    if: ${{ always() && !cancelled() }}
     # This gate only inspects completed dependency results. Keep it on the
     # single-CPU automation lane so machine builds cannot occupy its runner.
     runs-on: ubuntu-slim

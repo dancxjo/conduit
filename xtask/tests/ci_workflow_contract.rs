@@ -16,6 +16,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         .lines()
         .find(|line| line.trim_start().starts_with("needs:"))
         .expect("required check declares its proof join");
+    assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     for aggregate in [
         "classify",
         "workspace-check",
@@ -92,7 +93,7 @@ fn required_product_gate_uses_the_lightweight_automation_lane() {
         .nth(1)
         .expect("locate the stable required product job");
 
-    assert!(required_gate.contains("if: always()"));
+    assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     assert!(required_gate.contains("runs-on: ubuntu-slim"));
     for result in [
         "TOUR_PATCHBAY_RESULT",
@@ -550,8 +551,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
-    assert!(workflow.contains(
-        "if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
+    assert!(workflow.contains("report:\n    name: admission"));
+    assert!(workflow.contains("if: always() && needs.resolve.outputs.integration_ref != ''"));
+    assert!(!workflow.contains(
+        "needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
     ));
     assert!(workflow.contains(
         "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
@@ -559,7 +562,13 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert_eq!(workflow.matches("contents: write").count(), 2);
     assert!(workflow.contains("candidate-check:\n    needs: resolve"));
+    assert!(workflow.contains(
+        "candidate-check:\n    needs: resolve\n    if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
+    ));
     assert!(workflow.contains("candidate-products:\n    needs: resolve"));
+    assert!(workflow.contains(
+        "candidate-products:\n    needs: resolve\n    if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
+    ));
 
     assert!(check.contains("workflow_call:"));
     assert!(check.contains(
