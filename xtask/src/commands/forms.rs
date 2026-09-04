@@ -27,7 +27,7 @@ use inventory::load_inventory;
 
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
-const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v3";
+const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v4";
 
 #[derive(Args, Debug)]
 pub struct FormsArgs {
@@ -89,6 +89,7 @@ pub(super) struct ReusableForm {
     pub(super) entry: String,
     pub(super) title: String,
     pub(super) composition: Option<CompositionOracle>,
+    pub(super) deterministic: Option<DeterministicOracle>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,6 +105,8 @@ pub(super) struct DeterministicOracle {
     pub(super) features: Vec<String>,
     pub(super) test: String,
     pub(super) case: String,
+    #[serde(default)]
+    pub(super) plan_play_evidence: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -276,6 +279,14 @@ fn build_report(
         }
         results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
         results.extend(composition::check_all(root, &form, &source_path, &catalogs));
+        results.extend(reusable::deterministic_all(
+            root,
+            &form,
+            &source_path,
+            &catalogs,
+            execute_deterministic,
+            opts,
+        ));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,

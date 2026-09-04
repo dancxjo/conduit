@@ -60,7 +60,7 @@ deterministic = { package = "conduit-std-host", test = "geometry_forms", case = 
 slug = "greet"
 title = "Greeting"
 entry = "default-welcome"
-reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] } }]
+reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] }, deterministic = { package = "conduit-std-host", test = "reusable_greet", case = "reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play", plan_play_evidence = true } }]
 deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves" }
 [[forms]]
 slug = "hello"
