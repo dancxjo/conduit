@@ -828,7 +828,9 @@ jobs:
   conduitos-boot:
     needs: [classify, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
     if: always()
-    runs-on: ubuntu-latest
+    # This domain join only inspects completed dependency results. Do not make
+    # it queue behind the QEMU and cross-architecture jobs it aggregates.
+    runs-on: ubuntu-slim
     steps:
       - name: Preserve the stable required ConduitOS gate
         env:

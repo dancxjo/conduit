@@ -43,6 +43,34 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
 }
 
 #[test]
+fn conduitos_result_join_uses_the_lightweight_automation_lane() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let join = workflow
+        .split("\n  conduitos-boot:\n")
+        .nth(1)
+        .expect("locate ConduitOS result join");
+
+    assert!(join.contains("if: always()"));
+    assert!(join.contains("runs-on: ubuntu-slim"));
+    for result in [
+        "LIMINE_RESULT",
+        "TOOLS_RESULT",
+        "X86_RESULT",
+        "ARCHITECTURE_RESULT",
+        "AARCH64_PRODUCT_RESULT",
+    ] {
+        assert!(
+            join.contains(result),
+            "ConduitOS join does not inspect `{result}`"
+        );
+    }
+    assert!(!join.contains("actions/checkout"));
+    assert!(!join.contains("cargo "));
+}
+
+#[test]
 fn required_product_gate_uses_the_lightweight_automation_lane() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
