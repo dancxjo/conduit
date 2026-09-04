@@ -126,8 +126,7 @@ for (const entrance of ["hosted", "external"]) {
       await recorder.getByRole("button", { name: "Remove from Body", exact: true }).click();
       await expect(activeForms).toHaveCount(1);
       await expect(page.locator("#body-workbench-status")).toContainText("workload revision 1");
-      await expect(activeForms).toContainText("Patchbay cannot yet navigate an idle Body");
-      await expect(activeForms.getByRole("button", { name: "Remove from Body", exact: true })).toBeDisabled();
+      await expect(activeForms.getByRole("button", { name: "Remove from Body", exact: true })).toBeEnabled();
       await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(5);
       const changed = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
       expect(changed.body_workbench.body_id).toBe(snapshot.body_workbench.body_id);
@@ -135,17 +134,30 @@ for (const entrance of ["hosted", "external"]) {
       expect(changed.body_workbench.current.workload_revision).toBe(1);
       expect(changed.interaction.last_disposition).toBe("Succeeded");
 
+      await activeForms.getByRole("button", { name: "Remove from Body", exact: true }).click();
+      await expect(activeForms).toHaveCount(0);
+      await expect(page.locator("#body-workbench-facts")).toContainText("Active Forms");
+      await expect(page.locator("#body-workbench-facts")).toContainText("0");
+      await expect(page.locator("#body-workbench-status")).toContainText("workload revision 2");
+      await expect(workbenchNavigation.getByRole("button")).toHaveText(["Body", "History"]);
+      await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(6);
+      const idle = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
+      expect(idle.body_workbench.body_id).toBe(snapshot.body_workbench.body_id);
+      expect(idle.body_workbench.current.active_forms).toHaveLength(0);
+      expect(idle.body_workbench.current.workload_revision).toBe(2);
+      expect(idle.navigation.cursor.place).toBe("Body");
+
       await availableForms.getByRole("button", { name: "Add to Body", exact: true }).click();
       await expect(availableForms).toHaveCount(0);
-      await expect(activeForms).toHaveCount(2);
+      await expect(activeForms).toHaveCount(1);
       await expect(activeForms.filter({ hasText: "Hello" })).toHaveCount(1);
-      await expect(page.locator("#body-workbench-status")).toContainText("workload revision 2");
-      await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(6);
+      await expect(page.locator("#body-workbench-status")).toContainText("workload revision 3");
+      await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(7);
       const added = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
       expect(added.body_workbench.body_id).toBe(snapshot.body_workbench.body_id);
-      expect(added.body_workbench.current.active_forms).toHaveLength(2);
+      expect(added.body_workbench.current.active_forms).toHaveLength(1);
       expect(added.body_workbench.current.active_forms.some(form => form.checked_form_id === added.body_workbench.reviewed_forms[0].checked_form_id)).toBe(true);
-      expect(added.body_workbench.current.workload_revision).toBe(2);
+      expect(added.body_workbench.current.workload_revision).toBe(3);
     }
 
     server.kill();

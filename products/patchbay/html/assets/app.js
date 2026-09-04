@@ -306,6 +306,7 @@ function renderCards(){const entries=[];for(const route of subjects("Route")){en
 function renderBodyWorkbench(workbench){
   const root=document.querySelector("#body-workbench");root.hidden=!workbench;if(!workbench)return;
   const current=workbench.current,history=workbench.history;
+  document.querySelector('[data-workbench-destination="program"]').hidden=!state.snapshot.navigation.navigation.places.some(place=>place.place==="Program");
   document.querySelector("#body-workbench-title").textContent=current.friendly_name;
   document.querySelector("#body-workbench-status").textContent=current.status_line;
   document.querySelector("#body-workbench-placement").textContent=current.placement_line;

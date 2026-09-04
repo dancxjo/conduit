@@ -64,10 +64,44 @@ impl PatchbayNavigationProjection {
     }
 
     pub fn for_embodied(presentation: &Presentation) -> Result<Self, String> {
-        let program_root = first_subject(presentation, PresentationRole::Form)
-            .ok_or_else(|| "embodied Presentation has no Program Form".to_owned())?;
         let body_root = first_subject(presentation, PresentationRole::Body)
             .ok_or_else(|| "embodied Presentation has no Body root".to_owned())?;
+        let contained_form = presentation.relationships.iter().find_map(|relationship| {
+            (relationship.source == body_root
+                && relationship.kind == PresentationRelationshipKind::Contains
+                && presentation.subjects.iter().any(|subject| {
+                    subject.identity == relationship.target
+                        && subject.role == PresentationRole::Form
+                }))
+            .then(|| relationship.target.clone())
+        });
+        let program_root = contained_form.or_else(|| {
+            presentation.subjects.iter().find_map(|subject| {
+                (subject.role == PresentationRole::Form
+                    && !presentation.properties.iter().any(|property| {
+                        property.subject == subject.identity
+                            && property.name == "workload-membership"
+                            && property.value
+                                == conduit_presentation::PresentationPropertyValue::Text(
+                                    "available".into(),
+                                )
+                    }))
+                .then(|| subject.identity.clone())
+            })
+        });
+        let Some(program_root) = program_root else {
+            return Self::build(
+                presentation,
+                vec![place(
+                    presentation,
+                    PresentationPlace::Body,
+                    body_root.clone(),
+                    "Body",
+                )],
+                PresentationPlace::Body,
+                body_root,
+            );
+        };
         Self::build(
             presentation,
             vec![
