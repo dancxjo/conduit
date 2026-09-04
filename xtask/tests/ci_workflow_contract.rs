@@ -319,6 +319,20 @@ fn browser_release_installs_its_exact_wasm_target() {
 }
 
 #[test]
+fn merged_branch_retirement_retargets_before_deletion_under_trusted_code() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/retire-merged-pr-branch.yml"))
+        .expect("read merged branch retirement workflow");
+    assert!(workflow.contains("pull_request_target:"));
+    assert!(workflow.contains("types: [closed]"));
+    assert!(workflow.contains("pull-requests: write"));
+    assert!(workflow.contains("contents: write"));
+    assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
+    assert!(workflow.contains("persist-credentials: false"));
+    assert!(workflow.contains("node scripts/ci/retire-merged-pr-branch.mjs"));
+}
+
+#[test]
 fn product_descendants_use_explicit_direct_result_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))

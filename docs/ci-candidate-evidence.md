@@ -148,6 +148,8 @@ Merge-group validation identifies its checkout as integration rather than candid
 
 An expedited main admission does not need a ceremonial pull request solely to publish Pages. An explicit `book-and-creche-pages` dispatch may name the exact current `main` SHA. The trusted controller verifies that identity against the default-branch ref, derives its exact tree and parent, fabricates the carrier through the same unprivileged product workflow, verifies the resulting carrier, and only then promotes it. A stale or non-main SHA refuses before fabrication.
 
+Merged branches are retired by repository machinery rather than GitHub's immediate automatic deletion. The trusted closed-PR controller first retargets every open dependent to `main`, verifies that each immutable child head stayed exact, rescans for dependents, and only then deletes the merged branch. Any malformed response, failed retarget, changed child head, or remaining dependent retains the branch and fails the controller visibly.
+
 The repository's `cargo xtask` alias first enters the dependency-light
 `conduit-xtask-dispatch`. The CI identity operations (`plan`, `candidate`,
 `reconcile`, `reconcile-product`, and `attest-success`) use the same typed Rust sources there. At
