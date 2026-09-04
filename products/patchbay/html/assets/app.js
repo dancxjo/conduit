@@ -198,6 +198,7 @@ function renderBodyEvidenceStatus(workbench){
   const status=document.querySelector("#body-evidence-status");if(state.savedEvidenceBody!==workbench.body_id){state.savedEvidenceBody=workbench.body_id;state.savedEvidenceRevision=workbench.evidence_revision;}
   status.textContent=state.savedEvidenceRevision===workbench.evidence_revision?`Evidence revision ${workbench.evidence_revision} matches the saved biography.`:`Evidence revision ${workbench.evidence_revision} has unsaved workload changes.`;
 }
+function hasUnsavedBodyEvidence(){const workbench=state.snapshot?.body_workbench;return Boolean(workbench&&state.savedEvidenceBody===workbench.body_id&&state.savedEvidenceRevision!==workbench.evidence_revision);}
 async function dispatchNavigation(operation){
   const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
   const response=await fetch(apiUrl("navigation"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});
@@ -370,6 +371,7 @@ async function navigateWorkbench(place,aspect){if(state.snapshot.navigation.curs
 for(const button of document.querySelectorAll("[data-workbench-destination]"))button.onclick=async()=>{const destination=button.dataset.workbenchDestination;for(const candidate of document.querySelectorAll("[data-workbench-destination]"))candidate.toggleAttribute("aria-current",candidate===button);document.querySelector("#body-workbench-current").hidden=destination!=="body";document.querySelector("#body-workbench-history").hidden=destination!=="history";if(destination==="program"){await navigateWorkbench("Program","Structure");document.querySelector("#form").scrollIntoView();}else if(destination==="body")await navigateWorkbench("Body","Structure");else await navigateWorkbench("Body","Signs");};
 document.querySelector("#body-workbench-action").onclick=()=>dispatchFrontDoorAction(document.querySelector("#body-workbench-action").dataset.semanticAction);
 document.querySelector("#save-body-evidence").onclick=()=>saveBodyEvidence();
+window.addEventListener("beforeunload",event=>{if(!hasUnsavedBodyEvidence())return;event.preventDefault();event.returnValue="";});
 document.querySelector("#clear-selection").onclick=()=>{const navigation=state.snapshot.navigation,current=navigation?.navigation.places.find(place=>place.place===navigation.cursor.place);return navigation?dispatchNavigation({kind:"focus",subject:current.root_subject}):dispatchInteraction({kind:"clear"});};
 document.querySelector("#form-query").oninput=event=>{state.formQuery=event.currentTarget.value;renderFormPalette();};document.querySelector("#form-query").addEventListener("keydown",moveFormFocus);document.querySelector("#form-results").addEventListener("keydown",moveFormFocus);
 document.querySelector("#body-form-query").oninput=event=>{state.reviewedFormQuery=event.currentTarget.value;renderBodyWorkbench(state.snapshot.body_workbench);};

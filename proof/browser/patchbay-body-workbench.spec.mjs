@@ -135,6 +135,11 @@ for (const entrance of ["hosted", "external"]) {
       await expect(activeForms).toHaveCount(1);
       await expect(page.locator("#body-workbench-status")).toContainText("workload revision 1");
       await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 2 has unsaved workload changes.");
+      expect(await page.evaluate(() => {
+        const event = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      })).toBe(true);
       await expect(activeForms.getByRole("button", { name: "Remove from Body", exact: true })).toBeEnabled();
       await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(5);
       const changed = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
@@ -178,6 +183,11 @@ for (const entrance of ["hosted", "external"]) {
       expect(exported.body.workload_revision).toBe(3);
       expect(exported.body.workset.forms).toHaveLength(1);
       await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 4 matches the saved biography.");
+      expect(await page.evaluate(() => {
+        const event = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      })).toBe(false);
     }
 
     server.kill();
