@@ -61,7 +61,7 @@ export function createBookWorkspace(root, readingState) {
   });
 }
 
-export function createBookRunnerActions(presentation, slot, runLabel, onRun, onStop) {
+export function createBookRunnerActions(presentation, slot, runLabel, onRun, onStop, onRestore) {
   let revision = 0;
   return Object.freeze({
     render(running) {
@@ -70,17 +70,20 @@ export function createBookRunnerActions(presentation, slot, runLabel, onRun, onS
         actions: [
           { id: "book.run", event: "activate" },
           { id: "book.stop", event: "activate" },
+          { id: "book.restore", event: "activate" },
         ],
         nodes: [
-          { parent: null, component: "action-group", key: "runner-actions", text: "Play actions", action: null },
+          { parent: null, component: "action-group", key: "runner-actions", text: "Play and draft actions", action: null },
           { parent: 0, component: "button", key: "run", text: runLabel, action: running ? null : 0 },
           { parent: 0, component: "button", key: "stop", text: "Stop", action: running ? 1 : null },
+          { parent: 0, component: "button", key: "restore", text: "Restore canonical source", action: 2 },
         ],
       }, {
         onEvent(event) {
           presentation.nextEvent(slot);
           if (event.action === "book.run") onRun();
           else if (event.action === "book.stop") onStop();
+          else if (event.action === "book.restore") onRestore();
         },
       });
     },
