@@ -29,18 +29,32 @@ jobs:
     outputs:
       required: ${{ steps.impact.outputs.pages_products_required || 'true' }}
       proofs: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
+      controller_sha: ${{ steps.controller.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
-      - name: Check out the trusted versioned CI controller
+      - name: Resolve the current trusted CI controller
+        id: controller
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.CONDUIT_BASE_SHA }}
-          path: target/ci-controller
-          persist-credentials: false
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          read -r controller_sha _ < <(git ls-remote --exit-code origin "refs/heads/$DEFAULT_BRANCH")
+          if ! [[ "$controller_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "trusted controller did not resolve to an exact commit" >&2
+            exit 1
+          fi
+          echo "sha=$controller_sha" >> "$GITHUB_OUTPUT"
+          printf 'Trusted controller: `%s` from `%s`\n' "$controller_sha" "$DEFAULT_BRANCH" >> "$GITHUB_STEP_SUMMARY"
+      - name: Materialize the trusted controller outside the candidate workspace
+        if: github.event_name == 'pull_request'
+        env:
+          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -49,10 +63,11 @@ jobs:
         id: impact
         run: |
           controller=(cargo xtask)
-          if test -f target/ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs; then
-            cargo build --manifest-path target/ci-controller/Cargo.toml \
+          if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
+            CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+              cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
               --package conduit-xtask-dispatch --locked
-            controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
+            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
           fi
           "${controller[@]}" ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
             --json-out target/product-plan/impact.json \

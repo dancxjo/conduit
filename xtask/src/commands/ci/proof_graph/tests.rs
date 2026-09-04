@@ -102,9 +102,9 @@ fn candidate_workflows_pin_head_identity_and_do_not_cross_cancel() {
         check
             .matches("ref: ${{ env.CONDUIT_CHECKOUT_SHA }}")
             .count(),
-        check.matches("uses: actions/checkout@v7").count() - 1
+        check.matches("uses: actions/checkout@v7").count()
     );
-    assert!(check.contains("ref: ${{ github.event.pull_request.base.sha }}"));
+    assert!(check.contains("git worktree add --detach \"$RUNNER_TEMP/conduit-ci-controller\""));
     assert!(!check.contains("$GITHUB_SHA"));
     for workflow in [
         ".github/workflows/book-pr-proof.yml",

@@ -23,7 +23,8 @@ test("the PR product controller owns applicability while promotion stays privile
   assert.match(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
   assert.match(productWorkflow, /jobs:\n  plan:/);
-  assert.match(productWorkflow, /Check out the trusted versioned CI controller/);
+  assert.match(productWorkflow, /Resolve the current trusted CI controller/);
+  assert.match(productWorkflow, /git worktree add --detach "\$RUNNER_TEMP\/conduit-ci-controller"/);
   assert.match(productWorkflow, /pages_products_required/);
 
   const deployPaths = pullRequestPaths(
@@ -57,9 +58,8 @@ test("product jobs build the immutable PR head and deployments queue", () => {
     /ref: \$\{\{ env\.CONDUIT_CANDIDATE_SHA \}\}/g,
   )].length;
   assert.ok(checkoutCount > 0);
-  // One checkout deliberately obtains trusted controller code from the base.
-  assert.equal(exactHeadCount, checkoutCount - 1);
-  assert.match(productWorkflow, /ref: \$\{\{ env\.CONDUIT_BASE_SHA \}\}/);
+  assert.equal(exactHeadCount, checkoutCount);
+  assert.doesNotMatch(productWorkflow, /target\/ci-controller/);
   assert.doesNotMatch(productWorkflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.doesNotMatch(productWorkflow, /\n        with:\n(?:          [^\n]+\n)+        with:/);
   assert.match(productWorkflow, /source_commit=\$\(git .* rev-parse HEAD\)/);
