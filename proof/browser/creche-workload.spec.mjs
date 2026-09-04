@@ -50,6 +50,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   await expect(birth.locator('[data-application-key="initial-forms"]')).toContainText(
     "morse_network, memory_lantern, desk_telegraph",
   );
+  await expect(birth.locator('[data-application-key="workload-revision"] dd')).toHaveText("0");
   const receipt = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
     const code = api.conduit_creche_current();
@@ -58,6 +59,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   });
   expect(receipt.code).toBe(0);
   expect(receipt.value.initial_forms).toHaveLength(3);
+  expect(receipt.value.workload_revision).toBe(0);
   expect(receipt.value.initial_forms.every((form) => form.source_document_id && form.checked_form_id)).toBe(true);
   expect(receipt.value.initial_review).toMatchObject({
     body_plan_created: false,

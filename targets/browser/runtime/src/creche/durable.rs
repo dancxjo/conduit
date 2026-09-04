@@ -34,6 +34,7 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
         .map_err(|error| format!("validate restored biography: {error:?}"))?;
     if receipt.body_id != receipt.raw_body.body_id.as_str()
         || receipt.birth_sequence != receipt.raw_body.birth_sequence
+        || receipt.workload_revision != receipt.raw_body.workload_revision
         || receipt.membership_revision != receipt.raw_membership.revision.0
         || receipt.raw_body != snapshot.biography.body
         || receipt.raw_membership != snapshot.biography.membership

@@ -40,6 +40,7 @@ pub(super) struct BirthReceipt {
     pub(super) host_id: Option<String>,
     pub(super) boot_id: Option<String>,
     pub(super) membership_revision: u64,
+    pub(super) workload_revision: u64,
     pub(super) wake_id: Option<String>,
     pub(super) plan_id: Option<String>,
     pub(super) active_play_id: Option<String>,

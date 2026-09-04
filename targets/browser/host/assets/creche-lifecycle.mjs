@@ -338,6 +338,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     ["Current Host", receipt.host_id ?? "none yet"],
     ["Current Boot", receipt.boot_id ?? "none yet"],
     ["Membership revision", String(receipt.membership_revision)],
+    ["Workload revision", String(receipt.workload_revision)],
     ["Wake", receipt.wake_id ?? "none"],
     ["Plan", receipt.plan_id ?? "none"],
     ["Active Play", receipt.active_play_id ?? "none"],

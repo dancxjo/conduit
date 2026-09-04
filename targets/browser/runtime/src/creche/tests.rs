@@ -134,6 +134,7 @@ fn birth_activates_multiple_selected_forms_as_one_revision_zero_workload() {
     )
     .unwrap();
     assert_eq!(receipt.initial_forms.len(), 3);
+    assert_eq!(receipt.workload_revision, 0);
     assert_eq!(receipt.raw_body.workload_revision, 0);
     assert_eq!(receipt.raw_body.workset.len(), 3);
     assert!(receipt.raw_body.validate().is_ok());

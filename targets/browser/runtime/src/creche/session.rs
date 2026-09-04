@@ -91,6 +91,7 @@ pub(super) fn birth(
         host_id: None,
         boot_id: None,
         membership_revision: membership.revision.0,
+        workload_revision: body.workload_revision,
         wake_id: None,
         plan_id: None,
         active_play_id: None,
