@@ -120,6 +120,7 @@ jobs:
     if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'
     permissions:
       contents: read
+      pull-requests: read
     uses: ./.github/workflows/executable-book-pages.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
