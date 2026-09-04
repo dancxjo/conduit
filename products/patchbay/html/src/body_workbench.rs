@@ -10,12 +10,15 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 use patchbay_model::{
-    CurrentBodyFrame, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment,
+    CurrentBodyFrame, FormCandidate, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment,
     PatchbayNavigationProjection, ReadableBodyHistory, RendererAdapterIdentity,
     RendererAdapterKind, RendererExecution,
 };
 
-use crate::{BrowserBodyWorkbench, BrowserBodyWorkbenchEntrance, RendererSnapshot, SnapshotError};
+use crate::{
+    BrowserBodyWorkbench, BrowserBodyWorkbenchEntrance, BrowserReviewedForm, RendererSnapshot,
+    SnapshotError,
+};
 
 pub const BODY_WORKBENCH_SCHEMA: &str = "conduit.patchbay/browser-body-workbench@1";
 
@@ -34,10 +37,30 @@ pub fn body_workbench_snapshot(
     encoded_evidence: &[u8],
     entrance: BrowserBodyWorkbenchEntrance,
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
+    body_workbench_snapshot_with_reviewed(evidence_revision, encoded_evidence, entrance, &[])
+}
+
+pub fn body_workbench_snapshot_with_forms(
+    evidence_revision: u64,
+    encoded_evidence: &[u8],
+    entrance: BrowserBodyWorkbenchEntrance,
+    forms: &[FormCandidate],
+) -> Result<RendererSnapshot, BodyWorkbenchError> {
+    let reviewed = crate::body_workbench_inventory::from_candidates(forms)
+        .map_err(BodyWorkbenchError::Projection)?;
+    body_workbench_snapshot_with_reviewed(evidence_revision, encoded_evidence, entrance, &reviewed)
+}
+
+pub(crate) fn body_workbench_snapshot_with_reviewed(
+    evidence_revision: u64,
+    encoded_evidence: &[u8],
+    entrance: BrowserBodyWorkbenchEntrance,
+    reviewed_forms: &[BrowserReviewedForm],
+) -> Result<RendererSnapshot, BodyWorkbenchError> {
     let attachment =
         PatchbayBodyAttachment::open_serialized(encoded_evidence, model_entrance(&entrance))
             .map_err(BodyWorkbenchError::Entrance)?;
-    let presentation = workbench_presentation(evidence_revision, &attachment)?;
+    let presentation = workbench_presentation(evidence_revision, &attachment, reviewed_forms)?;
     let execution = RendererExecution::prepare(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
@@ -56,106 +79,13 @@ pub fn body_workbench_snapshot(
     snapshot
         .attach_navigation(navigation)
         .map_err(BodyWorkbenchError::Snapshot)?;
-    attach_body_workbench(snapshot, evidence_revision, encoded_evidence, entrance)
-}
-
-/// Deterministic browser-only documentary fixture. Product entrances use
-/// `body_workbench_snapshot` with caller-supplied serialized evidence.
-pub fn body_workbench_fixture_snapshot(
-    hosted: bool,
-) -> Result<RendererSnapshot, BodyWorkbenchError> {
-    use conduit_body::{
-        AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyGraduationChoice,
-        BodyGraduationEvidence, BodyMembership, BodyWorkset, MembershipProofId, PartId,
-        ResidentForm,
-    };
-    use conduit_core::{bind_sign, CheckedFormId, OfferGeneration, SourceDocumentId};
-
-    const PLAN: &str = "plan/roseau-hosted-patchbay";
-    const IMPLEMENTATION: &str = "browser/patchbay-surface@1";
-    let host = HostId::from("host/roseau");
-    let boot = BootId::from("boot/roseau/1");
-    let body = Body::born_with_forms(
-        BodyWorkset::from_forms([
-            ResidentForm::new(
-                SourceDocumentId::from("source/roseau-program"),
-                CheckedFormId::from("checked/roseau-program"),
-            ),
-            ResidentForm::new(
-                SourceDocumentId::from("source/roseau-recorder"),
-                CheckedFormId::from("checked/roseau-recorder"),
-            ),
-        ])
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?,
-        1,
-        bind_sign(&host, &boot, None, 1).sign_id,
+    attach_body_workbench_with_reviewed(
+        snapshot,
+        evidence_revision,
+        encoded_evidence,
+        entrance,
+        reviewed_forms,
     )
-    .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let mut membership = BodyMembership::new(body.body_id.clone())
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let part = PartId::bind(&body.body_id, "roseau/here", 1)
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let proof = MembershipProofId::bind("proof/roseau/here")
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let admitted = membership
-        .admit(
-            &body.body_id,
-            membership.revision,
-            part.clone(),
-            proof.clone(),
-            bind_sign(&host, &boot, None, 2).sign_id,
-        )
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let joined = membership
-        .observe_present(
-            &body.body_id,
-            membership.revision,
-            &part,
-            AuthenticatedHostObservation {
-                host_id: host.clone(),
-                boot_id: boot.clone(),
-                offer_generation: OfferGeneration(1),
-                proof_id: proof,
-                sequence: 1,
-            },
-            bind_sign(&host, &boot, None, 3).sign_id,
-        )
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let mut evidence = BodyBiographyEvidence::born(
-        body,
-        BodyMembership::new(membership.body_id.clone())
-            .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?,
-        "Roseau".into(),
-    )
-    .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    evidence
-        .append_membership_events(membership, &[(admitted, 2), (joined, 3)])
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let choice = if hosted {
-        BodyGraduationChoice::HostedPatchbay
-    } else {
-        BodyGraduationChoice::ExternalReader
-    };
-    evidence
-        .graduate(BodyGraduationEvidence {
-            body_id: evidence.body_id.clone(),
-            sequence: 4,
-            sign_id: SignId::from("sign/roseau/graduated"),
-            choice,
-            patchbay_plan_id: hosted.then(|| PlanId::from(PLAN)),
-            patchbay_implementation_id: hosted.then(|| ImplementationId::from(IMPLEMENTATION)),
-        })
-        .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let encoded = serde_json::to_vec(&evidence).map_err(BodyWorkbenchError::Encode)?;
-    let entrance = if hosted {
-        BrowserBodyWorkbenchEntrance::Hosted {
-            plan_id: PLAN.into(),
-            implementation_id: IMPLEMENTATION.into(),
-        }
-    } else {
-        BrowserBodyWorkbenchEntrance::ExternalReader
-    };
-    body_workbench_snapshot(1, &encoded, entrance)
 }
 
 impl core::fmt::Display for BodyWorkbenchError {
@@ -167,10 +97,26 @@ impl core::fmt::Display for BodyWorkbenchError {
 impl std::error::Error for BodyWorkbenchError {}
 
 pub fn attach_body_workbench(
+    snapshot: RendererSnapshot,
+    evidence_revision: u64,
+    encoded_evidence: &[u8],
+    entrance: BrowserBodyWorkbenchEntrance,
+) -> Result<RendererSnapshot, BodyWorkbenchError> {
+    attach_body_workbench_with_reviewed(
+        snapshot,
+        evidence_revision,
+        encoded_evidence,
+        entrance,
+        &[],
+    )
+}
+
+fn attach_body_workbench_with_reviewed(
     mut snapshot: RendererSnapshot,
     evidence_revision: u64,
     encoded_evidence: &[u8],
     entrance: BrowserBodyWorkbenchEntrance,
+    reviewed_forms: &[BrowserReviewedForm],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     let model_entrance = model_entrance(&entrance);
     let attachment = PatchbayBodyAttachment::open_serialized(encoded_evidence, model_entrance)
@@ -184,6 +130,7 @@ pub fn attach_body_workbench(
         encoded_evidence: encoded_evidence.to_vec(),
         entrance,
         body_id: attachment.evidence().body_id.as_str().into(),
+        reviewed_forms: reviewed_forms.to_vec(),
         current: serde_json::to_value(current).map_err(BodyWorkbenchError::Encode)?,
         history: serde_json::to_value(history).map_err(BodyWorkbenchError::Encode)?,
     };
@@ -206,6 +153,26 @@ pub(crate) fn validate_body_workbench(
         model_entrance(&workbench.entrance),
     )
     .map_err(BodyWorkbenchError::Entrance)?;
+    crate::body_workbench_inventory::validate(&workbench.reviewed_forms)
+        .map_err(BodyWorkbenchError::Projection)?;
+    let inventory = crate::body_workbench_inventory::project(
+        &workbench.reviewed_forms,
+        &attachment.evidence().body.workset,
+        &attachment.evidence().body.state,
+        attachment.evidence().body.workload_revision,
+    )
+    .map_err(BodyWorkbenchError::Projection)?;
+    let presented_add_actions = presentation
+        .actions
+        .iter()
+        .filter(|action| action.intent == "conduit.intent/add-form@1")
+        .cloned()
+        .collect::<Vec<_>>();
+    let inventory_matches = presented_add_actions == inventory.actions
+        && inventory
+            .subjects
+            .iter()
+            .all(|subject| presentation.subjects.contains(subject));
     let body_id = attachment.evidence().body_id.as_str();
     let body_matches = presentation
         .basis
@@ -240,6 +207,7 @@ pub(crate) fn validate_body_workbench(
     if workbench.body_id != body_id
         || !body_matches
         || !form_matches
+        || !inventory_matches
         || workbench.current != expected_current
         || workbench.history != expected_history
     {
@@ -268,6 +236,7 @@ pub(crate) fn model_entrance(
 fn workbench_presentation(
     revision: u64,
     attachment: &PatchbayBodyAttachment,
+    reviewed_forms: &[BrowserReviewedForm],
 ) -> Result<Presentation, BodyWorkbenchError> {
     let evidence = attachment.evidence();
     let body_identity = format!("body/{}", evidence.body_id.as_str());
@@ -360,6 +329,17 @@ fn workbench_presentation(
         });
         form_identities.push(form_identity);
     }
+    let reviewed = crate::body_workbench_inventory::project(
+        reviewed_forms,
+        &workset,
+        &evidence.body.state,
+        evidence.body.workload_revision,
+    )
+    .map_err(BodyWorkbenchError::Projection)?;
+    subjects.extend(reviewed.subjects);
+    properties.extend(reviewed.properties);
+    actions.extend(reviewed.actions);
+    form_identities.extend(reviewed.disclosures.iter().map(|item| item.subject.clone()));
     let mut text = vec![PresentationText {
         subject: body_identity.clone(),
         text: format!(

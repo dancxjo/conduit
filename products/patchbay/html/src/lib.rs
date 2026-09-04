@@ -4,6 +4,8 @@
 //! DOM/SVG objects and HTTP mechanics remain renderer-local transport facts.
 
 mod body_workbench;
+mod body_workbench_fixture;
+mod body_workbench_inventory;
 mod cross_host;
 mod demo;
 mod form_sources;
@@ -16,9 +18,10 @@ mod theme;
 mod transport_types;
 
 pub use body_workbench::{
-    attach_body_workbench, body_workbench_fixture_snapshot, body_workbench_snapshot,
+    attach_body_workbench, body_workbench_snapshot, body_workbench_snapshot_with_forms,
     BodyWorkbenchError,
 };
+pub use body_workbench_fixture::body_workbench_fixture_snapshot;
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::{
     demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot,
