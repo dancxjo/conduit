@@ -117,15 +117,14 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }
             }
-            ApplicationComponent::IndependentChoice | ApplicationComponent::ExclusiveChoice => {
+            ApplicationComponent::IndependentChoice | ApplicationComponent::ExclusiveChoice
                 if !matches!(node.value.as_str(), "true" | "false")
                     || node.parent.is_none_or(|parent| {
                         nodes[usize::from(parent)].component
                             != ApplicationComponent::ChoiceOptionLabel
-                    })
-                {
-                    return Err(ApplicationViewRefusal::InvalidControlValue);
-                }
+                    }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             _ => {}
         }
