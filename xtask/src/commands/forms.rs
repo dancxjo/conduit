@@ -9,6 +9,8 @@ use std::time::Instant;
 
 #[path = "forms/browser.rs"]
 mod browser;
+#[path = "forms/combined.rs"]
+mod combined;
 #[path = "forms/composition.rs"]
 mod composition;
 #[path = "forms/deterministic.rs"]
@@ -27,7 +29,7 @@ use inventory::load_inventory;
 
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
-const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v4";
+const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v5";
 
 #[derive(Args, Debug)]
 pub struct FormsArgs {
@@ -66,7 +68,24 @@ enum FormsCommand {
 pub(super) struct Inventory {
     schema: String,
     maximum_forms: usize,
+    maximum_combined_workloads: usize,
     pub(super) forms: Vec<InventoryForm>,
+    pub(super) combined_workloads: Vec<CombinedWorkload>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CombinedWorkload {
+    pub(super) slug: String,
+    pub(super) title: String,
+    pub(super) workload_revision: u64,
+    pub(super) entries: Vec<CombinedWorkloadEntry>,
+    pub(super) deterministic: DeterministicOracle,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct CombinedWorkloadEntry {
+    pub(super) slug: String,
+    pub(super) entry: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,6 +126,8 @@ pub(super) struct DeterministicOracle {
     pub(super) case: String,
     #[serde(default)]
     pub(super) plan_play_evidence: bool,
+    #[serde(default)]
+    pub(super) workload_revision_evidence: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -124,7 +145,7 @@ struct Report {
     results: Vec<FormProofResult>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub(super) struct FormProofResult {
     slug: String,
     title: String,
@@ -138,6 +159,8 @@ pub(super) struct FormProofResult {
     proof_mode: &'static str,
     environment_profile: &'static str,
     duration_millis: u128,
+    workload_slug: Option<String>,
+    workload_title: Option<String>,
     workload_revision: Option<u64>,
     plan_id: Option<String>,
     play_id: Option<String>,
@@ -239,7 +262,7 @@ fn build_report(
     let inventory = load_inventory(root)?;
     let catalogs = catalogs()?;
     let mut results = Vec::with_capacity(inventory.forms.len() * 2);
-    for form in inventory.forms {
+    for form in &inventory.forms {
         let source_path = format!("forms/{}/main.conduit", form.slug);
         let started = Instant::now();
         let checked = check_one(root, &source_path, &form.entry, &catalogs);
@@ -247,7 +270,7 @@ fn build_report(
         match checked {
             Ok((source_id, checked_id)) => {
                 results.push(result(
-                    &form,
+                    form,
                     &source_path,
                     elapsed,
                     "passed",
@@ -258,17 +281,17 @@ fn build_report(
                 results.push(if execute_deterministic {
                     deterministic::run(
                         root,
-                        &form,
+                        form,
                         &source_path,
                         Some((source_id, checked_id)),
                         opts,
                     )
                 } else {
-                    deterministic::availability(&form, &source_path, Some((source_id, checked_id)))
+                    deterministic::availability(form, &source_path, Some((source_id, checked_id)))
                 });
             }
             Err(reason) => results.push(result(
-                &form,
+                form,
                 &source_path,
                 elapsed,
                 "failed",
@@ -277,17 +300,24 @@ fn build_report(
                 "check",
             )),
         }
-        results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
-        results.extend(composition::check_all(root, &form, &source_path, &catalogs));
+        results.extend(reusable::check_all(root, form, &source_path, &catalogs));
+        results.extend(composition::check_all(root, form, &source_path, &catalogs));
         results.extend(reusable::deterministic_all(
             root,
-            &form,
+            form,
             &source_path,
             &catalogs,
             execute_deterministic,
             opts,
         ));
     }
+    results.extend(combined::results(
+        root,
+        &inventory,
+        &catalogs,
+        execute_deterministic,
+        opts,
+    ));
     Ok(Report {
         schema: REPORT_SCHEMA,
         inventory_schema: inventory.schema,
@@ -319,6 +349,8 @@ fn result(
         proof_mode: mode,
         environment_profile: "repository/standard-semantic-catalog@1",
         duration_millis: duration,
+        workload_slug: None,
+        workload_title: None,
         workload_revision: None,
         plan_id: None,
         play_id: None,

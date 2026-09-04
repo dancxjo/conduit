@@ -21,6 +21,7 @@ const FORMS: usize = 3;
 const NODES: usize = FORMS * 2;
 const CORDS: usize = FORMS;
 const SIGNS: usize = 64;
+const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 
 const MORSE_NETWORK: &str = include_str!("../../../forms/morse-network/main.conduit");
 const MEMORY_LANTERN: &str = include_str!("../../../forms/memory-lantern/main.conduit");
@@ -156,6 +157,9 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
     )
     .unwrap();
     let play = BodyPlayIdentity::bind(&plan, 1);
+    let body_plan_id = plan.plan_id.clone();
+    let active_play_id = play.active_play_id.clone();
+    let workload_revision = plan.workload_revision;
     let playing = wake
         .body_plan_ready(&plan, SignId::from("sign/planned"))
         .unwrap()
@@ -270,7 +274,15 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
     assert_eq!(scheduler.drivers()[2].form, 1);
     assert_eq!(scheduler.drivers()[4].form, 2);
     assert_eq!(playing.plans.len(), 1);
-    assert_eq!(playing.plans[0].active_play_id, Some(play.active_play_id));
+    assert_eq!(
+        playing.plans[0].active_play_id,
+        Some(active_play_id.clone())
+    );
+    println!(
+        "{EVIDENCE_MARKER}{{\"plan_id\":\"{}\",\"play_id\":\"{}\",\"workload_revision\":{workload_revision}}}",
+        body_plan_id.as_str(),
+        active_play_id.as_str()
+    );
 }
 
 #[test]
