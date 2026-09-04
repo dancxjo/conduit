@@ -183,6 +183,7 @@ impl PatchbayHtmlServer {
             "body-workload/{operation}/{next_workload_revision}"
         ));
         snapshot.interaction.last_disposition = Some("Succeeded".into());
+        snapshot.body_host_offer_evidence = self.snapshot.body_host_offer_evidence.clone();
         self.body_workload = Some(candidate);
         self.snapshot = snapshot;
         self.navigation = super::navigation_state(&self.snapshot)?;

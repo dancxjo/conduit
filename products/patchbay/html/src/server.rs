@@ -6,6 +6,7 @@ use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+pub(crate) mod body_host_offer_evidence;
 mod body_membership_evidence;
 mod body_workload;
 mod browser_membership;
@@ -362,6 +363,9 @@ impl PatchbayHtmlServer {
         }
         if first == "POST /api/body-membership-evidence HTTP/1.1" {
             return self.deliver_body_membership_evidence(&mut stream, &request.body);
+        }
+        if first == "POST /api/body-host-offer-evidence HTTP/1.1" {
+            return self.deliver_body_host_offer_evidence(&mut stream, &request.body);
         }
         if first == "GET /api/body-evidence HTTP/1.1" {
             return self.deliver_body_evidence(&mut stream);

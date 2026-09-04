@@ -68,6 +68,9 @@ pub struct RendererSnapshot {
     pub authoring: Option<BrowserAuthoring>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_workbench: Option<BrowserBodyWorkbench>,
+    /// Current, display-only evidence reported by an admitted Host.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_host_offer_evidence: Option<conduit_body::HostOfferProjection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debugger: Option<DebuggerPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

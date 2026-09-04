@@ -88,6 +88,11 @@ impl PatchbayHtmlServer {
             "body-membership/{operation}/evidence-{evidence_revision}"
         ));
         snapshot.interaction.last_disposition = Some("Succeeded".into());
+        snapshot.body_host_offer_evidence = self
+            .snapshot
+            .body_host_offer_evidence
+            .clone()
+            .filter(|evidence| super::body_host_offer_evidence::is_current(evidence, &candidate));
         self.body_workload = Some(session);
         self.snapshot = snapshot;
         self.navigation = navigation_state(&self.snapshot)?;
