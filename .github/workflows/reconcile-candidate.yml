@@ -65,6 +65,16 @@ jobs:
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "integration_sha=$integration_sha" >> "$GITHUB_OUTPUT"
           echo "integration_ref=$integration_ref" >> "$GITHUB_OUTPUT"
+      - name: Classify candidate-to-integration proof impact
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --package conduit-xtask-dispatch --locked
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci plan "$CANDIDATE_SHA" "$INTEGRATION_SHA" --locked \
+            --json-out reconciliation-impact.json
       - name: Resolve the unchanged candidate and reusable aggregate evidence
         id: resolve
         shell: bash
@@ -74,6 +84,7 @@ jobs:
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           CONDUIT_BASE_SHA: ${{ steps.integration.outputs.base_sha }}
           CONDUIT_INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
+          CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -o pipefail

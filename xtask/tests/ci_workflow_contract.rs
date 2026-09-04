@@ -373,6 +373,9 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
     assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
     assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
+    assert!(workflow.contains("name: Classify candidate-to-integration proof impact"));
+    assert!(workflow.contains("ci plan \"$CANDIDATE_SHA\" \"$INTEGRATION_SHA\" --locked"));
+    assert!(workflow.contains("CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json"));
     assert_eq!(
         workflow
             .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")

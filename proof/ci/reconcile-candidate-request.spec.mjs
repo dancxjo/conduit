@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { publishCandidateResults, resolveAndPublishInherited, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
+import { laneInputsUnchanged, publishCandidateResults, resolveAndPublishInherited, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
 
 const candidate = "b".repeat(40);
 const base = "a".repeat(40);
@@ -9,6 +9,13 @@ const integration = "d".repeat(40);
 const repository = "dancxjo/conduit";
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const pull = (head = candidate) => ({ state: "open", mergeable: true, merge_commit_sha: integration, head: { sha: head }, base: { sha: base, repo: { full_name: repository } } });
+const unchangedPlan = {
+  pages_products_required: false, full_fallback: false,
+  ci_controller_proofs: [], repository_command_proofs: [],
+  esp32_required: false, browser_required: false, conduitos_required: false,
+  conduitos_aarch64_product_required: false,
+  workspace_shards: { lint: false, "test-products": false },
+};
 
 test("an authoritative empty workspace plan skips its matrix without weakening classifier failure", async () => {
   const workflow = await readFile(new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
@@ -28,8 +35,33 @@ test("inherits only exact successful GitHub Actions aggregate evidence", () => {
   assert.equal(selected.id, 4);
 });
 
+test("aggregate evidence is reusable only when its actual lane inputs are unchanged", () => {
+  assert.equal(laneInputsUnchanged(unchangedPlan, "check"), true);
+  assert.equal(laneInputsUnchanged(unchangedPlan, "products-proof"), true);
+  assert.equal(laneInputsUnchanged({ ...unchangedPlan, workspace_shards: { lint: true } }, "check"), false);
+  assert.equal(laneInputsUnchanged({ ...unchangedPlan, browser_required: true }, "check"), false);
+  assert.equal(laneInputsUnchanged({ ...unchangedPlan, pages_products_required: true }, "products-proof"), false);
+  assert.equal(laneInputsUnchanged({ ...unchangedPlan, full_fallback: true }, "products-proof"), false);
+  assert.throws(() => laneInputsUnchanged({ ...unchangedPlan, workspace_shards: { lint: "false" } }, "check"), /malformed/);
+});
+
+test("a green aggregate cannot inherit across related integration movement", async () => {
+  const relatedPlan = { ...unchangedPlan, workspace_shards: { lint: false, "test-products": true } };
+  const result = await resolveCandidateRequest({
+    repository, pullNumber: 7, candidateSha: candidate, baseSha: base,
+    integrationSha: integration, reconciliationPlan: relatedPlan, token: "test",
+    request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
+      { id: 91, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/check", app: { slug: "github-actions" } },
+      { id: 92, name: "products-proof", status: "completed", conclusion: "success", details_url: "https://example.test/products", app: { slug: "github-actions" } },
+    ] }),
+  });
+  assert.equal(result.lanes.check, null);
+  assert.ok(result.lanes["products-proof"]);
+  assert.deepEqual(result.laneInputsUnchanged, { check: false, "products-proof": true });
+});
+
 test("same candidate inherits successful checks after the base moves", async () => {
-  const result = await resolveCandidateRequest({ repository, pullNumber: 2426, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async (url) => url.endsWith("/pulls/2426") ? response(pull()) : response({ check_runs: [
+  const result = await resolveCandidateRequest({ repository, pullNumber: 2426, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan, token: "test", request: async (url) => url.endsWith("/pulls/2426") ? response(pull()) : response({ check_runs: [
     { id: 7, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/7", app: { slug: "github-actions" } },
     { id: 8, name: "products-proof", status: "completed", conclusion: "failure", details_url: "https://example.test/8", app: { slug: "github-actions" } },
   ] }) });
@@ -41,9 +73,9 @@ test("same candidate inherits successful checks after the base moves", async () 
 
 test("stale candidate and another target repository fail before evidence lookup", async () => {
   let requests = 0;
-  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async () => { requests += 1; return response(pull("c".repeat(40))); } }), /not the current head/);
+  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan, token: "test", request: async () => { requests += 1; return response(pull("c".repeat(40))); } }), /not the current head/);
   assert.equal(requests, 1);
-  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async () => response({ ...pull(), base: { sha: base, repo: { full_name: "other/repository" } } }) }), /target repository/);
+  await assert.rejects(() => resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan, token: "test", request: async () => response({ ...pull(), base: { sha: base, repo: { full_name: "other/repository" } } }) }), /target repository/);
 });
 
 test("refuses admission without publishing a sticky failed gate", async () => {
@@ -59,7 +91,7 @@ test("refuses admission without publishing a sticky failed gate", async () => {
 });
 
 test("a published successful reconciliation is reusable by an identical later request", async () => {
-  const result = await resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, token: "test", request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
+  const result = await resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan, token: "test", request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
     { id: 91, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
     { id: 92, name: "products-proof", status: "completed", conclusion: "success", details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
   ] }) });
@@ -70,7 +102,7 @@ test("a published successful reconciliation is reusable by an identical later re
 test("an all-inherited request publishes admission without allocating a report job", async () => {
   const posts = [];
   const result = await resolveAndPublishInherited({
-    repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration,
+    repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan,
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (url, options = {}) => {
       if (options.method === "POST") {
@@ -94,7 +126,7 @@ test("an all-inherited request publishes admission without allocating a report j
 test("partial evidence remains fail-closed for execute then report", async () => {
   let posts = 0;
   const result = await resolveAndPublishInherited({
-    repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration,
+    repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan,
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (url, options = {}) => {
       if (options.method === "POST") {
