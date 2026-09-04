@@ -357,7 +357,7 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
       readerClientHeight: reader.clientHeight,
       readerScrollHeight: reader.scrollHeight,
       navigationBottom: navigation.bottom,
-      workbenches: reader.querySelectorAll(".book-workbench").length,
+      workbenches: document.querySelectorAll(".book-workbench").length,
     };
   });
   expect(narrow.documentHeight).toBe(narrow.viewportHeight);
@@ -365,12 +365,88 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
   expect(narrow.readerScrollHeight).toBeGreaterThan(narrow.readerClientHeight);
   expect(narrow.navigationBottom).toBeLessThanOrEqual(narrow.viewportHeight);
   expect(narrow.workbenches).toBe(1);
-  await expect(page.locator(".chapter-copy").first()).toBeAttached();
-  await expect(page.locator(".book-workbench")).toBeAttached();
+  await expect(page.locator(".chapter-copy").first()).toBeVisible();
+  await expect(page.locator(".book-workbench")).toBeHidden();
   await expect(page.getByRole("button", { name: "Previous" })).toBeInViewport();
   await expect(page.getByRole("button", { name: "Next" })).toBeInViewport();
-  await page.locator(".book-workbench").scrollIntoViewIfNeeded();
-  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Laboratory", exact: true }).click();
+  await expect(page.locator(".book-workbench")).toBeVisible();
+  await expect(page.locator(".chapter-copy").first()).toBeHidden();
+  expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
+});
+
+test("Tour workspace bounds each pane and persists accessible desktop split geometry", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await openStep(page, 0);
+  const measures = await page.evaluate(() => {
+    const content = document.querySelector(".tour-content").getBoundingClientRect();
+    const lesson = document.querySelector("#chapter").getBoundingClientRect();
+    const lab = document.querySelector("#laboratory-slot").getBoundingClientRect();
+    const patchbay = document.querySelector(".compact-patchbay").getBoundingClientRect();
+    const editor = document.querySelector(".editor").getBoundingClientRect();
+    const result = document.querySelector(".result").getBoundingClientRect();
+    return {
+      content: content.toJSON(), lesson: lesson.toJSON(), lab: lab.toJSON(),
+      patchbay: patchbay.toJSON(), editor: editor.toJSON(), result: result.toJSON(),
+      bodyHeight: document.body.scrollHeight,
+    };
+  });
+  expect(measures.bodyHeight).toBe(768);
+  for (const pane of [measures.lesson, measures.lab, measures.patchbay, measures.editor, measures.result]) {
+    expect(pane.top).toBeGreaterThanOrEqual(measures.content.top - 1);
+    expect(pane.bottom).toBeLessThanOrEqual(measures.content.bottom + 1);
+  }
+  expect(measures.lesson.right).toBeLessThan(measures.lab.left);
+  expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.editor.top + 1);
+  expect(Math.abs(measures.editor.top - measures.result.top)).toBeLessThan(2);
+
+  const width = page.getByRole("slider", { name: "Narrative width" });
+  await width.focus();
+  await width.press("End");
+  await expect(width).toHaveValue("65");
+  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  await expect(width).toHaveValue("65");
+  await page.getByRole("button", { name: "Reset panes" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(width).toHaveValue("46");
+});
+
+test("narrow Tour switches deliberately between the lesson and the same live laboratory", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStep(page, 0);
+  const laboratory = page.locator("#laboratory-slot");
+  await expect(page.locator("#chapter")).toBeVisible();
+  await expect(laboratory).toBeHidden();
+  await page.getByRole("button", { name: "Laboratory", exact: true }).click();
+  await expect(laboratory).toBeVisible();
+  await expect(laboratory).toBeFocused();
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  await expect(laboratory.locator(".morse")).toHaveText("HELLO");
+  await page.getByRole("button", { name: "Lesson", exact: true }).click();
+  await expect(page.locator("#chapter")).toBeVisible();
+  await expect(page.locator("#chapter")).toBeFocused();
+  await expect(laboratory).toBeHidden();
+  expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
+});
+
+test("long source and output remain inside their laboratory panes", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await openStep(page, 0);
+  const laboratory = page.locator("#laboratory-slot");
+  const longText = "bounded ".repeat(24);
+  const verticalPadding = "\n".repeat(80);
+  await laboratory.locator("textarea").fill(`form bounded-pane {\n  words: text/literal("${longText}")\n  result: presentation/text\n  words > result${verticalPadding}\n}`);
+  expect(await laboratory.locator("textarea").evaluate((field) => field.scrollHeight)).toBeGreaterThan(
+    await laboratory.locator("textarea").evaluate((field) => field.clientHeight),
+  );
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
+  expect(await laboratory.locator(".result").evaluate((result) => result.scrollHeight)).toBeGreaterThan(
+    await laboratory.locator(".result").evaluate((result) => result.clientHeight),
+  );
+  expect(await page.evaluate(() => document.body.scrollHeight)).toBe(768);
   expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
 });
 

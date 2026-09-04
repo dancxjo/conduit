@@ -17,7 +17,19 @@
 <body>
   <div data-application-slot="product-masthead"></div>
   <div class="tour-workspace">
-    <main id="chapter" tabindex="-1" aria-label="Tour lesson" aria-live="polite"></main>
+    <nav class="tour-view-switcher" aria-label="Tour workspace views">
+      <button type="button" data-tour-view="lesson" aria-controls="chapter" aria-pressed="true">Lesson</button>
+      <button type="button" data-tour-view="laboratory" aria-controls="laboratory-slot" aria-pressed="false">Laboratory</button>
+    </nav>
+    <div class="tour-content" data-narrow-view="lesson">
+      <main id="chapter" tabindex="-1" aria-label="Tour lesson" aria-live="polite"></main>
+      <div class="tour-divider">
+        <label for="tour-narrative-width">Narrative width</label>
+        <input id="tour-narrative-width" type="range" min="30" max="65" step="1" value="46">
+        <button type="button" data-tour-reset-layout>Reset panes</button>
+      </div>
+      <aside id="laboratory-slot" tabindex="-1" aria-label="Tour laboratory"></aside>
+    </div>
     <div data-application-slot="book-navigation"></div>
   </div>
   <noscript>This executable chapter requires JavaScript and WebAssembly.</noscript>
