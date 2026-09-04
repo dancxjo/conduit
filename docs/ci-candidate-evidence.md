@@ -13,6 +13,12 @@ artifact         content-addressed object consumed or produced by proof
 
 Candidate evidence is immutable. Advancing a PR from B1 to B2 creates a new candidate, but it does not make a successful B1 receipt false. Moving `main` changes the integration question, not candidate history.
 
+Candidate impact uses the unique `merge-base(requested base, candidate)..candidate`
+change set. The requested base tip and effective comparison base are reported
+separately in the machine-readable plan. Thus commits added only to a moving
+`main` never appear as reverse candidate changes. If Git cannot establish one
+unambiguous merge base, planning fails closed to the conservative suite.
+
 ## Proof keys
 
 `cargo xtask ci candidate HEAD` reads registered proof specifications and fingerprints their actual Git blobs from `HEAD^{tree}`. Each proof key includes:
@@ -57,6 +63,11 @@ For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges
 
 Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. The stable externally required `check` job remains unchanged.
 
+The privileged retirement controller re-resolves the pull request's current
+head before it lists candidate runs. A delayed synchronize event for B1 becomes
+inert after the PR advances to B2, so only B2 may retire B1; event arrival order
+can never reverse that relationship.
+
 The `book-and-creche-products` workflow follows the same controller model. It
 triggers cheaply for every pull request, checks out the immutable candidate and
 the current trusted default-branch controller as separate trees, and asks the
@@ -79,12 +90,19 @@ For pull requests, both controllers resolve the current default-branch head once
 and materialize that exact commit outside the candidate workspace. Actions
 compile that trusted controller in its own temporary Cargo target and run it
 from the candidate worktree, so candidate cache/artifact scans cannot traverse
-the controller. The
-PR target SHA remains the exact diff base, but it does not double as the policy
-version: this matters for stacked PRs whose target branch may predate current
-CI policy. Controller implementation, diff base, and analyzed candidate are
-therefore three separate explicit identities. No path executes candidate code
-with privileged credentials.
+the controller. The PR target SHA remains the requested integration context,
+but it does not double as either the candidate comparison base or policy
+version. This matters both when `main` advances around an unchanged candidate
+and for stacked PRs whose target branch may predate current CI policy.
+Controller implementation, requested base, effective candidate comparison
+base, and analyzed candidate are therefore separate explicit identities. No
+path executes candidate code with privileged credentials.
+
+Repository-policy preflights use that same trusted controller executable while
+keeping the candidate checkout as their working tree. A candidate predating a
+new CI command can therefore be validated without rebasing merely to acquire
+the command implementation; the preflight still inspects that candidate's
+exact manifests and locks.
 
 The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.
 

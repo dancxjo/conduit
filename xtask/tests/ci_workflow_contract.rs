@@ -102,3 +102,25 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
     ));
     assert!(workflow.contains("controller_sha: ${{ steps.controller.outputs.sha }}"));
 }
+
+#[test]
+fn tour_proof_has_one_authoritative_candidate_workflow() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let retired = fs::read_to_string(root.join(".github/workflows/book-pr-proof.yml"))
+        .expect("read transitional retired Book workflow");
+    assert!(!retired.contains("pull_request:"));
+    assert!(!retired.contains("npx playwright"));
+    assert!(!retired.contains("cargo build"));
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let proof = workflow
+        .split("\n  tour-patchbay-proof:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  avr-release:\n").next())
+        .expect("locate authoritative early Tour proof");
+    assert!(proof.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(proof.contains("node --test"));
+    assert!(proof.contains("proof/browser/patchbay-debugger-projection.test.mjs"));
+    assert!(proof.contains("proof/browser/playwright-config.test.mjs"));
+    assert!(proof.contains("real Patchbay renderer|animated Cords"));
+}

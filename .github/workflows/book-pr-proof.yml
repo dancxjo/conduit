@@ -1,99 +1,16 @@
-name: book-pr-proof
+name: retired-book-pr-proof
 
+# Kept inert for one registry transition: the controller on the current default
+# branch still fingerprints this path while admitting the candidate that moves
+# browser.tour ownership to executable-book-pages.yml.
 on:
-  pull_request:
-    paths:
-      - .github/workflows/book-pr-proof.yml
-      - scripts/ci/build-browser-application-package.mjs
-      - scripts/ci/stage-book-product.sh
-      - tour/book/**
-      - targets/browser/host/assets/application-presentation.mjs
-      - targets/browser/host/assets/book.application.template.json
-      - targets/browser/host/assets/book.css
-      - targets/browser/host/assets/book.html
-      - targets/browser/host/assets/book*.mjs
-      - targets/browser/host/assets/browser-application-*.mjs
-      - targets/browser/host/src/**
-      - targets/browser/host/Cargo.toml
-      - targets/browser/runtime/Cargo.toml
-      - targets/browser/runtime/src/book_runner/**
-      - targets/browser/runtime/src/source_interaction.rs
-      - apps/patchbay/html/assets/flow.css
-      - apps/patchbay/html/assets/flow.js
-      - apps/patchbay/html/assets/flow-*.js
-      - apps/patchbay/html/assets/portable-navigation.js
-      - apps/patchbay/html/assets/react*.js
-      - apps/patchbay/html/assets/react-flow.css
-      - proof/browser/executable-book.spec.mjs
-      - proof/browser/patchbay-debugger-projection.test.mjs
-      - proof/browser/book-test-server.mjs
-      - proof/browser/playwright.config.mjs
-      - package-lock.json
-      - package.json
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: book-pr-proof-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
-
 jobs:
-  tour-browser:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    container:
-      image: mcr.microsoft.com/playwright:v1.62.0-noble
-      options: --ipc=host
-    env:
-      NPM_CONFIG_AUDIT: "false"
-      NPM_CONFIG_FUND: "false"
+  retired:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-      - name: Install the native Rust linker
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends build-essential
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-      - name: Install the pinned browser proof dependency
-        run: npm ci --ignore-scripts --prefer-offline
-      - name: Build and stage only the admitted Tour product
-        run: |
-          cargo build --locked -p conduit-browser-host
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/conduit_tour_runtime.wasm
-          rm -rf target/tour-product
-          scripts/ci/stage-book-product.sh target/conduit_tour_runtime.wasm target/tour-product
-      - name: Prove exact live-debugger projection
-        run: node --test proof/browser/patchbay-debugger-projection.test.mjs
-      - name: Prove the real Tour Patchbay and interactive workspace
-        run: >-
-          npx playwright test
-          --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
-          --project chromium
-          --workers 1
-          --retries 0
-          --grep
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
-      - name: Retain immutable Tour candidate evidence
-        run: >-
-          cargo xtask ci attest-success "${{ github.event.pull_request.head.sha }}" browser.tour
-          --evidence "workflow:${{ github.workflow }}"
-          --evidence "job:tour-browser"
-          --out target/ci-evidence/browser.tour.json
-      - name: Upload the content-addressed proof receipt
-        uses: actions/upload-artifact@v7
-        with:
-          name: conduit-candidate-evidence-${{ github.event.pull_request.head.sha }}-browser-tour
-          path: target/ci-evidence/browser.tour.json
-          if-no-files-found: error
-          retention-days: 30
+      - run: echo 'Book candidate proof is owned by book-and-creche-products'

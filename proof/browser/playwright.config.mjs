@@ -1,6 +1,23 @@
 import { defineConfig } from "@playwright/test";
 
-const port = process.env.CONDUIT_BROWSER_HOST_PORT ?? "4173";
+export function browserProofPort(value = "4173") {
+  if (!/^[0-9]{4,5}$/.test(value)) throw new Error("CONDUIT_BROWSER_HOST_PORT must be a decimal loopback port");
+  const port = Number(value);
+  if (!Number.isSafeInteger(port) || port < 1024 || port > 65_535) {
+    throw new Error("CONDUIT_BROWSER_HOST_PORT must be between 1024 and 65535");
+  }
+  return String(port);
+}
+
+export function browserProofShard(value = "default") {
+  if (!/^[a-z0-9][a-z0-9_-]{0,47}$/.test(value)) {
+    throw new Error("CONDUIT_BROWSER_PROOF_SHARD must be a bounded local identity");
+  }
+  return value;
+}
+
+const port = browserProofPort(process.env.CONDUIT_BROWSER_HOST_PORT);
+const shard = browserProofShard(process.env.CONDUIT_BROWSER_PROOF_SHARD);
 
 export default defineConfig({
   testDir: ".",
@@ -54,6 +71,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 20_000,
+  outputDir: `test-results/${shard}`,
   reporter: "line",
   use: {
     baseURL: `http://127.0.0.1:${port}`,

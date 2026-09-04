@@ -107,7 +107,6 @@ fn candidate_workflows_pin_head_identity_and_do_not_cross_cancel() {
     assert!(check.contains("git worktree add --detach \"$RUNNER_TEMP/conduit-ci-controller\""));
     assert!(!check.contains("$GITHUB_SHA"));
     for workflow in [
-        ".github/workflows/book-pr-proof.yml",
         ".github/workflows/pages-deploy-pr-proof.yml",
         ".github/workflows/patchbay-debugger-pr-proof.yml",
     ] {

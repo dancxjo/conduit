@@ -74,7 +74,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "proof/browser/browser-application-package.spec.mjs",
             "proof/browser/playwright.config.mjs",
             "scripts/ci/stage-book-product.sh",
-            ".github/workflows/book-pr-proof.yml",
+            ".github/workflows/executable-book-pages.yml",
         ],
         // Runtime-byte promotion is a later artifact node; this proof currently
         // fingerprints the runtime sources and fabrication contract directly.

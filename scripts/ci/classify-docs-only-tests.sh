@@ -67,6 +67,16 @@ git -C "$fixture" commit -qm "mixed fixture"
 mixed="$(git -C "$fixture" rev-parse HEAD)"
 assert_classification false "$mixed_base" "$mixed"
 
+# Advancing main through an unrelated source change must not contaminate an
+# unchanged documentation candidate's own change set.
+git -C "$fixture" checkout -qb candidate-docs "$mixed"
+candidate_docs="$(commit_file docs/candidate.md candidate)"
+git -C "$fixture" checkout -qb advanced-main "$mixed"
+advanced_main="$(commit_file targets/esp32/unrelated.rs unrelated)"
+classification="$(cd "$fixture" && "$classifier" "$advanced_main" "$candidate_docs")"
+grep -qx 'docs_only=true' <<<"$classification"
+grep -qx "comparison_base_sha=$mixed" <<<"$classification"
+
 assert_classification false 0000000000000000000000000000000000000000 "$mixed"
 assert_classification false "$mixed" "$mixed"
 printf 'docs-only classifier fixtures passed\n'
