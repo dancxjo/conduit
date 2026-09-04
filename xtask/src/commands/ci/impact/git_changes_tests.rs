@@ -105,3 +105,43 @@ fn candidate_path_discovery_fails_closed_without_common_history() {
     let error = candidate_changed_paths(&repo.root, &main, &candidate).unwrap_err();
     assert!(error.contains("merge-base"));
 }
+
+#[test]
+fn exact_inline_test_relocation_is_recognized() {
+    let repo = Repository::new();
+    repo.write(
+        "crate/src/widget.rs",
+        "pub fn value() -> u8 { 7 }\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn value_is_seven() {\n        assert_eq!(value(), 7);\n    }\n}\n",
+    );
+    let base = repo.commit("inline tests");
+    repo.write(
+        "crate/src/widget.rs",
+        "pub fn value() -> u8 { 7 }\n\n#[cfg(test)]\nmod tests;\n",
+    );
+    repo.write(
+        "crate/src/widget/tests.rs",
+        "use super::*;\n\n#[test]\nfn value_is_seven() {\n    assert_eq!(value(), 7);\n}\n",
+    );
+    let candidate = repo.commit("extract tests");
+
+    let changes = candidate_changed_paths(&repo.root, &base, &candidate).unwrap();
+    assert_eq!(changes.test_extraction_parents, ["crate/src/widget.rs"]);
+}
+
+#[test]
+fn production_or_location_sensitive_changes_refuse_extraction_equivalence() {
+    let before = "pub fn value() -> u8 { 7 }\n\n#[cfg(test)]\nmod tests {\n    #[test]\n    fn value_is_seven() {\n        assert_eq!(value(), 7);\n    }\n}\n";
+    let child = "#[test]\nfn value_is_seven() {\n    assert_eq!(value(), 7);\n}\n";
+    assert!(!exact_test_module_extraction(
+        before,
+        "pub fn value() -> u8 { 8 }\n\n#[cfg(test)]\nmod tests;\n",
+        child,
+    ));
+    assert!(!exact_test_module_extraction(
+        "pub fn value() -> u8 { 7 }\n\n#[cfg(test)]\nmod tests {\n    #[test]\n    fn value_is_seven() {\n        assert_eq!(value(), line!());\n    }\n}\n",
+        "pub fn value() -> u8 { 7 }\n\n#[cfg(test)]\nmod tests;\n",
+        "#[test]\nfn value_is_seven() {\n    assert_eq!(value(), line!());\n}\n",
+    ));
+    assert!(!contains_raw_string("let word = \"Controller\";"));
+    assert!(contains_raw_string("let word = r#\"raw\"#;"));
+}

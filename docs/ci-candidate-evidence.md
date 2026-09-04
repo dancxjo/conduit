@@ -19,6 +19,15 @@ separately in the machine-readable plan. Thus commits added only to a moving
 `main` never appear as reverse candidate changes. If Git cannot establish one
 unambiguous merge base, planning fails closed to the conservative suite.
 
+A bounded extraction recognizer handles the common refactor that moves a final
+inline `#[cfg(test)] mod tests { ... }` into a newly added `tests.rs`. It proves
+that the entire non-test parent source is byte-identical, and that the moved
+test source differs only by indentation, formatting whitespace, or optional
+trailing commas. Location-sensitive or unknown macros, raw strings, changed
+production tokens, extra paths, and structural ambiguity refuse the shortcut.
+Accepted extraction-only candidates run the affected workspace lint/tests but
+inherit product, browser, firmware, and ConduitOS proof domains.
+
 ## Proof keys
 
 `cargo xtask ci candidate HEAD` reads registered proof specifications and fingerprints their actual Git blobs from `HEAD^{tree}`. Each proof key includes:

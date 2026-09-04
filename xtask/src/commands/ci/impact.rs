@@ -39,8 +39,7 @@ const CONDUITOS_X86_PROOFS: [&str; 8] = [
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
 const GLOBAL_PREFIXES: [&str; 4] = [".github/", ".cargo/", "xtask/", "scripts/ci/"];
 const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
-const FOCUSED_WORKFLOW_FILES: [&str; 3] = [
-    ".github/workflows/book-pr-proof.yml",
+const FOCUSED_WORKFLOW_FILES: [&str; 2] = [
     ".github/workflows/executable-book-pages.yml",
     ".github/workflows/patchbay-debugger-pr-proof.yml",
 ];
@@ -252,10 +251,17 @@ pub(super) fn run(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = crate::workspace::workspace_root()?;
     let mut comparison_base = None;
+    let mut extracted_paths = None;
     let mut plan = match candidate_changed_paths(&root, base, head)
         .and_then(|change_set| {
             comparison_base = Some(change_set.comparison_base);
-            discover(&root).map(|packages| (change_set.paths, packages))
+            let planning_paths = if change_set.test_extraction_parents.is_empty() {
+                change_set.paths
+            } else {
+                extracted_paths = Some(change_set.paths);
+                change_set.test_extraction_parents
+            };
+            discover(&root).map(|packages| (planning_paths, packages))
         })
         .and_then(|(paths, packages)| plan_for_paths(&root, paths, &packages))
     {
@@ -265,6 +271,9 @@ pub(super) fn run(
     plan.requested_base_sha = Some(base.to_owned());
     plan.candidate_sha = Some(head.to_owned());
     plan.candidate_comparison_base_sha = comparison_base;
+    if let Some(paths) = extracted_paths {
+        retain_only_workspace_proofs_for_test_extraction(&mut plan, paths);
+    }
 
     write_github_outputs(&plan);
     if let Some(path) = json_out {
@@ -276,6 +285,24 @@ pub(super) fn run(
         fs::write(path, markdown_summary(&plan))?;
     }
     Ok(())
+}
+
+fn retain_only_workspace_proofs_for_test_extraction(plan: &mut ImpactPlan, paths: Vec<String>) {
+    plan.ci_controller_proofs.clear();
+    plan.repository_command_proofs.clear();
+    plan.pages_product_proofs.clear();
+    plan.pages_products_required = false;
+    plan.esp32_required = false;
+    plan.esp32_targets.clear();
+    plan.browser_required = false;
+    plan.conduitos_required = false;
+    plan.conduitos_x86_proofs.clear();
+    plan.conduitos_architectures.clear();
+    plan.conduitos_aarch64_product_required = false;
+    plan.full_fallback = false;
+    plan.reason = "behavior-preserving-test-extraction".to_owned();
+    plan.changed_paths = paths;
+    plan.suite_reasons = empty_reasons();
 }
 
 fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {

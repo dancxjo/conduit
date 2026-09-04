@@ -35,6 +35,36 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn test_extraction_narrowing_retains_workspace_proof_only() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let mut plan = plan_for_paths(
+        &root,
+        vec!["targets/conduitos/src/display.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    retain_only_workspace_proofs_for_test_extraction(
+        &mut plan,
+        vec![
+            "targets/conduitos/src/display.rs".to_owned(),
+            "targets/conduitos/src/display/tests.rs".to_owned(),
+        ],
+    );
+
+    assert_eq!(plan.reason, "behavior-preserving-test-extraction");
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan.workspace_shards.values().any(|required| *required));
+    assert!(plan
+        .affected_test_packages
+        .contains(&"conduitos".to_owned()));
+}
+
+#[test]
 fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
@@ -395,7 +425,6 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     }
 
     for path in [
-        ".github/workflows/book-pr-proof.yml",
         ".github/workflows/executable-book-pages.yml",
         ".github/workflows/patchbay-debugger-pr-proof.yml",
     ] {
