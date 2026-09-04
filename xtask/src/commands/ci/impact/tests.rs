@@ -160,14 +160,26 @@ fn dispatcher_command_implementation_has_command_local_impact() {
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
-    for path in [
-        "products/tour/assets/tour.mjs",
-        "products/patchbay/html/assets/app.js",
-    ] {
-        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
-        assert!(plan.pages_products_required, "{path}");
-        assert_eq!(plan.pages_product_proofs, ["products.pages-carrier"]);
-    }
+    let tour = plan_for_paths(
+        &root,
+        vec!["products/tour/assets/tour.mjs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(tour.pages_products_required);
+    assert_eq!(tour.pages_product_proofs, ["products.pages-carrier"]);
+
+    let debugger = plan_for_paths(
+        &root,
+        vec!["products/patchbay/html/assets/app.js".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(debugger.pages_products_required);
+    assert_eq!(
+        debugger.pages_product_proofs,
+        ["products.pages-carrier", "products.patchbay-debugger"]
+    );
 
     for path in [
         "docs/architecture/example.md",
@@ -481,25 +493,21 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         assert!(global.workspace_shards.values().all(|required| *required));
     }
 
-    for path in [
-        ".github/workflows/executable-book-pages.yml",
-        ".github/workflows/patchbay-debugger-pr-proof.yml",
-    ] {
-        let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
-        assert!(!focused_workflow.full_fallback, "{path}");
-        assert!(!focused_workflow.esp32_required, "{path}");
-        assert!(focused_workflow.browser_required, "{path}");
-        assert!(!focused_workflow.conduitos_required, "{path}");
-        assert!(focused_workflow.workspace_shards["lint"], "{path}");
-        assert!(
-            focused_workflow
-                .workspace_shards
-                .iter()
-                .filter(|(shard, _)| shard.as_str() != "lint")
-                .all(|(_, required)| !required),
-            "{path}"
-        );
-    }
+    let path = ".github/workflows/executable-book-pages.yml";
+    let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+    assert!(!focused_workflow.full_fallback, "{path}");
+    assert!(!focused_workflow.esp32_required, "{path}");
+    assert!(focused_workflow.browser_required, "{path}");
+    assert!(!focused_workflow.conduitos_required, "{path}");
+    assert!(focused_workflow.workspace_shards["lint"], "{path}");
+    assert!(
+        focused_workflow
+            .workspace_shards
+            .iter()
+            .filter(|(shard, _)| shard.as_str() != "lint")
+            .all(|(_, required)| !required),
+        "{path}"
+    );
 
     let repository_tool_test = plan_for_paths(
         &root,

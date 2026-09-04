@@ -106,16 +106,18 @@ fn candidate_workflows_pin_head_identity_and_do_not_cross_cancel() {
     );
     assert!(check.contains("git worktree add --detach \"$RUNNER_TEMP/conduit-ci-controller\""));
     assert!(!check.contains("$GITHUB_SHA"));
-    for workflow in [
-        ".github/workflows/pages-deploy-pr-proof.yml",
-        ".github/workflows/patchbay-debugger-pr-proof.yml",
-    ] {
-        let source = fs::read_to_string(root.join(workflow)).unwrap();
-        assert!(
-            source.contains("ref: ${{ github.event.pull_request.head.sha }}"),
-            "{workflow}"
-        );
-    }
+    let workflow = ".github/workflows/pages-deploy-pr-proof.yml";
+    let source = fs::read_to_string(root.join(workflow)).unwrap();
+    assert!(
+        source.contains("ref: ${{ github.event.pull_request.head.sha }}"),
+        "{workflow}"
+    );
+    let products =
+        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+    assert!(products.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(!root
+        .join(".github/workflows/patchbay-debugger-pr-proof.yml")
+        .exists());
 }
 
 #[test]
