@@ -557,5 +557,5 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     ));
     assert!(workflow.contains("cargo xtask ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
-    assert!(workflow.contains("name: ci-impact-plan-${{ github.sha }}"));
+    assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
 }

@@ -96,6 +96,14 @@ A green check proves only the commands and environments it actually ran.
 - Exact-main acceptance means the merged commit, not merely a PR head or local workspace, passed the named required jobs.
 - If a tool, board, device, credential, or environment is absent, report the verification gap precisely. Do not manufacture a substitute claim.
 
+### CI identity
+
+- A pull-request number names a development lifecycle. Its exact head commit is the immutable candidate; neither the PR number nor GitHub's synthetic merge commit is proof identity.
+- Candidate workflows must explicitly check out `github.event.pull_request.head.sha`. Candidate evidence remains historically true when `main` moves.
+- Integration is the prospective composition of a candidate with a current base. Reconciliation fingerprints that tree and inherits only complete successful receipts with the exact same versioned proof key.
+- A base SHA, workflow run ID, merge-ref SHA, or cache key is never by itself a reason to invalidate proof. Missing, corrupt, unknown, or mismatched receipts require execution.
+- Candidate work for one PR must not cancel another PR. Shared publication resources may serialize after proof.
+
 ## PR contract
 
 Every PR description should state:

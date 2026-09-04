@@ -118,8 +118,8 @@ on:
       - package.json
       - package-lock.json
 concurrency:
-  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 jobs:
   browser-runtimes:
