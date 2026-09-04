@@ -12,7 +12,8 @@ fn core_has_no_upward_domain_or_application_dependencies() {
         "conduit-web",
         "patchbay-control",
         "semantics/",
-        "apps/",
+        "products/",
+        "bodies/",
         "targets/",
         "proof/",
     ] {

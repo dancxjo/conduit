@@ -15,7 +15,7 @@ use conduit_language::{
 };
 use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_HOST_OPERATION};
 
-const SOURCE: &str = include_str!("../../../examples/linguistic-annotations.conduit");
+const SOURCE: &str = include_str!("../../../forms/linguistic-annotations/main.conduit");
 
 #[test]
 fn canonical_form_tokenizes_and_projects_annotations_without_json() {

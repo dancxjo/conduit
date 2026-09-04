@@ -81,7 +81,7 @@ mod tests {
     #[cfg(feature = "form-catalog")]
     #[test]
     fn camera_summary_form_is_browser_neutral_and_has_one_exact_typed_cord() {
-        let source = include_str!("../../../examples/camera-summary.conduit");
+        let source = include_str!("../../../forms/camera-summary/main.conduit");
         let lower = source.to_ascii_lowercase();
         for forbidden in [
             "browser",

@@ -188,7 +188,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
 }
 
 fn plan(config: &MessagingConfig) -> Result<conduit_core::Plan, StepError> {
-    let source = include_str!("../../../examples/messaging-delivery.conduit");
+    let source = include_str!("../../../forms/messaging-delivery/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)

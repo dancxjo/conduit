@@ -113,7 +113,7 @@ pub fn exact_r1_network_bootstrap_plan() -> Result<ExactR1NetworkBootstrapPlan, 
     let mut profile = conduit_form::ProfileCatalog::new();
     install_network_bootstrap_catalogs(&mut startup, &mut profile)?;
     let syntax = conduit_form::parse_syntax_document(include_str!(
-        "../../../../examples/r1-network-bootstrap.conduit"
+        "../../../../forms/r1-network-bootstrap/main.conduit"
     ));
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|error| format!("{}: {}", error.code, error.message))?;

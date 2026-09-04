@@ -15,7 +15,7 @@ use conduit_form::{
 };
 use conduit_std_host::hosted_data::{tabular_std_offers, TABULAR_HOST_OPERATION};
 
-const SOURCE: &str = include_str!("../../../examples/tabular-query.conduit");
+const SOURCE: &str = include_str!("../../../forms/tabular-query/main.conduit");
 
 #[test]
 fn canonical_form_filters_and_projects_rows_without_sql_or_json() {

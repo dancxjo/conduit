@@ -17,8 +17,8 @@ use conduit_semantic_catalog::{
 const INSTRUMENT_MAP_PROOF_IMPLEMENTATION: &str = "proof/music-instrument-map@1";
 const RHYTHM_COMPARE_PROOF_IMPLEMENTATION: &str = "proof/music-rhythm-compare@1";
 
-const SOURCE: &str = include_str!("../../../examples/breadboard-instrument.conduit");
-const LESSON_SOURCE: &str = include_str!("../../../examples/rhythm-lesson.conduit");
+const SOURCE: &str = include_str!("../../../forms/breadboard-instrument/main.conduit");
+const LESSON_SOURCE: &str = include_str!("../../../forms/rhythm-lesson/main.conduit");
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();

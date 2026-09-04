@@ -97,7 +97,7 @@ pub(super) fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let mut native = Command::new("target/debug/patchbay-native");
     native.args([
         "--form",
-        "examples/hello.conduit",
+        "forms/hello/main.conduit",
         "--body-parts-demo",
         "--browser-page-url",
         &page_url,

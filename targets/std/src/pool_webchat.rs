@@ -30,7 +30,7 @@ use conduit_planner::{
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 
-const SOURCE: &str = include_str!("../../../examples/pool-webchat.conduit");
+const SOURCE: &str = include_str!("../../../forms/pool-webchat/main.conduit");
 const MAXIMUM_PEERS: usize = conduit_chat::POOL_WEBCHAT_MAXIMUM_PEERS as usize;
 const MAXIMUM_MESSAGE_BYTES: usize = 256;
 const AUTHORITY: u16 = 0;

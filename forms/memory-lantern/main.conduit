@@ -1,0 +1,5 @@
+form memory_lantern {
+    message: text/literal("READY")
+    show: presentation/text
+    message > show
+}

@@ -16,8 +16,8 @@ use conduit_semantic_catalog::{
     MAXIMUM_EDUCATION_HINTS,
 };
 
-const ARITHMETIC_SOURCE: &str = include_str!("../../../examples/arithmetic-lesson.conduit");
-const RHYTHM_SOURCE: &str = include_str!("../../../examples/rhythm-lesson.conduit");
+const ARITHMETIC_SOURCE: &str = include_str!("../../../forms/arithmetic-lesson/main.conduit");
+const RHYTHM_SOURCE: &str = include_str!("../../../forms/rhythm-lesson/main.conduit");
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();

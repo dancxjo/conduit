@@ -21,7 +21,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     install_distributed_lenia_catalogs(&mut startup, &mut profile)?;
 
-    let source = include_str!("../../../examples/lenia-orbium.conduit");
+    let source = include_str!("../../../forms/lenia-orbium/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup)
         .map_err(|diagnostics| format!("portable Lenia source: {diagnostics:?}"))?;
     let back_source = format!(

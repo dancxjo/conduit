@@ -5,7 +5,7 @@ use conduit_form::{
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
-const GREET_PROGRAM: &str = include_str!("../../../examples/greet.conduit");
+const GREET_PROGRAM: &str = include_str!("../../../forms/greet/main.conduit");
 
 fn checked_and_profile() -> (CheckedSyntaxDocument, ProfileCatalog) {
     let mut startup = StartupCatalog::new();

@@ -5,7 +5,7 @@ use conduit_form::{
 };
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
 
-const SOURCE: &str = include_str!("../../../../examples/webchat.conduit");
+const SOURCE: &str = include_str!("../../../../forms/webchat/main.conduit");
 
 fn main() -> Result<(), String> {
     let bind = std::env::args()

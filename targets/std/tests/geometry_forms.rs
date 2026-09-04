@@ -14,7 +14,7 @@ use conduit_presentation::{
 };
 use conduit_std_host::hosted_geometry::{geometry_std_offers, GEOMETRY_HOST_OPERATION};
 
-const SOURCE: &str = include_str!("../../../examples/geometry-spatial.conduit");
+const SOURCE: &str = include_str!("../../../forms/geometry-spatial/main.conduit");
 
 #[test]
 fn canonical_geometry_configuration_flows_through_one_checked_form_and_plan() {

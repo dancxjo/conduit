@@ -52,9 +52,9 @@ mod uart_diagnostic;
 // Compile the exact sealed capstone operations and fixed production-kernel
 // topology from their canonical source.  The firmware must not grow a second,
 // Pico-shaped scheduler or a lookalike copy of the portable Form.
-#[path = "../../../../../../apps/pete/src/proof/capstone_kernel.rs"]
+#[path = "../../../../../../bodies/pete/src/proof/capstone_kernel.rs"]
 mod capstone_kernel;
-#[path = "../../../../../../apps/pete/src/proof/capstone_operations.rs"]
+#[path = "../../../../../../bodies/pete/src/proof/capstone_operations.rs"]
 mod capstone_operations;
 
 struct NoAllocator;

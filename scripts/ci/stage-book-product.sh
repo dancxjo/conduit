@@ -30,7 +30,7 @@ cp targets/browser/host/assets/application-theme.mjs "$destination/application-t
 cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"
 cp "$runtime" "$destination/runtime.wasm"
 for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.css flow.js flow-scene.js flow-layout.js flow-faceplate.js portable-navigation.js; do
-    cp "apps/patchbay/html/assets/$asset" "$destination/assets/$asset"
+    cp "products/patchbay/html/assets/$asset" "$destination/assets/$asset"
 done
 
 chapters='chapter-1.md
@@ -40,10 +40,10 @@ chapter-4.md
 chapter-5.md
 chapter-6.md
 chapter-8.md'
-source_chapters=$(find tour/book -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)
+source_chapters=$(find products/tour/content -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)
 test "$source_chapters" = "$chapters"
 printf '%s\n' "$chapters" | while IFS= read -r chapter; do
-    cp "tour/book/$chapter" "$destination/$chapter"
+    cp "products/tour/content/$chapter" "$destination/$chapter"
 done
 
 page_routes='a-form-you-can-run

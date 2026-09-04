@@ -15,7 +15,7 @@ fn canonical_hello_runs_locally() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("examples/hello.conduit");
+    let form_path = workspace_root.join("forms/hello/main.conduit");
 
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args(["run", form_path.to_str().expect("form path must be utf-8")])
@@ -63,7 +63,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let form_path = workspace_root.join("examples/hello.conduit");
+    let form_path = workspace_root.join("forms/hello/main.conduit");
     let report_path = unique_report_path("actual-observatory");
     let _ = std::fs::remove_file(&report_path);
 
@@ -199,7 +199,7 @@ fn product_run_refuses_precanonical_fixture_source() {
         .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
-    let canonical = workspace_root.join("examples/hello.conduit");
+    let canonical = workspace_root.join("forms/hello/main.conduit");
     let form_path = unique_report_path("noncanonical-source").with_extension("form");
     std::fs::copy(canonical, &form_path).expect("temporary noncanonical source copies");
     let output = Command::new(env!("CARGO_BIN_EXE_conduit"))

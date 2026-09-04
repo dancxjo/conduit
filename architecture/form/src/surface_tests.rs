@@ -106,7 +106,7 @@ fn canonical_face_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
 
 #[test]
 fn canonical_duplex_face_has_auxiliary_ports_without_a_shorthand_path() {
-    let source = include_str!("../../../examples/socket-client.conduit");
+    let source = include_str!("../../../forms/socket-client/main.conduit");
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("duplex face parses")[0];
 

@@ -200,7 +200,7 @@ fn emit_linker_contract(out: &Path) {
         "cargo:rerun-if-changed=../../../../proof/fixtures/forms/r1-three-peer-control.conduit"
     );
     println!("cargo:rerun-if-changed=../../../../proof/fixtures/forms/triple-signal.conduit");
-    println!("cargo:rerun-if-changed=../../../../examples/r1-network-bootstrap.conduit");
+    println!("cargo:rerun-if-changed=../../../../forms/r1-network-bootstrap/main.conduit");
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_ENV}");
     r1_control_images::emit_rerun_directives();
     println!("cargo:rerun-if-env-changed={IDENTITY_SIDECAR_RERUN_ENV}");

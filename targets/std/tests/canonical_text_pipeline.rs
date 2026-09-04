@@ -5,7 +5,7 @@ use conduit_form::{
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
-const HELLO_PROGRAM: &str = include_str!("../../../examples/hello.conduit");
+const HELLO_PROGRAM: &str = include_str!("../../../forms/hello/main.conduit");
 
 fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let mut startup = StartupCatalog::new();

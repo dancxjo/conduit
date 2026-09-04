@@ -3,7 +3,7 @@ use conduit_form::{
     StartupCatalog,
 };
 
-const SOURCE: &str = include_str!("../../../examples/pool-webchat.conduit");
+const SOURCE: &str = include_str!("../../../forms/pool-webchat/main.conduit");
 
 #[test]
 fn native_pool_chat_has_explicit_fan_merge_and_no_authored_line() {

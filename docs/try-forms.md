@@ -7,9 +7,11 @@ operation completion, a terminal result, and bounded Sign.
 
 Run commands from the repository root.
 
-The exact canonical sources are checked in under `examples/*.conduit` and
-`proof/fixtures/forms/*.conduit`. The acceptance tests below load those files directly,
-so the documented programs cannot drift into test-only string literals.
+The exact canonical sources are checked in one per stable owner under
+`forms/<name>/main.conduit`. Historical and proof-only specimens live under
+`proof/fixtures/forms/`. The acceptance tests below load those files directly,
+so the documented programs cannot drift into test-only string literals or be
+promoted merely because a directory scanner found them.
 
 ## Program 1: text pipeline
 
@@ -18,7 +20,7 @@ cargo test -p conduit-std-host --test canonical_text_pipeline \
   canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign
 ```
 
-The source in `examples/hello.conduit` sends the literal `"Hello, world."` to
+The source in `forms/hello/main.conduit` sends the literal `"Hello, world."` to
 the real `text/upper` and
 `presentation/text` offers. Expected presented text:
 
@@ -39,7 +41,7 @@ cargo test -p conduit-std-host --test canonical_text_pipeline
 cargo test -p conduit-std-host --test canonical_greet
 ```
 
-The `greet` back in `examples/greet.conduit` expands recursively behind its
+The `greet` back in `forms/greet/main.conduit` expands recursively behind its
 checked face. Its primitive
 `text/literal`, `text/join`, and `presentation/text` leaves plan onto current
 host offers and execute through the ordinary kernel. The explicit positional
@@ -58,7 +60,7 @@ mutated selected realization before output.
 cargo test -p conduit-std-host --test canonical_clock
 ```
 
-The positional specimen is `examples/clock.conduit`; named and lexical-local
+The positional specimen is `forms/clock/main.conduit`; named and lexical-local
 duration spellings remain explicit semantic-equivalence vectors in the same
 test. All three check and expand to the same semantic identity. Four admitted
 one-second waits produce:
@@ -79,7 +81,7 @@ records the four exact requested durations.
 cargo test -p conduit-std-host --test canonical_count
 ```
 
-The reusable face in `examples/count.conduit` distinguishes its startup value,
+The reusable face in `forms/count/main.conduit` distinguishes its startup value,
 finite normally closing tick flow, and current observation:
 
 ```conduit
@@ -115,7 +117,7 @@ cargo xtask prove browser-host --locked
 ```
 
 The software-gated distributed Signal case loads
-`examples/signal-demo.conduit`. That source contains no host, platform,
+`forms/signal-demo/main.conduit`. That source contains no host, platform,
 address, Line, or WebSocket fact. Planning selects one std source fragment,
 one browser/WASM sink fragment, and the exact observed bounded WebSocket link.
 
@@ -133,7 +135,7 @@ retained or in-flight value. Its link-break case remains a distinct failure.
 
 ## Program 5 boundary
 
-Program 5 is the bounded local webchat in `examples/webchat.conduit`. Its source
+Program 5 is the bounded local webchat in `forms/webchat/main.conduit`. Its source
 intentionally names the semantic `net/websocket` and `net/websocket/listen`
 operations. The checked client face uses `WebSocketMessage`, not a generic byte
 stream, so #522 compatibility remains exact face equality without relying on

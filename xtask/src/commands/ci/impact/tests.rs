@@ -9,7 +9,7 @@ fn representative_changes_select_only_owned_heavy_suites() {
             vec!["README.md", "docs/architecture/foo.md"],
             (false, false, false),
         ),
-        (vec!["apps/pete/src/lib.rs"], (false, false, false)),
+        (vec!["bodies/pete/src/lib.rs"], (false, false, false)),
         (
             vec!["targets/esp32/firmware/c3-signal/src/main.rs"],
             (true, false, false),
@@ -41,8 +41,8 @@ fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
     let paths = [
         "semantics/tongues/src/analysis.rs",
         "semantics/tongues/tests/dynamics_analysis.rs",
-        "examples/tongues-dynamics-analysis.conduit",
-        "apps/patchbay/html/src/learned_demo.rs",
+        "forms/tongues-dynamics-analysis/main.conduit",
+        "products/patchbay/html/src/learned_demo.rs",
         "proof/browser/patchbay-debugger-watch.spec.mjs",
         "xtask/src/cli.rs",
         "xtask/src/main.rs",
@@ -78,7 +78,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let patchbay = plan_for_paths(
         &root,
-        vec!["apps/patchbay/model/src/lib.rs".to_owned()],
+        vec!["products/patchbay/model/src/lib.rs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -196,8 +196,8 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "Cargo.lock".to_owned(),
-            "apps/patchbay/html/Cargo.toml".to_owned(),
-            "apps/patchbay/html/src/learned_demo.rs".to_owned(),
+            "products/patchbay/html/Cargo.toml".to_owned(),
+            "products/patchbay/html/src/learned_demo.rs".to_owned(),
         ],
         &packages,
     )
@@ -252,7 +252,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let incomplete_shared_browser_theme = plan_for_paths(
         &root,
         vec![
-            "apps/patchbay/html/assets/app.css".to_owned(),
+            "products/patchbay/html/assets/app.css".to_owned(),
             "site/site.css".to_owned(),
         ],
         &packages,
@@ -355,7 +355,7 @@ fn changed_packages_select_their_reverse_dependent_test_shards() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
 
-    let app = plan_for_paths(&root, vec!["apps/pete/src/lib.rs".to_owned()], &packages).unwrap();
+    let app = plan_for_paths(&root, vec!["bodies/pete/src/lib.rs".to_owned()], &packages).unwrap();
     assert!(app.workspace_shards["test-products"]);
     assert!(!app.workspace_shards["test-hosts"]);
     assert!(!app.workspace_shards["portable"]);

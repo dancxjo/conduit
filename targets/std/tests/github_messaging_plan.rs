@@ -10,7 +10,7 @@ use conduit_std_host::hosted_messaging::{
     github_messaging_authority_grant, github_messaging_offer, github_messaging_resource_offer,
 };
 
-const SOURCE: &str = include_str!("../../../examples/messaging-delivery.conduit");
+const SOURCE: &str = include_str!("../../../forms/messaging-delivery/main.conduit");
 
 #[test]
 fn unchanged_portable_form_selects_exact_github_profile_with_authority() {

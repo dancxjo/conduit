@@ -24,7 +24,7 @@ impl TimerAdapter for StopOnFirstWait {
 
 #[test]
 fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_sign() {
-    let source = include_str!("../../../examples/clock.conduit");
+    let source = include_str!("../../../forms/clock/main.conduit");
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
