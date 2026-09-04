@@ -70,6 +70,22 @@ test("an invited browser remains outside the Body until explicit join", async ({
   expect(membershipCredential.credential.body_id).toBe(bodyId);
   expect(membershipCredential.credential.host_id).toBe(admittedIdentity.hostId);
   expect(membershipCredential.credential.boot_id).toBe(admittedIdentity.bootId);
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()?.body_id)).toBe(bodyId);
+  const admissionBiography = await page.evaluate(() => {
+    const evidence = globalThis.__patchbayMembership.biographyEvidence();
+    const part = evidence.membership.parts.find(candidate => candidate.part_id === globalThis.__patchbayMembership.membershipCredential().part_id);
+    return {
+      frozen: Object.isFrozen(evidence) && Object.isFrozen(evidence.membership) && Object.isFrozen(evidence.records),
+      bodyId: evidence.body_id,
+      part,
+      recordCount: evidence.records.length,
+    };
+  });
+  expect(admissionBiography.frozen).toBe(true);
+  expect(admissionBiography.bodyId).toBe(bodyId);
+  expect(admissionBiography.part.current.host_id).toBe(admittedIdentity.hostId);
+  expect(admissionBiography.part.current.boot_id).toBe(admittedIdentity.bootId);
+  expect(admissionBiography.recordCount).toBeGreaterThan(1);
   expect(admittedIdentity.hostId).toMatch(/^browser\//);
   expect(admittedIdentity.bootId).toMatch(/^browser-boot\//);
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.hostId);

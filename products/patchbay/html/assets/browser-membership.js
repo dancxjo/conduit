@@ -31,7 +31,7 @@ export function immutableWebRtcSignalFrame(frame) {
   return Object.freeze({ ...frame, signal: immutableSignal });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, onState, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, onState, onBiographyEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
@@ -103,6 +103,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   let state = "connecting";
   let presenceState = "unavailable";
   let credential;
+  let biographyEvidence = null;
   let renewalTimer;
   let renewalSequence = 1;
   let socket;
@@ -289,6 +290,20 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       }
       credential = frame.credential;
       setState("admitted");
+    } else if (frame.kind === "biography-evidence" && frame.protocol === 1) {
+      const evidence = frame.evidence;
+      const encodedEvidence = encoder.encode(JSON.stringify(evidence));
+      const current = evidence?.membership?.parts?.find(part => part.part_id === credential?.part_id)?.current;
+      if (!credential || encodedEvidence.length === 0 || encodedEvidence.length > 65_536 ||
+          evidence?.schema !== "conduit.body/biography-evidence@2" ||
+          evidence.body_id !== credential.body_id || evidence.membership?.body_id !== credential.body_id ||
+          current?.host_id !== hostId || current?.boot_id !== bootId ||
+          !Array.isArray(evidence.records)) {
+        throw new Error("invalid admission biography evidence");
+      }
+      const freeze = value => { if (value && typeof value === "object" && !Object.isFrozen(value)) { Object.values(value).forEach(freeze);Object.freeze(value); } return value; };
+      biographyEvidence = freeze(evidence);
+      onBiographyEvidence?.(biographyEvidence);
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
       if (!credential || (!returning && frame.sequence !== renewalSequence)) {
         throw new Error("presence acceptance did not match the current credential sequence");
@@ -453,6 +468,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     hostId,
     bootId,
     membershipCredential: () => credential === undefined ? null : Object.freeze({ ...credential }),
+    biographyEvidence: () => biographyEvidence,
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,

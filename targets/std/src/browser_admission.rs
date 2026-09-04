@@ -5,9 +5,9 @@
 //! decoded values through `conduit_body`'s canonical state machines.
 
 use conduit_body::{
-    AdmissionChallenge, AdmissionId, BodyId, MembershipCredential, MembershipCredentialId, PartId,
-    PartReturnChallenge, SpawnInvitationId, ADMISSION_SIGNATURE_BYTES,
-    MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
+    AdmissionChallenge, AdmissionId, BodyBiographyEvidence, BodyId, MembershipCredential,
+    MembershipCredentialId, PartId, PartReturnChallenge, SpawnInvitationId,
+    ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
 use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
@@ -125,6 +125,10 @@ pub enum BrowserAdmissionEgress {
         protocol: u16,
         credential: MembershipCredential,
     },
+    BiographyEvidence {
+        protocol: u16,
+        evidence: Box<BodyBiographyEvidence>,
+    },
     PresenceAccepted {
         protocol: u16,
         sequence: u64,
@@ -177,6 +181,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidSignature,
     InvalidSequence,
     InvalidMediaResource,
+    InvalidBiographyEvidence,
     InvalidSignal,
     InvalidGrant,
     OutputTooSmall,
@@ -412,6 +417,12 @@ fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissio
         | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }
         | BrowserAdmissionEgress::ReturnChallenge { protocol, .. }
         | BrowserAdmissionEgress::Refused { protocol, .. } => protocol,
+        BrowserAdmissionEgress::BiographyEvidence { protocol, evidence } => {
+            evidence
+                .validate()
+                .map_err(|_| BrowserAdmissionFrameError::InvalidBiographyEvidence)?;
+            protocol
+        }
         BrowserAdmissionEgress::MediaUsePlan {
             protocol,
             plan_id,
