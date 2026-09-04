@@ -29,8 +29,10 @@ export function successfulLaneEvidence(checkRuns, lane) {
     .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
 }
 
-export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, token, request = fetch }) {
+export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, baseSha, integrationSha, token, request = fetch }) {
   validate(repository, pullNumber, candidateSha);
+  exactIdentity(baseSha, "base SHA");
+  exactIdentity(integrationSha, "integration SHA");
   const requestHeaders = headers(token);
   const pullResponse = await request(`https://api.github.com/repos/${repository}/pulls/${pullNumber}`, { headers: requestHeaders });
   if (!pullResponse.ok) throw new Error(`resolve pull request failed: HTTP ${pullResponse.status}`);
@@ -38,7 +40,6 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
   if (pull?.state !== "open") throw new Error(`pull request #${pullNumber} is not open`);
   if (pull?.head?.sha !== candidateSha) throw new Error(`candidate ${candidateSha} is not the current head of pull request #${pullNumber}`);
   if (pull?.base?.repo?.full_name !== repository) throw new Error("pull request target repository does not match the requested repository");
-  const baseSha = exactIdentity(pull?.base?.sha, "current base SHA");
   const checkRuns = [];
   for (let page = 1; page <= 10; page += 1) {
     const query = new URLSearchParams({ filter: "all", per_page: "100", page: String(page) });
@@ -50,7 +51,7 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
     if (body.check_runs.length < 100) break;
   }
   return {
-    pullNumber, candidateSha, baseSha,
+    pullNumber, candidateSha, baseSha, integrationSha,
     lanes: Object.fromEntries(LANES.map((lane) => {
       const evidence = successfulLaneEvidence(checkRuns, lane);
       return [lane, evidence && { checkRunId: evidence.id, detailsUrl: evidence.details_url }];
@@ -58,8 +59,10 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
   };
 }
 
-export async function publishCandidateResults({ repository, candidateSha, checkInherited, checkResult, checkEvidenceUrl, productsInherited, productsResult, productsEvidenceUrl, runUrl, token, request = fetch }) {
+export async function publishCandidateResults({ repository, candidateSha, baseSha, integrationSha, checkInherited, checkResult, checkEvidenceUrl, productsInherited, productsResult, productsEvidenceUrl, runUrl, token, request = fetch }) {
   validate(repository, 1, candidateSha);
+  exactIdentity(baseSha, "base SHA");
+  exactIdentity(integrationSha, "integration SHA");
   const requestHeaders = { ...headers(token), "Content-Type": "application/json" };
   const lanes = [
     { name: "check", inherited: checkInherited, result: checkResult, evidenceUrl: checkEvidenceUrl },
@@ -76,11 +79,11 @@ export async function publishCandidateResults({ repository, candidateSha, checkI
   }).join("\n");
   const body = {
     name: ADMISSION_GATE, head_sha: candidateSha, status: "completed", conclusion,
-    external_id: `conduit.current-controller-reconciliation/v2:${candidateSha}`,
+    external_id: `conduit.current-controller-reconciliation/v3:${candidateSha}:${baseSha}:${integrationSha}`,
     details_url: runUrl,
     output: {
       title: "Exact candidate reconciliation admitted",
-      summary: `Current-controller admission for unchanged candidate ${candidateSha}.\n\n${laneSummary}\n\nRun: ${runUrl}`,
+      summary: `Current-controller admission for unchanged candidate ${candidateSha}.\n\nBase: ${baseSha}\nProspective integration: ${integrationSha}\n\n${laneSummary}\n\nRun: ${runUrl}`,
     },
   };
   const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
@@ -96,6 +99,8 @@ export async function resolveAndPublishInherited(options) {
   const published = await publishCandidateResults({
     repository: options.repository,
     candidateSha: options.candidateSha,
+    baseSha: resolved.baseSha,
+    integrationSha: resolved.integrationSha,
     checkInherited: true,
     checkResult: "skipped",
     checkEvidenceUrl: resolved.lanes.check.detailsUrl,
@@ -121,10 +126,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       repository: process.env.GITHUB_REPOSITORY,
       pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
       candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
+      baseSha: process.env.CONDUIT_BASE_SHA,
+      integrationSha: process.env.CONDUIT_INTEGRATION_SHA,
       runUrl: process.env.CONDUIT_RUN_URL,
       token: process.env.GH_TOKEN,
     });
     await appendOutput("base_sha", result.baseSha);
+    await appendOutput("integration_sha", result.integrationSha);
     for (const lane of LANES) {
       const prefix = lane === "check" ? "check" : "products";
       await appendOutput(`${prefix}_inherited`, String(Boolean(result.lanes[lane])));
@@ -135,6 +143,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   } else if (process.argv[2] === "publish") {
     const published = await publishCandidateResults({
       repository: process.env.GITHUB_REPOSITORY, candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
+      baseSha: process.env.CONDUIT_BASE_SHA, integrationSha: process.env.CONDUIT_INTEGRATION_SHA,
       checkInherited: process.env.CONDUIT_CHECK_INHERITED === "true", checkResult: process.env.CONDUIT_CHECK_RESULT, checkEvidenceUrl: process.env.CONDUIT_CHECK_EVIDENCE_URL,
       productsInherited: process.env.CONDUIT_PRODUCTS_INHERITED === "true", productsResult: process.env.CONDUIT_PRODUCTS_RESULT, productsEvidenceUrl: process.env.CONDUIT_PRODUCTS_EVIDENCE_URL,
       runUrl: process.env.CONDUIT_RUN_URL, token: process.env.GH_TOKEN,

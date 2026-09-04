@@ -26,10 +26,12 @@ jobs:
     timeout-minutes: 2
     permissions:
       checks: write
-      contents: read
+      contents: write
       pull-requests: read
     outputs:
       base_sha: ${{ steps.resolve.outputs.base_sha }}
+      integration_sha: ${{ steps.resolve.outputs.integration_sha }}
+      integration_ref: ${{ steps.integration.outputs.integration_ref }}
       check_inherited: ${{ steps.resolve.outputs.check_inherited }}
       check_evidence_url: ${{ steps.resolve.outputs.check_evidence_url }}
       products_inherited: ${{ steps.resolve.outputs.products_inherited }}
@@ -40,7 +42,29 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: refs/heads/${{ github.event.repository.default_branch }}
-          persist-credentials: false
+          fetch-depth: 0
+      - name: Materialize the current prospective integration locally
+        id: integration
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          git fetch --no-tags origin "$CANDIDATE_SHA"
+          base_sha=$(git rev-parse HEAD)
+          integration_tree=$(git merge-tree --write-tree "$base_sha" "$CANDIDATE_SHA")
+          export GIT_AUTHOR_NAME='Conduit CI'
+          export GIT_AUTHOR_EMAIL='ci@conduit.invalid'
+          export GIT_AUTHOR_DATE='2000-01-01T00:00:00Z'
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+          export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+          export GIT_COMMITTER_DATE="$GIT_AUTHOR_DATE"
+          integration_sha=$(printf 'Conduit reconciliation of %s with %s\n' "$CANDIDATE_SHA" "$base_sha" |
+            git commit-tree "$integration_tree" -p "$base_sha" -p "$CANDIDATE_SHA")
+          integration_ref="refs/heads/conduit-ci/reconcile-$PR_NUMBER-$CANDIDATE_SHA-$base_sha"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "integration_sha=$integration_sha" >> "$GITHUB_OUTPUT"
+          echo "integration_ref=$integration_ref" >> "$GITHUB_OUTPUT"
       - name: Resolve the unchanged candidate and reusable aggregate evidence
         id: resolve
         shell: bash
@@ -48,10 +72,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CONDUIT_PR_NUMBER: ${{ inputs.pr_number }}
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CONDUIT_BASE_SHA: ${{ steps.integration.outputs.base_sha }}
+          CONDUIT_INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -o pipefail
           node scripts/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
+      - name: Publish the immutable integration commit for proof jobs
+        if: steps.resolve.outputs.published != 'true'
+        env:
+          INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
+          INTEGRATION_REF: ${{ steps.integration.outputs.integration_ref }}
+        run: git push origin "$INTEGRATION_SHA:$INTEGRATION_REF"
       - name: Summarize reconciliation request
         run: |
           printf '## Current-controller candidate reconciliation\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
@@ -67,7 +99,7 @@ jobs:
     uses: ./.github/workflows/check.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
-      candidate_sha: ${{ inputs.candidate_sha }}
+      candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
 
   candidate-products:
     needs: resolve
@@ -77,7 +109,7 @@ jobs:
     uses: ./.github/workflows/executable-book-pages.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
-      candidate_sha: ${{ inputs.candidate_sha }}
+      candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
 
   report:
     needs: [resolve, candidate-check, candidate-products]
@@ -86,18 +118,19 @@ jobs:
     timeout-minutes: 2
     permissions:
       checks: write
-      contents: read
+      contents: write
     steps:
       - name: Check out only the current trusted reporter
         uses: actions/checkout@v7
         with:
           ref: refs/heads/${{ github.event.repository.default_branch }}
-          persist-credentials: false
       - name: Publish the reconciliation-owned admission gate
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CONDUIT_BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
+          CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}
           CONDUIT_CHECK_INHERITED: ${{ needs.resolve.outputs.check_inherited }}
           CONDUIT_CHECK_RESULT: ${{ needs.candidate-check.result }}
           CONDUIT_CHECK_EVIDENCE_URL: ${{ needs.resolve.outputs.check_evidence_url }}
@@ -108,6 +141,11 @@ jobs:
         run: |
           set -o pipefail
           node scripts/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
+      - name: Retire the temporary integration ref
+        if: always()
+        env:
+          INTEGRATION_REF: ${{ needs.resolve.outputs.integration_ref }}
+        run: git push origin ":$INTEGRATION_REF"
       - name: Summarize the published exact-head admission
         run: |
           printf '## Published exact-head gates\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
