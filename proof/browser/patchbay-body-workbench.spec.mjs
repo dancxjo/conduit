@@ -91,6 +91,22 @@ test("an invited browser remains outside the Body until explicit join", async ({
     await expect(capabilityFacts).toContainText(port.port_id);
     await expect(capabilityFacts).toContainText(port.value_kind);
   }
+  const inspectedResource = advertisement.resources.at(-1);
+  await page.getByLabel("Inspect resource pool", { exact: true }).selectOption(inspectedResource.pool_id);
+  const resourceFacts = page.locator('[data-application-slot="body-resource-facts"]');
+  await expect(resourceFacts).toContainText(inspectedResource.pool_id);
+  await expect(resourceFacts).toContainText(inspectedResource.class_id);
+  await expect(resourceFacts).toContainText(`Advertised capacity${inspectedResource.capacity_units} units`);
+  await expect(resourceFacts).toContainText("Reservationnone · advertisement only");
+  await expect(resourceFacts).toContainText("Current utilizationnot reported by this advertisement");
+  const inspectedPlanner = advertisement.planner_capabilities.at(-1);
+  await page.getByLabel("Inspect planner profile", { exact: true }).selectOption(inspectedPlanner.profile_id);
+  const plannerFacts = page.locator('[data-application-slot="body-planner-facts"]');
+  await expect(plannerFacts).toContainText(inspectedPlanner.profile_id);
+  await expect(plannerFacts).toContainText(`Host advertisements${inspectedPlanner.limits.maximum_host_advertisements}`);
+  await expect(plannerFacts).toContainText(`Gears${inspectedPlanner.limits.maximum_gears}`);
+  await expect(plannerFacts).toContainText(`Connections${inspectedPlanner.limits.maximum_connections}`);
+  await expect(plannerFacts).toContainText("Planner selectionnone · advertisement only");
   await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
   await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
