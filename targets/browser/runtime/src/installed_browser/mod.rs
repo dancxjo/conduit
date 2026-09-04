@@ -1,5 +1,6 @@
 //! Finite implementation registry installed by the ordinary browser Host.
 
+mod button_indicator;
 mod delay;
 mod factory;
 mod input;
@@ -21,7 +22,7 @@ pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, selected_human_machinery,
     BrowserManifestation,
 };
-pub(crate) use input::KEY_EVENT_OPERATION;
+pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
 pub(crate) use limits::{
     envelope_limits, BROWSER_HOST_OPERATIONS_PER_GEAR, BROWSER_HOST_OPERATION_BINDINGS,

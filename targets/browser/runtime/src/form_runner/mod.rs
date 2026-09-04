@@ -17,8 +17,9 @@ use conduit_planner::{
 };
 pub(super) use protocol::refusal;
 use protocol::{
-    decode_manifestation, receipt, BookBackEvidence, BookEffect, BookGearEvidence, BookHostEffect,
-    BookKeyEventEffect, BookProgress, BookReceipt, BookTimerEffect,
+    decode_manifestation, receipt, BookBackEvidence, BookButtonTransitionEffect, BookEffect,
+    BookGearEvidence, BookHostEffect, BookKeyEventEffect, BookProgress, BookReceipt,
+    BookTimerEffect,
 };
 use std::collections::BTreeMap;
 
@@ -276,6 +277,19 @@ impl BookSession {
                     source_interaction: self.source_interaction.clone(),
                 })))
             }
+            engine::BrowserHostEffect::ButtonTransition => Ok(BookHostEffect::ButtonTransition(
+                Box::new(BookButtonTransitionEffect {
+                    schema: "conduit.book/button-transition-effect@1",
+                    effect_kind: "button-transition",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: self.pending.request.request.0,
+                    maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+                    source_interaction: self.source_interaction.clone(),
+                }),
+            )),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
                 let observation_sequence = self.pending.request.request.0;
                 let presentation = bind_presentation(

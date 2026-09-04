@@ -1,8 +1,8 @@
 //! Browser-owned offer, factory, and host-operation installation catalog.
 
 use super::{
-    delay, input, layout, linguistics, logic, math, morse, morse_composition, presentation,
-    state_time, text, values,
+    button_indicator, delay, input, layout, linguistics, logic, math, morse, morse_composition,
+    presentation, state_time, text, values,
 };
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
@@ -70,6 +70,9 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &presentation::PATCHBAY,
     &layout::VIEWPORT,
     &input::KEYBOARD,
+    &input::BUTTON,
+    &button_indicator::MAPPER,
+    &button_indicator::INDICATOR,
 ];
 
 pub(crate) const PRESENTATION_FABRICATION_ID: &str = "browser/dom-presentation@1";
@@ -121,6 +124,9 @@ impl BrowserMachinery {
         if installation.implementation_id == input::KEYBOARD_IMPLEMENTATION {
             return self.keyboard;
         }
+        if installation.implementation_id == input::BUTTON_IMPLEMENTATION {
+            return self.pointer;
+        }
         let offer = (installation.offer)();
         if offer
             .resource_requirements
@@ -171,6 +177,7 @@ pub(crate) fn catalogs(
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     startup.insert(conduit_form::KindSignature {
         kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),

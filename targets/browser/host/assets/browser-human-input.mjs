@@ -37,10 +37,12 @@ export function openBrowserHumanInput({
     offer_generation: positiveInteger(boot?.offer_generation ?? 1, "OfferGenerationInvalid"),
   });
   const keyboardWaiters = [];
+  const buttonWaiters = [];
   const pointerConsumers = new Set();
   let closed = false;
   let terminal = null;
   let pointerSequence = 0;
+  let buttonSequence = 0;
   let dropped = 0;
 
   const onKey = (event) => {
@@ -64,13 +66,22 @@ export function openBrowserHumanInput({
   };
 
   const onPointer = (event) => {
-    if (closed || pointerConsumers.size === 0) return;
+    if (closed || (pointerConsumers.size === 0 && buttonWaiters.length === 0)) return;
     try {
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "pointer target is no longer admitted");
       if (event.buttons !== 0 && event.buttons !== 1) {
         refuse("UnsupportedInput", "pointer buttons exceed the reviewed primary-button profile");
+      }
+      if (buttonWaiters.length > 0) {
+        const waiter = buttonWaiters.shift();
+        waiter.resolve(Object.freeze({
+          schema: "input/button-transition@1",
+          pressed: event.type === "pointerdown",
+          sequence: buttonSequence++,
+          owner,
+        }));
       }
       const surface = target.nodeType === 9 ? target.documentElement : target;
       const bounds = surface.getBoundingClientRect();
@@ -96,6 +107,7 @@ export function openBrowserHumanInput({
       dropped = 0;
       for (const consume of pointerConsumers) consume(value);
     } catch (error) {
+      while (buttonWaiters.length) buttonWaiters.shift().reject(error);
       for (const consume of pointerConsumers) consume(null, error);
     }
   };
@@ -106,6 +118,7 @@ export function openBrowserHumanInput({
       ? "browser page was lost while input was pending"
       : "browser input target lost focus");
     while (keyboardWaiters.length) keyboardWaiters.shift().reject(terminal);
+    while (buttonWaiters.length) buttonWaiters.shift().reject(terminal);
   };
   const restoreFocus = () => {
     if (terminal?.code === "FocusLost") terminal = null;
@@ -140,6 +153,14 @@ export function openBrowserHumanInput({
       }
       return new Promise((resolve, reject) => keyboardWaiters.push({ resolve, reject }));
     },
+    nextButton() {
+      requireSelected(admitted, POINTER_IMPLEMENTATION);
+      if (closed || terminal) return Promise.reject(terminal ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
+      if (buttonWaiters.length >= maximumQueueItems) {
+        return Promise.reject(new BrowserInputRefusal("Pressure", "button input queue is full"));
+      }
+      return new Promise((resolve, reject) => buttonWaiters.push({ resolve, reject }));
+    },
     observePointer(consume) {
       requireSelected(admitted, POINTER_IMPLEMENTATION);
       if (typeof consume !== "function") throw new TypeError("pointer consumer must be a function");
@@ -150,6 +171,7 @@ export function openBrowserHumanInput({
     },
     cancelPending() {
       while (keyboardWaiters.length) keyboardWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
+      while (buttonWaiters.length) buttonWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
     },
     close() {
       if (closed) return;
@@ -162,6 +184,7 @@ export function openBrowserHumanInput({
       window.removeEventListener?.("blur", focusLost);
       window.removeEventListener?.("focus", restoreFocus);
       while (keyboardWaiters.length) keyboardWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
+      while (buttonWaiters.length) buttonWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
       pointerConsumers.clear();
     },
   });

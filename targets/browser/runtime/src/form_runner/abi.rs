@@ -43,6 +43,19 @@ pub extern "C" fn conduit_book_output_len() -> usize {
     OUTPUT_LEN.with(|length| *length.borrow())
 }
 
+#[no_mangle]
+pub extern "C" fn conduit_book_encode_button_transition(pressed: u32, sequence: u64) -> i32 {
+    clear_output();
+    let encoded =
+        conduit_semantic_catalog::button_transition_value("button/primary", pressed != 0, sequence)
+            .and_then(|value| value.canonical_bytes())
+            .map_err(|_| ());
+    match encoded.and_then(|encoded| write_output_bytes(&encoded)) {
+        Ok(()) => STATUS_READY,
+        Err(()) => ERROR_OUTPUT,
+    }
+}
+
 /// Writes the machine-readable browser Gear inventory derived from the same
 /// Host advertisement used by planning.
 #[no_mangle]
@@ -332,11 +345,15 @@ fn finish(cancel: bool) -> i32 {
 
 fn write_output(value: &impl serde::Serialize) -> Result<(), ()> {
     let encoded = serde_json::to_vec(value).map_err(|_| ())?;
+    write_output_bytes(&encoded)
+}
+
+fn write_output_bytes(encoded: &[u8]) -> Result<(), ()> {
     if encoded.len() > OUTPUT_BYTES {
         return Err(());
     }
     OUTPUT.with(|output| {
-        output.borrow_mut()[..encoded.len()].copy_from_slice(&encoded);
+        output.borrow_mut()[..encoded.len()].copy_from_slice(encoded);
     });
     OUTPUT_LEN.with(|length| *length.borrow_mut() = encoded.len());
     Ok(())

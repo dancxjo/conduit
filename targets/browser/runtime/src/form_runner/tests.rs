@@ -14,6 +14,9 @@ fn manifestation(effect: BookHostEffect) -> BookEffect {
         BookHostEffect::Manifestation(effect) => *effect,
         BookHostEffect::Timer(_) => panic!("the fixture must manifest before requesting a timer"),
         BookHostEffect::KeyEvent(_) => panic!("the fixture must manifest before requesting input"),
+        BookHostEffect::ButtonTransition(_) => {
+            panic!("the fixture must manifest before requesting button input")
+        }
     }
 }
 
@@ -31,6 +34,64 @@ fn chapter_one_runs_inside_the_generic_browser_envelope() {
     assert_eq!(effect.segments.len(), 17);
     assert_eq!(effect.host_id, "browser/book-test");
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
+
+#[test]
+fn canonical_button_form_runs_press_and_release_without_device_identity() {
+    let source = include_str!("../../../../../forms/button-across-room/main.conduit");
+    let host_id = "browser/button-proof";
+    let boot_id = "browser-boot/button-proof";
+    let host = crate::installed_browser::advertisement(host_id.into(), boot_id.into());
+    assert_eq!(
+        conduit_core::validate_device_associations(&host, &[]),
+        Ok(())
+    );
+
+    let (mut session, first) = BookSession::prepare(host_id, boot_id, source, 40).unwrap();
+    let BookHostEffect::ButtonTransition(first) = first else {
+        panic!("button Form must request its first ordered transition")
+    };
+    assert_eq!(first.request_sequence, 0);
+
+    let press = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let BookProgress::Effect(second) = session.advance_with_output(&press).unwrap() else {
+        panic!("press must preserve the next bounded input request")
+    };
+    let BookHostEffect::ButtonTransition(second) = *second else {
+        panic!("button Form must preserve the second ordered transition")
+    };
+    assert_eq!(second.request_sequence, 1);
+
+    let release = conduit_semantic_catalog::button_transition_value("button/primary", false, 1)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let BookProgress::Effect(on) = session.advance_with_output(&release).unwrap() else {
+        panic!("both bounded transitions must flow to presentation")
+    };
+    let on = manifestation(*on);
+    assert_eq!(on.presentation_kind, "presentation/indicator-state");
+    assert_eq!(on.text.as_deref(), Some("true"));
+    assert_eq!(on.host_id, host_id);
+    assert_eq!(on.boot_id, boot_id);
+
+    let BookProgress::Effect(off) = session.advance().unwrap() else {
+        panic!("press manifestation completion must reveal release manifestation")
+    };
+    let off = manifestation(*off);
+    assert_eq!(off.text.as_deref(), Some("false"));
+    assert_eq!(off.checked_form_id, on.checked_form_id);
+    assert_eq!(off.plan_id, on.plan_id);
+    assert_eq!(off.active_play_id, on.active_play_id);
+
+    let BookProgress::Receipt(receipt) = session.advance().unwrap() else {
+        panic!("release manifestation must complete the bounded Play")
+    };
+    assert_eq!(receipt.disposition, "completed");
+    assert_eq!(receipt.manifestation_completions, 2);
 }
 
 #[test]
@@ -203,6 +264,9 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 timer.duration_millis, timer.request_sequence
             )),
             BookHostEffect::KeyEvent(_) => panic!("timer fixture requested keyboard input"),
+            BookHostEffect::ButtonTransition(_) => {
+                panic!("timer fixture requested button input")
+            }
         }
         match session.advance().unwrap() {
             BookProgress::Effect(next) => effect = *next,
