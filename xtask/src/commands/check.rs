@@ -1,7 +1,8 @@
+use clap::{Args, ValueEnum};
 use std::collections::BTreeSet;
 
 use crate::{
-    cli::{CheckArgs, CheckSuite, GlobalOpts},
+    cli::GlobalOpts,
     process::{run_step, run_step_with_arguments, run_suite, Step, StepError},
     suites::check::{
         BROWSER_CHECK_STEPS, FORM_S3_STEPS, INPUT_SEMANTICS_STEPS, KERNEL_TAKEOVER_STEPS,
@@ -13,6 +14,34 @@ use crate::{
     suites::workspace_shards::WorkspaceShard,
     workspace::workspace_root,
 };
+
+#[derive(Args, Debug)]
+pub struct CheckArgs {
+    /// Which check suite to execute (default: workspace).
+    #[arg(default_value = "workspace")]
+    pub suite: CheckSuite,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckSuite {
+    Workspace,
+    WorkspaceLint,
+    WorkspaceTestFoundation,
+    WorkspaceTestHosts,
+    WorkspaceTestProducts,
+    WorkspacePortable,
+    WorkspacePico,
+    Browser,
+    BrowserHost,
+    Sim,
+    KernelTakeover,
+    PlanningS2,
+    FormS3,
+    Observatory,
+    SemanticCatalog,
+    InputSemantics,
+    All,
+}
 
 pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;

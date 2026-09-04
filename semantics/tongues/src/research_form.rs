@@ -52,6 +52,15 @@ fn check_one(
 fn research_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
+    install_research_catalogs(&mut startup, &mut profile)?;
+    Ok((startup, profile))
+}
+
+/// Adds the reviewed research-Form contracts to an enclosing conformance catalog.
+pub fn install_research_catalogs(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
     for definition in definitions() {
         startup.insert(KindSignature {
             kind: definition.kind_id.as_str().into(),
@@ -61,7 +70,7 @@ fn research_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
             .insert(definition)
             .map_err(|error| error.to_string())?;
     }
-    Ok((startup, profile))
+    Ok(())
 }
 
 fn definitions() -> Vec<KindDefinition> {

@@ -1,0 +1,147 @@
+schema = "conduit.reviewed-form-inventory/v1"
+maximum_forms = 64
+
+# Membership is explicit: repository path discovery validates this list but never creates it.
+[[forms]]
+slug = "arithmetic-lesson"
+title = "Arithmetic Lesson"
+entry = "arithmetic-lesson"
+[[forms]]
+slug = "bounded-job"
+title = "Bounded Job"
+entry = "bounded-job"
+[[forms]]
+slug = "breadboard-instrument"
+title = "Breadboard Instrument"
+entry = "breadboard-instrument"
+[[forms]]
+slug = "camera-summary"
+title = "Camera Summary"
+entry = "camera-summary"
+[[forms]]
+slug = "clock"
+title = "Clock"
+entry = "clock-demo"
+[[forms]]
+slug = "count"
+title = "Count"
+entry = "count-demo"
+[[forms]]
+slug = "default-welcome"
+title = "Default Welcome"
+entry = "default-welcome"
+[[forms]]
+slug = "desk-telegraph"
+title = "Desk Telegraph"
+entry = "desk_telegraph"
+initial_body_order = 3
+[[forms]]
+slug = "generalized-input"
+title = "Generalized Input"
+entry = "generalized-input"
+[[forms]]
+slug = "geometry-spatial"
+title = "Spatial Geometry"
+entry = "geometry-spatial"
+[[forms]]
+slug = "greet"
+title = "Greeting"
+entry = "default-welcome"
+[[forms]]
+slug = "hello"
+title = "Hello"
+entry = "hello"
+[[forms]]
+slug = "lenia-orbium"
+title = "Lenia Orbium"
+entry = "lenia-orbium-demo"
+[[forms]]
+slug = "linguistic-annotations"
+title = "Linguistic Annotations"
+entry = "linguistic-annotations"
+[[forms]]
+slug = "memory-lantern"
+title = "Memory Lantern"
+entry = "memory_lantern"
+initial_body_order = 2
+[[forms]]
+slug = "messaging-delivery"
+title = "Messaging Delivery"
+entry = "messaging-delivery"
+[[forms]]
+slug = "money-quote"
+title = "Money Quote"
+entry = "money-quote"
+[[forms]]
+slug = "morse-network"
+title = "Morse Network"
+entry = "morse_network"
+initial_body_order = 1
+[[forms]]
+slug = "network-resolution"
+title = "Network Resolution"
+entry = "network-resolution"
+[[forms]]
+slug = "patchbay-front-door"
+title = "Patchbay Front Door"
+entry = "patchbay-front-door"
+[[forms]]
+slug = "pool-webchat"
+title = "Pool Webchat"
+entry = "pool-webchat"
+[[forms]]
+slug = "r1-network-bootstrap"
+title = "R1 Network Bootstrap"
+entry = "r1-network-bootstrap"
+[[forms]]
+slug = "rhythm-lesson"
+title = "Rhythm Lesson"
+entry = "rhythm-lesson"
+[[forms]]
+slug = "robotics-diversity"
+title = "Robotics Diversity"
+entry = "robotics-diversity"
+[[forms]]
+slug = "scheduled-reminder"
+title = "Scheduled Reminder"
+entry = "scheduled-reminder"
+[[forms]]
+slug = "scheduling-workflow"
+title = "Scheduling Workflow"
+entry = "workflow-state"
+[[forms]]
+slug = "signal-demo"
+title = "Signal Demo"
+entry = "signal-demo"
+[[forms]]
+slug = "socket-client"
+title = "Socket Client"
+entry = "echo-client-demo"
+[[forms]]
+slug = "tabular-query"
+title = "Tabular Query"
+entry = "tabular-query"
+[[forms]]
+slug = "text-lab"
+title = "Text Lab"
+entry = "text-lab"
+[[forms]]
+slug = "tongues-bidirectional-inference"
+title = "Tongues Bidirectional Inference"
+entry = "tongues-bidirectional-inference"
+[[forms]]
+slug = "tongues-dynamics-analysis"
+title = "Tongues Dynamics Analysis"
+entry = "tongues-dynamics-analysis"
+[[forms]]
+slug = "tongues-latent-training"
+title = "Tongues Latent Training"
+entry = "tongues-latent-training"
+[[forms]]
+slug = "vision-metadata"
+title = "Vision Metadata"
+entry = "vision-metadata"
+[[forms]]
+slug = "webchat"
+title = "Webchat"
+entry = "webchat-browser-demo"

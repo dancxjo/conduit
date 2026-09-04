@@ -16,6 +16,7 @@ pub mod distributed_lenia;
 pub mod doctor;
 pub mod esp32_firmware;
 pub mod evidence;
+pub mod forms;
 pub mod host;
 mod host_configuration_prompt;
 pub mod light_switch;
