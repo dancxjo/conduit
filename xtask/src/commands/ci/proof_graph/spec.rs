@@ -80,7 +80,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
-        command: "cargo xtask ci prove browser.tour --locked",
+        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-book.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "machine.esp32-c3",

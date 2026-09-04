@@ -69,14 +69,3 @@ fn valid_digest(value: &str) -> bool {
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
-
-pub(super) fn candidate_status(receipts: &[ReceiptLoad]) -> &'static str {
-    if receipts
-        .iter()
-        .any(|receipt| matches!(receipt, ReceiptLoad::Valid(_)))
-    {
-        "available"
-    } else {
-        "unproven"
-    }
-}

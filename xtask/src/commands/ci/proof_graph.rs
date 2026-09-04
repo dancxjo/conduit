@@ -9,7 +9,7 @@ const PLAN_SCHEMA: &str = "conduit.ci.reconciliation-plan/v1";
 
 mod receipt;
 mod spec;
-use receipt::{candidate_status, load_receipts, ProofReceipt, ReceiptLoad, RECEIPT_SCHEMA};
+use receipt::{load_receipts, ProofReceipt, ReceiptLoad, RECEIPT_SCHEMA};
 use spec::{Applicability, ProofKind, ProofSpec, PROOFS};
 
 #[derive(Debug, Serialize)]
@@ -79,6 +79,7 @@ pub(super) fn reconcile(
     let candidate_sha = resolve_commit(&root, head)?;
     let candidate_tree = resolve_tree(&root, &candidate_sha)?;
     let receipts = load_receipts(receipt_paths);
+    let candidate_evidence_status = evidence_status(&root, &candidate_tree, &receipts)?;
     let integration = merge_tree(&root, &base_sha, &candidate_sha)?;
     let plan = match integration {
         MergeTree::Conflict => Plan {
@@ -89,7 +90,7 @@ pub(super) fn reconcile(
             base_sha: Some(base_sha),
             integration_tree: None,
             integration_status: "conflict",
-            candidate_evidence_status: candidate_status(&receipts),
+            candidate_evidence_status,
             proofs: Vec::new(),
             inherited: 0,
             execute: 0,
@@ -207,6 +208,7 @@ fn build_plan(
         .filter(|proof| proof.disposition == "inherited")
         .count();
     let execute = proofs.len() - inherited;
+    let candidate_evidence_status = evidence_status(root, &context.candidate_tree, receipts)?;
     Ok(Plan {
         schema: PLAN_SCHEMA,
         mode: context.mode,
@@ -215,7 +217,7 @@ fn build_plan(
         base_sha: context.base_sha,
         integration_tree: context.integration_tree,
         integration_status: context.integration_status,
-        candidate_evidence_status: candidate_status(receipts),
+        candidate_evidence_status,
         proofs,
         inherited,
         execute,
@@ -302,6 +304,30 @@ fn receipt_matches(
         input_digest,
         key,
     )
+}
+
+fn evidence_status(
+    root: &Path,
+    tree: &str,
+    receipts: &[ReceiptLoad],
+) -> Result<&'static str, String> {
+    let mut inherited = 0;
+    for spec in PROOFS {
+        let input_digest = fingerprint(root, tree, spec)?;
+        let key = proof_key(spec, &input_digest, &BTreeMap::new());
+        if receipts.iter().any(|loaded| {
+            matches!(loaded, ReceiptLoad::Valid(receipt) if receipt_matches(receipt, spec, &input_digest, &key))
+        }) {
+            inherited += 1;
+        }
+    }
+    Ok(if inherited == PROOFS.len() {
+        "pass"
+    } else if inherited > 0 {
+        "partial"
+    } else {
+        "unproven"
+    })
 }
 
 fn hash_field(hash: &mut Sha256, label: &str, value: &[u8]) {

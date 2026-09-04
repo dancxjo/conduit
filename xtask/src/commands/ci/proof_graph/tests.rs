@@ -240,6 +240,22 @@ fn structural_conflict_precedes_all_proof_execution() {
     repo.checkout("candidate", Some(&m0));
     repo.write("same.txt", "candidate\n");
     let head = repo.commit("candidate");
+    let candidate_tree = resolve_tree(&repo.root, &head).unwrap();
+    let receipts: Vec<_> = PROOFS
+        .iter()
+        .map(|proof| {
+            ReceiptLoad::Valid(Box::new(receipt_for(
+                &repo.root,
+                &candidate_tree,
+                proof,
+                &head,
+            )))
+        })
+        .collect();
+    assert_eq!(
+        evidence_status(&repo.root, &candidate_tree, &receipts).unwrap(),
+        "pass"
+    );
     git(&repo.root, &["checkout", "-q", "master"]);
     repo.write("same.txt", "main\n");
     let base = repo.commit("main");
@@ -274,7 +290,12 @@ fn receipts_fail_closed_and_can_be_reused_across_candidate_heads() {
 
     let mut corrupt = receipt.clone();
     corrupt.schema = "unknown".to_owned();
-    assert_ne!(corrupt.schema, RECEIPT_SCHEMA);
+    let receipt_path = repo.root.join("receipt.json");
+    fs::write(&receipt_path, serde_json::to_vec(&corrupt).unwrap()).unwrap();
+    assert!(matches!(
+        load_receipts(std::slice::from_ref(&receipt_path))[0],
+        ReceiptLoad::Invalid
+    ));
     corrupt = receipt.clone();
     corrupt.result = "incomplete".to_owned();
     assert!(!receipt_matches(
@@ -290,6 +311,11 @@ fn receipts_fail_closed_and_can_be_reused_across_candidate_heads() {
         proof,
         &digest2,
         &proof_key(proof, &digest2, &BTreeMap::new())
+    ));
+    fs::write(&receipt_path, b"not json").unwrap();
+    assert!(matches!(
+        load_receipts(&[receipt_path])[0],
+        ReceiptLoad::Invalid
     ));
 }
 
