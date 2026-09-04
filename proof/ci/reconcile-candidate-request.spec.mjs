@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { publishCandidateResults, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
+import { publishCandidateResults, resolveAndPublishInherited, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
 
 const candidate = "b".repeat(40);
 const base = "a".repeat(40);
@@ -55,4 +55,48 @@ test("a published successful reconciliation is reusable by an identical later re
   ] }) });
   assert.ok(result.lanes.check);
   assert.ok(result.lanes["products-proof"]);
+});
+
+test("an all-inherited request publishes both gates without allocating a report job", async () => {
+  const posts = [];
+  const result = await resolveAndPublishInherited({
+    repository, pullNumber: 7, candidateSha: candidate,
+    runUrl: "https://example.test/reconcile", token: "test",
+    request: async (url, options = {}) => {
+      if (options.method === "POST") {
+        posts.push(JSON.parse(options.body));
+        return response({ id: 200 + posts.length }, 201);
+      }
+      if (url.endsWith("/pulls/7")) return response(pull());
+      return response({ check_runs: [
+        { id: 91, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/check", app: { slug: "github-actions" } },
+        { id: 92, name: "products-proof", status: "completed", conclusion: "success", details_url: "https://example.test/products", app: { slug: "github-actions" } },
+      ] });
+    },
+  });
+  assert.equal(result.published.length, 2);
+  assert.deepEqual(posts.map(({ name }) => name), ["check", "products-proof"]);
+  assert.ok(posts.every(({ conclusion }) => conclusion === "success"));
+});
+
+test("partial evidence remains fail-closed for execute then report", async () => {
+  let posts = 0;
+  const result = await resolveAndPublishInherited({
+    repository, pullNumber: 7, candidateSha: candidate,
+    runUrl: "https://example.test/reconcile", token: "test",
+    request: async (url, options = {}) => {
+      if (options.method === "POST") {
+        posts += 1;
+        return response({ id: 201 }, 201);
+      }
+      if (url.endsWith("/pulls/7")) return response(pull());
+      return response({ check_runs: [
+        { id: 91, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/check", app: { slug: "github-actions" } },
+      ] });
+    },
+  });
+  assert.equal(result.published, null);
+  assert.equal(posts, 0);
+  assert.ok(result.resolved.lanes.check);
+  assert.equal(result.resolved.lanes["products-proof"], null);
 });
