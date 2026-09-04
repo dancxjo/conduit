@@ -89,6 +89,23 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         required_inputs: &["xtask/src/commands/ci/monitor.rs"],
         workspace_packages: &["conduit-xtask-dispatch", "xtask"],
     },
+    ControllerProofSpec {
+        id: "ci.check-result-gate",
+        implementation_inputs: &[
+            ".github/workflows/check.yml",
+            "proof/ci/check-result-gate.spec.mjs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // The workflow and its executable truth table anchor this bounded
+        // slice. An arbitrary planner or workflow-test edit remains global.
+        required_inputs: &[
+            ".github/workflows/check.yml",
+            "proof/ci/check-result-gate.spec.mjs",
+        ],
+        workspace_packages: &["xtask"],
+    },
 ];
 
 fn active_controller_proofs(paths: &[String]) -> Vec<&'static ControllerProofSpec> {

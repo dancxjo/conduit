@@ -192,6 +192,42 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
 }
 
 #[test]
+fn check_result_gate_contract_does_not_fabricate_products() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let complete = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/check.yml".to_owned(),
+            "proof/ci/check-result-gate.spec.mjs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(complete.ci_controller_proofs, ["ci.check-result-gate"]);
+    assert_eq!(complete.changed_packages, ["xtask"]);
+    assert!(!complete.full_fallback);
+    assert!(!complete.pages_products_required);
+    assert!(!complete.browser_required);
+    assert!(!complete.esp32_required);
+    assert!(!complete.conduitos_required);
+    assert!(complete.workspace_shards.values().any(|required| *required));
+
+    let incomplete = plan_for_paths(
+        &root,
+        vec!["proof/ci/check-result-gate.spec.mjs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(incomplete.full_fallback);
+    assert!(incomplete.pages_products_required);
+}
+
+#[test]
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
