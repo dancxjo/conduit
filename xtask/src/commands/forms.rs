@@ -8,6 +8,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+#[path = "forms/deterministic.rs"]
+mod deterministic;
+
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
 const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v1";
@@ -22,6 +25,15 @@ pub struct FormsArgs {
 enum FormsCommand {
     /// Check every explicitly reviewed canonical Form.
     Check,
+    /// Execute every declared Form oracle valid for the selected proof mode.
+    Run {
+        /// Run deterministic, non-device conformance oracles.
+        #[arg(long, conflicts_with = "browser")]
+        deterministic: bool,
+        /// Report browser proof availability without acquiring permissions or devices.
+        #[arg(long, conflicts_with = "deterministic")]
+        browser: bool,
+    },
     /// Emit the current bounded conformance report without running gated proofs.
     Report {
         /// Write JSON to this path instead of stdout.
@@ -37,19 +49,30 @@ enum FormsCommand {
 }
 
 #[derive(Debug, Deserialize)]
-struct Inventory {
+pub(super) struct Inventory {
     schema: String,
     maximum_forms: usize,
-    forms: Vec<InventoryForm>,
+    pub(super) forms: Vec<InventoryForm>,
 }
 
 #[derive(Debug, Deserialize)]
-struct InventoryForm {
-    slug: String,
-    title: String,
-    entry: String,
+pub(super) struct InventoryForm {
+    pub(super) slug: String,
+    pub(super) title: String,
+    pub(super) entry: String,
     #[serde(default)]
     initial_body_order: Option<u8>,
+    pub(super) deterministic: Option<DeterministicOracle>,
+    pub(super) deterministic_not_applicable: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct DeterministicOracle {
+    pub(super) package: String,
+    #[serde(default)]
+    pub(super) features: Vec<String>,
+    pub(super) test: String,
+    pub(super) case: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -60,7 +83,7 @@ struct Report {
 }
 
 #[derive(Debug, Serialize)]
-struct FormProofResult {
+pub(super) struct FormProofResult {
     slug: String,
     title: String,
     source_path: String,
@@ -72,16 +95,16 @@ struct FormProofResult {
     workload_revision: Option<u64>,
     plan_id: Option<String>,
     play_id: Option<String>,
-    status: &'static str,
+    status: String,
     reason: String,
     evidence_artifacts: Vec<String>,
 }
 
 pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
     let root = crate::workspace::workspace_root()?;
-    let report = build_report(&root)?;
     match args.command {
         FormsCommand::Check => {
+            let report = build_report(&root, false, opts)?;
             render(&report, opts.json)?;
             if report
                 .results
@@ -91,7 +114,31 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
                 return Err("one or more reviewed Forms failed conformance checking".into());
             }
         }
+        FormsCommand::Run {
+            deterministic,
+            browser,
+        } => {
+            if !deterministic && !browser {
+                return Err(
+                    "select exactly one proof mode with --deterministic or --browser".into(),
+                );
+            }
+            let report = if deterministic {
+                build_report(&root, true, opts)?
+            } else {
+                browser_report(&root, opts)?
+            };
+            render(&report, true)?;
+            if report
+                .results
+                .iter()
+                .any(|result| result.status == "failed")
+            {
+                return Err("one or more reviewed Form proofs failed".into());
+            }
+        }
         FormsCommand::Report { output } => {
+            let report = build_report(&root, true, opts)?;
             let bytes = serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?;
             if let Some(path) = output {
                 fs::write(path, bytes).map_err(|error| error.to_string())?;
@@ -138,7 +185,11 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
     fs::write(output, bundled).map_err(|error| error.to_string())
 }
 
-fn build_report(root: &Path) -> Result<Report, String> {
+fn build_report(
+    root: &Path,
+    execute_deterministic: bool,
+    opts: &GlobalOpts,
+) -> Result<Report, String> {
     let inventory = load_inventory(root)?;
     let catalogs = catalogs()?;
     let mut results = Vec::with_capacity(inventory.forms.len() * 2);
@@ -155,18 +206,20 @@ fn build_report(root: &Path) -> Result<Report, String> {
                     elapsed,
                     "passed",
                     "canonical source parsed and checked through the standard semantic catalog",
-                    Some((source_id, checked_id)),
+                    Some((source_id.clone(), checked_id.clone())),
                     "check",
                 ));
-                results.push(result(
-                    &form,
-                    &source_path,
-                    0,
-                    "unavailable",
-                    "no deterministic execution oracle is yet declared by the reviewed inventory",
-                    None,
-                    "deterministic",
-                ));
+                results.push(if execute_deterministic {
+                    deterministic::run(
+                        root,
+                        &form,
+                        &source_path,
+                        Some((source_id, checked_id)),
+                        opts,
+                    )
+                } else {
+                    deterministic::availability(&form, &source_path, Some((source_id, checked_id)))
+                });
             }
             Err(reason) => results.push(result(
                 &form,
@@ -186,11 +239,25 @@ fn build_report(root: &Path) -> Result<Report, String> {
     })
 }
 
+fn browser_report(root: &Path, opts: &GlobalOpts) -> Result<Report, String> {
+    let mut report = build_report(root, false, opts)?;
+    for result in &mut report.results {
+        if result.proof_mode == "deterministic" {
+            result.proof_mode = "browser-safe";
+            result.environment_profile = "browser/current-environment@1";
+            result.status = "unavailable".into();
+            result.reason =
+                "browser proof aggregation is not yet connected to the conformance seam".into();
+        }
+    }
+    Ok(report)
+}
+
 fn result(
     form: &InventoryForm,
     path: &str,
     duration: u128,
-    status: &'static str,
+    status: &str,
     reason: &str,
     identities: Option<(String, String)>,
     mode: &'static str,
@@ -207,7 +274,7 @@ fn result(
         workload_revision: None,
         plan_id: None,
         play_id: None,
-        status,
+        status: status.into(),
         reason: reason.into(),
         evidence_artifacts: vec![INVENTORY_PATH.into(), path.into()],
     }
@@ -362,7 +429,7 @@ mod tests {
     #[test]
     fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         let root = crate::workspace::workspace_root().unwrap();
-        let report = build_report(&root).unwrap();
+        let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
         let checks: Vec<_> = report
             .results
             .iter()

@@ -6,30 +6,37 @@ maximum_forms = 64
 slug = "arithmetic-lesson"
 title = "Arithmetic Lesson"
 entry = "arithmetic-lesson"
+deterministic = { package = "conduit-semantic-catalog", test = "education_forms", case = "arithmetic_fixture_emits_exact_assessment_feedback_and_current_progress" }
 [[forms]]
 slug = "bounded-job"
 title = "Bounded Job"
 entry = "bounded-job"
+deterministic = { package = "conduit-semantic-catalog", test = "job_forms", case = "ordinary_form_plans_one_bounded_admitted_job" }
 [[forms]]
 slug = "breadboard-instrument"
 title = "Breadboard Instrument"
 entry = "breadboard-instrument"
+deterministic = { package = "conduit-semantic-catalog", test = "structured_music_form", case = "exact_mapping_reaches_an_ordinary_plan_and_shape_changes_change_identity" }
 [[forms]]
 slug = "camera-summary"
 title = "Camera Summary"
 entry = "camera-summary"
+deterministic_not_applicable = "camera acquisition requires an explicit permission and device proof mode"
 [[forms]]
 slug = "clock"
 title = "Clock"
 entry = "clock-demo"
+deterministic = { package = "conduit-std-host", test = "canonical_clock", case = "duration_spellings_have_one_semantic_identity_and_execute_four_bounded_ticks" }
 [[forms]]
 slug = "count"
 title = "Count"
 entry = "count-demo"
+deterministic = { package = "conduit-std-host", test = "canonical_count", case = "canonical_program_four_runs_startup_flow_and_current_through_one_kernel" }
 [[forms]]
 slug = "default-welcome"
 title = "Default Welcome"
 entry = "default-welcome"
+deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "omitted_argument_uses_the_checked_face_default_without_mutating_the_form" }
 [[forms]]
 slug = "desk-telegraph"
 title = "Desk Telegraph"
@@ -39,18 +46,22 @@ initial_body_order = 3
 slug = "generalized-input"
 title = "Generalized Input"
 entry = "generalized-input"
+deterministic = { package = "conduit-semantic-catalog", test = "generalized_input_forms", case = "canonical_form_consumes_gamepad_button_pointer_touch_and_rotary_info" }
 [[forms]]
 slug = "geometry-spatial"
 title = "Spatial Geometry"
 entry = "geometry-spatial"
+deterministic = { package = "conduit-std-host", test = "geometry_forms", case = "canonical_geometry_configuration_flows_through_one_checked_form_and_plan" }
 [[forms]]
 slug = "greet"
 title = "Greeting"
 entry = "default-welcome"
+deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves" }
 [[forms]]
 slug = "hello"
 title = "Hello"
 entry = "hello"
+deterministic = { package = "conduit", test = "hello", case = "canonical_hello_runs_locally" }
 [[forms]]
 slug = "lenia-orbium"
 title = "Lenia Orbium"
@@ -59,6 +70,7 @@ entry = "lenia-orbium-demo"
 slug = "linguistic-annotations"
 title = "Linguistic Annotations"
 entry = "linguistic-annotations"
+deterministic = { package = "conduit-std-host", test = "linguistics_forms", case = "canonical_form_tokenizes_and_projects_annotations_without_json" }
 [[forms]]
 slug = "memory-lantern"
 title = "Memory Lantern"
@@ -68,10 +80,12 @@ initial_body_order = 2
 slug = "messaging-delivery"
 title = "Messaging Delivery"
 entry = "messaging-delivery"
+deterministic = { package = "conduit-std-host", test = "messaging_forms", case = "canonical_form_constructs_and_routes_one_structured_message" }
 [[forms]]
 slug = "money-quote"
 title = "Money Quote"
 entry = "money-quote"
+deterministic = { package = "conduit-std-host", test = "finance_forms", case = "deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible" }
 [[forms]]
 slug = "morse-network"
 title = "Morse Network"
@@ -81,6 +95,7 @@ initial_body_order = 1
 slug = "network-resolution"
 title = "Network Resolution"
 entry = "network-resolution"
+deterministic = { package = "conduit-net", test = "application_network_forms", case = "ordinary_form_plans_dns_and_connection_with_explicit_resources_and_authority" }
 [[forms]]
 slug = "patchbay-front-door"
 title = "Patchbay Front Door"
@@ -89,6 +104,7 @@ entry = "patchbay-front-door"
 slug = "pool-webchat"
 title = "Pool Webchat"
 entry = "pool-webchat"
+deterministic = { package = "conduit-chat", features = ["form-catalog"], test = "shared_pool_chat", case = "native_pool_chat_has_explicit_fan_merge_and_no_authored_line" }
 [[forms]]
 slug = "r1-network-bootstrap"
 title = "R1 Network Bootstrap"
@@ -97,30 +113,37 @@ entry = "r1-network-bootstrap"
 slug = "rhythm-lesson"
 title = "Rhythm Lesson"
 entry = "rhythm-lesson"
+deterministic = { package = "conduit-semantic-catalog", test = "education_forms", case = "rhythm_adapter_keeps_exact_timing_inside_the_same_feedback_substrate" }
 [[forms]]
 slug = "robotics-diversity"
 title = "Robotics Diversity"
 entry = "robotics-diversity"
+deterministic = { package = "conduit-semantic-catalog", test = "robotics_diversity_forms", case = "canonical_form_consumes_structured_observations_and_motion_intent" }
 [[forms]]
 slug = "scheduled-reminder"
 title = "Scheduled Reminder"
 entry = "scheduled-reminder"
+deterministic = { package = "conduit-semantic-catalog", test = "reminder_forms", case = "reminder_delivery_is_bounded_and_requires_ordinary_planned_authority" }
 [[forms]]
 slug = "scheduling-workflow"
 title = "Scheduling Workflow"
 entry = "workflow-state"
+deterministic = { package = "conduit-semantic-catalog", test = "scheduling_forms", case = "deterministic_fixture_produces_exact_late_assessment_without_executing" }
 [[forms]]
 slug = "signal-demo"
 title = "Signal Demo"
 entry = "signal-demo"
+deterministic = { package = "conduit", test = "two_std_line", case = "installed_run_reports_two_hosts_one_line_and_terminal_values" }
 [[forms]]
 slug = "socket-client"
 title = "Socket Client"
 entry = "echo-client-demo"
+deterministic = { package = "conduit-net", test = "external_websocket", case = "canonical_duplex_source_checks_and_expands_to_the_external_client_leaf" }
 [[forms]]
 slug = "tabular-query"
 title = "Tabular Query"
 entry = "tabular-query"
+deterministic = { package = "conduit-std-host", test = "tabular_forms", case = "deterministic_provider_preserves_types_null_and_end_of_results" }
 [[forms]]
 slug = "text-lab"
 title = "Text Lab"
@@ -141,7 +164,9 @@ entry = "tongues-latent-training"
 slug = "vision-metadata"
 title = "Vision Metadata"
 entry = "vision-metadata"
+deterministic = { package = "conduit-semantic-catalog", test = "vision_forms", case = "deterministic_detector_emits_two_bounded_model_derived_detections" }
 [[forms]]
 slug = "webchat"
 title = "Webchat"
 entry = "webchat-browser-demo"
+deterministic = { package = "conduit-std-host", test = "external_websocket_plan", case = "planned_listener_executes_through_kernel_host_operations_for_two_clients" }
