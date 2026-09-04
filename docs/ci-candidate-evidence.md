@@ -59,8 +59,8 @@ Pull-request validation checks out `github.event.pull_request.head.sha` explicit
 
 The `book-and-creche-products` workflow follows the same controller model. It
 triggers cheaply for every pull request, checks out the immutable candidate and
-the trusted base controller as separate trees, and asks the typed product proof
-registry whether the Pages carrier is affected. Unrelated changes retain the
+the current trusted default-branch controller as separate trees, and asks the
+typed product proof registry whether the Pages carrier is affected. Unrelated changes retain the
 stable `products-proof` result without starting browser, desktop, firmware, or
 ConduitOS fabrication. Product ownership therefore lives in Rust rather than a
 second workflow path taxonomy. The privileged post-merge Pages workflow stays
@@ -75,12 +75,15 @@ this migration point its default graph has 35 normal dependency packages,
 compared with 265 for full `xtask`; browser Host fabrication is compiled only
 for the separate on-demand Host-release feature.
 
-For pull requests, `check.yml` also checks out the exact target-base commit in
-an isolated controller directory. Once that base contains the versioned
-dispatcher, Actions compiles that trusted controller and runs it from the
-candidate worktree. Controller implementation and analyzed candidate are thus
-separate explicit identities. During the one-time migration, a base without
-the dispatcher uses the candidate's compatible `cargo xtask` implementation.
-Neither path executes candidate code with privileged credentials.
+For pull requests, both controllers resolve the current default-branch head once
+and materialize that exact commit outside the candidate workspace. Actions
+compile that trusted controller in its own temporary Cargo target and run it
+from the candidate worktree, so candidate cache/artifact scans cannot traverse
+the controller. The
+PR target SHA remains the exact diff base, but it does not double as the policy
+version: this matters for stacked PRs whose target branch may predate current
+CI policy. Controller implementation, diff base, and analyzed candidate are
+therefore three separate explicit identities. No path executes candidate code
+with privileged credentials.
 
 The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.

@@ -27,6 +27,7 @@ jobs:
       reason: ${{ steps.changes.outputs.reason }}
       base_sha: ${{ steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.changes.outputs.head_sha }}
+      controller_sha: ${{ steps.controller.outputs.sha }}
       esp32_required: ${{ steps.impact.outputs.esp32_required }}
       esp32_matrix: ${{ steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
       browser_required: ${{ steps.impact.outputs.browser_required }}
@@ -45,13 +46,26 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
           fetch-depth: 0
-      - name: Check out the trusted versioned CI controller
+      - name: Resolve the current trusted CI controller
+        id: controller
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: target/ci-controller
-          persist-credentials: false
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          read -r controller_sha _ < <(git ls-remote --exit-code origin "refs/heads/$DEFAULT_BRANCH")
+          if ! [[ "$controller_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "trusted controller did not resolve to an exact commit" >&2
+            exit 1
+          fi
+          echo "sha=$controller_sha" >> "$GITHUB_OUTPUT"
+          printf 'Trusted controller: `%s` from `%s`\n' "$controller_sha" "$DEFAULT_BRANCH" >> "$GITHUB_STEP_SUMMARY"
+      - name: Materialize the trusted controller outside the candidate workspace
+        if: github.event_name == 'pull_request'
+        env:
+          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
       - name: Classify exact change set
         id: changes
         env:
@@ -79,10 +93,11 @@ jobs:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
           controller=(cargo xtask)
-          if test -f target/ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs; then
-            cargo build --manifest-path target/ci-controller/Cargo.toml \
+          if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
+            CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+              cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
               --package conduit-xtask-dispatch --locked
-            controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
+            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
           fi
           "${controller[@]}" ci plan "$BASE_SHA" "$HEAD_SHA" --locked \
             --json-out target/ci-plans/ci-impact-plan.json \
@@ -97,8 +112,8 @@ jobs:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
           controller=(cargo xtask)
-          if test -f target/ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs; then
-            controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
+          if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
+            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
           fi
           "${controller[@]}" ci candidate "$HEAD_SHA" --locked \
             --json-out target/ci-plans/ci-proof-plan.json \
