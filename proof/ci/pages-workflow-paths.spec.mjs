@@ -98,3 +98,13 @@ test("product jobs build the immutable PR head and deployments queue", () => {
     /github\.event\.pull_request\.merged == true && github\.event\.pull_request\.base\.ref == 'main'/,
   );
 });
+
+test("standalone locks fail before ESP32 fabrication fans out", () => {
+  const checkWorkflow = readFileSync(".github/workflows/check.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
+
+  assert.match(checkWorkflow, /standalone-locks:\n    needs: classify[\s\S]*?cargo xtask ci standalone-locks --locked/);
+  assert.match(checkWorkflow, /esp32-firmware:\n    needs: \[classify, standalone-locks\]/);
+  assert.match(productWorkflow, /standalone-locks:\n    needs: plan[\s\S]*?cargo xtask ci standalone-locks --locked/);
+  assert.match(productWorkflow, /esp32-release-images:\n    needs: \[plan, standalone-locks\]/);
+});
