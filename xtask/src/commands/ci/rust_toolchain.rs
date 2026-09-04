@@ -43,7 +43,12 @@ fn output(program: &str, arguments: &[&str]) -> Result<String, String> {
         .output()
         .map_err(|error| format!("run {program}: {error}"))?;
     if !result.status.success() {
-        return Err(format!("{program} refused with {}", result.status));
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        return Err(format!(
+            "{program} refused with {}: {}",
+            result.status,
+            stderr.trim()
+        ));
     }
     String::from_utf8(result.stdout).map_err(|_| format!("{program} emitted non-UTF-8 identity"))
 }

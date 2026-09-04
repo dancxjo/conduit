@@ -228,11 +228,15 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
         let setup = workflow
             .find("dtolnay/rust-toolchain@1.98.1")
             .expect("exact toolchain setup");
+        let components = workflow[setup..]
+            .find("components: clippy,rustfmt")
+            .map(|offset| setup + offset)
+            .expect("exact generic components");
         let preflight = workflow
             .find("cargo +1.98.1 xtask ci rust-toolchain-preflight --locked")
             .expect("exact toolchain preflight");
         let planner = workflow.find("ci plan").expect("CI impact planner");
-        assert!(setup < preflight && preflight < planner);
+        assert!(setup < components && components < preflight && preflight < planner);
     }
 }
 

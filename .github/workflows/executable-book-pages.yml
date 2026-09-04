@@ -95,6 +95,8 @@ jobs:
             '${{ steps.stack.outputs.tip_pr }}' '${{ steps.stack.outputs.tip_sha }}' >> "$GITHUB_STEP_SUMMARY"
       - uses: dtolnay/rust-toolchain@1.98.1
         if: steps.stack.outputs.role != 'intermediate'
+        with:
+          components: clippy,rustfmt
       - name: Verify the exact generic Rust toolchain before product fan-out
         if: steps.stack.outputs.role != 'intermediate'
         run: cargo +1.98.1 xtask ci rust-toolchain-preflight --locked
