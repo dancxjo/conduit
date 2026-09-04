@@ -300,6 +300,19 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 }
 
 #[test]
+fn browser_release_installs_its_exact_wasm_target() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let browser_release = workflow
+        .split("\n  browser-release:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
+        .expect("locate browser release job");
+    assert!(browser_release.contains("targets: wasm32-unknown-unknown"));
+}
+
+#[test]
 fn product_descendants_use_explicit_direct_result_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))

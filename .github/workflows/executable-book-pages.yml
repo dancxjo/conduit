@@ -183,6 +183,8 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
       - name: Materialize the trusted CI controller outside the candidate workspace
         env:
           CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
