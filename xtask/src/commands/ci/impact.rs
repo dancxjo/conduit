@@ -12,7 +12,10 @@ use crate::suites::{
 
 #[path = "impact/cargo_graph.rs"]
 mod cargo_graph;
+#[path = "impact/command_registry.rs"]
+mod command_registry;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
+use command_registry::{proofs_for_path, HeavySuite};
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
 const ESP32_TARGETS: [&str; 3] = ["wroom", "c3", "s3"];
@@ -163,6 +166,7 @@ fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
 #[derive(Debug, Serialize)]
 struct ImpactPlan {
     ci_controller_proofs: Vec<&'static str>,
+    repository_command_proofs: Vec<&'static str>,
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
@@ -328,6 +332,7 @@ fn plan_for_paths(
     let mut conduitos = ConduitosImpact::default();
     let mut reasons = empty_reasons();
     let mut changed_packages = BTreeSet::new();
+    let mut repository_command_proofs = BTreeSet::new();
     let substantive: Vec<_> = paths.iter().filter(|path| !path.ends_with(".md")).collect();
     if substantive.is_empty() {
         return Ok(plan(
@@ -451,6 +456,30 @@ fn plan_for_paths(
             continue;
         }
         if pages_deploy_resolver_slice {
+            continue;
+        }
+        let command_proofs = proofs_for_path(path);
+        if !command_proofs.is_empty() {
+            for spec in command_proofs {
+                repository_command_proofs.insert(spec.id);
+                changed_packages.extend(
+                    spec.workspace_packages
+                        .iter()
+                        .map(|name| (*name).to_owned()),
+                );
+                for suite in spec.heavy_suites {
+                    let suite = match suite {
+                        HeavySuite::Browser => "browser",
+                        HeavySuite::Conduitos => "conduitos",
+                        HeavySuite::Esp32 => "esp32",
+                    };
+                    selected.insert(suite.to_owned(), true);
+                    reasons
+                        .get_mut(suite)
+                        .expect("known suite")
+                        .push(format!("repository-command:{}:{path}", spec.id));
+                }
+            }
             continue;
         }
         if tongues_analysis_slice {
@@ -600,7 +629,7 @@ fn plan_for_paths(
     };
     selected.insert("esp32".to_owned(), esp32.required());
     selected.insert("conduitos".to_owned(), conduitos.required());
-    Ok(plan(
+    let mut result = plan(
         selected,
         MachineImpact { esp32, conduitos },
         false,
@@ -613,7 +642,9 @@ fn plan_for_paths(
             shards: workspace_shards,
         },
         reasons,
-    ))
+    );
+    result.repository_command_proofs = repository_command_proofs.into_iter().collect();
+    Ok(result)
 }
 
 fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
@@ -765,6 +796,7 @@ fn plan(
     };
     ImpactPlan {
         ci_controller_proofs: controller_proofs(&changed_paths),
+        repository_command_proofs: Vec::new(),
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
