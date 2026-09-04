@@ -318,7 +318,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(pi_zero_creche.workspace_shards["lint"]);
     assert!(pi_zero_creche.workspace_shards["test-products"]);
 
-    let incomplete_pi_zero_creche = plan_for_paths(
+    let partial_pi_zero_creche = plan_for_paths(
         &root,
         vec![
             "scripts/ci/stage-creche-product.sh".to_owned(),
@@ -327,33 +327,36 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &packages,
     )
     .unwrap();
-    assert!(incomplete_pi_zero_creche.full_fallback);
+    assert!(!partial_pi_zero_creche.full_fallback);
+    assert!(!partial_pi_zero_creche.esp32_required);
+    assert!(partial_pi_zero_creche.browser_required);
+    assert!(partial_pi_zero_creche.conduitos_required);
+    assert!(partial_pi_zero_creche.pages_products_required);
 
-    let shared_browser_theme = plan_for_paths(
-        &root,
-        SHARED_BROWSER_THEME_SLICE
-            .iter()
-            .map(|path| (*path).to_owned())
-            .collect(),
-        &packages,
-    )
-    .unwrap();
-    assert!(!shared_browser_theme.full_fallback);
-    assert!(!shared_browser_theme.esp32_required);
-    assert!(shared_browser_theme.browser_required);
-    assert!(!shared_browser_theme.conduitos_required);
-    assert!(shared_browser_theme.workspace_shards["lint"]);
-
-    let incomplete_shared_browser_theme = plan_for_paths(
+    let shared_browser_presentation = plan_for_paths(
         &root,
         vec![
             "products/patchbay/html/assets/app.css".to_owned(),
+            "products/patchbay/html/assets/app.js".to_owned(),
+            "proof/browser/pages-front-door.spec.mjs".to_owned(),
+            "scripts/ci/render-product-masthead.mjs".to_owned(),
+            "scripts/ci/stage-book-product.sh".to_owned(),
+            "scripts/ci/stage-creche-product.sh".to_owned(),
+            "scripts/ci/stage-pages-root.sh".to_owned(),
+            "scripts/ci/stage-patchbay-product.sh".to_owned(),
+            "semantics/presentation/assets/product-masthead.mjs".to_owned(),
             "site/site.css".to_owned(),
+            "targets/browser/host/assets/application-presentation.mjs".to_owned(),
         ],
         &packages,
     )
     .unwrap();
-    assert!(incomplete_shared_browser_theme.full_fallback);
+    assert!(!shared_browser_presentation.full_fallback);
+    assert!(!shared_browser_presentation.esp32_required);
+    assert!(shared_browser_presentation.browser_required);
+    assert!(!shared_browser_presentation.conduitos_required);
+    assert!(shared_browser_presentation.pages_products_required);
+    assert!(shared_browser_presentation.workspace_shards["lint"]);
 
     let creche_presentation = plan_for_paths(
         &root,

@@ -18,7 +18,9 @@ mod command_registry;
 mod product_registry;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 use command_registry::{proofs_for_path, HeavySuite};
-use product_registry::proofs_for_paths as product_proofs_for_paths;
+use product_registry::{
+    browser_presentation_proofs_for_path, proofs_for_paths as product_proofs_for_paths,
+};
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
 const ESP32_TARGETS: [&str; 3] = ["wroom", "c3", "s3"];
@@ -122,19 +124,6 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     "targets/std/browser-deployment/creche-adapter.mjs",
     "xtask/src/commands/host_release.rs",
 ];
-const SHARED_BROWSER_THEME_SLICE: [&str; 10] = [
-    "products/patchbay/html/assets/app.css",
-    "products/patchbay/html/assets/index.html",
-    "proof/browser/pages-front-door.spec.mjs",
-    "proof/browser/patchbay-html.spec.mjs",
-    "site/index.html",
-    "site/site.css",
-    "targets/browser/host/assets/book.css",
-    "targets/browser/host/assets/book.html",
-    "targets/browser/host/assets/creche.css",
-    "targets/browser/host/assets/creche.html",
-];
-
 fn is_tongues_analysis_path(path: &str) -> bool {
     path.starts_with("semantics/tongues/")
         || path == "forms/tongues-dynamics-analysis/main.conduit"
@@ -409,19 +398,6 @@ fn plan_for_paths(
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
-    let shared_browser_theme_slice = substantive
-        .iter()
-        .all(|path| SHARED_BROWSER_THEME_SLICE.contains(&path.as_str()))
-        && [
-            "products/patchbay/html/assets/app.css",
-            "products/patchbay/html/assets/index.html",
-            "proof/browser/pages-front-door.spec.mjs",
-            "site/site.css",
-            "targets/browser/host/assets/book.css",
-            "targets/browser/host/assets/creche.css",
-        ]
-        .iter()
-        .all(|required| substantive.iter().any(|path| path.as_str() == *required));
     let creche_presentation_slice = substantive
         .iter()
         .all(|path| is_creche_presentation_path(path))
@@ -496,6 +472,20 @@ fn plan_for_paths(
             }
             continue;
         }
+        let presentation_proofs = browser_presentation_proofs_for_path(path);
+        if !presentation_proofs.is_empty() {
+            selected.insert("browser".to_owned(), true);
+            for spec in presentation_proofs {
+                reasons
+                    .get_mut("browser")
+                    .expect("known suite")
+                    .push(format!("product-proof:{}:{path}", spec.id));
+            }
+            if let Some(package) = package_for_path(root, path, packages) {
+                changed_packages.insert(package.to_owned());
+            }
+            continue;
+        }
         if tongues_analysis_slice {
             selected.insert("browser".to_owned(), true);
             reasons
@@ -513,17 +503,6 @@ fn plan_for_paths(
                 .get_mut("browser")
                 .expect("known suite")
                 .push(format!("focused-creche-presentation:{path}"));
-            if let Some(package) = package_for_path(root, path, packages) {
-                changed_packages.insert(package.to_owned());
-            }
-            continue;
-        }
-        if shared_browser_theme_slice {
-            selected.insert("browser".to_owned(), true);
-            reasons
-                .get_mut("browser")
-                .expect("known suite")
-                .push(format!("focused-shared-browser-theme:{path}"));
             if let Some(package) = package_for_path(root, path, packages) {
                 changed_packages.insert(package.to_owned());
             }
