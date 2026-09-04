@@ -1,3 +1,8 @@
+---
+page: body-wide-realization
+route: many-forms-one-body-wide-realization
+companion: body-workload
+---
 # Many Forms, one Body-wide realization
 
 In Conduit, **Program = Form**.

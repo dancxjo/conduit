@@ -131,7 +131,7 @@ async function renderPage(index, routeChange = "none") {
   chapter.scrollTop = 0;
   if (routeChange === "push") chapter.querySelector("h1")?.focus({ preventScroll: true });
   navigation.render(currentPage, guidedPages.length, running);
-  document.title = (chapter.querySelector("h1")?.textContent ?? "Tour") + " · Tour";
+  document.title = guidedPages[index].title + " · Tour";
 }
 
 function setNavigationDisabled(disabled) {
@@ -139,11 +139,19 @@ function setNavigationDisabled(disabled) {
   navigation.render(currentPage, guidedPages.length, running);
 }
 
-function renderMarkdown(markdown) {
-  const lines = markdown.replaceAll("\r\n", "\n").split("\n");
+function renderMarkdown(page) {
+  const lines = page.markdown.replaceAll("\r\n", "\n").split("\n");
   let copy = appendCopy();
   let paragraph = [];
   const stages = [];
+  let declaredStageIndex = 0;
+  const admitStage = (stage) => {
+    const declared = page.stages[declaredStageIndex++];
+    if (!declared || declared.identity !== stage.identity || declared.mode !== stage.mode) {
+      throw new Error("Tour runnable source does not match its admitted page stage");
+    }
+    return stage;
+  };
   const flush = () => {
     if (paragraph.length === 0) return;
     const element = document.createElement("p");
@@ -167,7 +175,7 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      appendStageSelector(copy, stages, createTourStage(source.join("\n"), showPlan ? "two-host-plan" : "two-host"));
+      appendStageSelector(copy, stages, admitStage(createTourStage(source.join("\n"), showPlan ? "two-host-plan" : "two-host")));
       copy = appendCopy();
     } else if (line === "```conduit run" || line === "```conduit run recursive" || line === "```conduit compare") {
       flush();
@@ -176,9 +184,9 @@ function renderMarkdown(markdown) {
       const source = [];
       index += 1;
       while (index < lines.length && lines[index] !== "```") source.push(lines[index++]);
-      appendStageSelector(copy, stages, createTourStage(
+      appendStageSelector(copy, stages, admitStage(createTourStage(
         source.join("\n"), comparison ? "compare" : recursive ? "recursive" : "run",
-      ));
+      )));
       copy = appendCopy();
     } else if (line === "```text") {
       flush();
@@ -226,8 +234,8 @@ function renderMarkdown(markdown) {
     }
   }
   flush();
-  const pageTitle = chapter.querySelector("h1")?.textContent ?? "Tour lesson";
-  selectLaboratoryStage(stages[0] ?? conceptualTourStage(pageTitle), stages);
+  if (declaredStageIndex !== page.stages.length) throw new Error("Tour page declares a stage with no runnable source");
+  selectLaboratoryStage(stages[0] ?? conceptualTourStage(page.title, page.companion), stages);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
 }
 

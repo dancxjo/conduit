@@ -1,3 +1,8 @@
+---
+page: body-continuity
+route: the-body-one-computer-one-machine-or-many
+companion: body-continuity
+---
 # The Body: one computer, one machine or many
 
 Hosts reboot, disconnect, and get replaced. The **Body** is the logical computer the user means to keep through that change.
