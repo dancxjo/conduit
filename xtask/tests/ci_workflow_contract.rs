@@ -82,6 +82,38 @@ fn product_planner_has_no_workspace_cache() {
 }
 
 #[test]
+fn rust_target_caches_never_save_after_a_failed_proof() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflows = root.join(".github/workflows");
+    let mut cache_uses = 0;
+    let mut explicit_fail_closed_policies = 0;
+
+    for entry in fs::read_dir(workflows).expect("read workflow directory") {
+        let path = entry.expect("read workflow entry").path();
+        if !matches!(
+            path.extension().and_then(|value| value.to_str()),
+            Some("yml" | "yaml")
+        ) {
+            continue;
+        }
+        let workflow = fs::read_to_string(&path).expect("read workflow");
+        cache_uses += workflow.matches("uses: Swatinem/rust-cache@v2").count();
+        explicit_fail_closed_policies += workflow.matches("cache-on-failure: false").count();
+        assert!(
+            !workflow.contains("cache-on-failure: true"),
+            "{} permits a deterministic proof failure to upload a heavyweight Rust cache",
+            path.display()
+        );
+    }
+
+    assert!(cache_uses > 0, "expected at least one Rust cache consumer");
+    assert_eq!(
+        explicit_fail_closed_policies, cache_uses,
+        "every Rust cache consumer must state the no-save-on-failure policy explicitly"
+    );
+}
+
+#[test]
 fn product_stage_joins_exact_required_results_after_optional_skips() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))

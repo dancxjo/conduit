@@ -282,7 +282,7 @@ jobs:
           targets: wasm32-unknown-unknown,thumbv6m-none-eabi
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
           shared-key: workspace-${{ matrix.shard }}
 
       - name: Emit machine-readable proof contract
@@ -375,7 +375,7 @@ jobs:
           echo "LIBCLANG_PATH=$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp32-elf-clang/esp-20.1.1_20250829/esp-clang/lib" >> "$GITHUB_ENV"
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
           workspaces: |
             . -> target
             targets/esp32/firmware/${{ matrix.target }}-signal -> target
@@ -536,7 +536,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts --prefer-offline
       - name: Run browser host proof suite
@@ -598,7 +598,7 @@ jobs:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
           shared-key: conduitos-x86-proof-image
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8
@@ -652,7 +652,7 @@ jobs:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
           shared-key: conduitos-x86-${{ matrix.proof }}
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8
@@ -722,7 +722,7 @@ jobs:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
           shared-key: conduitos-architecture-${{ matrix.architecture }}
       - name: Restore pinned LoongArch64 firmware package
         if: matrix.architecture == 'loongarch64'
@@ -764,7 +764,7 @@ jobs:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
           shared-key: conduitos-aarch64-product
       - name: Receive the verified pinned bootloader archive
         uses: actions/download-artifact@v8

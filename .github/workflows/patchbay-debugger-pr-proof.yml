@@ -63,7 +63,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          cache-on-failure: false
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline
       - name: Build only the Patchbay browser product
