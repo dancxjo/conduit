@@ -86,6 +86,15 @@ test("an invited browser remains outside the Body until explicit join", async ({
   }).toBe(admittedIdentity.bootId);
   await expect(page.locator('[data-application-slot="body-membership-offers"]')).toContainText("SelfReported · display or diagnostic only");
   await expect(page.locator('[data-application-slot="body-membership-offers"]')).toContainText(admittedOfferEvidence.evidence.observation_sign_id);
+  const selectedCapability = await page.locator("#body-capability-select").inputValue();
+  expect(selectedCapability).not.toBe("");
+  await page.getByRole("button", { name: "Request current evidence", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.stage)).toBe("Planning");
+  const requestedEvidence = await page.evaluate(() => globalThis.__patchbayMembership.offerEvidence());
+  expect(requestedEvidence.capabilities.map(offer => offer.capability_id)).toEqual([selectedCapability]);
+  expect(requestedEvidence.resources).toEqual([]);
+  await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
+  await expect(page.locator("#body-capability-evidence-status")).toContainText("display only");
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()?.body_id)).toBe(bodyId);
   const admissionBiography = await page.evaluate(() => {
     const evidence = globalThis.__patchbayMembership.biographyEvidence();
@@ -215,6 +224,11 @@ test("an invited browser remains outside the Body until explicit join", async ({
   const returnedOfferEvidence = await page.evaluate(() => globalThis.__patchbayMembership.offerEvidence());
   expect(returnedOfferEvidence.observation_sign_id).not.toBe(admittedOfferEvidence.evidence.observation_sign_id);
   expect(returnedOfferEvidence.capability_summary).toEqual(admittedOfferEvidence.evidence.capability_summary);
+  await page.getByRole("button", { name: "Request current evidence", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => {
+    const evidence = globalThis.__patchbayMembership.offerEvidence();
+    return evidence?.stage === "Planning" ? evidence.boot_id : null;
+  })).toBe(returned.bootId);
   await expect.poll(async () => {
     const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
     return snapshot.body_host_offer_evidence?.boot_id;

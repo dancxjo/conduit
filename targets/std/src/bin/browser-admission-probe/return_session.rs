@@ -1,4 +1,4 @@
-use conduit_body::{BodyMembership, HostPresenceTable, MembershipCredential};
+use conduit_body::{BodyMembership, CandidateObservation, HostPresenceTable, MembershipCredential};
 use conduit_core::{LinkBindingId, SignId};
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionSocket,
@@ -8,12 +8,15 @@ use conduit_std_host::websocket::{NativeWebSocketError, NativeWebSocketError::Tr
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 
+use super::offer_evidence::send_requested_offer_evidence;
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn wait_for_return_close(
     socket: &mut BrowserAdmissionSocket,
     presence: &mut HostPresenceTable,
     membership: &mut BodyMembership,
     credential: &MembershipCredential,
+    offer_observation: &CandidateObservation,
     session: &LinkBindingId,
     clock: Instant,
     lease_millis: u64,
@@ -93,6 +96,25 @@ pub(super) fn wait_for_return_close(
             }
             Ok(BrowserAdmissionIngress::PresenceLeave { .. }) => {
                 return Err("returned leave used a stale credential".into());
+            }
+            Ok(BrowserAdmissionIngress::OfferDisclosureRequest {
+                credential_id,
+                body_id,
+                part_id,
+                host_id,
+                boot_id,
+                request,
+                ..
+            }) if credential_id == credential.credential_id
+                && body_id == credential.body_id
+                && part_id == credential.part_id
+                && host_id == credential.host_id
+                && boot_id == credential.boot_id =>
+            {
+                send_requested_offer_evidence(socket, offer_observation, &request)?;
+            }
+            Ok(BrowserAdmissionIngress::OfferDisclosureRequest { .. }) => {
+                return Err("returned disclosure used a stale credential".into());
             }
             Ok(_) => return Err("returned session frame was not a renewal".into()),
             Err(BrowserAdmissionSocketError::Transport(Transport(

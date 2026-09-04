@@ -4,6 +4,8 @@
 mod leave_session;
 #[path = "browser-admission-probe/offer_evidence.rs"]
 mod offer_evidence;
+#[path = "browser-admission-probe/presence_session.rs"]
+mod presence_session;
 #[path = "browser-admission-probe/return_admission.rs"]
 mod return_admission;
 #[path = "browser-admission-probe/return_session.rs"]
@@ -12,7 +14,7 @@ mod return_session;
 use conduit_body::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, Body, BodyBiographyEvidence,
     BodyMembership, CandidateInventory, CandidateObservation, DiscoveryProofId, HostPresenceClock,
-    HostPresenceClockScale, HostPresenceRefusal, HostPresenceTable,
+    HostPresenceClockScale, HostPresenceTable,
 };
 use conduit_core::{CheckedFormId, LinkBindingId, SignId, SourceDocumentId};
 use conduit_std_host::browser_admission::{
@@ -24,7 +26,10 @@ use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 
 use leave_session::record_explicit_leave;
-use offer_evidence::{observation_for_candidate, send_admission_evidence};
+use offer_evidence::{
+    handle_requested_offer_evidence, observation_for_candidate, send_admission_evidence,
+};
+use presence_session::{presence_refusal_code, send_presence_accepted};
 use return_admission::accept_return;
 
 const PRESENCE_LEASE_MILLIS: u64 = 2_000;
@@ -393,6 +398,14 @@ fn main() -> Result<(), String> {
                     .map_err(|error| format!("send empty grant result: {error:?}"))?;
                 println!("webrtc-grant generation={generation} index={index} total=0");
             }
+            Ok(frame @ BrowserAdmissionIngress::OfferDisclosureRequest { .. }) => {
+                handle_requested_offer_evidence(
+                    &mut socket,
+                    &offer_observation,
+                    &credential,
+                    frame,
+                )?
+            }
             Ok(_) => return Err("post-admission frame was not a presence renewal".into()),
             Err(BrowserAdmissionSocketError::Transport(Transport(
                 ErrorKind::TimedOut | ErrorKind::WouldBlock,
@@ -452,46 +465,4 @@ fn main() -> Result<(), String> {
 fn monotonic_millis(clock: Instant) -> Result<u64, String> {
     u64::try_from(clock.elapsed().as_millis())
         .map_err(|_| "monotonic presence clock overflowed".into())
-}
-
-fn send_presence_accepted(
-    socket: &mut conduit_std_host::browser_admission::BrowserAdmissionSocket,
-    sequence: u64,
-    expires_at_millis: u64,
-) -> Result<(), String> {
-    socket
-        .send(&BrowserAdmissionEgress::PresenceAccepted {
-            protocol: BROWSER_ADMISSION_PROTOCOL,
-            sequence,
-            renew_after_millis: PRESENCE_RENEW_AFTER_MILLIS,
-            expires_at_millis,
-        })
-        .map_err(|error| format!("send presence acceptance: {error:?}"))
-}
-
-fn presence_refusal_code(refusal: HostPresenceRefusal) -> &'static str {
-    match refusal {
-        HostPresenceRefusal::WrongBody => "wrong-body",
-        HostPresenceRefusal::UnknownPart => "unknown-part",
-        HostPresenceRefusal::RevokedPart => "revoked-part",
-        HostPresenceRefusal::HostUnavailable => "host-unavailable",
-        HostPresenceRefusal::WrongHost => "wrong-host",
-        HostPresenceRefusal::StaleBoot => "stale-boot",
-        HostPresenceRefusal::StaleOfferGeneration => "stale-offer-generation",
-        HostPresenceRefusal::StaleMembershipProof => "stale-membership-proof",
-        HostPresenceRefusal::WrongSession => "wrong-session",
-        HostPresenceRefusal::StaleSequence => "stale-sequence",
-        HostPresenceRefusal::ClockRegressed => "clock-regressed",
-        HostPresenceRefusal::InvalidClock => "invalid-clock",
-        HostPresenceRefusal::LeaseDurationZero => "lease-duration-zero",
-        HostPresenceRefusal::LeaseDurationTooLong => "lease-duration-too-long",
-        HostPresenceRefusal::LeaseDeadlineOverflow => "lease-deadline-overflow",
-        HostPresenceRefusal::LeaseStillCurrent => "lease-still-current",
-        HostPresenceRefusal::PresenceCapacityExhausted => "presence-capacity-exhausted",
-        HostPresenceRefusal::RevisionOverflow => "revision-overflow",
-        HostPresenceRefusal::MalformedState => "malformed-presence-state",
-        HostPresenceRefusal::EmptyIdentity => "empty-identity",
-        HostPresenceRefusal::IdentityTooLong => "identity-too-long",
-        HostPresenceRefusal::Membership(_) => "membership-refused",
-    }
 }
