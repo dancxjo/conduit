@@ -383,6 +383,7 @@ fn plan_for_paths(
     let mut reasons = empty_reasons();
     let mut changed_packages = BTreeSet::new();
     let mut repository_command_proofs = BTreeSet::new();
+    let mut check_workflow_changed = false;
     let substantive: Vec<_> = paths.iter().filter(|path| !path.ends_with(".md")).collect();
     if substantive.is_empty() {
         return Ok(plan(
@@ -604,6 +605,10 @@ fn plan_for_paths(
             }
             continue;
         }
+        if path == ".github/workflows/check.yml" {
+            check_workflow_changed = true;
+            continue;
+        }
         if is_repository_tool_test(path) {
             changed_packages.insert("xtask".to_owned());
             continue;
@@ -653,6 +658,17 @@ fn plan_for_paths(
             return Ok(full_plan(format!("unclassified-path:{path}"), paths));
         }
     }
+    if check_workflow_changed {
+        for suite in SUITES {
+            selected.insert(suite.to_owned(), true);
+            reasons
+                .get_mut(suite)
+                .expect("known suite")
+                .push("check-workflow-implementation".to_owned());
+        }
+        esp32 = Esp32Impact::all();
+        conduitos = ConduitosImpact::all();
+    }
     let names: Vec<_> = SUITES
         .into_iter()
         .filter(|suite| selected[*suite])
@@ -668,7 +684,12 @@ fn plan_for_paths(
         .filter(|name| packages[*name].workspace_member)
         .cloned()
         .collect();
-    let workspace_shards = if changed_packages.is_empty() && controller_only {
+    let workspace_shards = if check_workflow_changed {
+        WorkspaceShard::ALL
+            .into_iter()
+            .map(|shard| (shard.name().to_owned(), true))
+            .collect()
+    } else if changed_packages.is_empty() && controller_only {
         WorkspaceShard::ALL
             .into_iter()
             .map(|shard| (shard.name().to_owned(), false))
@@ -693,6 +714,11 @@ fn plan_for_paths(
         reasons,
     );
     result.repository_command_proofs = repository_command_proofs.into_iter().collect();
+    if check_workflow_changed {
+        result.reason = "check-workflow-implementation".to_owned();
+        result.workspace_lint_full = true;
+        result.workspace_lint_packages.clear();
+    }
     Ok(result)
 }
 
