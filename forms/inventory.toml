@@ -1,5 +1,6 @@
 schema = "conduit.reviewed-form-inventory/v1"
 maximum_forms = 64
+maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
 [[forms]]
@@ -186,3 +187,14 @@ reusable_entries = [
   { entry = "chat/browser-client", title = "Browser Chat Client", composition = { parent = "webchat-browser-demo", occurrences = ["client"] } },
 ]
 deterministic = { package = "conduit-std-host", test = "external_websocket_plan", case = "planned_listener_executes_through_kernel_host_operations_for_two_clients" }
+
+[[combined_workloads]]
+slug = "initial-three-form-body"
+title = "Initial Three-Form Body"
+workload_revision = 2
+entries = [
+  { slug = "morse-network", entry = "morse_network" },
+  { slug = "memory-lantern", entry = "memory_lantern" },
+  { slug = "desk-telegraph", entry = "desk_telegraph" },
+]
+deterministic = { package = "conduit-std-host", test = "body_wide_play", case = "three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_scheduler", plan_play_evidence = true, workload_revision_evidence = true }
