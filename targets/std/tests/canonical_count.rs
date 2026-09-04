@@ -7,6 +7,7 @@ use conduit_std_host::{StdHost, TimerAdapter};
 use std::time::Duration;
 
 const PROGRAM: &str = include_str!("../../../forms/count/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 
 #[derive(Default)]
 struct RecordingTimer {
@@ -40,6 +41,7 @@ fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
 
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&expanded).unwrap();
+    let plan_id = plan.plan_id.clone();
     let state = plan.fragments[0]
         .placements
         .iter()
@@ -74,6 +76,11 @@ fn canonical_program_four_runs_startup_flow_and_current_through_one_kernel() {
     assert_eq!(
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
+    );
+    println!(
+        "{EVIDENCE_MARKER}{{\"plan_id\":\"{}\",\"play_id\":\"{}\"}}",
+        plan_id.as_str(),
+        kernel.active_play_id.as_str()
     );
 }
 

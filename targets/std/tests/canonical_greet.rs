@@ -6,6 +6,7 @@ use conduit_form::{
 use conduit_std_host::{StdHost, ThreadTimer};
 
 const GREET_PROGRAM: &str = include_str!("../../../forms/greet/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 
 fn checked_and_profile() -> (CheckedSyntaxDocument, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
@@ -23,6 +24,7 @@ fn run(
     conduit_form::ExpandedCanonicalForm,
     String,
     conduit_core::PlanId,
+    conduit_core::ActivePlayId,
 ) {
     let (checked, profile) = checked_and_profile();
     let expanded = expand_canonical_form(&checked, root, &profile).expect("greet expands");
@@ -47,10 +49,12 @@ fn run(
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
     );
+    let play_id = kernel.active_play_id.clone();
     (
         expanded,
         String::from_utf8(output).expect("operator output is UTF-8"),
         plan_id,
+        play_id,
     )
 }
 
@@ -66,7 +70,7 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
         && gear.startup_bindings[0].value
             == conduit_form::CanonicalStartupValue::Literal("\"Welcome\"".to_string())));
 
-    let (expanded, output, _) = run("welcome");
+    let (expanded, output, plan_id, play_id) = run("welcome");
     assert!(output.contains("WelcomeTravis\n"), "{output}");
     assert_eq!(expanded.gears.len(), 3);
     assert!(!expanded
@@ -90,12 +94,17 @@ fn explicit_positional_binding_recursively_executes_only_primitive_leaves() {
             && row.form_path == ["welcome", "hello"]
             && row.source_gear == "join"
     }));
+    println!(
+        "{EVIDENCE_MARKER}{{\"plan_id\":\"{}\",\"play_id\":\"{}\"}}",
+        plan_id.as_str(),
+        play_id.as_str()
+    );
 }
 
 #[test]
 fn omitted_argument_uses_the_checked_face_default_without_mutating_the_form() {
-    let (explicit, explicit_output, explicit_plan) = run("welcome");
-    let (defaulted, default_output, default_plan) = run("default-welcome");
+    let (explicit, explicit_output, explicit_plan, _) = run("welcome");
+    let (defaulted, default_output, default_plan, _) = run("default-welcome");
     assert!(explicit_output.contains("WelcomeTravis\n"));
     assert!(default_output.contains("HelloTravis\n"));
     assert_ne!(explicit.expanded_form_id, defaulted.expanded_form_id);
