@@ -30,11 +30,11 @@ export class BodyWebRtcSessions {
   #terminal = null;
 
   constructor({ wasmBytes, sendSignal, requestGrant, onState, createSession = BodyWebRtcSession.create }) {
-    if (!(wasmBytes instanceof ArrayBuffer) || typeof sendSignal !== "function" ||
+    if (!(wasmBytes instanceof ArrayBuffer) && !(wasmBytes instanceof Uint8Array) || typeof sendSignal !== "function" ||
         typeof requestGrant !== "function" || typeof createSession !== "function") {
       throw new Error("invalid Body WebRTC session composition");
     }
-    this.#wasmBytes = wasmBytes;
+    this.#wasmBytes = wasmBytes instanceof Uint8Array ? wasmBytes.slice().buffer : wasmBytes.slice(0);
     this.#sendSignal = sendSignal;
     this.#requestGrant = requestGrant;
     this.#onState = onState;

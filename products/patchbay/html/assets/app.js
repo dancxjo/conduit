@@ -8,7 +8,7 @@ import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
 import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
 const schema = "conduit.patchbay.portable-presentation";
-const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", reviewedFormQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null, savedEvidenceBody:null, savedEvidenceRevision:null };
+const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", reviewedFormQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null, savedEvidenceBody:null, savedEvidenceRevision:null, bodyInvitation:null };
 const apiUrl=path=>new URL(`api/${path}`,document.baseURI).href;
 const applicationPresentation = createApplicationPresentationHost();
 const sharedPresentation = createPatchbaySharedPresentation(applicationPresentation);
@@ -354,16 +354,21 @@ function render(snapshot){
 
 async function load(){try{const response=await fetch(apiUrl("snapshot"),{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
 async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss");button.disabled=true;presentSharedStatus("front-door-feedback","Running the exact split Text Lab until browser loss…","warning-status");const {base}=await fetch(apiUrl("text-lab-base"),{cache:"no-store"}).then(response=>response.json());if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");const openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(admittedRuntimeBytes,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");presentSharedStatus("front-door-feedback","Browser loss observed; awaiting the native causal receipt.");}
-async function joinCurrentBody(){
+async function inspectBodyInvitation(){
   const response=await fetch(apiUrl("body-admission"),{cache:"no-store"});
   if(response.status===404)return;
   if(!response.ok)throw new Error(`Body admission HTTP ${response.status}`);
-  const {url}=await response.json();
+  const invitation=await response.json();if(typeof invitation.url!=="string"||invitation.url.length===0||invitation.url.length>2048)throw new Error("Body invitation is malformed");state.bodyInvitation=invitation.url;
+  document.querySelector("#body-membership-invitation").hidden=false;document.querySelector("#body-membership-status").textContent="This browser is not a member. Joining requires your explicit action.";
+}
+async function joinCurrentBody(){
+  const url=state.bodyInvitation;if(!url)throw new Error("Body invitation is unavailable");
   if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");
-  window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:admittedRuntimeBytes,onState:()=>load()});
+  const button=document.querySelector("#join-body");button.disabled=true;document.querySelector("#body-membership-status").textContent="Requesting explicit Body admission…";
+  try{window.__patchbayMembership=await joinBrowserBody({bodyUrl:url,wasmBytes:admittedRuntimeBytes,onState:membership=>{document.querySelector("#body-membership-status").textContent=`Browser membership: ${membership}`;load();}});}catch(error){button.disabled=false;document.querySelector("#body-membership-status").textContent=`Body admission refused: ${error.message}`;throw error;}
 }
 export async function startApplication(context){admittedRuntimeBytes=context.bytes("runtime");configureFlowStorage(context.storage);
-presentStatus("Loading bounded snapshot…");presentSharedStatus("front-door-feedback","World truth is current; planning is explicit.");document.body.dataset.lens=state.lens;load().then(()=>joinCurrentBody()).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
+presentStatus("Loading bounded snapshot…");presentSharedStatus("front-door-feedback","World truth is current; planning is explicit.");document.body.dataset.lens=state.lens;load().then(()=>inspectBodyInvitation()).catch(error=>{presentStatus(`Browser Host admission unavailable: ${error.message}`,"failure-status");});window.addEventListener("online",load);window.setInterval(load,250);window.patchbayReload=load;
 document.querySelector("#zoom-in").onclick=()=>zoomFlow(1.2);document.querySelector("#zoom-out").onclick=()=>zoomFlow(1/1.2);document.querySelector("#pan-right").onclick=()=>panFlow(40,0);document.querySelector("#arrange").onclick=()=>arrangeFlow();document.querySelector("#theme").onclick=event=>{const active=document.body.classList.toggle("high-contrast");event.currentTarget.setAttribute("aria-pressed",String(active));event.currentTarget.textContent=active?"Standard contrast":"High contrast";};document.querySelector("#toggle-linear").onclick=()=>{const semantic=state.snapshot.presentation.actions.find(candidate=>candidate.intent==="conduit.intent/toggle-linear-view@1");if(semantic)return dispatchSemanticAction(semantic);};
 document.querySelector("#fit-flow").onclick=()=>fitFlow();window.patchbayFlowViewport=flowViewport;window.patchbayFlowStorageSettled=flowStorageSettled;
 document.querySelector("#center-flow").onclick=()=>focusFlow(state.selected);
@@ -371,6 +376,7 @@ async function navigateWorkbench(place,aspect){if(state.snapshot.navigation.curs
 for(const button of document.querySelectorAll("[data-workbench-destination]"))button.onclick=async()=>{const destination=button.dataset.workbenchDestination;for(const candidate of document.querySelectorAll("[data-workbench-destination]"))candidate.toggleAttribute("aria-current",candidate===button);document.querySelector("#body-workbench-current").hidden=destination!=="body";document.querySelector("#body-workbench-history").hidden=destination!=="history";if(destination==="program"){await navigateWorkbench("Program","Structure");document.querySelector("#form").scrollIntoView();}else if(destination==="body")await navigateWorkbench("Body","Structure");else await navigateWorkbench("Body","Signs");};
 document.querySelector("#body-workbench-action").onclick=()=>dispatchFrontDoorAction(document.querySelector("#body-workbench-action").dataset.semanticAction);
 document.querySelector("#save-body-evidence").onclick=()=>saveBodyEvidence();
+document.querySelector("#join-body").onclick=()=>joinCurrentBody();
 window.addEventListener("beforeunload",event=>{if(!hasUnsavedBodyEvidence())return;event.preventDefault();event.returnValue="";});
 document.querySelector("#clear-selection").onclick=()=>{const navigation=state.snapshot.navigation,current=navigation?.navigation.places.find(place=>place.place===navigation.cursor.place);return navigation?dispatchNavigation({kind:"focus",subject:current.root_subject}):dispatchInteraction({kind:"clear"});};
 document.querySelector("#form-query").oninput=event=>{state.formQuery=event.currentTarget.value;renderFormPalette();};document.querySelector("#form-query").addEventListener("keydown",moveFormFocus);document.querySelector("#form-results").addEventListener("keydown",moveFormFocus);

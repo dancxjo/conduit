@@ -15,6 +15,7 @@ struct Arguments {
     forms: Vec<FormSource>,
     body_evidence: Option<std::path::PathBuf>,
     body_entrance: Option<BrowserBodyWorkbenchEntrance>,
+    body_invitation: Option<String>,
     body_workbench_fixture: Option<bool>,
 }
 
@@ -129,6 +130,16 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
             {
                 parsed.body_entrance = Some(BrowserBodyWorkbenchEntrance::ExternalReader);
             }
+            "--body-invitation"
+                if (parsed.body_evidence.is_some() || parsed.body_workbench_fixture.is_some())
+                    && parsed.body_invitation.is_none() =>
+            {
+                parsed.body_invitation = Some(
+                    arguments
+                        .next()
+                        .ok_or("--body-invitation requires one bounded local WebSocket URL")?,
+                );
+            }
             "--hosted-reader"
                 if parsed.body_evidence.is_some() && parsed.body_entrance.is_none() =>
             {
@@ -190,6 +201,13 @@ fn main() -> Result<(), String> {
         let forms = load_form_sources(&arguments.forms).map_err(|error| error.to_string())?;
         PatchbayHtmlServer::bind_browser_front_door_with_forms_ephemeral(forms)
             .map_err(|error| error.to_string())?
+    };
+    let server = if let Some(invitation) = arguments.body_invitation {
+        server
+            .with_body_invitation(&invitation)
+            .map_err(|error| error.to_string())?
+    } else {
+        server
     };
     println!(
         "PATCHBAY_HTML_URL=http://{}",
@@ -293,9 +311,15 @@ mod tests {
             Some("ws://127.0.0.1:1/conduit")
         );
         let external = parse_arguments(
-            ["--body-evidence", "roseau.json", "--external-reader"]
-                .into_iter()
-                .map(str::to_owned),
+            [
+                "--body-evidence",
+                "roseau.json",
+                "--external-reader",
+                "--body-invitation",
+                "ws://127.0.0.1:4173/body",
+            ]
+            .into_iter()
+            .map(str::to_owned),
         )
         .unwrap();
         assert_eq!(
@@ -306,6 +330,10 @@ mod tests {
             external.body_entrance,
             Some(BrowserBodyWorkbenchEntrance::ExternalReader)
         ));
+        assert_eq!(
+            external.body_invitation.as_deref(),
+            Some("ws://127.0.0.1:4173/body")
+        );
         let hosted = parse_arguments(
             [
                 "--body-evidence",
