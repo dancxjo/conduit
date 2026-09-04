@@ -237,6 +237,39 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
 }
 
 #[test]
+fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let check =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+
+    assert!(!check.contains("needs.classify.result != 'success'"));
+    for job in [
+        "conduitos-limine",
+        "conduitos-tools",
+        "workspace-check",
+        "standalone-locks",
+        "conduitos-proof-image",
+        "conduitos-x86",
+        "conduitos-architecture",
+        "conduitos-aarch64-product",
+    ] {
+        let start = check
+            .find(&format!("  {job}:\n"))
+            .unwrap_or_else(|| panic!("missing {job}"));
+        let section = &check[start..check.len().min(start + 600)];
+        assert!(
+            section.contains("needs.classify.result == 'success'"),
+            "{job} can fan out after classifier failure"
+        );
+    }
+    assert!(products.contains(
+        "if: always() && needs.plan.result == 'success' && needs.plan.outputs.required == 'true'"
+    ));
+}
+
+#[test]
 fn product_stage_joins_exact_required_results_after_optional_skips() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))

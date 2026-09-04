@@ -561,7 +561,7 @@ jobs:
 
   esp32-release-images:
     needs: [plan, standalone-locks]
-    if: always() && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
