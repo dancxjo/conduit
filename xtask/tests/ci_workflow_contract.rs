@@ -118,6 +118,8 @@ fn tour_proof_has_one_authoritative_candidate_workflow() {
         .and_then(|tail| tail.split("\n  avr-release:\n").next())
         .expect("locate authoritative early Tour proof");
     assert!(proof.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
-    assert!(proof.contains("node --test proof/browser/patchbay-debugger-projection.test.mjs"));
+    assert!(proof.contains("node --test"));
+    assert!(proof.contains("proof/browser/patchbay-debugger-projection.test.mjs"));
+    assert!(proof.contains("proof/browser/playwright-config.test.mjs"));
     assert!(proof.contains("real Patchbay renderer|animated Cords"));
 }

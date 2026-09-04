@@ -155,7 +155,10 @@ jobs:
           chmod 755 target/debug/conduit-browser-host
           scripts/ci/stage-book-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
       - name: Prove exact live-debugger projection
-        run: node --test proof/browser/patchbay-debugger-projection.test.mjs
+        run: >-
+          node --test
+          proof/browser/patchbay-debugger-projection.test.mjs
+          proof/browser/playwright-config.test.mjs
       - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
         run: >-
           npx playwright test
