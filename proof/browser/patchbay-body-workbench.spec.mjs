@@ -49,7 +49,8 @@ async function writeFixtureEvidence(page) {
 test("an invited browser remains outside the Body until explicit join", async ({ page }) => {
   const evidencePath = await writeFixtureEvidence(page);
   membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath]);
-  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  const patchbayUrl = await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  const bodyId = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(async response => (await response.json()).body_workbench.body_id);
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeVisible();
   await expect(page.locator("#body-membership-status")).toContainText("not a member");
   expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
@@ -61,10 +62,21 @@ test("an invited browser remains outside the Body until explicit join", async ({
     hostId: globalThis.__patchbayMembership.hostId,
     bootId: globalThis.__patchbayMembership.bootId,
   }));
+  const membershipCredential = await page.evaluate(() => {
+    const credential = globalThis.__patchbayMembership.membershipCredential();
+    return { credential, frozen: Object.isFrozen(credential) };
+  });
+  expect(membershipCredential.frozen).toBe(true);
+  expect(membershipCredential.credential.body_id).toBe(bodyId);
+  expect(membershipCredential.credential.host_id).toBe(admittedIdentity.hostId);
+  expect(membershipCredential.credential.boot_id).toBe(admittedIdentity.bootId);
   expect(admittedIdentity.hostId).toMatch(/^browser\//);
   expect(admittedIdentity.bootId).toMatch(/^browser-boot\//);
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.hostId);
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(admittedIdentity.bootId);
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(bodyId);
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(membershipCredential.credential.part_id);
+  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText(membershipCredential.credential.credential_id);
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipadmitted");
   await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceavailable");
   const advertisement = await page.evaluate(() => globalThis.__patchbayMembership.advertisement);

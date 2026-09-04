@@ -452,6 +452,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   return Object.freeze({
     hostId,
     bootId,
+    membershipCredential: () => credential === undefined ? null : Object.freeze({ ...credential }),
     state: () => state,
     presenceState: () => presenceState,
     pageLifecycle: () => pageLifecycle,
