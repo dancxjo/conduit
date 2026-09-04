@@ -67,6 +67,15 @@ pub enum BrowserAdmissionIngress {
         boot_id: BootId,
         sequence: u64,
     },
+    PresenceLeave {
+        protocol: u16,
+        credential_id: MembershipCredentialId,
+        body_id: BodyId,
+        part_id: PartId,
+        host_id: HostId,
+        boot_id: BootId,
+        sequence: u64,
+    },
     MediaResourceTruth {
         protocol: u16,
         credential_id: MembershipCredentialId,
@@ -340,6 +349,9 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             protocol
         }
         BrowserAdmissionIngress::PresenceRenewal {
+            protocol, sequence, ..
+        }
+        | BrowserAdmissionIngress::PresenceLeave {
             protocol, sequence, ..
         } => {
             if *sequence == 0 {

@@ -273,6 +273,16 @@ fn presence_renewal_round_trips_and_zero_sequence_is_refused() {
         decode_browser_admission_frame(stale),
         Err(BrowserAdmissionFrameError::InvalidSequence)
     );
+    let leave = br#"{"kind":"presence-leave","protocol":1,"credential_id":"credential/browser","body_id":"body/browser","part_id":"part/browser","host_id":"host/browser","boot_id":"boot/browser","sequence":3}"#;
+    assert!(matches!(
+        decode_browser_admission_frame(leave),
+        Ok(BrowserAdmissionIngress::PresenceLeave { sequence: 3, .. })
+    ));
+    let stale_leave = br#"{"kind":"presence-leave","protocol":1,"credential_id":"credential/browser","body_id":"body/browser","part_id":"part/browser","host_id":"host/browser","boot_id":"boot/browser","sequence":0}"#;
+    assert_eq!(
+        decode_browser_admission_frame(stale_leave),
+        Err(BrowserAdmissionFrameError::InvalidSequence)
+    );
 }
 
 #[test]

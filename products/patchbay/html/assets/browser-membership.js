@@ -293,17 +293,23 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     } else if (frame.kind === "biography-evidence" && frame.protocol === 1) {
       const evidence = frame.evidence;
       const encodedEvidence = encoder.encode(JSON.stringify(evidence));
-      const current = evidence?.membership?.parts?.find(part => part.part_id === credential?.part_id)?.current;
+      const part = evidence?.membership?.parts?.find(part => part.part_id === credential?.part_id);
+      const current = part?.current;
+      const latestRecord = evidence?.records?.at(-1);
+      const detached = part?.state === "Admitted" && current === null &&
+        latestRecord?.kind?.HostLeft?.part_id === credential?.part_id &&
+        latestRecord.kind.HostLeft.prior_boot_id === bootId;
       if (!credential || encodedEvidence.length === 0 || encodedEvidence.length > 65_536 ||
           evidence?.schema !== "conduit.body/biography-evidence@2" ||
           evidence.body_id !== credential.body_id || evidence.membership?.body_id !== credential.body_id ||
-          current?.host_id !== hostId || current?.boot_id !== bootId ||
+          (!detached && (current?.host_id !== hostId || current?.boot_id !== bootId)) ||
           !Array.isArray(evidence.records)) {
         throw new Error("invalid admission biography evidence");
       }
       const freeze = value => { if (value && typeof value === "object" && !Object.isFrozen(value)) { Object.values(value).forEach(freeze);Object.freeze(value); } return value; };
       biographyEvidence = freeze(evidence);
       onBiographyEvidence?.(biographyEvidence);
+      if (detached) socket.close(1000, "Body recorded browser Host leave");
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
       if (!credential || (!returning && frame.sequence !== renewalSequence)) {
         throw new Error("presence acceptance did not match the current credential sequence");
@@ -493,12 +499,27 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     advertisement: Object.freeze(advertisement),
     publishMediaResource,
     close: () => {
-      deliberateClose = true;
       clearTimeout(renewalTimer);
       webRtcSessions.reset("presence-closed");
-      const finalSequence = renewalSequence;
-      socket.close(1000, "Patchbay browser Host leaving");
-      return finalSequence;
+      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+        deliberateClose = true;
+        socket?.close(1000, "Patchbay browser Host leaving");
+        return renewalSequence;
+      }
+      deliberateClose = true;
+      renewalSequence += 1;
+      setState("leaving");
+      socket.send(encoder.encode(JSON.stringify({
+        kind: "presence-leave",
+        protocol: 1,
+        credential_id: credential.credential_id,
+        body_id: credential.body_id,
+        part_id: credential.part_id,
+        host_id: credential.host_id,
+        boot_id: credential.boot_id,
+        sequence: renewalSequence,
+      })));
+      return renewalSequence;
     },
   });
 }
