@@ -18,7 +18,13 @@ export function readReviewedGallery(api) {
   for (const form of projected.forms) {
     if (typeof form?.name !== "string" || typeof form.title !== "string" || typeof form.source !== "string"
       || typeof form.source_document_id !== "string" || typeof form.checked_form_id !== "string"
-      || !Array.isArray(form.required_kinds)) throw new Error("reviewed Form Gallery entry is malformed");
+      || !Array.isArray(form.required_kinds)
+      || !Number.isSafeInteger(form.realizability?.current_offer_count)
+      || form.realizability?.required_kind_count !== form.required_kinds.length
+      || !Array.isArray(form.realizability?.requirements)
+      || form.realizability.requirements.length !== form.required_kinds.length) {
+      throw new Error("reviewed Form Gallery entry is malformed");
+    }
   }
   return Object.freeze(projected);
 }
@@ -101,6 +107,27 @@ function createGalleryCard(document, form, crecheUrl, onOpen) {
   heading.textContent = form.title;
   const requirements = document.createElement("p");
   requirements.textContent = `Semantic requirements: ${form.required_kinds.join(", ")}.`;
+  const availability = document.createElement("p");
+  availability.className = "form-gallery-availability";
+  availability.dataset.status = form.realizability.status;
+  availability.textContent = form.realizability.status === "runnable-on-current-browser-host"
+    ? `Runnable here now · ${form.realizability.current_offer_count} of ${form.realizability.required_kind_count} checked kinds have current browser Host offers.`
+    : `Not runnable here · ${form.realizability.required_kind_count - form.realizability.current_offer_count} checked kind offer(s) are missing.`;
+  const realization = document.createElement("ul");
+  realization.className = "form-gallery-realization";
+  for (const requirement of form.realizability.requirements) {
+    const entry = document.createElement("li");
+    const realizationClass = requirement.realization_class === "pure-kernel-or-local"
+      ? "local/kernel"
+      : requirement.realization_class === "bounded-browser-host-operation"
+        ? "bounded Host operation"
+        : "no current realization";
+    entry.textContent = `${requirement.kind_id} · ${requirement.offer_state === "current-host-offer" ? "current offer" : "missing offer"} · ${realizationClass}`;
+    realization.append(entry);
+  }
+  const authority = document.createElement("p");
+  authority.className = "form-gallery-authority";
+  authority.textContent = "Browsing acquires no resource or authority; Run admits work separately.";
   const identity = document.createElement("code");
   identity.textContent = form.checked_form_id;
   const actions = document.createElement("div");
@@ -121,7 +148,7 @@ function createGalleryCard(document, form, crecheUrl, onOpen) {
   add.href = handoff.href;
   add.textContent = "Add to new Body";
   actions.append(open, inspect, add);
-  item.append(heading, requirements, identity, actions);
+  item.append(heading, requirements, availability, realization, authority, identity, actions);
   return item;
 }
 
