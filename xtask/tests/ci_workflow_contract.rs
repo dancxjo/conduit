@@ -168,6 +168,14 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
 
     let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
         .expect("read product workflow");
+    assert!(products.contains(
+        "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
+    ));
+    assert!(products.contains(
+        "CONDUIT_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}"
+    ));
+    assert!(!products.contains("github.event.pull_request.head.sha || inputs.candidate_sha"));
+    assert!(!products.contains("github.event.pull_request.base.sha || inputs.base_sha"));
     for source in [&workflow, &products] {
         assert!(!source.contains("actions/upload-artifact@v4"));
         assert!(!source.contains("actions/download-artifact@v6"));

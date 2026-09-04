@@ -64,6 +64,15 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.doesNotMatch(productWorkflow, /\n        with:\n(?:          [^\n]+\n)+        with:/);
   assert.match(productWorkflow, /source_commit=\$\(git .* rev-parse HEAD\)/);
   assert.doesNotMatch(productWorkflow, /source_commit="\$GITHUB_SHA"/);
+  assert.match(
+    productWorkflow,
+    /CONDUIT_CANDIDATE_SHA: \$\{\{ inputs\.candidate_sha \|\| github\.event\.pull_request\.head\.sha \}\}/,
+  );
+  assert.match(
+    productWorkflow,
+    /CONDUIT_BASE_SHA: \$\{\{ inputs\.base_sha \|\| github\.event\.pull_request\.base\.sha \}\}/,
+  );
+  assert.doesNotMatch(productWorkflow, /github\.event\.pull_request\.(?:head|base)\.sha \|\| inputs\./);
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
   assert.match(
     productWorkflow,
