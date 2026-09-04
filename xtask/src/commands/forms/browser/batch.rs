@@ -333,6 +333,7 @@ mod tests {
             slug: slug.to_owned(),
             title: slug.to_owned(),
             entry: slug.to_owned(),
+            reusable_entries: Vec::new(),
             initial_body_order: None,
             deterministic: None,
             deterministic_not_applicable: None,
