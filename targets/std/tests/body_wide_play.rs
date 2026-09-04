@@ -1,6 +1,10 @@
 use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, ResidentForm};
 use conduit_core::{
-    seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, SignId, SourceDocumentId,
+    seal_plan, CheckedFormId, ExpandedFormId, FormIdentity, Plan, SignId, SourceDocumentId,
+};
+use conduit_form::{
+    check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
+    StartupCatalog,
 };
 use conduit_kernel::scheduler::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepInputBytes, StepIo,
@@ -13,10 +17,14 @@ use conduit_kernel::{
 use std::collections::BTreeSet;
 
 const PORTS: usize = 1;
-const FORMS: usize = 2;
+const FORMS: usize = 3;
 const NODES: usize = FORMS * 2;
 const CORDS: usize = FORMS;
 const SIGNS: usize = 64;
+
+const MORSE_NETWORK: &str = include_str!("../../../forms/morse-network/main.conduit");
+const MEMORY_LANTERN: &str = include_str!("../../../forms/memory-lantern/main.conduit");
+const DESK_TELEGRAPH: &str = include_str!("../../../forms/desk-telegraph/main.conduit");
 
 #[derive(Clone, Copy)]
 enum Work {
@@ -87,30 +95,62 @@ fn constituent(form: &ResidentForm) -> conduit_core::Plan {
     )
 }
 
+fn canonical_constituent(
+    source: &str,
+    root: &str,
+    host: &conduit_std_host::StdHost,
+) -> (ResidentForm, Plan) {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
+        .expect("the installed text pipeline catalogs are disjoint");
+    let syntax = parse_syntax_document(source);
+    assert_eq!(syntax.round_trip(), source);
+    let checked = check_syntax_document(&syntax, &startup).expect("reviewed Form checks");
+    let expanded = expand_canonical_form(&checked, root, &profiles).expect("reviewed Form expands");
+    let resident = ResidentForm::new(
+        expanded.source_document_id.clone(),
+        expanded.checked_form_id.clone(),
+    );
+    let plan = host
+        .plan_expanded_local(&expanded)
+        .expect("reviewed Form plans onto the exact std Host offers");
+    (resident, plan)
+}
+
 #[test]
-fn two_forms_progress_in_one_body_play_through_one_production_kernel_scheduler() {
-    let first = resident("dashboard");
-    let second = resident("counter");
+fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_scheduler() {
+    let host = conduit_std_host::StdHost::new();
+    let (morse, morse_plan) = canonical_constituent(MORSE_NETWORK, "morse_network", &host);
+    let (lantern, lantern_plan) = canonical_constituent(MEMORY_LANTERN, "memory_lantern", &host);
+    let (telegraph, telegraph_plan) =
+        canonical_constituent(DESK_TELEGRAPH, "desk_telegraph", &host);
     let body = Body::born(
-        first.source_document_id.clone(),
-        first.checked_form_id.clone(),
+        morse.source_document_id.clone(),
+        morse.checked_form_id.clone(),
         1,
         SignId::from("sign/born"),
     )
     .unwrap()
-    .admit_form(second.clone(), SignId::from("sign/counter-admitted"))
+    .admit_form(lantern.clone(), SignId::from("sign/lantern-admitted"))
+    .unwrap()
+    .admit_form(telegraph.clone(), SignId::from("sign/telegraph-admitted"))
     .unwrap();
     let (_awake, wake) = body.wake(1, SignId::from("sign/woke")).unwrap();
     let plan = BodyPlan::seal(
         &wake,
         vec![
             BodyFormPlan {
-                form: first.clone(),
-                plan: constituent(&first),
+                form: morse,
+                plan: morse_plan,
             },
             BodyFormPlan {
-                form: second.clone(),
-                plan: constituent(&second),
+                form: lantern,
+                plan: lantern_plan,
+            },
+            BodyFormPlan {
+                form: telegraph,
+                plan: telegraph_plan,
             },
         ],
     )
@@ -142,7 +182,7 @@ fn two_forms_progress_in_one_body_play_through_one_production_kernel_scheduler()
         )
     };
     let mut routes = FixedRoutes::<NODES, CORDS>::new(PORTS as u16);
-    for (index, source, sink) in [(0, 0, 1), (1, 2, 3)] {
+    for (index, source, sink) in [(0, 0, 1), (1, 2, 3), (2, 4, 5)] {
         routes
             .install(
                 NodeId(source),
@@ -167,8 +207,10 @@ fn two_forms_progress_in_one_body_play_through_one_production_kernel_scheduler()
             node(Some(CordId(0))),
             node(None),
             node(Some(CordId(1))),
+            node(None),
+            node(Some(CordId(2))),
         ],
-        [cord(0, 0, 1), cord(1, 2, 3)],
+        [cord(0, 0, 1), cord(1, 2, 3), cord(2, 4, 5)],
         routes,
         [
             FormDriver {
@@ -193,6 +235,17 @@ fn two_forms_progress_in_one_body_play_through_one_production_kernel_scheduler()
                 form: 1,
                 work: Work::Sink { received: false },
             },
+            FormDriver {
+                form: 2,
+                work: Work::Source {
+                    value: values.store(&[3]).unwrap(),
+                    emitted: false,
+                },
+            },
+            FormDriver {
+                form: 2,
+                work: Work::Sink { received: false },
+            },
         ],
         values,
         signs,
@@ -209,8 +262,13 @@ fn two_forms_progress_in_one_body_play_through_one_production_kernel_scheduler()
         scheduler.drivers()[3].work,
         Work::Sink { received: true }
     ));
+    assert!(matches!(
+        scheduler.drivers()[5].work,
+        Work::Sink { received: true }
+    ));
     assert_eq!(scheduler.drivers()[0].form, 0);
     assert_eq!(scheduler.drivers()[2].form, 1);
+    assert_eq!(scheduler.drivers()[4].form, 2);
     assert_eq!(playing.plans.len(), 1);
     assert_eq!(playing.plans[0].active_play_id, Some(play.active_play_id));
 }
