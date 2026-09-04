@@ -142,15 +142,25 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
             )
             .unwrap();
         let length = returned.receive_binary(&mut encoded).unwrap();
+        let returned_admitted: BrowserAdmissionEgress =
+            serde_json::from_slice(&encoded[..length]).unwrap();
+        let BrowserAdmissionEgress::Admitted {
+            credential: returned_credential,
+            ..
+        } = &returned_admitted
+        else {
+            panic!("return did not renew the membership credential");
+        };
+        let length = returned.receive_binary(&mut encoded).unwrap();
         let returned_presence: BrowserAdmissionEgress =
             serde_json::from_slice(&encoded[..length]).unwrap();
         let renewal = BrowserAdmissionIngress::PresenceRenewal {
             protocol: BROWSER_ADMISSION_PROTOCOL,
-            credential_id: credential.credential_id.clone(),
-            body_id: credential.body_id.clone(),
-            part_id: credential.part_id.clone(),
-            host_id: credential.host_id.clone(),
-            boot_id: credential.boot_id.clone(),
+            credential_id: returned_credential.credential_id.clone(),
+            body_id: returned_credential.body_id.clone(),
+            part_id: returned_credential.part_id.clone(),
+            host_id: returned_credential.host_id.clone(),
+            boot_id: returned_credential.boot_id.clone(),
             sequence: 4,
         };
         returned
@@ -163,6 +173,7 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
             admitted,
             initial_presence,
             renewed_presence,
+            returned_admitted,
             returned_presence,
             returned_renewal,
         )
@@ -293,7 +304,8 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
     assert_eq!(membership.parts.len(), 1);
     assert_eq!(returned_sequence, 3);
     loop {
-        if presence.poll(&mut membership).unwrap().is_some() {
+        presence.poll(&mut membership).unwrap();
+        if presence.table().leases[0].sequence == 4 {
             break;
         }
         assert!(
@@ -303,8 +315,14 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
         std::thread::yield_now();
     }
     assert_eq!(presence.table().leases[0].sequence, 4);
-    let (admitted_frame, presence_frame, renewed_frame, returned_frame, returned_renewal) =
-        client.join().unwrap();
+    let (
+        admitted_frame,
+        presence_frame,
+        renewed_frame,
+        returned_admitted,
+        returned_frame,
+        returned_renewal,
+    ) = client.join().unwrap();
     assert!(matches!(
         admitted_frame,
         BrowserAdmissionEgress::Admitted { .. }
@@ -316,6 +334,10 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
     assert!(matches!(
         renewed_frame,
         BrowserAdmissionEgress::PresenceAccepted { sequence: 2, .. }
+    ));
+    assert!(matches!(
+        returned_admitted,
+        BrowserAdmissionEgress::Admitted { .. }
     ));
     assert!(matches!(
         returned_frame,

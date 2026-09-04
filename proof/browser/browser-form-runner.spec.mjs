@@ -18,7 +18,7 @@ test.afterEach(() => entrance?.child.kill());
 test("Book and a normal browser Form session use one installed repertoire and equivalent semantics", async ({ page }) => {
   await openBookStep(page, entrance, 0);
   const runtimeUrl = new URL("runtime.wasm", entrance.url).href;
-  const runner = page.locator(".runner").nth(1);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.locator("textarea").fill(FORM);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
