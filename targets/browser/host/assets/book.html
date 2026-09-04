@@ -16,8 +16,10 @@
 </head>
 <body>
   <div data-application-slot="product-masthead"></div>
-  <main id="chapter" aria-live="polite"></main>
-  <div data-application-slot="book-navigation"></div>
+  <div class="tour-workspace">
+    <main id="chapter" tabindex="-1" aria-label="Tour lesson" aria-live="polite"></main>
+    <div data-application-slot="book-navigation"></div>
+  </div>
   <noscript>This executable chapter requires JavaScript and WebAssembly.</noscript>
   <script type="module" src="./browser-application-loader.mjs"></script>
 </body>

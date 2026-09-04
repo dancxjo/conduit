@@ -282,78 +282,95 @@ test("same-named input and output Ports keep distinct animated Cords", async ({ 
   await expect(patchbay.locator(".react-flow__edge-path").first()).toHaveCSS("stroke-dasharray", "none");
 });
 
-test("Tour pairs narrative with Patchbay above source and output, then stacks coherently", async ({ page }) => {
-  for (const width of [1440, 1600]) {
-    await page.setViewportSize({ width, height: 1000 });
-    await openStep(page, 1);
-    const measures = await page.evaluate(() => ({
-      copy: document.querySelector(".chapter-copy").getBoundingClientRect().width,
-      workbench: document.querySelector(".book-workbench").getBoundingClientRect().width,
-      graph: document.querySelector(".book-flow-root").getBoundingClientRect().width,
-      copyLeft: document.querySelector(".chapter-copy").getBoundingClientRect().left,
-      copyTop: document.querySelector(".chapter-copy").getBoundingClientRect().top,
-      workbenchLeft: document.querySelector(".book-workbench").getBoundingClientRect().left,
-      workbenchTop: document.querySelector(".book-workbench").getBoundingClientRect().top,
-      patchbay: document.querySelector(".compact-patchbay").getBoundingClientRect().toJSON(),
-      source: document.querySelector('[data-application-key="source-editor"]').getBoundingClientRect().toJSON(),
-      result: document.querySelector(".result").getBoundingClientRect().toJSON(),
-      scroll: document.documentElement.scrollWidth,
-      viewport: innerWidth,
-    }));
-    expect(measures.copy).toBeLessThanOrEqual(740);
-    expect(measures.copy / measures.workbench).toBeGreaterThan(.85);
-    expect(measures.copy / measures.workbench).toBeLessThan(1.15);
-    expect(measures.workbenchLeft).toBeGreaterThan(measures.copyLeft + measures.copy * .9);
-    expect(Math.abs(measures.workbenchTop - measures.copyTop)).toBeLessThan(2);
-    expect(measures.graph).toBeGreaterThan(300);
-    expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.source.top + 1);
-    expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.result.top + 1);
-    expect(Math.abs(measures.source.top - measures.result.top)).toBeLessThan(2);
-    expect(measures.scroll).toBeLessThanOrEqual(measures.viewport);
-  }
-
-  await page.setViewportSize({ width: 700, height: 1000 });
-  await openStep(page, 1);
-  const narrow = await page.evaluate(() => {
-    const copy = document.querySelector(".chapter-copy").getBoundingClientRect();
-    const workbench = document.querySelector(".book-workbench").getBoundingClientRect();
-    const patchbay = document.querySelector(".compact-patchbay").getBoundingClientRect();
-    const source = document.querySelector('[data-application-key="source-editor"]').getBoundingClientRect();
-    const result = document.querySelector(".result").getBoundingClientRect();
+test("Tour owns the desktop viewport while the lesson reader scrolls independently", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await openStep(page, 0);
+  const shell = await page.evaluate(() => {
+    const masthead = document.querySelector('[data-application-key="product-masthead"]').getBoundingClientRect();
+    const workspace = document.querySelector(".tour-workspace").getBoundingClientRect();
+    const reader = document.querySelector("#chapter");
+    const navigation = document.querySelector('[data-application-slot="book-navigation"]').getBoundingClientRect();
     return {
-      copyBottom: copy.bottom,
-      workbenchTop: workbench.top,
-      patchbayBottom: patchbay.bottom,
-      sourceTop: source.top,
-      sourceBottom: source.bottom,
-      resultTop: result.top,
-      scroll: document.documentElement.scrollWidth,
-      viewport: innerWidth,
+      viewportHeight: innerHeight,
+      documentHeight: document.scrollingElement.scrollHeight,
+      bodyHeight: document.body.scrollHeight,
+      bodyTop: document.scrollingElement.scrollTop,
+      mastheadBottom: masthead.bottom,
+      workspaceTop: workspace.top,
+      workspaceBottom: workspace.bottom,
+      readerOverflow: getComputedStyle(reader).overflowY,
+      readerClientHeight: reader.clientHeight,
+      readerScrollHeight: reader.scrollHeight,
+      navigationTop: navigation.top,
+      navigationBottom: navigation.bottom,
     };
   });
-  expect(narrow.workbenchTop).toBeGreaterThanOrEqual(narrow.copyBottom - 1);
-  expect(narrow.sourceTop).toBeGreaterThanOrEqual(narrow.patchbayBottom - 1);
-  expect(narrow.resultTop).toBeGreaterThanOrEqual(narrow.sourceBottom - 1);
-  expect(narrow.scroll).toBeLessThanOrEqual(narrow.viewport);
+  expect(shell.documentHeight).toBe(shell.viewportHeight);
+  expect(shell.bodyHeight).toBe(shell.viewportHeight);
+  expect(shell.bodyTop).toBe(0);
+  expect(Math.abs(shell.workspaceTop - shell.mastheadBottom)).toBeLessThan(2);
+  expect(shell.workspaceBottom).toBeLessThanOrEqual(shell.viewportHeight);
+  expect(shell.readerOverflow).toBe("auto");
+  expect(shell.readerScrollHeight).toBeGreaterThan(shell.readerClientHeight);
+  expect(shell.navigationTop).toBeGreaterThan(shell.workspaceTop);
+  expect(shell.navigationBottom).toBeLessThanOrEqual(shell.viewportHeight);
 
-  const listing = page.locator(".runner").first().locator("textarea");
-  await listing.focus();
-  const beforeResize = await listing.evaluate((element) => {
-    element.setSelectionRange(7, 7);
-    return element.getBoundingClientRect().height;
+  await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
+  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
+  await expect(page.getByRole("button", { name: "Next" })).toBeInViewport();
+
+  await page.getByRole("button", { name: "Next" }).click();
+  const nextHeading = page.getByRole("heading", { level: 1, name: "Faces, Backs, and implementation" });
+  await expect(nextHeading).toBeFocused();
+  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
+
+  await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
+  await page.getByRole("button", { name: "Previous" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeFocused();
+  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
+});
+
+test("Tour routes return to a bounded reader top and narrow mode keeps every surface reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await openStep(page, 0);
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
+  await page.goBack();
+  await expect(page).toHaveURL(/\/tour\/a-form-you-can-run\/$/);
+  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/tour\/faces-backs-and-implementation\/$/);
+  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
+  const narrow = await page.evaluate(() => {
+    const reader = document.querySelector("#chapter");
+    const navigation = document.querySelector('[data-application-slot="book-navigation"]').getBoundingClientRect();
+    return {
+      viewportHeight: innerHeight,
+      documentHeight: document.scrollingElement.scrollHeight,
+      documentWidth: document.scrollingElement.scrollWidth,
+      readerClientHeight: reader.clientHeight,
+      readerScrollHeight: reader.scrollHeight,
+      navigationBottom: navigation.bottom,
+      workbenches: reader.querySelectorAll(".book-workbench").length,
+    };
   });
-  await listing.evaluate((element) => { element.style.height = "28rem"; });
-  await expect.poll(() => listing.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(beforeResize);
-  await page.setViewportSize({ width: 1200, height: 1000 });
-  const interaction = await page.evaluate(() => ({
-    activeLabel: document.activeElement?.labels?.[0]?.textContent,
-    selection: document.activeElement?.selectionStart,
-    scroll: document.documentElement.scrollWidth,
-    viewport: innerWidth,
-  }));
-  expect(interaction.activeLabel).toBe("Conduit · editable");
-  expect(interaction.selection).toBe(7);
-  expect(interaction.scroll).toBeLessThanOrEqual(interaction.viewport);
+  expect(narrow.documentHeight).toBe(narrow.viewportHeight);
+  expect(narrow.documentWidth).toBeLessThanOrEqual(390);
+  expect(narrow.readerScrollHeight).toBeGreaterThan(narrow.readerClientHeight);
+  expect(narrow.navigationBottom).toBeLessThanOrEqual(narrow.viewportHeight);
+  expect(narrow.workbenches).toBe(1);
+  await expect(page.locator(".chapter-copy").first()).toBeAttached();
+  await expect(page.locator(".book-workbench")).toBeAttached();
+  await expect(page.getByRole("button", { name: "Previous" })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "Next" })).toBeInViewport();
+  await page.locator(".book-workbench").scrollIntoViewIfNeeded();
+  expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
 });
 
 test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains the repair", async ({ page }) => {
