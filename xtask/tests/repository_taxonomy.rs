@@ -82,9 +82,11 @@ fn canonical_forms_have_stable_owners_and_proof_fixtures_stay_separate() {
     {
         let path = entry.path();
         if path.is_file() {
-            assert_eq!(
-                path.file_name().and_then(|name| name.to_str()),
-                Some("README.md"),
+            assert!(
+                matches!(
+                    path.file_name().and_then(|name| name.to_str()),
+                    Some("README.md" | "inventory.toml")
+                ),
                 "canonical Form source cannot be loose at forms root: {}",
                 path.display()
             );
@@ -98,6 +100,7 @@ fn canonical_forms_have_stable_owners_and_proof_fixtures_stay_separate() {
         );
         canonical_count += 1;
     }
+    assert!(forms.join("inventory.toml").is_file());
     assert!(
         canonical_count >= 32,
         "canonical Form inventory was truncated"

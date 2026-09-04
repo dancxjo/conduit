@@ -36,6 +36,8 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Proofs(args) => commands::proofs::run(args, opts.json),
         Command::Evidence(args) => commands::evidence::run(args),
+        Command::Forms(args) => commands::forms::run(args, &opts)
+            .map_err(|error| Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>),
         Command::Doctor(args) => commands::doctor::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Esp32Firmware(args) => commands::esp32_firmware::run(args, &opts),

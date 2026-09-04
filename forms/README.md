@@ -13,3 +13,10 @@ into the reviewed inventory.
 Adding or changing a canonical Form requires checker coverage and explicit
 consumer updates. Form source grants no Host, membership, authority, Plan, or
 Play truth.
+
+`inventory.toml` is the bounded reviewed-membership registry. `cargo xtask
+forms check` validates every declared entry and ratchets every canonical
+`forms/<name>/main.conduit` owner into the registry; it never promotes arbitrary
+source by scanning for `.conduit` files. `cargo xtask forms report` emits the
+machine-readable per-Form result seam. Gated execution remains `unavailable`
+until its deterministic, browser, device, or physical owner supplies evidence.

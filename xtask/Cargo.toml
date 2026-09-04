@@ -31,6 +31,7 @@ conduit-body-fabrication = { path = "../fabrication/body" }
 conduit-browser-runtime = { path = "../targets/browser/runtime" }
 conduit-chat = { path = "../semantics/chat", features = ["form-catalog"] }
 conduit-ai = { path = "../semantics/ai" }
+conduit-alife = { path = "../semantics/alife" }
 conduit-core = { path = "../architecture/core" }
 conduit-robotics = { path = "../semantics/robotics" }
 conduit-create-oi = { path = "../mechanisms/devices/create-oi" }
@@ -44,7 +45,11 @@ conduit-std-offers = { path = "../targets/std/offers" }
 conduit-time = { path = "../semantics/time" }
 conduit-text = { path = "../semantics/text" }
 conduitos = { path = "../targets/conduitos", features = ["hosted-tools"] }
-conduit-net = { path = "../semantics/net" }
+conduit-net = { path = "../semantics/net", features = ["form-catalog"] }
+conduit-data = { path = "../semantics/data" }
+conduit-language = { path = "../semantics/language" }
+conduit-tongues = { path = "../semantics/tongues" }
+conduit-web = { path = "../semantics/web", default-features = false, features = ["form-catalog"] }
 conduit-pete = { path = "../bodies/pete" }
 conduit-observatory = { path = "../architecture/observatory" }
 conduit-signal = { path = "../semantics/signal" }

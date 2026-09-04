@@ -4,10 +4,12 @@ use crate::commands::avr::AvrArgs;
 use crate::commands::body::BodyArgs;
 use crate::commands::body_coordination::BodyCoordinationArgs;
 use crate::commands::catalog::CatalogArgs;
+use crate::commands::check::CheckArgs;
 use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
 use crate::commands::evidence::EvidenceArgs;
+use crate::commands::forms::FormsArgs;
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
 use crate::commands::pico::PicoArgs;
@@ -64,6 +66,8 @@ pub enum Command {
     Proofs(ProofsArgs),
     /// Verify bounded proof evidence before transport or review.
     Evidence(EvidenceArgs),
+    /// Check and report the explicit reviewed Form inventory.
+    Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
     /// Check the standalone ESP32 fabrication package without touching hardware.
@@ -106,34 +110,6 @@ pub struct PaletteIconsArgs {
 
     /// Destination Rust module for the deterministic 16x16 masks.
     pub output: std::path::PathBuf,
-}
-
-#[derive(Args, Debug)]
-pub struct CheckArgs {
-    /// Which check suite to execute (default: workspace).
-    #[arg(default_value = "workspace")]
-    pub suite: CheckSuite,
-}
-
-#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CheckSuite {
-    Workspace,
-    WorkspaceLint,
-    WorkspaceTestFoundation,
-    WorkspaceTestHosts,
-    WorkspaceTestProducts,
-    WorkspacePortable,
-    WorkspacePico,
-    Browser,
-    BrowserHost,
-    Sim,
-    KernelTakeover,
-    PlanningS2,
-    FormS3,
-    Observatory,
-    SemanticCatalog,
-    InputSemantics,
-    All,
 }
 
 #[derive(Args, Debug)]
