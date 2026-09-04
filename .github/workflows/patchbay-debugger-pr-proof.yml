@@ -39,8 +39,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: patchbay-debugger-pr-proof-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: patchbay-debugger-pr-proof-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
 
 jobs:
   watch-browser:
@@ -54,6 +54,8 @@ jobs:
       NPM_CONFIG_FUND: "false"
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Install the native Rust linker
         run: |
           apt-get update

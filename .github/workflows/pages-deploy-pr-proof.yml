@@ -19,5 +19,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Prove bounded exact-head carrier selection
         run: node --test proof/ci/pages-product-run-selection.spec.mjs proof/ci/pages-workflow-paths.spec.mjs
