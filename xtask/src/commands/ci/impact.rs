@@ -157,6 +157,10 @@ fn is_creche_presentation_path(path: &str) -> bool {
         || path.starts_with("targets/browser/host/assets/creche")
 }
 
+fn is_repository_tool_test(path: &str) -> bool {
+    path.starts_with("xtask/tests/") && path.ends_with(".rs")
+}
+
 fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
     // Semantic crates are renderer- and machine-neutral contracts. Their
     // reverse-dependent workspace shards compile and test the affected product
@@ -567,6 +571,10 @@ fn plan_for_paths(
                     .expect("known suite")
                     .push("manifest-backed-lock:Cargo.lock".to_owned());
             }
+            continue;
+        }
+        if is_repository_tool_test(path) {
+            changed_packages.insert("xtask".to_owned());
             continue;
         }
         if GLOBAL_FILES.contains(&path.as_str()) || starts_with_any(path, &GLOBAL_PREFIXES) {

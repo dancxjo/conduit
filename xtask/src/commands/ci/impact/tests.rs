@@ -412,6 +412,30 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         );
     }
 
+    let repository_tool_test = plan_for_paths(
+        &root,
+        vec![
+            "docs/proof-dependency-audit.toml".to_owned(),
+            "docs/proof-dependency-boundary.md".to_owned(),
+            "xtask/tests/proof_dependency_boundary.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(!repository_tool_test.full_fallback);
+    assert!(!repository_tool_test.esp32_required);
+    assert!(!repository_tool_test.browser_required);
+    assert!(!repository_tool_test.conduitos_required);
+    assert_eq!(repository_tool_test.changed_packages, ["xtask"]);
+    assert!(repository_tool_test
+        .affected_test_packages
+        .contains(&"xtask".to_owned()));
+    assert!(repository_tool_test.workspace_shards["lint"]);
+    assert!(repository_tool_test.workspace_shards["test-products"]);
+    for shard in ["test-foundation", "test-hosts", "portable", "pico"] {
+        assert!(!repository_tool_test.workspace_shards[shard], "{shard}");
+    }
+
     let pages_deploy_resolver = plan_for_paths(
         &root,
         PAGES_DEPLOY_RESOLVER_SLICE
