@@ -45,10 +45,7 @@ const GLOBAL_PREFIXES: [&str; 5] = [
     "tools/xtask-dispatch/",
 ];
 const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
-const FOCUSED_WORKFLOW_FILES: [&str; 2] = [
-    ".github/workflows/executable-book-pages.yml",
-    ".github/workflows/patchbay-debugger-pr-proof.yml",
-];
+const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/executable-book-pages.yml"];
 
 struct ControllerProofSpec {
     id: &'static str,

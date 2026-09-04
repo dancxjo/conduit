@@ -260,6 +260,42 @@ fn tour_proof_has_one_authoritative_candidate_workflow() {
 }
 
 #[test]
+fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let proof = workflow
+        .split("\n  tour-patchbay-proof:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  avr-release:\n").next())
+        .expect("locate shared focused browser proof environment");
+    let gate = workflow
+        .split("\n  products-proof:\n")
+        .nth(1)
+        .expect("locate stable product gate");
+
+    assert!(!root
+        .join(".github/workflows/patchbay-debugger-pr-proof.yml")
+        .exists());
+    assert!(proof.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(proof.contains("--workers 1"));
+    assert!(proof.contains("--retries 0"));
+    assert!(proof.contains("browser.patchbay-debugger"));
+    assert!(proof.contains("ci-proof-browser.patchbay-debugger-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(gate.contains("tour-patchbay-proof"));
+    assert!(workflow.contains("id: debugger-bootstrap"));
+    assert!(workflow.contains("reason=proof-definition-bootstrap"));
+    assert!(workflow
+        .contains("patchbay_debugger_required: ${{ steps.debugger-bootstrap.outputs.required }}"));
+    assert_eq!(
+        proof
+            .matches("if: needs.plan.outputs.patchbay_debugger_required == 'true'")
+            .count(),
+        9
+    );
+}
+
+#[test]
 fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-deploy.yml"))

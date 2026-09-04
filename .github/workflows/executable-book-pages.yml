@@ -39,6 +39,7 @@ jobs:
       proofs: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
       standalone_locks_required: ${{ steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
+      patchbay_debugger_required: ${{ steps.debugger-bootstrap.outputs.required }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -77,6 +78,27 @@ jobs:
             --json-out target/product-plan/impact.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
+      - name: Admit a proof node unknown to the prior trusted controller
+        id: debugger-bootstrap
+        env:
+          TRUSTED_PROOFS: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
+          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
+        run: |
+          required=false
+          reason=trusted-registry-not-selected
+          if printf '%s' "$TRUSTED_PROOFS" | grep -Fq 'products.patchbay-debugger'; then
+            required=true
+            reason=trusted-registry
+          elif ! git diff --quiet "$CONTROLLER_SHA" -- \
+            .github/workflows/executable-book-pages.yml \
+            xtask/src/commands/ci/impact/product_registry.rs \
+            xtask/src/commands/ci/proof_graph/spec.rs
+          then
+            required=true
+            reason=proof-definition-bootstrap
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          printf 'Patchbay debugger selection: `%s` (%s)\n' "$required" "$reason" >> "$GITHUB_STEP_SUMMARY"
 
   browser-runtimes:
     needs: plan
@@ -138,7 +160,7 @@ jobs:
           ci standalone-locks --locked
 
   tour-patchbay-proof:
-    needs: browser-runtimes
+    needs: [plan, browser-runtimes]
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     container:
@@ -179,6 +201,53 @@ jobs:
           --retries 0
           --grep
           "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
+      - name: Install the native Rust linker
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        with:
+          cache-on-failure: false
+      - name: Build only the Patchbay browser product
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: cargo build --locked -p patchbay-html
+      - name: Prove the finite debugger model
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: cargo test --locked -p patchbay-model debugger_
+      - name: Prove bounded kernel debugger control and causality
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: cargo test --locked -p conduit-kernel --test debug_observation
+      - name: Prove the focused Patchbay debugger interactions
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: >-
+          npx playwright test
+          --config proof/browser/patchbay-debugger.config.mjs
+          proof/browser/patchbay-debugger-watch.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+      - name: Attest the exact successful debugger proof key
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: >-
+          cargo xtask ci attest-success "$CONDUIT_CANDIDATE_SHA"
+          browser.patchbay-debugger
+          --evidence patchbay-model-debugger
+          --evidence kernel-debug-observation
+          --evidence playwright-chromium
+          --out target/ci-receipts/browser.patchbay-debugger.json
+          --locked
+      - name: Retain immutable debugger evidence
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-browser.patchbay-debugger-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/ci-receipts/browser.patchbay-debugger.json
+          if-no-files-found: error
+          retention-days: 14
 
   avr-release:
     needs: plan
