@@ -2129,6 +2129,15 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   await expect(page.locator(".creche-complete")).toContainText(bodyId);
   await expect(page.locator(".creche-steps")).toHaveCount(0);
   await expect(page.locator('.creche-complete .body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save Body evidence" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe(`conduit-body-${bodyId}.json`);
+  const chunks = [];
+  for await (const chunk of await download.createReadStream()) chunks.push(chunk);
+  const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  expect(exported.body_id).toBe(bodyId);
+  expect(exported.records).toHaveLength(4);
   const retained = await page.evaluate(() => {
     const api = globalThis.__conduitCrecheHost.runtime;
     api.conduit_creche_current();
@@ -2146,6 +2155,7 @@ test("graduation retains the same Body through an ordinary hosted Patchbay Plan"
   });
   expect(durable.body_id).toBe(bodyId);
   expect(durable.records).toHaveLength(4);
+  expect(exported).toEqual(durable);
 });
 
 test("graduation can finish without hosting Patchbay and still retain the same Body", async ({ page }) => {

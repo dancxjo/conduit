@@ -2,7 +2,7 @@ import { initializeBrowserHost } from "./browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner, readBodyProjection } from "./creche-lifecycle.mjs";
 import { createPhysicalHostRunner } from "./creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
-import { createGraduationRunner, renderBiography } from "./creche-graduation.mjs";
+import { createGraduationRunner, exportBodyEvidence, renderBiography } from "./creche-graduation.mjs";
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { createProductMasthead } from "./product-masthead.mjs";
@@ -275,18 +275,21 @@ function renderComplete(receipt, biography) {
   presentation.present("creche-complete-actions", {
     revision: ++presentationRevision,
     actions: [
+      { id: "evidence.save", event: "activate" },
       { id: "membership.leave", event: "activate" },
       { id: "membership.revoke", event: "activate" },
       { id: "creche.finish", event: "activate" },
     ],
     nodes: [
       { parent: null, component: "action-group", action: null, key: "complete-actions", text: "Crèche completion actions" },
-      { parent: 0, component: "button", action: 0, key: "leave-body", text: "Leave Body" },
-      { parent: 0, component: "button", action: 1, key: "remove-browser", text: "Remove this browser from the Body" },
-      { parent: 0, component: "button", action: 2, key: "finish-creche", text: "Finish and clear Crèche" },
+      { parent: 0, component: "button", action: 0, key: "save-body-evidence", text: "Save Body evidence" },
+      { parent: 0, component: "button", action: 1, key: "leave-body", text: "Leave Body" },
+      { parent: 0, component: "button", action: 2, key: "remove-browser", text: "Remove this browser from the Body" },
+      { parent: 0, component: "button", action: 3, key: "finish-creche", text: "Finish and clear Crèche" },
     ],
   }, { async onEvent(event) {
     presentation.nextEvent("creche-complete-actions");
+    if (event.action === "evidence.save") exportBodyEvidence(biography);
     if (event.action === "membership.leave") {
       changeHereMembership("conduit_creche_leave_here");
       retainDurableBody();

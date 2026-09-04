@@ -9,6 +9,7 @@ import {
   setFormSelected,
   toggleForm,
 } from "../../targets/browser/host/assets/creche-form-selection.mjs";
+import { exportBodyEvidence } from "../../targets/browser/host/assets/creche-graduation.mjs";
 import { initialFormSelectionNotice, selectedCanonicalSource } from "../../targets/browser/host/assets/creche-lifecycle.mjs";
 
 const inventory = Object.freeze({
@@ -77,4 +78,30 @@ test("invalid, duplicate, and over-capacity state is explicit", () => {
   assert.throws(() => openFormSelection(inventory, { schema: "wrong", forms: [] }), /malformed/);
   assert.throws(() => toggleForm({ ...inventory, maximum_selection: 0, forms: [] }, [], "clock"), /absent/);
   assert.throws(() => searchForms(inventory, "x".repeat(129)), /bound/);
+});
+
+test("graduation exports the exact bounded Body biography without mutation", async () => {
+  const bodyId = "a".repeat(64);
+  const biography = { schema: "conduit.body/biography-evidence@2", body_id: bodyId, records: [{ sequence: 1, sign_id: "sign/born", kind: { Born: {} } }] };
+  const priorDocument = globalThis.document;
+  const priorCreate = URL.createObjectURL;
+  const priorRevoke = URL.revokeObjectURL;
+  let exportedBlob;
+  let download;
+  let clicked = false;
+  URL.createObjectURL = (blob) => { exportedBlob = blob; return "blob:body-evidence"; };
+  URL.revokeObjectURL = (url) => assert.equal(url, "blob:body-evidence");
+  globalThis.document = { createElement(tag) { assert.equal(tag, "a"); return { click() { clicked = true; }, set download(value) { download = value; }, set href(value) { assert.equal(value, "blob:body-evidence"); } }; } };
+  try {
+    exportBodyEvidence(biography);
+    assert.equal(clicked, true);
+    assert.equal(download, `conduit-body-${bodyId}.json`);
+    assert.deepEqual(JSON.parse(await exportedBlob.text()), biography);
+    assert.throws(() => exportBodyEvidence({ body_id: bodyId }), /unavailable/);
+    assert.throws(() => exportBodyEvidence({ body_id: bodyId, records: [], padding: "x".repeat(65_536) }), /export bound/);
+  } finally {
+    globalThis.document = priorDocument;
+    URL.createObjectURL = priorCreate;
+    URL.revokeObjectURL = priorRevoke;
+  }
 });
