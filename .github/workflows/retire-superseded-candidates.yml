@@ -1,0 +1,36 @@
+name: retire-superseded-candidates
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: retire-candidate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check out canonical controller only
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Retire only superseded heads of this pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          CONDUIT_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/retire-superseded-candidates.mjs | tee retired-candidates.json
+      - name: Summarize exact cancellation decisions
+        run: |
+          printf '## Superseded candidate retirement\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+          cat retired-candidates.json >> "$GITHUB_STEP_SUMMARY"
+          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
