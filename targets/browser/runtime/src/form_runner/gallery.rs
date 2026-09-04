@@ -33,10 +33,27 @@ struct GalleryForm {
     source_document_id: String,
     checked_form_id: String,
     required_kinds: Vec<String>,
+    realizability: GalleryRealizability,
+}
+
+#[derive(Serialize)]
+struct GalleryRealizability {
+    status: &'static str,
+    current_offer_count: usize,
+    required_kind_count: usize,
+    requirements: Vec<GalleryRequirement>,
+}
+
+#[derive(Serialize)]
+struct GalleryRequirement {
+    kind_id: String,
+    offer_state: &'static str,
+    realization_class: Option<&'static str>,
 }
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
     let (startup, _) = crate::installed_browser::catalogs()?;
+    let host_inventory = crate::installed_browser::inventory();
     let mut forms = Vec::with_capacity(REVIEWED_SOURCES.len());
     for (name, title, source) in REVIEWED_SOURCES {
         let syntax = conduit_form::parse_syntax_document(source);
@@ -60,6 +77,28 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             .collect::<Vec<_>>();
         required_kinds.sort();
         required_kinds.dedup();
+        let requirements = required_kinds
+            .iter()
+            .map(|kind| {
+                let offer = host_inventory
+                    .entries
+                    .iter()
+                    .find(|entry| entry.kind_id == *kind && entry.implementation_id.is_some());
+                GalleryRequirement {
+                    kind_id: kind.clone(),
+                    offer_state: if offer.is_some() {
+                        "current-host-offer"
+                    } else {
+                        "not-currently-offered"
+                    },
+                    realization_class: offer.map(|entry| entry.classification),
+                }
+            })
+            .collect::<Vec<_>>();
+        let current_offer_count = requirements
+            .iter()
+            .filter(|requirement| requirement.offer_state == "current-host-offer")
+            .count();
         forms.push(GalleryForm {
             name,
             title,
@@ -67,6 +106,16 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             source_document_id: checked.source_document_id.as_str().into(),
             checked_form_id: form.checked_form_id.as_str().into(),
             required_kinds,
+            realizability: GalleryRealizability {
+                status: if current_offer_count == requirements.len() {
+                    "runnable-on-current-browser-host"
+                } else {
+                    "missing-current-host-offer"
+                },
+                current_offer_count,
+                required_kind_count: requirements.len(),
+                requirements,
+            },
         });
     }
     Ok(Gallery {
@@ -90,6 +139,18 @@ mod tests {
             assert!(!form.checked_form_id.is_empty());
             assert!(form.source.contains(&format!("form {}", form.name)));
             assert!(!form.required_kinds.is_empty());
+            assert_eq!(
+                form.realizability.status,
+                "runnable-on-current-browser-host"
+            );
+            assert_eq!(
+                form.realizability.current_offer_count,
+                form.realizability.required_kind_count
+            );
+            assert!(form.realizability.requirements.iter().all(|requirement| {
+                requirement.offer_state == "current-host-offer"
+                    && requirement.realization_class.is_some()
+            }));
         }
     }
 }

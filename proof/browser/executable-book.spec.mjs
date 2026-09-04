@@ -867,6 +867,10 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
   const cards = page.locator(".form-gallery-card");
   await expect(cards).toHaveCount(3);
+  await expect(cards.locator('[data-status="runnable-on-current-browser-host"]')).toHaveCount(3);
+  await expect(cards.first().locator(".form-gallery-realization li")).toHaveCount(2);
+  await expect(cards.first()).toContainText("current offer · local/kernel");
+  await expect(cards.first()).toContainText("Browsing acquires no resource or authority");
   await expect(page.locator(".book-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
