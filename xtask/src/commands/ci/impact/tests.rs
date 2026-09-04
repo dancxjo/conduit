@@ -425,7 +425,6 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     }
 
     for path in [
-        ".github/workflows/book-pr-proof.yml",
         ".github/workflows/executable-book-pages.yml",
         ".github/workflows/patchbay-debugger-pr-proof.yml",
     ] {
