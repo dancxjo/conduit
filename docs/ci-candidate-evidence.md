@@ -63,6 +63,11 @@ For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges
 
 Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. The stable externally required `check` job remains unchanged.
 
+The privileged retirement controller re-resolves the pull request's current
+head before it lists candidate runs. A delayed synchronize event for B1 becomes
+inert after the PR advances to B2, so only B2 may retire B1; event arrival order
+can never reverse that relationship.
+
 The `book-and-creche-products` workflow follows the same controller model. It
 triggers cheaply for every pull request, checks out the immutable candidate and
 the current trusted default-branch controller as separate trees, and asks the

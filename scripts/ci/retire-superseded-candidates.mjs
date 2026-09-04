@@ -51,6 +51,12 @@ export async function retireSupersededCandidates({ repository, pullNumber, curre
     Authorization: `Bearer ${token}`,
     "X-GitHub-Api-Version": "2022-11-28",
   };
+  const pullResponse = await request(`https://api.github.com/repos/${repository}/pulls/${pullNumber}`, { headers });
+  if (!pullResponse.ok) throw new Error(`resolve current pull head failed: HTTP ${pullResponse.status}`);
+  const pull = await pullResponse.json();
+  if (pull?.head?.sha !== currentHead || pull?.head?.ref !== headRef) {
+    return { eventStatus: "stale", retired: [] };
+  }
   const runs = [];
   for (let page = 1; page <= 10; page += 1) {
     const query = new URLSearchParams({
@@ -111,11 +117,14 @@ export async function retireSupersededCandidates({ repository, pullNumber, curre
       }
     }
   }
-  return retired.map(({ id, name, head_sha, retirement_reason }) => ({ id, name, head_sha, retirement_reason }));
+  return {
+    eventStatus: "current",
+    retired: retired.map(({ id, name, head_sha, retirement_reason }) => ({ id, name, head_sha, retirement_reason })),
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const retired = await retireSupersededCandidates({
+  const result = await retireSupersededCandidates({
     repository: process.env.GITHUB_REPOSITORY ?? "",
     pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
     currentHead: process.env.CONDUIT_CANDIDATE_SHA ?? "",
@@ -125,6 +134,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   process.stdout.write(`${JSON.stringify({
     schema: "conduit.ci.superseded-candidates/v1",
     current_head: process.env.CONDUIT_CANDIDATE_SHA,
-    retired,
+    event_status: result.eventStatus,
+    retired: result.retired,
   }, null, 2)}\n`);
 }

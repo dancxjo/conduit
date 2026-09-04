@@ -11,6 +11,8 @@ const current = "b".repeat(40);
 const old = "a".repeat(40);
 const headRef = "codex/fixture-head";
 
+const currentPull = () => ({ ok: true, json: async () => ({ head: { sha: current, ref: headRef } }) });
+
 test("retires only another head of the same pull lifecycle", () => {
   const runs = [
     { id: 1, event: "pull_request", name: "check", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
@@ -53,6 +55,7 @@ test("cancels each exact superseded run and reports immutable provenance", async
   const requests = [];
   const request = async (url, options = {}) => {
     requests.push([url, options.method ?? "GET"]);
+    if (url.endsWith("/pulls/7")) return currentPull();
     if ((options.method ?? "GET") === "GET" && url.includes("actions/runs?")) {
       return { ok: true, json: async () => ({ workflow_runs: [
         { id: 41, event: "pull_request", name: "check", status: "queued", head_sha: old, pull_requests: [{ number: 7 }] },
@@ -63,8 +66,8 @@ test("cancels each exact superseded run and reports immutable provenance", async
     return { ok: true, status: 202 };
   };
   const retired = await retireSupersededCandidates({ repository: "dancxjo/conduit", pullNumber: 7, currentHead: current, headRef, token: "test", request, pause: async () => {} });
-  assert.deepEqual(retired, [{ id: 41, name: "check", head_sha: old, retirement_reason: "superseded-head" }]);
-  assert.match(requests[0][0], /branch=codex%2Ffixture-head/);
+  assert.deepEqual(retired, { eventStatus: "current", retired: [{ id: 41, name: "check", head_sha: old, retirement_reason: "superseded-head" }] });
+  assert.match(requests.find(([url]) => url.includes("actions/runs?"))[0], /branch=codex%2Ffixture-head/);
   assert.equal(requests.filter(([, method]) => method === "POST").length, 1);
   assert.match(requests.find(([, method]) => method === "POST")[0], /\/runs\/41\/cancel$/);
 });
@@ -76,6 +79,7 @@ test("force-cancels only the same superseded run when normal cancellation linger
       posts.push(url);
       return { ok: true, status: 202 };
     }
+    if (url.endsWith("/pulls/7")) return currentPull();
     if (url.includes("actions/runs?")) return { ok: true, json: async () => ({ workflow_runs: [
       { id: 51, event: "pull_request", name: "check", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
     ] }) };
@@ -93,6 +97,7 @@ test("resolves omitted run associations from immutable head history", async () =
       posts.push(url);
       return { ok: true, status: 202 };
     }
+    if (url.endsWith("/pulls/7")) return currentPull();
     if (url.includes("actions/runs?")) return { ok: true, json: async () => ({ workflow_runs: [
       { id: 61, event: "pull_request", name: "check", status: "queued", head_sha: old, pull_requests: [] },
     ] }) };
@@ -100,7 +105,7 @@ test("resolves omitted run associations from immutable head history", async () =
     return { ok: true, json: async () => ({ status: "completed" }) };
   };
   const retired = await retireSupersededCandidates({ repository: "dancxjo/conduit", pullNumber: 7, currentHead: current, headRef, token: "test", request, pause: async () => {} });
-  assert.deepEqual(retired.map(({ id }) => id), [61]);
+  assert.deepEqual(retired.retired.map(({ id }) => id), [61]);
   assert.equal(posts.length, 1);
 });
 
@@ -116,4 +121,25 @@ test("other pull associations and API failures fail closed", async () => {
     repository: "dancxjo/conduit", pullNumber: 7, currentHead: current, headRef: "bad\nref", token: "test",
     request: async () => { throw new Error("must not request"); },
   }), /bounded branch identity/);
+});
+
+test("a stale retirement event cannot cancel the newer candidate", async () => {
+  const requests = [];
+  const request = async (url, options = {}) => {
+    requests.push([url, options.method ?? "GET"]);
+    if (url.endsWith("/pulls/7")) {
+      return { ok: true, json: async () => ({ head: { sha: current, ref: headRef } }) };
+    }
+    throw new Error("stale event must stop before listing or canceling runs");
+  };
+  const result = await retireSupersededCandidates({
+    repository: "dancxjo/conduit",
+    pullNumber: 7,
+    currentHead: old,
+    headRef,
+    token: "test",
+    request,
+  });
+  assert.deepEqual(result, { eventStatus: "stale", retired: [] });
+  assert.deepEqual(requests, [["https://api.github.com/repos/dancxjo/conduit/pulls/7", "GET"]]);
 });
