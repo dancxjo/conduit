@@ -15,7 +15,7 @@ mod deterministic;
 
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
-const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v1";
+const REPORT_SCHEMA: &str = "conduit.form-conformance-report/v2";
 
 #[derive(Args, Debug)]
 pub struct FormsArgs {
@@ -89,6 +89,8 @@ pub(super) struct BrowserOracle {
 struct Report {
     schema: &'static str,
     inventory_schema: String,
+    proof_process_starts: usize,
+    proof_process_starts_avoided: usize,
     results: Vec<FormProofResult>,
 }
 
@@ -245,6 +247,8 @@ fn build_report(
     Ok(Report {
         schema: REPORT_SCHEMA,
         inventory_schema: inventory.schema,
+        proof_process_starts: 0,
+        proof_process_starts_avoided: 0,
         results,
     })
 }

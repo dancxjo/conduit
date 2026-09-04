@@ -6,12 +6,16 @@ const cases = [
   ["memory-lantern", "READY"],
   ["desk-telegraph", "CALLING"],
 ];
+const selectedCases = new Set(JSON.parse(process.env.CONDUIT_FORM_CASES_JSON ?? "null") ?? cases.map(([slug]) => `reviewed Form ${slug} runs browser-safe`));
 
 for (const [slug, expectedText] of cases) {
-  test(`reviewed Form ${slug} runs browser-safe`, async ({ page }) => {
-    const source = await readFile(`forms/${slug}/main.conduit`, "utf8");
-    await page.goto("/");
-    const evidence = await page.evaluate(async ({ source, slug }) => {
+  const caseName = `reviewed Form ${slug} runs browser-safe`;
+  test(caseName, async ({ page }) => {
+    test.skip(!selectedCases.has(caseName), "not selected by the admitted Form batch");
+    try {
+      const source = await readFile(`forms/${slug}/main.conduit`, "utf8");
+      await page.goto("/");
+      const evidence = await page.evaluate(async ({ source, slug }) => {
       const response = await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm");
       if (!response.ok) throw new Error(`browser runtime fetch failed: ${response.status}`);
       const { instance } = await WebAssembly.instantiate(await response.arrayBuffer(), {});
@@ -47,19 +51,31 @@ for (const [slug, expectedText] of cases) {
         throw new Error(`Form completion refused: ${JSON.stringify(read())}`);
       }
       return { effect, receipt: read() };
-    }, { source, slug });
+      }, { source, slug });
 
-    expect(evidence.effect).toMatchObject({
-      effect_kind: "manifestation",
-      text: expectedText,
-    });
-    expect(evidence.receipt).toMatchObject({
-      disposition: "completed",
-      active_play_id: evidence.effect.active_play_id,
-    });
-    console.log(`CONDUIT_FORM_EVIDENCE=${JSON.stringify({
-      plan_id: evidence.effect.plan_id,
-      play_id: evidence.effect.active_play_id,
-    })}`);
+      expect(evidence.effect).toMatchObject({
+        effect_kind: "manifestation",
+        text: expectedText,
+      });
+      expect(evidence.receipt).toMatchObject({
+        disposition: "completed",
+        active_play_id: evidence.effect.active_play_id,
+      });
+      console.log(`CONDUIT_FORM_EVIDENCE=${JSON.stringify({
+        slug,
+        status: "passed",
+        plan_id: evidence.effect.plan_id,
+        play_id: evidence.effect.active_play_id,
+      })}`);
+    } catch (error) {
+      const reason = String(error?.message ?? error).slice(0, 2_000);
+      const refused = reason.includes("Form start refused:") || reason.includes("source interaction refused:");
+      console.log(`CONDUIT_FORM_EVIDENCE=${JSON.stringify({
+        slug,
+        status: refused ? "refused" : "failed",
+        reason,
+      })}`);
+      throw error;
+    }
   });
 }
