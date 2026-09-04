@@ -170,6 +170,7 @@ mod tests {
             slug: "fixture".into(),
             title: "Fixture".into(),
             entry: "fixture".into(),
+            reusable_entries: Vec::new(),
             initial_body_order: None,
             deterministic: None,
             deterministic_not_applicable: None,

@@ -14,6 +14,11 @@ mod browser;
 mod deterministic;
 #[path = "forms/report.rs"]
 mod report;
+#[path = "forms/reusable.rs"]
+mod reusable;
+#[cfg(test)]
+#[path = "forms/tests.rs"]
+mod tests;
 
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
@@ -65,11 +70,19 @@ pub(super) struct InventoryForm {
     pub(super) title: String,
     pub(super) entry: String,
     #[serde(default)]
+    pub(super) reusable_entries: Vec<ReusableForm>,
+    #[serde(default)]
     initial_body_order: Option<u8>,
     pub(super) deterministic: Option<DeterministicOracle>,
     pub(super) deterministic_not_applicable: Option<String>,
     pub(super) browser_safe: Option<BrowserOracle>,
     pub(super) browser_safe_not_applicable: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct ReusableForm {
+    pub(super) entry: String,
+    pub(super) title: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,6 +114,7 @@ pub(super) struct FormProofResult {
     slug: String,
     title: String,
     source_path: String,
+    form_entry: String,
     source_document_id: Option<String>,
     checked_form_id: Option<String>,
     proof_mode: &'static str,
@@ -245,6 +259,7 @@ fn build_report(
                 "check",
             )),
         }
+        results.extend(reusable::check_all(root, &form, &source_path, &catalogs));
     }
     Ok(Report {
         schema: REPORT_SCHEMA,
@@ -268,6 +283,7 @@ fn result(
         slug: form.slug.clone(),
         title: form.title.clone(),
         source_path: path.into(),
+        form_entry: form.entry.clone(),
         source_document_id: identities.as_ref().map(|item| item.0.clone()),
         checked_form_id: identities.map(|item| item.1),
         proof_mode: mode,
@@ -285,9 +301,14 @@ fn result(
 fn load_inventory(root: &Path) -> Result<Inventory, String> {
     let bytes = fs::read_to_string(root.join(INVENTORY_PATH)).map_err(|error| error.to_string())?;
     let inventory: Inventory = toml::from_str(&bytes).map_err(|error| error.to_string())?;
+    let reviewed_subjects = inventory
+        .forms
+        .iter()
+        .map(|form| 1 + form.reusable_entries.len())
+        .sum::<usize>();
     if inventory.schema != INVENTORY_SCHEMA
         || inventory.forms.is_empty()
-        || inventory.forms.len() > inventory.maximum_forms
+        || reviewed_subjects > inventory.maximum_forms
     {
         return Err("reviewed Form inventory violates its schema or finite bound".into());
     }
@@ -300,6 +321,12 @@ fn load_inventory(root: &Path) -> Result<Inventory, String> {
             || !slugs.insert(&form.slug)
         {
             return Err("reviewed Form inventory contains an empty or duplicate identity".into());
+        }
+        if !reusable_entries_are_valid(form) {
+            return Err(format!(
+                "reviewed Form '{}' contains an empty or duplicate reusable identity",
+                form.slug
+            ));
         }
         if let Some(oracle) = &form.browser_safe {
             if oracle.case.is_empty()
@@ -339,6 +366,15 @@ fn load_inventory(root: &Path) -> Result<Inventory, String> {
         return Err(format!("reviewed Form inventory mismatch: declared {declared:?}, canonical sources {present:?}"));
     }
     Ok(inventory)
+}
+
+fn reusable_entries_are_valid(form: &InventoryForm) -> bool {
+    let mut entries = BTreeSet::from([form.entry.as_str()]);
+    form.reusable_entries.iter().all(|reusable| {
+        !reusable.entry.is_empty()
+            && !reusable.title.is_empty()
+            && entries.insert(reusable.entry.as_str())
+    })
 }
 
 fn check_one(
@@ -438,45 +474,4 @@ fn render(report: &Report, json: bool) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
-        let root = crate::workspace::workspace_root().unwrap();
-        let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
-        let checks: Vec<_> = report
-            .results
-            .iter()
-            .filter(|result| result.proof_mode == "check")
-            .collect();
-        assert_eq!(checks.len(), 35);
-        assert!(checks.iter().all(|result| result.status == "passed"));
-        assert!(report
-            .results
-            .iter()
-            .all(|result| result.status != "skipped"));
-    }
-
-    #[test]
-    fn initial_body_bundle_is_selected_by_the_shared_inventory() {
-        let root = crate::workspace::workspace_root().unwrap();
-        let output = std::env::temp_dir().join(format!(
-            "conduit-initial-forms-{}.conduit",
-            std::process::id()
-        ));
-        bundle_initial_body(&root, &output).unwrap();
-        let source = fs::read_to_string(&output).unwrap();
-        let _ = fs::remove_file(output);
-        assert!(source.contains("form morse_network"));
-        assert!(source.contains("form memory_lantern"));
-        assert!(source.contains("form desk_telegraph"));
-        assert_eq!(
-            source.matches("\nform ").count() + usize::from(source.starts_with("form ")),
-            3
-        );
-    }
 }
