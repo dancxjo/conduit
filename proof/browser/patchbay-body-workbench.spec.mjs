@@ -90,6 +90,27 @@ test("an invitation for a different Body refuses before admission", async ({ pag
   expect(membershipProbe.output()).not.toContain("admitted");
 });
 
+test("an admitted browser visibly returns once with the same Host and Boot", async ({ page }) => {
+  const evidencePath = await writeFixtureEvidence(page);
+  membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath, "--reconnect"]);
+  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
+  const identity = await page.evaluate(() => ({
+    hostId: globalThis.__patchbayMembership.hostId,
+    bootId: globalThis.__patchbayMembership.bootId,
+  }));
+  await expect.poll(membershipProbe.output).toContain("unavailable reason=session-lost-for-return");
+  await expect.poll(membershipProbe.output).toContain("returned-renewed sequence=4");
+  await expect(page.locator("#body-membership-status")).toHaveText("Browser presence returned for the same current Boot.");
+  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.presenceState())).toBe("available");
+  expect(await page.evaluate(() => ({
+    hostId: globalThis.__patchbayMembership.hostId,
+    bootId: globalThis.__patchbayMembership.bootId,
+  }))).toEqual(identity);
+  await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
+});
+
 test.afterEach(async () => {
   server?.kill();
   membershipProbe?.process.kill();
