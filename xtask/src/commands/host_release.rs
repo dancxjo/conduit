@@ -73,7 +73,6 @@ pub(crate) fn run(
 fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
         Command::new("cargo").args([
-            "+stable",
             "build",
             "--locked",
             "--release",
@@ -159,7 +158,7 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
 
 fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
-        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
+        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
         "compile hosted Linux release",
     )?;
     fs::create_dir_all(output)?;
@@ -170,7 +169,6 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
     require_success(
         Command::new("cargo")
             .args([
-                "+stable",
                 "build",
                 "--locked",
                 "--release",
@@ -248,7 +246,7 @@ fn build_linux_set(output: &Path, source_identity: &str) -> Result<(), Box<dyn s
 
 fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
-        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
+        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
         "compile hosted Windows x86_64 release",
     )?;
     fs::create_dir_all(output)?;
@@ -274,7 +272,7 @@ fn build_windows(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
 
 fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
-        Command::new("cargo").args(["+stable", "build", "--locked", "--release", "-p", "conduit"]),
+        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
         "compile hosted macOS aarch64 release",
     )?;
     fs::create_dir_all(output)?;

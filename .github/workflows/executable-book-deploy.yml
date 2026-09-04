@@ -160,7 +160,7 @@ jobs:
           git fetch --no-tags origin "refs/pull/$PR_NUMBER/head"
           test "$(git rev-parse FETCH_HEAD)" = "$SOURCE_HEAD"
       - name: Prepare the dependency-light merged controller
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.98.1
       - name: Reconcile exact Pages carrier inputs with the merged tree
         id: reconcile
         env:

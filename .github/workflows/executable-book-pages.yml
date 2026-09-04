@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
@@ -35,8 +36,11 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      required: ${{ steps.impact.outputs.pages_products_required || 'true' }}
-      proofs: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
+      required: ${{ steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true' }}
+      proofs: ${{ steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
+      stack_role: ${{ steps.stack.outputs.role || 'independent' }}
+      stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
+      stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
       standalone_locks_required: ${{ steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
       patchbay_debugger_required: ${{ steps.debugger-bootstrap.outputs.required }}
@@ -63,9 +67,42 @@ jobs:
         run: |
           git fetch --no-tags origin "$CONTROLLER_SHA"
           git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Classify this immutable candidate within its open PR stack
+        id: stack
+        if: github.event_name == 'pull_request' && inputs.candidate_sha == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          CONDUIT_STACK_ROLE_OUT: target/product-plan/pr-stack-role.json
+        run: |
+          classifier="$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+          if test -f "$classifier"; then
+            mkdir -p target/product-plan
+            node "$classifier"
+          else
+            echo 'role=independent' >> "$GITHUB_OUTPUT"
+            echo 'reason=trusted-controller-has-no-stack-classifier' >> "$GITHUB_OUTPUT"
+            echo 'Trusted controller predates stack classification; proving conservatively.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain cheap product slice evidence for an intermediate PR
+        id: slice
+        if: steps.stack.outputs.role == 'intermediate'
+        run: |
+          git diff --check "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA"
+          echo 'required=false' >> "$GITHUB_OUTPUT"
+          echo 'proofs=[]' >> "$GITHUB_OUTPUT"
+          printf 'Intermediate PR slice is covered by cumulative tip PR #%s at `%s`; no product fabrication is scheduled.\n' \
+            '${{ steps.stack.outputs.tip_pr }}' '${{ steps.stack.outputs.tip_sha }}' >> "$GITHUB_STEP_SUMMARY"
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: steps.stack.outputs.role != 'intermediate'
+        with:
+          components: clippy,rustfmt
+      - name: Verify the exact generic Rust toolchain before product fan-out
+        if: steps.stack.outputs.role != 'intermediate'
+        run: cargo +1.98.1 xtask ci rust-toolchain-preflight --locked
       - name: Select exact product proof impact
         id: impact
+        if: steps.stack.outputs.role != 'intermediate'
         run: |
           controller=(cargo xtask)
           if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
@@ -80,6 +117,7 @@ jobs:
             >> "$GITHUB_OUTPUT"
       - name: Admit a proof node unknown to the prior trusted controller
         id: debugger-bootstrap
+        if: steps.stack.outputs.role != 'intermediate'
         env:
           TRUSTED_PROOFS: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
           CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
@@ -109,7 +147,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
@@ -144,7 +182,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
       - name: Materialize the trusted CI controller outside the candidate workspace
         env:
           CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
@@ -206,7 +246,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends build-essential
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
       - uses: Swatinem/rust-cache@v2
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
@@ -269,7 +309,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
@@ -281,7 +321,7 @@ jobs:
             target/avr-promicro/arduino
           key: avr-promicro-arduino-cli-1.5.1-arduino-avr-1.8.8-sparkfun-avr-1.1.13
       - name: Compile and seal the exact generic Pro Micro release
-        run: cargo +stable xtask avr release --output target/creche-avr-release
+        run: cargo +1.98.1 xtask avr release --output target/creche-avr-release
       - uses: actions/upload-artifact@v7
         with:
           name: conduit-avr-promicro-release
@@ -298,14 +338,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
       - name: Compile and seal the reviewed browser distribution
-        run: cargo +stable xtask host release --platform browser --output target/creche-host-releases
+        run: cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
       - uses: actions/upload-artifact@v7
         with:
           name: conduit-existing-computer-releases-browser
@@ -336,7 +376,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
@@ -349,7 +389,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
       - name: Compile and seal the reviewed generic existing-computer releases
-        run: cargo +stable xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
+        run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - uses: actions/upload-artifact@v7
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
@@ -366,7 +406,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
       - uses: Swatinem/rust-cache@v2
@@ -380,7 +420,7 @@ jobs:
         run: |
           mkdir -p target/creche-rpi-release
           for board in rpi-b-plus-v1.2 rpi-zero-v1 rpi-zero-w-v1.1 rpi-zero-wh-v1.1; do
-            cargo +stable xtask host rpi --board "$board" image --locked
+            cargo +1.98.1 xtask host rpi --board "$board" image --locked
           done
           cp target/conduitos/armv6/conduitos-rpi-*.img target/creche-rpi-release/
           cp target/conduitos/armv6/rpi-*-image.json target/creche-rpi-release/
@@ -400,7 +440,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: aarch64-unknown-none
           components: rust-src
@@ -413,7 +453,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends dosfstools
       - name: Compile and seal the exact Orange Pi 5 ConduitOS SD image
         run: |
-          cargo +stable xtask --locked conduitos orange-pi5-image
+          cargo +1.98.1 xtask --locked conduitos orange-pi5-image
           mkdir -p target/creche-orange-pi-release
           cp target/conduitos/aarch64/orange-pi-5/conduitos-orange-pi-5.img target/creche-orange-pi-release/
           cp target/conduitos/aarch64/orange-pi-5/orange-pi-5-image.json target/creche-orange-pi-release/
@@ -448,7 +488,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
           components: rust-src,llvm-tools-preview
@@ -472,7 +512,7 @@ jobs:
       - name: Compile the exact ${{ matrix.architecture }} ConduitOS product Host release
         if: steps.image-cache.outputs.cache-hit != 'true'
         run: >-
-          cargo +stable xtask host build ${{ matrix.profile }}
+          cargo +1.98.1 xtask host build ${{ matrix.profile }}
           --output target/creche-conduitos-build/${{ matrix.architecture }} --locked
       - uses: actions/upload-artifact@v7
         with:
@@ -525,7 +565,7 @@ jobs:
 
   esp32-release-images:
     needs: [plan, standalone-locks]
-    if: always() && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -537,7 +577,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Install the pinned ESP32-C3 Rust toolchain
         if: matrix.target == 'c3'
         uses: dtolnay/rust-toolchain@1.91.1
@@ -576,7 +616,7 @@ jobs:
             targets/esp32/firmware/${{ matrix.target }}-signal -> target
       - name: Build and seal the exact generic release IMAGE
         run: >-
-          cargo +stable xtask esp32-firmware build
+          cargo +1.98.1 xtask esp32-firmware build
           --target "${{ matrix.target }}"
           --locked
           --receipt "target/esp32-release/${{ matrix.target }}-build.json"

@@ -76,7 +76,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
   assert.match(
     productWorkflow,
-    /tour-patchbay-proof:\n    needs: browser-runtimes/,
+    /tour-patchbay-proof:\n    needs: \[plan, browser-runtimes\]/,
   );
   assert.doesNotMatch(productWorkflow, /conduit-staged-tour-patchbay/);
   assert.match(productWorkflow, /--grep-invert/);

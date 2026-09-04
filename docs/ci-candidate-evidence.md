@@ -13,6 +13,41 @@ artifact         content-addressed object consumed or produced by proof
 
 Candidate evidence is immutable. Advancing a PR from B1 to B2 creates a new candidate, but it does not make a successful B1 receipt false. Moving `main` changes the integration question, not candidate history.
 
+## Deep single-owner stacks
+
+The trusted default-branch controller classifies open same-repository pull
+requests by their exact head and base branch identities. A chain is collapsible
+only when every edge is unique and every PR has the same GitHub owner. Forks,
+duplicate head refs, siblings, owner boundaries, cycles, stale events, and
+unknown API results fail closed to ordinary independent candidate proof.
+
+Within a valid chain, only the immutable cumulative tip schedules the expensive
+workspace, browser, product, firmware, and ConduitOS candidate graphs. Every
+intermediate PR still receives a stable `check` and `products-proof` result,
+but those runs retain only exact head/base provenance, the complete ordered PR
+chain, the cumulative tip identity, and `git diff --check` slice evidence. They
+do not install Rust, compile the impact planner, fabricate products, or start
+machine proofs.
+
+This changes proof scheduling, not history. Each intermediate PR, commit,
+author, issue link, and review conversation remains intact. The cumulative tip
+proves the composed tree. Intermediate PRs may be retired only after admission
+establishes that their content is present in the integrated result.
+
+## Exact generic Rust toolchain
+
+`rust-toolchain.toml` owns the reviewed generic Rust compiler, Clippy, and
+rustfmt identity used by repository development and CI. Generic Actions setup
+and any explicit Cargo toolchain selector name that exact version; neither may
+resolve the moving `stable` channel independently. Target-specific toolchains,
+such as the separately named ESP Xtensa installation, remain distinct.
+
+The exact generic version participates in the proof registry environment
+identity. Updating it is therefore an intentional proof-contract change: the
+affected proof keys change and current lint/test evidence is regenerated. A
+candidate cannot acquire a new warning merely because the upstream `stable`
+pointer moved between local proof and GitHub execution.
+
 Candidate impact uses the unique `merge-base(requested base, candidate)..candidate`
 change set. The requested base tip and effective comparison base are reported
 separately in the machine-readable plan. Thus commits added only to a moving

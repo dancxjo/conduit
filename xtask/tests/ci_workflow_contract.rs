@@ -158,7 +158,7 @@ fn rust_target_caches_never_save_after_a_failed_proof() {
     let mut cache_uses = 0;
     let mut explicit_fail_closed_policies = 0;
 
-    for entry in fs::read_dir(workflows).expect("read workflow directory") {
+    for entry in fs::read_dir(&workflows).expect("read workflow directory") {
         let path = entry.expect("read workflow entry").path();
         if !matches!(
             path.extension().and_then(|value| value.to_str()),
@@ -181,6 +181,102 @@ fn rust_target_caches_never_save_after_a_failed_proof() {
         explicit_fail_closed_policies, cache_uses,
         "every Rust cache consumer must state the no-save-on-failure policy explicitly"
     );
+}
+
+#[test]
+fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let toolchain =
+        fs::read_to_string(root.join("rust-toolchain.toml")).expect("read Rust toolchain");
+    assert!(toolchain.contains("channel = \"1.98.1\""));
+    assert!(toolchain.contains("components = [\"clippy\", \"rustfmt\"]"));
+
+    let workflows = root.join(".github/workflows");
+    let mut exact_setups = 0;
+    for entry in fs::read_dir(&workflows).expect("read workflow directory") {
+        let path = entry.expect("read workflow entry").path();
+        if !matches!(
+            path.extension().and_then(|value| value.to_str()),
+            Some("yml" | "yaml")
+        ) {
+            continue;
+        }
+        let workflow = fs::read_to_string(&path).expect("read workflow");
+        assert!(
+            !workflow.contains("dtolnay/rust-toolchain@stable"),
+            "{} resolves a moving generic Rust toolchain",
+            path.display()
+        );
+        assert!(
+            !workflow.contains("cargo +stable"),
+            "{} overrides the exact repository toolchain with a moving channel",
+            path.display()
+        );
+        exact_setups += workflow.matches("dtolnay/rust-toolchain@1.98.1").count();
+    }
+    assert!(exact_setups > 0, "expected exact generic Rust setup in CI");
+
+    let registry = fs::read_to_string(root.join("xtask/src/commands/ci/proof_graph/spec.rs"))
+        .expect("read proof registry");
+    assert!(registry.contains("environment: \"ubuntu-rust-1.98.1-v1\""));
+    assert!(!registry.contains("ubuntu-stable-rust"));
+    let host_release = fs::read_to_string(root.join("xtask/src/commands/host_release.rs"))
+        .expect("read Host release fabrication");
+    assert!(
+        !host_release.contains("+stable"),
+        "Host release must inherit the exact repository toolchain"
+    );
+
+    let check = fs::read_to_string(workflows.join("check.yml")).expect("read check workflow");
+    let products = fs::read_to_string(workflows.join("executable-book-pages.yml"))
+        .expect("read product workflow");
+    for workflow in [&check, &products] {
+        let setup = workflow
+            .find("dtolnay/rust-toolchain@1.98.1")
+            .expect("exact toolchain setup");
+        let components = workflow[setup..]
+            .find("components: clippy,rustfmt")
+            .map(|offset| setup + offset)
+            .expect("exact generic components");
+        let preflight = workflow
+            .find("cargo +1.98.1 xtask ci rust-toolchain-preflight --locked")
+            .expect("exact toolchain preflight");
+        let planner = workflow.find("ci plan").expect("CI impact planner");
+        assert!(setup < components && components < preflight && preflight < planner);
+    }
+}
+
+#[test]
+fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let check =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+
+    assert!(!check.contains("needs.classify.result != 'success'"));
+    for job in [
+        "conduitos-limine",
+        "conduitos-tools",
+        "workspace-check",
+        "standalone-locks",
+        "conduitos-proof-image",
+        "conduitos-x86",
+        "conduitos-architecture",
+        "conduitos-aarch64-product",
+    ] {
+        let start = check
+            .find(&format!("  {job}:\n"))
+            .unwrap_or_else(|| panic!("missing {job}"));
+        let section = &check[start..check.len().min(start + 600)];
+        assert!(
+            section.contains("needs.classify.result == 'success'"),
+            "{job} can fan out after classifier failure"
+        );
+    }
+    assert!(products.contains(
+        "if: always() && needs.plan.result == 'success' && needs.plan.outputs.required == 'true'"
+    ));
 }
 
 #[test]
@@ -207,6 +303,19 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     ] {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
+}
+
+#[test]
+fn browser_release_installs_its_exact_wasm_target() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+    let browser_release = workflow
+        .split("\n  browser-release:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
+        .expect("locate browser release job");
+    assert!(browser_release.contains("targets: wasm32-unknown-unknown"));
 }
 
 #[test]

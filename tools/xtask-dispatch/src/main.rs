@@ -102,6 +102,8 @@ mod monitor;
 mod product_reconciliation;
 #[path = "../../../xtask/src/commands/ci/proof_graph.rs"]
 mod proof_graph;
+#[path = "../../../xtask/src/commands/ci/rust_toolchain.rs"]
+mod rust_toolchain;
 #[path = "../../../xtask/src/commands/ci/standalone_locks.rs"]
 mod standalone_locks;
 #[path = "../../../xtask/src/workspace.rs"]
