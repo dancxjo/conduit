@@ -2,6 +2,8 @@
 
 #[path = "browser-admission-probe/leave_session.rs"]
 mod leave_session;
+#[path = "browser-admission-probe/offer_evidence.rs"]
+mod offer_evidence;
 #[path = "browser-admission-probe/return_admission.rs"]
 mod return_admission;
 #[path = "browser-admission-probe/return_session.rs"]
@@ -22,6 +24,7 @@ use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 
 use leave_session::record_explicit_leave;
+use offer_evidence::{observation_for_candidate, send_admission_evidence};
 use return_admission::accept_return;
 
 const PRESENCE_LEASE_MILLIS: u64 = 2_000;
@@ -153,6 +156,7 @@ fn main() -> Result<(), String> {
         _ => return Err("second browser admission frame was not an ambient proof".into()),
     };
     let prior_membership_events = membership.events.len();
+    let offer_observation = observation_for_candidate(&candidates, &candidate)?;
     let credential = admission
         .complete_ambient(
             &mut candidates,
@@ -191,12 +195,7 @@ fn main() -> Result<(), String> {
             credential: credential.clone(),
         })
         .map_err(|error| format!("send credential: {error:?}"))?;
-    socket
-        .send(&BrowserAdmissionEgress::BiographyEvidence {
-            protocol: BROWSER_ADMISSION_PROTOCOL,
-            evidence: Box::new(biography.clone()),
-        })
-        .map_err(|error| format!("send biography evidence: {error:?}"))?;
+    send_admission_evidence(&mut socket, &biography, &offer_observation)?;
     println!(
         "admitted body={} part={} host={} boot={} candidates={} members={}",
         credential.body_id.as_str(),

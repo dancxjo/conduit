@@ -5,8 +5,8 @@
 //! decoded values through `conduit_body`'s canonical state machines.
 
 use conduit_body::{
-    AdmissionChallenge, AdmissionId, BodyBiographyEvidence, BodyId, MembershipCredential,
-    MembershipCredentialId, PartId, PartReturnChallenge, SpawnInvitationId,
+    AdmissionChallenge, AdmissionId, BodyBiographyEvidence, BodyId, HostOfferProjection,
+    MembershipCredential, MembershipCredentialId, PartId, PartReturnChallenge, SpawnInvitationId,
     ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
@@ -16,6 +16,8 @@ use std::time::Duration;
 
 use crate::websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener};
 
+mod egress;
+mod offer_evidence;
 mod webrtc_signaling;
 
 pub use webrtc_signaling::{
@@ -138,6 +140,10 @@ pub enum BrowserAdmissionEgress {
         protocol: u16,
         evidence: Box<BodyBiographyEvidence>,
     },
+    OfferEvidence {
+        protocol: u16,
+        evidence: Box<HostOfferProjection>,
+    },
     PresenceAccepted {
         protocol: u16,
         sequence: u64,
@@ -191,6 +197,7 @@ pub enum BrowserAdmissionFrameError {
     InvalidSequence,
     InvalidMediaResource,
     InvalidBiographyEvidence,
+    InvalidOfferEvidence,
     InvalidSignal,
     InvalidGrant,
     OutputTooSmall,
@@ -303,7 +310,7 @@ pub fn encode_browser_admission_frame(
     frame: &BrowserAdmissionEgress,
     output: &mut [u8],
 ) -> Result<usize, BrowserAdmissionFrameError> {
-    validate_egress(frame)?;
+    egress::validate(frame)?;
     let encoded = serde_json::to_vec(frame).map_err(|_| BrowserAdmissionFrameError::Malformed)?;
     if encoded.len() > MAX_BROWSER_ADMISSION_FRAME_BYTES || encoded.len() > output.len() {
         return Err(BrowserAdmissionFrameError::OutputTooSmall);
@@ -420,77 +427,6 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
         return Err(BrowserAdmissionFrameError::WrongProtocol);
     }
     Ok(())
-}
-
-fn validate_egress(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissionFrameError> {
-    let protocol = match frame {
-        BrowserAdmissionEgress::Challenge { protocol, .. }
-        | BrowserAdmissionEgress::Admitted { protocol, .. }
-        | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }
-        | BrowserAdmissionEgress::ReturnChallenge { protocol, .. }
-        | BrowserAdmissionEgress::Refused { protocol, .. } => protocol,
-        BrowserAdmissionEgress::BiographyEvidence { protocol, evidence } => {
-            evidence
-                .validate()
-                .map_err(|_| BrowserAdmissionFrameError::InvalidBiographyEvidence)?;
-            protocol
-        }
-        BrowserAdmissionEgress::MediaUsePlan {
-            protocol,
-            plan_id,
-            resource_handle,
-            output_port,
-        } => {
-            if plan_id.as_str().is_empty()
-                || resource_handle.as_str().is_empty()
-                || output_port.as_str().is_empty()
-            {
-                return Err(BrowserAdmissionFrameError::InvalidMediaResource);
-            }
-            protocol
-        }
-        BrowserAdmissionEgress::WebRtcPlanReady {
-            protocol,
-            generation,
-            plan_id,
-        } => {
-            if *generation == 0
-                || *generation >= MAX_WEBRTC_GRANT_GENERATIONS
-                || plan_id.as_str().is_empty()
-            {
-                return Err(BrowserAdmissionFrameError::InvalidGrant);
-            }
-            protocol
-        }
-        BrowserAdmissionEgress::WebRtcSignal {
-            protocol, signal, ..
-        } => {
-            signal.validate()?;
-            protocol
-        }
-        BrowserAdmissionEgress::WebRtcGrant {
-            protocol,
-            generation,
-            index,
-            total,
-            grant,
-        } => {
-            if *generation >= MAX_WEBRTC_GRANT_GENERATIONS
-                || usize::from(*index) >= MAX_WEBRTC_NEGOTIATIONS
-                || usize::from(*total) > MAX_WEBRTC_NEGOTIATIONS
-                || grant.is_some() != (*index < *total)
-            {
-                return Err(BrowserAdmissionFrameError::InvalidGrant);
-            }
-            if let Some(grant) = grant {
-                grant.validate()?;
-            }
-            protocol
-        }
-    };
-    (*protocol == BROWSER_ADMISSION_PROTOCOL)
-        .then_some(())
-        .ok_or(BrowserAdmissionFrameError::WrongProtocol)
 }
 
 #[cfg(test)]
