@@ -14,8 +14,11 @@ use crate::suites::{
 mod cargo_graph;
 #[path = "impact/command_registry.rs"]
 mod command_registry;
+#[path = "impact/product_registry.rs"]
+mod product_registry;
 use cargo_graph::{affected_tests, dependency_closure, discover, normalize, Package};
 use command_registry::{proofs_for_path, HeavySuite};
+use product_registry::proofs_for_paths as product_proofs_for_paths;
 
 const SUITES: [&str; 3] = ["esp32", "browser", "conduitos"];
 const ESP32_TARGETS: [&str; 3] = ["wroom", "c3", "s3"];
@@ -167,6 +170,8 @@ fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
 struct ImpactPlan {
     ci_controller_proofs: Vec<&'static str>,
     repository_command_proofs: Vec<&'static str>,
+    pages_product_proofs: Vec<&'static str>,
+    pages_products_required: bool,
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
@@ -799,9 +804,13 @@ fn plan(
     } else {
         workspace.lint_packages.into_iter().collect()
     };
+    let pages_product_proofs = product_proofs_for_paths(&changed_paths);
+    let pages_products_required = full_fallback || !pages_product_proofs.is_empty();
     ImpactPlan {
         ci_controller_proofs: controller_proofs(&changed_paths),
         repository_command_proofs: Vec::new(),
+        pages_product_proofs,
+        pages_products_required,
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
@@ -898,6 +907,12 @@ fn write_github_outputs(plan: &ImpactPlan) {
         serde_json::to_string(&plan.ci_controller_proofs)
             .expect("CI controller proof list serializes")
     );
+    println!("pages_products_required={}", plan.pages_products_required);
+    println!(
+        "pages_product_proofs={}",
+        serde_json::to_string(&plan.pages_product_proofs)
+            .expect("Pages product proof list serializes")
+    );
     println!("esp32_required={}", plan.esp32_required);
     println!(
         "esp32_matrix={}",
@@ -957,6 +972,23 @@ fn markdown_summary(plan: &ImpactPlan) -> String {
             "run"
         },
         controller_reason
+    ));
+    rows.push_str(&format!(
+        "| products/pages | {} | {} |\n",
+        if plan.pages_products_required {
+            "run"
+        } else {
+            "skip on PR"
+        },
+        if plan.pages_product_proofs.is_empty() {
+            if plan.full_fallback {
+                "conservative global fallback".to_owned()
+            } else {
+                "no product input".to_owned()
+            }
+        } else {
+            plan.pages_product_proofs.join(", ")
+        }
     ));
     for suite in SUITES {
         let reasons = &plan.suite_reasons[suite];
