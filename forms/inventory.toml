@@ -33,7 +33,7 @@ slug = "count"
 title = "Count"
 entry = "count-demo"
 reusable_entries = [{ entry = "count", title = "Count Pipeline", composition = { parent = "count-demo", occurrences = ["count"] }, deterministic = { package = "conduit-std-host", test = "reusable_count", case = "reusable_count_runs_through_two_nested_levels_in_one_kernel_play", plan_play_evidence = true } }]
-deterministic = { package = "conduit-std-host", test = "canonical_count", case = "canonical_program_four_runs_startup_flow_and_current_through_one_kernel" }
+deterministic = { package = "conduit-std-host", test = "canonical_count", case = "canonical_program_four_runs_startup_flow_and_current_through_one_kernel", plan_play_evidence = true }
 [[forms]]
 slug = "default-welcome"
 title = "Default Welcome"
@@ -61,7 +61,7 @@ slug = "greet"
 title = "Greeting"
 entry = "default-welcome"
 reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] }, deterministic = { package = "conduit-std-host", test = "reusable_greet", case = "reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play", plan_play_evidence = true } }]
-deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves" }
+deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves", plan_play_evidence = true }
 [[forms]]
 slug = "hello"
 title = "Hello"
