@@ -1,0 +1,57 @@
+name: Download exact artifact with classified bounded retry
+description: Retry only transient artifact transport, then extract exact producer bytes
+
+inputs:
+  name:
+    required: true
+    description: Exact artifact name
+  path:
+    required: true
+    description: Extraction destination
+  expected-digest:
+    required: true
+    description: Exact 64-hex SHA-256 digest emitted by actions/upload-artifact
+  run-id:
+    required: false
+    description: Exact producer workflow run; defaults to the current run
+
+outputs:
+  transport-attempts:
+    description: Number of classified artifact-service attempts
+    value: ${{ steps.download.outputs.attempts }}
+
+runs:
+  using: composite
+  steps:
+    - id: paths
+      shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.name }}
+      run: |
+        set -euo pipefail
+        digest=$(printf '%s' "$ARTIFACT_NAME" | sha256sum | cut -d' ' -f1)
+        staging="$RUNNER_TEMP/conduit-artifact-$digest"
+        mkdir -p "$staging"
+        rm -f "$staging/archive.zip" "$staging/transport.json"
+        echo "archive=$staging/archive.zip" >> "$GITHUB_OUTPUT"
+        echo "result=$staging/transport.json" >> "$GITHUB_OUTPUT"
+    - name: Download and verify the exact producer archive
+      id: download
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        CONDUIT_ARTIFACT_NAME: ${{ inputs.name }}
+        CONDUIT_ARTIFACT_RUN_ID: ${{ inputs.run-id || github.run_id }}
+        CONDUIT_ARTIFACT_EXPECTED_DIGEST: ${{ inputs.expected-digest }}
+        CONDUIT_ARTIFACT_ARCHIVE: ${{ steps.paths.outputs.archive }}
+        CONDUIT_ARTIFACT_RESULT: ${{ steps.paths.outputs.result }}
+      run: node scripts/ci/download-exact-artifact.mjs
+    - name: Extract verified artifact bytes
+      shell: bash
+      env:
+        ARCHIVE: ${{ steps.paths.outputs.archive }}
+        DESTINATION: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$DESTINATION"
+        unzip -q "$ARCHIVE" -d "$DESTINATION"

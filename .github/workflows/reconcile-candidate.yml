@@ -57,6 +57,7 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.check_inherited != 'true'
     permissions:
+      actions: read
       contents: read
     uses: ./.github/workflows/check.yml
     with:
