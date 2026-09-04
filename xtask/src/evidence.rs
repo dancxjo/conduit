@@ -155,7 +155,11 @@ impl EvidenceManifest {
             .canonicalize()
             .map_err(|error| format!("cannot resolve evidence root {}: {error}", root.display()))?;
         let actions_sha = (std::env::var("GITHUB_ACTIONS").as_deref() == Ok("true"))
-            .then(|| std::env::var("GITHUB_SHA").ok())
+            .then(|| {
+                std::env::var("CONDUIT_CHECKOUT_SHA")
+                    .or_else(|_| std::env::var("GITHUB_SHA"))
+                    .ok()
+            })
             .flatten();
         let git_commit = exact_git_commit(workspace_root, actions_sha.as_deref())?;
 
@@ -355,7 +359,7 @@ impl EvidenceManifest {
 
 fn exact_git_commit(workspace_root: &Path, actions_sha: Option<&str>) -> Result<String, String> {
     if let Some(sha) = actions_sha {
-        return validate_git_commit(sha, "GITHUB_SHA");
+        return validate_git_commit(sha, "Actions checkout identity");
     }
 
     let output = Command::new("git")

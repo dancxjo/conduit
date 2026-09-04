@@ -602,7 +602,7 @@ jobs:
       - name: Run ${{ matrix.proof }} proof
         run: |
           case '${{ matrix.proof }}' in
-            kernel) cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$GITHUB_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64 ;;
+            kernel) cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$CONDUIT_CHECKOUT_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64 ;;
             xhci) cargo xtask conduitos xhci-proof --prepared-image --locked ;;
             usb) cargo xtask conduitos usb-proof --prepared-image --locked ;;
             hid) cargo xtask conduitos hid-proof --prepared-image --locked ;;
@@ -704,7 +704,7 @@ jobs:
         run: |
           cargo xtask host build profiles/hosts/conduitos-aarch64-headless.profile.json \
             --output target/conduitos/aarch64-product-host \
-            --source-identity "$GITHUB_SHA" \
+            --source-identity "$CONDUIT_CHECKOUT_SHA" \
             --locked
           cargo xtask host verify target/conduitos/aarch64-product-host --boot --locked
           cargo xtask conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json
