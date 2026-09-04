@@ -41,7 +41,17 @@ export async function openBookReadingState(storage) {
   const expandedBacks = new Set();
   let pending = Promise.resolve();
   let needsMigration = false;
+  const workspace = { narrativePercent: 46 };
   const state = await storage.readJson("reading-state");
+  const storedWorkspace = await storage.readJson("workspace-layout");
+  if (storedWorkspace !== null) {
+    if (storedWorkspace?.schema !== "conduit.tour/workspace-layout@1"
+      || !Number.isInteger(storedWorkspace.narrative_percent)
+      || storedWorkspace.narrative_percent < 30 || storedWorkspace.narrative_percent > 65) {
+      throw new Error("persisted Tour workspace layout is malformed");
+    }
+    workspace.narrativePercent = storedWorkspace.narrative_percent;
+  }
   if (state !== null) {
     if ((state?.schema !== "conduit.book/reading-state@1" && state?.schema !== "conduit.tour/reading-state@1")
       || !Array.isArray(state.drafts) || state.drafts.length > MAXIMUM_DRAFTS
@@ -72,12 +82,26 @@ export async function openBookReadingState(storage) {
     return pending;
   }
 
+  function setNarrativePercent(value) {
+    if (!Number.isInteger(value) || value < 30 || value > 65) {
+      throw new Error("Tour narrative width is outside its admitted bound");
+    }
+    workspace.narrativePercent = value;
+    pending = pending.then(() => storage.writeJson("workspace-layout", {
+      schema: "conduit.tour/workspace-layout@1",
+      narrative_percent: value,
+    }));
+    return pending;
+  }
+
   if (needsMigration) persist();
 
   return Object.freeze({
     schema: "conduit.tour/reading-state-handle@1",
     drafts,
     expandedBacks,
+    workspace,
+    setNarrativePercent,
     persist,
     flush: () => pending,
   });

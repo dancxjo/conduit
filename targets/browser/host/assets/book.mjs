@@ -1,7 +1,7 @@
 import { initializeBrowserHost } from "./browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
 import { conceptualTourStage, createTourStage, openBookReadingState } from "./book-state.mjs";
-import { createBookNavigation, createBookRunnerActions } from "./book-navigation.mjs";
+import { createBookNavigation, createBookRunnerActions, createBookWorkspace } from "./book-navigation.mjs";
 import { createBookEvidenceTables, createBookPlanPresentation, createBookRunnerField, createBookRunnerStatus } from "./book-runner-presentation.mjs";
 import { createProductMasthead } from "./product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
@@ -28,6 +28,7 @@ let admittedRuntimeBytes;
 let navigation;
 let hostPresentation, hostPresentationFor, hostStatus;
 let routing;
+let workspace;
 let laboratorySelectionSequence = 0;
 const laboratory = document.createElement("div");
 laboratory.className = "book-workbench";
@@ -40,6 +41,7 @@ try {
   hostStatus = createProductMasthead(hostPresentation, "product-masthead", "tour");
   hostStatus.ordinary("Starting browser Host…");
   readingState = await openBookReadingState(application.storage);
+  workspace = createBookWorkspace(document, readingState);
   configureFlowStorage(application.storage);
   navigation = createBookNavigation(hostPresentation, (offset) => {
     renderPage(currentPage + offset, "push").catch(showBookFailure);
@@ -123,6 +125,7 @@ async function renderPage(index, routeChange = "none") {
   retireActiveLaboratory();
   if (routeChange === "push") await routing.move(index, "push");
   currentPage = index;
+  workspace.showLesson();
   chapter.replaceChildren();
   renderMarkdown(guidedPages[index]);
   chapter.scrollTop = 0;
@@ -225,7 +228,7 @@ function renderMarkdown(markdown) {
   flush();
   const pageTitle = chapter.querySelector("h1")?.textContent ?? "Tour lesson";
   selectLaboratoryStage(stages[0] ?? conceptualTourStage(pageTitle), stages);
-  chapter.append(laboratory);
+  document.querySelector("#laboratory-slot").replaceChildren(laboratory);
 }
 
 function appendInlineMarkdown(parent, source) {
@@ -282,15 +285,16 @@ function appendStageSelector(copy, stages, stage) {
   button.className = "tour-stage-selector";
   button.dataset.specimenId = stage.identity;
   button.textContent = `Load ${stage.label} in the laboratory`;
-  button.addEventListener("click", () => selectLaboratoryStage(stage, stages));
+  button.addEventListener("click", () => selectLaboratoryStage(stage, stages, true));
   copy.append(button);
 }
 
-function selectLaboratoryStage(stage, stages) {
+function selectLaboratoryStage(stage, stages, reveal = false) {
   retireActiveLaboratory();
   laboratory.dataset.specimenId = stage.identity;
   laboratory.dataset.mode = stage.mode;
   laboratory.dataset.selectionSequence = String(++laboratorySelectionSequence);
+  if (reveal) workspace.showLaboratory(true);
   for (const button of chapter.querySelectorAll(".tour-stage-selector")) {
     button.setAttribute("aria-pressed", String(button.dataset.specimenId === stage.identity
       && stages.indexOf(stage) === [...chapter.querySelectorAll(".tour-stage-selector")].indexOf(button)));
