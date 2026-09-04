@@ -57,6 +57,15 @@ For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges
 
 Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. The stable externally required `check` job remains unchanged.
 
+The `book-and-creche-products` workflow follows the same controller model. It
+triggers cheaply for every pull request, checks out the immutable candidate and
+the trusted base controller as separate trees, and asks the typed product proof
+registry whether the Pages carrier is affected. Unrelated changes retain the
+stable `products-proof` result without starting browser, desktop, firmware, or
+ConduitOS fabrication. Product ownership therefore lives in Rust rather than a
+second workflow path taxonomy. The privileged post-merge Pages workflow stays
+separate and executes trusted merged code only.
+
 Merge-group validation identifies its checkout as integration rather than candidate. The privileged `pull_request_target` Pages workflow remains separate and executes only trusted merged workflow machinery; it promotes an already-proven, source-tree-sealed carrier.
 
 The repository's `cargo xtask` alias first enters the dependency-light

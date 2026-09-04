@@ -2,133 +2,72 @@ name: book-and-creche-products
 
 on:
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Exact target-base commit
+        required: true
+        type: string
+      candidate_sha:
+        description: Exact immutable candidate commit
+        required: true
+        type: string
   pull_request:
-    paths: &product-paths
-      - .github/workflows/executable-book-pages.yml
-      - .github/workflows/executable-book-deploy.yml
-      - README.md
-      - site/**
-      - scripts/ci/stage-pages-root.sh
-      - scripts/ci/stage-book-product.sh
-      - scripts/ci/build-browser-application-package.mjs
-      - scripts/ci/stage-creche-product.sh
-      - scripts/ci/stage-patchbay-product.sh
-      - scripts/ci/seal-pages-carrier.mjs
-      - scripts/ci/verify-pages-carrier.mjs
-      - scripts/ci/pages-product-run-selection.mjs
-      - scripts/ci/resolve-pages-product-run.mjs
-      - tour/book/**
-      - targets/browser/host/assets/book.html
-      - targets/browser/host/assets/book.css
-      - targets/browser/host/assets/book.mjs
-      - targets/browser/host/assets/book-state.mjs
-      - targets/browser/host/assets/browser-human-input.mjs
-      - targets/browser/host/assets/book-navigation.mjs
-      - targets/browser/host/assets/book-runner-presentation.mjs
-      - targets/browser/host/assets/book.application.template.json
-      - targets/browser/host/assets/browser-application-loader.mjs
-      - targets/browser/host/assets/browser-application-storage.mjs
-      - targets/browser/host/assets/application-presentation.mjs
-      - apps/patchbay/html/assets/react.min.js
-      - apps/patchbay/html/assets/react-dom.min.js
-      - apps/patchbay/html/assets/react-flow.min.js
-      - apps/patchbay/html/assets/react-flow.css
-      - apps/patchbay/html/assets/flow.css
-      - apps/patchbay/html/assets/flow.js
-      - apps/patchbay/html/assets/flow-scene.js
-      - apps/patchbay/html/assets/flow-layout.js
-      - apps/patchbay/html/assets/flow-faceplate.js
-      - apps/patchbay/html/assets/portable-navigation.js
-      - apps/patchbay/html/assets/app.js
-      - apps/patchbay/html/assets/index.html
-      - apps/patchbay/html/assets/patchbay.application.template.json
-      - apps/patchbay/html/src/**
-      - targets/browser/host/assets/creche.html
-      - targets/browser/host/assets/creche.application.template.json
-      - targets/browser/host/assets/creche.css
-      - targets/browser/host/assets/creche*.mjs
-      - targets/browser/host/browser-deployment/**
-      - targets/browser/host/assets/browser-host-bootstrap.mjs
-      - targets/browser/host/assets/browser-host-membership.mjs
-      - targets/browser/host/assets/browser-boot-profile.mjs
-      - targets/browser/host/assets/device-base.mjs
-      - targets/browser/host/assets/usb-device-base.mjs
-      - targets/browser/host/assets/artifacts/**
-      - targets/browser/host/src/**
-      - targets/browser/host/Cargo.toml
-      - targets/browser/runtime/Cargo.toml
-      - targets/browser/runtime/src/book_runner/**
-      - targets/browser/runtime/src/creche/**
-      - targets/browser/runtime/src/installed_browser/**
-      - targets/browser/runtime/src/source_interaction.rs
-      - targets/browser/runtime/src/membership.rs
-      - targets/browser/runtime/src/membership_abi.rs
-      - targets/browser/runtime/src/lib.rs
-      - targets/rp2040/browser-deployment/**
-      - targets/avr/browser-deployment/**
-      - targets/avr/fabrication/**
-      - targets/avr/firmware/**
-      - targets/esp32/browser-deployment/**
-      - targets/orange-pi/**
-      - targets/std/browser-deployment/**
-      - targets/std/fabrication-package/**
-      - profiles/host-configurations/**
-      - profiles/hosts/**
-      - targets/raspberry-pi/browser-deployment/**
-      - targets/raspberry-pi/fabrication-package/**
-      - targets/raspberry-pi/fabrication/xtask/**
-      - targets/conduitos/browser-deployment/**
-      - targets/conduitos/fabrication-package/**
-      - targets/conduitos/fabrication/xtask/**
-      - targets/conduitos/fabrication/seal-creche-release.mjs
-      - targets/conduitos/src/**
-      - profiles/hosts/conduitos-native.profile.json
-      - profiles/hosts/conduitos-aarch64-headless.profile.json
-      - targets/esp32/fabrication/**
-      - targets/esp32/firmware/**
-      - fabrication/host/**
-      - fabrication/workspace/**
-      - xtask/src/commands/avr.rs
-      - xtask/src/commands/avr/**
-      - xtask/src/commands/esp32_firmware.rs
-      - xtask/src/commands/host.rs
-      - xtask/src/commands/host_release.rs
-      - xtask/src/commands/host_release_browser.rs
-      - xtask/Cargo.toml
-      - tools/xtask-dispatch/Cargo.toml
-      - Cargo.lock
-      - semantics/text/src/**
-      - semantics/catalog/src/value_primitives.rs
-      - architecture/form/src/back_catalog.rs
-      - architecture/form/src/checked_syntax.rs
-      - proof/browser/executable-book.spec.mjs
-      - proof/browser/creche-browser-configuration.spec.mjs
-      - proof/browser/browser-application-package.spec.mjs
-      - proof/browser/browser-bundle-build.spec.mjs
-      - proof/browser/browser-boot-profile.spec.mjs
-      - proof/browser/browser-form-runner.spec.mjs
-      - proof/browser/pages-front-door.spec.mjs
-      - proof/browser/book-test-server.mjs
-      - proof/browser/creche-avr.spec.mjs
-      - proof/browser/creche-orange-pi.spec.mjs
-      - proof/browser/creche-raspberry-pi.spec.mjs
-      - proof/browser/creche-conduitos.spec.mjs
-      - proof/browser/playwright.config.mjs
-      - proof/browser/static-server.mjs
-      - package.json
-      - package-lock.json
+
+permissions:
+  contents: read
+
+env:
+  CONDUIT_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || inputs.candidate_sha }}
+  CONDUIT_BASE_SHA: ${{ github.event.pull_request.base.sha || inputs.base_sha }}
 concurrency:
-  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha || github.sha }}
+  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha || inputs.candidate_sha }}
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      required: ${{ steps.impact.outputs.pages_products_required || 'true' }}
+      proofs: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - name: Check out the trusted versioned CI controller
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_BASE_SHA }}
+          path: target/ci-controller
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-impact-plan
+      - name: Select exact product proof impact
+        id: impact
+        run: |
+          controller=(cargo xtask)
+          if test -f target/ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs; then
+            cargo build --manifest-path target/ci-controller/Cargo.toml \
+              --package conduit-xtask-dispatch --locked
+            controller=(target/ci-controller/target/debug/conduit-xtask-dispatch)
+          fi
+          "${controller[@]}" ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
+            --json-out target/product-plan/impact.json \
+            --summary-out "$GITHUB_STEP_SUMMARY" \
+            >> "$GITHUB_OUTPUT"
+
   browser-runtimes:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -154,12 +93,14 @@ jobs:
           retention-days: 7
 
   avr-release:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -181,12 +122,14 @@ jobs:
           retention-days: 7
 
   browser-release:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -201,6 +144,8 @@ jobs:
           retention-days: 7
 
   host-releases:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -220,7 +165,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Install the Linux cross targets
@@ -241,12 +186,14 @@ jobs:
           retention-days: 7
 
   raspberry-pi-release:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rust-src
@@ -273,12 +220,14 @@ jobs:
           retention-days: 7
 
   orange-pi-release:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-none
@@ -304,6 +253,8 @@ jobs:
           retention-days: 7
 
   conduitos-release-images:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -324,7 +275,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -365,7 +316,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - name: Download the exact x86_64 ConduitOS image
         uses: actions/download-artifact@v6
         with:
@@ -401,6 +352,8 @@ jobs:
           retention-days: 7
 
   esp32-release-images:
+    needs: plan
+    if: needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -411,7 +364,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Install the pinned ESP32-C3 Rust toolchain
         if: matrix.target == 'c3'
@@ -472,7 +425,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Download the reviewed browser product runtimes
         uses: actions/download-artifact@v6
@@ -568,7 +521,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Install the pinned browser proof dependency
         run: npm ci --ignore-scripts --prefer-offline
@@ -607,7 +560,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Receive the exact staged products
         uses: actions/download-artifact@v6
@@ -671,16 +624,22 @@ jobs:
           retention-days: 14
 
   products-proof:
-    needs: [products-stage, browser-proof, pages-carrier]
+    needs: [plan, products-stage, browser-proof, pages-carrier]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Preserve the stable required product gate
         env:
+          PRODUCT_REQUIRED: ${{ needs.plan.outputs.required }}
+          PRODUCT_PROOFS: ${{ needs.plan.outputs.proofs }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
         run: |
+          if test "$PRODUCT_REQUIRED" != true; then
+            echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
+            exit 0
+          fi
           test "$STAGE_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$CARRIER_RESULT" = success

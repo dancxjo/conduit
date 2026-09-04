@@ -70,6 +70,30 @@ fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
 }
 
 #[test]
+fn pages_products_follow_the_typed_live_ownership_registry() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    for path in [
+        "products/tour/assets/tour.mjs",
+        "products/patchbay/html/assets/app.js",
+    ] {
+        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(plan.pages_products_required, "{path}");
+        assert_eq!(plan.pages_product_proofs, ["products.pages-carrier"]);
+    }
+
+    for path in [
+        "docs/architecture/example.md",
+        "proof/browser/reviewed-form-conformance.spec.mjs",
+        "xtask/src/commands/forms/browser.rs",
+    ] {
+        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(!plan.pages_products_required, "{path}");
+        assert!(plan.pages_product_proofs.is_empty(), "{path}");
+    }
+}
+
+#[test]
 fn registered_form_commands_do_not_fabricate_unrelated_machines() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();

@@ -18,16 +18,22 @@ function pullRequestPaths(path, marker) {
   return paths;
 }
 
-test("merged-PR deployment triggers exactly when PR product proof builds a carrier", () => {
-  const productPaths = pullRequestPaths(
-    ".github/workflows/executable-book-pages.yml",
-    "paths: &product-paths",
-  );
+test("the PR product controller owns applicability while promotion stays privileged", () => {
+  const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
+  assert.match(productWorkflow, /^  pull_request:\s*$/m);
+  assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
+  assert.match(productWorkflow, /jobs:\n  plan:/);
+  assert.match(productWorkflow, /Check out the trusted versioned CI controller/);
+  assert.match(productWorkflow, /pages_products_required/);
+
   const deployPaths = pullRequestPaths(
     ".github/workflows/executable-book-deploy.yml",
     "paths:",
   );
-  assert.deepEqual(deployPaths, productPaths);
+  assert.ok(deployPaths.includes("products/tour/**"));
+  assert.ok(deployPaths.includes("products/patchbay/**"));
+  assert.ok(!deployPaths.includes("tour/book/**"));
+  assert.ok(!deployPaths.some((path) => path.startsWith("apps/patchbay/")));
 });
 
 test("every browser product admits the complete shared presentation theme", () => {
@@ -48,10 +54,13 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
   const checkoutCount = [...productWorkflow.matchAll(/uses: actions\/checkout@v7/g)].length;
   const exactHeadCount = [...productWorkflow.matchAll(
-    /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/g,
+    /ref: \$\{\{ env\.CONDUIT_CANDIDATE_SHA \}\}/g,
   )].length;
   assert.ok(checkoutCount > 0);
-  assert.equal(exactHeadCount, checkoutCount);
+  // One checkout deliberately obtains trusted controller code from the base.
+  assert.equal(exactHeadCount, checkoutCount - 1);
+  assert.match(productWorkflow, /ref: \$\{\{ env\.CONDUIT_BASE_SHA \}\}/);
+  assert.doesNotMatch(productWorkflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.doesNotMatch(productWorkflow, /\n        with:\n(?:          [^\n]+\n)+        with:/);
   assert.match(productWorkflow, /source_commit=\$\(git .* rev-parse HEAD\)/);
   assert.doesNotMatch(productWorkflow, /source_commit="\$GITHUB_SHA"/);
@@ -73,7 +82,8 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[products-stage, browser-proof, pages-carrier\]\n    if: always\(\)/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, products-stage, browser-proof, pages-carrier\]\n    if: always\(\)/);
+  assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_RESULT" = success/);
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
