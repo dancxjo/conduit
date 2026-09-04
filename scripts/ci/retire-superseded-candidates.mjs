@@ -18,6 +18,23 @@ export function supersededCandidateRuns(runs, pullNumber, currentHead) {
     && run.pull_requests.some(({ number }) => number === pullNumber));
 }
 
+export function duplicateCurrentCandidateRuns(runs, pullNumber, currentHead) {
+  const retired = [];
+  for (const workflow of CANDIDATE_WORKFLOWS) {
+    const matching = runs
+      .filter((run) => run.event === "pull_request"
+        && run.name === workflow
+        && run.head_sha === currentHead
+        && Array.isArray(run.pull_requests)
+        && run.pull_requests.some(({ number }) => number === pullNumber))
+      .sort((left, right) => left.id - right.id);
+    const completedSuccess = matching.some((run) => run.status === "completed" && run.conclusion === "success");
+    const active = matching.filter((run) => ACTIVE.has(run.status));
+    retired.push(...(completedSuccess ? active : active.slice(1)));
+  }
+  return retired;
+}
+
 export async function retireSupersededCandidates({ repository, pullNumber, currentHead, token, request = fetch, pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) }) {
   if (!/^[^/]+\/[^/]+$/.test(repository)) throw new Error("repository must be owner/name");
   if (!Number.isSafeInteger(pullNumber) || pullNumber < 1) throw new Error("pull number must be positive");
@@ -39,7 +56,10 @@ export async function retireSupersededCandidates({ repository, pullNumber, curre
     if (body.workflow_runs.length < 100) break;
   }
 
-  const retired = supersededCandidateRuns(runs, pullNumber, currentHead);
+  const retired = supersededCandidateRuns(runs, pullNumber, currentHead)
+    .map((run) => ({ ...run, retirement_reason: "superseded-head" }));
+  retired.push(...duplicateCurrentCandidateRuns(runs, pullNumber, currentHead)
+    .map((run) => ({ ...run, retirement_reason: "duplicate-current-head" })));
   const unresolved = runs.filter((run) =>
     run.event === "pull_request"
     && CANDIDATE_WORKFLOWS.has(run.name)
@@ -52,7 +72,9 @@ export async function retireSupersededCandidates({ repository, pullNumber, curre
     if (!response.ok) throw new Error(`resolve run ${run.id} pull lifecycle failed: HTTP ${response.status}`);
     const pulls = await response.json();
     if (!Array.isArray(pulls)) throw new Error(`run ${run.id} pull lifecycle response is malformed`);
-    if (pulls.some(({ number }) => number === pullNumber)) retired.push(run);
+    if (pulls.some(({ number }) => number === pullNumber)) {
+      retired.push({ ...run, retirement_reason: "superseded-head" });
+    }
   }
   for (const run of retired) {
     const response = await request(`https://api.github.com/repos/${repository}/actions/runs/${run.id}/cancel`, {
@@ -78,7 +100,7 @@ export async function retireSupersededCandidates({ repository, pullNumber, curre
       }
     }
   }
-  return retired.map(({ id, name, head_sha }) => ({ id, name, head_sha }));
+  return retired.map(({ id, name, head_sha, retirement_reason }) => ({ id, name, head_sha, retirement_reason }));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

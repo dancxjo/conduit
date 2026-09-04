@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { retireSupersededCandidates, supersededCandidateRuns } from "../../scripts/ci/retire-superseded-candidates.mjs";
+import {
+  duplicateCurrentCandidateRuns,
+  retireSupersededCandidates,
+  supersededCandidateRuns,
+} from "../../scripts/ci/retire-superseded-candidates.mjs";
 
 const current = "b".repeat(40);
 const old = "a".repeat(40);
@@ -18,11 +22,21 @@ test("retires only another head of the same pull lifecycle", () => {
   assert.deepEqual(supersededCandidateRuns(runs, 7, current).map(({ id }) => id), [1]);
 });
 
-test("duplicate current-head events never cancel or restart each other", () => {
+test("duplicate current-head events retain the established run and retire later copies", () => {
   const duplicates = [1, 2].map((id) => ({
     id, event: "pull_request", name: "check", status: "in_progress", head_sha: current, pull_requests: [{ number: 7 }],
   }));
   assert.deepEqual(supersededCandidateRuns(duplicates, 7, current), []);
+  assert.deepEqual(duplicateCurrentCandidateRuns(duplicates, 7, current).map(({ id }) => id), [2]);
+});
+
+test("a successful exact-head run retires every redundant active copy", () => {
+  const runs = [
+    { id: 1, event: "pull_request", name: "check", status: "completed", conclusion: "success", head_sha: current, pull_requests: [{ number: 7 }] },
+    { id: 2, event: "pull_request", name: "check", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
+    { id: 3, event: "pull_request", name: "book-pr-proof", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
+  ];
+  assert.deepEqual(duplicateCurrentCandidateRuns(runs, 7, current).map(({ id }) => id), [2]);
 });
 
 test("cancels each exact superseded run and reports immutable provenance", async () => {
@@ -39,7 +53,7 @@ test("cancels each exact superseded run and reports immutable provenance", async
     return { ok: true, status: 202 };
   };
   const retired = await retireSupersededCandidates({ repository: "dancxjo/conduit", pullNumber: 7, currentHead: current, token: "test", request, pause: async () => {} });
-  assert.deepEqual(retired, [{ id: 41, name: "check", head_sha: old }]);
+  assert.deepEqual(retired, [{ id: 41, name: "check", head_sha: old, retirement_reason: "superseded-head" }]);
   assert.equal(requests.filter(([, method]) => method === "POST").length, 1);
   assert.match(requests.find(([, method]) => method === "POST")[0], /\/runs\/41\/cancel$/);
 });
