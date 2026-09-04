@@ -1,5 +1,5 @@
 schema = "conduit.proof-dependency-audit/v1"
-maximum_edges = 19
+maximum_edges = 18
 
 # This inventory contains every non-dev Cargo dependency from outside proof/
 # whose path enters proof/. `cargo test -p xtask --test proof_dependency_boundary`
@@ -25,13 +25,6 @@ dependency = "conduit-r1-network-conformance"
 kind = "dependencies"
 classification = "product-demo-fixture"
 resolution = "Move the R1 capstone scenario to a repository proof entrance or rebuild it from target-owned offers."
-
-[[edges]]
-manifest = "bodies/pete/Cargo.toml"
-dependency = "conduit-signal-conformance"
-kind = "dependencies"
-classification = "body-composition-fixture"
-resolution = "Move fixed Signal advertisement use out of ordinary Pete composition."
 
 [[edges]]
 manifest = "targets/std/Cargo.toml"

@@ -38,6 +38,8 @@ mod domain_specimens;
 pub use domain_specimens::*;
 mod patchbay;
 pub use patchbay::*;
+mod signal;
+pub use signal::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
