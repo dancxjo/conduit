@@ -106,8 +106,8 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
   await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Patchbay" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Tour" })).toHaveAttribute("href", "/conduit/tour");
-  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Crèche" })).toHaveAttribute("href", "/conduit/creche");
+  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Tour" })).toHaveAttribute("href", "/conduit/tour/");
+  await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Crèche" })).toHaveAttribute("href", "/conduit/creche/");
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
   await expect(page.locator("body")).toHaveAttribute("data-embodied", "false");
@@ -166,9 +166,7 @@ test("the shared shell follows dark and light preferences without changing appli
       await hoverTarget.hover();
       await expect(hoverTarget).toHaveCSS(
         "color",
-        path === ""
-          ? colorScheme === "dark" ? "rgb(233, 163, 37)" : "rgb(154, 91, 0)"
-          : colorScheme === "dark" ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)",
+        colorScheme === "dark" ? "rgb(147, 210, 247)" : "rgb(23, 54, 77)",
       );
       const focusTarget = path === ""
         ? page.getByRole("link", { name: "Learn Conduit" })
