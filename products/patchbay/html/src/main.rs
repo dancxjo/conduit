@@ -1,7 +1,8 @@
 use patchbay_html::{
-    body_workbench_fixture_snapshot, body_workbench_snapshot, cross_host_demonstration_snapshot,
-    demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot, load_form_sources,
-    text_lab_split_snapshot, BrowserBodyWorkbenchEntrance, FormSource, PatchbayHtmlServer,
+    body_workbench_fixture_snapshot, body_workbench_snapshot_with_forms,
+    cross_host_demonstration_snapshot, demonstration_snapshot, llm_documentary_snapshot,
+    llm_embodiment_snapshot, load_form_sources, text_lab_split_snapshot,
+    BrowserBodyWorkbenchEntrance, FormSource, PatchbayHtmlServer,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -164,8 +165,9 @@ fn main() -> Result<(), String> {
             "--body-evidence requires exactly one --external-reader or --hosted-reader entrance",
         )?;
         let evidence = std::fs::read(path).map_err(|error| error.to_string())?;
-        let snapshot =
-            body_workbench_snapshot(1, &evidence, entrance).map_err(|error| error.to_string())?;
+        let forms = load_form_sources(&arguments.forms).map_err(|error| error.to_string())?;
+        let snapshot = body_workbench_snapshot_with_forms(1, &evidence, entrance, &forms)
+            .map_err(|error| error.to_string())?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if arguments.body_entrance.is_some() {
         return Err("a Body reader entrance requires --body-evidence first".into());
@@ -243,6 +245,25 @@ mod tests {
             .map(str::to_owned)
         )
         .is_err());
+
+        let body = parse_arguments(
+            [
+                "--body-evidence",
+                "body.json",
+                "--external-reader",
+                "--form",
+                "Hello",
+                "forms/hello/main.conduit",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .unwrap();
+        assert_eq!(body.forms.len(), 1);
+        assert_eq!(
+            body.body_entrance,
+            Some(BrowserBodyWorkbenchEntrance::ExternalReader)
+        );
         assert!(parse_arguments(
             ["--llm-documentary-fixture", "--documentary-fixture"]
                 .into_iter()

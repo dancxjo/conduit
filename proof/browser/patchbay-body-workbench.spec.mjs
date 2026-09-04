@@ -77,6 +77,10 @@ for (const entrance of ["hosted", "external"]) {
     await expect(activeForms.filter({ hasText: "checked/roseau-recorder" })).toHaveCount(1);
     await expect(page.locator("#body-workbench-facts")).toContainText("Workload revision");
     await expect(page.locator("#body-workbench-facts")).toContainText("0");
+    const availableForms = page.locator('#body-workbench-available [data-application-component="artifact"]');
+    await expect(availableForms).toHaveCount(1);
+    await expect(availableForms).toContainText("Hello");
+    await expect(availableForms.getByRole("button", { name: "Add to Body", exact: true })).toBeEnabled();
     if (entrance === "external") {
       const bounds = await page.locator("#body-workbench").boundingBox();
       expect(bounds.x).toBeGreaterThanOrEqual(0);
@@ -130,6 +134,18 @@ for (const entrance of ["hosted", "external"]) {
       expect(changed.body_workbench.current.active_forms).toHaveLength(1);
       expect(changed.body_workbench.current.workload_revision).toBe(1);
       expect(changed.interaction.last_disposition).toBe("Succeeded");
+
+      await availableForms.getByRole("button", { name: "Add to Body", exact: true }).click();
+      await expect(availableForms).toHaveCount(0);
+      await expect(activeForms).toHaveCount(2);
+      await expect(activeForms.filter({ hasText: "Hello" })).toHaveCount(1);
+      await expect(page.locator("#body-workbench-status")).toContainText("workload revision 2");
+      await expect(page.locator('#body-history [data-application-component="artifact"]')).toHaveCount(6);
+      const added = await page.request.get(new URL("/api/snapshot", page.url()).href).then(response => response.json());
+      expect(added.body_workbench.body_id).toBe(snapshot.body_workbench.body_id);
+      expect(added.body_workbench.current.active_forms).toHaveLength(2);
+      expect(added.body_workbench.current.active_forms.some(form => form.checked_form_id === added.body_workbench.reviewed_forms[0].checked_form_id)).toBe(true);
+      expect(added.body_workbench.current.workload_revision).toBe(2);
     }
 
     server.kill();

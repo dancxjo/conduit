@@ -89,8 +89,18 @@ pub struct BrowserBodyWorkbench {
     pub encoded_evidence: Vec<u8>,
     pub entrance: BrowserBodyWorkbenchEntrance,
     pub body_id: String,
+    #[serde(default)]
+    pub reviewed_forms: Vec<BrowserReviewedForm>,
     pub current: serde_json::Value,
     pub history: serde_json::Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BrowserReviewedForm {
+    pub label: String,
+    pub source_document_id: String,
+    pub checked_form_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

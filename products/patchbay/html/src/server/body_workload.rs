@@ -71,12 +71,15 @@ impl PatchbayHtmlServer {
         let Some(action) = action else {
             return self.body_workload_refusal("UnknownAction");
         };
-        if action.intent != "conduit.intent/remove-form@1"
-            || !matches!(
-                action.availability,
-                PresentationActionAvailability::Available
-            )
-        {
+        let operation = match action.intent.as_str() {
+            "conduit.intent/add-form@1" => "add",
+            "conduit.intent/remove-form@1" => "remove",
+            _ => return self.body_workload_refusal("ActionUnavailable"),
+        };
+        if !matches!(
+            action.availability,
+            PresentationActionAvailability::Available
+        ) {
             return self.body_workload_refusal("ActionUnavailable");
         }
 
@@ -84,14 +87,32 @@ impl PatchbayHtmlServer {
             self.body_workload.as_ref().cloned().ok_or_else(|| {
                 ServerError::Interaction("Body workload session is absent".into())
             })?;
-        let form = candidate
-            .evidence()
-            .body
-            .workset
-            .forms()
-            .iter()
-            .find(|form| action.target == format!("form/{}", form.checked_form_id.as_str()))
-            .cloned();
+        let form = if operation == "remove" {
+            candidate
+                .evidence()
+                .body
+                .workset
+                .forms()
+                .iter()
+                .find(|form| action.target == format!("form/{}", form.checked_form_id.as_str()))
+                .cloned()
+        } else {
+            self.snapshot
+                .body_workbench
+                .as_ref()
+                .and_then(|workbench| {
+                    workbench
+                        .reviewed_forms
+                        .iter()
+                        .find(|form| action.target == format!("form/{}", form.checked_form_id))
+                })
+                .map(|form| {
+                    conduit_body::ResidentForm::new(
+                        conduit_core::SourceDocumentId::from(form.source_document_id.as_str()),
+                        conduit_core::CheckedFormId::from(form.checked_form_id.as_str()),
+                    )
+                })
+        };
         let Some(form) = form else {
             return self.body_workload_refusal("WrongTarget");
         };
@@ -106,12 +127,14 @@ impl PatchbayHtmlServer {
             .checked_add(1)
             .ok_or_else(|| ServerError::Interaction("Body workload revision exhausted".into()))?;
         let sign_id = SignId::from(format!(
-            "patchbay-html/body-workload/remove/{next_workload_revision}"
+            "patchbay-html/body-workload/{operation}/{next_workload_revision}"
         ));
-        if candidate
-            .remove_form(input.workload_revision, form, sign_id, biography_sequence)
-            .is_err()
-        {
+        let changed = if operation == "remove" {
+            candidate.remove_form(input.workload_revision, form, sign_id, biography_sequence)
+        } else {
+            candidate.admit_form(input.workload_revision, form, sign_id, biography_sequence)
+        };
+        if changed.is_err() {
             return self.body_workload_refusal("OperationRejected");
         }
 
@@ -125,11 +148,13 @@ impl PatchbayHtmlServer {
             .checked_add(1)
             .ok_or_else(|| ServerError::Interaction("Body evidence revision exhausted".into()))?;
         let entrance = prior.entrance.clone();
+        let reviewed_forms = prior.reviewed_forms.clone();
         let prior_interaction = self.snapshot.interaction.clone();
-        let mut snapshot = crate::body_workbench_snapshot(
+        let mut snapshot = crate::body_workbench::body_workbench_snapshot_with_reviewed(
             evidence_revision,
             candidate.encoded_evidence(),
             entrance,
+            &reviewed_forms,
         )
         .map_err(|error| ServerError::Interaction(error.to_string()))?;
         snapshot.mark_available(SignId::from(format!(
@@ -137,8 +162,9 @@ impl PatchbayHtmlServer {
         )))?;
         snapshot.interaction = prior_interaction;
         snapshot.interaction.revision = snapshot.interaction.revision.saturating_add(1);
-        snapshot.interaction.last_request_id =
-            Some(format!("body-workload/remove/{next_workload_revision}"));
+        snapshot.interaction.last_request_id = Some(format!(
+            "body-workload/{operation}/{next_workload_revision}"
+        ));
         snapshot.interaction.last_disposition = Some("Succeeded".into());
         self.body_workload = Some(candidate);
         self.snapshot = snapshot;
@@ -149,7 +175,7 @@ impl PatchbayHtmlServer {
 
     fn body_workload_refusal(&mut self, reason: &str) -> Result<Vec<u8>, ServerError> {
         self.snapshot.interaction.revision = self.snapshot.interaction.revision.saturating_add(1);
-        self.snapshot.interaction.last_request_id = Some("body-workload/remove/refused".into());
+        self.snapshot.interaction.last_request_id = Some("body-workload/refused".into());
         self.snapshot.interaction.last_disposition = Some(format!("Refused({reason})"));
         self.encoded_snapshot = self.snapshot.encode()?;
         Ok(self.encoded_snapshot.clone())
@@ -160,13 +186,13 @@ impl PatchbayHtmlServer {
 mod tests {
     use super::*;
 
-    fn request(server: &PatchbayHtmlServer, workload_revision: u64) -> Vec<u8> {
+    fn request(server: &PatchbayHtmlServer, workload_revision: u64, intent: &str) -> Vec<u8> {
         let action = server
             .snapshot
             .presentation
             .actions
             .iter()
-            .find(|action| action.intent == "conduit.intent/remove-form@1")
+            .find(|action| action.intent == intent)
             .unwrap();
         serde_json::to_vec(&serde_json::json!({
             "presentation_id": server.snapshot.presentation.identity,
@@ -183,7 +209,7 @@ mod tests {
         let body_id = snapshot.body_workbench.as_ref().unwrap().body_id.clone();
         let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
         let mut stale_presentation: serde_json::Value =
-            serde_json::from_slice(&request(&server, 0)).unwrap();
+            serde_json::from_slice(&request(&server, 0, "conduit.intent/remove-form@1")).unwrap();
         stale_presentation["presentation_revision"] = serde_json::json!(99);
         let stale_presentation: crate::RendererSnapshot = serde_json::from_slice(
             &server
@@ -200,7 +226,7 @@ mod tests {
             0
         );
 
-        let stale = request(&server, 9);
+        let stale = request(&server, 9, "conduit.intent/remove-form@1");
         let stale: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&stale).unwrap()).unwrap();
         assert_eq!(
@@ -212,7 +238,7 @@ mod tests {
             0
         );
 
-        let remove = request(&server, 0);
+        let remove = request(&server, 0, "conduit.intent/remove-form@1");
         let removed: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&remove).unwrap()).unwrap();
         let workbench = removed.body_workbench.unwrap();
@@ -228,7 +254,7 @@ mod tests {
             Some("Succeeded")
         );
 
-        let last = request(&server, 1);
+        let last = request(&server, 1, "conduit.intent/remove-form@1");
         let last: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_body_workload(&last).unwrap()).unwrap();
         assert_eq!(
@@ -236,5 +262,17 @@ mod tests {
             Some("Refused(ActionUnavailable)")
         );
         assert_eq!(last.body_workbench.unwrap().current["workload_revision"], 1);
+
+        let add = request(&server, 1, "conduit.intent/add-form@1");
+        let added: crate::RendererSnapshot =
+            serde_json::from_slice(&server.apply_body_workload(&add).unwrap()).unwrap();
+        let workbench = added.body_workbench.unwrap();
+        assert_eq!(workbench.body_id, body_id);
+        assert_eq!(workbench.current["workload_revision"], 2);
+        assert_eq!(
+            workbench.current["active_forms"].as_array().unwrap().len(),
+            2
+        );
+        assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 6);
     }
 }
