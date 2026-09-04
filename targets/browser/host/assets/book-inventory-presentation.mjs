@@ -38,7 +38,7 @@ export function reviewedFormStage(form) {
   });
 }
 
-export function createReviewedFormGallery(document, gallery, onOpen) {
+export function createReviewedFormGallery(document, gallery, crecheUrl, onOpen) {
   const surface = document.createElement("section");
   surface.className = "form-gallery";
   const header = document.createElement("header");
@@ -61,7 +61,7 @@ export function createReviewedFormGallery(document, gallery, onOpen) {
   header.append(heading, explanation, search);
   const list = document.createElement("ul");
   list.className = "form-gallery-list";
-  for (const form of gallery.forms) list.append(createGalleryCard(document, form, onOpen));
+  for (const form of gallery.forms) list.append(createGalleryCard(document, form, crecheUrl, onOpen));
   surface.append(header, list);
 
   const filter = () => {
@@ -83,7 +83,7 @@ export function createReviewedFormGallery(document, gallery, onOpen) {
   return Object.freeze({ surface, heading });
 }
 
-function createGalleryCard(document, form, onOpen) {
+function createGalleryCard(document, form, crecheUrl, onOpen) {
   const item = document.createElement("li");
   item.className = "form-gallery-card";
   item.dataset.searchText = `${form.title} ${form.name} ${form.required_kinds.join(" ")}`.toLocaleLowerCase();
@@ -99,7 +99,14 @@ function createGalleryCard(document, form, onOpen) {
   open.type = "button";
   open.textContent = "Open in laboratory";
   open.addEventListener("click", () => onOpen(form));
-  actions.append(open);
+  const add = document.createElement("a");
+  const handoff = new URL(crecheUrl, document.baseURI);
+  handoff.searchParams.set("form", form.name);
+  handoff.searchParams.set("source_document_id", form.source_document_id);
+  handoff.searchParams.set("checked_form_id", form.checked_form_id);
+  add.href = handoff.href;
+  add.textContent = "Add to new Body";
+  actions.append(open, add);
   item.append(heading, requirements, identity, actions);
   return item;
 }

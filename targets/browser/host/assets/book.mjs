@@ -160,7 +160,9 @@ function renderGallery() {
   setTourMode("gallery");
   workspace.showLesson();
   chapter.replaceChildren();
-  const { surface, heading } = createReviewedFormGallery(document, gallery, (form) => {
+  const crecheUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content;
+  if (!crecheUrl) throw new Error("Crèche product handoff is unavailable");
+  const { surface, heading } = createReviewedFormGallery(document, gallery, crecheUrl, (form) => {
     selectLaboratoryStage(reviewedFormStage(form), [], true);
   });
   chapter.append(surface);

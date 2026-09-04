@@ -890,7 +890,15 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator(".morse")).toHaveText("READY");
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
-  await expect(page.getByRole("link", { name: "Add to new Body" })).toHaveCount(0);
+  const add = memory.getByRole("link", { name: "Add to new Body" });
+  const handoff = new URL(await add.getAttribute("href"));
+  const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
+  expect(handoff.pathname).toBe(new URL("../creche/", entrance.url).pathname);
+  expect(Object.fromEntries(handoff.searchParams)).toEqual({
+    form: "memory_lantern",
+    source_document_id: reviewedSourceIdentity,
+    checked_form_id: reviewedIdentity,
+  });
 
   await page.getByRole("button", { name: "Guided Tour" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeVisible();
