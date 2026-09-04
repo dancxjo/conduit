@@ -334,9 +334,18 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("cancel-in-progress: false"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
-    assert!(workflow.contains("if: needs.resolve.outputs.check_inherited != 'true'"));
-    assert!(workflow.contains("if: needs.resolve.outputs.products_inherited != 'true'"));
-    assert_eq!(workflow.matches("checks: write").count(), 1);
+    assert!(workflow.contains(
+        "if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'"
+    ));
+    assert!(workflow.contains(
+        "if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'"
+    ));
+    assert_eq!(workflow.matches("set -o pipefail").count(), 2);
+    assert_eq!(workflow.matches("checks: write").count(), 2);
+    assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
+    assert!(workflow.contains(
+        "needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'"
+    ));
     assert!(workflow.contains("name: Publish stable required checks on the unchanged candidate"));
     assert!(workflow.contains("persist-credentials: false"));
 
@@ -360,7 +369,8 @@ fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
     assert!(!reconciliation.contains("runs-on: ubuntu-latest"));
     assert_eq!(retirement.matches("runs-on: ubuntu-slim").count(), 1);
     assert!(!retirement.contains("runs-on: ubuntu-latest"));
-    assert_eq!(reconciliation.matches("checks: write").count(), 1);
+    assert_eq!(reconciliation.matches("checks: write").count(), 2);
+    assert!(!reconciliation.contains("contents: write"));
     assert!(reconciliation.contains("timeout-minutes: 2"));
     assert!(retirement.contains("timeout-minutes: 2"));
 }

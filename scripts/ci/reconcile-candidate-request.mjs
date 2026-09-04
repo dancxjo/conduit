@@ -85,6 +85,27 @@ export async function publishCandidateResults({ repository, candidateSha, checkI
   return published;
 }
 
+export async function resolveAndPublishInherited(options) {
+  const resolved = await resolveCandidateRequest(options);
+  if (!LANES.every((lane) => Boolean(resolved.lanes[lane]))) {
+    return { resolved, published: null };
+  }
+  const published = await publishCandidateResults({
+    repository: options.repository,
+    candidateSha: options.candidateSha,
+    checkInherited: true,
+    checkResult: "skipped",
+    checkEvidenceUrl: resolved.lanes.check.detailsUrl,
+    productsInherited: true,
+    productsResult: "skipped",
+    productsEvidenceUrl: resolved.lanes["products-proof"].detailsUrl,
+    runUrl: options.runUrl,
+    token: options.token,
+    request: options.request,
+  });
+  return { resolved, published };
+}
+
 async function appendOutput(name, value) {
   if (!process.env.GITHUB_OUTPUT) throw new Error("GITHUB_OUTPUT is required");
   const { appendFile } = await import("node:fs/promises");
@@ -93,14 +114,21 @@ async function appendOutput(name, value) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv[2] === "resolve") {
-    const result = await resolveCandidateRequest({ repository: process.env.GITHUB_REPOSITORY, pullNumber: Number(process.env.CONDUIT_PR_NUMBER), candidateSha: process.env.CONDUIT_CANDIDATE_SHA, token: process.env.GH_TOKEN });
+    const { resolved: result, published } = await resolveAndPublishInherited({
+      repository: process.env.GITHUB_REPOSITORY,
+      pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
+      candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
+      runUrl: process.env.CONDUIT_RUN_URL,
+      token: process.env.GH_TOKEN,
+    });
     await appendOutput("base_sha", result.baseSha);
     for (const lane of LANES) {
       const prefix = lane === "check" ? "check" : "products";
       await appendOutput(`${prefix}_inherited`, String(Boolean(result.lanes[lane])));
       await appendOutput(`${prefix}_evidence_url`, result.lanes[lane]?.detailsUrl ?? "");
     }
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    await appendOutput("published", String(Boolean(published)));
+    process.stdout.write(`${JSON.stringify({ ...result, published }, null, 2)}\n`);
   } else if (process.argv[2] === "publish") {
     const published = await publishCandidateResults({
       repository: process.env.GITHUB_REPOSITORY, candidateSha: process.env.CONDUIT_CANDIDATE_SHA,

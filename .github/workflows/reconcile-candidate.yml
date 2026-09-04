@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 2
     permissions:
-      checks: read
+      checks: write
       contents: read
       pull-requests: read
     outputs:
@@ -34,6 +34,7 @@ jobs:
       check_evidence_url: ${{ steps.resolve.outputs.check_evidence_url }}
       products_inherited: ${{ steps.resolve.outputs.products_inherited }}
       products_evidence_url: ${{ steps.resolve.outputs.products_evidence_url }}
+      published: ${{ steps.resolve.outputs.published }}
     steps:
       - name: Check out only the current trusted controller
         uses: actions/checkout@v7
@@ -42,11 +43,15 @@ jobs:
           persist-credentials: false
       - name: Resolve the unchanged candidate and reusable aggregate evidence
         id: resolve
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           CONDUIT_PR_NUMBER: ${{ inputs.pr_number }}
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
-        run: node scripts/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
+          CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -o pipefail
+          node scripts/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
       - name: Summarize reconciliation request
         run: |
           printf '## Current-controller candidate reconciliation\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
@@ -55,7 +60,7 @@ jobs:
 
   candidate-check:
     needs: resolve
-    if: needs.resolve.outputs.check_inherited != 'true'
+    if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'
     permissions:
       actions: read
       contents: read
@@ -66,7 +71,7 @@ jobs:
 
   candidate-products:
     needs: resolve
-    if: needs.resolve.outputs.products_inherited != 'true'
+    if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'
     permissions:
       contents: read
     uses: ./.github/workflows/executable-book-pages.yml
@@ -76,7 +81,7 @@ jobs:
 
   report:
     needs: [resolve, candidate-check, candidate-products]
-    if: always() && needs.resolve.result == 'success'
+    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.published != 'true'
     runs-on: ubuntu-slim
     timeout-minutes: 2
     permissions:
@@ -89,6 +94,7 @@ jobs:
           ref: refs/heads/${{ github.event.repository.default_branch }}
           persist-credentials: false
       - name: Publish stable required checks on the unchanged candidate
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
@@ -99,7 +105,9 @@ jobs:
           CONDUIT_PRODUCTS_RESULT: ${{ needs.candidate-products.result }}
           CONDUIT_PRODUCTS_EVIDENCE_URL: ${{ needs.resolve.outputs.products_evidence_url }}
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: node scripts/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
+        run: |
+          set -o pipefail
+          node scripts/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
       - name: Summarize published exact-head gates
         run: |
           printf '## Published exact-head gates\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
