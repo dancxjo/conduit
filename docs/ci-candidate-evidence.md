@@ -150,6 +150,8 @@ An expedited main admission does not need a ceremonial pull request solely to pu
 
 Merged branches are retired by repository machinery rather than GitHub's immediate automatic deletion. The trusted closed-PR controller first retargets every open dependent to `main`, verifies that each immutable child head stayed exact, rescans for dependents, and only then deletes the merged branch. Any malformed response, failed retarget, changed child head, or remaining dependent retains the branch and fails the controller visibly.
 
+Branch protection's stable `admission` context is the final lightweight job in the reconciliation workflow, not an ad hoc check run racing unrelated check-suite completion. Even when every proof is inherited, reconciliation reaches that job, publishes a separately named `admission-evidence` detail record, retires its temporary integration ref, and lets the job's own terminal result satisfy protection. Duplicate dispatches do not cancel one another, so a later canceled suite cannot replace the established success merely as bookkeeping.
+
 The repository's `cargo xtask` alias first enters the dependency-light
 `conduit-xtask-dispatch`. The CI identity operations (`plan`, `candidate`,
 `reconcile`, `reconcile-product`, and `attest-success`) use the same typed Rust sources there. At

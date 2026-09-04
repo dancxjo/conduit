@@ -550,8 +550,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
-    assert!(workflow.contains(
-        "if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
+    assert!(workflow.contains("report:\n    name: admission"));
+    assert!(workflow.contains("if: always() && needs.resolve.outputs.integration_ref != ''"));
+    assert!(!workflow.contains(
+        "needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
     ));
     assert!(workflow.contains(
         "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"

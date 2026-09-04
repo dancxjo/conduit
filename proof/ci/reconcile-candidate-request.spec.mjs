@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { laneInputsUnchanged, publishCandidateResults, resolveAndPublishInherited, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
+import { laneInputsUnchanged, publishCandidateResults, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
 
 const candidate = "b".repeat(40);
 const base = "a".repeat(40);
@@ -99,9 +99,9 @@ test("a published successful reconciliation is reusable by an identical later re
   assert.ok(result.lanes["products-proof"]);
 });
 
-test("an all-inherited request publishes admission without allocating a report job", async () => {
+test("all-inherited evidence still publishes through the stable admission job", async () => {
   const posts = [];
-  const result = await resolveAndPublishInherited({
+  const result = await resolveCandidateRequest({
     repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan,
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (url, options = {}) => {
@@ -116,8 +116,21 @@ test("an all-inherited request publishes admission without allocating a report j
       ] });
     },
   });
-  assert.equal(result.published.length, 1);
-  assert.deepEqual(posts.map(({ name }) => name), ["admission"]);
+  assert.equal(posts.length, 0);
+  assert.ok(result.lanes.check);
+  assert.ok(result.lanes["products-proof"]);
+  const published = await publishCandidateResults({
+    repository, candidateSha: candidate, baseSha: base, integrationSha: integration,
+    checkInherited: true, checkResult: "skipped", checkEvidenceUrl: result.lanes.check.detailsUrl,
+    productsInherited: true, productsResult: "skipped", productsEvidenceUrl: result.lanes["products-proof"].detailsUrl,
+    runUrl: "https://example.test/reconcile", token: "test",
+    request: async (_url, options) => {
+      posts.push(JSON.parse(options.body));
+      return response({ id: 201 }, 201);
+    },
+  });
+  assert.equal(published[0].name, "admission-evidence");
+  assert.deepEqual(posts.map(({ name }) => name), ["admission-evidence"]);
   assert.ok(posts.every(({ conclusion }) => conclusion === "success"));
   assert.match(posts[0].output.summary, new RegExp(`Base: ${base}`));
   assert.match(posts[0].output.summary, new RegExp(`Prospective integration: ${integration}`));
@@ -125,7 +138,7 @@ test("an all-inherited request publishes admission without allocating a report j
 
 test("partial evidence remains fail-closed for execute then report", async () => {
   let posts = 0;
-  const result = await resolveAndPublishInherited({
+  const result = await resolveCandidateRequest({
     repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan,
     runUrl: "https://example.test/reconcile", token: "test",
     request: async (url, options = {}) => {
@@ -139,8 +152,7 @@ test("partial evidence remains fail-closed for execute then report", async () =>
       ] });
     },
   });
-  assert.equal(result.published, null);
   assert.equal(posts, 0);
-  assert.ok(result.resolved.lanes.check);
-  assert.equal(result.resolved.lanes["products-proof"], null);
+  assert.ok(result.lanes.check);
+  assert.equal(result.lanes["products-proof"], null);
 });
