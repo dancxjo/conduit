@@ -353,6 +353,11 @@ fn plan_for_paths(
             reasons,
         ));
     }
+    let controller_only = substantive.iter().all(|path| {
+        CONTROLLER_PROOFS
+            .iter()
+            .any(|spec| spec.implementation_inputs.contains(&path.as_str()))
+    });
 
     // The scheduler façade is normally a whole-platform dependency. Admit the
     // narrower classification only for the complete, recognizable debugger
@@ -619,7 +624,7 @@ fn plan_for_paths(
         .filter(|name| packages[*name].workspace_member)
         .cloned()
         .collect();
-    let workspace_shards = if changed_packages.is_empty() {
+    let workspace_shards = if changed_packages.is_empty() && controller_only {
         WorkspaceShard::ALL
             .into_iter()
             .map(|shard| (shard.name().to_owned(), false))
