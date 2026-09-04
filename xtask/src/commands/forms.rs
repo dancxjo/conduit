@@ -12,6 +12,8 @@ use std::time::Instant;
 mod browser;
 #[path = "forms/deterministic.rs"]
 mod deterministic;
+#[path = "forms/report.rs"]
+mod report;
 
 const INVENTORY_PATH: &str = "forms/inventory.toml";
 const INVENTORY_SCHEMA: &str = "conduit.reviewed-form-inventory/v1";
@@ -150,7 +152,7 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
             }
         }
         FormsCommand::Report { output } => {
-            let report = build_report(&root, true, opts)?;
+            let report = report::build(&root)?;
             let bytes = serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?;
             if let Some(path) = output {
                 fs::write(path, bytes).map_err(|error| error.to_string())?;
