@@ -1,0 +1,96 @@
+const CANDIDATE_WORKFLOWS = new Set([
+  "check",
+  "book-and-creche-products",
+  "book-pr-proof",
+  "pages-deploy-pr-proof",
+  "patchbay-debugger-pr-proof",
+]);
+
+const ACTIVE = new Set(["queued", "in_progress", "requested", "waiting", "pending"]);
+
+export function supersededCandidateRuns(runs, pullNumber, currentHead) {
+  return runs.filter((run) =>
+    run.event === "pull_request"
+    && CANDIDATE_WORKFLOWS.has(run.name)
+    && ACTIVE.has(run.status)
+    && run.head_sha !== currentHead
+    && Array.isArray(run.pull_requests)
+    && run.pull_requests.some(({ number }) => number === pullNumber));
+}
+
+export async function retireSupersededCandidates({ repository, pullNumber, currentHead, token, request = fetch, pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)) }) {
+  if (!/^[^/]+\/[^/]+$/.test(repository)) throw new Error("repository must be owner/name");
+  if (!Number.isSafeInteger(pullNumber) || pullNumber < 1) throw new Error("pull number must be positive");
+  if (!/^[0-9a-f]{40,64}$/.test(currentHead)) throw new Error("current head must be an exact Git identity");
+  if (!token) throw new Error("GitHub token is required");
+
+  const headers = {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${token}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  const runs = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const response = await request(`https://api.github.com/repos/${repository}/actions/runs?event=pull_request&per_page=100&page=${page}`, { headers });
+    if (!response.ok) throw new Error(`list candidate runs failed: HTTP ${response.status}`);
+    const body = await response.json();
+    if (!Array.isArray(body.workflow_runs)) throw new Error("candidate run response is malformed");
+    runs.push(...body.workflow_runs);
+    if (body.workflow_runs.length < 100) break;
+  }
+
+  const retired = supersededCandidateRuns(runs, pullNumber, currentHead);
+  const unresolved = runs.filter((run) =>
+    run.event === "pull_request"
+    && CANDIDATE_WORKFLOWS.has(run.name)
+    && ACTIVE.has(run.status)
+    && run.head_sha !== currentHead
+    && Array.isArray(run.pull_requests)
+    && run.pull_requests.length === 0);
+  for (const run of unresolved) {
+    const response = await request(`https://api.github.com/repos/${repository}/commits/${run.head_sha}/pulls`, { headers });
+    if (!response.ok) throw new Error(`resolve run ${run.id} pull lifecycle failed: HTTP ${response.status}`);
+    const pulls = await response.json();
+    if (!Array.isArray(pulls)) throw new Error(`run ${run.id} pull lifecycle response is malformed`);
+    if (pulls.some(({ number }) => number === pullNumber)) retired.push(run);
+  }
+  for (const run of retired) {
+    const response = await request(`https://api.github.com/repos/${repository}/actions/runs/${run.id}/cancel`, {
+      method: "POST",
+      headers,
+    });
+    if (!response.ok && response.status !== 409) {
+      throw new Error(`cancel run ${run.id} failed: HTTP ${response.status}`);
+    }
+  }
+  if (retired.length > 0) await pause(5_000);
+  for (const run of retired) {
+    const statusResponse = await request(`https://api.github.com/repos/${repository}/actions/runs/${run.id}`, { headers });
+    if (!statusResponse.ok) throw new Error(`inspect cancelled run ${run.id} failed: HTTP ${statusResponse.status}`);
+    const status = await statusResponse.json();
+    if (ACTIVE.has(status.status)) {
+      const forced = await request(`https://api.github.com/repos/${repository}/actions/runs/${run.id}/force-cancel`, {
+        method: "POST",
+        headers,
+      });
+      if (!forced.ok && forced.status !== 409) {
+        throw new Error(`force-cancel run ${run.id} failed: HTTP ${forced.status}`);
+      }
+    }
+  }
+  return retired.map(({ id, name, head_sha }) => ({ id, name, head_sha }));
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const retired = await retireSupersededCandidates({
+    repository: process.env.GITHUB_REPOSITORY ?? "",
+    pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
+    currentHead: process.env.CONDUIT_CANDIDATE_SHA ?? "",
+    token: process.env.GH_TOKEN ?? "",
+  });
+  process.stdout.write(`${JSON.stringify({
+    schema: "conduit.ci.superseded-candidates/v1",
+    current_head: process.env.CONDUIT_CANDIDATE_SHA,
+    retired,
+  }, null, 2)}\n`);
+}

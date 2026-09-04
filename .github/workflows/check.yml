@@ -63,6 +63,8 @@ jobs:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
+      - name: Verify candidate retirement controller contract
+        run: node --test proof/ci/retire-superseded-candidates.spec.mjs
       - uses: dtolnay/rust-toolchain@stable
         if: steps.changes.outputs.docs_only != 'true'
       - uses: Swatinem/rust-cache@v2
