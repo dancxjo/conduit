@@ -9,6 +9,7 @@ body[data-application-ready="false"] #patchbay-root { pointer-events:none; }
 .body-evidence-status { margin:.45rem 0 0; color:var(--conduit-text-secondary); font-size:.82rem; }
 .body-membership-invitation { margin:.65rem 0; padding:.75rem; border:1px solid var(--conduit-structure-secondary); border-radius:.45rem; }
 .body-membership-invitation h3,.body-membership-invitation p { margin:.15rem 0 .5rem; }
+.body-membership-actions { display:flex; gap:.45rem; flex-wrap:wrap; }
 #body-workbench .body-workbench-tabs { position:static; z-index:auto; width:auto; max-width:none; padding:0; border:0; background:transparent; }
 .body-workbench-hero h2,.body-workbench-hero p { margin:.2rem 0; }
 .body-workbench-tabs { justify-content:flex-start; margin:.8rem 0; }
