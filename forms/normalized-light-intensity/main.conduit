@@ -1,0 +1,8 @@
+# An outside-instrument consumer mapping normalized control to percentage intensity.
+form normalized-light-intensity (
+    control: Scalar > intensity: Quantity
+) {
+    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "clamp", quantization = "nearest")
+    control > map.in
+    map.out > intensity
+}

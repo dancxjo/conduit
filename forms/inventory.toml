@@ -138,6 +138,12 @@ title = "Network Resolution"
 entry = "network-resolution"
 deterministic = { package = "conduit-net", test = "application_network_forms", case = "ordinary_form_plans_dns_and_connection_with_explicit_resources_and_authority" }
 [[forms]]
+slug = "normalized-light-intensity"
+title = "Normalized Light Intensity"
+entry = "normalized-light-intensity"
+deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_form", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable quantity mapping has no installed browser realization"
+[[forms]]
 slug = "patchbay-front-door"
 title = "Patchbay Front Door"
 entry = "patchbay-front-door"
@@ -159,6 +165,12 @@ title = "Pulse Observation"
 entry = "pulse-observation"
 deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
 browser_safe_not_applicable = "portable pulse observation has no installed browser realization"
+[[forms]]
+slug = "quantity-range-map"
+title = "Quantity Range Map"
+entry = "quantity-range-map"
+deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_form", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable quantity mapping has no installed browser realization"
 [[forms]]
 slug = "r1-network-bootstrap"
 title = "R1 Network Bootstrap"
