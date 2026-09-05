@@ -236,7 +236,7 @@ the command implementation; the preflight still inspects that candidate's
 exact manifests and locks.
 
 The registry remains intentionally broad and conservative, but every active
-`check` matrix row now retains its own exact receipt: CI-controller contracts,
+`check` proof node retains its own exact receipt: CI-controller contracts,
 all workspace shards, standalone fabrication locks, every ESP32 target, Limine
 and ConduitOS tool admission, every selected x86 and architecture proof, and
 the AArch64 product. The classifier builds the trusted dependency-light
@@ -246,10 +246,28 @@ Patchbay-debugger, workspace-product, and Pages-carrier receipts. The trusted
 on-demand reconciler retrieves and verifies these receipts before scheduling,
 so a lane is inherited only when every applicable proof key is present.
 
+Selected ConduitOS x86 propositions share one Ubuntu runner and one prepared
+toolchain through `cargo xtask conduitos prove-many`. The command admits at most
+eight named proofs and admits a bounded concurrency ceiling. Hosted CI uses two
+children so QEMU's existing bounded interaction deadlines remain meaningful on
+the two-core runner while still overlapping independent proofs. The rescue
+proposition performs several timing-sensitive guest boots and therefore owns
+the local QEMU environment while it runs; ordinary x86 propositions retain
+two-way overlap before that barrier. Each child
+has a distinct short-lived target root (short enough for UNIX QMP socket
+bounds), QMP/socket namespace, logs, evidence, result JSON,
+and proof receipt. A failure is collected without cancelling its siblings, so
+environment batching never turns eight propositions into one proof. The
+workflow copies only bounded JSON/log/PNG outputs into retained evidence and
+removes the temporary machine roots; its shared Cargo compilation tree is cache
+material, not evidence and is not uploaded. This replaces up to eight
+simultaneous x86 runners with one while leaving the stable `check` aggregate and
+exact proof keys intact.
+
 Later work can split broad nodes, model fabricated artifacts as independent
-graph nodes, remove duplicated path-filtered workflows, batch shared
-browser/QEMU environments, and make Crèche payload delivery lazy without
-changing this identity contract.
+graph nodes, remove duplicated path-filtered workflows, batch the shared
+browser environment, and make Crèche payload delivery lazy without changing
+this identity contract.
 
 Product workflow dependencies follow consumed artifacts rather than the final
 deployment bundle. The Tour and its embedded real Patchbay consume the browser

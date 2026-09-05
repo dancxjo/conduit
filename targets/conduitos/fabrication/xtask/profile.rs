@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    ffi::OsString,
+    path::{Component, Path, PathBuf},
+};
 
 use crate::workspace::workspace_root;
 
@@ -49,7 +52,8 @@ impl Paths {
     pub fn new(arch: ConduitosArch) -> Result<Self, ConduitosError> {
         let root = workspace_root()
             .map_err(|error| ConduitosError::refusal("workspace-unavailable", error))?;
-        let target = root.join("target").join("conduitos").join(arch.as_str());
+        let target_root = target_root(&root, std::env::var_os("CONDUIT_CONDUITOS_TARGET_ROOT"))?;
+        let target = target_root.join(arch.as_str());
         Ok(Self {
             kernel: target.join("conduitos"),
             iso_root: target.join("iso-root"),
@@ -75,6 +79,28 @@ impl Paths {
             target,
         })
     }
+}
+
+fn target_root(root: &Path, requested: Option<OsString>) -> Result<PathBuf, ConduitosError> {
+    let Some(requested) = requested else {
+        return Ok(root.join("target").join("conduitos"));
+    };
+    let requested = PathBuf::from(requested);
+    if requested.as_os_str().is_empty()
+        || requested
+            .components()
+            .any(|component| matches!(component, Component::ParentDir))
+    {
+        return Err(ConduitosError::refusal(
+            "conduitos-target-root-invalid",
+            "isolated target root must be nonempty and contain no parent traversal",
+        ));
+    }
+    Ok(if requested.is_absolute() {
+        requested
+    } else {
+        root.join(requested)
+    })
 }
 
 pub fn command(
@@ -113,4 +139,20 @@ pub fn command_with_env(
         ));
     }
     Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn isolated_target_root_is_explicit_and_traversal_free() {
+        let root = Path::new("/repo");
+        assert_eq!(
+            target_root(root, Some(OsString::from("target/batch"))).unwrap(),
+            Path::new("/repo/target/batch")
+        );
+        assert!(target_root(root, Some(OsString::from("../escape"))).is_err());
+        assert!(target_root(root, Some(OsString::new())).is_err());
+    }
 }

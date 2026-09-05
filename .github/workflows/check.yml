@@ -839,27 +839,19 @@ jobs:
     needs: [classify, conduitos-limine, conduitos-tools, conduitos-proof-image]
     if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
-    strategy:
-      fail-fast: false
-      matrix:
-        proof: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]') }}
-    name: conduitos-x86-${{ matrix.proof }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@1.98.1
-        if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
-      - uses: dtolnay/rust-toolchain@1.98.1
-        if: matrix.proof == 'kernel' || matrix.proof == 'front-door' || matrix.proof == 'product-journey'
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
-          shared-key: conduitos-x86-${{ matrix.proof }}
+          shared-key: conduitos-x86-batch
       - name: Receive the verified pinned bootloader archive
         uses: ./.github/actions/download-exact-artifact
         with:
@@ -875,48 +867,97 @@ jobs:
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Preserve the prepared-image BUILD gate
-        if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
+        if: (github.event_name != 'pull_request' && inputs.candidate_sha == '') || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')
         env:
           PREPARED_IMAGE_RESULT: ${{ needs.conduitos-proof-image.result }}
         run: test "$PREPARED_IMAGE_RESULT" = success
       - name: Receive the exact prepared proof image
-        if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
+        if: (github.event_name != 'pull_request' && inputs.candidate_sha == '') || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')
         uses: ./.github/actions/download-exact-artifact
         with:
           name: conduitos-proof-image-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/conduitos/x86_64
           expected-digest: ${{ needs.conduitos-proof-image.outputs.artifact_digest }}
-      - name: Run ${{ matrix.proof }} proof
+      - name: Run selected x86 proofs in one bounded environment
+        id: x86-proofs
+        continue-on-error: true
+        env:
+          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
         run: |
-          case '${{ matrix.proof }}' in
-            kernel) cargo xtask conduitos prove --arch x86-64 --locked --evidence-root target/conduit-evidence/conduitos-x86_64 && cargo xtask evidence verify --locked --root target/conduit-evidence/conduitos-x86_64 --commit "$CONDUIT_CHECKOUT_SHA" --result complete --proof conduitos-x86_64 --suite conduitos.prove.x86_64 ;;
-            xhci) cargo xtask conduitos xhci-proof --prepared-image --locked ;;
-            usb) cargo xtask conduitos usb-proof --prepared-image --locked ;;
-            hid) cargo xtask conduitos hid-proof --prepared-image --locked ;;
-            keyboard) cargo xtask conduitos keyboard-proof --prepared-image --locked ;;
-            front-door) cargo xtask conduitos front-door-proof --locked ;;
-            product-journey) cargo xtask conduitos journey-proof --locked ;;
-            rescue) cargo xtask conduitos rescue-proof --prepared-image --locked ;;
-            *) echo 'unknown ConduitOS x86 proof' >&2; exit 1 ;;
-          esac
-      - name: Retain ${{ matrix.proof }} proof
+          mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
+          args=()
+          for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
+          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --locked
+      - name: Validate the complete x86 batch contract
+        id: x86-contract
+        if: always()
+        continue-on-error: true
+        env:
+          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+        run: |
+          jq -e --argjson expected "$SELECTED_PROOFS" '
+            .schema == "conduit.conduitos.prove-many/v1" and
+            (($expected | length) == 1 or .maximum_observed_parallelism > 1) and
+            ([.results[].proof] == ($expected | sort)) and
+            all(.results[]; .status == "success")
+          ' target/conduitos/prove-many/summary.json
+      - name: Retain distinct bounded x86 proof evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ format('{0}-{1}', matrix.proof == 'kernel' && 'conduit-conduitos-evidence' || format('conduitos-{0}-proof', matrix.proof), env.CONDUIT_CHECKOUT_SHA) }}
+          name: conduitos-x86-batch-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
-            target/conduitos/x86_64/*.json
-            target/conduitos/x86_64/*.log
-            target/conduit-evidence/conduitos-x86_64
+            target/conduitos/prove-many/summary.json
+            target/conduitos/prove-many/results
+            target/conduitos/prove-many/runs/*/logs
+            target/conduitos/prove-many/runs/*/evidence
+            target/conduitos/prove-many/runs/*/conduitos/**/*.json
+            target/conduitos/prove-many/runs/*/conduitos/**/*.log
+            target/conduitos/prove-many/runs/*/conduitos/**/*.png
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
-      - name: Retain the exact successful x86 proof proposition
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
-        uses: ./.github/actions/attest-ci-proof
+      - name: Receive the trusted candidate proof plan
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/download-artifact@v8
         with:
-          proof-id: conduitos.x86.${{ matrix.proof }}
-          evidence: conduitos-x86-${{ matrix.proof }}
-          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
+          name: ci-plan-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: ${{ runner.temp }}/conduit-ci-plan
+      - name: Receive the trusted attestation controller
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/download-artifact@v8
+        with:
+          name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: ${{ runner.temp }}/conduit-ci-attestation
+      - name: Retain one exact receipt per successful x86 proof
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        env:
+          SELECTED_PROOFS: ${{ needs.classify.outputs.conduitos_x86_matrix }}
+        run: |
+          chmod 755 "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch"
+          mkdir -p target/ci-receipts
+          mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
+          for proof in "${proofs[@]}"; do
+            proof_id="conduitos.x86.$proof"
+            jq -e --arg proof_id "$proof_id" \
+              'any(.proofs[]; .proof_id == $proof_id)' \
+              "$RUNNER_TEMP/conduit-ci-plan/ci-proof-plan.json" >/dev/null
+            "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch" \
+              ci attest-success "$CONDUIT_CHECKOUT_SHA" "$proof_id" \
+              --evidence "target/conduitos/prove-many/results/$proof.json" \
+              --out "target/ci-receipts/$proof_id.json" --locked
+          done
+      - name: Retain immutable x86 proof receipts
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: target/ci-receipts/conduitos.x86.*.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve the exact x86 batch as the proof gate
+        if: always() && (steps.x86-proofs.outcome != 'success' || steps.x86-contract.outcome != 'success')
+        run: exit 1
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]
