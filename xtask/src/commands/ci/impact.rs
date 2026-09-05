@@ -76,6 +76,28 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         workspace_packages: &[],
     },
     ControllerProofSpec {
+        id: "ci.exact-integration",
+        implementation_inputs: &[
+            ".github/workflows/reconcile-candidate.yml",
+            "tools/xtask-dispatch/src/ci_dispatch.rs",
+            "tools/xtask-dispatch/src/main.rs",
+            "xtask/src/commands/ci.rs",
+            "xtask/src/commands/ci/integration.rs",
+            "xtask/src/commands/ci/integration/tests.rs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/src/commands/ci/proof_graph.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // Shared dispatch and proof-planning files are bounded only when the
+        // exact integration resolver anchors the change.
+        required_inputs: &[
+            "xtask/src/commands/ci/integration.rs",
+            "xtask/src/commands/ci/integration/tests.rs",
+        ],
+        workspace_packages: &["conduit-xtask-dispatch", "xtask"],
+    },
+    ControllerProofSpec {
         id: "ci.merged-branch-retirement",
         implementation_inputs: &[
             ".github/workflows/retire-merged-pr-branch.yml",

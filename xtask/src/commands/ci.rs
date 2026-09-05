@@ -1,4 +1,5 @@
 mod impact;
+mod integration;
 #[cfg(test)]
 mod monitor;
 mod product_reconciliation;
@@ -28,6 +29,19 @@ enum CiCommand {
         #[arg(long)]
         json_out: Option<PathBuf>,
         /// Write a Markdown job-summary table to this path.
+        #[arg(long)]
+        summary_out: Option<PathBuf>,
+    },
+    /// Resolve the exact prospective integration tree without rewriting either input.
+    Integration {
+        /// Current target-branch commit SHA or ref.
+        base: String,
+        /// Exact immutable candidate commit SHA or ref.
+        head: String,
+        /// Write the machine-readable integration result to this path.
+        #[arg(long)]
+        json_out: Option<PathBuf>,
+        /// Write a Markdown summary to this path.
         #[arg(long)]
         summary_out: Option<PathBuf>,
     },
@@ -111,6 +125,12 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
             json_out.as_deref(),
             summary_out.as_deref(),
         ),
+        CiCommand::Integration {
+            base,
+            head,
+            json_out,
+            summary_out,
+        } => integration::run(&base, &head, json_out.as_deref(), summary_out.as_deref()),
         CiCommand::Reconcile {
             base,
             head,

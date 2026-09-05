@@ -533,7 +533,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("issues: write"));
     assert!(workflow.contains("integration_sha: ${{ steps.resolve.outputs.integration_sha }}"));
-    assert!(workflow.contains("git merge-tree --write-tree \"$base_sha\" \"$CANDIDATE_SHA\""));
+    assert!(workflow.contains("ci integration \"$base_sha\" \"$CANDIDATE_SHA\" --locked"));
+    assert!(workflow.contains("status=$(jq -r '.status' integration.json)"));
+    assert!(workflow.contains("effective_merge_base_sha=$(jq -r '.effective_merge_base_sha'"));
+    assert!(workflow.contains("merge_base_method=$(jq -r '.merge_base_method'"));
     assert!(workflow
         .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
     assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));

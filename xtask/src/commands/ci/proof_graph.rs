@@ -37,6 +37,9 @@ struct Plan {
     candidate_tree: String,
     base_sha: Option<String>,
     integration_tree: Option<String>,
+    effective_merge_base_sha: Option<String>,
+    effective_merge_base_tree: Option<String>,
+    merge_base_method: Option<&'static str>,
     integration_status: &'static str,
     candidate_evidence_status: &'static str,
     proofs: Vec<ProofPlan>,
@@ -63,6 +66,9 @@ pub(super) fn candidate(
             candidate_tree: tree.clone(),
             base_sha: None,
             integration_tree: Some(tree),
+            effective_merge_base_sha: None,
+            effective_merge_base_tree: None,
+            merge_base_method: None,
             integration_status: "not-requested",
         },
         &receipts,
@@ -84,33 +90,40 @@ pub(super) fn reconcile(
     validate_registry_paths(&root, &candidate_tree)?;
     let receipts = load_receipts(receipt_paths);
     let candidate_evidence_status = evidence_status(&root, &candidate_tree, &receipts)?;
-    let integration = merge_tree(&root, &base_sha, &candidate_sha)?;
-    let plan = match integration {
-        MergeTree::Conflict => Plan {
+    let integration = super::integration::resolve(&root, &base_sha, &candidate_sha)?;
+    let plan = if integration.status == "conflict" {
+        Plan {
             schema: PLAN_SCHEMA,
             mode: "integration",
             candidate_sha,
             candidate_tree,
             base_sha: Some(base_sha),
             integration_tree: None,
+            effective_merge_base_sha: None,
+            effective_merge_base_tree: None,
+            merge_base_method: Some("none"),
             integration_status: "conflict",
             candidate_evidence_status,
             proofs: Vec::new(),
             inherited: 0,
             execute: 0,
-        },
-        MergeTree::Clean(tree) => build_plan(
+        }
+    } else {
+        build_plan(
             &root,
             PlanContext {
                 mode: "integration",
                 candidate_sha,
                 candidate_tree,
                 base_sha: Some(base_sha),
-                integration_tree: Some(tree),
+                integration_tree: integration.integration_tree,
+                effective_merge_base_sha: integration.effective_merge_base_sha,
+                effective_merge_base_tree: integration.effective_merge_base_tree,
+                merge_base_method: Some(integration.merge_base_method),
                 integration_status: "clean",
             },
             &receipts,
-        )?,
+        )?
     };
     emit(&plan, json_out, summary_out)
 }
@@ -165,6 +178,9 @@ struct PlanContext {
     candidate_tree: String,
     base_sha: Option<String>,
     integration_tree: Option<String>,
+    effective_merge_base_sha: Option<String>,
+    effective_merge_base_tree: Option<String>,
+    merge_base_method: Option<&'static str>,
     integration_status: &'static str,
 }
 
@@ -222,11 +238,29 @@ fn build_plan(
         candidate_tree: context.candidate_tree,
         base_sha: context.base_sha,
         integration_tree: context.integration_tree,
+        effective_merge_base_sha: context.effective_merge_base_sha,
+        effective_merge_base_tree: context.effective_merge_base_tree,
+        merge_base_method: context.merge_base_method,
         integration_status: context.integration_status,
         candidate_evidence_status,
         proofs,
         inherited,
         execute,
+    })
+}
+
+#[cfg(test)]
+enum MergeTree {
+    Clean(String),
+    Conflict,
+}
+
+#[cfg(test)]
+fn merge_tree(root: &Path, base: &str, head: &str) -> Result<MergeTree, String> {
+    let integration = super::integration::resolve(root, base, head)?;
+    Ok(match integration.integration_tree {
+        Some(tree) => MergeTree::Clean(tree),
+        None => MergeTree::Conflict,
     })
 }
 
@@ -379,35 +413,6 @@ fn resolve_tree(root: &Path, commit: &str) -> Result<String, String> {
     )
 }
 
-enum MergeTree {
-    Clean(String),
-    Conflict,
-}
-
-fn merge_tree(root: &Path, base: &str, head: &str) -> Result<MergeTree, String> {
-    let output = git_command(root)
-        .args(["merge-tree", "--write-tree", base, head])
-        .output()
-        .map_err(|error| format!("run git merge-tree: {error}"))?;
-    if output.status.success() {
-        let tree = String::from_utf8(output.stdout)
-            .map_err(|_| "git merge-tree emitted non-UTF-8".to_owned())?
-            .lines()
-            .next()
-            .unwrap_or_default()
-            .trim()
-            .to_owned();
-        if tree.len() != 40 && tree.len() != 64 {
-            return Err("git merge-tree did not emit an integration tree".to_owned());
-        }
-        Ok(MergeTree::Clean(tree))
-    } else if output.status.code() == Some(1) {
-        Ok(MergeTree::Conflict)
-    } else {
-        Err(command_error("git merge-tree", &output))
-    }
-}
-
 fn git_text(root: &Path, args: &[&str]) -> Result<String, String> {
     let output = git_command(root)
         .args(args)
@@ -473,6 +478,15 @@ fn summary(plan: &Plan) -> String {
     }
     if let Some(tree) = &plan.integration_tree {
         text.push_str(&format!("- integration tree: `{tree}`\n"));
+    }
+    if let Some(base) = &plan.effective_merge_base_sha {
+        text.push_str(&format!("- effective merge base: `{base}`\n"));
+    }
+    if let Some(tree) = &plan.effective_merge_base_tree {
+        text.push_str(&format!("- effective merge-base tree: `{tree}`\n"));
+    }
+    if let Some(method) = plan.merge_base_method {
+        text.push_str(&format!("- merge-base method: **{method}**\n"));
     }
     text.push_str("\n| Proof | Disposition | Reason |\n|---|---|---|\n");
     for proof in &plan.proofs {

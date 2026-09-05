@@ -96,6 +96,16 @@ error, never an empty input set that can accidentally inherit an old receipt.
 
 `cargo xtask ci reconcile BASE HEAD --receipt RECEIPT...` asks Git for the prospective integration tree with `git merge-tree --write-tree`. It never rebases or mutates `HEAD`.
 
+`cargo xtask ci integration BASE HEAD` owns the lower-level composition
+decision. It first uses Git's genealogical merge base. If that reports a
+conflict, the controller may retry only when a direct candidate parent's exact
+Git tree ID equals a commit tree reachable from `BASE`. That reachable commit
+becomes the explicit effective merge base, preserving a stacked candidate
+after its parent was squash-merged without treating patch similarity as
+identity. The JSON and job summary report the effective commit, tree, and
+selection method. No exact tree match, or a conflict after the exact retry,
+remains a structural conflict and fails closed before proof jobs start.
+
 - A structural conflict reports `candidate_evidence_status` separately from `integration_status: conflict` and schedules no expensive proof.
 - A clean merge fingerprints registered proofs directly from the prospective tree.
 - An exact successful receipt with the same proof key is `inherited`.
