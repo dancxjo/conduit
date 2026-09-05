@@ -132,8 +132,8 @@ mod tests {
     #[test]
     fn promotion_commit_has_exact_tree_and_both_histories_as_parents() {
         let dev = resolve_commit("HEAD").unwrap();
-        let main = resolve_commit("HEAD^").unwrap();
         let tree = resolve_tree(&dev).unwrap();
+        let main = independent_test_commit(&tree);
         let promotion = create_promotion_commit(&dev, &main, &tree).unwrap();
 
         assert_eq!(
@@ -151,5 +151,24 @@ mod tests {
             .unwrap(),
             dev
         );
+    }
+
+    fn independent_test_commit(tree: &str) -> String {
+        let mut child = Command::new("git")
+            .args(["commit-tree", tree])
+            .env("GIT_AUTHOR_NAME", "Conduit Test")
+            .env("GIT_AUTHOR_EMAIL", "test@conduit.invalid")
+            .env("GIT_AUTHOR_DATE", "2000-01-01T00:00:00Z")
+            .env("GIT_COMMITTER_NAME", "Conduit Test")
+            .env("GIT_COMMITTER_EMAIL", "test@conduit.invalid")
+            .env("GIT_COMMITTER_DATE", "2000-01-01T00:00:00Z")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        write!(child.stdin.as_mut().unwrap(), "independent test history\n").unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success());
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
     }
 }
