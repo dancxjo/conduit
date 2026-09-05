@@ -412,6 +412,7 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     conduit_semantic_catalog::install_state_toggle_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_presentation_composition_catalogs(
         &mut startup,

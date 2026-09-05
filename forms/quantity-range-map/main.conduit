@@ -1,0 +1,8 @@
+# Map normalized semantic control into an exact unit-bearing range.
+form quantity-range-map (
+    control: Scalar > quantity: Quantity
+) {
+    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = "Hz", range-policy = "clamp", quantization = "nearest")
+    control > map.in
+    map.out > quantity
+}
