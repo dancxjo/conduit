@@ -18,8 +18,8 @@ mod text;
 mod values;
 
 pub(crate) use factory::{
-    advertisement, backs, catalogs, factory, local_bases, selected_human_machinery,
-    BrowserManifestation,
+    advertisement, backs, catalogs, factory, local_bases, membership_advertisement,
+    selected_human_machinery, BrowserManifestation,
 };
 pub(crate) use input::KEY_EVENT_OPERATION;
 pub(crate) use inventory::inventory;

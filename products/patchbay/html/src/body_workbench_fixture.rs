@@ -4,10 +4,7 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyGraduationChoice,
     BodyGraduationEvidence, BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentForm,
 };
-use conduit_core::{
-    bind_sign, BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
-    SourceDocumentId,
-};
+use conduit_core::{bind_sign, BootId, HostId, ImplementationId, OfferGeneration, PlanId, SignId};
 use patchbay_model::FormCandidate;
 
 use crate::{
@@ -19,6 +16,49 @@ use crate::{
 pub fn body_workbench_fixture_snapshot(
     hosted: bool,
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
+    let forms = body_workbench_fixture_forms()?;
+    body_workbench_fixture_snapshot_with_forms(hosted, &forms)
+}
+
+pub fn body_workbench_fixture_forms() -> Result<Vec<FormCandidate>, BodyWorkbenchError> {
+    Ok(vec![
+        reviewed_form(
+            "Hello",
+            "forms/hello/main.conduit",
+            include_str!("../../../../forms/hello/main.conduit"),
+            5,
+        )?,
+        reviewed_form(
+            "Greet",
+            "forms/greet/main.conduit",
+            include_str!("../../../../forms/greet/main.conduit"),
+            6,
+        )?,
+        reviewed_form(
+            "Count",
+            "forms/count/main.conduit",
+            include_str!("../../../../forms/count/main.conduit"),
+            7,
+        )?,
+        reviewed_form(
+            "Desk Telegraph",
+            "forms/desk-telegraph/main.conduit",
+            include_str!("../../../../forms/desk-telegraph/main.conduit"),
+            8,
+        )?,
+        reviewed_form(
+            "Memory Lantern",
+            "forms/memory-lantern/main.conduit",
+            include_str!("../../../../forms/memory-lantern/main.conduit"),
+            9,
+        )?,
+    ])
+}
+
+fn body_workbench_fixture_snapshot_with_forms(
+    hosted: bool,
+    available: &[FormCandidate],
+) -> Result<RendererSnapshot, BodyWorkbenchError> {
     const PLAN: &str = "plan/roseau-hosted-patchbay";
     const IMPLEMENTATION: &str = "browser/patchbay-surface@1";
     let host = HostId::from("host/roseau");
@@ -26,12 +66,12 @@ pub fn body_workbench_fixture_snapshot(
     let body = Body::born_with_forms(
         BodyWorkset::from_forms([
             ResidentForm::new(
-                SourceDocumentId::from("source/roseau-program"),
-                CheckedFormId::from("checked/roseau-program"),
+                available[3].source_document_id.clone(),
+                available[3].checked_form_id.clone(),
             ),
             ResidentForm::new(
-                SourceDocumentId::from("source/roseau-recorder"),
-                CheckedFormId::from("checked/roseau-recorder"),
+                available[4].source_document_id.clone(),
+                available[4].checked_form_id.clone(),
             ),
         ])
         .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?,
@@ -103,27 +143,7 @@ pub fn body_workbench_fixture_snapshot(
     } else {
         BrowserBodyWorkbenchEntrance::ExternalReader
     };
-    let available = [
-        reviewed_form(
-            "Hello",
-            "forms/hello/main.conduit",
-            include_str!("../../../../forms/hello/main.conduit"),
-            5,
-        )?,
-        reviewed_form(
-            "Greet",
-            "forms/greet/main.conduit",
-            include_str!("../../../../forms/greet/main.conduit"),
-            6,
-        )?,
-        reviewed_form(
-            "Count",
-            "forms/count/main.conduit",
-            include_str!("../../../../forms/count/main.conduit"),
-            7,
-        )?,
-    ];
-    body_workbench_snapshot_with_forms(1, &encoded, entrance, &available)
+    body_workbench_snapshot_with_forms(1, &encoded, entrance, available)
 }
 
 fn reviewed_form(

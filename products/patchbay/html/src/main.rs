@@ -1,7 +1,7 @@
 use patchbay_html::{
-    body_workbench_fixture_snapshot, body_workbench_snapshot_with_forms,
-    cross_host_demonstration_snapshot, demonstration_snapshot, llm_documentary_snapshot,
-    llm_embodiment_snapshot, load_form_sources, text_lab_split_snapshot,
+    body_workbench_fixture_forms, body_workbench_fixture_snapshot,
+    body_workbench_snapshot_with_forms, cross_host_demonstration_snapshot, demonstration_snapshot,
+    llm_documentary_snapshot, llm_embodiment_snapshot, load_form_sources, text_lab_split_snapshot,
     BrowserBodyWorkbenchEntrance, FormSource, PatchbayHtmlServer,
 };
 
@@ -168,9 +168,13 @@ fn main() -> Result<(), String> {
         let snapshot = demonstration_snapshot()?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
     } else if let Some(hosted) = arguments.body_workbench_fixture {
+        let forms = body_workbench_fixture_forms().map_err(|error| error.to_string())?;
         let snapshot =
             body_workbench_fixture_snapshot(hosted).map_err(|error| error.to_string())?;
-        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+        PatchbayHtmlServer::bind_ephemeral(&snapshot)
+            .map_err(|error| error.to_string())?
+            .with_body_planning_forms(forms)
+            .map_err(|error| error.to_string())?
     } else if let Some(path) = arguments.body_evidence {
         let entrance = arguments.body_entrance.ok_or(
             "--body-evidence requires exactly one --external-reader or --hosted-reader entrance",
@@ -179,7 +183,10 @@ fn main() -> Result<(), String> {
         let forms = load_form_sources(&arguments.forms).map_err(|error| error.to_string())?;
         let snapshot = body_workbench_snapshot_with_forms(1, &evidence, entrance, &forms)
             .map_err(|error| error.to_string())?;
-        PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
+        PatchbayHtmlServer::bind_ephemeral(&snapshot)
+            .map_err(|error| error.to_string())?
+            .with_body_planning_forms(forms)
+            .map_err(|error| error.to_string())?
     } else if arguments.body_entrance.is_some() {
         return Err("a Body reader entrance requires --body-evidence first".into());
     } else if arguments.documentary_fixture {

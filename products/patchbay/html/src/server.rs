@@ -144,6 +144,8 @@ pub struct PatchbayHtmlServer {
     zero_body_front_door:
         Option<std::sync::Arc<std::sync::Mutex<patchbay_model::ZeroBodyFrontDoor>>>,
     body_workload: Option<patchbay_model::PatchbayBodyWorkloadSession>,
+    body_planning_forms: Vec<patchbay_model::FormCandidate>,
+    body_planning: Option<patchbay_model::BodyPlanningSession>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
@@ -221,6 +223,8 @@ impl PatchbayHtmlServer {
             front_door: None,
             zero_body_front_door: None,
             body_workload,
+            body_planning_forms: Vec::new(),
+            body_planning: None,
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
@@ -230,6 +234,23 @@ impl PatchbayHtmlServer {
 
     pub fn bind_ephemeral(snapshot: &RendererSnapshot) -> Result<Self, ServerError> {
         Self::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into(), snapshot)
+    }
+
+    pub fn with_body_planning_forms(
+        mut self,
+        forms: Vec<patchbay_model::FormCandidate>,
+    ) -> Result<Self, ServerError> {
+        let workset = &self
+            .body_workload
+            .as_ref()
+            .ok_or_else(|| ServerError::Interaction("Body workload session is absent".into()))?
+            .evidence()
+            .body
+            .workset;
+        patchbay_model::body_planning_requirements(workset, &forms)
+            .map_err(|error| ServerError::Interaction(format!("Body planning forms: {error:?}")))?;
+        self.body_planning_forms = forms;
+        Ok(self)
     }
 
     pub fn local_addr(&self) -> Result<SocketAddr, ServerError> {
@@ -370,6 +391,9 @@ impl PatchbayHtmlServer {
         }
         if first == "POST /api/body-host-planning-offer HTTP/1.1" {
             return self.deliver_body_host_planning_offer(&mut stream, &request.body);
+        }
+        if first == "GET /api/body-planning-requirements HTTP/1.1" {
+            return self.deliver_body_planning_requirements(&mut stream);
         }
         if first == "GET /api/body-evidence HTTP/1.1" {
             return self.deliver_body_evidence(&mut stream);

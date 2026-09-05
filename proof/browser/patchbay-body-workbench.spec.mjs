@@ -8,7 +8,15 @@ import { startPresenceProbe } from "./browser-presence-support.mjs";
 let server;
 let hostedTruth;
 let membershipProbe;
+let secondMembershipProbe;
 let temporaryEvidenceDirectory;
+const fixtureFormArguments = [
+  "--form", "Hello", "forms/hello/main.conduit",
+  "--form", "Greet", "forms/greet/main.conduit",
+  "--form", "Count", "forms/count/main.conduit",
+  "--form", "Desk Telegraph", "forms/desk-telegraph/main.conduit",
+  "--form", "Memory Lantern", "forms/memory-lantern/main.conduit",
+];
 
 async function openPatchbay(page, patchbayArguments) {
   server = spawn("target/debug/patchbay-html", patchbayArguments, {
@@ -46,10 +54,10 @@ async function writeFixtureEvidence(page) {
   return evidencePath;
 }
 
-test("an invited browser remains outside the Body until explicit join", async ({ page }) => {
+test("a second browser replans one Body and its departure is explicit", async ({ page, browser }) => {
   const evidencePath = await writeFixtureEvidence(page);
   membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath, "--fresh-return"]);
-  const patchbayUrl = await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  const patchbayUrl = await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url, ...fixtureFormArguments]);
   const bodyId = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(async response => (await response.json()).body_workbench.body_id);
   await expect(page.getByRole("button", { name: "Join this Body", exact: true })).toBeVisible();
   await expect(page.locator("#body-membership-status")).toContainText("not a member");
@@ -86,21 +94,21 @@ test("an invited browser remains outside the Body until explicit join", async ({
   }).toBe(admittedIdentity.bootId);
   await expect(page.locator('[data-application-slot="body-membership-offers"]')).toContainText("SelfReported · display or diagnostic only");
   await expect(page.locator('[data-application-slot="body-membership-offers"]')).toContainText(admittedOfferEvidence.evidence.observation_sign_id);
-  const selectedCapability = await page.locator("#body-capability-select").inputValue();
-  expect(selectedCapability).not.toBe("");
-  await page.getByRole("button", { name: "Request current evidence", exact: true }).click();
+  await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.stage)).toBe("Planning");
   const requestedEvidence = await page.evaluate(() => globalThis.__patchbayMembership.offerEvidence());
-  expect(requestedEvidence.capabilities.map(offer => offer.capability_id)).toEqual([selectedCapability]);
-  expect(requestedEvidence.resources).toEqual([]);
+  expect(requestedEvidence.capabilities.length).toBeGreaterThan(0);
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
   await expect(page.locator("#body-capability-evidence-status")).toContainText("display only");
-  await page.getByRole("button", { name: "Allow as planning input", exact: true }).click();
-  await expect(page.locator("#body-capability-evidence-status")).toHaveText("Current self-report admitted by explicit policy for planning · replan not requested.");
+  await page.getByRole("button", { name: "Run active Forms on this Host", exact: true }).click();
+  await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
   const planningInput = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
   expect(planningInput.body_host_planning_offer.stage).toBe("Planning");
-  expect(planningInput.body_host_planning_offer.capabilities.map(offer => offer.capability_id)).toEqual([selectedCapability]);
-  expect(planningInput.interaction.last_disposition).toBe("Succeeded(PlanningInputAdmitted;ReplanNotRequested)");
+  expect(planningInput.body_planning.body_id).toBe(bodyId);
+  expect(planningInput.body_planning.lifecycle).toBe("Playing");
+  expect(planningInput.body_planning.current_hosts).toEqual([{ host_id: admittedIdentity.hostId, boot_id: admittedIdentity.bootId }]);
+  expect(planningInput.body_planning.historical_plan_ids).toEqual([planningInput.body_planning.current_plan_id]);
+  expect(planningInput.interaction.last_disposition).toBe("Succeeded(PlanningInputAdmitted;BodyReplanned)");
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()?.body_id)).toBe(bodyId);
   const admissionBiography = await page.evaluate(() => {
     const evidence = globalThis.__patchbayMembership.biographyEvidence();
@@ -178,85 +186,60 @@ test("an invited browser remains outside the Body until explicit join", async ({
   await expect(plannerFacts).toContainText(`Gears${inspectedPlanner.limits.maximum_gears}`);
   await expect(plannerFacts).toContainText(`Connections${inspectedPlanner.limits.maximum_connections}`);
   await expect(plannerFacts).toContainText("Planner selectionnone · advertisement only");
-  await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("offline");
-  await expect.poll(() => page.evaluate(() => {
-    const credential = globalThis.__patchbayMembership.membershipCredential();
-    const evidence = globalThis.__patchbayMembership.biographyEvidence();
-    return evidence?.membership.parts.find(part => part.part_id === credential.part_id)?.current;
-  })).toBeNull();
-  await expect(page.locator("#body-membership-status")).toHaveText("Browser presence disconnected. Durable Body membership was not revoked.");
-  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Membershipoffline");
-  await expect(page.locator('[data-application-slot="body-membership-facts"]')).toContainText("Presenceunavailable");
-  await expect(offerFacts).toContainText("Offer availabilityUnavailable · retained advertisement only");
-  await expect.poll(async () => {
-    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
-    return {
-      bodyId: snapshot.body_workbench.body_id,
-      evidenceRevision: snapshot.body_workbench.evidence_revision,
-      admittedParts: snapshot.body_workbench.current.admitted_parts,
-      currentHosts: snapshot.body_workbench.current.current_hosts.length,
-    };
-  }).toEqual({ bodyId, evidenceRevision: 3, admittedParts: 2, currentHosts: 1 });
-  const leftEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
-  expect(leftEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
-  expect(await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json())).not.toHaveProperty("body_host_offer_evidence");
-  expect(await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json())).not.toHaveProperty("body_host_planning_offer");
-  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 3 has unsaved Body changes.");
-  await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 1 current Host");
-  expect(await page.evaluate(() => ({
-    hostId: globalThis.__patchbayMembership.hostId,
-    bootId: globalThis.__patchbayMembership.bootId,
-  }))).toEqual(admittedIdentity);
-  await expect(page.getByRole("button", { name: "Return this Host", exact: true })).toBeEnabled();
-  await expect.poll(membershipProbe.output).toContain("left sequence=");
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Return this Host", exact: true })).toBeVisible();
-  await expect(page.locator("#body-membership-status")).toHaveText("This durable browser Host belongs to the Body and can explicitly return with a fresh Boot.");
-  expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
-  await page.getByRole("button", { name: "Return this Host", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
-  await expect(page.locator("#body-membership-status")).toHaveText("Browser Host returned with a fresh current Boot.");
-  const returned = await page.evaluate(() => ({
-    hostId: globalThis.__patchbayMembership.hostId,
-    bootId: globalThis.__patchbayMembership.bootId,
-    credential: globalThis.__patchbayMembership.membershipCredential(),
+  const priorPlanId = planningInput.body_planning.current_plan_id;
+  const secondEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
+  const secondEvidencePath = join(temporaryEvidenceDirectory, "body-for-second-browser.json");
+  await writeFile(secondEvidencePath, JSON.stringify(secondEvidence));
+  secondMembershipProbe = await startPresenceProbe(["--body-evidence", secondEvidencePath]);
+  const secondContext = await browser.newContext();
+  const secondPage = await secondContext.newPage();
+  await secondPage.route("**/api/body-admission", route => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ url: secondMembershipProbe.url }),
   }));
-  expect(returned.hostId).toBe(admittedIdentity.hostId);
-  expect(returned.bootId).not.toBe(admittedIdentity.bootId);
-  expect(returned.credential.part_id).toBe(membershipCredential.credential.part_id);
-  expect(returned.credential.credential_id).not.toBe(membershipCredential.credential.credential_id);
-  expect(returned.credential.boot_id).toBe(returned.bootId);
-  await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.boot_id)).toBe(returned.bootId);
-  const returnedOfferEvidence = await page.evaluate(() => globalThis.__patchbayMembership.offerEvidence());
-  expect(returnedOfferEvidence.observation_sign_id).not.toBe(admittedOfferEvidence.evidence.observation_sign_id);
-  expect(returnedOfferEvidence.capability_summary).toEqual(admittedOfferEvidence.evidence.capability_summary);
-  await page.getByRole("button", { name: "Request current evidence", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => {
-    const evidence = globalThis.__patchbayMembership.offerEvidence();
-    return evidence?.stage === "Planning" ? evidence.boot_id : null;
-  })).toBe(returned.bootId);
+  await secondPage.goto(patchbayUrl);
+  await expect(secondPage.getByRole("button", { name: "Join this Body", exact: true })).toBeVisible();
+  await secondPage.getByRole("button", { name: "Join this Body", exact: true }).click();
+  await expect.poll(secondMembershipProbe.output).toContain("admitted body=");
+  await expect.poll(() => secondPage.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
+  const secondIdentity = await secondPage.evaluate(() => ({
+    hostId: globalThis.__patchbayMembership.hostId,
+    bootId: globalThis.__patchbayMembership.bootId,
+  }));
+  expect(secondIdentity.hostId).not.toBe(admittedIdentity.hostId);
+  await secondPage.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+  await expect.poll(() => secondPage.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.stage)).toBe("Planning");
+  await secondPage.getByRole("button", { name: "Run active Forms on this Host", exact: true }).click();
+  await expect.poll(async () => {
+    const snapshot = await secondPage.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+    return snapshot.body_planning?.historical_plan_ids?.length === 2 ? snapshot.body_planning : null;
+  }).not.toBeNull();
+  const replacementSnapshot = await secondPage.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+  expect(replacementSnapshot.body_planning.body_id).toBe(bodyId);
+  expect(replacementSnapshot.body_planning.current_plan_id).not.toBe(priorPlanId);
+  expect(replacementSnapshot.body_planning.historical_plan_ids[0]).toBe(priorPlanId);
+  expect(replacementSnapshot.body_planning.current_hosts).toEqual([{ host_id: secondIdentity.hostId, boot_id: secondIdentity.bootId }]);
+  await secondPage.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(async () => {
     const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
-    return snapshot.body_host_offer_evidence?.boot_id;
-  }).toBe(returned.bootId);
-  await expect.poll(async () => {
-    const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
-    return {
-      bodyId: snapshot.body_workbench.body_id,
-      evidenceRevision: snapshot.body_workbench.evidence_revision,
-      admittedParts: snapshot.body_workbench.current.admitted_parts,
-      currentHosts: snapshot.body_workbench.current.current_hosts.length,
-    };
-  }).toEqual({ bodyId, evidenceRevision: 4, admittedParts: 2, currentHosts: 2 });
-  await expect.poll(membershipProbe.output).toContain(`returned part=${returned.credential.part_id} host=${returned.hostId} boot=${returned.bootId}`);
-  await page.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
+    return snapshot.body_planning?.lifecycle;
+  }).toBe("Unsatisfied");
+  const afterSecondLeave = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+  expect(afterSecondLeave.body_planning.body_id).toBe(bodyId);
+  expect(afterSecondLeave.body_planning.current_plan_id).toBe(replacementSnapshot.body_planning.current_plan_id);
+  expect(afterSecondLeave.body_planning.historical_plan_ids).toHaveLength(2);
+  expect(afterSecondLeave.body_workbench.body_id).toBe(bodyId);
+  expect(afterSecondLeave.body_workbench.current.admitted_parts).toBe(3);
+  expect(afterSecondLeave.body_workbench.current.current_hosts).toHaveLength(2);
+  expect(afterSecondLeave).not.toHaveProperty("body_host_planning_offer");
+  await secondContext.close();
 });
 
 test("an invitation for a different Body refuses before admission", async ({ page }) => {
   const evidencePath = await writeFixtureEvidence(page);
   membershipProbe = await startPresenceProbe();
-  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url, ...fixtureFormArguments]);
   await page.getByRole("button", { name: "Join this Body", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("refused:wrong-body");
   await expect(page.locator("#body-membership-status")).toHaveText("Invitation refused: it belongs to a different Body than the evidence open here.");
@@ -267,7 +250,7 @@ test("an invitation for a different Body refuses before admission", async ({ pag
 test("an admitted browser visibly returns once with the same Host and Boot", async ({ page }) => {
   const evidencePath = await writeFixtureEvidence(page);
   membershipProbe = await startPresenceProbe(["--body-evidence", evidencePath, "--reconnect"]);
-  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url]);
+  await openPatchbay(page, ["--body-evidence", evidencePath, "--external-reader", "--body-invitation", membershipProbe.url, ...fixtureFormArguments]);
   await page.getByRole("button", { name: "Join this Body", exact: true }).click();
   await expect.poll(() => page.evaluate(() => globalThis.__patchbayMembership?.state())).toBe("admitted");
   const identity = await page.evaluate(() => ({
@@ -288,7 +271,9 @@ test("an admitted browser visibly returns once with the same Host and Boot", asy
 test.afterEach(async () => {
   server?.kill();
   membershipProbe?.process.kill();
+  secondMembershipProbe?.process.kill();
   membershipProbe = null;
+  secondMembershipProbe = null;
   if (temporaryEvidenceDirectory) await rm(temporaryEvidenceDirectory, { recursive: true, force: true });
   temporaryEvidenceDirectory = null;
 });
@@ -339,8 +324,8 @@ for (const entrance of ["hosted", "external"]) {
     );
     const activeForms = page.locator('#body-workbench-forms [data-application-component="artifact"]');
     await expect(activeForms).toHaveCount(2);
-    await expect(activeForms.filter({ hasText: "checked/roseau-program" })).toHaveCount(1);
-    await expect(activeForms.filter({ hasText: "checked/roseau-recorder" })).toHaveCount(1);
+    await expect(activeForms.filter({ hasText: "Desk Telegraph" })).toHaveCount(1);
+    await expect(activeForms.filter({ hasText: "Memory Lantern" })).toHaveCount(1);
     await expect(page.locator("#body-workbench-facts")).toContainText("Workload revision");
     await expect(page.locator("#body-workbench-facts")).toContainText("0");
     const availableForms = page.locator('#body-workbench-available [data-application-component="artifact"]');
@@ -395,7 +380,7 @@ for (const entrance of ["hosted", "external"]) {
     expect(afterAction.body_workbench.encoded_evidence).toEqual(originalEvidence);
 
     if (entrance === "external") {
-      const recorder = activeForms.filter({ hasText: "checked/roseau-recorder" });
+      const recorder = activeForms.filter({ hasText: "Memory Lantern" });
       await recorder.getByRole("button", { name: "Remove from Body", exact: true }).click();
       await expect(activeForms).toHaveCount(1);
       await expect(page.locator("#body-workbench-status")).toContainText("workload revision 1");
@@ -427,7 +412,7 @@ for (const entrance of ["hosted", "external"]) {
       expect(idle.navigation.cursor.place).toBe("Body");
 
       await availableForms.filter({ hasText: "Hello" }).getByRole("button", { name: "Add to Body", exact: true }).click();
-      await expect(availableForms).toHaveCount(2);
+      await expect(availableForms).toHaveCount(4);
       await expect(activeForms).toHaveCount(1);
       await expect(activeForms.filter({ hasText: "Hello" })).toHaveCount(1);
       await expect(page.locator("#body-workbench-status")).toContainText("workload revision 3");

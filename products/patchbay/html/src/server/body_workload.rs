@@ -70,6 +70,9 @@ impl PatchbayHtmlServer {
     }
 
     pub(super) fn apply_body_workload(&mut self, bytes: &[u8]) -> Result<Vec<u8>, ServerError> {
+        if self.body_planning.is_some() {
+            return self.body_workload_refusal("BodyAwake");
+        }
         let input: BodyWorkloadInput =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
         let stale_presentation = input.presentation_id

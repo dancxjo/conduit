@@ -74,6 +74,9 @@ pub struct RendererSnapshot {
     /// Explicitly policy-admitted current offer detail; not itself a Plan.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_host_planning_offer: Option<conduit_body::HostOfferProjection>,
+    /// Ordinary Body/Wake/Plan state derived from policy-admitted offers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_planning: Option<patchbay_model::BodyPlanningSessionSnapshot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debugger: Option<DebuggerPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
