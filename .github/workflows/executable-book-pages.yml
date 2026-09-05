@@ -50,18 +50,18 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      exact_execution: ${{ steps.exact.outputs.exact_execution || 'false' }}
-      required: ${{ steps.exact.outputs.required || steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true' }}
-      proofs: ${{ steps.exact.outputs.proofs || steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
-      browser_runtime_required: ${{ steps.exact.outputs.browser_runtime_required || steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true' }}
-      tour_required: ${{ steps.exact.outputs.tour_required || steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true' }}
-      pages_carrier_required: ${{ steps.exact.outputs.pages_carrier_required || steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true' }}
+      exact_execution: ${{ inputs.execute_proofs != '' }}
+      required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      proofs: ${{ (inputs.execute_proofs != '' && inputs.execute_proofs) || steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
+      browser_runtime_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      tour_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      pages_carrier_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       stack_role: ${{ steps.stack.outputs.role || 'independent' }}
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
       standalone_locks_required: ${{ steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
-      patchbay_debugger_required: ${{ steps.exact.outputs.patchbay_debugger_required || steps.debugger-bootstrap.outputs.required }}
+      patchbay_debugger_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)) || (inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true') }}
     steps:
       - uses: actions/checkout@v7
         with:
