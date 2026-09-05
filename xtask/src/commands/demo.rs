@@ -6,13 +6,13 @@ use crate::workspace::workspace_root;
 
 pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let product = root.join("target/book-product");
+    let product = root.join("target/tour-product");
     if product.exists() {
         std::fs::remove_dir_all(&product)?;
     }
     run_step(
         &Step::new(
-            "demo.book.runtime",
+            "demo.tour.runtime",
             "Build the ordinary bounded browser Host runtime",
             "cargo",
             &[
@@ -32,12 +32,12 @@ pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     )?;
     run_step(
         &Step::new(
-            "demo.book.package",
+            "demo.tour.package",
             "Stage the exact admitted Tour application",
             "scripts/ci/stage-book-product.sh",
             &[
                 "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-                "target/book-product",
+                "target/tour-product",
             ],
         ),
         &root,
@@ -45,7 +45,7 @@ pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     )?;
     run_step(
         &Step::new(
-            "demo.book.host",
+            "demo.tour.host",
             "Open the executable Conduit Tour",
             "cargo",
             &[
@@ -54,9 +54,9 @@ pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 "conduit-browser-host",
                 "--",
                 "--application",
-                "target/book-product",
+                "target/tour-product",
                 "--mount",
-                "/book/",
+                "/tour/",
             ],
         ),
         &root,
