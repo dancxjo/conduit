@@ -332,12 +332,12 @@ fn browser_release_installs_its_exact_wasm_target() {
 }
 
 #[test]
-fn merged_branch_retirement_retargets_before_deletion_under_trusted_code() {
+fn legacy_merged_branch_retirement_is_manual_only_and_keeps_its_safe_order() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/retire-merged-pr-branch.yml"))
         .expect("read merged branch retirement workflow");
-    assert!(workflow.contains("pull_request_target:"));
-    assert!(workflow.contains("types: [closed]"));
+    assert!(workflow.contains("workflow_dispatch:"));
+    assert!(!workflow.contains("pull_request_target:"));
     assert!(workflow.contains("actions: write"));
     assert!(workflow.contains("pull-requests: write"));
     assert!(workflow.contains("contents: write"));
@@ -543,7 +543,7 @@ fn controller_changes_run_the_dependency_light_planner_test_target() {
 }
 
 #[test]
-fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
+fn legacy_candidate_reconciliation_is_manual_only_and_least_privilege() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
         .expect("read candidate reconciliation workflow");
@@ -553,7 +553,8 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains(
         "group: reconcile-candidate-${{ inputs.pr_number || github.event.pull_request.number }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
-    assert!(workflow.contains("pull_request_target:\n    types: [edited, labeled, reopened]"));
+    assert!(workflow.contains("workflow_dispatch:"));
+    assert!(!workflow.contains("pull_request_target:"));
     assert!(
         workflow.contains("github.event.action == 'edited' && github.event.changes.base.ref != ''")
     );
@@ -833,10 +834,10 @@ fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
     assert!(check.contains("execute_proofs:\n"));
     assert!(check.contains("ci execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
     assert!(check.contains(
-        "workspace_matrix: ${{ steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix"
+        "steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix"
     ));
     assert!(check.contains(
-        "conduitos_x86_matrix: ${{ steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix"
+        "steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix"
     ));
     assert!(check.contains(
         "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.limine\"')"
@@ -853,7 +854,9 @@ fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
     assert!(products
         .contains("Complete the exact Tour proposition without entering the carrier pipeline"));
     assert!(products.contains("needs.plan.outputs.pages_carrier_required == 'true'"));
-    assert!(products.contains("exact_execution: ${{ inputs.execute_proofs != '' }}"));
+    assert!(products.contains(
+        "exact_execution: ${{ inputs.development_admission || inputs.execute_proofs != '' }}"
+    ));
     assert!(products.contains(
         "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)"
     ));
