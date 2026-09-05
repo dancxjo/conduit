@@ -15,6 +15,7 @@ mod morse_composition;
 mod operation;
 mod presentation;
 mod quantity;
+mod quantity_output;
 mod state_time;
 mod text;
 mod values;
@@ -25,6 +26,9 @@ mod secret_knock_trigger_plan;
 pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, membership_advertisement,
     selected_human_machinery, BrowserManifestation,
+};
+pub(crate) use factory::{
+    advertisement_with_quantity_presentation, catalogs_with_quantity_presentation,
 };
 pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
@@ -37,5 +41,9 @@ pub(crate) use limits::{
 pub(crate) use operation::BrowserOperation;
 pub(crate) use quantity::{
     transform as transform_quantity, HOST_OPERATION as QUANTITY_HOST_OPERATION,
+};
+pub(crate) use quantity_output::{
+    decode as decode_quantity_leaf, wrap as wrap_quantity,
+    WRAP_OPERATION as QUANTITY_WRAP_OPERATION,
 };
 pub(crate) use state_time::BROWSER_TIMER_MAXIMUM_MILLIS;

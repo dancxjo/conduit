@@ -182,6 +182,7 @@ pub extern "C" fn conduit_tour_start(
         source_length,
         play_sequence,
         false,
+        false,
     )
 }
 
@@ -193,7 +194,32 @@ pub extern "C" fn conduit_tour_start_recursive(
     source_length: usize,
     play_sequence: u64,
 ) -> i32 {
-    start(host_length, boot_length, source_length, play_sequence, true)
+    start(
+        host_length,
+        boot_length,
+        source_length,
+        play_sequence,
+        true,
+        false,
+    )
+}
+
+/// Select the exact Quantity-leaf presentation profile, without changing authored meaning.
+#[no_mangle]
+pub extern "C" fn conduit_tour_start_quantity(
+    host_length: usize,
+    boot_length: usize,
+    source_length: usize,
+    play_sequence: u64,
+) -> i32 {
+    start(
+        host_length,
+        boot_length,
+        source_length,
+        play_sequence,
+        false,
+        true,
+    )
 }
 
 fn start(
@@ -202,6 +228,7 @@ fn start(
     source_length: usize,
     play_sequence: u64,
     recursive: bool,
+    quantity_presentation: bool,
 ) -> i32 {
     clear_output();
     let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
@@ -248,7 +275,16 @@ fn start(
                 .map_err(|_| ERROR_OUTPUT)?;
                 return Err(ERROR_INTERACTION);
             }
-            let prepared = if recursive {
+            let prepared = if quantity_presentation {
+                TourSession::prepare_with_profile(
+                    host,
+                    boot,
+                    source,
+                    play_sequence,
+                    super::MorseRealization::Direct,
+                    true,
+                )
+            } else if recursive {
                 TourSession::prepare_recursive(host, boot, source, play_sequence)
             } else {
                 TourSession::prepare(host, boot, source, play_sequence)

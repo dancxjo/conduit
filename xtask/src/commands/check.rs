@@ -113,6 +113,19 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
             "quantity_",
         ],
     ),
+    Step::new(
+        "quantity-mapping.browser-runtime",
+        "Execute authored quantity Forms through browser kernel and typed output effects",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-browser-runtime",
+            "--lib",
+            "--locked",
+            "quantity",
+        ],
+    ),
 ];
 
 fn run_workspace_shard(
