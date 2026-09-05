@@ -72,7 +72,32 @@ mod tests {
             None,
             &mut content,
         );
-        let projected = format!("{:?}", content.properties);
+        let body = conduit_body::Body::born(
+            proof.plan.source_document_id.clone(),
+            proof.plan.checked_form_id.clone(),
+            1,
+            "sign/frame-born".into(),
+        )
+        .unwrap();
+        let presentation = conduit_presentation::Presentation::new(
+            1,
+            conduit_presentation::PresentationBasis {
+                body_id: Some(body.body_id),
+                wake_id: None,
+                source_document_id: Some(proof.plan.source_document_id.clone()),
+                checked_form_id: Some(proof.plan.checked_form_id.clone()),
+                expanded_form_id: Some(proof.plan.expanded_form_id.clone()),
+                plan_id: Some(proof.plan.plan_id.clone()),
+                active_play_id: None,
+                sign_ids: vec![],
+            },
+            content.subjects,
+            content.relationships,
+            content.properties,
+            content.text,
+        )
+        .unwrap();
+        let projected = format!("{:?}", presentation.properties);
         for expected in [
             "RESOURCE image/rgba@1",
             "generation",
