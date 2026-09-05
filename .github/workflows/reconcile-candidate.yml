@@ -204,6 +204,7 @@ jobs:
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
       shared_compile_result: ${{ needs.shared-compile.result }}
       shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
+      execute_proofs: ${{ needs.resolve.outputs.check_execute_proofs }}
 
   candidate-products:
     needs: [resolve, shared-compile]

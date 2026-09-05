@@ -17,6 +17,11 @@ on:
         required: false
         default: '[]'
         type: string
+      execute_proofs:
+        description: Exact reconciliation proof IDs to execute; empty means ordinary candidate planning
+        required: false
+        default: ''
+        type: string
   merge_group:
 
 permissions:
@@ -54,19 +59,23 @@ jobs:
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CHECKOUT_SHA }}
       controller_sha: ${{ steps.controller.outputs.sha }}
-      esp32_required: ${{ steps.impact.outputs.esp32_required }}
-      esp32_matrix: ${{ steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
+      exact_execution: ${{ steps.execution.outputs.exact_execution || 'false' }}
+      esp32_required: ${{ steps.execution.outputs.esp32_required || steps.impact.outputs.esp32_required }}
+      esp32_matrix: ${{ steps.execution.outputs.esp32_matrix || steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
+      standalone_locks_required: ${{ steps.execution.outputs.standalone_locks_required || steps.impact.outputs.esp32_required }}
       browser_required: ${{ steps.impact.outputs.browser_required }}
-      conduitos_required: ${{ steps.impact.outputs.conduitos_required }}
-      conduitos_x86_matrix: ${{ steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
-      conduitos_architecture_matrix: ${{ steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
-      conduitos_aarch64_product_required: ${{ steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
-      impact_reason: ${{ steps.impact.outputs.impact_reason }}
-      workspace_matrix: ${{ steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
+      conduitos_required: ${{ steps.execution.outputs.conduitos_required || steps.impact.outputs.conduitos_required }}
+      conduitos_limine_required: ${{ steps.execution.outputs.conduitos_limine_required || steps.impact.outputs.conduitos_required }}
+      conduitos_tools_required: ${{ steps.execution.outputs.conduitos_tools_required || steps.impact.outputs.conduitos_required }}
+      conduitos_x86_matrix: ${{ steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+      conduitos_architecture_matrix: ${{ steps.execution.outputs.conduitos_architecture_matrix || steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
+      conduitos_aarch64_product_required: ${{ steps.execution.outputs.conduitos_aarch64_product_required || steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
+      impact_reason: ${{ steps.execution.outputs.impact_reason || steps.impact.outputs.impact_reason }}
+      workspace_matrix: ${{ steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
       workspace_lint_full: ${{ steps.impact.outputs.workspace_lint_full || 'true' }}
       workspace_lint_packages: ${{ steps.impact.outputs.workspace_lint_packages || '[]' }}
       workspace_test_packages: ${{ steps.impact.outputs.workspace_test_packages || '[]' }}
-      ci_controller_required: ${{ steps.impact.outputs.ci_controller_required }}
+      ci_controller_required: ${{ steps.execution.outputs.ci_controller_required || steps.impact.outputs.ci_controller_required }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -174,17 +183,27 @@ jobs:
             --json-out target/ci-plans/ci-impact-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
+      - name: Project the exact reconciliation delta onto check jobs
+        id: execution
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && inputs.execute_proofs != ''
+        env:
+          EXECUTE_PROOFS: ${{ inputs.execute_proofs }}
+        run: |
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci execution-plan --proof-ids-json "$EXECUTE_PROOFS" --locked \
+            >> "$GITHUB_OUTPUT"
+          printf 'Exact reconciliation execution: `%s`\n' "$EXECUTE_PROOFS" >> "$GITHUB_STEP_SUMMARY"
       - name: Verify candidate lifecycle controller contracts
-        if: steps.stack.outputs.role != 'intermediate' && steps.impact.outputs.ci_controller_required == 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: >-
           node --test
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
       - name: Verify the dependency-light typed CI planner contracts
-        if: steps.stack.outputs.role != 'intermediate' && steps.impact.outputs.ci_controller_required == 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: cargo test --locked --package conduit-xtask-dispatch
       - name: Verify the final result gate truth table
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (inputs.execute_proofs == '' || steps.execution.outputs.ci_controller_required == 'true')
         env:
           CONDUIT_CHECK_WORKFLOW: ${{ github.workspace }}/.github/workflows/check.yml
         run: |
@@ -227,7 +246,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Retain the exact successful CI controller proof proposition
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && steps.impact.outputs.ci_controller_required == 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true')) && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: ./.github/actions/attest-ci-proof
         with:
           proof-id: ci.controller-contracts
@@ -253,7 +272,7 @@ jobs:
 
   conduitos-limine:
     needs: classify
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_required == 'true')
+    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_limine_required == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -302,7 +321,7 @@ jobs:
           retention-days: 1
           compression-level: 0
       - name: Retain the exact successful Limine proof proposition
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        if: (github.event_name == 'pull_request' || inputs.candidate_sha != '') && (inputs.execute_proofs == '' || contains(inputs.execute_proofs, '"conduitos.limine"'))
         uses: ./.github/actions/attest-ci-proof
         with:
           proof-id: conduitos.limine
@@ -311,7 +330,7 @@ jobs:
 
   conduitos-tools:
     needs: classify
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_required == 'true')
+    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_tools_required == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     outputs:
@@ -384,7 +403,7 @@ jobs:
           compression-level: 0
           overwrite: true
       - name: Retain the exact successful ConduitOS-tools proof proposition
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        if: (github.event_name == 'pull_request' || inputs.candidate_sha != '') && (inputs.execute_proofs == '' || contains(inputs.execute_proofs, '"conduitos.tools"'))
         uses: ./.github/actions/attest-ci-proof
         with:
           proof-id: conduitos.tools
@@ -433,7 +452,7 @@ jobs:
 
   standalone-locks:
     needs: classify
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
+    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.standalone_locks_required == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -465,7 +484,7 @@ jobs:
 
   esp32-firmware:
     needs: [classify, standalone-locks]
-    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.outputs.docs_only != 'true' && needs.standalone-locks.result == 'success' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.outputs.docs_only != 'true' && (needs.classify.outputs.standalone_locks_required != 'true' || needs.standalone-locks.result == 'success') && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     # A cold Xtensa row may install substantial pinned tooling. Each row owns
     # exactly one target, while exhaustive main runs retain all three rows.
@@ -569,10 +588,13 @@ jobs:
           ARCHITECTURE_RESULT: ${{ needs.conduitos-architecture.result }}
           AARCH64_PRODUCT_RESULT: ${{ needs.conduitos-aarch64-product.result }}
           CONDUITOS_REQUIRED: ${{ needs.classify.outputs.conduitos_required }}
+          CONDUITOS_LIMINE_REQUIRED: ${{ needs.classify.outputs.conduitos_limine_required }}
+          CONDUITOS_TOOLS_REQUIRED: ${{ needs.classify.outputs.conduitos_tools_required }}
           X86_REQUIRED: ${{ needs.classify.outputs.conduitos_x86_matrix != '[]' }}
           ARCHITECTURE_REQUIRED: ${{ needs.classify.outputs.conduitos_architecture_matrix != '[]' }}
           AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
+          STANDALONE_LOCKS_REQUIRED: ${{ needs.classify.outputs.standalone_locks_required }}
           EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
           if test "${SHARED_COMPILE_RESULT:-success}" != success; then
@@ -588,6 +610,9 @@ jobs:
               return 1
             fi
           }
+          STANDALONE_LOCKS_REQUIRED=${STANDALONE_LOCKS_REQUIRED:-$ESP32_REQUIRED}
+          CONDUITOS_LIMINE_REQUIRED=${CONDUITOS_LIMINE_REQUIRED:-$CONDUITOS_REQUIRED}
+          CONDUITOS_TOOLS_REQUIRED=${CONDUITOS_TOOLS_REQUIRED:-$CONDUITOS_REQUIRED}
           require_result classify "$CLASSIFY_RESULT" success
           if test "$BROWSER_HOST_RESULT" != success && test "$BROWSER_HOST_RESULT" != skipped; then
             printf 'browser-host result: expected success or skipped, got %s\n' "$BROWSER_HOST_RESULT" >&2
@@ -595,25 +620,13 @@ jobs:
           fi
           if test "$DOCS_ONLY" != true; then
             if test "$WORKSPACE_MATRIX" = '[]'; then require_result workspace "$WORKSPACE_RESULT" skipped; else require_result workspace "$WORKSPACE_RESULT" success; fi
-            if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then
-              require_result standalone-locks "$STANDALONE_LOCKS_RESULT" success
-              require_result esp32 "$ESP32_RESULT" success
-            else
-              require_result esp32 "$ESP32_RESULT" skipped
-            fi
-            if test "$EVENT_NAME" != pull_request || test "$CONDUITOS_REQUIRED" = true; then
-              require_result conduitos-limine "$LIMINE_RESULT" success
-              require_result conduitos-tools "$TOOLS_RESULT" success
-              if test "$EVENT_NAME" != pull_request || test "$X86_REQUIRED" = true; then require_result conduitos-x86 "$X86_RESULT" success; else require_result conduitos-x86 "$X86_RESULT" skipped; fi
-              if test "$EVENT_NAME" != pull_request || test "$ARCHITECTURE_REQUIRED" = true; then require_result conduitos-architecture "$ARCHITECTURE_RESULT" success; else require_result conduitos-architecture "$ARCHITECTURE_RESULT" skipped; fi
-              if test "$EVENT_NAME" != pull_request || test "$AARCH64_PRODUCT_REQUIRED" = true; then require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" success; else require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" skipped; fi
-            else
-              require_result conduitos-limine "$LIMINE_RESULT" skipped
-              require_result conduitos-tools "$TOOLS_RESULT" skipped
-              require_result conduitos-x86 "$X86_RESULT" skipped
-              require_result conduitos-architecture "$ARCHITECTURE_RESULT" skipped
-              require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" skipped
-            fi
+            if test "$EVENT_NAME" != pull_request || test "$STANDALONE_LOCKS_REQUIRED" = true; then require_result standalone-locks "$STANDALONE_LOCKS_RESULT" success; else require_result standalone-locks "$STANDALONE_LOCKS_RESULT" skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then require_result esp32 "$ESP32_RESULT" success; else require_result esp32 "$ESP32_RESULT" skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$CONDUITOS_LIMINE_REQUIRED" = true; then require_result conduitos-limine "$LIMINE_RESULT" success; else require_result conduitos-limine "$LIMINE_RESULT" skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$CONDUITOS_TOOLS_REQUIRED" = true; then require_result conduitos-tools "$TOOLS_RESULT" success; else require_result conduitos-tools "$TOOLS_RESULT" skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$X86_REQUIRED" = true; then require_result conduitos-x86 "$X86_RESULT" success; else require_result conduitos-x86 "$X86_RESULT" skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$ARCHITECTURE_REQUIRED" = true; then require_result conduitos-architecture "$ARCHITECTURE_RESULT" success; else require_result conduitos-architecture "$ARCHITECTURE_RESULT" skipped; fi
+            if test "$EVENT_NAME" != pull_request || test "$AARCH64_PRODUCT_REQUIRED" = true; then require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" success; else require_result conduitos-aarch64-product "$AARCH64_PRODUCT_RESULT" skipped; fi
           fi
           {
             printf '## Final proof results\n\n'

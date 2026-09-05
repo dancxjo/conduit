@@ -32,6 +32,12 @@ enum CiCommand {
         #[arg(long)]
         summary_out: Option<PathBuf>,
     },
+    /// Project exact reconciliation proof IDs onto the check workflow graph.
+    ExecutionPlan {
+        /// Canonical JSON array of exact proof IDs requiring execution.
+        #[arg(long)]
+        proof_ids_json: String,
+    },
     /// Resolve the exact prospective integration tree without rewriting either input.
     Integration {
         /// Current target-branch commit SHA or ref.
@@ -120,6 +126,7 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
             json_out,
             summary_out,
         } => impact::run(&base, &head, json_out.as_deref(), summary_out.as_deref()),
+        CiCommand::ExecutionPlan { proof_ids_json } => proof_graph::execution_plan(&proof_ids_json),
         CiCommand::Candidate {
             head,
             receipts,

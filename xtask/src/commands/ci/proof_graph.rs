@@ -6,6 +6,8 @@ use std::process::{Command, Output};
 
 const PLAN_SCHEMA: &str = "conduit.ci.reconciliation-plan/v1";
 
+#[path = "proof_graph/execution.rs"]
+mod execution;
 #[path = "proof_graph/fingerprint.rs"]
 mod fingerprinting;
 #[path = "proof_graph/receipt.rs"]
@@ -182,6 +184,10 @@ pub(super) fn attest_success(
         format!("{}\n", serde_json::to_string_pretty(&receipt)?),
     )?;
     Ok(())
+}
+
+pub(super) fn execution_plan(proof_ids_json: &str) -> Result<(), Box<dyn std::error::Error>> {
+    execution::emit(proof_ids_json)
 }
 
 struct PlanContext {

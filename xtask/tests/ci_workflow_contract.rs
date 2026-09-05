@@ -811,3 +811,29 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
     assert!(x86.contains("if: always()\n        uses: actions/upload-artifact@v7"));
 }
+
+#[test]
+fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let reconciliation = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
+        .expect("read reconciliation workflow");
+    let check =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+
+    assert!(reconciliation
+        .contains("execute_proofs: ${{ needs.resolve.outputs.check_execute_proofs }}"));
+    assert!(check.contains("execute_proofs:\n"));
+    assert!(check.contains("ci execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
+    assert!(check.contains(
+        "workspace_matrix: ${{ steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix"
+    ));
+    assert!(check.contains(
+        "conduitos_x86_matrix: ${{ steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix"
+    ));
+    assert!(check.contains(
+        "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.limine\"')"
+    ));
+    assert!(check.contains(
+        "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.tools\"')"
+    ));
+}
