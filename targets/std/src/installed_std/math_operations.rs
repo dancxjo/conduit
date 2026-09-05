@@ -21,6 +21,12 @@ pub(super) static MATH_DEADBAND_FACTORY: InstalledFactory = InstalledFactory {
     prepare: prepare_deadband,
 };
 
+pub(super) static QUANTITY_MAP_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::QUANTITY_MAP_IMPLEMENTATION,
+    budget: quantity_budget,
+    prepare: prepare_quantity,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum MathTransform {
     Clamp { minimum: Scalar, maximum: Scalar },
@@ -46,6 +52,7 @@ impl MathTransform {
 pub(super) struct MathScalarOperation {
     pending: Option<RequestId>,
     completed: bool,
+    output_bytes: u32,
 }
 
 impl MathScalarOperation {
@@ -81,8 +88,8 @@ impl MathScalarOperation {
                 let Some(output) = outcome.output else {
                     return InstalledOperation::fail(25);
                 };
-                if output.admitted_bytes != SCALAR_ENCODED_LEN as u32
-                    || output.value.byte_len != SCALAR_ENCODED_LEN as u32
+                if output.admitted_bytes != self.output_bytes
+                    || output.value.byte_len != self.output_bytes
                 {
                     return InstalledOperation::fail(25);
                 }
@@ -96,6 +103,18 @@ impl MathScalarOperation {
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
                 self.completed = true;
                 OperationAction::Complete
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.output.is_none() =>
+            {
+                self.pending = None;
+                self.completed = true;
+                match outcome.failure {
+                    Some(failure) => OperationAction::Fail(failure),
+                    None => InstalledOperation::fail(25),
+                }
             }
             _ => InstalledOperation::fail(25),
         }
@@ -213,7 +232,30 @@ fn operation() -> InstalledOperation {
     InstalledOperation::MathScalar(MathScalarOperation {
         pending: None,
         completed: false,
+        output_bytes: SCALAR_ENCODED_LEN as u32,
     })
+}
+
+fn quantity_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+    validate(placement, &conduit_std_offers::quantity_map_offer(), 8)?;
+    super::quantity_mapping::configuration(placement)?;
+    Ok(OperationBudget {
+        value_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+        ..budget()
+    })
+}
+
+fn prepare_quantity(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    quantity_budget(placement)?;
+    Ok(InstalledOperation::MathScalar(MathScalarOperation {
+        pending: None,
+        completed: false,
+        output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+    }))
 }
 
 fn validate(

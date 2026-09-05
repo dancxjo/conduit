@@ -13,7 +13,58 @@ fn operation() -> MathScalarOperation {
     MathScalarOperation {
         pending: None,
         completed: false,
+        output_bytes: SCALAR_ENCODED_LEN as u32,
     }
+}
+
+#[test]
+fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
+    use conduit_kernel::{Failure, FailureCode};
+    let mut active = MathScalarOperation {
+        pending: None,
+        completed: false,
+        output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+    };
+    active.resume(OperationInput::Value {
+        port: PortId(0),
+        value: value(1),
+    });
+    let failure = Failure {
+        code: FailureCode::InvalidInput,
+        detail: 4,
+    };
+    assert_eq!(
+        active.resume(OperationInput::HostOperationCompleted {
+            request: RequestId(0),
+            outcome: HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        }),
+        OperationAction::Fail(failure)
+    );
+
+    let mut active = MathScalarOperation {
+        pending: None,
+        completed: false,
+        output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+    };
+    active.resume(OperationInput::Value {
+        port: PortId(0),
+        value: value(1),
+    });
+    assert!(matches!(
+        active.resume(OperationInput::HostOperationCompleted {
+            request: RequestId(0),
+            outcome: HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
+                failure: None,
+            },
+        }),
+        OperationAction::Fail(_)
+    ));
 }
 
 #[test]

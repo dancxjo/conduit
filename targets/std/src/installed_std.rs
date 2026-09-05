@@ -40,6 +40,7 @@ mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod presentation_composition;
+mod quantity_mapping;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;

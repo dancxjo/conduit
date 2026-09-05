@@ -117,3 +117,41 @@ fn invalid_clamp_and_mutated_math_implementation_refuse_before_play() {
         .run_fragment_to(fragment, &mut output, &mut timer)
         .is_err());
 }
+
+#[test]
+fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
+    for (minimum, maximum, detail) in [(0, 1_000_000, 3), (-1_000_000, 0, 4)] {
+        let source = format!(
+            r#"form quantity_refusal {{
+ source: conduit-test/scalar-literal
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
+ source.value > map.in
+}}
+"#
+        );
+        let (mut host, plan) = plan(&source);
+        let mapping = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND
+            })
+            .unwrap();
+        assert_eq!(
+            mapping.implementation_id.as_str(),
+            conduit_std_offers::QUANTITY_MAP_IMPLEMENTATION
+        );
+        assert_eq!(mapping.host_operations[0].maximum_input_bytes, 8);
+        assert_eq!(mapping.host_operations[0].maximum_output_bytes, 9);
+        let mut output = Vec::new();
+        let mut timer = RecordingTimer { waits: Vec::new() };
+        let error = host
+            .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+            .unwrap_err();
+        assert!(
+            error.contains(&format!("OperationFailed({detail})")),
+            "{error}"
+        );
+        assert!(timer.waits.is_empty());
+    }
+}
