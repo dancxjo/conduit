@@ -326,22 +326,11 @@ fn merged_branch_retirement_retargets_before_deletion_under_trusted_code() {
         .expect("read merged branch retirement workflow");
     assert!(workflow.contains("pull_request_target:"));
     assert!(workflow.contains("types: [closed]"));
-    assert!(workflow.contains("issues: write"));
     assert!(workflow.contains("pull-requests: write"));
     assert!(workflow.contains("contents: write"));
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("persist-credentials: false"));
     assert!(workflow.contains("node scripts/ci/retire-merged-pr-branch.mjs"));
-    let controller = fs::read_to_string(root.join("scripts/ci/retire-merged-pr-branch.mjs"))
-        .expect("read merged branch retirement controller");
-    let retarget = controller.find("/pulls/${dependent.number}").unwrap();
-    let dispatch = controller
-        .find("/issues/${dependent.number}/labels")
-        .unwrap();
-    let deletion = controller
-        .find("/git/refs/heads/${encodeRef(branch)}")
-        .unwrap();
-    assert!(retarget < dispatch && dispatch < deletion);
 }
 
 #[test]
@@ -521,9 +510,14 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         "group: reconcile-candidate-${{ inputs.pr_number || github.event.pull_request.number }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
     assert!(workflow.contains("pull_request_target:\n    types: [edited, labeled, reopened]"));
+    assert!(
+        workflow.contains("github.event.action == 'edited' && github.event.changes.base.ref != ''")
+    );
     assert!(workflow.contains("github.event.label.name == 'ci:reconcile'"));
     assert!(workflow.contains("name: Consume the bounded on-demand reconciliation request"));
     assert!(workflow.contains("labels/ci%3Areconcile"));
+    assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
+    assert!(workflow.contains("issues: write"));
     assert!(workflow.contains("integration_sha: ${{ steps.resolve.outputs.integration_sha }}"));
     assert!(workflow.contains("git merge-tree --write-tree \"$base_sha\" \"$CANDIDATE_SHA\""));
     assert!(workflow

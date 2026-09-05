@@ -29,18 +29,6 @@ export async function retireMergedPullBranch({ pull, repository, defaultBranch, 
     if (updated?.base?.ref !== target || updated?.head?.sha !== dependent.head.sha) {
       throw new Error(`retarget pull request #${dependent.number} changed candidate identity or retained the old base`);
     }
-    const labelPath = `/issues/${dependent.number}/labels/ci%3Areconcile`;
-    const removed = await request(api(repository, labelPath), jsonRequest("DELETE"));
-    if (removed.status !== 200 && removed.status !== 404) {
-      throw new Error(`reset reconciliation request for pull request #${dependent.number} refused with HTTP ${removed.status}`);
-    }
-    const requested = await request(
-      api(repository, `/issues/${dependent.number}/labels`),
-      jsonRequest("POST", { labels: ["ci:reconcile"] }),
-    );
-    if (!requested.ok) {
-      throw new Error(`request reconciliation for pull request #${dependent.number} refused with HTTP ${requested.status}`);
-    }
     retargeted.push({ number: dependent.number, head_sha: dependent.head.sha });
   }
 

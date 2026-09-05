@@ -66,25 +66,6 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         workspace_packages: &[],
     },
     ControllerProofSpec {
-        id: "ci.merged-branch-retirement",
-        implementation_inputs: &[
-            ".github/workflows/retire-merged-pr-branch.yml",
-            "proof/ci/retire-merged-pr-branch.spec.mjs",
-            "scripts/ci/retire-merged-pr-branch.mjs",
-            "xtask/src/commands/ci/impact.rs",
-            "xtask/src/commands/ci/impact/tests.rs",
-            "xtask/tests/ci_workflow_contract.rs",
-        ],
-        // Shared planner and workflow-contract files are narrow only when the
-        // complete retirement controller slice anchors the change.
-        required_inputs: &[
-            ".github/workflows/retire-merged-pr-branch.yml",
-            "proof/ci/retire-merged-pr-branch.spec.mjs",
-            "scripts/ci/retire-merged-pr-branch.mjs",
-        ],
-        workspace_packages: &["conduit-xtask-dispatch", "xtask"],
-    },
-    ControllerProofSpec {
         id: "ci.current-controller-reconciliation",
         implementation_inputs: &[
             ".github/workflows/reconcile-candidate.yml",

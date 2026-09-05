@@ -24,7 +24,11 @@ concurrency:
 
 jobs:
   resolve:
-    if: github.event_name != 'pull_request_target' || github.event.action != 'labeled' || github.event.label.name == 'ci:reconcile'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.action == 'reopened' ||
+      (github.event.action == 'edited' && github.event.changes.base.ref != '') ||
+      (github.event.action == 'labeled' && github.event.label.name == 'ci:reconcile')
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
@@ -80,7 +84,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.98.1
       - name: Classify candidate-to-integration proof impact
         env:
-          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
           INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
         run: |
           CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
@@ -138,7 +142,7 @@ jobs:
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
 
   report:
-    name: ${{ (github.event_name != 'pull_request_target' || github.event.action != 'labeled' || github.event.label.name == 'ci:reconcile') && 'admission' || 'ignored-reconciliation-event' }}
+    name: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'reopened' || (github.event.action == 'edited' && github.event.changes.base.ref != '') || (github.event.action == 'labeled' && github.event.label.name == 'ci:reconcile')) && 'admission' || 'ignored-reconciliation-event' }}
     needs: [resolve, candidate-check, candidate-products]
     if: always() && needs.resolve.outputs.integration_ref != ''
     runs-on: ubuntu-slim
