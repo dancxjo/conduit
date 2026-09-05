@@ -251,4 +251,25 @@ mod tests {
         );
         assert!(!alloc::format!("{definition:?}").contains("secret"));
     }
+
+    #[test]
+    fn malformed_template_is_distinct_from_collection_capacity_or_name_refusal() {
+        let wrong_type = StructuredInfoValue::leaf(
+            StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+            b"not a normalized pattern".to_vec(),
+        )
+        .unwrap();
+        assert_eq!(
+            put_template_command("cadence", wrong_type),
+            Err(crate::TemplateCollectionRefusal::CorruptTemplate)
+        );
+        assert_ne!(
+            crate::TemplateCollectionRefusal::CorruptTemplate,
+            crate::TemplateCollectionRefusal::CollectionFull
+        );
+        assert_ne!(
+            crate::TemplateCollectionRefusal::CorruptTemplate,
+            crate::TemplateCollectionRefusal::NameEmpty
+        );
+    }
 }

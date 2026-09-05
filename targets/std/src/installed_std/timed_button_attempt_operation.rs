@@ -398,6 +398,19 @@ mod tests {
     }
 
     #[test]
+    fn closed_input_before_the_required_presses_is_not_timeout_or_exhaustion() {
+        let mut store = conduit_kernel::HostedValueStore::new(8, 1024, 4096).unwrap();
+        let mut operation = operation(&mut store, 2);
+        assert_eq!(
+            operation.resume(OperationInput::Closed { port: PortId(0) }),
+            OperationAction::Fail(Failure {
+                code: FailureCode::InvalidInput,
+                detail: 2
+            })
+        );
+    }
+
+    #[test]
     fn total_transition_exhaustion_is_not_timeout_or_malformed_input() {
         let mut store = conduit_kernel::HostedValueStore::new(8, 1024, 4096).unwrap();
         let first = store.store(b"released-1").unwrap();
