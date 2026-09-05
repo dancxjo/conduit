@@ -70,6 +70,12 @@ entry = "default-welcome"
 reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] }, deterministic = { package = "conduit-std-host", test = "reusable_greet", case = "reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play", plan_play_evidence = true } }]
 deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves", plan_play_evidence = true }
 [[forms]]
+slug = "heartbeat-phase-follower"
+title = "Heartbeat Phase Follower"
+entry = "heartbeat-phase-follower"
+deterministic = { package = "conduit-time", test = "rhythm_forms", case = "extracted_contract_has_a_non_firefly_consumer" }
+browser_safe_not_applicable = "portable heartbeat phase following has no installed browser realization"
+[[forms]]
 slug = "hello"
 title = "Hello"
 entry = "hello"
@@ -136,11 +142,23 @@ slug = "patchbay-front-door"
 title = "Patchbay Front Door"
 entry = "patchbay-front-door"
 [[forms]]
+slug = "phase-synchronization"
+title = "Phase Synchronization"
+entry = "phase-synchronization"
+deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable phase synchronization has no installed browser realization"
+[[forms]]
 slug = "pool-webchat"
 title = "Pool Webchat"
 entry = "pool-webchat"
 reusable_entries = [{ entry = "chat/peer", title = "Chat Peer", composition = { parent = "pool-webchat", occurrences = ["peers"] } }]
 deterministic = { package = "conduit-chat", features = ["form-catalog"], test = "shared_pool_chat", case = "native_pool_chat_has_explicit_fan_merge_and_no_authored_line" }
+[[forms]]
+slug = "pulse-observation"
+title = "Pulse Observation"
+entry = "pulse-observation"
+deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable pulse observation has no installed browser realization"
 [[forms]]
 slug = "r1-network-bootstrap"
 title = "R1 Network Bootstrap"
