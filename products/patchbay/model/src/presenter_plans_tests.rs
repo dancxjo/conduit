@@ -125,6 +125,44 @@ fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans()
 }
 
 #[test]
+fn production_projection_keeps_recursive_forms_behind_stable_face_gears() {
+    let presentation = crate::recursive_form_demonstration().unwrap();
+    let recursive = presentation
+        .subjects
+        .iter()
+        .filter(|subject| {
+            presentation.properties.iter().any(|property| {
+                property.subject == subject.identity
+                    && property.name == "reviewed-back"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Text("available".into())
+            })
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(recursive.len(), 4);
+    assert!(recursive.iter().any(|subject| {
+        presentation.relationships.iter().any(|relationship| {
+            relationship.source == subject.identity
+                && presentation.subjects.iter().any(|candidate| {
+                    candidate.identity == relationship.target
+                        && candidate.role == conduit_presentation::PresentationRole::Gear
+                })
+        })
+    }));
+    assert!(presentation.properties.iter().any(|property| {
+        property.name == "collapsed-sink-port"
+            && matches!(
+                property.value,
+                conduit_presentation::PresentationPropertyValue::Identity(_)
+            )
+    }));
+    assert_eq!(
+        presentation.basis.plan_id.as_ref(),
+        Some(&crate::patchbay_presenter_plans().unwrap().recursive.plan_id)
+    );
+}
+
+#[test]
 fn both_shapes_lower_and_execute_through_the_production_kernel_with_bounded_signs() {
     let proof = patchbay_presenter_plans().unwrap();
     let direct = execute::<DIRECT_NODES, DIRECT_CORDS>(&proof.direct).unwrap();

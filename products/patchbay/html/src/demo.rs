@@ -32,6 +32,31 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     Ok(snapshot)
 }
 
+pub fn recursive_form_demonstration_snapshot() -> Result<RendererSnapshot, String> {
+    let presentation = patchbay_model::recursive_form_demonstration()?;
+    let execution = RendererExecution::prepare(
+        presentation,
+        RendererAdapterKind::HtmlDomSvg,
+        RendererAdapterIdentity {
+            host_id: HostId::from("patchbay-html/recursive-form"),
+            boot_id: BootId::from("patchbay-html/recursive-form/boot"),
+            target_subject: "patchbay-html/recursive-form/document".into(),
+        },
+        SignId::from("patchbay-html/recursive-form/prepared"),
+    )
+    .map_err(|error| error.to_string())?;
+    execution.validate().map_err(|error| error.to_string())?;
+    patchbay_model::PatchbayEntranceState::enter(&execution.presentation)
+        .map_err(|error| format!("recursive Form entrance: {error:?}"))?;
+    let mut snapshot =
+        RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    snapshot
+        .attach_navigation(navigation)
+        .map_err(|error| error.to_string())?;
+    Ok(snapshot)
+}
+
 fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), String> {
     let find = |role| {
         snapshot

@@ -813,7 +813,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run zero-Body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, disclosure, Back, and finite refusals through one pinned Chromium manifestation",
+        "Run zero-Body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
         "npx",
         &[
             "playwright",
@@ -821,6 +821,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
             "proof/browser/patchbay-front-door.spec.mjs",
+            "proof/browser/patchbay-recursive-form.spec.mjs",
         ],
         None,
         Some("playwright"),
