@@ -22,6 +22,11 @@ on:
         required: false
         default: ''
         type: string
+      full_suite:
+        description: Run the exhaustive stable-main promotion proof set
+        required: false
+        default: false
+        type: boolean
   merge_group:
 
 permissions:
@@ -50,7 +55,7 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
+      docs_only: ${{ inputs.full_suite && 'false' || steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
       reason: ${{ steps.slice.outputs.reason || steps.changes.outputs.reason }}
       base_sha: ${{ steps.slice.outputs.base_sha || steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.slice.outputs.head_sha || steps.changes.outputs.head_sha }}
@@ -60,19 +65,19 @@ jobs:
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CHECKOUT_SHA }}
       controller_sha: ${{ steps.controller.outputs.sha }}
       exact_execution: ${{ steps.execution.outputs.exact_execution || 'false' }}
-      esp32_required: ${{ steps.execution.outputs.esp32_required || steps.impact.outputs.esp32_required }}
-      esp32_matrix: ${{ steps.execution.outputs.esp32_matrix || steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
-      standalone_locks_required: ${{ steps.execution.outputs.standalone_locks_required || steps.impact.outputs.esp32_required }}
-      browser_required: ${{ steps.impact.outputs.browser_required }}
-      conduitos_required: ${{ steps.execution.outputs.conduitos_required || steps.impact.outputs.conduitos_required }}
-      conduitos_limine_required: ${{ steps.execution.outputs.conduitos_limine_required || steps.impact.outputs.conduitos_required }}
-      conduitos_tools_required: ${{ steps.execution.outputs.conduitos_tools_required || steps.impact.outputs.conduitos_required }}
-      conduitos_x86_matrix: ${{ steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
-      conduitos_architecture_matrix: ${{ steps.execution.outputs.conduitos_architecture_matrix || steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
-      conduitos_aarch64_product_required: ${{ steps.execution.outputs.conduitos_aarch64_product_required || steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
+      esp32_required: ${{ inputs.full_suite && 'true' || steps.execution.outputs.esp32_required || steps.impact.outputs.esp32_required }}
+      esp32_matrix: ${{ inputs.full_suite && '["wroom","c3","s3"]' || steps.execution.outputs.esp32_matrix || steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
+      standalone_locks_required: ${{ inputs.full_suite && 'true' || steps.execution.outputs.standalone_locks_required || steps.impact.outputs.esp32_required }}
+      browser_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.browser_required }}
+      conduitos_required: ${{ inputs.full_suite && 'true' || steps.execution.outputs.conduitos_required || steps.impact.outputs.conduitos_required }}
+      conduitos_limine_required: ${{ inputs.full_suite && 'true' || steps.execution.outputs.conduitos_limine_required || steps.impact.outputs.conduitos_required }}
+      conduitos_tools_required: ${{ inputs.full_suite && 'true' || steps.execution.outputs.conduitos_tools_required || steps.impact.outputs.conduitos_required }}
+      conduitos_x86_matrix: ${{ inputs.full_suite && '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' || steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+      conduitos_architecture_matrix: ${{ inputs.full_suite && '["aarch64","ia32","riscv64","loongarch64"]' || steps.execution.outputs.conduitos_architecture_matrix || steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
+      conduitos_aarch64_product_required: ${{ inputs.full_suite && 'true' || steps.execution.outputs.conduitos_aarch64_product_required || steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
       impact_reason: ${{ steps.execution.outputs.impact_reason || steps.impact.outputs.impact_reason }}
-      workspace_matrix: ${{ steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
-      workspace_lint_full: ${{ steps.impact.outputs.workspace_lint_full || 'true' }}
+      workspace_matrix: ${{ inputs.full_suite && '["lint","test-foundation","test-hosts","test-products","portable","pico"]' || steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
+      workspace_lint_full: ${{ inputs.full_suite && 'true' || steps.impact.outputs.workspace_lint_full || 'true' }}
       workspace_lint_packages: ${{ steps.impact.outputs.workspace_lint_packages || '[]' }}
       workspace_test_packages: ${{ steps.impact.outputs.workspace_test_packages || '[]' }}
       ci_controller_required: ${{ steps.execution.outputs.ci_controller_required || steps.impact.outputs.ci_controller_required }}
@@ -595,7 +600,7 @@ jobs:
           AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
           STANDALONE_LOCKS_REQUIRED: ${{ needs.classify.outputs.standalone_locks_required }}
-          EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
+          EVENT_NAME: ${{ inputs.full_suite && 'merge_group' || (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
           if test "${SHARED_COMPILE_RESULT:-success}" != success; then
             printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["workspace","browser","candidate-machine"]}\n' \

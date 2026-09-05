@@ -2,6 +2,7 @@ name: candidate
 
 on:
   pull_request:
+    branches: [dev]
 
 permissions:
   actions: read
@@ -13,7 +14,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  boundary:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify the development admission boundary
+        env:
+          CONDUIT_EVENT_NAME: pull_request
+          CONDUIT_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: node scripts/ci/branch-boundary.mjs candidate
+
   shared-compile:
+    needs: boundary
     uses: ./.github/workflows/candidate-shared-compile.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
@@ -42,7 +56,7 @@ jobs:
       shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
 
   candidate:
-    needs: [shared-compile, check, products]
+    needs: [boundary, shared-compile, check, products]
     if: always() && !cancelled()
     runs-on: ubuntu-slim
     steps:
@@ -53,7 +67,9 @@ jobs:
           STACK_ROLE: ${{ needs.shared-compile.outputs.stack_role }}
           CHECK_RESULT: ${{ needs.check.result }}
           PRODUCTS_RESULT: ${{ needs.products.result }}
+          BOUNDARY_RESULT: ${{ needs.boundary.result }}
         run: |
+          test "$BOUNDARY_RESULT" = success
           if test "$SHARED_RESULT" != success; then
             printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["check","products-proof"]}\n' \
               "${SHARED_PACKAGES:-[]}" | tee causal-block.json

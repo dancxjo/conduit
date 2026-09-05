@@ -1,0 +1,60 @@
+name: promotion
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: promotion-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  boundary:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Admit only the repository dev branch for stable promotion
+        env:
+          CONDUIT_EVENT_NAME: pull_request
+          CONDUIT_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          CONDUIT_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          CONDUIT_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          CONDUIT_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/branch-boundary.mjs promotion
+
+  check:
+    needs: boundary
+    uses: ./.github/workflows/check.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      full_suite: true
+
+  products:
+    needs: boundary
+    uses: ./.github/workflows/executable-book-pages.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      full_suite: true
+
+  promotion:
+    needs: [boundary, check, products]
+    if: always() && !cancelled()
+    runs-on: ubuntu-slim
+    steps:
+      - name: Require the exact integrated dev tree to be releasable
+        env:
+          BOUNDARY_RESULT: ${{ needs.boundary.result }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          PRODUCTS_RESULT: ${{ needs.products.result }}
+        run: |
+          test "$BOUNDARY_RESULT" = success
+          test "$CHECK_RESULT" = success
+          test "$PRODUCTS_RESULT" = success
