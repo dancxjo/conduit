@@ -1,0 +1,8 @@
+# A non-drawing consumer that captures finite route annotation geometry.
+form route-annotation-stroke (
+    waypoint: Point2...| > route: Path2Four
+) {
+    capture: geometry/capture-bounded-stroke
+    waypoint > capture.point
+    capture.stroke > route
+}

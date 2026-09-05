@@ -11,6 +11,37 @@ impl<'a> SourceLine<'a> {
         let text = self.text.trim_start();
         (text.trim_end(), self.start + self.text.len() - text.len())
     }
+
+    /// Return the statement portion of a source line. A `#` outside a quoted
+    /// literal begins lossless CST trivia and is not part of surface grammar.
+    pub(crate) fn statement(self) -> (&'a str, usize) {
+        let (text, start) = self.trimmed();
+        let end = comment_start(text).unwrap_or(text.len());
+        (text[..end].trim_end(), start)
+    }
+}
+
+pub(crate) fn comment_start(text: &str) -> Option<usize> {
+    let mut quote = None;
+    let mut escaped = false;
+    for (offset, character) in text.char_indices() {
+        if let Some(active) = quote {
+            if character == active && !escaped {
+                quote = None;
+            }
+            escaped = character == '\\' && !escaped;
+            if character != '\\' {
+                escaped = false;
+            }
+            continue;
+        }
+        match character {
+            '\'' | '"' => quote = Some(character),
+            '#' => return Some(offset),
+            _ => {}
+        }
+    }
+    None
 }
 
 pub(crate) fn split_declaration(text: &str) -> Option<(&str, &str)> {

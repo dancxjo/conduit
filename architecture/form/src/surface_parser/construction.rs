@@ -10,7 +10,7 @@ pub(super) fn parse_construction(
     spelling: &str,
 ) -> Result<ConstructionSyntax, (FormError, Span)> {
     let header_line = parser.lines[parser.index];
-    let (header, header_start) = header_line.trimmed();
+    let (header, header_start) = header_line.statement();
     let prefix = format!("{spelling} ");
     let rest = header
         .strip_prefix(&prefix)
@@ -34,7 +34,7 @@ pub(super) fn parse_construction(
     let mut declarations = Vec::new();
     while parser.index < parser.lines.len() {
         let line = parser.lines[parser.index];
-        let (text, line_start) = line.trimmed();
+        let (text, line_start) = line.statement();
         if text == "}" {
             parser.index += 1;
             return Ok(ConstructionSyntax {

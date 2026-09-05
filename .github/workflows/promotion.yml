@@ -20,14 +20,30 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Admit only the repository dev branch for stable promotion
+          fetch-depth: 2
+      - name: Admit only an exact frozen dev snapshot for stable promotion
         env:
           CONDUIT_EVENT_NAME: pull_request
           CONDUIT_BASE_REF: ${{ github.event.pull_request.base.ref }}
           CONDUIT_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          CONDUIT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           CONDUIT_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           CONDUIT_REPOSITORY: ${{ github.repository }}
         run: node scripts/ci/branch-boundary.mjs promotion
+      - name: Verify exact source snapshot and merge ancestry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          read -r FIRST_PARENT DEV_SNAPSHOT EXTRA <<EOF
+          $(git show -s --format='%P' "$HEAD_SHA")
+          EOF
+          test -n "$DEV_SNAPSHOT"
+          test -z "$EXTRA"
+          test "$FIRST_PARENT" = "$BASE_SHA"
+          git fetch --no-tags --depth=1 origin "$DEV_SNAPSHOT"
+          test "$(git rev-parse "$HEAD_SHA^{tree}")" = "$(git rev-parse "$DEV_SNAPSHOT^{tree}")"
+          test "$(git show -s --format='%(trailers:key=Conduit-Dev-Snapshot,valueonly)' "$HEAD_SHA")" = "$DEV_SNAPSHOT"
 
   check:
     needs: boundary

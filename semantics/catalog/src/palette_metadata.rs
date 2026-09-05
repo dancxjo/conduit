@@ -16,8 +16,8 @@ use crate::{
     LAYOUT_STACK_KIND, LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND,
     MATH_CLAMP_KIND, MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND,
     PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
-    PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND, ROBOTICS_DOCK_KIND,
-    ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_ACCELERATION_KIND,
+    PRESENTATION_BADGE_KIND, PRESENTATION_FRAME_KIND, PRESENTATION_ICON_KIND, QUANTITY_MAP_KIND,
+    ROBOTICS_DOCK_KIND, ROBOTICS_DRIVE_DIFFERENTIAL_KIND, ROBOTICS_OBSERVE_ACCELERATION_KIND,
     ROBOTICS_OBSERVE_BATTERY_KIND, ROBOTICS_OBSERVE_BEACON_KIND, ROBOTICS_OBSERVE_BUMP_KIND,
     ROBOTICS_OBSERVE_BUTTONS_KIND, ROBOTICS_OBSERVE_CHARGING_KIND, ROBOTICS_OBSERVE_CLIFF_KIND,
     ROBOTICS_OBSERVE_CONTACT_KIND, ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND,
@@ -228,6 +228,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::Transform,
             &["deadband", "neutral", "joystick"],
             PaletteIconKey::Combine,
+        ),
+        QUANTITY_MAP_KIND => metadata(
+            PaletteCategory::Transform,
+            &["map", "quantity", "unit", "range"],
+            PaletteIconKey::ChartColumnsIncreasing,
         ),
         LAYOUT_VIEWPORT_KIND => metadata(
             PaletteCategory::Presentation,
@@ -469,7 +474,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 69);
+        assert_eq!(contracts.len(), 70);
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

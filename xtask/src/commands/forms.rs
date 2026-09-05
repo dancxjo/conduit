@@ -404,13 +404,19 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     let mut profile = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_replay_source_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_replay_control_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_state_toggle_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_signal_garden_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_presentation_composition_catalogs(
         &mut startup,
