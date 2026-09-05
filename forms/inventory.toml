@@ -14,6 +14,12 @@ title = "Bounded Job"
 entry = "bounded-job"
 deterministic = { package = "conduit-semantic-catalog", test = "job_forms", case = "ordinary_form_plans_one_bounded_admitted_job" }
 [[forms]]
+slug = "bounded-stroke-capture"
+title = "Bounded Stroke Capture"
+entry = "bounded-stroke-capture"
+deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
+[[forms]]
 slug = "button-across-room"
 title = "Button Across the Room"
 entry = "button_across_room"
@@ -185,6 +191,12 @@ slug = "robotics-diversity"
 title = "Robotics Diversity"
 entry = "robotics-diversity"
 deterministic = { package = "conduit-semantic-catalog", test = "robotics_diversity_forms", case = "canonical_form_consumes_structured_observations_and_motion_intent" }
+[[forms]]
+slug = "route-annotation-stroke"
+title = "Route Annotation Stroke"
+entry = "route-annotation-stroke"
+deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
 [[forms]]
 slug = "scheduled-reminder"
 title = "Scheduled Reminder"
