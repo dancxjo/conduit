@@ -421,6 +421,7 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_http_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profile)?;

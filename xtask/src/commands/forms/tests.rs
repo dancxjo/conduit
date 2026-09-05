@@ -24,8 +24,17 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 37);
+    assert_eq!(checks.len(), 38);
     assert!(checks.iter().all(|result| result.status == "passed"));
+    let button = checks
+        .iter()
+        .find(|result| result.slug == "button-across-room")
+        .expect("reviewed Button Across the Room result");
+    assert_eq!(button.title, "Button Across the Room");
+    assert_eq!(button.source_path, "forms/button-across-room/main.conduit");
+    assert_eq!(button.form_entry, "button_across_room");
+    assert!(button.source_document_id.is_some());
+    assert!(button.checked_form_id.is_some());
     assert!(report
         .results
         .iter()

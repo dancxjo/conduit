@@ -15,7 +15,7 @@ fn canonical_form_is_only_the_semantic_button_to_indicator_chain() {
     let parsed = parse_syntax_document(SOURCE);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let expanded = expand_canonical_form(&checked, "button-across-room", &profile).unwrap();
+    let expanded = expand_canonical_form(&checked, "button_across_room", &profile).unwrap();
 
     assert_eq!(expanded.gears.len(), 3);
     assert_eq!(expanded.connections.len(), 2);

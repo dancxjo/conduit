@@ -14,6 +14,12 @@ title = "Bounded Job"
 entry = "bounded-job"
 deterministic = { package = "conduit-semantic-catalog", test = "job_forms", case = "ordinary_form_plans_one_bounded_admitted_job" }
 [[forms]]
+slug = "button-across-room"
+title = "Button Across the Room"
+entry = "button_across_room"
+deterministic = { package = "conduit-semantic-catalog", test = "button_across_room", case = "canonical_form_is_only_the_semantic_button_to_indicator_chain" }
+browser_safe_not_applicable = "the browser realization requires an explicit ordered pointer interaction proof"
+[[forms]]
 slug = "breadboard-instrument"
 title = "Breadboard Instrument"
 entry = "breadboard-instrument"
