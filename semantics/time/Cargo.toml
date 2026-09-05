@@ -11,6 +11,3 @@ form-catalog = ["dep:conduit-form"]
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
-
-[dev-dependencies]
-conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
