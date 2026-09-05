@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { laneInputsUnchanged, publishCandidateResults, resolveCandidateRequest, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
+import { laneInputsUnchanged, publishCandidateResults, resolveCandidateRequest, successfulAdmissionEvidence, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
 
 const candidate = "b".repeat(40);
 const base = "a".repeat(40);
@@ -91,12 +91,27 @@ test("refuses admission without publishing a sticky failed gate", async () => {
 });
 
 test("a published successful reconciliation is reusable by an identical later request", async () => {
-  const result = await resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: unchangedPlan, token: "test", request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
-    { id: 91, name: "check", status: "completed", conclusion: "success", details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
-    { id: 92, name: "products-proof", status: "completed", conclusion: "success", details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
+  const exact = `conduit.current-controller-reconciliation/v3:${candidate}:${base}:${integration}`;
+  const relatedPlan = { ...unchangedPlan, full_fallback: true, pages_products_required: true };
+  const result = await resolveCandidateRequest({ repository, pullNumber: 7, candidateSha: candidate, baseSha: base, integrationSha: integration, reconciliationPlan: relatedPlan, token: "test", request: async (url) => url.endsWith("/pulls/7") ? response(pull()) : response({ check_runs: [
+    { id: 93, name: "admission-evidence", status: "completed", conclusion: "success", external_id: exact, details_url: "https://example.test/reconcile", app: { slug: "github-actions" } },
   ] }) });
-  assert.ok(result.lanes.check);
-  assert.ok(result.lanes["products-proof"]);
+  assert.deepEqual(result.lanes.check, { checkRunId: 93, detailsUrl: "https://example.test/reconcile" });
+  assert.deepEqual(result.lanes["products-proof"], result.lanes.check);
+  assert.deepEqual(result.laneInputsUnchanged, { check: true, "products-proof": true });
+  assert.equal(result.published, true);
+});
+
+test("admission reuse is fail-closed for another integration or contract", () => {
+  const checks = [{
+    id: 93, name: "admission-evidence", status: "completed", conclusion: "success",
+    external_id: `conduit.current-controller-reconciliation/v3:${candidate}:${base}:${integration}`,
+    details_url: "https://example.test/reconcile", app: { slug: "github-actions" },
+  }];
+  assert.equal(successfulAdmissionEvidence(checks, candidate, base, "e".repeat(40)), null);
+  assert.equal(successfulAdmissionEvidence([
+    { ...checks[0], external_id: `conduit.current-controller-reconciliation/v2:${candidate}:${base}:${integration}` },
+  ], candidate, base, integration), null);
 });
 
 test("all-inherited evidence still publishes through the stable admission job", async () => {

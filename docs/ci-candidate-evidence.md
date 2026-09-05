@@ -152,6 +152,11 @@ Merged branches are retired by repository machinery rather than GitHub's immedia
 
 Branch protection's stable `admission` context is the final lightweight job in the reconciliation workflow, not an ad hoc check run racing unrelated check-suite completion. Even when every proof is inherited, reconciliation reaches that job, publishes a separately named `admission-evidence` detail record, retires its temporary integration ref, and lets the job's own terminal result satisfy protection. Duplicate dispatches do not cancel one another, so a later canceled suite cannot replace the established success merely as bookkeeping.
 
+An exact successful `admission-evidence` identity includes candidate, base, and
+prospective integration identities. A later lifecycle event with that same
+triple inherits the complete admitted proposition without re-running its lane
+proofs. Unknown contracts or any identity mismatch fall back to proof planning.
+
 Required PR-head admission is requested through the bounded `ci:reconcile`
 label. The `pull_request_target` event attaches the stable job to the immutable
 PR head while every privileged step still comes from canonical `main`; the

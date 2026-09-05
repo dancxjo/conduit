@@ -58,6 +58,19 @@ export function successfulLaneEvidence(checkRuns, lane) {
     .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
 }
 
+export function successfulAdmissionEvidence(checkRuns, candidateSha, baseSha, integrationSha) {
+  const externalId = `conduit.current-controller-reconciliation/v3:${candidateSha}:${baseSha}:${integrationSha}`;
+  return checkRuns.filter((check) => check.name === ADMISSION_EVIDENCE
+    && check.status === "completed"
+    && check.conclusion === "success"
+    && check.app?.slug === "github-actions"
+    && check.external_id === externalId
+    && Number.isSafeInteger(check.id)
+    && check.id > 0
+    && /^https:\/\//.test(check.details_url ?? ""))
+    .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
+}
+
 export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, baseSha, integrationSha, reconciliationPlan, token, request = fetch }) {
   validate(repository, pullNumber, candidateSha);
   exactIdentity(baseSha, "base SHA");
@@ -79,6 +92,16 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
     checkRuns.push(...body.check_runs);
     if (body.check_runs.length < 100) break;
   }
+  const admitted = successfulAdmissionEvidence(checkRuns, candidateSha, baseSha, integrationSha);
+  if (admitted) {
+    const evidence = { checkRunId: admitted.id, detailsUrl: admitted.details_url };
+    return {
+      pullNumber, candidateSha, baseSha, integrationSha,
+      lanes: Object.fromEntries(LANES.map((lane) => [lane, evidence])),
+      laneInputsUnchanged: Object.fromEntries(LANES.map((lane) => [lane, true])),
+      published: true,
+    };
+  }
   return {
     pullNumber, candidateSha, baseSha, integrationSha,
     lanes: Object.fromEntries(LANES.map((lane) => {
@@ -87,6 +110,7 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
       return [lane, evidence && { checkRunId: evidence.id, detailsUrl: evidence.details_url }];
     })),
     laneInputsUnchanged: Object.fromEntries(LANES.map((lane) => [lane, laneInputsUnchanged(reconciliationPlan, lane)])),
+    published: false,
   };
 }
 
@@ -149,8 +173,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await appendOutput(`${prefix}_inherited`, String(Boolean(result.lanes[lane])));
       await appendOutput(`${prefix}_evidence_url`, result.lanes[lane]?.detailsUrl ?? "");
     }
-    await appendOutput("published", "false");
-    process.stdout.write(`${JSON.stringify({ ...result, published: null }, null, 2)}\n`);
+    await appendOutput("published", String(result.published));
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } else if (process.argv[2] === "publish") {
     const published = await publishCandidateResults({
       repository: process.env.GITHUB_REPOSITORY, candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
