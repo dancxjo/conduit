@@ -130,7 +130,10 @@ pub fn install_historical_timeline_catalog(
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
     for (name, identity) in [
-        ("HistoricalTypedEntry", "history/typed-entry@1"),
+        (
+            "HistoricalTimelineCommand",
+            crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID,
+        ),
         ("HistoricalTypedTimeline", "history/typed-timeline@1"),
     ] {
         startup

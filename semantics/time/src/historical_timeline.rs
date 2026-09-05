@@ -423,8 +423,8 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
         kind_id: kind_id(HISTORICAL_TIMELINE_KIND),
         kind_contract_revision: KindContractRevision::from(HISTORICAL_TIMELINE_CONTRACT_REVISION),
         inputs: alloc::vec![PortDescriptor {
-            port_id: port_id("entry"),
-            value_kind: value_kind("history/typed-entry@1"),
+            port_id: port_id("command"),
+            value_kind: value_kind(crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true }
         }],

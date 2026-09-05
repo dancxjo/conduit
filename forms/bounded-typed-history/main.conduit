@@ -3,10 +3,10 @@ form bounded-typed-history (
     maximum-entries: Count = 16
     maximum-referenced-bytes: Count = 1048576
     overflow-policy: Text = "refuse"
-    > entry: HistoricalTypedEntry...|
+    > command: HistoricalTimelineCommand...|
     timeline: HistoricalTypedTimeline >
 ) {
     history: history/bounded-typed(value-profile, maximum-entries, maximum-referenced-bytes, overflow-policy)
-    entry > history.entry
+    command > history.command
     history.timeline > timeline
 }
