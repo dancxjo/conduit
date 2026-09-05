@@ -25,12 +25,14 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
 fn promotion_snapshot(arguments: &[String]) -> Result<(), String> {
     let mut values = arguments.iter().skip(2);
     let mut dev_ref = "origin/dev".to_owned();
+    let mut main_ref = "origin/main".to_owned();
     let mut remote = "origin".to_owned();
     let mut push = false;
     while let Some(argument) = values.next() {
         match argument.as_str() {
             "--locked" => {}
             "--dev-ref" => dev_ref = required(&mut values, "--dev-ref value")?,
+            "--main-ref" => main_ref = required(&mut values, "--main-ref value")?,
             "--remote" => remote = required(&mut values, "--remote value")?,
             "--push" => push = true,
             other => {
@@ -40,7 +42,8 @@ fn promotion_snapshot(arguments: &[String]) -> Result<(), String> {
             }
         }
     }
-    crate::promotion_snapshot::run(&dev_ref, &remote, push).map_err(|error| error.to_string())
+    crate::promotion_snapshot::run(&dev_ref, &main_ref, &remote, push)
+        .map_err(|error| error.to_string())
 }
 
 fn product_execution_plan(arguments: &[String]) -> Result<(), String> {
