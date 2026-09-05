@@ -145,6 +145,34 @@ fn nested_finite_instrument_and_feedback_shapes_share_one_substrate() {
 }
 
 #[test]
+fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
+    let item_type = StructuredInfoType::variant(
+        KindId::from("test/item@1"),
+        vec![StructuredVariantCase::new("some", leaf_type("value/text@1")).unwrap()],
+    )
+    .unwrap();
+    let collection_type = StructuredInfoType::collection(item_type.clone(), Some(1)).unwrap();
+    let value = StructuredInfoValue::collection(
+        collection_type.clone(),
+        vec![
+            StructuredInfoValue::variant(item_type, "some", leaf("value/text@1", b"bounded"))
+                .unwrap(),
+        ],
+    )
+    .unwrap();
+    let canonical = value.canonical_bytes().unwrap();
+    let type_bytes = collection_type.canonical_bytes().unwrap();
+    let node = canonical.strip_prefix(type_bytes.as_slice()).unwrap();
+    assert_eq!(collection_type.validate_canonical_node(node), Ok(()));
+    let mut malformed = node.to_vec();
+    malformed.push(0);
+    assert_eq!(
+        collection_type.validate_canonical_node(&malformed),
+        Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+    );
+}
+
+#[test]
 fn validated_llm_extraction_uses_the_same_nominal_record_model() {
     let extraction_type = StructuredInfoType::record(
         KindId::from("education/lesson-extraction@1"),
