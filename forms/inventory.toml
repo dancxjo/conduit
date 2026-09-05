@@ -75,6 +75,12 @@ title = "Hello"
 entry = "hello"
 deterministic = { package = "conduit", test = "hello", case = "canonical_hello_runs_locally" }
 [[forms]]
+slug = "image-text-compose"
+title = "Image Text Composition"
+entry = "image-text-compose"
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "image_text_form", case = "image_text_composition_is_an_ordinary_browser_neutral_form" }
+browser_safe_not_applicable = "portable image-text composition has no reviewed browser Host execution oracle"
+[[forms]]
 slug = "lenia-orbium"
 title = "Lenia Orbium"
 entry = "lenia-orbium-demo"

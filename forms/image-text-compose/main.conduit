@@ -1,0 +1,10 @@
+form image-text-compose (
+    > image: ImageObservationReference
+    > caption: Text
+    record: ImageTextRecord >
+) {
+    compose: media/compose-image-text
+    image > compose.image
+    caption > compose.caption
+    compose.record > record
+}
