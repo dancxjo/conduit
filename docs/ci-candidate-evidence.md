@@ -115,6 +115,15 @@ For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges
 
 ## GitHub workflow boundary
 
+The authoritative impact, candidate-identity, receipt, integration, product
+reconciliation, toolchain, and bounded-monitor contracts are compiled into the
+internal `conduit-xtask-dispatch` target from the same Rust source files used by
+`cargo xtask ci`. `cargo test --locked --package conduit-xtask-dispatch` runs
+that controller suite with only Git/planning dependencies; it does not compile
+ConduitOS, browser runtimes, firmware, semantic products, or fabrication
+packages. Controller-changing PRs run this small suite in the classifier before
+fan-out. `cargo xtask` remains the documented repository entrance.
+
 Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. Candidate workflows retain `check` and `products-proof` as immutable evidence lanes. Branch protection uses the distinct reconciliation-owned `admission` gate. This separation is necessary because GitHub preserves a failed native workflow check in the commit rollup even after a newer same-name Checks API result succeeds; reusing a native lane name cannot unambiguously replace stale admission state.
 
 The privileged retirement controller re-resolves the pull request's current

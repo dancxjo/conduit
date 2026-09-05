@@ -162,6 +162,33 @@ fn exact_integration_resolver_changes_run_only_the_controller_proof() {
 }
 
 #[test]
+fn planner_test_target_changes_do_not_select_product_or_machine_proofs() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/check.yml".to_owned(),
+            "tools/xtask-dispatch/Cargo.toml".to_owned(),
+            "tools/xtask-dispatch/src/main.rs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.ci_controller_proofs, ["ci.planner-contract-tests"]);
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert_eq!(plan.changed_packages, ["conduit-xtask-dispatch", "xtask"]);
+}
+
+#[test]
 fn dispatcher_command_implementation_has_command_local_impact() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
