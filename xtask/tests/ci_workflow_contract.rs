@@ -515,6 +515,9 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     );
     assert!(workflow.contains("github.event.label.name == 'ci:reconcile'"));
     assert!(workflow.contains("name: Consume the bounded on-demand reconciliation request"));
+    assert!(workflow.contains(
+        "name: Consume the bounded on-demand reconciliation request\n        if: github.event_name == 'pull_request_target' && github.event.action == 'labeled'\n        continue-on-error: true"
+    ));
     assert!(workflow.contains("labels/ci%3Areconcile"));
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("issues: write"));

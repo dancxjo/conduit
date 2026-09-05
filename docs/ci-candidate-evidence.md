@@ -155,7 +155,9 @@ Branch protection's stable `admission` context is the final lightweight job in t
 Required PR-head admission is requested through the bounded `ci:reconcile`
 label. The `pull_request_target` event attaches the stable job to the immutable
 PR head while every privileged step still comes from canonical `main`; the
-controller consumes the label before planning so it can be requested again.
+controller attempts to consume the label before planning so it can be requested
+again. That cleanup is best-effort bookkeeping: API congestion may leave the
+label present, but it cannot suppress exact PR/head validation.
 Reopen and base-edit lifecycle events reconcile automatically. A manually
 dispatched run remains useful diagnostic evidence, but its job belongs to the
 selected dispatch ref and therefore is not used as a PR-head protection gate.
