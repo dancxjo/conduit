@@ -98,6 +98,21 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         workspace_packages: &["conduit-xtask-dispatch", "xtask"],
     },
     ControllerProofSpec {
+        id: "ci.planner-contract-tests",
+        implementation_inputs: &[
+            ".github/workflows/check.yml",
+            "tools/xtask-dispatch/Cargo.toml",
+            "tools/xtask-dispatch/src/main.rs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // A workflow or planner edit alone remains conservatively broad. The
+        // test-target manifest is the dependency-light slice anchor.
+        required_inputs: &["tools/xtask-dispatch/Cargo.toml"],
+        workspace_packages: &["conduit-xtask-dispatch", "xtask"],
+    },
+    ControllerProofSpec {
         id: "ci.merged-branch-retirement",
         implementation_inputs: &[
             ".github/workflows/retire-merged-pr-branch.yml",

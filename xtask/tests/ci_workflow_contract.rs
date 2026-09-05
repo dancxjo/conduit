@@ -510,6 +510,19 @@ fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
 }
 
 #[test]
+fn controller_changes_run_the_dependency_light_planner_test_target() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let manifest = fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml"))
+        .expect("read dispatcher manifest");
+
+    assert!(workflow.contains("name: Verify the dependency-light typed CI planner contracts"));
+    assert!(workflow.contains("cargo test --locked --package conduit-xtask-dispatch"));
+    assert!(!manifest.contains("test = false"));
+}
+
+#[test]
 fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
