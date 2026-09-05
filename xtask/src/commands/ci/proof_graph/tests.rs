@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_REPOSITORY: AtomicU64 = AtomicU64::new(0);
@@ -228,6 +229,23 @@ fn registry_refuses_a_missing_required_input_root() {
     let error = validate_registry_paths(&repo.root, &tree).unwrap_err();
     assert!(error.contains("required input path"));
     assert!(error.contains("is absent from tree"));
+}
+
+#[test]
+fn x86_proofs_keep_distinct_keys_in_one_batch_environment() {
+    let x86: Vec<_> = PROOFS
+        .iter()
+        .filter(|proof| proof.id.starts_with("conduitos.x86."))
+        .collect();
+    assert_eq!(x86.len(), 8);
+    assert!(x86
+        .iter()
+        .all(|proof| proof.environment == "ubuntu-qemu-x86_64-batch-v1"));
+    assert!(x86.iter().all(|proof| proof
+        .command
+        .starts_with("cargo xtask conduitos prove-many --proof ")));
+    let ids: BTreeSet<_> = x86.iter().map(|proof| proof.id).collect();
+    assert_eq!(ids.len(), x86.len());
 }
 
 #[test]

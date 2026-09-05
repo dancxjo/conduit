@@ -51,6 +51,7 @@ mod prepared_proof_image;
 mod product_readiness_matrix;
 mod profile;
 mod prove;
+mod prove_many;
 mod report;
 mod rescue_proof;
 mod riscv64_a0;
@@ -111,6 +112,8 @@ enum ConduitosCommand {
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
     Prove(ProveArgs),
+    /// Execute selected x86 proofs concurrently in one prepared environment.
+    ProveMany(prove_many::ProveManyArgs),
     /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
     StdGap,
     /// Prove one exact deterministic deadline-bounded local Plan and refusal.
@@ -439,6 +442,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 prove::execute(prove_args.arch, prove_args.evidence_root.as_deref(), opts)
             }
         }
+        ConduitosCommand::ProveMany(args) => prove_many::execute(args, opts),
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),

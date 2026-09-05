@@ -766,7 +766,6 @@ fn every_active_check_matrix_retains_an_exact_proof_receipt() {
     for dynamic in [
         "workspace-${{ matrix.shard }}",
         "machine.esp32-${{ matrix.target }}",
-        "conduitos.x86.${{ matrix.proof }}",
         "conduitos.architecture.${{ matrix.architecture }}",
     ] {
         assert!(
@@ -787,4 +786,26 @@ fn every_active_check_matrix_retains_an_exact_proof_receipt() {
     assert!(action.contains("attestation begins after this registry reaches main"));
     assert!(action.contains("ci attest-success \"$CANDIDATE_SHA\" \"$PROOF_ID\""));
     assert!(action.contains("ci-proof-${{ inputs.proof-id }}-${{ inputs.candidate-sha }}"));
+}
+
+#[test]
+fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let x86 = workflow
+        .split("\n  conduitos-x86:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  conduitos-architecture:\n").next())
+        .expect("locate x86 proof batch");
+
+    assert!(!x86.contains("matrix:"));
+    assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
+    assert!(x86.contains("cargo xtask conduitos prove-many"));
+    assert!(x86.contains("--max-parallel 4 --locked"));
+    assert!(x86.contains("maximum_observed_parallelism > 1"));
+    assert!(x86.contains("proof_id=\"conduitos.x86.$proof\""));
+    assert!(x86.contains("--out \"target/ci-receipts/$proof_id.json\""));
+    assert!(x86.contains("target/conduitos/prove-many/results/$proof.json"));
+    assert!(x86.contains("ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}"));
 }
