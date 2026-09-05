@@ -210,7 +210,31 @@ impl ResourceAdmissionOwner {
                     pool.pool_id == item.binding.pool_id && pool.class_id == item.binding.class_id
                 })
                 .ok_or(ResourceAdmissionRefusal::InvalidBinding)?;
-            if !resource_binding_satisfies(&item.binding, &item.requirement, pool) {
+            if !resource_binding_satisfies(&item.binding, &item.requirement, pool)
+                || crate::bind_resource_content(
+                    &item.requirement,
+                    pool,
+                    &self.host.host_id,
+                    &self.host.boot_id,
+                )
+                .is_err()
+            {
+                return Err(ResourceAdmissionRefusal::InvalidBinding);
+            }
+            if item.binding.content.as_ref().is_some_and(|content| {
+                content.contract.access == crate::ResourceAccessMode::WriteCandidatePublish
+            }) && self
+                .admissions
+                .iter()
+                .flat_map(|admission| &admission.items)
+                .any(|existing| {
+                    existing.binding.pool_id == item.binding.pool_id
+                        && existing.binding.content.as_ref().is_some_and(|content| {
+                            content.contract.access
+                                == crate::ResourceAccessMode::WriteCandidatePublish
+                        })
+                })
+            {
                 return Err(ResourceAdmissionRefusal::InvalidBinding);
             }
             let observation = observations

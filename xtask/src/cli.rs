@@ -275,6 +275,7 @@ pub enum ProveTarget {
     CalendarGoogle,
     DegradedProfiles,
     Diversity,
+    ResourceFrame,
     DistributedLenia,
     DormantReadmission,
     RecursiveRecovery,

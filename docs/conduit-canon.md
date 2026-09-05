@@ -57,6 +57,7 @@ GEAR   one configured occurrence of a kind in a form
 PORT   typed directional point through which Info enters or leaves
 CORD   typed semantic connection between compatible ports on gears
 INFO   shaped, typed data carried through cords
+RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular Info semantic or mechanism where explicitly named
 FACE   stable visible semantic contract of a kind or form, including ports
 BACK   form that implements a face in Conduit terms
@@ -68,6 +69,30 @@ PLAY   one active execution of a plan
 ```
 
 A Kind is not a Gear, and neither is an implementation. A Port is not a renderer jack, queue slot, Line endpoint, or Base handle. Info is specifically shaped/typed data and is not automatically Signal. A Face is not its Back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active Play.
+
+### Resource, State, and Line
+
+A Resource is bounded addressable content whose residence, lifetime, sharing,
+access, generation, or durability matters beyond an ordinary inline Info value.
+`value/resource-ref@1` remains portable Info referring to exact semantic content
+and version; possession grants no authority. Structured records remain Info,
+not collections of Gears masquerading as objects.
+
+A Cord carries Info. A Line realizes that Cord's traffic. Shared memory used by
+a Line is transport machinery; shared memory backing an explicitly admitted
+Resource is residence. Neither introduces a portable pointer, fd, mapping,
+device handle, or distributed shared memory. Resource residence belongs to
+exact Host/Boot/Base realization and Plan truth.
+
+Published Info names stable Resource generations. Candidate publication and
+read leases are finite, explicit contracts; a reader cannot silently observe
+mutation beneath immutable content. Unsupported coherence refuses. Another
+sealed generation or residence requires fresh exact Plan truth.
+
+State retains evolving Info across an explicit time boundary and may retain a
+ResourceRef. Persistence is a Resource operation and lifecycle obligation.
+Recording retains historical evidence under its own contract. Retain, persist,
+and record are distinct; there is no universal `save` primitive.
 
 ### Identity stages
 

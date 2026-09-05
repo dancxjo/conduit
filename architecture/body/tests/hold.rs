@@ -60,6 +60,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             outputs: vec![],
             host_operations: vec![],
             resources: vec![ResourceBinding {
+                content: None,
                 pool_id: ResourcePoolId::from(format!("{host}/timer-pool")),
                 class_id: ResourceClassId::from("test/timer"),
                 units: 1,
