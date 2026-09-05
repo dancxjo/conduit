@@ -1,8 +1,8 @@
 use super::{host, installed_std};
 use crate::TimerAdapter;
 use conduit_core::{
-    BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal, ResourceClassId,
-    ResourceOffer, ResourcePoolId, StructuredInfoValue,
+    BaseImplementationId, ConfigurationValue, ObservationKind, PortDirection, PortTemporal,
+    ResourceClassId, ResourceOffer, ResourcePoolId, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
@@ -14,7 +14,6 @@ use std::time::Duration;
 
 const BUTTON_SOURCE: &str = "conduit-test/secret-knock-button";
 const COMMAND_SOURCE: &str = "conduit-test/secret-knock-template-commands";
-const RESULT_SINK: &str = "conduit-test/secret-knock-result";
 
 struct KnockTimer {
     micros: [u64; 4],
@@ -67,7 +66,6 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     .unwrap();
     let button_offer = sequence_source_offer(&transitions[0], BUTTON_SOURCE, 4);
     let command_offer = sequence_source_offer(&commands[0], COMMAND_SOURCE, 2);
-    let sink_offer = fixture_offer(&comparison, PortDirection::Input, RESULT_SINK);
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_catalogs(&mut startup, &mut profile);
@@ -89,21 +87,11 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         &command_offer,
         4,
     );
-    install_fixture(
-        &mut startup,
-        &mut profile,
-        RESULT_SINK,
-        "value",
-        &comparison,
-        &sink_offer,
-        2,
-    );
     let transition_values = encoded_values(&transitions);
     let command_values = encoded_values(&commands);
     let source = format!(
-        "form secret-knock (\n    > transitions: InputButtonTransition...|\n    > template_commands: NamedPatternTemplateCommand...|\n    result: PatternComparison >\n) {{\n    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n    intervals: time/ordered-event-intervals\n    normalize: sequence/normalize-relative-duration\n    storage: storage/named-pattern-templates(maximum-commands = 2)\n    final_template: sequence/final-normalized-pattern(maximum-values = 1)\n    compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 1)\n    transitions > attempt.transition\n    attempt.events > intervals.events\n    intervals.intervals > normalize.intervals\n    normalize.normalized > compare.candidate\n    template_commands > storage.command\n    storage.result > select(NamedPatternTemplateResult.found, unmatched=drop) > project(NamedPatternTemplate.pattern) > final_template.patterns\n    final_template.pattern > compare.template\n    compare.comparison > result\n}}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    result: {RESULT_SINK}(value = \"{}\")\n    buttons.output > knock.transitions\n    commands.output > knock.template_commands\n    knock.result > result.input\n}}\n",
+        "form secret-knock (\n    > transitions: InputButtonTransition...|\n    > template_commands: NamedPatternTemplateCommand...|\n) {{\n    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n    intervals: time/ordered-event-intervals\n    normalize: sequence/normalize-relative-duration\n    storage: storage/named-pattern-templates(maximum-commands = 2)\n    final_template: sequence/final-normalized-pattern(maximum-values = 1)\n    compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 1)\n    manifest: presentation/structured-info\n    transitions > attempt.transition\n    attempt.events > intervals.events\n    intervals.intervals > normalize.intervals\n    normalize.normalized > compare.candidate\n    template_commands > storage.command\n    storage.result > select(NamedPatternTemplateResult.found, unmatched=drop) > project(NamedPatternTemplate.pattern) > final_template.patterns\n    final_template.pattern > compare.template\n    compare.comparison > manifest.input\n}}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output > knock.transitions\n    commands.output > knock.template_commands\n}}\n",
         conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC,
-        hex(&comparison.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -146,13 +134,16 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     advertisement.capabilities.extend([
         button_offer,
         command_offer,
-        sink_offer,
         conduit_std_offers::timed_button_attempt_std_offer(),
         conduit_std_offers::ordered_event_intervals_std_offer(),
         conduit_std_offers::normalize_sequence_std_offer(),
         conduit_std_offers::template_storage_std_offer(),
         conduit_std_offers::final_normalized_pattern_std_offer(),
         conduit_std_offers::compare_pattern_std_offer(),
+        conduit_std_offers::structured_presentation_std_offer(
+            conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
+            &conduit_semantic_catalog::pattern_comparison_type(),
+        ),
     ]);
     advertisement
         .capabilities
@@ -174,6 +165,10 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         (
             "pool/secret-knock-templates",
             conduit_std_offers::TEMPLATE_STORAGE_RESOURCE_CLASS,
+        ),
+        (
+            "pool/secret-knock-presentation",
+            conduit_core::PRESENTATION_RESOURCE_CLASS,
         ),
     ] {
         if !advertisement
@@ -251,6 +246,16 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let kernel = report.kernel.unwrap();
     assert_eq!(kernel.post_play_start_allocations, 0);
     assert!(kernel.identity.lengths().0 >= 8);
+    assert_eq!(kernel.presentation_ids.len(), 1);
+    let presented = report
+        .observations
+        .iter()
+        .find_map(|observation| match &observation.kind {
+            ObservationKind::ValuePresented { value } => Some(value),
+            _ => None,
+        })
+        .expect("comparison has one correlated manifestation");
+    assert_eq!(presented.encoded, comparison.canonical_bytes().unwrap());
 }
 
 fn install_catalogs(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) {
@@ -261,6 +266,25 @@ fn install_catalogs(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) 
     conduit_semantic_catalog::install_template_storage_catalogs(startup, profile).unwrap();
     conduit_semantic_catalog::install_final_normalized_pattern_catalogs(startup, profile).unwrap();
     conduit_semantic_catalog::install_pattern_comparison_catalogs(startup, profile).unwrap();
+    startup
+        .insert(KindSignature {
+            kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
+            startup_parameters: Vec::new(),
+        })
+        .unwrap();
+    let presenter = conduit_semantic_catalog::structured_presentation_contract(
+        conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
+        &conduit_semantic_catalog::pattern_comparison_type(),
+    );
+    profile
+        .insert(KindDefinition {
+            kind_id: presenter.kind_id,
+            kind_contract_revision: presenter.kind_contract_revision,
+            inputs: presenter.inputs,
+            outputs: presenter.outputs,
+            configuration: Vec::new(),
+        })
+        .unwrap();
 }
 
 #[allow(clippy::too_many_arguments)]
