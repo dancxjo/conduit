@@ -14,6 +14,7 @@ mod morse;
 mod morse_composition;
 mod operation;
 mod presentation;
+mod quantity;
 mod state_time;
 mod text;
 mod values;
@@ -34,4 +35,7 @@ pub(crate) use limits::{
     MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
 };
 pub(crate) use operation::BrowserOperation;
+pub(crate) use quantity::{
+    transform as transform_quantity, HOST_OPERATION as QUANTITY_HOST_OPERATION,
+};
 pub(crate) use state_time::BROWSER_TIMER_MAXIMUM_MILLIS;

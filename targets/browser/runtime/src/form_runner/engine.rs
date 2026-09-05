@@ -1,5 +1,9 @@
 //! Finite generic browser execution envelope for inline Forms.
 
+#[cfg(test)]
+#[path = "quantity_tests.rs"]
+mod quantity_tests;
+
 use crate::installed_browser::{
     factory, BrowserManifestation, BrowserOperation, BROWSER_HOST_OPERATIONS_PER_GEAR,
     BROWSER_HOST_OPERATION_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
@@ -142,6 +146,39 @@ pub(super) fn drive(
                 .host_operations
                 .get(usize::from(request.operation.0))
                 .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+            if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_HOST_OPERATION {
+                let encoded = crate::installed_browser::transform_quantity(
+                    placement,
+                    scheduler
+                        .host_value(request.input.value)
+                        .map_err(debug_error)?,
+                )?;
+                let outcome = match encoded {
+                    Ok(bytes) => {
+                        let value = scheduler.store_host_value(&bytes).map_err(debug_error)?;
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    conduit_core::QUANTITY_ENCODED_LEN as u32,
+                                )
+                                .map_err(debug_error)?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(debug_error)?;
+                continue;
+            }
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(debug_error)?
