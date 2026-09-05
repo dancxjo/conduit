@@ -1,3 +1,4 @@
+use conduit_core::{ConfigurationEntry, ConfigurationValue};
 use conduit_time::*;
 
 fn entries() -> Vec<HistoricalReplayEntry> {
@@ -179,6 +180,73 @@ fn arithmetic_refusal_does_not_advance_the_playback_clock() {
     assert_eq!(replay.state(), ReplayState::Running);
 }
 
+#[test]
+fn replay_policy_is_exact_inspectable_configuration() {
+    let entries = |mode: ConfigurationValue, numerator, denominator| {
+        vec![
+            ConfigurationEntry {
+                key: "mode".into(),
+                value: mode,
+            },
+            ConfigurationEntry {
+                key: "rate-numerator".into(),
+                value: ConfigurationValue::U64(numerator),
+            },
+            ConfigurationEntry {
+                key: "rate-denominator".into(),
+                value: ConfigurationValue::U64(denominator),
+            },
+        ]
+    };
+    assert_eq!(
+        replay_policy_from_configuration(&entries(
+            ConfigurationValue::Text(REPLAY_MODE_STEP.into()),
+            1,
+            1,
+        )),
+        Ok(ReplayPolicy::Step)
+    );
+    assert_eq!(
+        replay_policy_from_configuration(&entries(
+            ConfigurationValue::Text(REPLAY_MODE_RATE.into()),
+            2,
+            3,
+        )),
+        Ok(ReplayPolicy::Rate {
+            numerator: 2,
+            denominator: 3,
+        })
+    );
+    assert_eq!(
+        replay_policy_from_configuration(&entries(
+            ConfigurationValue::Text("invented".into()),
+            1,
+            1,
+        )),
+        Err(ReplayPolicyConfigurationRefusal::UnknownMode)
+    );
+    assert_eq!(
+        replay_policy_from_configuration(&entries(
+            ConfigurationValue::Text(REPLAY_MODE_RATE.into()),
+            0,
+            1,
+        )),
+        Err(ReplayPolicyConfigurationRefusal::RateOutOfBounds)
+    );
+    assert_eq!(
+        replay_policy_from_configuration(&[]),
+        Err(ReplayPolicyConfigurationRefusal::Missing("mode"))
+    );
+    let mut wrong_type = entries(ConfigurationValue::Text(REPLAY_MODE_RATE.into()), 1, 1);
+    wrong_type[1].value = ConfigurationValue::Text("one".into());
+    assert_eq!(
+        replay_policy_from_configuration(&wrong_type),
+        Err(ReplayPolicyConfigurationRefusal::WrongType(
+            "rate-numerator"
+        ))
+    );
+}
+
 #[cfg(feature = "form-catalog")]
 #[test]
 fn replay_control_is_an_ordinary_checked_form() {
@@ -198,5 +266,10 @@ fn replay_control_is_an_ordinary_checked_form() {
     assert_eq!(
         authored.expanded.gears[0].kind_id.as_str(),
         REPLAY_CONTROL_KIND
+    );
+    assert_eq!(authored.expanded.gears[0].configuration.len(), 3);
+    assert_eq!(
+        replay_policy_from_configuration(&authored.expanded.gears[0].configuration),
+        Ok(ReplayPolicy::OriginalTiming)
     );
 }

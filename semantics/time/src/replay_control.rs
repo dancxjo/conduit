@@ -1,10 +1,14 @@
 //! Finite replay sequencing with historical and playback time kept distinct.
 
 use alloc::{string::String, vec::Vec};
+use conduit_core::{ConfigurationEntry, ConfigurationValue};
 
 pub const MAXIMUM_REPLAY_ENTRIES: usize = 64;
 pub const MAXIMUM_REPLAY_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_REPLAY_RATE_TERM: u32 = 1_000;
+pub const REPLAY_MODE_STEP: &str = "step";
+pub const REPLAY_MODE_ORIGINAL_TIMING: &str = "original-timing";
+pub const REPLAY_MODE_RATE: &str = "rate";
 
 pub const REPLAY_CONTROL_KIND: &str = "time/replay-control";
 pub const REPLAY_CONTROL_CONTRACT_REVISION: &str = "conduit.time/replay-control@1";
@@ -51,6 +55,62 @@ pub enum ReplayRefusal {
     InvalidState,
     PlaybackClockRegressed,
     ArithmeticOverflow,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ReplayPolicyConfigurationRefusal {
+    Missing(&'static str),
+    WrongType(&'static str),
+    UnknownMode,
+    RateOutOfBounds,
+}
+
+pub fn replay_policy_from_configuration(
+    entries: &[ConfigurationEntry],
+) -> Result<ReplayPolicy, ReplayPolicyConfigurationRefusal> {
+    let mut mode = None;
+    let mut numerator = None;
+    let mut denominator = None;
+    for entry in entries {
+        match (entry.key.as_str(), &entry.value) {
+            ("mode", ConfigurationValue::Text(value)) => mode = Some(value.as_str()),
+            ("rate-numerator", ConfigurationValue::U64(value)) => numerator = Some(*value),
+            ("rate-denominator", ConfigurationValue::U64(value)) => denominator = Some(*value),
+            ("mode", _) => return Err(ReplayPolicyConfigurationRefusal::WrongType("mode")),
+            ("rate-numerator", _) => {
+                return Err(ReplayPolicyConfigurationRefusal::WrongType(
+                    "rate-numerator",
+                ));
+            }
+            ("rate-denominator", _) => {
+                return Err(ReplayPolicyConfigurationRefusal::WrongType(
+                    "rate-denominator",
+                ));
+            }
+            _ => {}
+        }
+    }
+    let mode = mode.ok_or(ReplayPolicyConfigurationRefusal::Missing("mode"))?;
+    let numerator = numerator.ok_or(ReplayPolicyConfigurationRefusal::Missing("rate-numerator"))?;
+    let denominator = denominator.ok_or(ReplayPolicyConfigurationRefusal::Missing(
+        "rate-denominator",
+    ))?;
+    if numerator == 0
+        || denominator == 0
+        || numerator > u64::from(MAXIMUM_REPLAY_RATE_TERM)
+        || denominator > u64::from(MAXIMUM_REPLAY_RATE_TERM)
+    {
+        return Err(ReplayPolicyConfigurationRefusal::RateOutOfBounds);
+    }
+    match mode {
+        REPLAY_MODE_STEP => Ok(ReplayPolicy::Step),
+        REPLAY_MODE_ORIGINAL_TIMING => Ok(ReplayPolicy::OriginalTiming),
+        REPLAY_MODE_RATE => Ok(ReplayPolicy::Rate {
+            numerator: numerator as u32,
+            denominator: denominator as u32,
+        }),
+        _ => Err(ReplayPolicyConfigurationRefusal::UnknownMode),
+    }
 }
 
 /// A bounded controller over retained entry metadata. Payload ownership stays
@@ -318,10 +378,12 @@ fn validate_policy(policy: ReplayPolicy) -> Result<(), ReplayRefusal> {
 
 #[cfg(feature = "form-catalog")]
 pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
+    use alloc::string::ToString;
     use conduit_core::{
         kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
     };
+    use conduit_form::{ConfigurationField, ConfigurationRule};
     let port = |name, value_kind, direction, temporal| PortDescriptor {
         port_id: port_id(name),
         value_kind: StructuredInfoType::leaf(kind_id(value_kind))
@@ -370,6 +432,34 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
                 PortTemporal::Flow { closes: true }
             ),
         ],
-        configuration: alloc::vec![],
+        configuration: alloc::vec![
+            ConfigurationField {
+                key: "mode".to_string(),
+                default_value: ConfigurationValue::Text(REPLAY_MODE_ORIGINAL_TIMING.to_string()),
+                validation: ConfigurationRule::TextOneOf {
+                    values: alloc::vec![
+                        REPLAY_MODE_STEP.to_string(),
+                        REPLAY_MODE_ORIGINAL_TIMING.to_string(),
+                        REPLAY_MODE_RATE.to_string(),
+                    ],
+                },
+            },
+            ConfigurationField {
+                key: "rate-numerator".to_string(),
+                default_value: ConfigurationValue::U64(1),
+                validation: ConfigurationRule::U64Range {
+                    minimum: 1,
+                    maximum: u64::from(MAXIMUM_REPLAY_RATE_TERM),
+                },
+            },
+            ConfigurationField {
+                key: "rate-denominator".to_string(),
+                default_value: ConfigurationValue::U64(1),
+                validation: ConfigurationRule::U64Range {
+                    minimum: 1,
+                    maximum: u64::from(MAXIMUM_REPLAY_RATE_TERM),
+                },
+            },
+        ],
     }
 }

@@ -132,7 +132,7 @@ fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
 ) {
     history: history/bounded-typed(value-profile = "bench/record@1", maximum-entries = 8, maximum-referenced-bytes = 4096, overflow-policy = "evict-oldest-with-gap")
     source: history/replay-source
-    replay: time/replay-control
+    replay: time/replay-control("original-timing", 1, 1)
     command > history.command
     history.timeline > source.timeline
     source.replay > replay.timeline

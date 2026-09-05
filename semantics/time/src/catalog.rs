@@ -119,7 +119,23 @@ pub fn install_replay_control_catalog(
     }
     startup.insert(KindSignature {
         kind: crate::REPLAY_CONTROL_KIND.to_string(),
-        startup_parameters: vec![],
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "mode".to_string(),
+                value_type: "Text".to_string(),
+                default: Some(crate::REPLAY_MODE_ORIGINAL_TIMING.to_string()),
+            },
+            StartupParameterSignature {
+                name: "rate-numerator".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1".to_string()),
+            },
+            StartupParameterSignature {
+                name: "rate-denominator".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1".to_string()),
+            },
+        ],
     })?;
     profile
         .insert(replay_control_kind_definition())
