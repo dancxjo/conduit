@@ -4,7 +4,9 @@ use conduit_core::{
     kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, TemporalInstant, TemporalScale,
 };
-use conduit_human::{compose_image_text, ImageTextMetadata, ImageTextRecord};
+use conduit_human::{
+    compose_image_text, ImageObservationReference, ImageTextMetadata, ImageTextRecord,
+};
 use conduit_net::{
     deframe_typed_record_value, frame_typed_record_value_into, framed_typed_record_value,
     typed_record_value, value_from_typed_record, BoundedOrderedRecordQueue,
@@ -40,7 +42,11 @@ fn composed() -> (conduit_core::KindId, ImageTextRecord) {
     let image_profile = kind_id("media/image-rgba8@1");
     let record = compose_image_text(
         &image_profile,
-        resource(image_profile.as_str(), 1, 4_096),
+        ImageObservationReference {
+            content: resource(image_profile.as_str(), 1, 4_096),
+            width: 640,
+            height: 480,
+        },
         "Inspection point A".into(),
         vec![ImageTextMetadata {
             key: "operator".into(),
