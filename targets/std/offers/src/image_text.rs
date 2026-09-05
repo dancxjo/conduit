@@ -11,6 +11,10 @@ pub const IMAGE_TEXT_STD_IMPLEMENTATION: &str = "std/kernel-image-text@1";
 pub const IMAGE_TEXT_STD_ARTIFACT: &str = "conduit-human/image-text@1";
 pub const IMAGE_TEXT_IMAGE_OPERATION: &str = "conduit.host/image-text-image@1";
 pub const IMAGE_TEXT_CAPTION_OPERATION: &str = "conduit.host/image-text-caption@1";
+pub const IMAGE_TEXT_RECORD_STD_PROFILE: &str = "std/image-text-record-kernel-hosted@1";
+pub const IMAGE_TEXT_RECORD_STD_IMPLEMENTATION: &str = "std/kernel-image-text-record@1";
+pub const IMAGE_TEXT_RECORD_STD_ARTIFACT: &str = "conduit-net/typed-record@1";
+pub const IMAGE_TEXT_RECORD_OPERATION: &str = "conduit.host/image-text-record@1";
 
 pub fn image_text_std_offer() -> CapabilityOffer {
     let inputs = vec![
@@ -81,6 +85,48 @@ pub fn image_text_std_offer() -> CapabilityOffer {
     }
 }
 
+pub fn image_text_record_std_offer() -> CapabilityOffer {
+    let input_type = conduit_semantic_catalog::image_text_record_type();
+    let output_type = conduit_net::typed_record_type();
+    CapabilityOffer {
+        startup_parameters: vec![],
+        shorthand: None,
+        capability_id: CapabilityId::from("std-image-text-record-v1"),
+        kind_id: conduit_core::kind_id(conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_KIND),
+        kind_contract_revision: KindContractRevision::from(
+            conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_REVISION,
+        ),
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(IMAGE_TEXT_RECORD_STD_PROFILE),
+            implementation_id: ImplementationId::from(IMAGE_TEXT_RECORD_STD_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(IMAGE_TEXT_RECORD_STD_ARTIFACT),
+        },
+        inputs: vec![structured_port("record", &input_type)],
+        outputs: vec![PortDescriptor {
+            port_id: conduit_core::port_id("typed"),
+            value_kind: output_type.profile().unwrap().value_kind().clone(),
+            direction: conduit_core::PortDirection::Output,
+            temporal: conduit_core::PortTemporal::Value,
+        }],
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(IMAGE_TEXT_RECORD_OPERATION),
+            target_kind: Some(conduit_core::kind_id(
+                conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_KIND,
+            )),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_net::MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES as u32,
+            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        }],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
 fn structured_port(name: &str, value_type: &conduit_core::StructuredInfoType) -> PortDescriptor {
     PortDescriptor {
         port_id: conduit_core::port_id(name),
@@ -118,5 +164,8 @@ mod tests {
         assert_eq!(offer.limits.max_queue_items, 2);
         assert!(offer.authority_requirements.is_empty());
         assert!(offer.resource_requirements.is_empty());
+        let adapter = image_text_record_std_offer();
+        assert_eq!(adapter.inputs[0].port_id.as_str(), "record");
+        assert_eq!(adapter.outputs[0].port_id.as_str(), "typed");
     }
 }

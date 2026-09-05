@@ -1027,6 +1027,7 @@ dependencies = [
  "conduit-core",
  "conduit-human",
  "conduit-midi",
+ "conduit-net",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",

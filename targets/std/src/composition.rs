@@ -201,6 +201,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::chords_offer(),
             conduit_std_offers::instrument_map_std_offer(),
             conduit_std_offers::image_text_std_offer(),
+            conduit_std_offers::image_text_record_std_offer(),
         ]);
     }
     if composition.state {
