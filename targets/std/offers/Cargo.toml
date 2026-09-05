@@ -10,6 +10,7 @@ conduit-audio = { path = "../../../semantics/audio" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-midi = { path = "../../../mechanisms/protocols/midi" }
+conduit-net = { path = "../../../semantics/net" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
 conduit-time = { path = "../../../semantics/time" }
