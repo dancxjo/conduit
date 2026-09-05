@@ -1,12 +1,11 @@
 //! Portable finite composition of one semantic image reference and text.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{semantic_digest, BoundedResourceRef, KindId};
+use conduit_core::{semantic_digest, KindId};
+
+use crate::{ImageObservationReference, ImageObservationRefusal};
 
 pub const MAXIMUM_IMAGE_TEXT_CAPTION_BYTES: usize = 512;
-pub const MAXIMUM_IMAGE_OBSERVATION_WIDTH: u16 = 4_096;
-pub const MAXIMUM_IMAGE_OBSERVATION_HEIGHT: u16 = 4_096;
-pub const MAXIMUM_IMAGE_OBSERVATION_BYTES: u64 = 16 * 1024 * 1024;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES: usize = 8;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES: usize = 64;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES: usize = 256;
@@ -15,13 +14,6 @@ pub const MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES: usize = 256;
 pub struct ImageTextMetadata {
     pub key: String,
     pub value: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageObservationReference {
-    pub content: BoundedResourceRef,
-    pub width: u16,
-    pub height: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,22 +47,13 @@ pub fn compose_image_text(
     metadata: Vec<ImageTextMetadata>,
 ) -> Result<ImageTextRecord, ImageTextRefusal> {
     image
-        .content
-        .validate()
-        .map_err(|_| ImageTextRefusal::InvalidImage)?;
-    if &image.content.content_profile != expected_image_profile {
-        return Err(ImageTextRefusal::WrongImageProfile);
-    }
-    if image.width == 0
-        || image.height == 0
-        || image.width > MAXIMUM_IMAGE_OBSERVATION_WIDTH
-        || image.height > MAXIMUM_IMAGE_OBSERVATION_HEIGHT
-    {
-        return Err(ImageTextRefusal::InvalidImageDimensions);
-    }
-    if image.content.extent.bytes > MAXIMUM_IMAGE_OBSERVATION_BYTES {
-        return Err(ImageTextRefusal::ImageTooLarge);
-    }
+        .validate(expected_image_profile)
+        .map_err(|refusal| match refusal {
+            ImageObservationRefusal::InvalidResource => ImageTextRefusal::InvalidImage,
+            ImageObservationRefusal::WrongProfile => ImageTextRefusal::WrongImageProfile,
+            ImageObservationRefusal::InvalidDimensions => ImageTextRefusal::InvalidImageDimensions,
+            ImageObservationRefusal::ContentTooLarge => ImageTextRefusal::ImageTooLarge,
+        })?;
     if caption.is_empty() {
         return Err(ImageTextRefusal::EmptyCaption);
     }
