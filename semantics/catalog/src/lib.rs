@@ -103,6 +103,10 @@ mod timed_pattern;
 #[cfg(feature = "form-catalog")]
 pub use timed_pattern::*;
 #[cfg(feature = "form-catalog")]
+mod timed_button_attempt;
+#[cfg(feature = "form-catalog")]
+pub use timed_button_attempt::*;
+#[cfg(feature = "form-catalog")]
 mod sequence_normalization;
 #[cfg(feature = "form-catalog")]
 pub use sequence_normalization::*;
