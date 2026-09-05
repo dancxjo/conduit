@@ -97,12 +97,13 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier\]\n    if: always\(\)/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier, proof-receipts\]/);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
   assert.match(productWorkflow, /test "\$TOUR_PATCHBAY_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_RESULT" = success/);
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
+  assert.match(productWorkflow, /test "\$RECEIPTS_RESULT" = success/);
 
   const deployWorkflow = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
   assert.match(
