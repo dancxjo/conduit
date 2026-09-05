@@ -86,6 +86,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             math_deadband_contract(),
             "conduit.std/math-deadband-scalar@1",
         ),
+        (quantity_map_contract(), QUANTITY_MAP_REVISION),
         (layout_viewport_contract(), "conduit.std/layout-frame@1"),
         (layout_inset_contract(), "conduit.std/layout-frame@1"),
         (layout_row_contract(), "conduit.std/layout-frame@1"),

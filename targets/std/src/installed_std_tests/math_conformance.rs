@@ -145,12 +145,31 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
         assert_eq!(mapping.host_operations[0].maximum_output_bytes, 9);
         let mut output = Vec::new();
         let mut timer = RecordingTimer { waits: Vec::new() };
-        let error = host
+        let report = host
             .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
-            .unwrap_err();
-        assert!(
-            error.contains(&format!("OperationFailed({detail})")),
-            "{error}"
+            .unwrap();
+        let expected = if detail == 3 {
+            "math/map-quantity:out-of-range"
+        } else {
+            "math/map-quantity:inexact"
+        };
+        let failure = report.observations.iter().find(|sign| matches!(
+            &sign.kind, ObservationKind::Failure { message: Some(message), .. } if message == expected
+        )).expect("exact mapping failure is retained in a Sign");
+        assert_eq!(failure.plan_id.as_ref(), Some(&plan.plan_id));
+        assert_eq!(failure.placement_id.as_ref(), Some(&mapping.placement_id));
+        assert!(failure.active_play_id.is_some());
+        assert!(matches!(
+            report.observations.last().unwrap().kind,
+            ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Failed { .. }
+            }
+        ));
+        let kernel = report.kernel.unwrap();
+        assert_eq!(kernel.post_play_start_allocations, 0);
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
         );
         assert!(timer.waits.is_empty());
     }
