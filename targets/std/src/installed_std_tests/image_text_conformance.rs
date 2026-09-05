@@ -41,11 +41,12 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
         vec![],
     )
     .unwrap();
-    let expected_value =
+    let record_value =
         conduit_semantic_catalog::image_text_record_value(&expected, &image_profile).unwrap();
+    let expected_value = conduit_net::typed_record_value(&record_value).unwrap();
 
     let image_type = conduit_semantic_catalog::image_observation_reference_type();
-    let record_type = conduit_semantic_catalog::image_text_record_type();
+    let record_type = conduit_net::typed_record_type();
     let mut source_offer =
         installed_std::test_structured_selector::offer(&image_type, PortDirection::Output);
     let mut sink_offer =
@@ -68,7 +69,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     let image_hex = hex(&image_value.canonical_bytes().unwrap());
     let expected_hex = hex(&expected_value.canonical_bytes().unwrap());
     let source = format!(
-        "form talking-polaroid-kernel {{\n image: conduit-test/structured-source(value = \"{image_hex}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n sink: conduit-test/structured-sink(value = \"{expected_hex}\")\n image > compose.image\n caption > compose.caption\n compose.record > sink\n}}\n",
+        "form talking-polaroid-kernel {{\n image: conduit-test/structured-source(value = \"{image_hex}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n sink: conduit-test/structured-sink(value = \"{expected_hex}\")\n image > compose.image\n caption > compose.caption\n compose.record > adapt.record\n adapt.typed > sink\n}}\n",
         hex(b"Inspection point A")
     );
     let syntax = parse_syntax_document(&source);
@@ -124,7 +125,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     .unwrap();
     let kernel = report.kernel.unwrap();
     assert_eq!(kernel.post_play_start_allocations, 0);
-    assert_eq!(kernel.identity.lengths(), (2, 0, 1));
+    assert_eq!(kernel.identity.lengths(), (3, 0, 1));
     assert_eq!(
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
