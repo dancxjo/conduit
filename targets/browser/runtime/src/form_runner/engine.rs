@@ -179,6 +179,31 @@ pub(super) fn drive(
                     .map_err(debug_error)?;
                 continue;
             }
+            if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_WRAP_OPERATION {
+                let (encoded, length) = crate::installed_browser::wrap_quantity(
+                    scheduler
+                        .host_value(request.input.value)
+                        .map_err(debug_error)?,
+                )?;
+                let value = scheduler
+                    .store_host_value(&encoded[..length])
+                    .map_err(debug_error)?;
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(value, operation.maximum_output_bytes)
+                                    .map_err(debug_error)?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(debug_error)?;
+                continue;
+            }
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(debug_error)?
