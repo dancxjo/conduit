@@ -5,6 +5,9 @@ extern crate alloc;
 mod tick;
 pub use tick::*;
 
+mod rhythm;
+pub use rhythm::*;
+
 mod calendar;
 mod calendar_proposal;
 mod temporal_recurrence;

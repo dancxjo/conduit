@@ -404,6 +404,7 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     let mut profile = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
