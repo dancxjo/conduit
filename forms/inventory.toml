@@ -103,7 +103,7 @@ deterministic = { package = "conduit-std-host", test = "canonical_greet", case =
 slug = "heartbeat-phase-follower"
 title = "Heartbeat Phase Follower"
 entry = "heartbeat-phase-follower"
-deterministic = { package = "conduit-time", test = "rhythm_forms", case = "extracted_contract_has_a_non_firefly_consumer" }
+deterministic = { package = "conduit-time", test = "rhythm_composition", case = "heartbeat_face_has_runtime_inputs_and_outputs_without_startup_parameters" }
 browser_safe_not_applicable = "portable heartbeat phase following has no installed browser realization"
 [[forms]]
 slug = "hello"
@@ -181,7 +181,7 @@ entry = "patchbay-front-door"
 slug = "phase-synchronization"
 title = "Phase Synchronization"
 entry = "phase-synchronization"
-deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
+deterministic = { package = "conduit-time", test = "rhythm_composition", case = "canonical_rhythm_forms_compose_as_gears_in_an_independent_closed_form" }
 browser_safe_not_applicable = "portable phase synchronization has no installed browser realization"
 [[forms]]
 slug = "pool-webchat"
@@ -193,7 +193,7 @@ deterministic = { package = "conduit-chat", features = ["form-catalog"], test = 
 slug = "pulse-observation"
 title = "Pulse Observation"
 entry = "pulse-observation"
-deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
+deterministic = { package = "conduit-time", test = "rhythm_composition", case = "canonical_rhythm_forms_compose_as_gears_in_an_independent_closed_form" }
 browser_safe_not_applicable = "portable pulse observation has no installed browser realization"
 [[forms]]
 slug = "quantity-range-map"
