@@ -421,7 +421,7 @@ test("browser Host refuses malformed and escaping application packages before la
   }
 });
 
-test("browser Host refuses changed resource bytes and a changed aggregate package identity", async ({ page }) => {
+test("browser Host refuses changed resource bytes before launch", async ({ page }) => {
   await page.route("**/book.mjs", async (route) => {
     const response = await route.fetch();
     await route.fulfill({ response, body: `${await response.text()}\n// changed after packaging` });
@@ -430,8 +430,9 @@ test("browser Host refuses changed resource bytes and a changed aggregate packag
   await expect(page.locator("#host-state")).toHaveText("Browser application refused");
   await expect(page.locator("#chapter")).toHaveText("application resource application-module changed identity");
   expect(await page.evaluate(() => globalThis.__conduitBookHost)).toBeUndefined();
+});
 
-  await page.unroute("**/book.mjs");
+test("browser Host refuses a changed aggregate package identity before launch", async ({ page }) => {
   await mutatePackage(page, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser application refused");
