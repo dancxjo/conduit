@@ -36,7 +36,7 @@ impl ImageTextOperation {
                 };
                 OperationAction::RequestHostOperation {
                     request,
-                    operation: HostOperationId(port.0),
+                    operation: HostOperationId(if port == PortId(0) { 1 } else { 0 }),
                     input: match BoundedValueRef::new(value, maximum) {
                         Ok(value) => value,
                         Err(_) => return InstalledOperation::fail(157),

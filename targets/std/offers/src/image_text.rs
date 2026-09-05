@@ -61,12 +61,12 @@ pub fn image_text_std_offer() -> CapabilityOffer {
         outputs,
         host_operations: vec![
             operation(
-                IMAGE_TEXT_IMAGE_OPERATION,
-                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            ),
-            operation(
                 IMAGE_TEXT_CAPTION_OPERATION,
                 conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES as u32,
+            ),
+            operation(
+                IMAGE_TEXT_IMAGE_OPERATION,
+                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             ),
         ],
         resource_requirements: vec![],
