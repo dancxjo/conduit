@@ -986,7 +986,8 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
         "comparison_base_sha: ${{ steps.slice.outputs.comparison_base_sha || steps.changes.outputs.comparison_base_sha }}"
     ));
     assert!(workflow.contains("BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}"));
-    assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}"));
+    assert!(workflow.contains("name: Receive the trusted standalone-lock controller"));
+    assert!(workflow.contains("name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}"));
     assert!(workflow.contains("\"${controller[@]}\" ci standalone-locks --locked"));
     assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
 }

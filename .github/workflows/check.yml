@@ -194,6 +194,30 @@ jobs:
           "${controller[@]}" ci candidate "$HEAD_SHA" --locked "${applicability[@]}" \
             --json-out target/ci-plans/ci-proof-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY"
+      - name: Retain the trusted attestation controller once for proof jobs
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: ${{ runner.temp }}/conduit-ci-controller-target/debug/conduit-xtask-dispatch
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Retain the trusted candidate proof and applicability plans
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-plan-${{ steps.changes.outputs.head_sha }}
+          path: target/ci-plans
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain the exact successful CI controller proof proposition
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && steps.impact.outputs.ci_controller_required == 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: ci.controller-contracts
+          evidence: typed-controller-and-result-gate-contracts
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Fingerprint prospective integration proof inputs
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && github.event_name == 'merge_group'
         env:
@@ -204,7 +228,7 @@ jobs:
           --json-out target/ci-plans/ci-proof-plan.json
           --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the exact CI impact plan
-        if: steps.stack.outputs.role != 'intermediate' && steps.impact.outcome == 'success'
+        if: steps.stack.outputs.role != 'intermediate' && steps.impact.outcome == 'success' && github.event_name == 'merge_group'
         uses: actions/upload-artifact@v7
         with:
           name: ci-plan-${{ steps.changes.outputs.head_sha }}
@@ -262,6 +286,13 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
+      - name: Retain the exact successful Limine proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: conduitos.limine
+          evidence: verified-limine-archive
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   conduitos-tools:
     needs: classify
@@ -337,6 +368,13 @@ jobs:
           retention-days: 1
           compression-level: 0
           overwrite: true
+      - name: Retain the exact successful ConduitOS-tools proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: conduitos.tools
+          evidence: verified-conduitos-tool-bundle
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   workspace-check:
     needs: classify
@@ -370,33 +408,13 @@ jobs:
           CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}
           CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}
         run: cargo xtask check workspace-${{ matrix.shard }} --locked
-      - name: Materialize the trusted attestation controller
-        if: matrix.shard == 'test-products' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        env:
-          CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
-        run: |
-          git fetch --no-tags origin "$CONTROLLER_SHA"
-          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
-          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-            --package conduit-xtask-dispatch --locked
-      - name: Attest the exact successful product-workspace proof proposition
-        if: matrix.shard == 'test-products' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        run: >-
-          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
-          ci attest-success "$CONDUIT_CHECKOUT_SHA"
-          workspace.products
-          --evidence workspace-test-products
-          --out target/ci-receipts/workspace.products.json
-          --locked
-      - name: Retain immutable product-workspace proof evidence
-        if: matrix.shard == 'test-products' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/upload-artifact@v7
+      - name: Retain the exact successful workspace proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
         with:
-          name: ci-proof-workspace.products-${{ env.CONDUIT_CHECKOUT_SHA }}
-          path: target/ci-receipts/workspace.products.json
-          if-no-files-found: error
-          retention-days: 14
+          proof-id: ${{ matrix.shard == 'lint' && 'workspace.lint' || matrix.shard == 'test-foundation' && 'workspace.foundation' || matrix.shard == 'test-hosts' && 'workspace.hosts' || matrix.shard == 'test-products' && 'workspace.products' || matrix.shard == 'portable' && 'workspace.portable' || 'workspace.pico' }}
+          evidence: workspace-${{ matrix.shard }}
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   standalone-locks:
     needs: classify
@@ -408,23 +426,27 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - uses: dtolnay/rust-toolchain@1.98.1
-      - name: Materialize the trusted CI controller outside the candidate workspace
+      - name: Receive the trusted standalone-lock controller
         if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
-        env:
-          CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
-        run: |
-          git fetch --no-tags origin "$CONTROLLER_SHA"
-          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
-          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-            --package conduit-xtask-dispatch --locked
+        uses: actions/download-artifact@v8
+        with:
+          name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: ${{ runner.temp }}/conduit-ci-attestation
       - name: Validate every standalone fabrication lock before machine fan-out
         run: |
           controller=(cargo xtask)
-          if test -x "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"; then
-            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
+          if test "${{ github.event_name == 'pull_request' || inputs.candidate_sha != '' }}" = true; then
+            chmod 755 "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch"
+            controller=("$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch")
           fi
           "${controller[@]}" ci standalone-locks --locked
+      - name: Retain the exact successful standalone-lock proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: repository.standalone-locks
+          evidence: standalone-lock-registry
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   esp32-firmware:
     needs: [classify, standalone-locks]
@@ -488,33 +510,13 @@ jobs:
         run: cargo +1.98.1 xtask esp32-firmware check --locked
       - name: Build the exact ESP32 firmware image
         run: cargo +1.98.1 xtask esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
-      - name: Materialize the trusted attestation controller
-        if: matrix.target == 'c3' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        env:
-          CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
-        run: |
-          git fetch --no-tags origin "$CONTROLLER_SHA"
-          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
-          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-            --package conduit-xtask-dispatch --locked
-      - name: Attest the exact successful ESP32-C3 proof proposition
-        if: matrix.target == 'c3' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        run: >-
-          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
-          ci attest-success "$CONDUIT_CHECKOUT_SHA"
-          machine.esp32-c3
-          --evidence esp32-c3-firmware-build
-          --out target/ci-receipts/machine.esp32-c3.json
-          --locked
-      - name: Retain immutable ESP32-C3 proof evidence
-        if: matrix.target == 'c3' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
-        uses: actions/upload-artifact@v7
+      - name: Retain the exact successful ESP32 proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
         with:
-          name: ci-proof-machine.esp32-c3-${{ env.CONDUIT_CHECKOUT_SHA }}
-          path: target/ci-receipts/machine.esp32-c3.json
-          if-no-files-found: error
-          retention-days: 14
+          proof-id: machine.esp32-${{ matrix.target }}
+          evidence: esp32-${{ matrix.target }}-firmware-build
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:
@@ -885,6 +887,13 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+      - name: Retain the exact successful x86 proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: conduitos.x86.${{ matrix.proof }}
+          evidence: conduitos-x86-${{ matrix.proof }}
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]
@@ -934,6 +943,13 @@ jobs:
             cargo xtask conduitos architecture-matrix --locked
           fi
           cargo xtask conduitos prove --arch '${{ matrix.architecture }}' --locked
+      - name: Retain the exact successful architecture proof proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: conduitos.architecture.${{ matrix.architecture }}
+          evidence: conduitos-architecture-${{ matrix.architecture }}
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
   conduitos-aarch64-product:
     needs: [classify, conduitos-limine, conduitos-tools]
@@ -987,3 +1003,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+      - name: Retain the exact successful AArch64 product proposition
+        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        uses: ./.github/actions/attest-ci-proof
+        with:
+          proof-id: conduitos.aarch64-product
+          evidence: conduitos-aarch64-product
+          candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
