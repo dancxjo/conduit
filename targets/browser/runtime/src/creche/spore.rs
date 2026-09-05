@@ -214,7 +214,7 @@ fn prepare_selected_for_target_with_browser_configuration(
         }
         let deployment_adapter = spore.manifest.fabrication.deployment_adapter.clone();
         let prepared = PreparedSpore {
-            schema: "conduit.book/prepared-physical-spore@1",
+            schema: "conduit.tour/prepared-physical-spore@1",
             disposition: "prepared",
             body_id: session.receipt.body_id.clone(),
             spore_id: spore.manifest.spore_id.clone(),
@@ -352,7 +352,7 @@ pub(super) fn admit(observation: JoinObservation) -> Result<AdmissionReceipt, St
         session.biography = next_biography;
         let offer_count = observation.advertisement.capabilities.len();
         let receipt = AdmissionReceipt {
-            schema: "conduit.book/physical-spore-admission@1",
+            schema: "conduit.tour/physical-spore-admission@1",
             disposition: "admitted",
             body_id: session.receipt.body_id.clone(),
             spore_id: pending_spore_id,

@@ -303,8 +303,8 @@ pub struct DemoArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum DemoCommand {
-    /// Open the inline executable Conduit book through the browser Host.
-    Book,
+    /// Open the executable Conduit Tour through the browser Host.
+    Tour,
     /// Run the native Signal Form through the production kernel.
     Std,
     /// Run the three-sink Form entirely on the native Host.
@@ -577,7 +577,7 @@ mod tests {
             })
         ));
 
-        for command in ["book", "std", "triple", "patchbay", "body-membership"] {
+        for command in ["tour", "std", "triple", "patchbay", "body-membership"] {
             Cli::try_parse_from(["xtask", "demo", command])
                 .unwrap_or_else(|error| panic!("demo {command} must parse: {error}"));
         }

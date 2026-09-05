@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth, selectBirthForm } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
-import { openBookStep, startBook, startStaticProduct } from "./book-test-server.mjs";
+import { openTourStep, startTour, startStaticProduct } from "./book-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 let entrance;
@@ -45,7 +45,7 @@ async function startCreche() {
 }
 
 async function openStep(page, index) {
-  await openBookStep(page, entrance, index);
+  await openTourStep(page, entrance, index);
 }
 
 async function openStandaloneCreche(page) {
@@ -126,13 +126,13 @@ async function installHostRelease(page, manifestName) {
 }
 
 test.beforeEach(async () => {
-  entrance = await startBook();
+  entrance = await startTour();
 });
 
 test.afterEach(() => entrance?.child.kill());
 
 test("every Tour page and Crèche step has a direct, history-aware route", async ({ page }) => {
-  const bookPages = [
+  const tourPages = [
     ["a-form-you-can-run", "A Form you can run"],
     ["faces-backs-and-implementation", "Faces, Backs, and implementation"],
     ["hosts-make-forms-real", "Hosts make Forms real"],
@@ -144,17 +144,17 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(page.locator("#host-state")).toHaveAttribute("data-application-component", "success-status");
-  for (let index = 0; index < bookPages.length; index += 1) {
-    const [slug, title] = bookPages[index];
+  for (let index = 0; index < tourPages.length; index += 1) {
+    const [slug, title] = tourPages[index];
     await expect(page).toHaveURL(new RegExp(`/tour/${slug}/$`));
     await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
-    if (index + 1 < bookPages.length) await page.getByRole("button", { name: "Next" }).click();
+    if (index + 1 < tourPages.length) await page.getByRole("button", { name: "Next" }).click();
   }
   await page.reload();
-  await expect(page).toHaveURL(new RegExp(`/tour/${bookPages.at(-1)[0]}/$`));
+  await expect(page).toHaveURL(new RegExp(`/tour/${tourPages.at(-1)[0]}/$`));
   await expect(page.locator("#chapter")).toContainText("Birth, spores, and the Cr");
   await page.goBack();
-  await expect(page).toHaveURL(new RegExp(`/tour/${bookPages.at(-2)[0]}/$`));
+  await expect(page).toHaveURL(new RegExp(`/tour/${tourPages.at(-2)[0]}/$`));
 
   await openStandaloneCreche(page);
   await expect(page.locator("#host-state")).toHaveAttribute("data-application-component", "success-status");
@@ -404,7 +404,7 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   await width.focus();
   await width.press("End");
   await expect(width).toHaveValue("65");
-  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   await page.getByText("Pane layout", { exact: true }).click();
   const beforeLabResize = await page.evaluate(() => ({
     editorWidth: document.querySelector(".editor").getBoundingClientRect().width,
@@ -426,7 +426,7 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   expect(resized.patchbay.height).toBeGreaterThan(measures.patchbay.height);
   expect(resized.editor.width).toBeLessThan(beforeLabResize.editorWidth);
   expect(resized.result.width).toBeGreaterThan(beforeLabResize.resultWidth);
-  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(width).toHaveValue("65");
@@ -487,7 +487,7 @@ test("one persistent Tour laboratory switches stable specimens in place and rest
   await expect(page.locator(".book-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".tour-stage-selector")).toHaveCount(3);
-  expect(await page.evaluate(() => globalThis.__conduitBookLaboratory === document.querySelector(".book-workbench"))).toBe(true);
+  expect(await page.evaluate(() => globalThis.__conduitTourLaboratory === document.querySelector(".book-workbench"))).toBe(true);
 
   const listing = laboratory.locator("textarea");
   const firstIdentity = await laboratory.getAttribute("data-specimen-id");
@@ -507,7 +507,7 @@ test("one persistent Tour laboratory switches stable specimens in place and rest
   await expect(page.locator(".runner")).toHaveCount(1);
 
   await page.getByRole("button", { name: "Next" }).click();
-  expect(await page.evaluate(() => globalThis.__conduitBookLaboratory === document.querySelector(".book-workbench"))).toBe(true);
+  expect(await page.evaluate(() => globalThis.__conduitTourLaboratory === document.querySelector(".book-workbench"))).toBe(true);
 });
 
 test("laboratory replacement cancels the active Play before selecting the next lesson state", async ({ page }) => {
@@ -629,7 +629,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
     await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./tour.application.json");
     await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/tour");
-    const exports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
+    const exports = await page.evaluate(() => Object.keys(globalThis.__conduitTourHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
     expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
   } finally {
@@ -653,7 +653,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     await page.goto(`${creche.url}index.html`);
     await expect(page.locator("#host-state")).toHaveText("Crèche ready");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
-    expect(exports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
+    expect(exports.some((name) => name.startsWith("conduit_tour_"))).toBe(false);
     expect((await page.request.get(`${creche.url}chapter-1.md`)).status()).toBe(404);
     for (const target of ["c3", "s3", "wroom"]) {
       expect((await page.request.get(`${creche.url}artifacts/esp32-${target}-generic-release.json`)).status()).toBe(200);
@@ -964,8 +964,8 @@ test("the Tour opens with one logical Body premise and keeps Crèche machinery l
   await expect(handoff).toHaveAttribute("href", "../creche/");
   await expect(handoff).toHaveJSProperty("href", new URL("../creche/", entrance.url).href);
   await expect(page.locator('meta[name="conduit-creche-url"]')).toHaveAttribute("content", "../creche/");
-  const bookRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitBookHost.runtime));
-  expect(bookRuntimeExports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
+  const tourRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitTourHost.runtime));
+  expect(tourRuntimeExports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
   expect((await page.request.get(new URL("/creche/", entrance.url).href)).status()).toBe(404);
   expect((await page.request.get(new URL("/tour/creche-lifecycle.mjs", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.includes("creche-lifecycle") || path.includes("creche-physical") || path.includes("creche-graduation"))).toBe(false);
@@ -1012,7 +1012,7 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   expect(durable.body_id).toBe(bodyId);
   expect(durable.schema).toBe("conduit.body/biography-evidence@2");
   const crecheRuntimeExports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
-  expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_book_"))).toBe(false);
+  expect(crecheRuntimeExports.some((name) => name.startsWith("conduit_tour_"))).toBe(false);
   expect((await page.request.get(new URL("/tour/", entrance.url).href)).status()).toBe(404);
   expect(responses.some((path) => path.startsWith("/tour/") || path.includes("chapter-"))).toBe(false);
 });
@@ -1769,7 +1769,7 @@ test("the guided arc names each idea after the reader has met the prior one", as
 
 test("the first chapter builds from one Gear to branch, then hands off to Face/Back", async ({ page }) => {
   await openStep(page, 0);
-  const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
+  const hostId = await page.evaluate(() => globalThis.__conduitTourHost.hostId);
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   let runner = page.locator(".runner");
   await expect(runner.locator('[data-application-component="action-group"]')).toHaveCount(1);
@@ -1793,7 +1793,7 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("···· · ·—·· ·—·· ———");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
-  expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
+  expect(await page.evaluate(() => globalThis.__conduitTourHost.hostId)).toBe(hostId);
 });
 
 test("the Face plate flips open its checked Back without replacing the runner", async ({ page }) => {
@@ -1830,7 +1830,7 @@ test("the Face plate flips open its checked Back without replacing the runner", 
 
 test("Tour navigation preserves executable drafts without owning lifecycle controls", async ({ page }) => {
   await openStep(page, 0);
-  const hostId = await page.evaluate(() => globalThis.__conduitBookHost.hostId);
+  const hostId = await page.evaluate(() => globalThis.__conduitTourHost.hostId);
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   const listing = page.locator(".runner textarea");
   const canonical = await listing.inputValue();
@@ -1842,7 +1842,7 @@ test("Tour navigation preserves executable drafts without owning lifecycle contr
   await page.getByRole("button", { name: "Previous" }).click();
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   await expect(page.locator(".runner textarea")).toHaveValue(edited);
-  expect(await page.evaluate(() => globalThis.__conduitBookHost.hostId)).toBe(hostId);
+  expect(await page.evaluate(() => globalThis.__conduitTourHost.hostId)).toBe(hostId);
   await page.getByRole("button", { name: "Restore canonical source" }).click();
   await expect(page.locator(".runner textarea")).toHaveValue(canonical);
   await expect(page.locator(".runner textarea")).toBeFocused();
@@ -1850,7 +1850,7 @@ test("Tour navigation preserves executable drafts without owning lifecycle contr
   await expect(page.locator('[data-application-key="play-status"]')).toHaveText(
     "Canonical source restored. No Play is active.",
   );
-  await page.evaluate(() => globalThis.__conduitBookPersistence.flush());
+  await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   await page.reload();
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   await expect(page.locator(".runner textarea")).toHaveValue(canonical);
@@ -1950,9 +1950,9 @@ test("Hosts chapter shows the exact installed offers from the planning advertise
   await expect(inventory.locator('[data-application-component="definition-table"]')).toHaveAttribute("aria-label", "Exact browser planning offers");
   const visibleInstalled = await inventory.locator('[data-application-key^="offer-available-"] dt').allTextContents();
   const advertisedInstalled = await page.evaluate(() => {
-    const api = globalThis.__conduitBookHost.runtime;
-    api.conduit_book_inventory();
-    const bytes = new Uint8Array(api.memory.buffer, api.conduit_book_output_ptr(), api.conduit_book_output_len());
+    const api = globalThis.__conduitTourHost.runtime;
+    api.conduit_tour_inventory();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_tour_output_ptr(), api.conduit_tour_output_len());
     return JSON.parse(new TextDecoder().decode(bytes)).entries
       .filter((entry) => entry.implementation_id !== null)
       .map((entry) => entry.kind_id);
@@ -1985,8 +1985,8 @@ test("Two browser Hosts executes one unchanged Form across independent Hosts", a
   await expect(runner.locator(".host-a strong")).toHaveText("completed");
   await expect(runner.locator(".host-b strong")).toHaveText("completed");
   const identities = await page.evaluate(() => ({
-    a: globalThis.__conduitBookHost,
-    b: globalThis.__conduitBookPeerHost,
+    a: globalThis.__conduitTourHost,
+    b: globalThis.__conduitTourPeerHost,
   }));
   expect(identities.a.hostId).not.toBe(identities.b.hostId);
   expect(identities.a.bootId).not.toBe(identities.b.bootId);
@@ -2184,7 +2184,7 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
       callbacks.push(callback);
       return callbacks.length;
     };
-    globalThis.__releaseBookAnimationFrame = () => {
+    globalThis.__releaseTourAnimationFrame = () => {
       for (const callback of callbacks.splice(0)) callback(performance.now());
     };
   });
@@ -2194,7 +2194,7 @@ test("stopping the two-Host lesson cancels without a late manifestation", async 
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Host A offered one value");
   await runner.getByRole("button", { name: "Stop" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
-  await page.evaluate(() => globalThis.__releaseBookAnimationFrame());
+  await page.evaluate(() => globalThis.__releaseTourAnimationFrame());
   await expect(runner.locator('[data-application-key="play-status"]')).toHaveText("Stopped. The Play was cancelled.");
   await expect(runner.locator(".morse")).toHaveText("ready");
   await expect(runner.locator(".run-identities")).not.toContainText("Terminal source receipt");

@@ -1,4 +1,4 @@
-//! Exact two-browser-Host planning for the executable-book lesson.
+//! Exact two-browser-Host planning for the executable-tour lesson.
 
 use crate::installed_browser::{advertisement, catalogs, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
@@ -41,20 +41,20 @@ pub(super) fn prepare(
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
-            "parse multi-Host executable-book Form: {}",
+            "parse multi-Host executable-tour Form: {}",
             diagnostic.message
         ));
     }
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check multi-Host executable-book Form: {error:?}"))?;
+        .map_err(|error| format!("check multi-Host executable-tour Form: {error:?}"))?;
     let entry = checked
         .forms
         .last()
-        .ok_or_else(|| "multi-Host executable-book source has no Form".to_string())?
+        .ok_or_else(|| "multi-Host executable-tour source has no Form".to_string())?
         .name
         .clone();
     let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
-        .map_err(|error| format!("expand multi-Host executable-book Form: {error:?}"))?;
+        .map_err(|error| format!("expand multi-Host executable-tour Form: {error:?}"))?;
     if form.gears.len() != 2 || form.connections.len() != 1 {
         return Err("two-browser lesson requires exactly two Gears and one Cord".into());
     }
@@ -107,7 +107,7 @@ pub(super) fn prepare(
             line_offers: core::slice::from_ref(&line),
         },
     )
-    .map_err(|error| format!("plan multi-Host executable-book Form: {error:?}"))?;
+    .map_err(|error| format!("plan multi-Host executable-tour Form: {error:?}"))?;
     if plan.fragments.len() != 2 {
         return Err("two-browser lesson did not produce exactly two fragments".into());
     }

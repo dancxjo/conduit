@@ -1,10 +1,10 @@
-//! One role of the exact two-browser-Host executable-book Play.
+//! One role of the exact two-browser-Host executable-tour Play.
 
 use super::plan::PreparedPlan;
 use super::protocol::{self, LineFrame, MultiHostReceipt, Output, PlanProjection};
 use crate::form_runner::engine::{self, BrowserHostEffect, DriveStatus, PendingHostEffect};
 use crate::form_runner::protocol::{
-    decode_manifestation, BookBackEvidence, BookEffect, BookGearEvidence,
+    decode_manifestation, TourBackEvidence, TourEffect, TourGearEvidence,
 };
 use crate::source_interaction::SourceInteractionEvidence;
 use conduit_core::{
@@ -34,7 +34,7 @@ enum Stage {
 pub(super) struct Session {
     role: Role,
     stage: Stage,
-    scheduler: engine::BookScheduler,
+    scheduler: engine::TourScheduler,
     fragment: PlanFragment,
     lowered: LoweredPlanFragment,
     projection: PlanProjection,
@@ -121,7 +121,7 @@ impl Session {
         let output = match role {
             Role::Source => session.source_offer()?,
             Role::Sink => Output::Waiting {
-                schema: "conduit.book/multi-host-progress@1",
+                schema: "conduit.tour/multi-host-progress@1",
                 phase: "waiting-for-value",
                 plan_id: session.fragment.plan_id.as_str().into(),
             },
@@ -151,7 +151,7 @@ impl Session {
         engine::complete_host_effect(&mut self.scheduler, &pending)?;
         self.stage = Stage::WaitingClose;
         Ok(Output::Line {
-            schema: "conduit.book/browser-memory-line-effect@1",
+            schema: "conduit.tour/browser-memory-line-effect@1",
             frame: Box::new(self.frame("delivered", 0, Vec::new())),
             plan_projection: None,
             receipt: None,
@@ -166,7 +166,7 @@ impl Session {
         }
         self.stage = Stage::Cancelled;
         Ok(Output::Receipt {
-            schema: "conduit.book/multi-host-progress@1",
+            schema: "conduit.tour/multi-host-progress@1",
             receipt: Box::new(self.receipt("cancelled")),
         })
     }
@@ -191,7 +191,7 @@ impl Session {
                     .map_err(debug_error)?
                     .to_vec();
                 return Ok(Output::Line {
-                    schema: "conduit.book/browser-memory-line-effect@1",
+                    schema: "conduit.tour/browser-memory-line-effect@1",
                     frame: Box::new(self.frame("value", offer.sequence, payload)),
                     plan_projection: Some(Box::new(self.projection.clone())),
                     receipt: None,
@@ -236,7 +236,7 @@ impl Session {
         self.pending = Some(pending);
         self.stage = Stage::Presenting;
         Ok(Output::Manifestation {
-            schema: "conduit.book/multi-host-manifestation@1",
+            schema: "conduit.tour/multi-host-manifestation@1",
             manifestation: Box::new(manifestation),
             accepted_frame: Box::new(self.frame("accepted", 0, Vec::new())),
             plan_projection: Box::new(self.projection.clone()),
@@ -251,7 +251,7 @@ impl Session {
             .map_err(debug_error)?;
         self.stage = Stage::Accepted;
         Ok(Output::Waiting {
-            schema: "conduit.book/multi-host-progress@1",
+            schema: "conduit.tour/multi-host-progress@1",
             phase: "accepted-awaiting-delivery",
             plan_id: self.fragment.plan_id.as_str().into(),
         })
@@ -276,7 +276,7 @@ impl Session {
         }
         self.stage = Stage::Closing;
         Ok(Output::Line {
-            schema: "conduit.book/browser-memory-line-effect@1",
+            schema: "conduit.tour/browser-memory-line-effect@1",
             frame: Box::new(self.frame("close", 1, Vec::new())),
             plan_projection: None,
             receipt: None,
@@ -292,7 +292,7 @@ impl Session {
         self.drive_to_complete()?;
         self.stage = Stage::Complete;
         Ok(Output::Line {
-            schema: "conduit.book/browser-memory-line-effect@1",
+            schema: "conduit.tour/browser-memory-line-effect@1",
             frame: Box::new(self.frame("terminal", 1, Vec::new())),
             plan_projection: None,
             receipt: Some(Box::new(self.receipt("completed"))),
@@ -303,7 +303,7 @@ impl Session {
         self.validate_frame(&frame, "terminal", false)?;
         self.stage = Stage::Complete;
         Ok(Output::Receipt {
-            schema: "conduit.book/multi-host-progress@1",
+            schema: "conduit.tour/multi-host-progress@1",
             receipt: Box::new(self.receipt("completed")),
         })
     }
@@ -326,7 +326,7 @@ impl Session {
         }
     }
 
-    fn project_manifestation(&mut self, pending: &PendingHostEffect) -> Result<BookEffect, String> {
+    fn project_manifestation(&mut self, pending: &PendingHostEffect) -> Result<TourEffect, String> {
         let BrowserHostEffect::Manifestation(manifestation) = &pending.effect else {
             return Err("multi-Host pending effect is not a manifestation".into());
         };
@@ -343,8 +343,8 @@ impl Session {
         );
         let (unit_millis, segments, text) = decode_manifestation(manifestation)?;
         self.latest_presentation = Some(presentation.clone());
-        Ok(BookEffect {
-            schema: "conduit.book/manifestation-effect@3",
+        Ok(TourEffect {
+            schema: "conduit.tour/manifestation-effect@3",
             effect_kind: "manifestation",
             source_document_id: self.fragment.source_document_id.as_str().into(),
             checked_form_id: self.fragment.checked_form_id.as_str().into(),
@@ -364,13 +364,13 @@ impl Session {
                 .hosts
                 .iter()
                 .flat_map(|host| &host.gears)
-                .map(|gear| BookGearEvidence {
+                .map(|gear| TourGearEvidence {
                     gear_id: gear.gear_id.clone(),
                     kind_id: gear.kind_id.clone(),
                     implementation_id: gear.implementation_id.clone(),
                 })
                 .collect(),
-            realization_backs: Vec::<BookBackEvidence>::new(),
+            realization_backs: Vec::<TourBackEvidence>::new(),
             unit_millis,
             segments,
             text,
@@ -398,7 +398,7 @@ impl Session {
     fn frame(&self, phase: &str, sequence: u64, payload: Vec<u8>) -> LineFrame {
         let remote = self.remote();
         LineFrame {
-            schema: "conduit.book/browser-memory-line-frame@1".into(),
+            schema: "conduit.tour/browser-memory-line-frame@1".into(),
             phase: phase.into(),
             plan_id: self.fragment.plan_id.as_str().into(),
             source_fragment_id: remote.source_fragment_id.as_str().into(),
@@ -434,7 +434,7 @@ impl Session {
             0,
         );
         MultiHostReceipt {
-            schema: "conduit.book/multi-host-receipt@1",
+            schema: "conduit.tour/multi-host-receipt@1",
             disposition,
             plan_id: self.fragment.plan_id.as_str().into(),
             fragment_id: self.fragment.fragment_id.as_str().into(),

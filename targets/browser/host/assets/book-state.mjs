@@ -36,7 +36,7 @@ function validKey(value) {
   return typeof value === "string" && value.length > 0 && encoder.encode(value).length <= MAXIMUM_STATE_KEY_BYTES;
 }
 
-export async function openBookReadingState(storage) {
+export async function openTourReadingState(storage) {
   const drafts = new Map();
   const expandedBacks = new Set();
   let pending = Promise.resolve();

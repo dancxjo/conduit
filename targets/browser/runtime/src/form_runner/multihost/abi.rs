@@ -1,4 +1,4 @@
-//! Bounded WASM boundary for the two-browser-Host book lesson.
+//! Bounded WASM boundary for the two-browser-Host Tour lesson.
 
 use super::protocol::{LineFrame, Output};
 use super::session::{Role, Session};
@@ -25,27 +25,27 @@ thread_local! {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_input_ptr() -> usize {
+pub extern "C" fn conduit_tour_multi_input_ptr() -> usize {
     INPUT.with(|input| input.borrow_mut().as_mut_ptr() as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_input_capacity() -> usize {
+pub extern "C" fn conduit_tour_multi_input_capacity() -> usize {
     INPUT_BYTES
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_output_ptr() -> usize {
+pub extern "C" fn conduit_tour_multi_output_ptr() -> usize {
     OUTPUT.with(|output| output.borrow().as_ptr() as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_output_len() -> usize {
+pub extern "C" fn conduit_tour_multi_output_len() -> usize {
     OUTPUT_LEN.with(|length| *length.borrow())
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_admit_source_interaction(
+pub extern "C" fn conduit_tour_multi_admit_source_interaction(
     source_length: usize,
     sequence: u64,
 ) -> i32 {
@@ -73,7 +73,7 @@ pub extern "C" fn conduit_book_multi_admit_source_interaction(
 
 /// Checks and plans the ordinary Form once, then starts its source fragment.
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_start_source(
+pub extern "C" fn conduit_tour_multi_start_source(
     source_host_length: usize,
     source_boot_length: usize,
     sink_host_length: usize,
@@ -166,7 +166,7 @@ pub extern "C" fn conduit_book_multi_start_source(
 /// Admits the exact Plan emitted by the source Host and starts only its sink
 /// fragment. This boundary never parses, checks, expands, or replans the Form.
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_start_sink(
+pub extern "C" fn conduit_tour_multi_start_sink(
     sink_host_length: usize,
     sink_boot_length: usize,
     plan_length: usize,
@@ -234,7 +234,7 @@ pub extern "C" fn conduit_book_multi_start_sink(
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_ingest(length: usize) -> i32 {
+pub extern "C" fn conduit_tour_multi_ingest(length: usize) -> i32 {
     clear_output();
     if length == 0 || length > INPUT_BYTES {
         return ERROR_INPUT;
@@ -251,13 +251,13 @@ pub extern "C" fn conduit_book_multi_ingest(length: usize) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_complete() -> i32 {
+pub extern "C" fn conduit_tour_multi_complete() -> i32 {
     clear_output();
     with_session(Session::complete_manifestation, ERROR_COMPLETE)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_multi_cancel() -> i32 {
+pub extern "C" fn conduit_tour_multi_cancel() -> i32 {
     clear_output();
     SESSION.with(|slot| {
         let Some(mut session) = slot.borrow_mut().take() else {

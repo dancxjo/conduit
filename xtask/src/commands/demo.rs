@@ -4,7 +4,7 @@ use crate::cli::{GlobalOpts, PatchbayDemoArgs, PatchbayHost};
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
 
-pub fn run_book(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let product = root.join("target/book-product");
     if product.exists() {
@@ -33,7 +33,7 @@ pub fn run_book(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_step(
         &Step::new(
             "demo.book.package",
-            "Stage the exact admitted Book application",
+            "Stage the exact admitted Tour application",
             "scripts/ci/stage-book-product.sh",
             &[
                 "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
@@ -46,7 +46,7 @@ pub fn run_book(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_step(
         &Step::new(
             "demo.book.host",
-            "Open the inline executable Conduit book",
+            "Open the executable Conduit Tour",
             "cargo",
             &[
                 "run",

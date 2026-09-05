@@ -17,13 +17,13 @@ use conduit_planner::{
 };
 pub(super) use protocol::refusal;
 use protocol::{
-    decode_manifestation, receipt, BookBackEvidence, BookEffect, BookGearEvidence, BookHostEffect,
-    BookKeyEventEffect, BookProgress, BookReceipt, BookTimerEffect,
+    decode_manifestation, receipt, TourBackEvidence, TourEffect, TourGearEvidence, TourHostEffect,
+    TourKeyEventEffect, TourProgress, TourReceipt, TourTimerEffect,
 };
 use std::collections::BTreeMap;
 
-struct BookSession {
-    scheduler: engine::BookScheduler,
+struct TourSession {
+    scheduler: engine::TourScheduler,
     pending: engine::PendingHostEffect,
     fragment: PlanFragment,
     active_play_id: conduit_core::ActivePlayId,
@@ -31,20 +31,20 @@ struct BookSession {
     host_id: conduit_core::HostId,
     boot_id: conduit_core::BootId,
     realization: MorseRealization,
-    expanded_gears: Vec<BookGearEvidence>,
-    realization_backs: Vec<BookBackEvidence>,
+    expanded_gears: Vec<TourGearEvidence>,
+    realization_backs: Vec<TourBackEvidence>,
     source_interaction: Option<crate::source_interaction::SourceInteractionEvidence>,
     timer_completions: u32,
     manifestation_completions: u32,
 }
 
-impl BookSession {
+impl TourSession {
     fn prepare(
         host_id: &str,
         boot_id: &str,
         source: &str,
         play_sequence: u64,
-    ) -> Result<(Self, BookHostEffect), String> {
+    ) -> Result<(Self, TourHostEffect), String> {
         Self::prepare_with_realization(
             host_id,
             boot_id,
@@ -59,7 +59,7 @@ impl BookSession {
         boot_id: &str,
         source: &str,
         play_sequence: u64,
-    ) -> Result<(Self, BookHostEffect), String> {
+    ) -> Result<(Self, TourHostEffect), String> {
         Self::prepare_with_realization(
             host_id,
             boot_id,
@@ -75,27 +75,27 @@ impl BookSession {
         source: &str,
         play_sequence: u64,
         realization: MorseRealization,
-    ) -> Result<(Self, BookHostEffect), String> {
+    ) -> Result<(Self, TourHostEffect), String> {
         let (startup, catalog) = catalogs()?;
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
-                "parse executable-book Form: {}",
+                "parse executable-tour Form: {}",
                 diagnostic.message
             ));
         }
         let checked = conduit_form::check_syntax_document(&syntax, &startup)
-            .map_err(|error| format!("check executable-book Form: {error:?}"))?;
+            .map_err(|error| format!("check executable-tour Form: {error:?}"))?;
         let entry = checked
             .forms
             .last()
-            .ok_or_else(|| "executable-book source has no Form".to_string())?
+            .ok_or_else(|| "executable-tour source has no Form".to_string())?
             .name
             .clone();
         let form = match realization {
             MorseRealization::Direct => {
                 conduit_form::expand_canonical_form(&checked, &entry, &catalog)
-                    .map_err(|error| format!("expand executable-book Form: {error:?}"))?
+                    .map_err(|error| format!("expand executable-tour Form: {error:?}"))?
             }
             MorseRealization::Recursive => conduit_form::expand_canonical_form_with_backs(
                 &checked,
@@ -103,12 +103,12 @@ impl BookSession {
                 &catalog,
                 &backs(&startup, &catalog)?,
             )
-            .map_err(|error| format!("expand recursive executable-book Form: {error:?}"))?,
+            .map_err(|error| format!("expand recursive executable-tour Form: {error:?}"))?,
         };
         let host = advertisement(host_id.into(), boot_id.into());
         let hosts = [host];
         let placements = default_expanded_placements(&form, &hosts)
-            .map_err(|error| format!("place executable-book Form: {error:?}"))?;
+            .map_err(|error| format!("place executable-tour Form: {error:?}"))?;
         let bases = local_bases();
         let plan = plan_expanded_canonical_with_options(
             &form,
@@ -126,11 +126,11 @@ impl BookSession {
                 line_offers: &[],
             },
         )
-        .map_err(|error| format!("plan executable-book Form: {error:?}"))?;
+        .map_err(|error| format!("plan executable-tour Form: {error:?}"))?;
         let realization_backs = plan
             .realization_backs
             .iter()
-            .map(|back| BookBackEvidence {
+            .map(|back| TourBackEvidence {
                 invocation_path: back.invocation_path.clone(),
                 kind_id: back.kind_id.as_str().into(),
                 checked_form_id: back.checked_form_id.as_str().into(),
@@ -140,7 +140,7 @@ impl BookSession {
         let expanded_gears = fragment
             .placements
             .iter()
-            .map(|placement| BookGearEvidence {
+            .map(|placement| TourGearEvidence {
                 gear_id: placement.gear_id.as_str().into(),
                 kind_id: placement.kind_id.as_str().into(),
                 implementation_id: placement.implementation_id.as_str().into(),
@@ -174,14 +174,14 @@ impl BookSession {
 
     fn attach_source_interaction(
         &mut self,
-        effect: &mut BookHostEffect,
+        effect: &mut TourHostEffect,
         source_interaction: crate::source_interaction::SourceInteractionEvidence,
     ) {
         self.source_interaction = Some(source_interaction.clone());
         effect.attach_source_interaction(source_interaction);
     }
 
-    fn advance(&mut self) -> Result<BookProgress, String> {
+    fn advance(&mut self) -> Result<TourProgress, String> {
         let completed_timer =
             matches!(self.pending.effect, engine::BrowserHostEffect::Timer { .. });
         engine::complete_host_effect(&mut self.scheduler, &self.pending)?;
@@ -193,42 +193,42 @@ impl BookSession {
         match engine::drive(&mut self.scheduler, &self.fragment)? {
             engine::DriveStatus::Effect(pending) => {
                 self.pending = pending;
-                Ok(BookProgress::Effect(Box::new(
+                Ok(TourProgress::Effect(Box::new(
                     self.project_pending_effect()?,
                 )))
             }
             engine::DriveStatus::Complete => {
-                Ok(BookProgress::Receipt(Box::new(self.completed_receipt())))
+                Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
             }
         }
     }
 
-    fn advance_with_output(&mut self, output: &[u8]) -> Result<BookProgress, String> {
+    fn advance_with_output(&mut self, output: &[u8]) -> Result<TourProgress, String> {
         engine::complete_host_effect_with_output(&mut self.scheduler, &self.pending, output)?;
         match engine::drive(&mut self.scheduler, &self.fragment)? {
             engine::DriveStatus::Effect(pending) => {
                 self.pending = pending;
-                Ok(BookProgress::Effect(Box::new(
+                Ok(TourProgress::Effect(Box::new(
                     self.project_pending_effect()?,
                 )))
             }
             engine::DriveStatus::Complete => {
-                Ok(BookProgress::Receipt(Box::new(self.completed_receipt())))
+                Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
             }
         }
     }
 
     #[cfg(test)]
-    fn complete(mut self) -> Result<BookReceipt, String> {
+    fn complete(mut self) -> Result<TourReceipt, String> {
         match self.advance()? {
-            BookProgress::Receipt(receipt) => Ok(*receipt),
-            BookProgress::Effect(_) => {
-                Err("book Play requested another Host effect before completion".into())
+            TourProgress::Receipt(receipt) => Ok(*receipt),
+            TourProgress::Effect(_) => {
+                Err("Tour Play requested another Host effect before completion".into())
             }
         }
     }
 
-    fn cancel(mut self) -> Result<BookReceipt, String> {
+    fn cancel(mut self) -> Result<TourReceipt, String> {
         self.scheduler
             .cancel()
             .map_err(|error| format!("{error:?}"))?;
@@ -243,7 +243,7 @@ impl BookSession {
         ))
     }
 
-    fn project_pending_effect(&mut self) -> Result<BookHostEffect, String> {
+    fn project_pending_effect(&mut self) -> Result<TourHostEffect, String> {
         let placement = self
             .fragment
             .placements
@@ -251,8 +251,8 @@ impl BookSession {
             .ok_or_else(|| "Host effect has no planned placement".to_string())?;
         match &self.pending.effect {
             engine::BrowserHostEffect::Timer { duration_millis } => {
-                Ok(BookHostEffect::Timer(Box::new(BookTimerEffect {
-                    schema: "conduit.book/timer-effect@1",
+                Ok(TourHostEffect::Timer(Box::new(TourTimerEffect {
+                    schema: "conduit.tour/timer-effect@1",
                     effect_kind: "timer",
                     active_play_id: self.active_play_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
@@ -264,8 +264,8 @@ impl BookSession {
                 })))
             }
             engine::BrowserHostEffect::KeyEvent => {
-                Ok(BookHostEffect::KeyEvent(Box::new(BookKeyEventEffect {
-                    schema: "conduit.book/key-event-effect@1",
+                Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
+                    schema: "conduit.tour/key-event-effect@1",
                     effect_kind: "key-event",
                     active_play_id: self.active_play_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
@@ -284,8 +284,8 @@ impl BookSession {
                     u64::from(observation_sequence),
                 );
                 let (unit_millis, segments, text) = decode_manifestation(manifestation)?;
-                let effect = BookEffect {
-                    schema: "conduit.book/manifestation-effect@3",
+                let effect = TourEffect {
+                    schema: "conduit.tour/manifestation-effect@3",
                     effect_kind: "manifestation",
                     source_document_id: self.fragment.source_document_id.as_str().into(),
                     checked_form_id: self.fragment.checked_form_id.as_str().into(),
@@ -308,12 +308,12 @@ impl BookSession {
                     source_interaction: self.source_interaction.clone(),
                 };
                 self.latest_presentation = Some(presentation);
-                Ok(BookHostEffect::Manifestation(Box::new(effect)))
+                Ok(TourHostEffect::Manifestation(Box::new(effect)))
             }
         }
     }
 
-    fn completed_receipt(&self) -> BookReceipt {
+    fn completed_receipt(&self) -> TourReceipt {
         let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
         receipt(
             "completed",
@@ -343,11 +343,11 @@ impl MorseRealization {
 
 fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
     if plan.fragments.len() != 1 {
-        return Err("executable-book Plan must contain exactly one browser fragment".into());
+        return Err("executable-tour Plan must contain exactly one browser fragment".into());
     }
     plan.fragments
         .first()
-        .ok_or_else(|| "executable-book Plan has no fragment".into())
+        .ok_or_else(|| "executable-tour Plan has no fragment".into())
 }
 
 #[cfg(test)]

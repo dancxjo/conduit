@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { conceptualTourStage, createTourStage, identifyTourSpecimen } from "./book-state.mjs";
-import { parseBookPages } from "./book-routing.mjs";
+import { parseTourPages } from "./book-routing.mjs";
 
 const source = (name, message = "hello") => `form ${name} {\n  words: text/literal("${message}")\n}`;
 
@@ -37,13 +37,13 @@ stage: canonical-form:hello|run
 \`\`\`conduit run
 form hello {}
 \`\`\``;
-  assert.deepEqual(parseBookPages([source])[0], {
+  assert.deepEqual(parseTourPages([source])[0], {
     identity: "first-form", route: "a-form", companion: "form-laboratory", title: "A Form",
     stages: [{ identity: "canonical-form:hello", mode: "run" }],
     markdown: "# A Form\n\n```conduit run\nform hello {}\n```",
   });
-  assert.throws(() => parseBookPages(["# Accidental topology"]), /metadata is missing/);
-  assert.throws(() => parseBookPages([source, source]), /duplicated/);
+  assert.throws(() => parseTourPages(["# Accidental topology"]), /metadata is missing/);
+  assert.throws(() => parseTourPages([source, source]), /duplicated/);
 });
 
 test("workspace geometry restores only admitted bounded presentation state", async () => {
@@ -54,8 +54,8 @@ test("workspace geometry restores only admitted bounded presentation state", asy
       : null,
     writeJson: async (key, value) => { written = { key, value }; },
   };
-  const { openBookReadingState } = await import("./book-state.mjs");
-  const state = await openBookReadingState(storage);
+  const { openTourReadingState } = await import("./book-state.mjs");
+  const state = await openTourReadingState(storage);
   assert.equal(state.workspace.narrativePercent, 61);
   assert.equal(state.workspace.patchbayPercent, 55);
   assert.equal(state.workspace.sourcePercent, 60);
@@ -78,8 +78,8 @@ test("workspace geometry restores only admitted bounded presentation state", asy
 });
 
 test("current workspace geometry restores all independent pane preferences", async () => {
-  const { openBookReadingState } = await import("./book-state.mjs");
-  const state = await openBookReadingState({
+  const { openTourReadingState } = await import("./book-state.mjs");
+  const state = await openTourReadingState({
     readJson: async (key) => key === "workspace-layout" ? {
       schema: "conduit.tour/workspace-layout@2",
       narrative_percent: 42,
@@ -92,8 +92,8 @@ test("current workspace geometry restores all independent pane preferences", asy
 });
 
 test("malformed persisted workspace geometry refuses", async () => {
-  const { openBookReadingState } = await import("./book-state.mjs");
-  await assert.rejects(() => openBookReadingState({
+  const { openTourReadingState } = await import("./book-state.mjs");
+  await assert.rejects(() => openTourReadingState({
     readJson: async (key) => key === "workspace-layout"
       ? { schema: "conduit.tour/workspace-layout@1", narrative_percent: 100 }
       : null,

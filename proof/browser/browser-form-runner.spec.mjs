@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openBookStep, startBook } from "./book-test-server.mjs";
+import { openTourStep, startTour } from "./book-test-server.mjs";
 
 const FORM = `form text-chain {
     source: text/literal("hello")
@@ -12,18 +12,18 @@ const FORM = `form text-chain {
 
 let entrance;
 
-test.beforeEach(async () => { entrance = await startBook(); });
+test.beforeEach(async () => { entrance = await startTour(); });
 test.afterEach(() => entrance?.child.kill());
 
-test("Book and a normal browser Form session use one installed repertoire and equivalent semantics", async ({ page }) => {
-  await openBookStep(page, entrance, 0);
+test("Tour and a normal browser Form session use one installed repertoire and equivalent semantics", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
   const runtimeUrl = new URL("runtime.wasm", entrance.url).href;
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.locator("textarea").fill(FORM);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
-  const bookEvidence = await runner.locator(".exact-evidence").textContent();
+  const tourEvidence = await runner.locator(".exact-evidence").textContent();
 
   const normal = await page.evaluate(async ({ source, runtimeUrl }) => {
     const bytes = new Uint8Array(await (await fetch(runtimeUrl)).arrayBuffer());
@@ -68,8 +68,8 @@ test("Book and a normal browser Form session use one installed repertoire and eq
     "browser/kernel-text-upper@1", "browser/presentation-text@1",
   ].sort());
   expect(normal.receipt).toMatchObject({ disposition: "completed", manifestation_completions: 1 });
-  expect(bookEvidence).toContain("browser/kernel-text-upper@1");
-  expect(bookEvidence).not.toContain(normal.effect.active_play_id);
+  expect(tourEvidence).toContain("browser/kernel-text-upper@1");
+  expect(tourEvidence).not.toContain(normal.effect.active_play_id);
   expect(new Set(normal.inventory.entries.map(({ family }) => family)).size).toBeGreaterThanOrEqual(6);
   expect(normal.inventory.entries.every(({ implementation_id, artifact_id }) => implementation_id && artifact_id)).toBe(true);
   expect(normal.runtimeBytes).toBeGreaterThan(0);

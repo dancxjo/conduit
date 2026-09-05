@@ -11,7 +11,7 @@ const execute = promisify(execFile);
 const repository = new URL("../..", import.meta.url).pathname;
 const fixtureSource = join(repository, "proof/browser/fourth-product");
 const sharedAssets = join(repository, "targets/browser/host/assets");
-const bookProduct = process.env.CONDUIT_TOUR_PRODUCT_ROOT ?? "target/tour-product";
+const tourProduct = process.env.CONDUIT_TOUR_PRODUCT_ROOT ?? "target/tour-product";
 const crecheProduct = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
 let stagedFixture;
 
@@ -185,7 +185,7 @@ test("fourth application keeps every required refusal and Host failure distinct"
 
 test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contracts", async ({ page }) => {
   const products = [
-    ["Tour", "tour", () => startStaticProduct(bookProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
+    ["Tour", "tour", () => startStaticProduct(tourProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
     ["Crèche", "creche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "disclosure"]],
     ["Patchbay", "patchbay", startPatchbay, ["navigation", "artifact", "disclosure"]],
     ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],

@@ -1,6 +1,6 @@
-//! Bounded WASM boundary for the single executable-book Play.
+//! Bounded WASM boundary for the single executable-tour Play.
 
-use super::BookSession;
+use super::TourSession;
 use std::cell::RefCell;
 
 pub(super) const INPUT_BYTES: usize = 8 * 1_024;
@@ -16,7 +16,7 @@ const ERROR_INTERACTION: i32 = -407;
 const ERROR_PROJECTION: i32 = -408;
 
 thread_local! {
-    static SESSION: RefCell<Option<BookSession>> = const { RefCell::new(None) };
+    static SESSION: RefCell<Option<TourSession>> = const { RefCell::new(None) };
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
@@ -24,29 +24,29 @@ thread_local! {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_input_ptr() -> usize {
+pub extern "C" fn conduit_tour_input_ptr() -> usize {
     INPUT.with(|input| input.borrow_mut().as_mut_ptr() as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_input_capacity() -> usize {
+pub extern "C" fn conduit_tour_input_capacity() -> usize {
     INPUT_BYTES
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_output_ptr() -> usize {
+pub extern "C" fn conduit_tour_output_ptr() -> usize {
     OUTPUT.with(|output| output.borrow().as_ptr() as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_output_len() -> usize {
+pub extern "C" fn conduit_tour_output_len() -> usize {
     OUTPUT_LEN.with(|length| *length.borrow())
 }
 
 /// Writes the machine-readable browser Gear inventory derived from the same
 /// Host advertisement used by planning.
 #[no_mangle]
-pub extern "C" fn conduit_book_inventory() -> i32 {
+pub extern "C" fn conduit_tour_inventory() -> i32 {
     clear_output();
     write_output(&crate::installed_browser::inventory())
         .map(|()| STATUS_READY)
@@ -56,7 +56,7 @@ pub extern "C" fn conduit_book_inventory() -> i32 {
 /// Projects the exact fabrication selections used to construct this runtime's
 /// ordinary installed-host advertisement.
 #[no_mangle]
-pub extern "C" fn conduit_book_human_machinery() -> i32 {
+pub extern "C" fn conduit_tour_human_machinery() -> i32 {
     clear_output();
     let implementations = crate::installed_browser::selected_human_machinery()
         .into_iter()
@@ -71,7 +71,7 @@ pub extern "C" fn conduit_book_human_machinery() -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_reviewed_gallery() -> i32 {
+pub extern "C" fn conduit_tour_reviewed_gallery() -> i32 {
     clear_output();
     match super::gallery::reviewed_gallery() {
         Ok(gallery) => write_output(&gallery)
@@ -81,17 +81,17 @@ pub extern "C" fn conduit_book_reviewed_gallery() -> i32 {
     }
 }
 
-/// Projects the exact checked Form beside its Book source without planning or
+/// Projects the exact checked Form beside its Tour source without planning or
 /// starting a Play.
 #[no_mangle]
-pub extern "C" fn conduit_book_project_patchbay(source_length: usize, sequence: u64) -> i32 {
+pub extern "C" fn conduit_tour_project_patchbay(source_length: usize, sequence: u64) -> i32 {
     project_patchbay(source_length, sequence, false)
 }
 
 /// Projects the same visible checked Form while retaining distinct recursive
 /// expansion evidence for the comparison lesson.
 #[no_mangle]
-pub extern "C" fn conduit_book_project_patchbay_recursive(
+pub extern "C" fn conduit_tour_project_patchbay_recursive(
     source_length: usize,
     sequence: u64,
 ) -> i32 {
@@ -125,7 +125,7 @@ fn project_patchbay(source_length: usize, sequence: u64, recursive: bool) -> i32
 /// flow before parsing. The retained evidence contains byte count and exact
 /// identities, never the submitted source text.
 #[no_mangle]
-pub extern "C" fn conduit_book_admit_source_interaction(
+pub extern "C" fn conduit_tour_admit_source_interaction(
     source_length: usize,
     sequence: u64,
 ) -> i32 {
@@ -157,7 +157,7 @@ pub extern "C" fn conduit_book_admit_source_interaction(
 /// Starts one exact Play from adjacent UTF-8 Host, Boot, and Form source bytes.
 /// Replacing an unfinished session explicitly cancels its kernel scheduler.
 #[no_mangle]
-pub extern "C" fn conduit_book_start(
+pub extern "C" fn conduit_tour_start(
     host_length: usize,
     boot_length: usize,
     source_length: usize,
@@ -174,7 +174,7 @@ pub extern "C" fn conduit_book_start(
 
 /// Starts the same authored Form while selecting reviewed reusable Backs.
 #[no_mangle]
-pub extern "C" fn conduit_book_start_recursive(
+pub extern "C" fn conduit_tour_start_recursive(
     host_length: usize,
     boot_length: usize,
     source_length: usize,
@@ -236,9 +236,9 @@ fn start(
                 return Err(ERROR_INTERACTION);
             }
             let prepared = if recursive {
-                BookSession::prepare_recursive(host, boot, source, play_sequence)
+                TourSession::prepare_recursive(host, boot, source, play_sequence)
             } else {
-                BookSession::prepare(host, boot, source, play_sequence)
+                TourSession::prepare(host, boot, source, play_sequence)
             };
             let (mut session, mut effect) = match prepared {
                 Ok(prepared) => prepared,
@@ -258,12 +258,12 @@ fn start(
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_complete() -> i32 {
+pub extern "C" fn conduit_tour_complete() -> i32 {
     finish(false)
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_complete_with_output(output_length: usize) -> i32 {
+pub extern "C" fn conduit_tour_complete_with_output(output_length: usize) -> i32 {
     clear_output();
     if output_length == 0 || output_length > INPUT_BYTES {
         return ERROR_INPUT;
@@ -279,7 +279,7 @@ pub extern "C" fn conduit_book_complete_with_output(output_length: usize) -> i32
                 .map_err(|_| ERROR_COMPLETE);
             input[..output_length].fill(0);
             match progress.and_then(|progress| {
-                let pending = matches!(progress, super::BookProgress::Effect(_));
+                let pending = matches!(progress, super::TourProgress::Effect(_));
                 write_output(&progress).map_err(|_| ERROR_OUTPUT)?;
                 if pending {
                     *slot.borrow_mut() = Some(session);
@@ -294,7 +294,7 @@ pub extern "C" fn conduit_book_complete_with_output(output_length: usize) -> i32
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_book_cancel() -> i32 {
+pub extern "C" fn conduit_tour_cancel() -> i32 {
     finish(true)
 }
 
@@ -307,7 +307,7 @@ fn finish(cancel: bool) -> i32 {
         if cancel {
             return match session
                 .cancel()
-                .map(|receipt| super::BookProgress::Receipt(Box::new(receipt)))
+                .map(|receipt| super::TourProgress::Receipt(Box::new(receipt)))
                 .map_err(|_| ERROR_CANCEL)
                 .and_then(|progress| write_output(&progress).map_err(|_| ERROR_OUTPUT))
             {
@@ -317,7 +317,7 @@ fn finish(cancel: bool) -> i32 {
         }
         let progress = session.advance().map_err(|_| ERROR_COMPLETE);
         match progress.and_then(|progress| {
-            let pending = matches!(progress, super::BookProgress::Effect(_));
+            let pending = matches!(progress, super::TourProgress::Effect(_));
             write_output(&progress).map_err(|_| ERROR_OUTPUT)?;
             if pending {
                 *slot.borrow_mut() = Some(session);
@@ -352,27 +352,27 @@ mod tests {
 
     #[test]
     fn empty_book_start_is_refused_without_a_session() {
-        assert_eq!(conduit_book_start(0, 0, 0, 0), ERROR_INPUT);
-        assert_eq!(conduit_book_complete(), ERROR_NOT_RUNNING);
+        assert_eq!(conduit_tour_start(0, 0, 0, 0), ERROR_INPUT);
+        assert_eq!(conduit_tour_complete(), ERROR_NOT_RUNNING);
 
         INPUT.with(|input| input.borrow_mut()[..3].copy_from_slice(b"one"));
-        assert_eq!(conduit_book_admit_source_interaction(3, 1), STATUS_READY);
+        assert_eq!(conduit_tour_admit_source_interaction(3, 1), STATUS_READY);
         INPUT.with(|input| input.borrow_mut()[..5].copy_from_slice(b"hbTwo"));
-        assert_eq!(conduit_book_start(1, 1, 3, 1), ERROR_INTERACTION);
+        assert_eq!(conduit_tour_start(1, 1, 3, 1), ERROR_INTERACTION);
         let refusal: serde_json::Value = OUTPUT.with(|output| {
-            serde_json::from_slice(&output.borrow()[..conduit_book_output_len()]).unwrap()
+            serde_json::from_slice(&output.borrow()[..conduit_tour_output_len()]).unwrap()
         });
         assert_eq!(
             refusal["message"],
             "source changed after typed interaction admission"
         );
-        assert_eq!(conduit_book_complete(), ERROR_NOT_RUNNING);
+        assert_eq!(conduit_tour_complete(), ERROR_NOT_RUNNING);
 
-        assert_eq!(conduit_book_inventory(), STATUS_READY);
-        assert!(conduit_book_output_len() > 0);
-        assert_eq!(conduit_book_human_machinery(), STATUS_READY);
+        assert_eq!(conduit_tour_inventory(), STATUS_READY);
+        assert!(conduit_tour_output_len() > 0);
+        assert_eq!(conduit_tour_human_machinery(), STATUS_READY);
         let machinery: serde_json::Value = OUTPUT.with(|output| {
-            serde_json::from_slice(&output.borrow()[..conduit_book_output_len()]).unwrap()
+            serde_json::from_slice(&output.borrow()[..conduit_tour_output_len()]).unwrap()
         });
         assert_eq!(
             machinery["schema"],

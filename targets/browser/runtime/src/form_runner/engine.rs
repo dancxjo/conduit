@@ -18,7 +18,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
-pub(super) type BookScheduler = FixedScheduler<
+pub(super) type TourScheduler = FixedScheduler<
     OperationDriver<BrowserOperation, BROWSER_PORTS_PER_GEAR>,
     HostedValueStore,
     HostedSignLog,
@@ -50,15 +50,15 @@ pub(super) enum DriveStatus {
 
 pub(super) fn prepare(
     fragment: &PlanFragment,
-) -> Result<(BookScheduler, PendingHostEffect), String> {
+) -> Result<(TourScheduler, PendingHostEffect), String> {
     let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower executable-book Plan: {error:?}"))?;
+        .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, false)?;
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
     let pending = match drive(&mut scheduler, fragment)? {
         DriveStatus::Effect(pending) => pending,
         DriveStatus::Complete => {
-            return Err("book Play completed without a planned Host effect".into())
+            return Err("Tour Play completed without a planned Host effect".into())
         }
     };
     Ok((scheduler, pending))
@@ -66,16 +66,16 @@ pub(super) fn prepare(
 
 pub(super) fn prepare_remote_fragment(
     fragment: &PlanFragment,
-) -> Result<(BookScheduler, LoweredPlanFragment), String> {
+) -> Result<(TourScheduler, LoweredPlanFragment), String> {
     let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower multi-Host executable-book Plan: {error:?}"))?;
+        .map_err(|error| format!("lower multi-Host executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, true)?;
     let scheduler = prepare_scheduler(fragment, &lowered)?;
     Ok((scheduler, lowered))
 }
 
 pub(super) fn complete_host_effect(
-    scheduler: &mut BookScheduler,
+    scheduler: &mut TourScheduler,
     pending: &PendingHostEffect,
 ) -> Result<(), String> {
     scheduler
@@ -92,7 +92,7 @@ pub(super) fn complete_host_effect(
 }
 
 pub(super) fn complete_host_effect_with_output(
-    scheduler: &mut BookScheduler,
+    scheduler: &mut TourScheduler,
     pending: &PendingHostEffect,
     output: &[u8],
 ) -> Result<(), String> {
@@ -120,7 +120,7 @@ pub(super) fn complete_host_effect_with_output(
 }
 
 pub(super) fn drive(
-    scheduler: &mut BookScheduler,
+    scheduler: &mut TourScheduler,
     fragment: &PlanFragment,
 ) -> Result<DriveStatus, String> {
     loop {
@@ -189,8 +189,8 @@ pub(super) fn drive(
         match scheduler.step().map_err(debug_error)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
-            SchedulerStatus::Idle => return Err("book Play became idle".into()),
-            SchedulerStatus::Cancelled => return Err("book Play was cancelled".into()),
+            SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
+            SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }
     }
 }
@@ -231,7 +231,7 @@ fn validate_envelope(
 fn prepare_scheduler(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
-) -> Result<BookScheduler, String> {
+) -> Result<TourScheduler, String> {
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     let mut values = HostedValueStore::new(
@@ -316,7 +316,7 @@ fn prepare_scheduler(
         remote_sign_bytes,
     )
     .map_err(debug_error)?;
-    BookScheduler::new_with_active_counts_and_host_operations(
+    TourScheduler::new_with_active_counts_and_host_operations(
         active_nodes,
         active_cords,
         nodes,

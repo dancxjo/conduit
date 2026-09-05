@@ -81,25 +81,25 @@ function renderSyntax(source, target, owner, runtime) {
 
 function validateProjection(projection, sourceBytes) {
   if (projection?.protocol !== PROTOCOL || projection.source_bytes !== sourceBytes.length) {
-    throw new TypeError("Book syntax projection identity changed");
+    throw new TypeError("Tour syntax projection identity changed");
   }
   if (!Array.isArray(projection.kinds) || projection.kinds.length !== 10 || !Array.isArray(projection.spans)) {
-    throw new TypeError("Book syntax projection shape changed");
+    throw new TypeError("Tour syntax projection shape changed");
   }
   let cursor = 0;
   for (const span of projection.spans) {
-    if (!Array.isArray(span) || span.length !== 3) throw new TypeError("Book syntax span shape changed");
+    if (!Array.isArray(span) || span.length !== 3) throw new TypeError("Tour syntax span shape changed");
     const [start, end, kindIndex] = span;
     if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start !== cursor || end <= start || end > sourceBytes.length) {
-      throw new TypeError("Book syntax span bounds changed");
+      throw new TypeError("Tour syntax span bounds changed");
     }
     if (!Number.isSafeInteger(kindIndex) || kindIndex < 0 || kindIndex >= projection.kinds.length) {
-      throw new TypeError("Book syntax kind changed");
+      throw new TypeError("Tour syntax kind changed");
     }
     decoder.decode(sourceBytes.subarray(start, end));
     cursor = end;
   }
-  if (cursor !== sourceBytes.length) throw new TypeError("Book syntax projection is not lossless");
+  if (cursor !== sourceBytes.length) throw new TypeError("Tour syntax projection is not lossless");
 }
 
 function renderPlain(source, target, owner, disposition) {

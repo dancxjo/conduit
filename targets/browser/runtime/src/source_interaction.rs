@@ -48,9 +48,9 @@ pub(super) fn admit_source(
         })
         .map_err(debug_error)?;
     Ok(SourceInteractionEvidence {
-        schema: "conduit.book/source-interaction@1".into(),
+        schema: "conduit.tour/source-interaction@1".into(),
         disposition: "accepted".into(),
-        semantic_id: "interaction/executable-book-source".into(),
+        semantic_id: "interaction/executable-tour-source".into(),
         contract_identity: contract.contract_identity,
         state_identity: current.state_identity,
         proposal_identity: proposal.proposal_identity,
@@ -63,7 +63,7 @@ pub(super) fn admit_source(
 
 fn source_contract() -> Result<InteractionContract, String> {
     InteractionContract::new(
-        "interaction/executable-book-source",
+        "interaction/executable-tour-source",
         InteractionFamily::Text {
             maximum_bytes: SOURCE_INTERACTION_MAXIMUM_BYTES,
             allow_empty: false,

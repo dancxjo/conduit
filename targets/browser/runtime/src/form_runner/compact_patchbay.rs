@@ -1,7 +1,7 @@
-//! Bounded read-only Patchbay facts for one executable Book listing.
+//! Bounded read-only Patchbay facts for one executable Tour listing.
 //!
 //! This projection is produced from the same production parse, check, and
-//! expansion path used before Book execution. It contains no renderer geometry,
+//! expansion path used before Tour execution. It contains no renderer geometry,
 //! Host offer, placement, implementation, Plan, Play, or mutable editor state.
 
 use crate::installed_browser::{backs, catalogs, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS};
@@ -126,7 +126,7 @@ pub(super) fn project(
     admit_topology(realization)?;
 
     Ok(CompactPatchbayProjection {
-        schema: "conduit.book/compact-patchbay@1",
+        schema: "conduit.tour/compact-patchbay@1",
         sequence,
         source_proposal_id: interaction.proposal_identity,
         source_document_id: visible.source_document_id.as_str().into(),
@@ -289,7 +289,7 @@ fn project_incompatible_cord(
         diagnostic.ok_or_else(|| format!("expand compact Tour Patchbay: {error:?}"))?;
     admit_draft_topology(&gears, &cords)?;
     Ok(CompactPatchbayProjection {
-        schema: "conduit.book/compact-patchbay@1",
+        schema: "conduit.tour/compact-patchbay@1",
         sequence,
         source_proposal_id,
         source_document_id: checked.source_document_id.as_str().into(),

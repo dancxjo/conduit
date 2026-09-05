@@ -1,4 +1,4 @@
-//! Bounded book ABI effects, receipts, and manifestation decoding.
+//! Bounded Tour ABI effects, receipts, and manifestation decoding.
 
 use crate::source_interaction::SourceInteractionEvidence;
 use conduit_core::{PresentationIdentity, SignIdentity};
@@ -11,7 +11,7 @@ pub(super) struct IndicatorSegment {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct BookEffect {
+pub(super) struct TourEffect {
     pub(super) schema: &'static str,
     pub(super) effect_kind: &'static str,
     pub(super) source_document_id: String,
@@ -27,8 +27,8 @@ pub(super) struct BookEffect {
     pub(super) presentation_kind: String,
     pub(super) observation_sequence: u32,
     pub(super) realization: &'static str,
-    pub(super) expanded_gears: Vec<BookGearEvidence>,
-    pub(super) realization_backs: Vec<BookBackEvidence>,
+    pub(super) expanded_gears: Vec<TourGearEvidence>,
+    pub(super) realization_backs: Vec<TourBackEvidence>,
     pub(super) unit_millis: u16,
     pub(super) segments: Vec<IndicatorSegment>,
     pub(super) text: Option<String>,
@@ -37,7 +37,7 @@ pub(super) struct BookEffect {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct BookTimerEffect {
+pub(super) struct TourTimerEffect {
     pub(super) schema: &'static str,
     pub(super) effect_kind: &'static str,
     pub(super) active_play_id: String,
@@ -51,7 +51,7 @@ pub(super) struct BookTimerEffect {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct BookKeyEventEffect {
+pub(super) struct TourKeyEventEffect {
     pub(super) schema: &'static str,
     pub(super) effect_kind: &'static str,
     pub(super) active_play_id: String,
@@ -66,13 +66,13 @@ pub(super) struct BookKeyEventEffect {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub(super) enum BookHostEffect {
-    Manifestation(Box<BookEffect>),
-    Timer(Box<BookTimerEffect>),
-    KeyEvent(Box<BookKeyEventEffect>),
+pub(super) enum TourHostEffect {
+    Manifestation(Box<TourEffect>),
+    Timer(Box<TourTimerEffect>),
+    KeyEvent(Box<TourKeyEventEffect>),
 }
 
-impl BookHostEffect {
+impl TourHostEffect {
     pub(super) fn attach_source_interaction(
         &mut self,
         source_interaction: SourceInteractionEvidence,
@@ -86,21 +86,21 @@ impl BookHostEffect {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub(super) struct BookGearEvidence {
+pub(super) struct TourGearEvidence {
     pub(super) gear_id: String,
     pub(super) kind_id: String,
     pub(super) implementation_id: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub(super) struct BookBackEvidence {
+pub(super) struct TourBackEvidence {
     pub(super) invocation_path: String,
     pub(super) kind_id: String,
     pub(super) checked_form_id: String,
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct BookReceipt {
+pub(super) struct TourReceipt {
     pub(super) schema: &'static str,
     pub(super) disposition: &'static str,
     pub(super) active_play_id: String,
@@ -113,20 +113,20 @@ pub(super) struct BookReceipt {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub(super) enum BookProgress {
-    Effect(Box<BookHostEffect>),
-    Receipt(Box<BookReceipt>),
+pub(super) enum TourProgress {
+    Effect(Box<TourHostEffect>),
+    Receipt(Box<TourReceipt>),
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct BookRefusal {
+pub(crate) struct TourRefusal {
     pub(super) schema: &'static str,
     pub(super) disposition: &'static str,
     pub(super) category: &'static str,
     pub(super) message: String,
 }
 
-pub(crate) fn refusal(message: String) -> BookRefusal {
+pub(crate) fn refusal(message: String) -> TourRefusal {
     let category = if message.contains("finite browser execution envelope")
         || message.contains("limit")
         || message.contains("Limit")
@@ -151,8 +151,8 @@ pub(crate) fn refusal(message: String) -> BookRefusal {
     } else {
         "planning-or-preparation"
     };
-    BookRefusal {
-        schema: "conduit.book/refusal@1",
+    TourRefusal {
+        schema: "conduit.tour/refusal@1",
         disposition: "refused-before-play",
         category,
         message,
@@ -224,7 +224,7 @@ pub(super) fn decode_manifestation(
                 .map_err(|_| "planned count manifestation is not an exact Count")?;
             Ok((0, Vec::new(), Some(u64::from_le_bytes(encoded).to_string())))
         }
-        _ => Err("browser manifestation Kind is not installed in the book surface".into()),
+        _ => Err("browser manifestation Kind is not installed in the Tour surface".into()),
     }
 }
 
@@ -246,9 +246,9 @@ pub(super) fn receipt(
     sign: &SignIdentity,
     timer_completions: u32,
     manifestation_completions: u32,
-) -> BookReceipt {
-    BookReceipt {
-        schema: "conduit.book/manifestation-receipt@3",
+) -> TourReceipt {
+    TourReceipt {
+        schema: "conduit.tour/manifestation-receipt@3",
         disposition,
         active_play_id: active_play_id.as_str().into(),
         presentation_id: presentation.map(|identity| identity.presentation_id.as_str().into()),
