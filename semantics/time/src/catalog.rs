@@ -7,9 +7,12 @@ use conduit_form::{
 };
 
 use crate::{
-    tick_outputs, MAX_TICK_COUNT, TICK_CONTRACT_REVISION, TICK_KIND, TIME_EVERY_CONTRACT_REVISION,
-    TIME_EVERY_KIND,
+    tick_outputs, MAX_TICK_COUNT, PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION,
+    PULSE_OBSERVATION_VALUE_KIND, PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION,
+    RHYTHM_STATE_VALUE_KIND, TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND,
+    TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
 };
+use conduit_core::{port_id, PortDescriptor, PortDirection, PortTemporal};
 
 pub fn tick_kind_definition() -> KindDefinition {
     KindDefinition {
@@ -94,6 +97,71 @@ pub fn install_time_every_catalog(
     profile
         .insert(time_every_kind_definition())
         .map_err(|error| error.to_string())
+}
+
+pub fn install_rhythm_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    insert_rhythm_kind(
+        startup,
+        profile,
+        PULSE_OBSERVE_KIND,
+        PULSE_OBSERVE_REVISION,
+        vec![flow_port("tick", TICK_VALUE_KIND, PortDirection::Input)],
+        vec![flow_port(
+            "observation",
+            PULSE_OBSERVATION_VALUE_KIND,
+            PortDirection::Output,
+        )],
+    )?;
+    insert_rhythm_kind(
+        startup,
+        profile,
+        PHASE_SYNCHRONIZE_KIND,
+        PHASE_SYNCHRONIZE_REVISION,
+        vec![
+            flow_port("local", RHYTHM_STATE_VALUE_KIND, PortDirection::Input),
+            flow_port("peer", PULSE_OBSERVATION_VALUE_KIND, PortDirection::Input),
+        ],
+        vec![flow_port(
+            "updated",
+            RHYTHM_STATE_VALUE_KIND,
+            PortDirection::Output,
+        )],
+    )
+}
+
+fn insert_rhythm_kind(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+    kind: &str,
+    revision: &'static str,
+    inputs: alloc::vec::Vec<PortDescriptor>,
+    outputs: alloc::vec::Vec<PortDescriptor>,
+) -> Result<(), String> {
+    startup.insert(KindSignature {
+        kind: kind.to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id(kind),
+            kind_contract_revision: KindContractRevision::from(revision),
+            inputs,
+            outputs,
+            configuration: vec![],
+        })
+        .map_err(|error| error.to_string())
+}
+
+fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(value_kind),
+        direction,
+        temporal: PortTemporal::Flow { closes: true },
+    }
 }
 
 #[cfg(test)]

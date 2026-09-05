@@ -1,0 +1,8 @@
+# Turn exact timer transitions into portable bounded pulse observations.
+form pulse-observation (
+    tick: value/tick@1...| > observation: time/pulse-observation@1...|
+) {
+    observe: time/pulse-observe
+    tick > observe.tick
+    observe.observation > observation
+}

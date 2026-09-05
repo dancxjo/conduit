@@ -1,0 +1,16 @@
+# A heartbeat consumer of the reusable pulse observation and synchronization Forms.
+form heartbeat-phase-follower (
+    tick: value/tick@1...|
+    local: time/rhythm-state@1...|
+    peer: time/pulse-observation@1...|
+    > heartbeat: time/pulse-observation@1...|
+    > updated: time/rhythm-state@1...|
+) {
+    observe: time/pulse-observe
+    synchronize: time/phase-synchronize
+    tick > observe.tick
+    observe.observation > heartbeat
+    local > synchronize.local
+    peer > synchronize.peer
+    synchronize.updated > updated
+}

@@ -14,6 +14,12 @@ title = "Bounded Job"
 entry = "bounded-job"
 deterministic = { package = "conduit-semantic-catalog", test = "job_forms", case = "ordinary_form_plans_one_bounded_admitted_job" }
 [[forms]]
+slug = "bounded-stroke-capture"
+title = "Bounded Stroke Capture"
+entry = "bounded-stroke-capture"
+deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
+[[forms]]
 slug = "button-across-room"
 title = "Button Across the Room"
 entry = "button_across_room"
@@ -54,6 +60,12 @@ entry = "desk_telegraph"
 initial_body_order = 3
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
 [[forms]]
+slug = "garden-state-step"
+title = "Garden State Step"
+entry = "garden-state-step"
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
+browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
+[[forms]]
 slug = "generalized-input"
 title = "Generalized Input"
 entry = "generalized-input"
@@ -69,6 +81,12 @@ title = "Greeting"
 entry = "default-welcome"
 reusable_entries = [{ entry = "greet", title = "Greeting", composition = { parent = "default-welcome", occurrences = ["hello"] }, deterministic = { package = "conduit-std-host", test = "reusable_greet", case = "reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play", plan_play_evidence = true } }]
 deterministic = { package = "conduit-std-host", test = "canonical_greet", case = "explicit_positional_binding_recursively_executes_only_primitive_leaves", plan_play_evidence = true }
+[[forms]]
+slug = "heartbeat-phase-follower"
+title = "Heartbeat Phase Follower"
+entry = "heartbeat-phase-follower"
+deterministic = { package = "conduit-time", test = "rhythm_forms", case = "extracted_contract_has_a_non_firefly_consumer" }
+browser_safe_not_applicable = "portable heartbeat phase following has no installed browser realization"
 [[forms]]
 slug = "hello"
 title = "Hello"
@@ -132,15 +150,39 @@ title = "Network Resolution"
 entry = "network-resolution"
 deterministic = { package = "conduit-net", test = "application_network_forms", case = "ordinary_form_plans_dns_and_connection_with_explicit_resources_and_authority" }
 [[forms]]
+slug = "normalized-light-intensity"
+title = "Normalized Light Intensity"
+entry = "normalized-light-intensity"
+deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_form", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable quantity mapping has no installed browser realization"
+[[forms]]
 slug = "patchbay-front-door"
 title = "Patchbay Front Door"
 entry = "patchbay-front-door"
+[[forms]]
+slug = "phase-synchronization"
+title = "Phase Synchronization"
+entry = "phase-synchronization"
+deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable phase synchronization has no installed browser realization"
 [[forms]]
 slug = "pool-webchat"
 title = "Pool Webchat"
 entry = "pool-webchat"
 reusable_entries = [{ entry = "chat/peer", title = "Chat Peer", composition = { parent = "pool-webchat", occurrences = ["peers"] } }]
 deterministic = { package = "conduit-chat", features = ["form-catalog"], test = "shared_pool_chat", case = "native_pool_chat_has_explicit_fan_merge_and_no_authored_line" }
+[[forms]]
+slug = "pulse-observation"
+title = "Pulse Observation"
+entry = "pulse-observation"
+deterministic = { package = "conduit-time", test = "rhythm_forms", case = "reusable_forms_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable pulse observation has no installed browser realization"
+[[forms]]
+slug = "quantity-range-map"
+title = "Quantity Range Map"
+entry = "quantity-range-map"
+deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_form", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
+browser_safe_not_applicable = "portable quantity mapping has no installed browser realization"
 [[forms]]
 slug = "r1-network-bootstrap"
 title = "R1 Network Bootstrap"
@@ -155,6 +197,12 @@ slug = "robotics-diversity"
 title = "Robotics Diversity"
 entry = "robotics-diversity"
 deterministic = { package = "conduit-semantic-catalog", test = "robotics_diversity_forms", case = "canonical_form_consumes_structured_observations_and_motion_intent" }
+[[forms]]
+slug = "route-annotation-stroke"
+title = "Route Annotation Stroke"
+entry = "route-annotation-stroke"
+deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
+browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
 [[forms]]
 slug = "scheduled-reminder"
 title = "Scheduled Reminder"
@@ -176,6 +224,13 @@ slug = "signal-demo"
 title = "Signal Demo"
 entry = "signal-demo"
 deterministic = { package = "conduit", test = "two_std_line", case = "installed_run_reports_two_hosts_one_line_and_terminal_values" }
+[[forms]]
+slug = "signal-garden"
+title = "Signal Garden"
+entry = "signal-garden-interactive"
+reusable_entries = [{ entry = "signal-garden-minimal", title = "Signal Garden Minimal" }]
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
+browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
 [[forms]]
 slug = "socket-client"
 title = "Socket Client"
