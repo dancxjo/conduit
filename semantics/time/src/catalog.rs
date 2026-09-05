@@ -7,8 +7,8 @@ use conduit_form::{
 };
 
 use crate::{
-    tick_outputs, MAX_TICK_COUNT, TICK_CONTRACT_REVISION, TICK_KIND, TIME_EVERY_CONTRACT_REVISION,
-    TIME_EVERY_KIND,
+    replay_control_kind_definition, tick_outputs, MAX_TICK_COUNT, TICK_CONTRACT_REVISION,
+    TICK_KIND, TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
 };
 
 pub fn tick_kind_definition() -> KindDefinition {
@@ -93,6 +93,34 @@ pub fn install_time_every_catalog(
     })?;
     profile
         .insert(time_every_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn install_replay_control_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    for (name, identity) in [
+        ("ReplayTimeline", "history/replay-timeline@1"),
+        ("ReplayControl", "history/replay-control@1"),
+        ("PlaybackTick", "time/playback-tick@1"),
+        ("ReplayEvent", "history/replay-event@1"),
+        ("ReplayState", "history/replay-state@1"),
+    ] {
+        startup
+            .insert_structured_type(
+                name,
+                conduit_core::StructuredInfoType::leaf(kind_id(identity))
+                    .expect("reviewed replay value identity"),
+            )
+            .map_err(|error| error.to_string())?;
+    }
+    startup.insert(KindSignature {
+        kind: crate::REPLAY_CONTROL_KIND.to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(replay_control_kind_definition())
         .map_err(|error| error.to_string())
 }
 

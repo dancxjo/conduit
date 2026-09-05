@@ -1,0 +1,14 @@
+form bounded-replay-control (
+    > timeline: ReplayTimeline
+    > control: ReplayControl...|
+    > clock: PlaybackTick...|
+    event: ReplayEvent...| >
+    state: ReplayState...| >
+) {
+    replay: time/replay-control
+    timeline > replay.timeline
+    control > replay.control
+    clock > replay.clock
+    replay.event > event
+    replay.state > state
+}
