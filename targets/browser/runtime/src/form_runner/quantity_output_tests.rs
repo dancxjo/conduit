@@ -3,6 +3,76 @@
 use super::*;
 
 #[test]
+fn pointer_quantity_chain_uses_selectors_mapping_and_correlated_presentation() {
+    let source = format!(
+        r#"{}
+form zz-pointer-quantity {{
+ pointer: input/pointer-source
+ normalize: math/normalized-quantity-scalar
+ map: quantity-range-map
+ wrap: structured-info/wrap-quantity
+ show: presentation/structured-info
+ pointer.pointer > project(PointerEvent.position) > project(Point2.x) > normalize.in
+ normalize.out > map.control
+ map.quantity > wrap.in
+ wrap.out > show.input
+}}"#,
+        include_str!("../../../../../forms/quantity-range-map/main.conduit")
+    );
+    for (position_x, expected) in [(0, "20 Hz"), (500_000, "10010 Hz"), (1_000_000, "20000 Hz")] {
+        let (mut session, effect) = TourSession::prepare_with_profile(
+            "pointer-controller",
+            "pointer-boot",
+            &source,
+            position_x as u64,
+            MorseRealization::Direct,
+            true,
+        )
+        .unwrap();
+        let TourHostEffect::PointerEvent(input) = effect else {
+            panic!("expected pointer acquisition");
+        };
+        let canonical = conduit_semantic_catalog::normalized_pointer_value(
+            conduit_semantic_catalog::NormalizedPointerSample {
+                position_x,
+                position_y: 0,
+                delta_x: 0,
+                delta_y: 0,
+                primary_pressed: false,
+                coalesced: 0,
+                dropped: 0,
+                queue_capacity: 1,
+                sequence: 1,
+            },
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        let TourProgress::Effect(output) = session.advance_with_output(&canonical).unwrap() else {
+            panic!("pointer mapping must manifest");
+        };
+        let TourHostEffect::Manifestation(output) = *output else {
+            panic!("expected mapped output");
+        };
+        assert_eq!(output.text.as_deref(), Some(expected));
+        assert_eq!(input.active_play_id, output.active_play_id);
+        assert_eq!(
+            output
+                .expanded_gears
+                .iter()
+                .filter(|gear| gear.kind_id.starts_with("structured-info/selector-"))
+                .count(),
+            2
+        );
+        let TourProgress::Receipt(receipt) = session.advance().unwrap() else {
+            panic!("expected completion");
+        };
+        assert_eq!(receipt.disposition, "completed");
+        assert_eq!(receipt.active_play_id, output.active_play_id);
+    }
+}
+
+#[test]
 fn browser_quantity_authored_forms_reach_typed_output_and_completed_receipts() {
     for (authored, name, output, expected) in [
         (

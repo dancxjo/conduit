@@ -14,8 +14,10 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 mod functional_face;
+mod normalized_quantity;
 mod quantity_info;
 pub use functional_face::{realization_offer, RealizationOfferIdentity};
+pub use normalized_quantity::*;
 pub use quantity_info::*;
 mod keyboard;
 pub use keyboard::*;

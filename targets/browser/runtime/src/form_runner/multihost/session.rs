@@ -213,9 +213,10 @@ impl Session {
     fn sink_admit_value(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "value", true)?;
         let remote = self.remote();
+        let (endpoint, cord) = (remote.endpoint, remote.cord);
         let admission = self
             .scheduler
-            .admit_remote_input(remote.endpoint, remote.cord, frame.sequence, &frame.payload)
+            .admit_remote_input(endpoint, cord, frame.sequence, &frame.payload)
             .map_err(debug_error)?;
         if !matches!(
             admission,
@@ -246,8 +247,9 @@ impl Session {
     fn source_accept(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "accepted", false)?;
         let remote = self.remote();
+        let (endpoint, cord) = (remote.endpoint, remote.cord);
         self.scheduler
-            .remote_egress_accept(remote.endpoint, remote.cord, 0)
+            .remote_egress_accept(endpoint, cord, 0)
             .map_err(debug_error)?;
         self.stage = Stage::Accepted;
         Ok(Output::Waiting {
@@ -286,8 +288,9 @@ impl Session {
     fn sink_close(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "close", false)?;
         let remote = self.remote();
+        let (endpoint, cord) = (remote.endpoint, remote.cord);
         self.scheduler
-            .close_remote_input(remote.endpoint, remote.cord)
+            .close_remote_input(endpoint, cord)
             .map_err(debug_error)?;
         self.drive_to_complete()?;
         self.stage = Stage::Complete;

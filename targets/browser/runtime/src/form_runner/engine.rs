@@ -1,5 +1,9 @@
 //! Finite generic browser execution envelope for inline Forms.
 
+#[path = "engine_preparation.rs"]
+mod preparation;
+use preparation::{prepare_scheduler, validate_envelope};
+
 #[cfg(test)]
 #[path = "quantity_tests.rs"]
 mod quantity_tests;
@@ -22,7 +26,7 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
-pub(super) type TourScheduler = FixedScheduler<
+type BrowserKernel = FixedScheduler<
     OperationDriver<BrowserOperation, BROWSER_PORTS_PER_GEAR>,
     HostedValueStore,
     HostedSignLog,
@@ -36,6 +40,28 @@ pub(super) type TourScheduler = FixedScheduler<
     BROWSER_PENDING_REQUESTS,
 >;
 
+/// Host-prepared state accompanies, but never replaces, the production kernel.
+pub(super) struct TourScheduler {
+    kernel: BrowserKernel,
+    selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
+        MAXIMUM_BROWSER_GEARS],
+    mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
+}
+
+impl core::ops::Deref for TourScheduler {
+    type Target = BrowserKernel;
+
+    fn deref(&self) -> &Self::Target {
+        &self.kernel
+    }
+}
+
+impl core::ops::DerefMut for TourScheduler {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.kernel
+    }
+}
+
 pub(super) struct PendingHostEffect {
     pub request: HostOperationRequest,
     pub effect: BrowserHostEffect,
@@ -44,6 +70,7 @@ pub(super) struct PendingHostEffect {
 pub(super) enum BrowserHostEffect {
     Timer { duration_millis: u64 },
     KeyEvent,
+    PointerEvent,
     ButtonTransition,
     Manifestation(BrowserManifestation),
 }
@@ -102,6 +129,14 @@ pub(super) fn complete_host_effect_with_output(
     output: &[u8],
 ) -> Result<(), String> {
     let maximum_output_bytes = match &pending.effect {
+        BrowserHostEffect::PointerEvent => {
+            let value = conduit_core::StructuredInfoValue::from_canonical_bytes(output)
+                .map_err(|error| format!("decode pointer input: {error:?}"))?;
+            if value.value_type() != &conduit_semantic_catalog::pointer_event_type() {
+                return Err("pointer input has the wrong exact type".into());
+            }
+            MAXIMUM_BROWSER_VALUE_BYTES as u32
+        }
         BrowserHostEffect::KeyEvent => {
             conduit_human::KeyEvent::decode(output)
                 .map(|_| ())
@@ -146,9 +181,42 @@ pub(super) fn drive(
                 .host_operations
                 .get(usize::from(request.operation.0))
                 .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+            if operation.contract_id.as_str()
+                == crate::installed_browser::pointer_selector::HOST_OPERATION
+            {
+                let input = scheduler
+                    .kernel
+                    .host_value(request.input.value)
+                    .map_err(debug_error)?;
+                let output = scheduler.selectors[usize::from(request.node.0)]
+                    .as_mut()
+                    .ok_or("selector was not prepared before Play")?
+                    .execute(input)?;
+                let value = scheduler
+                    .kernel
+                    .store_host_value(output)
+                    .map_err(debug_error)?;
+                scheduler
+                    .kernel
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(value, operation.maximum_output_bytes)
+                                    .map_err(debug_error)?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(debug_error)?;
+                continue;
+            }
             if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_HOST_OPERATION {
                 let encoded = crate::installed_browser::transform_quantity(
-                    placement,
+                    scheduler.mappings[usize::from(request.node.0)]
+                        .ok_or("quantity mapping was not prepared before Play")?,
                     scheduler
                         .host_value(request.input.value)
                         .map_err(debug_error)?,
@@ -168,6 +236,37 @@ pub(super) fn drive(
                             failure: None,
                         }
                     }
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(debug_error)?;
+                continue;
+            }
+            if operation.contract_id.as_str()
+                == crate::installed_browser::NORMALIZE_QUANTITY_OPERATION
+            {
+                let converted = crate::installed_browser::normalize_quantity(
+                    scheduler
+                        .host_value(request.input.value)
+                        .map_err(debug_error)?,
+                );
+                let outcome = match converted {
+                    Ok(bytes) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: Some(
+                            BoundedValueRef::new(
+                                scheduler.store_host_value(&bytes).map_err(debug_error)?,
+                                conduit_core::SCALAR_ENCODED_LEN as u32,
+                            )
+                            .map_err(debug_error)?,
+                        ),
+                        failure: None,
+                    },
                     Err(failure) => HostOperationOutcome {
                         disposition: HostOperationDisposition::Failed,
                         output: None,
@@ -221,6 +320,12 @@ pub(super) fn drive(
                     effect: BrowserHostEffect::KeyEvent,
                 }));
             }
+            if operation.contract_id.as_str() == crate::installed_browser::POINTER_EVENT_OPERATION {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::PointerEvent,
+                }));
+            }
             if operation.contract_id.as_str() == crate::installed_browser::BUTTON_EVENT_OPERATION {
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
@@ -270,141 +375,6 @@ pub(super) fn drive(
             SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }
     }
-}
-
-fn validate_envelope(
-    fragment: &PlanFragment,
-    lowered: &LoweredPlanFragment,
-    allow_one_remote_endpoint: bool,
-) -> Result<(), String> {
-    let route_targets = lowered
-        .routes
-        .iter()
-        .map(|route| route.targets.len())
-        .sum::<usize>();
-    if lowered.nodes.is_empty()
-        || lowered.nodes.len() > MAXIMUM_BROWSER_GEARS
-        || lowered.cords.is_empty()
-        || lowered.cords.len() > MAXIMUM_BROWSER_CORDS
-        || lowered.cord_value_slots as usize > BROWSER_QUEUE_SLOTS
-        || lowered.routes.len() > BROWSER_ROUTE_SLOTS
-        || route_targets > BROWSER_ROUTE_TARGETS
-        || if allow_one_remote_endpoint {
-            lowered.remote_endpoints.len() != 1
-        } else {
-            !lowered.remote_endpoints.is_empty()
-        }
-        || lowered.host_operations.len() > BROWSER_HOST_OPERATION_BINDINGS
-        || fragment
-            .placements
-            .iter()
-            .any(|placement| factory(&placement.implementation_id).is_none())
-    {
-        return Err("Form exceeds the installed finite browser execution envelope".into());
-    }
-    Ok(())
-}
-
-fn prepare_scheduler(
-    fragment: &PlanFragment,
-    lowered: &LoweredPlanFragment,
-) -> Result<TourScheduler, String> {
-    let active_nodes = lowered.nodes.len();
-    let active_cords = lowered.cords.len();
-    let mut values = HostedValueStore::new(
-        BROWSER_VALUE_ITEMS,
-        MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        BROWSER_TOTAL_VALUE_BYTES,
-    )
-    .map_err(|error| format!("browser value store: {error:?}"))?;
-    let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
-    for node in &lowered.nodes {
-        let placement = fragment
-            .placements
-            .get(usize::from(node.node.0))
-            .ok_or_else(|| "lowered browser node has no planned placement".to_string())?;
-        let installation = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned browser implementation is not installed".to_string())?;
-        operations.push((installation.prepare)(placement, &mut values)?);
-    }
-    while operations.len() < MAXIMUM_BROWSER_GEARS {
-        operations.push(BrowserOperation::inactive());
-    }
-    let drivers = operations
-        .into_iter()
-        .map(|operation| OperationDriver::new(operation).map_err(debug_error))
-        .collect::<Result<Vec<_>, _>>()?
-        .try_into()
-        .map_err(|_| "browser operation table exceeded its admitted bound")?;
-
-    let inactive_node = NodeSpec {
-        input_cords: [None; BROWSER_PORTS_PER_GEAR],
-        maximum_step_work: 1,
-    };
-    let mut nodes = [inactive_node; MAXIMUM_BROWSER_GEARS];
-    nodes[..active_nodes].copy_from_slice(&lowered.node_specs);
-    let inactive_cord = CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-    };
-    let mut cords = [inactive_cord; MAXIMUM_BROWSER_CORDS];
-    for (destination, lowered_cord) in cords.iter_mut().zip(&lowered.cords) {
-        *destination = lowered_cord.spec;
-    }
-    let mut routes = FixedRoutes::<BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS>::new(
-        BROWSER_PORTS_PER_GEAR as u16,
-    );
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .map_err(debug_error)?;
-    }
-    routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<BROWSER_HOST_OPERATION_BINDINGS>::new(
-        BROWSER_HOST_OPERATIONS_PER_GEAR,
-    );
-    for operation in &lowered.host_operations {
-        bindings
-            .install(operation.node, operation.binding)
-            .map_err(debug_error)?;
-    }
-    bindings.seal().map_err(debug_error)?;
-    let sign_bytes = u32::from(BROWSER_SIGN_ITEMS)
-        .checked_mul(
-            u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
-                .map_err(|_| "browser Sign size overflow")?,
-        )
-        .ok_or("browser Sign budget overflow")?;
-    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(BROWSER_SIGN_ITEMS)
-        .ok_or("browser remote Sign budget overflow")?;
-    let signs = HostedSignLog::new_with_remote_storage(
-        BROWSER_SIGN_ITEMS,
-        sign_bytes,
-        BROWSER_SIGN_ITEMS,
-        remote_sign_bytes,
-    )
-    .map_err(debug_error)?;
-    TourScheduler::new_with_active_counts_and_host_operations(
-        active_nodes,
-        active_cords,
-        nodes,
-        cords,
-        routes,
-        bindings,
-        drivers,
-        values,
-        signs,
-    )
-    .map_err(debug_error)
 }
 
 fn decode_timer_duration(

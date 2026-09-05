@@ -14,6 +14,7 @@ fn manifestation(effect: TourHostEffect) -> TourEffect {
         TourHostEffect::Manifestation(effect) => *effect,
         TourHostEffect::Timer(_) => panic!("the fixture must manifest before requesting a timer"),
         TourHostEffect::KeyEvent(_) => panic!("the fixture must manifest before requesting input"),
+        TourHostEffect::PointerEvent(_) => panic!("fixture unexpectedly requested pointer input"),
         TourHostEffect::ButtonTransition(_) => {
             panic!("the fixture must manifest before requesting button input")
         }
@@ -264,6 +265,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 timer.duration_millis, timer.request_sequence
             )),
             TourHostEffect::KeyEvent(_) => panic!("timer fixture requested keyboard input"),
+            TourHostEffect::PointerEvent(_) => panic!("timer fixture requested pointer input"),
             TourHostEffect::ButtonTransition(_) => {
                 panic!("timer fixture requested button input")
             }

@@ -296,6 +296,20 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 })))
             }
+            engine::BrowserHostEffect::PointerEvent => {
+                Ok(TourHostEffect::PointerEvent(Box::new(TourKeyEventEffect {
+                    schema: "conduit.browser/pointer-event-effect@1",
+                    effect_kind: "pointer-event",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: self.pending.request.request.0,
+                    maximum_output_bytes: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
+                        as u32,
+                    source_interaction: self.source_interaction.clone(),
+                })))
+            }
             engine::BrowserHostEffect::KeyEvent => {
                 Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
                     schema: "conduit.tour/key-event-effect@1",

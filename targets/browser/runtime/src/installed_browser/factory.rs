@@ -51,6 +51,10 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &math::SCALE,
     &math::DEADBAND,
     &quantity::MAP,
+    &super::normalized_quantity::NORMALIZE,
+    &super::pointer::POINTER,
+    &super::pointer_selector::POSITION,
+    &super::pointer_selector::X,
     &quantity_output::WRAP,
     &logic::COMPARE,
     &logic::NOT,
@@ -190,6 +194,9 @@ fn catalogs_for_presentation(
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
+    super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
