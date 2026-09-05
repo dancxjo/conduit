@@ -927,6 +927,7 @@ dependencies = [
  "conduit-form",
  "conduit-human",
  "conduit-midi",
+ "conduit-net",
  "conduit-planner",
  "conduit-presentation",
  "conduit-robotics",

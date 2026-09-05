@@ -121,3 +121,43 @@ fn structured_port_decode_keeps_profile_and_integrity_refusals_exact() {
         ))
     );
 }
+
+#[test]
+fn delivery_record_is_an_ordinary_composition_over_shared_framing() {
+    let source = include_str!("../../../forms/image-text-delivery-record/main.conduit");
+    let lower = source.to_ascii_lowercase();
+    for forbidden in [
+        "websocket",
+        "webrtc",
+        "browser",
+        "transport",
+        "socket",
+        "host",
+        "dom",
+    ] {
+        assert!(!lower.contains(forbidden), "Form contains {forbidden}");
+    }
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    install_human_media_catalogs(&mut startup, &mut profile).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authored =
+        expand_canonical_form_for_authoring(&checked, "image-text-delivery-record", &profile)
+            .unwrap();
+    assert_eq!(authored.expanded.gears.len(), 3);
+    assert!(authored
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == conduit_net::TYPED_RECORD_FRAME_KIND));
+    assert_eq!(authored.expanded.connections.len(), 2);
+
+    let (image_profile, record) = composed_record();
+    let typed = image_text_typed_record_value(&record, &image_profile).unwrap();
+    let restored = conduit_net::value_from_typed_record(&typed).unwrap();
+    assert_eq!(
+        image_text_record_from_value(&restored, &image_profile).unwrap(),
+        record
+    );
+}
