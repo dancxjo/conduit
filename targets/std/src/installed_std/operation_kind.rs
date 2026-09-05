@@ -64,6 +64,7 @@ use super::timed_button_attempt_operation::TimedButtonAttemptOperation;
 use super::timed_pattern_operation::TimedPatternOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
+use super::typed_record_operation::TypedRecordFrameOperation;
 use super::vector_search_operation::VectorSearchOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
@@ -137,6 +138,7 @@ pub(super) enum InstalledOperation {
     Json(JsonOperation),
     ImageText(ImageTextOperation),
     ImageTextRecord(ImageTextRecordOperation),
+    TypedRecordFrame(TypedRecordFrameOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),

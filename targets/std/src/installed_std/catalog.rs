@@ -106,6 +106,7 @@ use super::timed_button_attempt_operation::FACTORY as TIMED_BUTTON_ATTEMPT_FACTO
 use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
+use super::typed_record_operation::FACTORY as TYPED_RECORD_FRAME_FACTORY;
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
 use conduit_core::{ImplementationId, PlanFragment};
 
@@ -215,6 +216,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &STRUCTURED_SELECTOR_FACTORY,
     &STRUCTURED_LITERAL_FACTORY,
     &STRUCTURED_PRESENTATION_FACTORY,
+    &TYPED_RECORD_FRAME_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]

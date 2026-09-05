@@ -40,6 +40,8 @@ mod structured_values;
 pub use structured_values::*;
 mod image_text;
 pub use image_text::*;
+mod typed_record;
+pub use typed_record::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod keyboard;
