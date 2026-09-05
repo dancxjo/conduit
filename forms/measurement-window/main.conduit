@@ -1,0 +1,7 @@
+form measurement-window (
+    measurement: MeasurementSample...| > window: MeasurementWindow
+) {
+    retain: data/measurement-count-window(count = 8, when-full = "drop-oldest")
+    measurement > retain.measurement
+    retain.window > window
+}
