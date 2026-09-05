@@ -44,6 +44,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(deploy, /startsWith\(github\.event\.pull_request\.head\.ref, 'promote\/'\)/);
   assert.match(promotion, /CONDUIT_HEAD_SHA:.*pull_request\.head\.sha/);
   assert.match(promotion, /Verify exact source snapshot and merge ancestry/);
+  assert.match(promotion, /fetch-depth: 2/);
   assert.match(promotion, /FIRST_PARENT.*DEV_SNAPSHOT.*EXTRA/);
   assert.match(promotion, /HEAD_SHA\^\{tree\}/);
   assert.match(promotion, /Conduit-Dev-Snapshot/);
