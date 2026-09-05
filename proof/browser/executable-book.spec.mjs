@@ -1961,9 +1961,14 @@ test("Hosts chapter shows the exact installed offers from the planning advertise
   await expect(inventory.locator('[data-application-component="disclosure"]')).toBeVisible();
   await expect(inventory.locator('[data-application-component="definition-table"]')).toHaveAttribute("aria-label", "Exact browser planning offers");
   const visibleInstalled = [];
+  const openInventory = async () => {
+    const disclosure = inventory.locator('[data-application-component="disclosure"]');
+    if (await disclosure.getAttribute("open") === null) await disclosure.locator("summary").click();
+  };
   const firstPage = await inventory.locator('[data-application-key^="offer-available-"] dt').allTextContents();
   let inventoryPage = 1;
   for (;;) {
+    await openInventory();
     visibleInstalled.push(...await inventory.locator('[data-application-key^="offer-available-"] dt').allTextContents());
     const next = inventory.getByRole("button", { name: "Next offers", exact: true });
     if (await next.isDisabled()) break;
@@ -1972,10 +1977,12 @@ test("Hosts chapter shows the exact installed offers from the planning advertise
     await expect(inventory.locator('[data-application-key="inventory-page"]')).toHaveText(new RegExp(`^Offers page ${inventoryPage} of \\d+$`));
   }
   while (inventoryPage > 1) {
+    await openInventory();
     await inventory.getByRole("button", { name: "Previous offers", exact: true }).click();
     inventoryPage -= 1;
     await expect(inventory.locator('[data-application-key="inventory-page"]')).toHaveText(new RegExp(`^Offers page ${inventoryPage} of \\d+$`));
   }
+  await openInventory();
   await expect(inventory.getByRole("button", { name: "Previous offers", exact: true })).toBeDisabled();
   expect(await inventory.locator('[data-application-key^="offer-available-"] dt').allTextContents()).toEqual(firstPage);
   const advertisedInstalled = await page.evaluate(() => {
