@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
         let mut constructions = Vec::new();
         self.skip_empty();
         while self.index < self.lines.len() {
-            let (text, _) = self.lines[self.index].trimmed();
+            let (text, _) = self.lines[self.index].statement();
             if text.starts_with("form ") {
                 forms.push(self.parse_form()?);
             } else if text.starts_with("host ") {
@@ -138,7 +138,7 @@ impl<'a> Parser<'a> {
 
     fn parse_form(&mut self) -> Result<FormSyntax, (FormError, Span)> {
         let header_line = self.lines[self.index];
-        let (header, header_start) = header_line.trimmed();
+        let (header, header_start) = header_line.statement();
         let rest = header.strip_prefix("form ").ok_or_else(|| {
             (
                 FormError::InvalidSyntax("expected 'form NAME' definition".into()),
@@ -199,7 +199,7 @@ impl<'a> Parser<'a> {
         let mut face = FormFace::default();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
-            let (text, start) = line.trimmed();
+            let (text, start) = line.statement();
             if text == ") {" || text == "){" {
                 face.span = Some(self.span(open, start + text.find(')').unwrap() + 1));
                 self.index += 1;
@@ -316,7 +316,7 @@ impl<'a> Parser<'a> {
         let mut statements = Vec::new();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
-            let (text, start) = line.trimmed();
+            let (text, start) = line.statement();
             if text == "}" {
                 self.index += 1;
                 return Ok(statements);
@@ -514,8 +514,8 @@ impl<'a> Parser<'a> {
 
     fn skip_empty(&mut self) {
         while self.index < self.lines.len() {
-            let (text, _) = self.lines[self.index].trimmed();
-            if !text.is_empty() && !text.starts_with('#') {
+            let (text, _) = self.lines[self.index].statement();
+            if !text.is_empty() {
                 break;
             }
             self.index += 1;
@@ -541,7 +541,7 @@ impl<'a> Parser<'a> {
     }
 
     fn line_span(&self, line: SourceLine<'_>) -> Span {
-        let (text, start) = line.trimmed();
+        let (text, start) = line.statement();
         self.span(start, start + text.len())
     }
 
