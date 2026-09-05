@@ -6,6 +6,8 @@ mod timing;
 pub use timing::*;
 mod timed_pattern;
 pub use timed_pattern::*;
+mod timed_button_attempt;
+pub use timed_button_attempt::*;
 mod sequence_normalization;
 pub use sequence_normalization::*;
 mod pattern_comparison;
