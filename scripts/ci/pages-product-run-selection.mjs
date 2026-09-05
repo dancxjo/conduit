@@ -1,3 +1,13 @@
+const PRODUCT_CARRIER_WORKFLOW_PATHS = new Set([
+  ".github/workflows/candidate.yml",
+  ".github/workflows/executable-book-pages.yml",
+]);
+
+export function productCarrierRuns(runs) {
+  if (!Array.isArray(runs)) return [];
+  return runs.filter((run) => PRODUCT_CARRIER_WORKFLOW_PATHS.has(run?.path));
+}
+
 export function selectExactSuccessfulRun(runs, headSha, pullNumber) {
   if (!Array.isArray(runs) || !/^[0-9a-f]{40}$/.test(headSha ?? "")) return undefined;
   return runs.find((candidate) =>
