@@ -135,13 +135,14 @@ jobs:
     timeout-minutes: 8
     outputs:
       run_id: ${{ steps.resolve.outputs.run_id }}
+      carrier_present: ${{ steps.resolve.outputs.carrier_present }}
       merge_commit: ${{ steps.resolve.outputs.merge_commit }}
       source_head: ${{ steps.resolve.outputs.source_head }}
       source_tree: ${{ steps.resolve.outputs.source_tree }}
       integration_base: ${{ steps.resolve.outputs.integration_base }}
       integration_tree: ${{ steps.resolve.outputs.integration_tree }}
       pr_number: ${{ steps.resolve.outputs.pr_number }}
-      disposition: ${{ steps.direct.outputs.disposition || steps.reconcile.outputs.disposition }}
+      disposition: ${{ steps.direct.outputs.disposition || steps.materialize.outputs.disposition }}
       direct_main: ${{ steps.resolve.outputs.direct_main }}
     steps:
       - name: Check out trusted merged workflow machinery
@@ -181,6 +182,19 @@ jobs:
             --locked --allow-execute \
             --json-out target/pages-product-reconciliation.json \
             >> "$GITHUB_OUTPUT"
+      - name: Require exact carrier bytes for inherited promotion
+        id: materialize
+        if: steps.resolve.outputs.direct_main != 'true'
+        env:
+          RECONCILED_DISPOSITION: ${{ steps.reconcile.outputs.disposition }}
+          CARRIER_PRESENT: ${{ steps.resolve.outputs.carrier_present }}
+        run: |
+          disposition=$RECONCILED_DISPOSITION
+          if test "$disposition" = inherited && test "$CARRIER_PRESENT" != true; then
+            disposition=execute
+            echo 'Exact proof is inherited, but its carrier payload is absent; fabricate the merged tree.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "disposition=$disposition" >> "$GITHUB_OUTPUT"
       - name: Fabricate the exact explicitly requested current main carrier
         id: direct
         if: steps.resolve.outputs.direct_main == 'true'

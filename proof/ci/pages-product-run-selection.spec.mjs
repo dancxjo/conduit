@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
+import { hasRetainedArtifact, productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
 
 const head = "ef22d9e1b0f3d4cbc19fb35ac4e330f8dbf2b5dc";
 const merged = "7dccbe822271ef1ac8a0fd49e7cc37add40a943c";
@@ -19,6 +19,21 @@ test("admits the unified candidate and legacy product workflows only", () => {
     legacy,
   ]), [candidate, legacy]);
   assert.deepEqual(productCarrierRuns(undefined), []);
+});
+
+test("inherited promotion requires retained nonempty carrier bytes", () => {
+  assert.equal(hasRetainedArtifact([
+    { name: "conduit-pages-carrier", expired: false, size_in_bytes: 42 },
+  ], "conduit-pages-carrier"), true);
+  for (const artifact of [
+    { name: "other", expired: false, size_in_bytes: 42 },
+    { name: "conduit-pages-carrier", expired: true, size_in_bytes: 42 },
+    { name: "conduit-pages-carrier", expired: false, size_in_bytes: 0 },
+    { name: "conduit-pages-carrier", expired: false },
+  ]) {
+    assert.equal(hasRetainedArtifact([artifact], "conduit-pages-carrier"), false);
+  }
+  assert.equal(hasRetainedArtifact(undefined, "conduit-pages-carrier"), false);
 });
 
 test("selects the successful exact-head run when GitHub omits PR associations", () => {

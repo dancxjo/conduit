@@ -458,8 +458,12 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     assert!(workflow.contains("main_sha:\n"));
     assert!(workflow.contains("steps.resolve.outputs.direct_main == 'true'"));
     assert!(workflow.contains(
-        "disposition: ${{ steps.direct.outputs.disposition || steps.reconcile.outputs.disposition }}"
+        "disposition: ${{ steps.direct.outputs.disposition || steps.materialize.outputs.disposition }}"
     ));
+    assert!(workflow.contains("RECONCILED_DISPOSITION: ${{ steps.reconcile.outputs.disposition }}"));
+    assert!(workflow.contains("CARRIER_PRESENT: ${{ steps.resolve.outputs.carrier_present }}"));
+    assert!(workflow
+        .contains("if test \"$disposition\" = inherited && test \"$CARRIER_PRESENT\" != true"));
     assert!(workflow.contains("candidate_sha: ${{ needs.resolve.outputs.merge_commit }}"));
     assert!(workflow.contains("name: Download the inherited candidate Pages carrier"));
     assert!(workflow.contains("name: Download the newly proven integration Pages carrier"));

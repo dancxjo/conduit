@@ -8,6 +8,16 @@ export function productCarrierRuns(runs) {
   return runs.filter((run) => PRODUCT_CARRIER_WORKFLOW_PATHS.has(run?.path));
 }
 
+export function hasRetainedArtifact(artifacts, name) {
+  return Array.isArray(artifacts)
+    && typeof name === "string"
+    && name.length > 0
+    && artifacts.some((artifact) => artifact?.name === name
+      && artifact.expired === false
+      && Number.isSafeInteger(artifact.size_in_bytes)
+      && artifact.size_in_bytes > 0);
+}
+
 export function selectExactSuccessfulRun(runs, headSha, pullNumber) {
   if (!Array.isArray(runs) || !/^[0-9a-f]{40}$/.test(headSha ?? "")) return undefined;
   return runs.find((candidate) =>
