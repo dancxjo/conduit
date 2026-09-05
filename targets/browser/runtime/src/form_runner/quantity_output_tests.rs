@@ -2,9 +2,8 @@
 
 use super::*;
 
-#[test]
-fn pointer_quantity_chain_uses_selectors_mapping_and_correlated_presentation() {
-    let source = format!(
+fn pointer_quantity_source() -> String {
+    format!(
         r#"{}
 form zz-pointer-quantity {{
  pointer: input/pointer-source
@@ -18,7 +17,12 @@ form zz-pointer-quantity {{
  wrap.out > show.input
 }}"#,
         include_str!("../../../../../forms/quantity-range-map/main.conduit")
-    );
+    )
+}
+
+#[test]
+fn pointer_quantity_chain_uses_selectors_mapping_and_correlated_presentation() {
+    let source = pointer_quantity_source();
     for (position_x, expected) in [(0, "20 Hz"), (500_000, "10010 Hz"), (1_000_000, "20000 Hz")] {
         let (mut session, effect) = TourSession::prepare_with_profile(
             "pointer-controller",
@@ -70,6 +74,50 @@ form zz-pointer-quantity {{
         assert_eq!(receipt.disposition, "completed");
         assert_eq!(receipt.active_play_id, output.active_play_id);
     }
+}
+
+#[test]
+fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentation() {
+    use conduit_core::{Quantity, QuantityUnit};
+    let (mut session, _) = TourSession::prepare_with_profile(
+        "pointer-negative",
+        "pointer-negative-boot",
+        &pointer_quantity_source(),
+        1,
+        MorseRealization::Direct,
+        true,
+    )
+    .unwrap();
+    let mut canonical = conduit_semantic_catalog::normalized_pointer_value(
+        conduit_semantic_catalog::NormalizedPointerSample {
+            position_x: 123_456,
+            position_y: 0,
+            delta_x: 0,
+            delta_y: 0,
+            primary_pressed: false,
+            coalesced: 0,
+            dropped: 0,
+            queue_capacity: 1,
+            sequence: 1,
+        },
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let original = Quantity::new(123_456, QuantityUnit::Millionth).encode();
+    let offsets: Vec<_> = canonical
+        .windows(original.len())
+        .enumerate()
+        .filter_map(|(index, bytes)| (bytes == original).then_some(index))
+        .collect();
+    assert_eq!(offsets.len(), 1, "mutate only the exact selected x leaf");
+    canonical[offsets[0]..offsets[0] + original.len()]
+        .copy_from_slice(&Quantity::new(123_456, QuantityUnit::Hertz).encode());
+    // The record is still structurally canonical. Unit refusal belongs to the
+    // explicit converter, not to JS acquisition or a selector's field meaning.
+    conduit_core::StructuredInfoValue::from_canonical_bytes(&canonical).unwrap();
+    let error = session.advance_with_output(&canonical).unwrap_err();
+    assert!(error.contains("OperationFailed(12)"), "{error}");
 }
 
 #[test]
