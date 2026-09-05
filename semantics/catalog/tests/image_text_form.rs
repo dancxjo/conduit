@@ -12,18 +12,22 @@ fn composed_record() -> (conduit_core::KindId, conduit_human::ImageTextRecord) {
         ResourceSemanticIdentity, ResourceVersionIdentity,
     };
     let profile = kind_id("media/image-rgba8@1");
-    let image = BoundedResourceRef {
-        identity: ResourceSemanticIdentity::from_digest([1; 32]),
-        content_profile: profile.clone(),
-        access_class: ResourceClassId::from("conduit.resource/image-content@1"),
-        extent: ResourceExtent {
-            bytes: 4_096,
-            items: Some(1),
+    let image = conduit_human::ImageObservationReference {
+        content: BoundedResourceRef {
+            identity: ResourceSemanticIdentity::from_digest([1; 32]),
+            content_profile: profile.clone(),
+            access_class: ResourceClassId::from("conduit.resource/image-content@1"),
+            extent: ResourceExtent {
+                bytes: 4_096,
+                items: Some(1),
+            },
+            lifetime: ResourceLifetime {
+                version: ResourceVersionIdentity::from_digest([2; 32]),
+                expires_at: None,
+            },
         },
-        lifetime: ResourceLifetime {
-            version: ResourceVersionIdentity::from_digest([2; 32]),
-            expires_at: None,
-        },
+        width: 640,
+        height: 480,
     };
     let record = conduit_human::compose_image_text(
         &profile,
@@ -83,11 +87,20 @@ fn composed_schema_is_finite_and_keeps_image_as_a_resource_reference() {
         panic!("image-text result must be a record");
     };
     let image = fields.iter().find(|field| field.name() == "image").unwrap();
-    assert!(matches!(
-        image.value_type().shape(),
+    let StructuredInfoTypeShape::Record {
+        fields: image_fields,
+        ..
+    } = image.value_type().shape()
+    else {
+        panic!("image observation must retain dimensions with its resource")
+    };
+    let content = image_fields
+        .iter()
+        .find(|field| field.name() == "content")
+        .unwrap();
+    assert!(matches!(content.value_type().shape(),
         StructuredInfoTypeShape::Leaf(identity)
-            if identity.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID
-    ));
+            if identity.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID));
     let metadata = fields
         .iter()
         .find(|field| field.name() == "metadata")
