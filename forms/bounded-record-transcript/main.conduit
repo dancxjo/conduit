@@ -1,7 +1,7 @@
 form bounded-record-transcript (
     maximum-items: Count = 16
-    maximum-frame-bytes: Count = 4267
-    maximum-retained-bytes: Count = 136544
+    maximum-frame-bytes: Count = 4096
+    maximum-retained-bytes: Count = 131072
     > sent: FramedTypedRecord...|
     > received: FramedTypedRecord...|
     > terminal: RecordTerminalEvent...|

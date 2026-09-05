@@ -6,9 +6,10 @@ use conduit_core::{
 };
 use conduit_human::{compose_image_text, ImageTextMetadata, ImageTextRecord};
 use conduit_net::{
-    decode_typed_record, encode_typed_record_into, BoundedOrderedRecordQueue,
+    deframe_typed_record_value, frame_typed_record_value_into, framed_typed_record_value,
+    typed_record_value, value_from_typed_record, BoundedOrderedRecordQueue,
     BoundedRecordTranscript, RecordDeliveryStateRef, RecordDeliveryTracker,
-    RecordTranscriptDirection, TypedRecordRef, MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+    RecordTranscriptDirection, MAXIMUM_TYPED_RECORD_FRAME_BYTES,
 };
 use conduit_semantic_catalog::{
     image_text_record_from_value, image_text_record_type, image_text_record_value,
@@ -54,15 +55,9 @@ fn composed() -> (conduit_core::KindId, ImageTextRecord) {
 fn composed_value_uses_shared_framing_queue_receipt_and_transcript() {
     let (image_profile, original) = composed();
     let value = image_text_record_value(&original, &image_profile).unwrap();
-    let payload = value.canonical_bytes().unwrap();
-    let value_profile = value.value_type().profile().unwrap();
-    let value_kind = value_profile.value_kind().as_str();
+    let typed = typed_record_value(&value).unwrap();
     let mut frame_buffer = [0; MAXIMUM_TYPED_RECORD_FRAME_BYTES];
-    let frame_length = encode_typed_record_into(
-        TypedRecordRef::new(value_kind, &payload).unwrap(),
-        &mut frame_buffer,
-    )
-    .unwrap();
+    let frame_length = frame_typed_record_value_into(&typed, &mut frame_buffer).unwrap();
     let frame = &frame_buffer[..frame_length];
 
     let mut queue = BoundedOrderedRecordQueue::new(2, frame_length, 40).unwrap();
@@ -76,9 +71,9 @@ fn composed_value_uses_shared_framing_queue_receipt_and_transcript() {
     ));
 
     let received_frame = queue.dequeue().unwrap().frame.to_vec();
-    let received = decode_typed_record(&received_frame).unwrap();
-    let received_value =
-        conduit_core::StructuredInfoValue::from_canonical_bytes(received.payload()).unwrap();
+    let framed = framed_typed_record_value(&received_frame).unwrap();
+    let received_typed = deframe_typed_record_value(&framed).unwrap();
+    let received_value = value_from_typed_record(&received_typed).unwrap();
     let reconstructed = image_text_record_from_value(&received_value, &image_profile).unwrap();
     assert_eq!(reconstructed, original);
 
