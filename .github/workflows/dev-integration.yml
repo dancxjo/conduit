@@ -1,0 +1,58 @@
+name: dev-integration
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dev-integration-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  boundary:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - name: Verify the development integration boundary
+        env:
+          CONDUIT_EVENT_NAME: push
+          CONDUIT_REF_NAME: ${{ github.ref_name }}
+        run: node scripts/ci/branch-boundary.mjs dev
+
+  check:
+    needs: boundary
+    uses: ./.github/workflows/check.yml
+    with:
+      base_sha: ${{ github.event.before }}
+      candidate_sha: ${{ github.sha }}
+      development_admission: true
+
+  products:
+    needs: boundary
+    uses: ./.github/workflows/executable-book-pages.yml
+    with:
+      base_sha: ${{ github.event.before }}
+      candidate_sha: ${{ github.sha }}
+      development_admission: true
+
+  dev-integration:
+    needs: [boundary, check, products]
+    if: always() && !cancelled()
+    runs-on: ubuntu-slim
+    steps:
+      - name: Keep the construction site usable
+        env:
+          BOUNDARY_RESULT: ${{ needs.boundary.result }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          PRODUCTS_RESULT: ${{ needs.products.result }}
+        run: |
+          test "$BOUNDARY_RESULT" = success
+          test "$CHECK_RESULT" = success
+          test "$PRODUCTS_RESULT" = success

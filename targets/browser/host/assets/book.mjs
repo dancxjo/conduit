@@ -1049,8 +1049,8 @@ async function runListing(runner, source, recursive) {
         if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
         const encoded = new Uint8Array(
           api.memory.buffer,
-          api.conduit_book_output_ptr(),
-          api.conduit_book_output_len(),
+          api.conduit_browser_form_output_ptr(),
+          api.conduit_browser_form_output_len(),
         ).slice();
         new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
         const completion = api.conduit_browser_form_complete_with_output(encoded.length);

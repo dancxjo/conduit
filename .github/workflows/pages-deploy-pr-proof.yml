@@ -2,6 +2,7 @@ name: pages-deploy-pr-proof
 
 on:
   pull_request:
+    branches: [dev]
     paths:
       - .github/workflows/executable-book-deploy.yml
       - .github/workflows/pages-deploy-pr-proof.yml

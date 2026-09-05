@@ -13,7 +13,7 @@ When these sources differ, do not improvise a synthesis. Current executable trut
 
 ## Before starting
 
-- Start from an explicit, current `main` commit and record it in the issue or PR.
+- Start ordinary work from an explicit, current `dev` commit and record it in the issue or PR. Only the PR shepherd prepares `dev`-to-`main` promotion work.
 - State the one outcome being attempted, its non-goals, and the proof needed to accept it.
 - Identify the files and contracts the work is expected to own.
 - Check open PRs for overlapping files or architectural surfaces.
@@ -46,11 +46,28 @@ Parallel work is encouraged only when ownership is clear.
 - Reserve integration files such as `README.md`, `STATUS.md`, `docs/reuse-ledger.md`, root manifests, the `justfile`, and workflow files for the integration owner unless a sidecar issue explicitly owns them.
 - Sidecar PRs should add isolated tests, fixtures, scripts, or documents without opportunistic refactors.
 - Do not edit another agent's branch, rewrite its history, or absorb its issue without an explicit handoff.
-- A green exact-PR-head proof remains valid when `main` advances through changes that are disjoint from the PR's owned files, dependencies, proof inputs, and governing contracts and GitHub still computes a clean merge. Record that disjointness check; do not rebase or rerun merely to refresh ancestry. Rebase or merge current `main` and rerun only when the intervening changes overlap one of those surfaces, alter the prospective merge, or make the prior proof materially stale.
+- Ordinary branches and pull requests target `dev`. Refresh stale work by rebasing or reapplying its smallest clean product delta onto current `dev`; do not build compatibility machinery merely to preserve stale candidate ancestry.
+- If `dev` is red, restoring it outranks admitting more work. The PR shepherd owns combined-tree fallout and should either repair it promptly or revert the smallest offending integration through a reviewable PR.
+
+## Local machine disk cleanup
+
+Aggressive cleanup is a valid maintenance option only on Dan's user-owned local-network machines whose hostname is `victus.local` or ends in `.local`. It is never valid in cloud, CI, hosted runner, shared, or otherwise remotely managed environments, even when disk pressure is severe. Verify the hostname and environment before deleting anything; an unknown environment means stop and report the disk-pressure blocker.
+
+On an eligible `.local` machine, recover space in this order:
+
+1. Inventory filesystem usage and the largest directories before changing state. Check for active Cargo, compiler, browser-proof, VM, and other processes that may own candidate artifacts.
+2. Remove regenerable build outputs such as inactive Rust `target` directories and tool caches. Preserve outputs used by a running process. Do not delete source trees, repositories, credentials, downloads, virtual-machine images, or other user data merely because they are large.
+3. Empty desktop trash and remove stale user-owned temporary artifacts. Do not disturb active sockets, sessions, system-owned temporary paths, or recent artifacts whose ownership is unclear.
+4. Use package-native cleanup for package caches and bounded journal retention when available. Do not bypass missing privileges or turn a cleanup into an operating-system reconfiguration.
+5. Before deleting a Git worktree, fetch and prune `origin`, verify that the worktree is not the active checkout, verify `git status --porcelain` is empty including untracked files, and verify its exact `HEAD` is reachable from at least one current `origin/*` ref. Retain and report every dirty, untracked, unpushed, unreachable, or unverifiable worktree. Remove qualifying worktrees through `git worktree remove`, then run `git worktree prune`; do not delete their directories directly.
+6. Report the before/after free space, what classes of data were removed, what large candidates were deliberately preserved, and any cleanup blocked by permissions.
+
+Disk cleanup is machine maintenance, not permission to change Conduit source or enlarge an issue's implementation scope.
 
 ## Change discipline
 
-- Do not push directly to `main`.
+- Do not push directly to `main`. Stable `main` accepts only the exact head of the repository's `dev` branch through a promotion PR whose exhaustive gate succeeded.
+- Do not open feature, documentation, maintenance, or CI PRs directly against `main`. The sole routine `main` PR is `dev` to `main` promotion.
 - Keep PRs reviewable. A large milestone may use several small PRs, but closing the parent issue requires the complete acceptance proof.
 - Do not introduce broad renames, compatibility layers, dependencies, generated files, or cleanup unrelated to the owned outcome.
 - Do not rebuild archived subsystems wholesale. Recover the smallest reviewed concept demanded by a working vertical slice and record its provenance in `docs/reuse-ledger.md`.
@@ -96,19 +113,25 @@ A green check proves only the commands and environments it actually ran.
 - Exact-main acceptance means the merged commit, not merely a PR head or local workspace, passed the named required jobs.
 - If a tool, board, device, credential, or environment is absent, report the verification gap precisely. Do not manufacture a substitute claim.
 
-### CI identity
+### Integration and promotion
 
-- A pull-request number names a development lifecycle. Its exact head commit is the immutable candidate; neither the PR number nor GitHub's synthetic merge commit is proof identity.
-- Candidate workflows must explicitly check out `github.event.pull_request.head.sha`. Candidate evidence remains historically true when `main` moves.
-- Integration is the prospective composition of a candidate with a current base. Reconciliation fingerprints that tree and inherits only complete successful receipts with the exact same versioned proof key.
-- A base SHA, workflow run ID, merge-ref SHA, or cache key is never by itself a reason to invalidate proof. Missing, corrupt, unknown, or mismatched receipts require execution.
-- Candidate work for one PR must not cancel another PR. Shared publication resources may serialize after proof.
+- `dev` is the construction site. Feature PRs receive focused impact-based proof sufficient to admit them into integration; one PR never cancels another.
+- A push to `dev` proves the combined development tree with integration smoke. A red `dev` blocks further admission until repaired.
+- `main` is stable and releasable. A same-repository `dev`-to-`main` promotion PR runs the exhaustive workspace, product, browser, firmware, and ConduitOS gate against its exact head.
+- Candidate evidence answers whether a change is sound enough for `dev`. Development evidence answers whether the current combined tree basically works. Promotion evidence alone answers whether an exact tree may become `main`.
+- Merging or advancing `dev` does not require old feature heads to negotiate with future CI. Refresh stale candidates onto current `dev` when they approach admission.
+- Pages deployment consumes the already-proven carrier from the successful promotion and runs only after that promotion merges. Privileged deployment code never executes untrusted PR-controlled code.
+- Emergency consolidation is exceptional recovery: snapshot every open head, combine only reviewed deltas on a branch from current `dev`, resolve fallout once, prove the combined tree, merge it to `dev`, verify every absorbed head or patch is represented, then close superseded PRs with signed evidence. Never force an unproven recovery tree into `main`.
+
+### PR shepherd
+
+The named PR shepherd keeps the queue moving and the branch boundaries truthful. They monitor open PRs and Actions, redirect PRs aimed at the wrong branch, refresh old product deltas onto current `dev`, sequence overlapping work, resolve integration failures before accepting more changes, close absorbed or obsolete PRs with evidence, and open periodic `dev`-to-`main` promotions. They simplify avoidable process rather than adding ceremonial bytes or compatibility layers. They do not weaken proof classes, cross privilege boundaries, or claim a deployment before exact promotion evidence exists.
 
 ## PR contract
 
 Every PR description should state:
 
-- the exact base commit;
+- the exact `dev` base commit (or exact `main` base for the single promotion PR);
 - what changed and why;
 - the owning issue and acceptance slice;
 - architectural invariants touched;
@@ -117,7 +140,7 @@ Every PR description should state:
 - commands or workflow runs used for validation;
 - what remains open after merge.
 
-Implementation and acceptance-record changes should normally be separate when claims depend on exact-main CI. Update `README.md`, `STATUS.md`, the roadmap, and audit records only after the implementation reaches accepted exact-main evidence.
+Implementation and acceptance-record changes should normally be separate when claims depend on stable promotion evidence. Update `README.md`, `STATUS.md`, the roadmap, and audit records only after the implementation reaches accepted exact-main evidence.
 
 ## Review contract
 

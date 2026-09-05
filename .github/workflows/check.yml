@@ -22,6 +22,16 @@ on:
         required: false
         default: ''
         type: string
+      full_suite:
+        description: Run the exhaustive stable-main promotion proof set
+        required: false
+        default: false
+        type: boolean
+      development_admission:
+        description: Keep dev admission focused; machine worlds require direct target changes
+        required: false
+        default: false
+        type: boolean
   merge_group:
 
 permissions:
@@ -50,7 +60,7 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
+      docs_only: ${{ inputs.full_suite && 'false' || steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
       reason: ${{ steps.slice.outputs.reason || steps.changes.outputs.reason }}
       base_sha: ${{ steps.slice.outputs.base_sha || steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.slice.outputs.head_sha || steps.changes.outputs.head_sha }}
@@ -60,19 +70,19 @@ jobs:
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CHECKOUT_SHA }}
       controller_sha: ${{ steps.controller.outputs.sha }}
       exact_execution: ${{ steps.execution.outputs.exact_execution || 'false' }}
-      esp32_required: ${{ steps.execution.outputs.esp32_required || steps.impact.outputs.esp32_required }}
-      esp32_matrix: ${{ steps.execution.outputs.esp32_matrix || steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
-      standalone_locks_required: ${{ steps.execution.outputs.standalone_locks_required || steps.impact.outputs.esp32_required }}
-      browser_required: ${{ steps.impact.outputs.browser_required }}
-      conduitos_required: ${{ steps.execution.outputs.conduitos_required || steps.impact.outputs.conduitos_required }}
-      conduitos_limine_required: ${{ steps.execution.outputs.conduitos_limine_required || steps.impact.outputs.conduitos_required }}
-      conduitos_tools_required: ${{ steps.execution.outputs.conduitos_tools_required || steps.impact.outputs.conduitos_required }}
-      conduitos_x86_matrix: ${{ steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
-      conduitos_architecture_matrix: ${{ steps.execution.outputs.conduitos_architecture_matrix || steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
-      conduitos_aarch64_product_required: ${{ steps.execution.outputs.conduitos_aarch64_product_required || steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
+      esp32_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.esp32_required || steps.execution.outputs.esp32_required || steps.impact.outputs.esp32_required }}
+      esp32_matrix: ${{ inputs.full_suite && '["wroom","c3","s3"]' || steps.execution.outputs.esp32_matrix || steps.impact.outputs.esp32_matrix || '["wroom","c3","s3"]' }}
+      standalone_locks_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.esp32_required || steps.execution.outputs.standalone_locks_required || steps.impact.outputs.esp32_required }}
+      browser_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.browser_required }}
+      conduitos_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required || steps.execution.outputs.conduitos_required || steps.impact.outputs.conduitos_required }}
+      conduitos_limine_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required || steps.execution.outputs.conduitos_limine_required || steps.impact.outputs.conduitos_required }}
+      conduitos_tools_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required || steps.execution.outputs.conduitos_tools_required || steps.impact.outputs.conduitos_required }}
+      conduitos_x86_matrix: ${{ inputs.development_admission && steps.development.outputs.conduitos_x86_matrix || inputs.full_suite && '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' || steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+      conduitos_architecture_matrix: ${{ inputs.development_admission && steps.development.outputs.conduitos_architecture_matrix || inputs.full_suite && '["aarch64","ia32","riscv64","loongarch64"]' || steps.execution.outputs.conduitos_architecture_matrix || steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
+      conduitos_aarch64_product_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_aarch64_product_required || steps.execution.outputs.conduitos_aarch64_product_required || steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
       impact_reason: ${{ steps.execution.outputs.impact_reason || steps.impact.outputs.impact_reason }}
-      workspace_matrix: ${{ steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
-      workspace_lint_full: ${{ steps.impact.outputs.workspace_lint_full || 'true' }}
+      workspace_matrix: ${{ inputs.full_suite && '["lint","test-foundation","test-hosts","test-products","portable","pico"]' || steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix || '["lint","test-foundation","test-hosts","test-products","portable","pico"]' }}
+      workspace_lint_full: ${{ inputs.full_suite && 'true' || steps.impact.outputs.workspace_lint_full || 'true' }}
       workspace_lint_packages: ${{ steps.impact.outputs.workspace_lint_packages || '[]' }}
       workspace_test_packages: ${{ steps.impact.outputs.workspace_test_packages || '[]' }}
       ci_controller_required: ${{ steps.execution.outputs.ci_controller_required || steps.impact.outputs.ci_controller_required }}
@@ -193,6 +203,32 @@ jobs:
             ci execution-plan --proof-ids-json "$EXECUTE_PROOFS" --locked \
             >> "$GITHUB_OUTPUT"
           printf 'Exact reconciliation execution: `%s`\n' "$EXECUTE_PROOFS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Bound development machine proof to directly changed target worlds
+        id: development
+        if: inputs.development_admission && steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        env:
+          BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}
+          HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
+          X86_MATRIX: ${{ steps.impact.outputs.conduitos_x86_matrix }}
+          ARCHITECTURE_MATRIX: ${{ steps.impact.outputs.conduitos_architecture_matrix }}
+          AARCH64_PRODUCT_REQUIRED: ${{ steps.impact.outputs.conduitos_aarch64_product_required }}
+        run: |
+          paths=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          esp32_required=false
+          conduitos_required=false
+          if grep -Eq '^(targets/esp32/|targets/shared/firmware/)' <<<"$paths"; then esp32_required=true; fi
+          if grep -Eq '^targets/conduitos/' <<<"$paths"; then conduitos_required=true; fi
+          echo "esp32_required=$esp32_required" >> "$GITHUB_OUTPUT"
+          echo "conduitos_required=$conduitos_required" >> "$GITHUB_OUTPUT"
+          if test "$conduitos_required" = true; then
+            echo "conduitos_x86_matrix=${X86_MATRIX:-[]}" >> "$GITHUB_OUTPUT"
+            echo "conduitos_architecture_matrix=${ARCHITECTURE_MATRIX:-[]}" >> "$GITHUB_OUTPUT"
+            echo "conduitos_aarch64_product_required=${AARCH64_PRODUCT_REQUIRED:-false}" >> "$GITHUB_OUTPUT"
+          else
+            echo 'conduitos_x86_matrix=[]' >> "$GITHUB_OUTPUT"
+            echo 'conduitos_architecture_matrix=[]' >> "$GITHUB_OUTPUT"
+            echo 'conduitos_aarch64_product_required=false' >> "$GITHUB_OUTPUT"
+          fi
       - name: Verify candidate lifecycle controller contracts
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: >-
@@ -595,7 +631,7 @@ jobs:
           AARCH64_PRODUCT_REQUIRED: ${{ needs.classify.outputs.conduitos_aarch64_product_required }}
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
           STANDALONE_LOCKS_REQUIRED: ${{ needs.classify.outputs.standalone_locks_required }}
-          EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
+          EVENT_NAME: ${{ inputs.full_suite && 'merge_group' || (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
           if test "${SHARED_COMPILE_RESULT:-success}" != success; then
             printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["workspace","browser","candidate-machine"]}\n' \
@@ -896,37 +932,39 @@ jobs:
         continue-on-error: true
         env:
           SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+          CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
           args=()
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
-          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --locked
+          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
       - name: Validate the complete x86 batch contract
         id: x86-contract
         if: always()
         continue-on-error: true
         env:
           SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+          CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           jq -e --argjson expected "$SELECTED_PROOFS" '
             .schema == "conduit.conduitos.prove-many/v1" and
             (($expected | length) == 1 or .maximum_observed_parallelism > 1) and
             ([.results[].proof] == ($expected | sort)) and
             all(.results[]; .status == "success")
-          ' target/conduitos/prove-many/summary.json
+          ' "$CONDUIT_X86_BATCH_ROOT/summary.json"
       - name: Retain distinct bounded x86 proof evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: conduitos-x86-batch-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
-            target/conduitos/prove-many/summary.json
-            target/conduitos/prove-many/results
-            target/conduitos/prove-many/runs/*/logs
-            target/conduitos/prove-many/runs/*/evidence
-            target/conduitos/prove-many/runs/*/conduitos/**/*.json
-            target/conduitos/prove-many/runs/*/conduitos/**/*.log
-            target/conduitos/prove-many/runs/*/conduitos/**/*.png
+            ${{ runner.temp }}/conduitos-prove-many/summary.json
+            ${{ runner.temp }}/conduitos-prove-many/results
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/logs
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/evidence
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/conduitos/**/*.json
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/conduitos/**/*.log
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/conduitos/**/*.png
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -946,6 +984,7 @@ jobs:
         if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           SELECTED_PROOFS: ${{ needs.classify.outputs.conduitos_x86_matrix }}
+          CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           chmod 755 "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch"
           mkdir -p target/ci-receipts
@@ -957,7 +996,7 @@ jobs:
               "$RUNNER_TEMP/conduit-ci-plan/ci-proof-plan.json" >/dev/null
             "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch" \
               ci attest-success "$CONDUIT_CHECKOUT_SHA" "$proof_id" \
-              --evidence "target/conduitos/prove-many/results/$proof.json" \
+              --evidence "$CONDUIT_X86_BATCH_ROOT/results/$proof.json" \
               --out "target/ci-receipts/$proof_id.json" --locked
           done
       - name: Retain immutable x86 proof receipts

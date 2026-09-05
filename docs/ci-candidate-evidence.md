@@ -1,4 +1,6 @@
-# Candidate evidence and integration reconciliation
+# Candidate evidence and integration reconciliation (historical mechanism)
+
+The active repository admission model is [integration and promotion](integration-and-promotion.md). This document records the content-addressed candidate/reconciliation machinery retained in the codebase during migration; it is no longer the ordinary PR operating policy. New CI work must not extend this mechanism unless a demonstrated `dev` admission or `main` promotion failure requires it.
 
 Conduit CI distinguishes identities that GitHub's default pull-request checkout can make look interchangeable.
 

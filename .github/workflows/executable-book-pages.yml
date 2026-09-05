@@ -22,6 +22,16 @@ on:
         required: false
         default: ''
         type: string
+      full_suite:
+        description: Fabricate and prove the complete stable-main product carrier
+        required: false
+        default: false
+        type: boolean
+      development_admission:
+        description: Prove affected browser presentation without release fabrication
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       base_sha:
@@ -50,18 +60,18 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      exact_execution: ${{ inputs.execute_proofs != '' }}
-      required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      exact_execution: ${{ inputs.development_admission || inputs.execute_proofs != '' }}
+      required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       proofs: ${{ (inputs.execute_proofs != '' && inputs.execute_proofs) || steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
-      browser_runtime_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
-      tour_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
-      pages_carrier_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      browser_runtime_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      tour_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
       stack_role: ${{ steps.stack.outputs.role || 'independent' }}
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
-      standalone_locks_required: ${{ steps.impact.outputs.esp32_required || 'true' }}
+      standalone_locks_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
-      patchbay_debugger_required: ${{ (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)) || (inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true') }}
+      patchbay_debugger_required: ${{ inputs.full_suite || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)) || (inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true') }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -275,9 +285,9 @@ jobs:
           --workers 1
           --retries 0
           --grep
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms"
       - name: Complete the exact Tour proposition without entering the carrier pipeline
-        if: needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
+        if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
@@ -286,7 +296,7 @@ jobs:
           --workers 1
           --retries 0
           --grep-invert
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms"
       - name: Install the native Rust linker
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
         run: |
@@ -822,7 +832,7 @@ jobs:
           --workers 1
           --retries 0
           --grep-invert
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms"
       - name: Retain the browser two-profile fabrication report
         if: matrix.shard == 'creche-machines'
         uses: actions/upload-artifact@v7
