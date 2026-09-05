@@ -81,6 +81,20 @@ fn bench_history_projects_only_retained_entries_and_keeps_the_gap_explicit() {
         })
     );
 
+    let mut replay_bytes = vec![0; MAXIMUM_REPLAY_TIMELINE_BYTES];
+    let mut gap_bytes = [0; HISTORICAL_RETENTION_GAP_BYTES];
+    let encoded = BoundedReplaySourceOperation::new(&history)
+        .project_into(&mut replay_bytes, &mut gap_bytes)
+        .unwrap();
+    assert_eq!(
+        decode_replay_timeline(&replay_bytes[..encoded.replay_bytes]).unwrap(),
+        projection.entries
+    );
+    assert_eq!(
+        decode_historical_retention_gap(&gap_bytes[..encoded.gap_bytes.unwrap()]),
+        Ok(projection.retention_gap.unwrap())
+    );
+
     let mut replay =
         BoundedReplayController::new(&projection.entries, ReplayPolicy::OriginalTiming).unwrap();
     replay.start(1_000).unwrap();
@@ -91,6 +105,37 @@ fn bench_history_projects_only_retained_entries_and_keeps_the_gap_explicit() {
     assert_eq!(
         replay.poll(1_030).unwrap().unwrap().historical_identity,
         "bench/record/c"
+    );
+}
+
+#[test]
+fn replay_source_output_admission_and_empty_history_refuse_distinctly() {
+    let history = BoundedHistoricalTimeline::new(
+        kind_id("bench/record@1"),
+        "bench/session-clock",
+        TemporalScale::Milliseconds,
+        2,
+        8,
+        HistoricalOverflowPolicy::Refuse,
+        0,
+    )
+    .unwrap();
+    let source = BoundedReplaySourceOperation::new(&history);
+    let mut replay = vec![0; MAXIMUM_REPLAY_TIMELINE_BYTES];
+    let mut gap = [0; HISTORICAL_RETENTION_GAP_BYTES];
+    assert_eq!(
+        source.project_into(&mut replay[..MAXIMUM_REPLAY_TIMELINE_BYTES - 1], &mut gap),
+        Err(ReplaySourceRefusal::ReplayOutputTooSmall)
+    );
+    assert_eq!(
+        source.project_into(&mut replay, &mut gap[..HISTORICAL_RETENTION_GAP_BYTES - 1]),
+        Err(ReplaySourceRefusal::GapOutputTooSmall)
+    );
+    assert_eq!(
+        source.project_into(&mut replay, &mut gap),
+        Err(ReplaySourceRefusal::Replay(
+            ReplayTimelineCodecRefusal::EmptyTimeline
+        ))
     );
 }
 

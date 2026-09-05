@@ -2,7 +2,12 @@
 
 use alloc::vec::Vec;
 
-use crate::{BoundedHistoricalTimeline, HistoricalReplayEntry, HistoricalRetentionGap};
+use crate::{
+    encode_historical_retention_gap_into, encode_replay_timeline_fields_into,
+    BoundedHistoricalTimeline, HistoricalReplayEntry, HistoricalRetentionGap,
+    HistoricalRetentionGapCodecRefusal, ReplayTimelineCodecRefusal, HISTORICAL_RETENTION_GAP_BYTES,
+    MAXIMUM_REPLAY_TIMELINE_BYTES,
+};
 
 pub const REPLAY_SOURCE_KIND: &str = "history/replay-source";
 pub const REPLAY_SOURCE_CONTRACT_REVISION: &str = "conduit.history/replay-source@1";
@@ -14,6 +19,67 @@ pub const REPLAY_SOURCE_CONTRACT_REVISION: &str = "conduit.history/replay-source
 pub struct ReplaySourceProjection {
     pub entries: Vec<HistoricalReplayEntry>,
     pub retention_gap: Option<HistoricalRetentionGap>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ReplaySourceOutput {
+    pub replay_bytes: usize,
+    pub gap_bytes: Option<usize>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ReplaySourceRefusal {
+    ReplayOutputTooSmall,
+    GapOutputTooSmall,
+    Replay(ReplayTimelineCodecRefusal),
+    Gap(HistoricalRetentionGapCodecRefusal),
+}
+
+pub struct BoundedReplaySourceOperation<'a> {
+    timeline: &'a BoundedHistoricalTimeline,
+}
+
+impl<'a> BoundedReplaySourceOperation<'a> {
+    pub const fn new(timeline: &'a BoundedHistoricalTimeline) -> Self {
+        Self { timeline }
+    }
+
+    pub fn project_into(
+        &self,
+        replay_output: &mut [u8],
+        gap_output: &mut [u8],
+    ) -> Result<ReplaySourceOutput, ReplaySourceRefusal> {
+        if replay_output.len() < MAXIMUM_REPLAY_TIMELINE_BYTES {
+            return Err(ReplaySourceRefusal::ReplayOutputTooSmall);
+        }
+        if gap_output.len() < HISTORICAL_RETENTION_GAP_BYTES {
+            return Err(ReplaySourceRefusal::GapOutputTooSmall);
+        }
+        let replay_bytes = encode_replay_timeline_fields_into(
+            self.timeline.len(),
+            |index| {
+                let entry = self
+                    .timeline
+                    .entry(index)
+                    .expect("a retained replay-source index names one entry");
+                (entry.identity.as_str(), &entry.event_time)
+            },
+            replay_output,
+        )
+        .map_err(ReplaySourceRefusal::Replay)?;
+        let gap_bytes = self
+            .timeline
+            .retention_gap()
+            .map(|gap| {
+                encode_historical_retention_gap_into(gap, gap_output)
+                    .map_err(ReplaySourceRefusal::Gap)
+            })
+            .transpose()?;
+        Ok(ReplaySourceOutput {
+            replay_bytes,
+            gap_bytes,
+        })
+    }
 }
 
 pub fn project_replay_source(timeline: &BoundedHistoricalTimeline) -> ReplaySourceProjection {

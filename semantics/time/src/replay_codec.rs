@@ -33,38 +33,52 @@ pub fn encode_replay_timeline_into(
     entries: &[HistoricalReplayEntry],
     output: &mut [u8],
 ) -> Result<usize, ReplayTimelineCodecRefusal> {
-    validate_entries(entries)?;
-    let required = 7 + entries
-        .iter()
-        .map(|entry| 29 + entry.identity.len() + entry.event_time.clock_basis.len())
-        .sum::<usize>();
+    encode_replay_timeline_fields_into(
+        entries.len(),
+        |index| (&entries[index].identity, &entries[index].event_time),
+        output,
+    )
+}
+
+pub(crate) fn encode_replay_timeline_fields_into<'a>(
+    count: usize,
+    entry_at: impl Fn(usize) -> (&'a str, &'a TemporalInstant),
+    output: &mut [u8],
+) -> Result<usize, ReplayTimelineCodecRefusal> {
+    validate_entry_fields(count, &entry_at)?;
+    let required = 7
+        + (0..count)
+            .map(|index| {
+                let (identity, event_time) = entry_at(index);
+                29 + identity.len() + event_time.clock_basis.len()
+            })
+            .sum::<usize>();
     if output.len() < required {
         return Err(ReplayTimelineCodecRefusal::OutputTooSmall);
     }
     output[..4].copy_from_slice(&MAGIC);
     output[4] = REPLAY_TIMELINE_WIRE_VERSION;
-    output[5..7].copy_from_slice(&(entries.len() as u16).to_le_bytes());
+    output[5..7].copy_from_slice(&(count as u16).to_le_bytes());
     let mut cursor = 7;
-    for entry in entries {
-        let identity = entry.identity.as_bytes();
+    for index in 0..count {
+        let (identity, event_time) = entry_at(index);
+        let identity = identity.as_bytes();
         output[cursor..cursor + 2].copy_from_slice(&(identity.len() as u16).to_le_bytes());
         cursor += 2;
         output[cursor..cursor + identity.len()].copy_from_slice(identity);
         cursor += identity.len();
-        output[cursor..cursor + 8].copy_from_slice(&entry.event_time.ticks.to_le_bytes());
+        output[cursor..cursor + 8].copy_from_slice(&event_time.ticks.to_le_bytes());
         cursor += 8;
-        output[cursor] = encode_scale(entry.event_time.scale);
+        output[cursor] = encode_scale(event_time.scale);
         cursor += 1;
-        let basis = entry.event_time.clock_basis.as_bytes();
+        let basis = event_time.clock_basis.as_bytes();
         output[cursor..cursor + 2].copy_from_slice(&(basis.len() as u16).to_le_bytes());
         cursor += 2;
         output[cursor..cursor + basis.len()].copy_from_slice(basis);
         cursor += basis.len();
-        output[cursor..cursor + 8]
-            .copy_from_slice(&entry.event_time.resolution_ticks.to_le_bytes());
+        output[cursor..cursor + 8].copy_from_slice(&event_time.resolution_ticks.to_le_bytes());
         cursor += 8;
-        output[cursor..cursor + 8]
-            .copy_from_slice(&entry.event_time.uncertainty_ticks.to_le_bytes());
+        output[cursor..cursor + 8].copy_from_slice(&event_time.uncertainty_ticks.to_le_bytes());
         cursor += 8;
     }
     Ok(cursor)
@@ -140,36 +154,43 @@ pub fn decode_replay_timeline(
 }
 
 fn validate_entries(entries: &[HistoricalReplayEntry]) -> Result<(), ReplayTimelineCodecRefusal> {
-    if entries.is_empty() {
+    validate_entry_fields(entries.len(), &|index| {
+        (&entries[index].identity, &entries[index].event_time)
+    })
+}
+
+fn validate_entry_fields<'a>(
+    count: usize,
+    entry_at: &impl Fn(usize) -> (&'a str, &'a TemporalInstant),
+) -> Result<(), ReplayTimelineCodecRefusal> {
+    if count == 0 {
         return Err(ReplayTimelineCodecRefusal::EmptyTimeline);
     }
-    if entries.len() > MAXIMUM_REPLAY_ENTRIES {
+    if count > MAXIMUM_REPLAY_ENTRIES {
         return Err(ReplayTimelineCodecRefusal::TooManyEntries);
     }
-    for (index, entry) in entries.iter().enumerate() {
-        if entry.identity.is_empty() {
+    for index in 0..count {
+        let (identity, event_time) = entry_at(index);
+        if identity.is_empty() {
             return Err(ReplayTimelineCodecRefusal::EmptyIdentity);
         }
-        if entry.identity.len() > MAXIMUM_REPLAY_IDENTITY_BYTES {
+        if identity.len() > MAXIMUM_REPLAY_IDENTITY_BYTES {
             return Err(ReplayTimelineCodecRefusal::IdentityTooLong);
         }
-        entry
-            .event_time
+        event_time
             .validate()
             .map_err(|_| ReplayTimelineCodecRefusal::InvalidHistoricalTime)?;
+        let (_, first_time) = entry_at(0);
         if index > 0
-            && (entry.event_time.clock_basis != entries[0].event_time.clock_basis
-                || entry.event_time.scale != entries[0].event_time.scale)
+            && (event_time.clock_basis != first_time.clock_basis
+                || event_time.scale != first_time.scale)
         {
             return Err(ReplayTimelineCodecRefusal::IncomparableHistoricalTime);
         }
-        if index > 0 && entry.event_time.ticks < entries[index - 1].event_time.ticks {
+        if index > 0 && event_time.ticks < entry_at(index - 1).1.ticks {
             return Err(ReplayTimelineCodecRefusal::ReorderedHistoricalTime);
         }
-        if entries[..index]
-            .iter()
-            .any(|prior| prior.identity == entry.identity)
-        {
+        if (0..index).any(|prior| entry_at(prior).0 == identity) {
             return Err(ReplayTimelineCodecRefusal::DuplicateIdentity);
         }
     }
