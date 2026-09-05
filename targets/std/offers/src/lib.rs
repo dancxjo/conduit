@@ -10,6 +10,8 @@ mod sequence_normalization;
 pub use sequence_normalization::*;
 mod pattern_comparison;
 pub use pattern_comparison::*;
+mod template_storage;
+pub use template_storage::*;
 mod presentation_structure;
 pub use presentation_structure::*;
 mod presentation_sinks;

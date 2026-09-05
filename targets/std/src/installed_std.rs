@@ -53,6 +53,8 @@ mod structured_selector_operation;
 mod structured_values_operation;
 mod synth_operation;
 mod synth_render;
+mod template_storage_host;
+mod template_storage_operation;
 mod test_audio_source;
 #[cfg(test)]
 mod test_gate;
@@ -493,6 +495,15 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut template_storage_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            (placement.implementation_id.as_str()
+                == conduit_std_offers::TEMPLATE_STORAGE_STD_IMPLEMENTATION)
+                .then(template_storage_host::TemplateStorageHost::prepare)
+        })
+        .collect::<Vec<_>>();
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     let mut vector_search_output =
@@ -709,6 +720,52 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete bounded JSON operation: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::TEMPLATE_STORAGE_HOST_OPERATION {
+                let completion = template_storage_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "template request has no admitted storage host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store bounded template result: {error:?}"))?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound template result: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: template_storage_operation::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::STRUCTURED_SELECTOR_HOST_OPERATION {

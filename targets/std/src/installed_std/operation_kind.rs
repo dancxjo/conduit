@@ -41,6 +41,7 @@ use super::structured_values_operation::{
     StructuredLiteralOperation, StructuredPresentationOperation,
 };
 use super::synth_operation::MusicSynthOperation;
+use super::template_storage_operation::TemplateStorageOperation;
 #[cfg(test)]
 use super::test_json_codec::{TestJsonSinkOperation, TestJsonSourceOperation};
 #[cfg(any(test, feature = "local-model-proof"))]
@@ -96,6 +97,7 @@ pub(super) enum InstalledOperation {
     PatternComparison(PatternComparisonOperation),
     SequenceNormalization(SequenceNormalizationOperation),
     TimedPattern(TimedPatternOperation),
+    TemplateStorage(TemplateStorageOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),

@@ -111,6 +111,14 @@ mod pattern_comparison;
 #[cfg(feature = "form-catalog")]
 pub use pattern_comparison::*;
 #[cfg(feature = "form-catalog")]
+mod template_collection;
+#[cfg(feature = "form-catalog")]
+pub use template_collection::*;
+#[cfg(feature = "form-catalog")]
+mod template_storage;
+#[cfg(feature = "form-catalog")]
+pub use template_storage::*;
+#[cfg(feature = "form-catalog")]
 mod recurrence_catalog;
 #[cfg(feature = "form-catalog")]
 pub use recurrence_catalog::*;

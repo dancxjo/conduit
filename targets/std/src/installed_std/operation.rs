@@ -37,6 +37,7 @@ impl Operation for InstalledOperation {
             Self::PatternComparison(operation) => operation.start(),
             Self::SequenceNormalization(operation) => operation.start(),
             Self::TimedPattern(operation) => operation.start(),
+            Self::TemplateStorage(operation) => operation.start(),
             Self::LogicCompareScalar(operation) => operation.start(),
             Self::LogicNot(operation) => operation.start(),
             Self::LogicSelectScalar(operation) => operation.start(),
@@ -148,6 +149,7 @@ impl Operation for InstalledOperation {
             (Self::PatternComparison(operation), input) => operation.resume(input),
             (Self::SequenceNormalization(operation), input) => operation.resume(input),
             (Self::TimedPattern(operation), input) => operation.resume(input),
+            (Self::TemplateStorage(operation), input) => operation.resume(input),
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
             (Self::LogicNot(operation), input) => operation.resume(input),
             (Self::LogicSelectScalar(operation), input) => operation.resume(input),
@@ -301,6 +303,7 @@ impl Operation for InstalledOperation {
             Self::PatternComparison(operation) => operation.advance(),
             Self::SequenceNormalization(operation) => operation.advance(),
             Self::TimedPattern(operation) => operation.advance(),
+            Self::TemplateStorage(operation) => operation.advance(),
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
                 OperationAction::Complete
             }
@@ -409,6 +412,7 @@ impl Operation for InstalledOperation {
             Self::PatternComparison(operation) => operation.cancel(),
             Self::SequenceNormalization(operation) => operation.cancel(),
             Self::TimedPattern(operation) => operation.cancel(),
+            Self::TemplateStorage(operation) => operation.cancel(),
             Self::LogicCompareScalar(operation) => operation.cancel(),
             Self::LogicNot(operation) => operation.cancel(),
             Self::LogicSelectScalar(operation) => operation.cancel(),

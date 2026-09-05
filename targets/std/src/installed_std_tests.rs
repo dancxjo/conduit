@@ -30,6 +30,7 @@ mod sequence_normalization_conformance;
 mod sound_replanning;
 mod structured_selector_conformance;
 mod structured_values_conformance;
+mod template_storage_conformance;
 mod timed_pattern_conformance;
 mod timing_conformance;
 mod vector_search_conformance;

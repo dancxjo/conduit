@@ -61,6 +61,7 @@ use super::structured_values_operation::{
     PRESENTATION_FACTORY as STRUCTURED_PRESENTATION_FACTORY,
 };
 use super::synth_operation::MUSIC_SYNTH_FACTORY;
+use super::template_storage_operation::FACTORY as TEMPLATE_STORAGE_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
@@ -141,6 +142,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &PATTERN_COMPARISON_FACTORY,
     &SEQUENCE_NORMALIZATION_FACTORY,
     &TIMED_PATTERN_FACTORY,
+    &TEMPLATE_STORAGE_FACTORY,
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
