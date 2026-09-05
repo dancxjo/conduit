@@ -16,6 +16,12 @@ use conduit_core::{
 
 mod external_websocket;
 pub use external_websocket::*;
+mod typed_record;
+pub use typed_record::*;
+#[cfg(feature = "form-catalog")]
+mod typed_record_catalog;
+#[cfg(feature = "form-catalog")]
+pub use typed_record_catalog::*;
 mod network_info;
 pub use network_info::*;
 mod application_info;
