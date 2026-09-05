@@ -17,6 +17,7 @@ pub const TEMPLATE_STORAGE_KIND: &str = "storage/named-pattern-templates";
 pub const TEMPLATE_STORAGE_REVISION: &str = "conduit.std/named-pattern-templates@1";
 pub const TEMPLATE_STORAGE_COMMAND_TYPE: &str = "NamedPatternTemplateCommand";
 pub const TEMPLATE_STORAGE_RESULT_TYPE: &str = "NamedPatternTemplateResult";
+pub const NAMED_PATTERN_TEMPLATE_TYPE: &str = "NamedPatternTemplate";
 pub const MAXIMUM_TEMPLATE_STORAGE_COMMANDS: u64 = 16;
 
 pub fn named_pattern_template_type() -> StructuredInfoType {
@@ -91,6 +92,9 @@ pub fn install_template_storage_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
+    startup
+        .insert_structured_type(NAMED_PATTERN_TEMPLATE_TYPE, named_pattern_template_type())
+        .map_err(|error| error.to_string())?;
     startup
         .insert_structured_type(
             TEMPLATE_STORAGE_COMMAND_TYPE,
