@@ -14,6 +14,10 @@ use crate::cli::GlobalOpts;
 
 use super::{profile::Paths, report::git_head, ConduitosArch, ConduitosError};
 
+mod artifacts;
+
+use artifacts::{failure_names, print_failure_tails, retain_bounded_outputs, BatchTempRoot};
+
 const SCHEMA: &str = "conduit.conduitos.prove-many/v1";
 const MAXIMUM_PROOFS: usize = 8;
 const PREPARED_FILES: &[&str] = &[
@@ -109,6 +113,7 @@ struct ProofResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     verification_command: Option<Vec<String>>,
     isolated_target_root: String,
+    retained_target_root: String,
     stdout_log: String,
     stderr_log: String,
     started_order: usize,
@@ -128,6 +133,7 @@ struct RunningProof {
     child: Child,
     command: Vec<String>,
     target_root: PathBuf,
+    evidence_root: PathBuf,
     stdout_log: PathBuf,
     stderr_log: PathBuf,
     started_order: usize,
@@ -159,6 +165,7 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
     })?;
     refuse_nonempty_root(&output_root)?;
     let shared_cargo_target = paths.root.join("target");
+    let batch_temp = BatchTempRoot::new()?;
     let commit = git_head(&paths.root)?;
     let executable = std::env::current_exe().map_err(|error| {
         ConduitosError::refusal("proof-batch-executable-unavailable", error.to_string())
@@ -183,6 +190,7 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
                 &executable,
                 &paths,
                 &output_root,
+                batch_temp.path(),
                 &shared_cargo_target,
             );
             match spawned {
@@ -220,7 +228,7 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
         if let Some((index, success)) = completed {
             let proof = running.remove(index);
             let (success, verification_command) = if success && proof.proof == X86Proof::Kernel {
-                let command = kernel_verification_arguments(&proof.target_root, &commit);
+                let command = kernel_verification_arguments(&proof.evidence_root, &commit);
                 match run_verifier(&executable, &command, &proof) {
                     Ok(success) => (success, Some(command)),
                     Err(error) => {
@@ -231,6 +239,14 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
             } else {
                 (success, None)
             };
+            let retained_target = output_root
+                .join("runs")
+                .join(proof.proof.as_str())
+                .join("conduitos");
+            if let Err(error) = retain_bounded_outputs(&proof.target_root, &retained_target) {
+                stop_running(&mut running);
+                return Err(error);
+            }
             finished += 1;
             let result = ProofResult {
                 schema: "conduit.conduitos.prove-many-result/v1",
@@ -239,6 +255,7 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
                 command: proof.command,
                 verification_command,
                 isolated_target_root: proof.target_root.display().to_string(),
+                retained_target_root: retained_target.display().to_string(),
                 stdout_log: proof.stdout_log.display().to_string(),
                 stderr_log: proof.stderr_log.display().to_string(),
                 started_order: proof.started_order,
@@ -280,27 +297,6 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
     Ok(())
 }
 
-fn print_failure_tails(results: &[ProofResult]) {
-    for result in results.iter().filter(|result| result.status != "success") {
-        let Ok(contents) = fs::read_to_string(&result.stderr_log) else {
-            continue;
-        };
-        let lines: Vec<_> = contents.lines().rev().take(24).collect();
-        eprintln!("--- {} stderr tail ---", result.proof.as_str());
-        for line in lines.into_iter().rev() {
-            eprintln!("{line}");
-        }
-    }
-}
-
-fn failure_names(results: &[ProofResult]) -> Vec<&'static str> {
-    results
-        .iter()
-        .filter(|result| result.status != "success")
-        .map(|result| result.proof.as_str())
-        .collect()
-}
-
 fn refuse_nonempty_root(output_root: &Path) -> Result<(), ConduitosError> {
     let mut entries = fs::read_dir(output_root).map_err(|error| {
         ConduitosError::refusal("proof-batch-root-unavailable", error.to_string())
@@ -333,17 +329,12 @@ fn stop_running(running: &mut [RunningProof]) {
     }
 }
 
-fn kernel_verification_arguments(target_root: &Path, commit: &str) -> Vec<String> {
+fn kernel_verification_arguments(evidence_root: &Path, commit: &str) -> Vec<String> {
     vec![
         "evidence".to_owned(),
         "verify".to_owned(),
         "--root".to_owned(),
-        target_root
-            .parent()
-            .expect("run root")
-            .join("evidence")
-            .display()
-            .to_string(),
+        evidence_root.display().to_string(),
         "--commit".to_owned(),
         commit.to_owned(),
         "--result".to_owned(),
@@ -425,10 +416,11 @@ fn spawn_proof(
     executable: &Path,
     prepared_paths: &Paths,
     output_root: &Path,
+    batch_temp: &Path,
     shared_cargo_target: &Path,
 ) -> Result<RunningProof, ConduitosError> {
     let run_root = output_root.join("runs").join(proof.as_str());
-    let target_root = run_root.join("conduitos");
+    let target_root = batch_temp.join(proof.as_str());
     let logs = run_root.join("logs");
     fs::create_dir_all(&logs).map_err(|error| {
         ConduitosError::refusal("proof-batch-run-root-unavailable", error.to_string())
@@ -463,6 +455,7 @@ fn spawn_proof(
         child,
         command: arguments,
         target_root,
+        evidence_root,
         stdout_log,
         stderr_log,
         started_order,

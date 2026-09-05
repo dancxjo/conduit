@@ -251,11 +251,13 @@ toolchain through `cargo xtask conduitos prove-many`. The command admits at most
 eight named proofs and admits a bounded concurrency ceiling. Hosted CI uses two
 children so QEMU's existing bounded interaction deadlines remain meaningful on
 the two-core runner while still overlapping independent proofs. Each child
-has a distinct target root, QMP/socket namespace, logs, evidence, result JSON,
+has a distinct short-lived target root (short enough for UNIX QMP socket
+bounds), QMP/socket namespace, logs, evidence, result JSON,
 and proof receipt. A failure is collected without cancelling its siblings, so
 environment batching never turns eight propositions into one proof. The
-workflow retains only bounded proof outputs; its shared Cargo compilation tree
-is cache material, not evidence and is not uploaded. This replaces up to eight
+workflow copies only bounded JSON/log/PNG outputs into retained evidence and
+removes the temporary machine roots; its shared Cargo compilation tree is cache
+material, not evidence and is not uploaded. This replaces up to eight
 simultaneous x86 runners with one while leaving the stable `check` aggregate and
 exact proof keys intact.
 

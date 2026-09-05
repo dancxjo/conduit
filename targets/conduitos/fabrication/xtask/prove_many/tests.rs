@@ -50,7 +50,7 @@ fn every_proof_has_one_explicit_command() {
 #[test]
 fn kernel_verifier_binds_the_exact_commit_and_evidence_root() {
     let command = kernel_verification_arguments(
-        Path::new("batch/runs/kernel/conduitos"),
+        Path::new("batch/runs/kernel/evidence"),
         "0123456789012345678901234567890123456789",
     );
     assert!(command
@@ -88,6 +88,7 @@ fn one_failure_does_not_erase_a_completed_sibling_result() {
         command: Vec::new(),
         verification_command: None,
         isolated_target_root: String::new(),
+        retained_target_root: String::new(),
         stdout_log: String::new(),
         stderr_log: String::new(),
         started_order: 1,
