@@ -6,10 +6,19 @@
 
 use conduit_body::{
     Body, BodyFormPlan, BodyId, BodyLifecycleError, BodyPlan, BodyPlanError, BodyPlayIdentity,
-    Wake, WakeId, WakeLifecycle,
+    BodyWorkset, Wake, WakeId, WakeLifecycle,
 };
-use conduit_core::{PlanId, SignId};
+use conduit_core::{
+    BaseImplementationId, BootId, HostAdvertisement, HostId, KindId, PlanId, SignId,
+};
 use serde::{Deserialize, Serialize};
+
+use crate::FormCandidate;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BodyPlanningRequirements {
+    pub kind_ids: Vec<KindId>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BodyPlanningTransition {
@@ -26,14 +35,103 @@ pub struct BodyPlanningSessionSnapshot {
     pub lifecycle: WakeLifecycle,
     pub current_plan_id: PlanId,
     pub historical_plan_ids: Vec<PlanId>,
+    pub current_hosts: Vec<BodyPlanningHost>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct BodyPlanningHost {
+    pub host_id: HostId,
+    pub boot_id: BootId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BodyPlanningSessionError {
     Lifecycle(BodyLifecycleError),
     Plan(BodyPlanError),
     MissingUnsatisfiedSign,
     StaleCurrentPlan,
+    MissingForm,
+    InvalidForm(String),
+    Planning(String),
+}
+
+pub fn body_planning_requirements(
+    workset: &BodyWorkset,
+    candidates: &[FormCandidate],
+) -> Result<BodyPlanningRequirements, BodyPlanningSessionError> {
+    let expanded = expand_workset(workset, candidates)?;
+    let mut kind_ids = expanded
+        .iter()
+        .flat_map(|(_, form)| form.gears.iter().map(|gear| gear.kind_id.clone()))
+        .collect::<Vec<_>>();
+    kind_ids.sort();
+    kind_ids.dedup();
+    Ok(BodyPlanningRequirements { kind_ids })
+}
+
+pub fn plan_body_workset_on_host(
+    workset: &BodyWorkset,
+    candidates: &[FormCandidate],
+    host: &HostAdvertisement,
+    bases: &[BaseImplementationId],
+) -> Result<Vec<BodyFormPlan>, BodyPlanningSessionError> {
+    expand_workset(workset, candidates)?
+        .into_iter()
+        .map(|(resident, expanded)| {
+            let hosts = [host.clone()];
+            let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
+                .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
+            let plan =
+                conduit_planner::plan_expanded_canonical(&expanded, &hosts, &placements, bases)
+                    .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
+            Ok(BodyFormPlan {
+                form: resident,
+                plan,
+            })
+        })
+        .collect()
+}
+
+fn expand_workset(
+    workset: &BodyWorkset,
+    candidates: &[FormCandidate],
+) -> Result<
+    Vec<(
+        conduit_body::ResidentForm,
+        conduit_form::ExpandedCanonicalForm,
+    )>,
+    BodyPlanningSessionError,
+> {
+    workset
+        .forms()
+        .iter()
+        .map(|resident| {
+            let candidate = candidates
+                .iter()
+                .find(|candidate| {
+                    candidate.source_document_id == resident.source_document_id
+                        && candidate.checked_form_id == resident.checked_form_id
+                })
+                .ok_or(BodyPlanningSessionError::MissingForm)?;
+            let editor = candidate
+                .editor()
+                .map_err(BodyPlanningSessionError::InvalidForm)?;
+            let view = editor.view();
+            let name = view
+                .checked
+                .forms
+                .iter()
+                .find(|form| form.checked_form_id == resident.checked_form_id)
+                .map(|form| form.name.as_str())
+                .ok_or_else(|| {
+                    BodyPlanningSessionError::InvalidForm("checked Form is absent".into())
+                })?;
+            let expanded = editor
+                .expand_form(name)
+                .map_err(|error| BodyPlanningSessionError::InvalidForm(error.to_string()))?;
+            Ok((resident.clone(), expanded))
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone)]
@@ -131,12 +229,25 @@ impl BodyPlanningSession {
     }
 
     pub fn snapshot(&self) -> BodyPlanningSessionSnapshot {
+        let mut current_hosts = self
+            .current_plan()
+            .forms
+            .iter()
+            .flat_map(|form| &form.plan.fragments)
+            .map(|fragment| BodyPlanningHost {
+                host_id: fragment.host_id.clone(),
+                boot_id: fragment.boot_id.clone(),
+            })
+            .collect::<Vec<_>>();
+        current_hosts.sort();
+        current_hosts.dedup();
         BodyPlanningSessionSnapshot {
             body_id: self.body.body_id.clone(),
             wake_id: self.wake.wake_id.clone(),
             lifecycle: self.wake.lifecycle,
             current_plan_id: self.current_plan().plan_id.clone(),
             historical_plan_ids: self.plans.iter().map(|plan| plan.plan_id.clone()).collect(),
+            current_hosts,
         }
     }
 }

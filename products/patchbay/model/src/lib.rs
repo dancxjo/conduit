@@ -85,7 +85,6 @@ mod presenter_plans_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
-mod recursive_form_graph;
 mod recursive_form_projection;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
@@ -115,8 +114,9 @@ pub use body_biography_entrance::{
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
 };
 pub use body_planning_session::{
-    BodyPlanningSession, BodyPlanningSessionError, BodyPlanningSessionSnapshot,
-    BodyPlanningTransition,
+    body_planning_requirements, plan_body_workset_on_host, BodyPlanningHost,
+    BodyPlanningRequirements, BodyPlanningSession, BodyPlanningSessionError,
+    BodyPlanningSessionSnapshot, BodyPlanningTransition,
 };
 pub use body_workload_session::{
     BodyWorkloadChange, BodyWorkloadChangeKind, PatchbayBodyWorkloadError,

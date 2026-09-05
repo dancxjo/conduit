@@ -213,6 +213,32 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
     )
 }
 
+/// The bounded admission profile used by the ordinary browser membership
+/// entrance. It combines the live webchat machinery with the installed text
+/// literal needed by small canonical browser Forms.
+pub(crate) fn membership_advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
+    let mut advertisement = crate::webchat::admission_advertisement(host_id, boot_id);
+    advertisement.capabilities.push((text::LITERAL.offer)());
+    if !advertisement
+        .resources
+        .iter()
+        .any(|offer| offer.class_id.as_str() == PRESENTATION_RESOURCE_CLASS)
+    {
+        advertisement.resources.push(resource_offer(
+            "browser/presentation",
+            PRESENTATION_RESOURCE_CLASS,
+            super::MAXIMUM_BROWSER_GEARS as u32,
+        ));
+        advertisement
+            .resources
+            .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    }
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement
+}
+
 pub(crate) fn advertisement_for_machinery(
     host_id: HostId,
     boot_id: BootId,

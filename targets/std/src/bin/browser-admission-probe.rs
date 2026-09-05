@@ -169,9 +169,9 @@ fn main() -> Result<(), String> {
             &proof,
             1_100,
             AdmissionSigns {
-                part_admitted: SignId::from("sign/browser-admission-probe/part-admitted"),
-                host_attached: SignId::from("sign/browser-admission-probe/host-attached"),
-                candidate_admitted: SignId::from("sign/browser-admission-probe/candidate-admitted"),
+                part_admitted: scoped_admission_sign(&proof, "part-admitted"),
+                host_attached: scoped_admission_sign(&proof, "host-attached"),
+                candidate_admitted: scoped_admission_sign(&proof, "candidate-admitted"),
             },
         )
         .map_err(|error| format!("complete admission: {error:?}"))?;
@@ -460,6 +460,14 @@ fn main() -> Result<(), String> {
         PRESENCE_LEASE_MILLIS,
         PRESENCE_RENEW_AFTER_MILLIS,
     )
+}
+
+fn scoped_admission_sign(proof: &AmbientAdmissionProof, stage: &str) -> SignId {
+    SignId::from(format!(
+        "sign/browser-admission-probe/{}/{}/{stage}",
+        proof.host_id.as_str(),
+        proof.boot_id.as_str()
+    ))
 }
 
 fn monotonic_millis(clock: Instant) -> Result<u64, String> {

@@ -21,7 +21,7 @@ pub use body_workbench::{
     attach_body_workbench, body_workbench_snapshot, body_workbench_snapshot_with_forms,
     BodyWorkbenchError,
 };
-pub use body_workbench_fixture::body_workbench_fixture_snapshot;
+pub use body_workbench_fixture::{body_workbench_fixture_forms, body_workbench_fixture_snapshot};
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::{
     demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot,

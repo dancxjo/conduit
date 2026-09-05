@@ -45,6 +45,42 @@ impl PatchbayHtmlServer {
             .as_ref()
             .ok_or_else(|| ServerError::Interaction("Body workload session is absent".into()))?;
         let operation = validate_membership_extension(prior_session.evidence(), &candidate)?;
+        let mut next_planning = self.body_planning.clone();
+        if operation == "leave" {
+            let record = candidate
+                .records
+                .last()
+                .ok_or_else(|| ServerError::Interaction("Host leave record is absent".into()))?;
+            let BodyBiographyRecordKind::HostLeft { part_id, .. } = &record.kind else {
+                return Err(ServerError::Interaction(
+                    "Host leave record is malformed".into(),
+                ));
+            };
+            let leaving_host = prior_session
+                .evidence()
+                .membership
+                .parts
+                .iter()
+                .find(|part| &part.part_id == part_id)
+                .and_then(|part| part.current.as_ref())
+                .map(|current| &current.host_id)
+                .ok_or_else(|| ServerError::Interaction("leaving Host is not current".into()))?;
+            if let Some(planning) = next_planning.as_mut() {
+                let selected = planning.current_plan().forms.iter().any(|form| {
+                    form.plan
+                        .fragments
+                        .iter()
+                        .any(|fragment| &fragment.host_id == leaving_host)
+                });
+                if selected {
+                    planning
+                        .mark_current_unsatisfied(record.sign_id.clone())
+                        .map_err(|error| {
+                            ServerError::Interaction(format!("Body Host loss: {error:?}"))
+                        })?;
+                }
+            }
+        }
 
         let encoded = serde_json::to_vec(&candidate)
             .map_err(|error| ServerError::Interaction(error.to_string()))?;
@@ -98,7 +134,9 @@ impl PatchbayHtmlServer {
             .body_host_planning_offer
             .clone()
             .filter(|evidence| super::body_host_offer_evidence::is_current(evidence, &candidate));
+        snapshot.body_planning = next_planning.as_ref().map(|planning| planning.snapshot());
         self.body_workload = Some(session);
+        self.body_planning = next_planning;
         self.snapshot = snapshot;
         self.navigation = navigation_state(&self.snapshot)?;
         self.encoded_snapshot = self.snapshot.encode()?;
