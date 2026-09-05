@@ -285,7 +285,7 @@ jobs:
           --workers 1
           --retries 0
           --grep
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
       - name: Complete the exact Tour proposition without entering the carrier pipeline
         if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
         run: >-
@@ -296,7 +296,7 @@ jobs:
           --workers 1
           --retries 0
           --grep-invert
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
       - name: Install the native Rust linker
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
         run: |
@@ -832,7 +832,7 @@ jobs:
           --workers 1
           --retries 0
           --grep-invert
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
       - name: Retain the browser two-profile fabrication report
         if: matrix.shard == 'creche-machines'
         uses: actions/upload-artifact@v7
