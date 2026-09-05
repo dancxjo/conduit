@@ -1,0 +1,62 @@
+name: Attest exact CI proof
+description: Retain one successful proof key using the workflow's trusted controller
+inputs:
+  proof-id:
+    description: Registered exact proof identifier
+    required: true
+  evidence:
+    description: Non-empty evidence locator for the completed proof
+    required: true
+  candidate-sha:
+    description: Exact immutable candidate commit
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Receive the trusted candidate proof plan
+      uses: actions/download-artifact@v8
+      with:
+        name: ci-plan-${{ inputs.candidate-sha }}
+        path: ${{ runner.temp }}/conduit-ci-plan
+    - name: Receive the trusted attestation controller
+      uses: actions/download-artifact@v8
+      with:
+        name: ci-attestation-controller-${{ inputs.candidate-sha }}
+        path: ${{ runner.temp }}/conduit-ci-attestation
+    - name: Check whether the trusted controller knows this proof
+      id: support
+      shell: bash
+      env:
+        PROOF_ID: ${{ inputs.proof-id }}
+      run: |
+        if jq -e --arg proof_id "$PROOF_ID" \
+          'any(.proofs[]; .proof_id == $proof_id)' \
+          "$RUNNER_TEMP/conduit-ci-plan/ci-proof-plan.json" >/dev/null; then
+          echo 'known=true' >> "$GITHUB_OUTPUT"
+        else
+          echo 'known=false' >> "$GITHUB_OUTPUT"
+          printf 'Trusted controller does not yet register `%s`; attestation begins after this registry reaches main.\n' \
+            "$PROOF_ID" >> "$GITHUB_STEP_SUMMARY"
+        fi
+    - name: Attest the exact successful proof proposition
+      if: steps.support.outputs.known == 'true'
+      shell: bash
+      env:
+        PROOF_ID: ${{ inputs.proof-id }}
+        EVIDENCE: ${{ inputs.evidence }}
+        CANDIDATE_SHA: ${{ inputs.candidate-sha }}
+      run: |
+        chmod 755 "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch"
+        mkdir -p target/ci-receipts
+        "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch" \
+          ci attest-success "$CANDIDATE_SHA" "$PROOF_ID" \
+          --evidence "$EVIDENCE" \
+          --out "target/ci-receipts/$PROOF_ID.json" --locked
+    - name: Retain immutable proof evidence
+      if: steps.support.outputs.known == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ci-proof-${{ inputs.proof-id }}-${{ inputs.candidate-sha }}
+        path: target/ci-receipts/${{ inputs.proof-id }}.json
+        if-no-files-found: error
+        retention-days: 14

@@ -19,7 +19,6 @@ on:
         description: Exact immutable candidate commit
         required: true
         type: string
-  pull_request:
 
 permissions:
   contents: read
@@ -789,7 +788,7 @@ jobs:
           retention-days: 14
 
   pages-carrier:
-    needs: [products-stage, browser-proof]
+    needs: [plan, products-stage, browser-proof]
     if: always() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -858,10 +857,89 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Materialize the trusted carrier attestation controller
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful Pages carrier proposition
+        id: carrier-receipt
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "products.pages-carrier"'; then
+            echo 'supported=false' >> "$GITHUB_OUTPUT"
+            echo 'Trusted controller predates the carrier proof receipt; bootstrap execution remains authoritative.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci attest-success "$CONDUIT_CANDIDATE_SHA" products.pages-carrier \
+            --evidence products-stage \
+            --evidence browser-proof \
+            --evidence pages-carrier-verification \
+            --out target/ci-receipts/products.pages-carrier.json \
+            --locked
+          echo 'supported=true' >> "$GITHUB_OUTPUT"
+      - name: Retain immutable Pages carrier proof evidence
+        if: steps.carrier-receipt.outputs.supported == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-products.pages-carrier-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/ci-receipts/products.pages-carrier.json
+          if-no-files-found: error
+          retention-days: 14
+
+  proof-receipts:
+    needs: [plan, tour-patchbay-proof, browser-proof]
+    if: >-
+      always() &&
+      needs.plan.outputs.required == 'true' &&
+      needs.tour-patchbay-proof.result == 'success' &&
+      needs.browser-proof.result == 'success'
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Materialize the trusted proof attestation controller
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful Tour proof proposition
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci attest-success "$CONDUIT_CANDIDATE_SHA"
+          browser.tour
+          --evidence tour-patchbay-proof
+          --evidence browser-proof-tour
+          --out target/ci-receipts/browser.tour.json
+          --locked
+      - name: Retain immutable Tour proof evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-browser.tour-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/ci-receipts/browser.tour.json
+          if-no-files-found: error
+          retention-days: 14
 
   products-proof:
-    needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier]
-    if: always()
+    needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
+    # A deliberately cancelled duplicate lifecycle run is not new proof
+    # failure. Real dependency failures still reach this gate and fail it.
+    if: ${{ always() && !cancelled() }}
     # This gate only inspects completed dependency results. Keep it on the
     # single-CPU automation lane so product fabrication cannot occupy its runner.
     runs-on: ubuntu-slim
@@ -874,6 +952,7 @@ jobs:
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
+          RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
         run: |
           if test "$PRODUCT_REQUIRED" != true; then
             echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
@@ -883,3 +962,4 @@ jobs:
           test "$STAGE_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$CARRIER_RESULT" = success
+          test "$RECEIPTS_RESULT" = success

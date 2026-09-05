@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { appendFile, readFile } from "node:fs/promises";
-import { resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
+import { productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
 
 const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
 const repository = process.env.GITHUB_REPOSITORY;
@@ -50,9 +50,10 @@ if (requestedMain) {
   const intervalMilliseconds = boundedInteger(process.env.CONDUIT_PRODUCT_RUN_INTERVAL_MS, 15_000, 0, 60_000);
   let run;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const runs = await api(`/repos/${repository}/actions/workflows/executable-book-pages.yml/runs?${query}`);
-    const candidate = selectExactRun(runs.workflow_runs, source.sourceHead, requestedNumber);
-    run = selectExactSuccessfulRun(runs.workflow_runs, source.sourceHead, requestedNumber);
+    const runs = await api(`/repos/${repository}/actions/runs?${query}`);
+    const carriers = productCarrierRuns(runs.workflow_runs);
+    const candidate = selectExactRun(carriers, source.sourceHead, requestedNumber);
+    run = selectExactSuccessfulRun(carriers, source.sourceHead, requestedNumber);
     if (run) break;
     if (candidate?.status === "completed") {
       throw new Error(`exact-head Pages product run ${candidate.id} concluded ${candidate.conclusion ?? "without a conclusion"}`);

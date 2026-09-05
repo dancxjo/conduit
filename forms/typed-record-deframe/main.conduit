@@ -1,0 +1,7 @@
+form typed-record-deframe (
+    frame: FramedTypedRecord > record: TypedRecord
+) {
+    deframing: record/deframe-typed
+    frame > deframing.frame
+    deframing.record > record
+}

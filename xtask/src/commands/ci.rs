@@ -1,4 +1,5 @@
 mod impact;
+mod integration;
 #[cfg(test)]
 mod monitor;
 mod product_reconciliation;
@@ -31,6 +32,19 @@ enum CiCommand {
         #[arg(long)]
         summary_out: Option<PathBuf>,
     },
+    /// Resolve the exact prospective integration tree without rewriting either input.
+    Integration {
+        /// Current target-branch commit SHA or ref.
+        base: String,
+        /// Exact immutable candidate commit SHA or ref.
+        head: String,
+        /// Write the machine-readable integration result to this path.
+        #[arg(long)]
+        json_out: Option<PathBuf>,
+        /// Write a Markdown summary to this path.
+        #[arg(long)]
+        summary_out: Option<PathBuf>,
+    },
     /// Plan proofs for one immutable candidate head.
     Candidate {
         /// Exact candidate commit SHA or ref.
@@ -38,6 +52,9 @@ enum CiCommand {
         /// Previously retained proof receipts to consider, if any.
         #[arg(long = "receipt")]
         receipts: Vec<PathBuf>,
+        /// Exact typed impact plan selecting applicable candidate proofs.
+        #[arg(long)]
+        impact_plan: Option<PathBuf>,
         /// Write the machine-readable candidate plan to this path.
         #[arg(long)]
         json_out: Option<PathBuf>,
@@ -54,6 +71,9 @@ enum CiCommand {
         /// Previously retained proof receipts to consider, if any.
         #[arg(long = "receipt")]
         receipts: Vec<PathBuf>,
+        /// Retained exact candidate impact plan selecting applicable proofs.
+        #[arg(long)]
+        impact_plan: Option<PathBuf>,
         /// Write the machine-readable reconciliation plan to this path.
         #[arg(long)]
         json_out: Option<PathBuf>,
@@ -103,24 +123,34 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
         CiCommand::Candidate {
             head,
             receipts,
+            impact_plan,
             json_out,
             summary_out,
         } => proof_graph::candidate(
             &head,
             &receipts,
+            impact_plan.as_deref(),
             json_out.as_deref(),
             summary_out.as_deref(),
         ),
+        CiCommand::Integration {
+            base,
+            head,
+            json_out,
+            summary_out,
+        } => integration::run(&base, &head, json_out.as_deref(), summary_out.as_deref()),
         CiCommand::Reconcile {
             base,
             head,
             receipts,
+            impact_plan,
             json_out,
             summary_out,
         } => proof_graph::reconcile(
             &base,
             &head,
             &receipts,
+            impact_plan.as_deref(),
             json_out.as_deref(),
             summary_out.as_deref(),
         ),

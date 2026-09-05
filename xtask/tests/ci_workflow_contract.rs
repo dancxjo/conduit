@@ -16,6 +16,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         .lines()
         .find(|line| line.trim_start().starts_with("needs:"))
         .expect("required check declares its proof join");
+    assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     for aggregate in [
         "classify",
         "workspace-check",
@@ -92,7 +93,7 @@ fn required_product_gate_uses_the_lightweight_automation_lane() {
         .nth(1)
         .expect("locate the stable required product job");
 
-    assert!(required_gate.contains("if: always()"));
+    assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     assert!(required_gate.contains("runs-on: ubuntu-slim"));
     for result in [
         "TOUR_PATCHBAY_RESULT",
@@ -325,11 +326,22 @@ fn merged_branch_retirement_retargets_before_deletion_under_trusted_code() {
         .expect("read merged branch retirement workflow");
     assert!(workflow.contains("pull_request_target:"));
     assert!(workflow.contains("types: [closed]"));
+    assert!(workflow.contains("actions: write"));
     assert!(workflow.contains("pull-requests: write"));
     assert!(workflow.contains("contents: write"));
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("persist-credentials: false"));
     assert!(workflow.contains("node scripts/ci/retire-merged-pr-branch.mjs"));
+    let controller = fs::read_to_string(root.join("scripts/ci/retire-merged-pr-branch.mjs"))
+        .expect("read merged branch retirement controller");
+    let retarget = controller.find("/pulls/${dependent.number}").unwrap();
+    let dispatch = controller
+        .find("/actions/workflows/reconcile-candidate.yml/dispatches")
+        .unwrap();
+    let deletion = controller
+        .find("/git/refs/heads/${encodeRef(branch)}")
+        .unwrap();
+    assert!(retarget < dispatch && dispatch < deletion);
 }
 
 #[test]
@@ -498,6 +510,19 @@ fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
 }
 
 #[test]
+fn controller_changes_run_the_dependency_light_planner_test_target() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let manifest = fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml"))
+        .expect("read dispatcher manifest");
+
+    assert!(workflow.contains("name: Verify the dependency-light typed CI planner contracts"));
+    assert!(workflow.contains("cargo test --locked --package conduit-xtask-dispatch"));
+    assert!(!manifest.contains("test = false"));
+}
+
+#[test]
 fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let workflow = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
@@ -506,66 +531,123 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
 
     assert!(workflow.contains(
-        "group: reconcile-candidate-${{ inputs.pr_number }}-${{ inputs.candidate_sha }}"
+        "group: reconcile-candidate-${{ inputs.pr_number || github.event.pull_request.number }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
-    assert!(workflow.contains("integration_sha: ${{ steps.resolve.outputs.integration_sha }}"));
-    assert!(workflow.contains("git merge-tree --write-tree \"$base_sha\" \"$CANDIDATE_SHA\""));
+    assert!(workflow.contains("pull_request_target:\n    types: [edited, labeled, reopened]"));
+    assert!(
+        workflow.contains("github.event.action == 'edited' && github.event.changes.base.ref != ''")
+    );
+    assert!(workflow.contains("github.event.label.name == 'ci:reconcile'"));
+    assert!(workflow.contains("name: Consume the bounded on-demand reconciliation request"));
+    assert!(workflow.contains(
+        "name: Consume the bounded on-demand reconciliation request\n        if: github.event_name == 'pull_request_target' && github.event.action == 'labeled'\n        continue-on-error: true"
+    ));
+    assert!(workflow.contains("labels/ci%3Areconcile"));
+    assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
+    assert!(workflow.contains("issues: write"));
+    assert!(workflow.contains("integration_sha: ${{ steps.integration.outputs.integration_sha }}"));
+    assert!(workflow.contains("ci integration \"$base_sha\" \"$CANDIDATE_SHA\" --locked"));
+    assert!(workflow.contains("status=$(jq -r '.status' integration.json)"));
+    assert!(workflow.contains("effective_merge_base_sha=$(jq -r '.effective_merge_base_sha'"));
+    assert!(workflow.contains("merge_base_method=$(jq -r '.merge_base_method'"));
     assert!(workflow
         .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
     assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
     assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
-    assert!(workflow.contains("name: Classify candidate-to-integration proof impact"));
     let toolchain = workflow
         .find("name: Install the repository Rust toolchain for the impact controller")
         .expect("reconciliation installs the controller toolchain");
-    let classify = workflow
-        .find("name: Classify candidate-to-integration proof impact")
-        .expect("reconciliation classifies integration impact");
+    let exact = workflow
+        .find("name: Reconcile exact proof keys with the trusted controller")
+        .expect("reconciliation computes exact proof keys");
     assert!(
-        toolchain < classify,
-        "the dependency-light impact controller cannot be built before Rust is installed"
+        toolchain < exact,
+        "the dependency-light proof controller cannot be built before Rust is installed"
     );
-    assert!(workflow.contains("ci plan \"$CANDIDATE_SHA\" \"$INTEGRATION_SHA\" --locked"));
-    assert!(workflow.contains("CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json"));
+    assert!(!workflow.contains("reconciliation-impact.json"));
     assert_eq!(
         workflow
             .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")
             .count(),
-        2
+        3
     );
-    assert!(workflow.contains("CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}"));
+    assert!(workflow.contains(
+        "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
+    ));
     assert!(
         workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
     );
     assert!(workflow.contains("cancel-in-progress: false"));
-    assert!(workflow.contains("resolve:\n    runs-on: ubuntu-slim\n    timeout-minutes: 5"));
+    assert!(workflow.contains("resolve:\n    if:"));
+    assert!(workflow.contains("runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
-    assert!(workflow.contains(
-        "if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'"
-    ));
-    assert!(workflow.contains(
-        "if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'"
-    ));
+    assert!(workflow.contains("needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'"));
+    assert!(workflow.contains("needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'"));
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
-    assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
-    assert!(workflow.contains(
-        "if: always() && needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
-    ));
-    assert!(workflow.contains(
-        "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
+    assert!(workflow.contains("published: ${{ steps.locate.outputs.published }}"));
+    assert!(workflow.contains("ci reconcile \"$BASE_SHA\" \"$CANDIDATE_SHA\""));
+    assert!(workflow.contains("--impact-plan \"${impact_plans[0]}\""));
+    assert!(workflow.contains("reconcile-candidate-request.mjs classify"));
+    assert!(workflow.contains("&& 'admission' || 'ignored-reconciliation-event'"));
+    assert!(workflow.contains("if: always() && needs.resolve.outputs.integration_ref != ''"));
+    assert!(!workflow.contains(
+        "needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
     ));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
+    assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
+    assert!(workflow.contains(
+        "CONDUIT_PUBLISH_REQUIRED_ADMISSION: ${{ github.event_name == 'workflow_dispatch' }}"
+    ));
     assert_eq!(workflow.matches("contents: write").count(), 2);
-    assert!(workflow.contains("candidate-check:\n    needs: resolve"));
-    assert!(workflow.contains("candidate-products:\n    needs: resolve"));
+    assert!(workflow.contains("candidate-check:\n    needs: [resolve, shared-compile]"));
+    assert!(workflow.contains(
+        "candidate-check:\n    needs: [resolve, shared-compile]\n    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
+    ));
+    assert!(workflow.contains("candidate-products:\n    needs: [resolve, shared-compile]"));
+    assert!(workflow.contains(
+        "candidate-products:\n    needs: [resolve, shared-compile]\n    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
+    ));
 
     assert!(check.contains("workflow_call:"));
     assert!(check.contains(
         "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha"
     ));
     assert!(!check.contains("name: conduitos-limine-${{ github.sha }}"));
+}
+
+#[test]
+fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let controller = fs::read_to_string(root.join(".github/workflows/candidate.yml"))
+        .expect("read candidate controller");
+    let prerequisite =
+        fs::read_to_string(root.join(".github/workflows/candidate-shared-compile.yml"))
+            .expect("read shared compile workflow");
+    let check = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+    let products =
+        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+
+    assert_eq!(
+        controller
+            .matches("uses: ./.github/workflows/candidate-shared-compile.yml")
+            .count(),
+        1
+    );
+    assert!(controller.contains("check:\n    needs: shared-compile"));
+    assert!(controller.contains("products:\n    needs: shared-compile"));
+    assert!(controller.contains("blocked-by: workspace.shared-compile"));
+    assert!(controller.contains("conduit.ci.causal-block/v1"));
+    assert_eq!(
+        prerequisite
+            .matches("cargo check --locked \"${args[@]}\"")
+            .count(),
+        1
+    );
+    assert!(prerequisite.contains("shared_compile_packages"));
+    assert!(!check.contains("  pull_request:\n"));
+    assert!(!products.contains("  pull_request:\n"));
 }
 
 #[test]
@@ -600,4 +682,52 @@ fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
     assert_eq!(reconciliation.matches("contents: write").count(), 2);
     assert!(reconciliation.contains("timeout-minutes: 2"));
     assert!(retirement.contains("timeout-minutes: 2"));
+}
+
+#[test]
+fn every_active_check_matrix_retains_an_exact_proof_receipt() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let action = fs::read_to_string(root.join(".github/actions/attest-ci-proof/action.yml"))
+        .expect("read exact proof attestation action");
+
+    for proof in [
+        "ci.controller-contracts",
+        "repository.standalone-locks",
+        "conduitos.limine",
+        "conduitos.tools",
+        "conduitos.aarch64-product",
+    ] {
+        assert!(
+            workflow.contains(&format!("proof-id: {proof}")),
+            "check workflow omits an exact receipt for {proof}"
+        );
+    }
+    for dynamic in [
+        "workspace-${{ matrix.shard }}",
+        "machine.esp32-${{ matrix.target }}",
+        "conduitos.x86.${{ matrix.proof }}",
+        "conduitos.architecture.${{ matrix.architecture }}",
+    ] {
+        assert!(
+            workflow.contains(dynamic),
+            "check workflow omits matrix receipt mapping {dynamic}"
+        );
+    }
+    assert_eq!(
+        workflow
+            .matches(
+                "cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""
+            )
+            .count(),
+        1,
+        "the trusted attestation controller must be built once, not once per proof job"
+    );
+    assert!(workflow.contains("name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}"));
+    assert!(action.contains("name: ci-plan-${{ inputs.candidate-sha }}"));
+    assert!(action.contains("any(.proofs[]; .proof_id == $proof_id)"));
+    assert!(action.contains("attestation begins after this registry reaches main"));
+    assert!(action.contains("ci attest-success \"$CANDIDATE_SHA\" \"$PROOF_ID\""));
+    assert!(action.contains("ci-proof-${{ inputs.proof-id }}-${{ inputs.candidate-sha }}"));
 }

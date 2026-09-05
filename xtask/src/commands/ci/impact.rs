@@ -76,6 +76,62 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         workspace_packages: &[],
     },
     ControllerProofSpec {
+        id: "ci.exact-integration",
+        implementation_inputs: &[
+            ".github/workflows/reconcile-candidate.yml",
+            "tools/xtask-dispatch/src/ci_dispatch.rs",
+            "tools/xtask-dispatch/src/main.rs",
+            "xtask/src/commands/ci.rs",
+            "xtask/src/commands/ci/integration.rs",
+            "xtask/src/commands/ci/integration/tests.rs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/src/commands/ci/proof_graph.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // Shared dispatch and proof-planning files are bounded only when the
+        // exact integration resolver anchors the change.
+        required_inputs: &[
+            "xtask/src/commands/ci/integration.rs",
+            "xtask/src/commands/ci/integration/tests.rs",
+        ],
+        workspace_packages: &["conduit-xtask-dispatch", "xtask"],
+    },
+    ControllerProofSpec {
+        id: "ci.planner-contract-tests",
+        implementation_inputs: &[
+            ".github/workflows/check.yml",
+            "tools/xtask-dispatch/Cargo.toml",
+            "tools/xtask-dispatch/src/main.rs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // A workflow or planner edit alone remains conservatively broad. The
+        // test-target manifest is the dependency-light slice anchor.
+        required_inputs: &["tools/xtask-dispatch/Cargo.toml"],
+        workspace_packages: &["conduit-xtask-dispatch", "xtask"],
+    },
+    ControllerProofSpec {
+        id: "ci.merged-branch-retirement",
+        implementation_inputs: &[
+            ".github/workflows/retire-merged-pr-branch.yml",
+            "proof/ci/retire-merged-pr-branch.spec.mjs",
+            "scripts/ci/retire-merged-pr-branch.mjs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // Planner/test files are bounded to this controller only when its
+        // complete executable slice anchors the same change.
+        required_inputs: &[
+            ".github/workflows/retire-merged-pr-branch.yml",
+            "proof/ci/retire-merged-pr-branch.spec.mjs",
+            "scripts/ci/retire-merged-pr-branch.mjs",
+        ],
+        workspace_packages: &["xtask"],
+    },
+    ControllerProofSpec {
         id: "ci.actions-monitor",
         implementation_inputs: &[
             "tools/xtask-dispatch/src/main.rs",
@@ -241,6 +297,7 @@ struct ImpactPlan {
     changed_paths: Vec<String>,
     changed_packages: Vec<String>,
     affected_test_packages: Vec<String>,
+    shared_compile_packages: Vec<String>,
     workspace_lint_full: bool,
     workspace_lint_packages: Vec<String>,
     workspace_shards: BTreeMap<String, bool>,
@@ -919,6 +976,7 @@ fn plan(
     workspace: WorkspaceImpact,
     suite_reasons: BTreeMap<String, Vec<String>>,
 ) -> ImpactPlan {
+    let shared_eligible_packages = workspace.lint_packages.clone();
     let workspace_lint_packages = if full_fallback {
         Vec::new()
     } else {
@@ -926,6 +984,30 @@ fn plan(
     };
     let pages_product_proofs = product_proofs_for_paths(&changed_paths);
     let pages_products_required = full_fallback || !pages_product_proofs.is_empty();
+    let selected_workspace_shards = workspace
+        .shards
+        .values()
+        .filter(|required| **required)
+        .count();
+    let selected_heavy_worlds = [
+        pages_products_required,
+        selected["browser"],
+        selected["esp32"],
+        selected["conduitos"],
+    ]
+    .into_iter()
+    .filter(|required| *required)
+    .count();
+    // A changed workspace package consumed by more than one selected proof
+    // world is compiled once before those worlds fan out. Unknown/global
+    // changes retain the existing conservative proof graph rather than
+    // pretending that one package compile covers them.
+    let shared_compile_packages =
+        if !full_fallback && selected_workspace_shards + selected_heavy_worlds > 1 {
+            shared_eligible_packages.into_iter().collect()
+        } else {
+            Vec::new()
+        };
     ImpactPlan {
         requested_base_sha: None,
         candidate_sha: None,
@@ -946,6 +1028,7 @@ fn plan(
         changed_paths,
         changed_packages: workspace.changed_packages.into_iter().collect(),
         affected_test_packages: workspace.affected_test_packages.into_iter().collect(),
+        shared_compile_packages,
         workspace_lint_full: full_fallback,
         workspace_lint_packages,
         workspace_shards: workspace.shards,
@@ -1031,6 +1114,11 @@ fn write_github_outputs(plan: &ImpactPlan) {
         "workspace_test_packages={}",
         serde_json::to_string(&plan.affected_test_packages)
             .expect("workspace test package list serializes")
+    );
+    println!(
+        "shared_compile_packages={}",
+        serde_json::to_string(&plan.shared_compile_packages)
+            .expect("shared compile package list serializes")
     );
     let matrix: Vec<_> = WorkspaceShard::ALL
         .into_iter()
@@ -1168,7 +1256,7 @@ fn markdown_summary(plan: &ImpactPlan) -> String {
             "no dependency/ownership path to product"
         }
     ));
-    format!("## CI impact plan\n\nRequested base: `{}`  \nCandidate: `{}`  \nCandidate comparison base: `{}`\n\nReason: `{}`\n\nChanged packages: {}\n\nAffected test packages: {}\n\n| obligation | decision | reason |\n| --- | --- | --- |\n{}\n> Pull requests may use this plan selectively. Main and merge-queue runs remain exhaustive.\n", plan.requested_base_sha.as_deref().unwrap_or("unavailable"), plan.candidate_sha.as_deref().unwrap_or("unavailable"), plan.candidate_comparison_base_sha.as_deref().unwrap_or("unavailable; conservative fallback"), plan.reason, if plan.changed_packages.is_empty() { "(none)".to_owned() } else { plan.changed_packages.join(", ") }, if plan.affected_test_packages.is_empty() { "(none)".to_owned() } else { plan.affected_test_packages.join(", ") }, rows)
+    format!("## CI impact plan\n\nRequested base: `{}`  \nCandidate: `{}`  \nCandidate comparison base: `{}`\n\nReason: `{}`\n\nChanged packages: {}\n\nAffected test packages: {}\n\nShared compile prerequisite: {}\n\n| obligation | decision | reason |\n| --- | --- | --- |\n{}\n> Pull requests may use this plan selectively. Main and merge-queue runs remain exhaustive.\n", plan.requested_base_sha.as_deref().unwrap_or("unavailable"), plan.candidate_sha.as_deref().unwrap_or("unavailable"), plan.candidate_comparison_base_sha.as_deref().unwrap_or("unavailable; conservative fallback"), plan.reason, if plan.changed_packages.is_empty() { "(none)".to_owned() } else { plan.changed_packages.join(", ") }, if plan.affected_test_packages.is_empty() { "(none)".to_owned() } else { plan.affected_test_packages.join(", ") }, if plan.shared_compile_packages.is_empty() { "not required".to_owned() } else { plan.shared_compile_packages.join(", ") }, rows)
 }
 
 fn required(plan: &ImpactPlan, suite: &str) -> bool {

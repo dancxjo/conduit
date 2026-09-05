@@ -65,7 +65,7 @@ inherit product, browser, firmware, and ConduitOS proof domains.
 
 ## Proof keys
 
-`cargo xtask ci candidate HEAD` reads registered proof specifications and fingerprints their actual Git blobs from `HEAD^{tree}`. Each proof key includes:
+`cargo xtask ci candidate HEAD --impact-plan PLAN` reads registered proof specifications, selects the exact proofs applicable to the candidate, and fingerprints their actual Git blobs from `HEAD^{tree}`. A missing or malformed retained applicability plan conservatively selects the complete registry. Each proof key includes:
 
 - proof ID and contract version;
 - relevant source and proof-implementation Git objects;
@@ -94,7 +94,17 @@ error, never an empty input set that can accidentally inherit an old receipt.
 
 ## Reconciliation
 
-`cargo xtask ci reconcile BASE HEAD --receipt RECEIPT...` asks Git for the prospective integration tree with `git merge-tree --write-tree`. It never rebases or mutates `HEAD`.
+`cargo xtask ci reconcile BASE HEAD --impact-plan PLAN --receipt RECEIPT...` asks Git for the prospective integration tree with `git merge-tree --write-tree`. The retained candidate impact plan distinguishes a proof that was intentionally inapplicable from missing evidence for an applicable proof. It never rebases or mutates `HEAD`.
+
+`cargo xtask ci integration BASE HEAD` owns the lower-level composition
+decision. It first uses Git's genealogical merge base. If that reports a
+conflict, the controller may retry only when a direct candidate parent's exact
+Git tree ID equals a commit tree reachable from `BASE`. That reachable commit
+becomes the explicit effective merge base, preserving a stacked candidate
+after its parent was squash-merged without treating patch similarity as
+identity. The JSON and job summary report the effective commit, tree, and
+selection method. No exact tree match, or a conflict after the exact retry,
+remains a structural conflict and fails closed before proof jobs start.
 
 - A structural conflict reports `candidate_evidence_status` separately from `integration_status: conflict` and schedules no expensive proof.
 - A clean merge fingerprints registered proofs directly from the prospective tree.
@@ -104,6 +114,15 @@ error, never an empty input set that can accidentally inherit an old receipt.
 For example, B1 can retain `browser.tour` evidence after an ESP32-only A1 merges. If A1 changes a browser runtime input, only browser-related keys change; the ESP32 receipt remains inheritable.
 
 ## GitHub workflow boundary
+
+The authoritative impact, candidate-identity, receipt, integration, product
+reconciliation, toolchain, and bounded-monitor contracts are compiled into the
+internal `conduit-xtask-dispatch` target from the same Rust source files used by
+`cargo xtask ci`. `cargo test --locked --package conduit-xtask-dispatch` runs
+that controller suite with only Git/planning dependencies; it does not compile
+ConduitOS, browser runtimes, firmware, semantic products, or fabrication
+packages. Controller-changing PRs run this small suite in the classifier before
+fan-out. `cargo xtask` remains the documented repository entrance.
 
 Pull-request validation checks out `github.event.pull_request.head.sha` explicitly. Candidate concurrency includes both PR lifecycle and head identity, so unrelated PRs cannot cancel one another and duplicate base movement cannot destroy candidate work. Candidate workflows retain `check` and `products-proof` as immutable evidence lanes. Branch protection uses the distinct reconciliation-owned `admission` gate. This separation is necessary because GitHub preserves a failed native workflow check in the commit rollup even after a newer same-name Checks API result succeeds; reusing a native lane name cannot unambiguously replace stale admission state.
 
@@ -115,11 +134,13 @@ can never reverse that relationship.
 When an unchanged candidate needs policy from a newer trusted controller, the
 `reconcile-candidate` workflow is requested explicitly with the PR number and
 exact current head. Its trusted resolver refuses a stale or closed lifecycle.
-It considers an already-successful `check` or `products-proof` aggregate
-attached to that immutable candidate only after the trusted impact graph
-classifies the candidate-to-integration delta. A lane inherits only when that
-graph proves none of its inputs changed; a changed or unknown input executes
-the lane against the integration. The resolver freezes the current prospective
+It uses an already-successful `check` or `products-proof` aggregate attached to
+that immutable candidate only as a location for immutable receipt artifacts.
+The aggregate name is never proof equivalence. The trusted current-main
+controller verifies each recognized receipt against the prospective integration
+tree and the retained candidate applicability plan. A lane inherits only when
+every applicable proof disposition in that lane is `inherited`; missing,
+malformed, ambiguous, or unknown evidence produces fresh execution. The resolver freezes the current prospective
 integration commit separately from the candidate head; novel lanes execute
 against that integration commit, while inherited candidate receipts remain
 historical evidence about the immutable head. A main-only repair therefore
@@ -148,7 +169,42 @@ Merge-group validation identifies its checkout as integration rather than candid
 
 An expedited main admission does not need a ceremonial pull request solely to publish Pages. An explicit `book-and-creche-pages` dispatch may name the exact current `main` SHA. The trusted controller verifies that identity against the default-branch ref, derives its exact tree and parent, fabricates the carrier through the same unprivileged product workflow, verifies the resulting carrier, and only then promotes it. A stale or non-main SHA refuses before fabrication.
 
-Merged branches are retired by repository machinery rather than GitHub's immediate automatic deletion. The trusted closed-PR controller first retargets every open dependent to `main`, verifies that each immutable child head stayed exact, rescans for dependents, and only then deletes the merged branch. Any malformed response, failed retarget, changed child head, or remaining dependent retains the branch and fails the controller visibly.
+Merged branches are retired by repository machinery rather than GitHub's immediate automatic deletion. The trusted closed-PR controller first retargets every open dependent to `main`, verifies that each immutable child head stayed exact, explicitly dispatches reconciliation for that PR/head, rescans for dependents, and only then deletes the merged branch. GitHub suppresses workflow events caused by a workflow's own `GITHUB_TOKEN`, so relying on the retarget's base-edit event would silently omit reconciliation. Any malformed response, failed retarget, refused dispatch, changed child head, or remaining dependent retains the branch and fails the controller visibly.
+
+Branch protection's stable `admission` context is the final lightweight job in the reconciliation workflow, not an ad hoc check run racing unrelated check-suite completion. Even when every proof is inherited, reconciliation reaches that job, publishes a separately named `admission-evidence` detail record, retires its temporary integration ref, and lets the job's own terminal result satisfy protection. Duplicate dispatches do not cancel one another, so a later canceled suite cannot replace the established success merely as bookkeeping.
+
+Candidate proof begins with one typed shared-compilation prerequisite selected
+from changed Cargo packages that feed more than one scheduled proof world. The
+prerequisite runs once, under the exact Rust toolchain, before the workspace and
+product graphs are released concurrently. If it fails, neither graph allocates
+its browser, firmware, Host, or ConduitOS consumers; the controller emits a
+`conduit.ci.causal-block/v1` record naming `workspace.shared-compile` and the
+blocked aggregate lanes. Reconciliation applies the same prerequisite to the
+prospective integration tree. An empty shared-package set is an explicit no-op,
+not evidence, and unknown/global impact keeps the existing conservative graph.
+
+An exact successful `admission-evidence` identity includes candidate, base, and
+prospective integration identities. A later lifecycle event with that same
+triple inherits the complete admitted proposition without re-running its lane
+proofs. Unknown contracts or any identity mismatch fall back to proof planning.
+
+Required PR-head admission is requested through the bounded `ci:reconcile`
+label. The `pull_request_target` event attaches the stable job to the immutable
+PR head while every privileged step still comes from canonical `main`; the
+controller attempts to consume the label before planning so it can be requested
+again. That cleanup is best-effort bookkeeping: API congestion may leave the
+label present, but it cannot suppress exact PR/head validation.
+Reopen and base-edit lifecycle events reconcile automatically. A manually
+dispatched run remains useful diagnostic evidence, but its job belongs to the
+selected dispatch ref. After exact reconciliation succeeds, that trusted run
+publishes the required `admission` check directly onto the verified PR head;
+ordinary event-driven reconciliation continues to use the job gate itself.
+
+When a duplicate candidate workflow is deliberately cancelled, its aggregate
+`check` and `products-proof` joins do not manufacture new failure records while
+the cancellation propagates. Genuine dependency failures still reach those
+joins and fail normally; only an explicit workflow cancellation suppresses the
+redundant terminal aggregate.
 
 The repository's `cargo xtask` alias first enters the dependency-light
 `conduit-xtask-dispatch`. The CI identity operations (`plan`, `candidate`,
@@ -175,7 +231,21 @@ new CI command can therefore be validated without rebasing merely to acquire
 the command implementation; the preflight still inspects that candidate's
 exact manifests and locks.
 
-The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.
+The registry remains intentionally broad and conservative, but every active
+`check` matrix row now retains its own exact receipt: CI-controller contracts,
+all workspace shards, standalone fabrication locks, every ESP32 target, Limine
+and ConduitOS tool admission, every selected x86 and architecture proof, and
+the AArch64 product. The classifier builds the trusted dependency-light
+attestation controller once and distributes that immutable executable to proof
+jobs; matrix rows do not rebuild it. Product CI separately retains exact Tour,
+Patchbay-debugger, workspace-product, and Pages-carrier receipts. The trusted
+on-demand reconciler retrieves and verifies these receipts before scheduling,
+so a lane is inherited only when every applicable proof key is present.
+
+Later work can split broad nodes, model fabricated artifacts as independent
+graph nodes, remove duplicated path-filtered workflows, batch shared
+browser/QEMU environments, and make Crèche payload delivery lazy without
+changing this identity contract.
 
 Product workflow dependencies follow consumed artifacts rather than the final
 deployment bundle. The Tour and its embedded real Patchbay consume the browser

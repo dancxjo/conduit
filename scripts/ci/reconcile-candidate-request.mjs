@@ -1,38 +1,24 @@
 const LANES = ["check", "products-proof"];
-const ADMISSION_GATE = "admission";
+const LANE_CHECK_NAMES = new Map([
+  ["check", new Set(["check", "check / check"])],
+  ["products-proof", new Set(["products-proof", "products / products-proof"])],
+]);
+const ADMISSION_EVIDENCE = "admission-evidence";
+const REQUIRED_ADMISSION = "admission";
 
 function exactArray(value, label) {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) throw new Error(`${label} must be a string array`);
   return value;
 }
 
-export function laneInputsUnchanged(plan, lane) {
-  if (!plan || typeof plan !== "object") throw new Error("reconciliation impact plan is required");
-  if (typeof plan.pages_products_required !== "boolean" || typeof plan.full_fallback !== "boolean") throw new Error("reconciliation impact plan has unknown boolean fields");
-  if (lane === "products-proof") return !plan.full_fallback && !plan.pages_products_required;
-  if (lane !== "check") throw new Error(`unknown reconciliation lane ${lane}`);
-  const shards = plan.workspace_shards;
-  if (!shards || typeof shards !== "object" || Array.isArray(shards) || Object.values(shards).some((required) => typeof required !== "boolean")) {
-    throw new Error("reconciliation workspace shard plan is malformed");
-  }
-  const controllerProofs = exactArray(plan.ci_controller_proofs, "controller proofs");
-  const commandProofs = exactArray(plan.repository_command_proofs, "repository command proofs");
-  for (const field of ["esp32_required", "browser_required", "conduitos_required", "conduitos_aarch64_product_required"]) {
-    if (typeof plan[field] !== "boolean") throw new Error(`reconciliation impact plan has unknown ${field}`);
-  }
-  return !plan.full_fallback
-    && controllerProofs.length === 0
-    && commandProofs.length === 0
-    && !plan.esp32_required
-    && !plan.browser_required
-    && !plan.conduitos_required
-    && !plan.conduitos_aarch64_product_required
-    && Object.values(shards).every((required) => !required);
-}
-
 function exactIdentity(value, label) {
   if (!/^[0-9a-f]{40,64}$/.test(value ?? "")) throw new Error(`${label} must be an exact Git identity`);
   return value;
+}
+
+function workflowRunId(detailsUrl) {
+  const match = /^https:\/\/github\.com\/[^/]+\/[^/]+\/actions\/runs\/(\d+)(?:\/|$)/.exec(detailsUrl ?? "");
+  return match ? Number(match[1]) : null;
 }
 
 function headers(token) {
@@ -48,7 +34,7 @@ function validate(repository, pullNumber, candidateSha) {
 
 export function successfulLaneEvidence(checkRuns, lane) {
   if (!LANES.includes(lane)) throw new Error(`unknown reconciliation lane ${lane}`);
-  return checkRuns.filter((check) => check.name === lane
+  return checkRuns.filter((check) => LANE_CHECK_NAMES.get(lane).has(check.name)
     && check.status === "completed"
     && check.conclusion === "success"
     && check.app?.slug === "github-actions"
@@ -58,7 +44,63 @@ export function successfulLaneEvidence(checkRuns, lane) {
     .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
 }
 
-export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, baseSha, integrationSha, reconciliationPlan, token, request = fetch }) {
+export function laneReceiptRunLocator(checkRuns, lane) {
+  if (!LANES.includes(lane)) throw new Error(`unknown reconciliation lane ${lane}`);
+  return checkRuns.filter((check) => LANE_CHECK_NAMES.get(lane).has(check.name)
+    && check.status === "completed"
+    && check.app?.slug === "github-actions"
+    && Number.isSafeInteger(check.id)
+    && check.id > 0
+    && workflowRunId(check.details_url) !== null)
+    .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
+}
+
+const PROOF_LANES = new Map([
+  ["workspace", "check"],
+  ["machine", "check"],
+  ["browser", "products-proof"],
+]);
+
+// Aggregate checks are locators for immutable receipt artifacts, never proof
+// equivalence. The trusted controller first verifies those receipts and emits
+// this plan; only then may orchestration decide that an entire scheduling lane
+// has no novel propositions.
+export function exactLaneDisposition(proofPlan, lane) {
+  if (!LANES.includes(lane)) throw new Error(`unknown reconciliation lane ${lane}`);
+  if (proofPlan?.schema !== "conduit.ci.reconciliation-plan/v1") {
+    throw new Error("exact reconciliation proof plan has an unknown schema");
+  }
+  if (proofPlan.integration_status !== "clean" || !Array.isArray(proofPlan.proofs)) {
+    throw new Error("exact reconciliation proof plan is incomplete");
+  }
+  const proofs = proofPlan.proofs.filter((proof) => PROOF_LANES.get(proof?.kind) === lane);
+  for (const proof of proofs) {
+    if (typeof proof.proof_id !== "string" || !["inherited", "execute"].includes(proof.disposition)) {
+      throw new Error(`malformed exact proof disposition in ${lane}`);
+    }
+  }
+  const execute = proofs.filter((proof) => proof.disposition === "execute");
+  return {
+    inherited: execute.length === 0,
+    inheritedProofIds: proofs.filter((proof) => proof.disposition === "inherited").map((proof) => proof.proof_id),
+    executeProofIds: execute.map((proof) => proof.proof_id),
+  };
+}
+
+export function successfulAdmissionEvidence(checkRuns, candidateSha, baseSha, integrationSha) {
+  const externalId = `conduit.current-controller-reconciliation/v3:${candidateSha}:${baseSha}:${integrationSha}`;
+  return checkRuns.filter((check) => check.name === ADMISSION_EVIDENCE
+    && check.status === "completed"
+    && check.conclusion === "success"
+    && check.app?.slug === "github-actions"
+    && check.external_id === externalId
+    && Number.isSafeInteger(check.id)
+    && check.id > 0
+    && /^https:\/\//.test(check.details_url ?? ""))
+    .sort((left, right) => (right.id ?? 0) - (left.id ?? 0))[0] ?? null;
+}
+
+export async function resolveCandidateRequest({ repository, pullNumber, candidateSha, baseSha, integrationSha, token, request = fetch }) {
   validate(repository, pullNumber, candidateSha);
   exactIdentity(baseSha, "base SHA");
   exactIdentity(integrationSha, "integration SHA");
@@ -79,25 +121,33 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
     checkRuns.push(...body.check_runs);
     if (body.check_runs.length < 100) break;
   }
+  const admitted = successfulAdmissionEvidence(checkRuns, candidateSha, baseSha, integrationSha);
+  if (admitted) {
+    const evidence = { checkRunId: admitted.id, detailsUrl: admitted.details_url, workflowRunId: workflowRunId(admitted.details_url) };
+    return {
+      pullNumber, candidateSha, baseSha, integrationSha,
+      lanes: Object.fromEntries(LANES.map((lane) => [lane, evidence])),
+      published: true,
+    };
+  }
   return {
     pullNumber, candidateSha, baseSha, integrationSha,
     lanes: Object.fromEntries(LANES.map((lane) => {
-      if (!laneInputsUnchanged(reconciliationPlan, lane)) return [lane, null];
-      const evidence = successfulLaneEvidence(checkRuns, lane);
-      return [lane, evidence && { checkRunId: evidence.id, detailsUrl: evidence.details_url }];
+      const evidence = laneReceiptRunLocator(checkRuns, lane);
+      return [lane, evidence && { checkRunId: evidence.id, detailsUrl: evidence.details_url, workflowRunId: workflowRunId(evidence.details_url) }];
     })),
-    laneInputsUnchanged: Object.fromEntries(LANES.map((lane) => [lane, laneInputsUnchanged(reconciliationPlan, lane)])),
+    published: false,
   };
 }
 
-export async function publishCandidateResults({ repository, candidateSha, baseSha, integrationSha, checkInherited, checkResult, checkEvidenceUrl, productsInherited, productsResult, productsEvidenceUrl, runUrl, token, request = fetch }) {
+export async function publishCandidateResults({ repository, candidateSha, baseSha, integrationSha, checkInherited, checkResult, checkEvidenceUrl, checkInheritedProofs = [], checkExecuteProofs = [], productsInherited, productsResult, productsEvidenceUrl, productsInheritedProofs = [], productsExecuteProofs = [], runUrl, publishRequiredAdmission = false, token, request = fetch }) {
   validate(repository, 1, candidateSha);
   exactIdentity(baseSha, "base SHA");
   exactIdentity(integrationSha, "integration SHA");
   const requestHeaders = { ...headers(token), "Content-Type": "application/json" };
   const lanes = [
-    { name: "check", inherited: checkInherited, result: checkResult, evidenceUrl: checkEvidenceUrl },
-    { name: "products-proof", inherited: productsInherited, result: productsResult, evidenceUrl: productsEvidenceUrl },
+    { name: "check", inherited: checkInherited, result: checkResult, evidenceUrl: checkEvidenceUrl, inheritedProofs: exactArray(checkInheritedProofs, "check inherited proofs"), executeProofs: exactArray(checkExecuteProofs, "check execute proofs") },
+    { name: "products-proof", inherited: productsInherited, result: productsResult, evidenceUrl: productsEvidenceUrl, inheritedProofs: exactArray(productsInheritedProofs, "products inherited proofs"), executeProofs: exactArray(productsExecuteProofs, "products execute proofs") },
   ];
   const conclusion = lanes.every((lane) => lane.inherited || lane.result === "success") ? "success" : "failure";
   if (conclusion !== "success") {
@@ -105,11 +155,13 @@ export async function publishCandidateResults({ repository, candidateSha, baseSh
     throw new Error(`refuse admission because reconciliation did not succeed: ${refused}`);
   }
   const laneSummary = lanes.map((lane) => {
-    if (lane.inherited) return `${lane.name}: inherited exact success from ${lane.evidenceUrl}`;
-    return `${lane.name}: current-controller execution ${lane.result}`;
+    const inherited = lane.inheritedProofs.length > 0 ? lane.inheritedProofs.join(", ") : "none required";
+    const executed = lane.executeProofs.length > 0 ? lane.executeProofs.join(", ") : "none";
+    if (lane.inherited) return `${lane.name}: inherited exact proof keys [${inherited}] from ${lane.evidenceUrl}`;
+    return `${lane.name}: current-controller execution ${lane.result}; inherited [${inherited}]; executed [${executed}]`;
   }).join("\n");
-  const body = {
-    name: ADMISSION_GATE, head_sha: candidateSha, status: "completed", conclusion,
+  const evidenceBody = {
+    name: ADMISSION_EVIDENCE, head_sha: candidateSha, status: "completed", conclusion,
     external_id: `conduit.current-controller-reconciliation/v3:${candidateSha}:${baseSha}:${integrationSha}`,
     details_url: runUrl,
     output: {
@@ -117,32 +169,25 @@ export async function publishCandidateResults({ repository, candidateSha, baseSh
       summary: `Current-controller admission for unchanged candidate ${candidateSha}.\n\nBase: ${baseSha}\nProspective integration: ${integrationSha}\n\n${laneSummary}\n\nRun: ${runUrl}`,
     },
   };
-  const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
-  if (!response.ok) throw new Error(`publish ${ADMISSION_GATE} check failed: HTTP ${response.status}`);
-  return [{ name: ADMISSION_GATE, conclusion, checkRunId: (await response.json()).id }];
-}
-
-export async function resolveAndPublishInherited(options) {
-  const resolved = await resolveCandidateRequest(options);
-  if (!LANES.every((lane) => Boolean(resolved.lanes[lane]))) {
-    return { resolved, published: null };
+  const bodies = [evidenceBody];
+  if (publishRequiredAdmission) {
+    bodies.push({
+      ...evidenceBody,
+      name: REQUIRED_ADMISSION,
+      external_id: `conduit.required-admission/v1:${candidateSha}:${baseSha}:${integrationSha}`,
+      output: {
+        ...evidenceBody.output,
+        title: "Exact candidate admission gate",
+      },
+    });
   }
-  const published = await publishCandidateResults({
-    repository: options.repository,
-    candidateSha: options.candidateSha,
-    baseSha: resolved.baseSha,
-    integrationSha: resolved.integrationSha,
-    checkInherited: true,
-    checkResult: "skipped",
-    checkEvidenceUrl: resolved.lanes.check.detailsUrl,
-    productsInherited: true,
-    productsResult: "skipped",
-    productsEvidenceUrl: resolved.lanes["products-proof"].detailsUrl,
-    runUrl: options.runUrl,
-    token: options.token,
-    request: options.request,
-  });
-  return { resolved, published };
+  const published = [];
+  for (const body of bodies) {
+    const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
+    if (!response.ok) throw new Error(`publish ${body.name} check failed: HTTP ${response.status}`);
+    published.push({ name: body.name, conclusion, checkRunId: (await response.json()).id });
+  }
+  return published;
 }
 
 async function appendOutput(name, value) {
@@ -153,15 +198,12 @@ async function appendOutput(name, value) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv[2] === "resolve") {
-    const { readFile } = await import("node:fs/promises");
-    const reconciliationPlan = JSON.parse(await readFile(process.env.CONDUIT_RECONCILIATION_PLAN, "utf8"));
-    const { resolved: result, published } = await resolveAndPublishInherited({
+    const result = await resolveCandidateRequest({
       repository: process.env.GITHUB_REPOSITORY,
       pullNumber: Number(process.env.CONDUIT_PR_NUMBER),
       candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
       baseSha: process.env.CONDUIT_BASE_SHA,
       integrationSha: process.env.CONDUIT_INTEGRATION_SHA,
-      reconciliationPlan,
       runUrl: process.env.CONDUIT_RUN_URL,
       token: process.env.GH_TOKEN,
     });
@@ -171,19 +213,34 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const prefix = lane === "check" ? "check" : "products";
       await appendOutput(`${prefix}_inherited`, String(Boolean(result.lanes[lane])));
       await appendOutput(`${prefix}_evidence_url`, result.lanes[lane]?.detailsUrl ?? "");
+      await appendOutput(`${prefix}_run_id`, result.lanes[lane]?.workflowRunId ?? "");
     }
-    await appendOutput("published", String(Boolean(published)));
-    process.stdout.write(`${JSON.stringify({ ...result, published }, null, 2)}\n`);
+    await appendOutput("published", String(result.published));
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } else if (process.argv[2] === "classify") {
+    const { readFile } = await import("node:fs/promises");
+    const plan = JSON.parse(await readFile(process.env.CONDUIT_EXACT_PROOF_PLAN, "utf8"));
+    const result = Object.fromEntries(LANES.map((lane) => [lane, exactLaneDisposition(plan, lane)]));
+    for (const lane of LANES) {
+      const prefix = lane === "check" ? "check" : "products";
+      await appendOutput(`${prefix}_inherited`, String(result[lane].inherited));
+      await appendOutput(`${prefix}_inherited_proofs`, JSON.stringify(result[lane].inheritedProofIds));
+      await appendOutput(`${prefix}_execute_proofs`, JSON.stringify(result[lane].executeProofIds));
+    }
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } else if (process.argv[2] === "publish") {
     const published = await publishCandidateResults({
       repository: process.env.GITHUB_REPOSITORY, candidateSha: process.env.CONDUIT_CANDIDATE_SHA,
       baseSha: process.env.CONDUIT_BASE_SHA, integrationSha: process.env.CONDUIT_INTEGRATION_SHA,
       checkInherited: process.env.CONDUIT_CHECK_INHERITED === "true", checkResult: process.env.CONDUIT_CHECK_RESULT, checkEvidenceUrl: process.env.CONDUIT_CHECK_EVIDENCE_URL,
+      checkInheritedProofs: JSON.parse(process.env.CONDUIT_CHECK_INHERITED_PROOFS || "[]"), checkExecuteProofs: JSON.parse(process.env.CONDUIT_CHECK_EXECUTE_PROOFS || "[]"),
       productsInherited: process.env.CONDUIT_PRODUCTS_INHERITED === "true", productsResult: process.env.CONDUIT_PRODUCTS_RESULT, productsEvidenceUrl: process.env.CONDUIT_PRODUCTS_EVIDENCE_URL,
+      productsInheritedProofs: JSON.parse(process.env.CONDUIT_PRODUCTS_INHERITED_PROOFS || "[]"), productsExecuteProofs: JSON.parse(process.env.CONDUIT_PRODUCTS_EXECUTE_PROOFS || "[]"),
+      publishRequiredAdmission: process.env.CONDUIT_PUBLISH_REQUIRED_ADMISSION === "true",
       runUrl: process.env.CONDUIT_RUN_URL, token: process.env.GH_TOKEN,
     });
     process.stdout.write(`${JSON.stringify({ schema: "conduit.ci.current-controller-reconciliation/v1", candidate_sha: process.env.CONDUIT_CANDIDATE_SHA, published }, null, 2)}\n`);
   } else {
-    throw new Error("usage: reconcile-candidate-request.mjs resolve|publish");
+    throw new Error("usage: reconcile-candidate-request.mjs resolve|classify|publish");
   }
 }

@@ -29,6 +29,19 @@ export async function retireMergedPullBranch({ pull, repository, defaultBranch, 
     if (updated?.base?.ref !== target || updated?.head?.sha !== dependent.head.sha) {
       throw new Error(`retarget pull request #${dependent.number} changed candidate identity or retained the old base`);
     }
+    const dispatch = await request(
+      api(repository, "/actions/workflows/reconcile-candidate.yml/dispatches"),
+      jsonRequest("POST", {
+        ref: defaultBranch,
+        inputs: {
+          pr_number: String(dependent.number),
+          candidate_sha: dependent.head.sha,
+        },
+      }),
+    );
+    if (!dispatch.ok) {
+      throw new Error(`dispatch reconciliation for pull request #${dependent.number} refused with HTTP ${dispatch.status}`);
+    }
     retargeted.push({ number: dependent.number, head_sha: dependent.head.sha });
   }
 

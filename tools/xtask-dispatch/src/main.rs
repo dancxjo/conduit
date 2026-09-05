@@ -96,6 +96,8 @@ mod suites {
 
 #[path = "../../../xtask/src/commands/ci/impact.rs"]
 mod impact;
+#[path = "../../../xtask/src/commands/ci/integration.rs"]
+mod integration;
 #[path = "../../../xtask/src/commands/ci/monitor.rs"]
 mod monitor;
 #[path = "../../../xtask/src/commands/ci/product_reconciliation.rs"]
@@ -249,4 +251,38 @@ fn command_identity(program: &str, arguments: &[&str]) -> Result<String, String>
         return Err(format!("{program} returned an empty identity"));
     }
     Ok(identity)
+}
+
+#[cfg(test)]
+mod dependency_boundary_tests {
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn default_planner_test_target_has_only_dependency_light_inputs() {
+        let root = crate::workspace::workspace_root().unwrap();
+        let manifest = std::fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml"))
+            .expect("read dispatcher manifest");
+        let manifest: toml::Value = toml::from_str(&manifest).expect("parse dispatcher manifest");
+        let dependencies = manifest["dependencies"]
+            .as_table()
+            .expect("dispatcher dependencies");
+        let non_optional = dependencies
+            .iter()
+            .filter_map(|(name, value)| {
+                let optional = value
+                    .as_table()
+                    .and_then(|details| details.get("optional"))
+                    .and_then(toml::Value::as_bool)
+                    .unwrap_or(false);
+                (!optional).then_some(name.as_str())
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            non_optional,
+            BTreeSet::from(["serde", "serde_json", "sha2", "toml"])
+        );
+        assert!(dependencies["conduit-host-browser-fabrication"]["optional"]
+            .as_bool()
+            .unwrap());
+    }
 }

@@ -1,0 +1,64 @@
+name: candidate
+
+on:
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: candidate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  shared-compile:
+    uses: ./.github/workflows/candidate-shared-compile.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      pr_number: ${{ github.event.pull_request.number }}
+      classify_stack: true
+
+  check:
+    needs: shared-compile
+    if: needs.shared-compile.result == 'success' && needs.shared-compile.outputs.stack_role != 'intermediate'
+    uses: ./.github/workflows/check.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+
+  products:
+    needs: shared-compile
+    if: needs.shared-compile.result == 'success' && needs.shared-compile.outputs.stack_role != 'intermediate'
+    uses: ./.github/workflows/executable-book-pages.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+
+  candidate:
+    needs: [shared-compile, check, products]
+    if: always() && !cancelled()
+    runs-on: ubuntu-slim
+    steps:
+      - name: Report causal candidate disposition
+        env:
+          SHARED_RESULT: ${{ needs.shared-compile.result }}
+          SHARED_PACKAGES: ${{ needs.shared-compile.outputs.packages }}
+          STACK_ROLE: ${{ needs.shared-compile.outputs.stack_role }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          PRODUCTS_RESULT: ${{ needs.products.result }}
+        run: |
+          if test "$SHARED_RESULT" != success; then
+            printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["check","products-proof"]}\n' \
+              "${SHARED_PACKAGES:-[]}" | tee causal-block.json
+            printf 'blocked-by: workspace.shared-compile (%s)\n' "$SHARED_PACKAGES" >&2
+            exit 1
+          fi
+          if test "$STACK_ROLE" = intermediate; then
+            echo 'Intermediate slice retained; cumulative stack tip owns expensive proof.'
+            exit 0
+          fi
+          test "$CHECK_RESULT" = success
+          test "$PRODUCTS_RESULT" = success

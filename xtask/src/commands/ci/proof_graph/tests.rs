@@ -68,6 +68,56 @@ fn spec(id: &str) -> &'static ProofSpec {
     PROOFS.iter().find(|proof| proof.id == id).unwrap()
 }
 
+#[test]
+fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
+    let selected = ImpactSelection {
+        ci_controller_proofs: Vec::new(),
+        workspace_shards: BTreeMap::from([
+            ("test-products".to_owned(), true),
+            ("lint".to_owned(), false),
+        ]),
+        full_fallback: false,
+        shared_compile_packages: vec!["conduit-presentation".to_owned()],
+        pages_products_required: true,
+        pages_product_proofs: vec!["products.patchbay-debugger".to_owned()],
+        esp32_required: false,
+        esp32_targets: vec!["c3".to_owned()],
+        conduitos_required: false,
+        conduitos_x86_proofs: Vec::new(),
+        conduitos_architectures: Vec::new(),
+        conduitos_aarch64_product_required: false,
+    };
+    assert!(is_selected(spec("workspace.products"), Some(&selected)));
+    assert!(is_selected(
+        spec("workspace.shared-compile"),
+        Some(&selected)
+    ));
+    assert!(is_selected(spec("browser.tour"), Some(&selected)));
+    assert!(is_selected(
+        spec("browser.patchbay-debugger"),
+        Some(&selected)
+    ));
+    assert!(is_selected(spec("products.pages-carrier"), Some(&selected)));
+    assert!(!is_selected(spec("machine.esp32-c3"), Some(&selected)));
+
+    let fallback = ImpactSelection {
+        full_fallback: true,
+        ..selected
+    };
+    assert!(PROOFS
+        .iter()
+        .all(|proof| is_selected(proof, Some(&fallback))));
+}
+
+#[test]
+fn malformed_retained_applicability_falls_back_to_the_complete_registry() {
+    let repo = Repository::new();
+    let path = repo.root.join("impact.json");
+    fs::write(&path, b"{not-json").unwrap();
+    assert!(load_selection(Some(&path)).unwrap().is_none());
+    assert!(PROOFS.iter().all(|proof| is_selected(proof, None)));
+}
+
 fn receipt_for(root: &Path, tree: &str, spec: &ProofSpec, candidate: &str) -> ProofReceipt {
     let input_digest = fingerprint(root, tree, spec).unwrap();
     ProofReceipt {
@@ -278,7 +328,7 @@ fn structural_conflict_precedes_all_proof_execution() {
         })
         .collect();
     assert_eq!(
-        evidence_status(&repo.root, &candidate_tree, &receipts).unwrap(),
+        evidence_status(&repo.root, &candidate_tree, &receipts, None).unwrap(),
         "pass"
     );
     git(&repo.root, &["checkout", "-q", "master"]);

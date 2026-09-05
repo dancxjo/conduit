@@ -126,6 +126,69 @@ fn current_controller_reconciliation_changes_run_only_their_exact_proof() {
 }
 
 #[test]
+fn exact_integration_resolver_changes_run_only_the_controller_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/reconcile-candidate.yml".to_owned(),
+            "tools/xtask-dispatch/src/ci_dispatch.rs".to_owned(),
+            "tools/xtask-dispatch/src/main.rs".to_owned(),
+            "xtask/src/commands/ci.rs".to_owned(),
+            "xtask/src/commands/ci/integration.rs".to_owned(),
+            "xtask/src/commands/ci/integration/tests.rs".to_owned(),
+            "xtask/src/commands/ci/proof_graph.rs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(
+        plan.ci_controller_proofs,
+        [
+            "ci.current-controller-reconciliation",
+            "ci.exact-integration"
+        ]
+    );
+    assert!(!plan.full_fallback);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert_eq!(plan.changed_packages, ["conduit-xtask-dispatch", "xtask"]);
+}
+
+#[test]
+fn planner_test_target_changes_do_not_select_product_or_machine_proofs() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/check.yml".to_owned(),
+            "tools/xtask-dispatch/Cargo.toml".to_owned(),
+            "tools/xtask-dispatch/src/main.rs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(plan.ci_controller_proofs, ["ci.planner-contract-tests"]);
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert_eq!(plan.changed_packages, ["conduit-xtask-dispatch", "xtask"]);
+}
+
+#[test]
 fn dispatcher_command_implementation_has_command_local_impact() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
@@ -189,6 +252,42 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
     )
     .unwrap();
     assert!(ambiguous.full_fallback);
+}
+
+#[test]
+fn merged_branch_retirement_is_controller_work_not_machine_fabrication() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/reconcile-candidate.yml".to_owned(),
+            ".github/workflows/retire-merged-pr-branch.yml".to_owned(),
+            "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
+            "proof/ci/retire-merged-pr-branch.spec.mjs".to_owned(),
+            "scripts/ci/reconcile-candidate-request.mjs".to_owned(),
+            "scripts/ci/retire-merged-pr-branch.mjs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(
+        plan.ci_controller_proofs,
+        [
+            "ci.current-controller-reconciliation",
+            "ci.merged-branch-retirement",
+        ]
+    );
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert_eq!(plan.changed_packages, ["xtask"]);
 }
 
 #[test]
@@ -527,6 +626,9 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(!shared_browser_presentation.conduitos_required);
     assert!(shared_browser_presentation.pages_products_required);
     assert!(shared_browser_presentation.workspace_shards["lint"]);
+    assert!(shared_browser_presentation
+        .shared_compile_packages
+        .contains(&"conduit-presentation".to_owned()));
 
     let creche_presentation = plan_for_paths(
         &root,
@@ -769,6 +871,9 @@ fn esp32_paths_select_exact_target_obligations() {
     )
     .unwrap();
     assert_eq!(shared_dependency.esp32_targets.len(), 3);
+    assert!(shared_dependency
+        .shared_compile_packages
+        .contains(&"conduit-kernel".to_owned()));
 }
 
 #[test]
@@ -825,9 +930,10 @@ fn conduitos_paths_select_exact_proof_obligations() {
 fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     let root = crate::workspace::workspace_root().unwrap();
     let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+    let candidate = fs::read_to_string(root.join(".github/workflows/candidate.yml")).unwrap();
 
     assert!(workflow.contains("  workflow_call:\n"));
-    assert!(workflow.contains("  pull_request:\n"));
+    assert!(candidate.contains("  pull_request:\n"));
     assert!(workflow.contains("  merge_group:\n"));
     assert!(!workflow.contains("\n  push:"));
 
@@ -887,7 +993,8 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
         "comparison_base_sha: ${{ steps.slice.outputs.comparison_base_sha || steps.changes.outputs.comparison_base_sha }}"
     ));
     assert!(workflow.contains("BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}"));
-    assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}"));
+    assert!(workflow.contains("name: Receive the trusted standalone-lock controller"));
+    assert!(workflow.contains("name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}"));
     assert!(workflow.contains("\"${controller[@]}\" ci standalone-locks --locked"));
     assert!(workflow.contains("name: ci-plan-${{ steps.changes.outputs.head_sha }}"));
 }

@@ -1,4 +1,5 @@
 const CANDIDATE_WORKFLOWS = new Set([
+  "candidate",
   "check",
   "book-and-creche-products",
   "book-pr-proof",

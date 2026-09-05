@@ -1,13 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
+import { productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
 
 const head = "ef22d9e1b0f3d4cbc19fb35ac4e330f8dbf2b5dc";
 const merged = "7dccbe822271ef1ac8a0fd49e7cc37add40a943c";
 const headTree = "27a9e0f98339fce62fc8360095b2f1ea0d5a9b92";
 const mergedTree = "bd48b1d15eab5989a6b452ff23e0b47cde8c67a7";
 const integrationBase = "20ce4bc5448faebb5d0874041e9c0887a273681f";
+
+test("admits the unified candidate and legacy product workflows only", () => {
+  const candidate = { id: 1, path: ".github/workflows/candidate.yml" };
+  const legacy = { id: 2, path: ".github/workflows/executable-book-pages.yml" };
+  assert.deepEqual(productCarrierRuns([
+    { id: 3, path: ".github/workflows/check.yml" },
+    candidate,
+    { id: 4 },
+    legacy,
+  ]), [candidate, legacy]);
+  assert.deepEqual(productCarrierRuns(undefined), []);
+});
 
 test("selects the successful exact-head run when GitHub omits PR associations", () => {
   const admitted = { id: 33662354458, status: "completed", conclusion: "success", head_sha: head, pull_requests: [] };

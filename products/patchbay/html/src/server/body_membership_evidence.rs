@@ -93,6 +93,11 @@ impl PatchbayHtmlServer {
             .body_host_offer_evidence
             .clone()
             .filter(|evidence| super::body_host_offer_evidence::is_current(evidence, &candidate));
+        snapshot.body_host_planning_offer = self
+            .snapshot
+            .body_host_planning_offer
+            .clone()
+            .filter(|evidence| super::body_host_offer_evidence::is_current(evidence, &candidate));
         self.body_workload = Some(session);
         self.snapshot = snapshot;
         self.navigation = navigation_state(&self.snapshot)?;

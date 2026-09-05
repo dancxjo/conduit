@@ -13,6 +13,7 @@ use conduit_observatory::{
 
 mod body_biography;
 mod body_biography_entrance;
+mod body_planning_session;
 mod body_workload_session;
 mod build_birth;
 mod candidate_form;
@@ -112,6 +113,10 @@ pub use body_biography::{
 pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
+};
+pub use body_planning_session::{
+    BodyPlanningSession, BodyPlanningSessionError, BodyPlanningSessionSnapshot,
+    BodyPlanningTransition,
 };
 pub use body_workload_session::{
     BodyWorkloadChange, BodyWorkloadChangeKind, PatchbayBodyWorkloadError,
