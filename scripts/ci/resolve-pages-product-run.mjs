@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { appendFile, readFile } from "node:fs/promises";
-import { productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
+import { hasRetainedArtifact, productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "./pages-product-run-selection.mjs";
 
 const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
 const repository = process.env.GITHUB_REPOSITORY;
@@ -22,6 +22,7 @@ if (requestedMain && requestedNumber !== undefined) {
 
 let source;
 let runId = "";
+let carrierPresent = false;
 let directMain = false;
 if (requestedMain) {
   const repositoryDocument = await api(`/repos/${repository}`);
@@ -62,10 +63,13 @@ if (requestedMain) {
   }
   if (!run) throw new Error(`exact-head Pages product run did not complete successfully for pull request #${requestedNumber} within the bounded wait`);
   runId = String(run.id);
+  const artifacts = await api(`/repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`);
+  carrierPresent = hasRetainedArtifact(artifacts.artifacts, "conduit-pages-carrier");
 }
 
 await appendFile(output, [
   `run_id=${runId}`,
+  `carrier_present=${carrierPresent}`,
   `merge_commit=${source.mergeCommit}`,
   `source_head=${source.sourceHead}`,
   `source_tree=${source.sourceTree}`,
