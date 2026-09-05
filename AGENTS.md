@@ -66,7 +66,7 @@ Disk cleanup is machine maintenance, not permission to change Conduit source or 
 
 ## Change discipline
 
-- Do not push directly to `main`. Stable `main` accepts only an immutable `promote/<full-dev-sha>` snapshot through a promotion PR whose exhaustive gate succeeded.
+- Do not push directly to `main`. Stable `main` accepts only an immutable `promote/<full-promotion-sha>` commit whose exact tree and second parent identify the frozen `dev` snapshot, through a promotion PR whose exhaustive gate succeeded.
 - Do not open feature, documentation, maintenance, or CI PRs directly against `main`. The sole routine `main` PR is a frozen `dev` snapshot promotion.
 - Keep PRs reviewable. A large milestone may use several small PRs, but closing the parent issue requires the complete acceptance proof.
 - Do not introduce broad renames, compatibility layers, dependencies, generated files, or cleanup unrelated to the owned outcome.
@@ -117,7 +117,7 @@ A green check proves only the commands and environments it actually ran.
 
 - `dev` is the construction site. Feature PRs receive focused impact-based proof sufficient to admit them into integration; one PR never cancels another.
 - A push to `dev` proves the combined development tree with integration smoke. A red `dev` blocks further admission until repaired.
-- `main` is stable and releasable. A same-repository frozen `promote/<full-dev-sha>` snapshot PR to `main` runs the exhaustive workspace, product, browser, firmware, and ConduitOS gate against its exact head. `dev` remains open for product admission while that snapshot is proved.
+- `main` is stable and releasable. A same-repository frozen `promote/<full-promotion-sha>` snapshot PR to `main` runs the exhaustive workspace, product, browser, firmware, and ConduitOS gate against its exact head. Its tree equals the chosen `dev` snapshot, with current `main` and that snapshot as its two parents. `dev` remains open for product admission while it is proved.
 - Candidate evidence answers whether a change is sound enough for `dev`. Development evidence answers whether the current combined tree basically works. Promotion evidence alone answers whether an exact tree may become `main`.
 - Merging or advancing `dev` does not require old feature heads to negotiate with future CI. Refresh stale candidates onto current `dev` when they approach admission.
 - Pages deployment consumes the already-proven carrier from the successful frozen-snapshot promotion and runs only after that promotion merges. Privileged deployment code never executes untrusted PR-controlled code.

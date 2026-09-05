@@ -22,7 +22,7 @@ Every `dev` update runs integration smoke on the combined tree. A failure is an 
 
 The earlier candidate reconciliation and workflow-run retirement controllers remain manually dispatchable during migration but do not run on ordinary PR lifecycle events. Native merged-branch deletion replaces the latter in the steady state.
 
-`main` is the stable publication branch. Its only routine input is a same-repository frozen snapshot named `promote/<full-dev-sha>`. The stable `promotion` check forces the complete workspace and product proof graphs, including release fabrication. A feature branch or the moving `dev` ref aimed directly at `main` fails the branch boundary rather than acquiring an alternative path.
+`main` is the stable publication branch. Its only routine input is a same-repository frozen snapshot named `promote/<full-promotion-sha>`. The promotion commit has the current `main` as first parent, the chosen `dev` snapshot as second parent, and exactly the chosen `dev` tree. The stable `promotion` check verifies that shape before forcing the complete workspace and product proof graphs, including release fabrication. A feature branch or the moving `dev` ref aimed directly at `main` fails the branch boundary rather than acquiring an alternative path.
 
 After a promotion merges, Pages deployment accepts the carrier produced by that exact promotion run. Deployment remains privileged and separate; it does not execute code from an untrusted `pull_request_target` checkout.
 
@@ -41,8 +41,8 @@ Passing a feature PR does not promise eternal compatibility with later `dev`. Wh
 ## Promotion procedure
 
 1. Require green `dev` integration smoke and record its exact commit `S`. Product admission to `dev` does not pause after this point.
-2. Run `cargo xtask ci promotion-snapshot --push --locked`. This publishes `promote/<full-S>` without moving or rewriting `dev`; an existing ref with different content is refused.
-3. Open the sole `promote/<full-S>`-to-`main` promotion PR without adding a synthetic product delta.
+2. Run `cargo xtask ci promotion-snapshot --push --locked`. This publishes a deterministic two-parent `promote/<full-promotion-sha>` commit whose tree is exactly `S`; an existing ref with different content is refused.
+3. Open the sole `promote/<full-promotion-sha>`-to-`main` promotion PR without adding a product delta.
 4. Require the stable `promotion` result at exact snapshot `S`. Do not substitute evidence from later `dev`, local, candidate, canceled, or older runs.
 5. Merge without rewriting the proven source tree. Verify the resulting `main` tree is `S`, then delete the snapshot branch after deployment has consumed its exact carrier.
 6. Let the trusted post-merge deployment upload the already-proven Pages carrier.

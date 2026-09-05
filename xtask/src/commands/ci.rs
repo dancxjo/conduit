@@ -25,6 +25,9 @@ enum CiCommand {
         /// Fetched development ref to snapshot.
         #[arg(long, default_value = "origin/dev")]
         dev_ref: String,
+        /// Fetched stable ref that becomes the promotion commit's first parent.
+        #[arg(long, default_value = "origin/main")]
+        main_ref: String,
         /// Git remote that will own the immutable snapshot ref.
         #[arg(long, default_value = "origin")]
         remote: String,
@@ -141,9 +144,10 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
         CiCommand::StandaloneLocks => standalone_locks::run(),
         CiCommand::PromotionSnapshot {
             dev_ref,
+            main_ref,
             remote,
             push,
-        } => promotion_snapshot::run(&dev_ref, &remote, push),
+        } => promotion_snapshot::run(&dev_ref, &main_ref, &remote, push),
         CiCommand::Plan {
             base,
             head,
