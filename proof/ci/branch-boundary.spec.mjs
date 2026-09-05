@@ -42,6 +42,13 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(promotion, /branches: \[main\]/);
   assert.match(promotion, /full_suite: true/g);
   assert.match(deploy, /startsWith\(github\.event\.pull_request\.head\.ref, 'promote\/'\)/);
+  const closedTrigger = deploy.split("  pull_request_target:\n")[1].split("  workflow_dispatch:")[0];
+  assert.match(closedTrigger, /types: \[closed\]/);
+  assert.match(closedTrigger, /branches: \[main\]/);
+  // A std-only or documentation-only promotion still has a proven carrier.
+  assert.doesNotMatch(closedTrigger, /paths(?:-ignore)?:/);
+  assert.match(deploy, /github\.event\.pull_request\.merged == true/);
+  assert.match(deploy, /github\.event\.pull_request\.base\.ref == 'main'/);
   assert.match(promotion, /CONDUIT_HEAD_SHA:.*pull_request\.head\.sha/);
   assert.match(promotion, /Verify exact source snapshot and merge ancestry/);
   assert.match(promotion, /fetch-depth: 2/);
