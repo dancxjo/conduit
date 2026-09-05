@@ -8,13 +8,24 @@ use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOut
 pub(super) struct MathHost {
     bindings: [(HostOperationContractId, KindId); 5],
     quantity_info_prefix: Vec<u8>,
+    mappings: [Option<conduit_semantic_catalog::QuantityMapping>; super::MAX_NODES],
     failures: [Option<(HostOperationRequest, conduit_kernel::Failure)>; super::MAX_NODES],
     terminal_failure: Option<(HostOperationRequest, conduit_kernel::Failure)>,
 }
 
 impl MathHost {
-    pub(super) fn new() -> Self {
-        Self {
+    pub(super) fn prepare(fragment: &PlanFragment) -> Result<Self, String> {
+        let mut mappings = [None; super::MAX_NODES];
+        for (index, placement) in fragment.placements.iter().enumerate() {
+            if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
+                *mappings
+                    .get_mut(index)
+                    .ok_or("quantity mapping node exceeds admitted bound")? =
+                    Some(super::quantity_mapping::configuration(placement)?);
+            }
+        }
+        Ok(Self {
+            mappings,
             quantity_info_prefix: conduit_semantic_catalog::quantity_info_prefix(),
             failures: [None; super::MAX_NODES],
             terminal_failure: None,
@@ -41,7 +52,7 @@ impl MathHost {
                 ),
             ]
             .map(|(contract, kind)| (HostOperationContractId::from(contract), kind_id(kind))),
-        }
+        })
     }
 
     pub(super) fn matches(
@@ -107,7 +118,8 @@ impl MathHost {
                 .map_err(|error| format!("complete Quantity wrapping: {error:?}"));
         }
         if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
-            let mapping = super::quantity_mapping::configuration(placement)?;
+            let mapping = self.mappings[usize::from(request.node.0)]
+                .ok_or("quantity mapping was not prepared before Play")?;
             let outcome = match super::quantity_mapping::transform(mapping, input) {
                 Ok(encoded) => {
                     let value = scheduler

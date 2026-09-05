@@ -282,7 +282,6 @@ pub enum TerminalBehavior {
 /// installed std implementation. This is discovery truth, not a Host offer.
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
-    contracts.push(quantity_map_contract());
     contracts.extend(patchbay_presentation_contracts());
     contracts.extend(alife_contracts());
     contracts.extend(robotics_hazard_contracts());
@@ -398,7 +397,7 @@ mod supported_nucleus_tests {
     #[test]
     fn supported_nucleus_contracts_are_typed_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 54);
+        assert_eq!(contracts.len(), 56);
 
         let identities = contracts
             .iter()
