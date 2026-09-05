@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId,
@@ -71,16 +71,32 @@ impl ImageTextOperation {
 }
 
 pub(super) struct ImageTextHost {
-    image: Option<conduit_human::ImageObservationReference>,
-    caption: Option<String>,
+    image_type: Vec<u8>,
+    record_type: Vec<u8>,
+    image_node: Vec<u8>,
+    resource: Vec<u8>,
+    dimensions: Option<(u16, u16)>,
+    caption: Vec<u8>,
+    has_caption: bool,
+    digest_input: Vec<u8>,
     output: Vec<u8>,
 }
 
 impl ImageTextHost {
     fn new() -> Self {
         Self {
-            image: None,
-            caption: None,
+            image_type: conduit_semantic_catalog::image_observation_reference_type()
+                .canonical_bytes()
+                .expect("reviewed image type remains finite"),
+            record_type: conduit_semantic_catalog::image_text_record_type()
+                .canonical_bytes()
+                .expect("reviewed image-text type remains finite"),
+            image_node: Vec::with_capacity(1_024),
+            resource: Vec::with_capacity(conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES),
+            dimensions: None,
+            caption: Vec::with_capacity(conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES),
+            has_caption: false,
+            digest_input: Vec::with_capacity(1_100),
             output: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         }
     }
@@ -91,36 +107,173 @@ impl ImageTextHost {
     ) -> Result<Option<&[u8]>, String> {
         match contract {
             conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION => {
-                let value = StructuredInfoValue::from_canonical_bytes(input)
-                    .map_err(|error| format!("image value: {error:?}"))?;
-                self.image = Some(
-                    conduit_semantic_catalog::image_observation_from_value(&value)
-                        .map_err(|error| format!("image observation: {error:?}"))?,
-                );
+                let parsed = parse_image(input, &self.image_type).map_err(String::from)?;
+                let ParsedImage {
+                    node,
+                    resource,
+                    width,
+                    height,
+                } = parsed;
+                let reference = conduit_core::BoundedResourceRef::validate_encoded(resource)
+                    .map_err(|error| format!("image resource: {error:?}"))?;
+                if reference.extent.bytes > conduit_human::MAXIMUM_IMAGE_OBSERVATION_BYTES
+                    || width == 0
+                    || height == 0
+                    || width > conduit_human::MAXIMUM_IMAGE_OBSERVATION_WIDTH
+                    || height > conduit_human::MAXIMUM_IMAGE_OBSERVATION_HEIGHT
+                {
+                    return Err("image observation exceeds its finite profile".into());
+                }
+                self.image_node.clear();
+                self.image_node.extend_from_slice(node);
+                self.resource.clear();
+                self.resource.extend_from_slice(resource);
+                self.dimensions = Some((width, height));
             }
             conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION => {
-                self.caption = Some(
-                    core::str::from_utf8(input)
-                        .map_err(|_| "caption is not UTF-8")?
-                        .to_owned(),
-                );
+                if input.is_empty()
+                    || input.len() > conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES
+                    || core::str::from_utf8(input).is_err()
+                {
+                    return Err("caption is empty, oversized, or not UTF-8".into());
+                }
+                self.caption.clear();
+                self.caption.extend_from_slice(input);
+                self.has_caption = true;
             }
             _ => return Err("unknown image-text host operation".into()),
         }
-        let (Some(image), Some(caption)) = (&self.image, &self.caption) else {
+        let Some((width, height)) = self.dimensions else {
             return Ok(None);
         };
-        let profile = image.content.content_profile.clone();
-        let record =
-            conduit_human::compose_image_text(&profile, image.clone(), caption.clone(), vec![])
-                .map_err(|error| format!("compose image text: {error:?}"))?;
-        let value = conduit_semantic_catalog::image_text_record_value(&record, &profile)
-            .map_err(|error| format!("encode image text: {error:?}"))?;
-        self.output = value
-            .canonical_bytes()
-            .map_err(|error| format!("canonical image text: {error:?}"))?;
+        if !self.has_caption {
+            return Ok(None);
+        }
+        self.digest_input.clear();
+        self.digest_input.extend_from_slice(&self.resource);
+        self.digest_input.extend_from_slice(&width.to_le_bytes());
+        self.digest_input.extend_from_slice(&height.to_le_bytes());
+        self.digest_input
+            .extend_from_slice(&(self.caption.len() as u64).to_le_bytes());
+        self.digest_input.extend_from_slice(&self.caption);
+        self.digest_input.extend_from_slice(&0_u64.to_le_bytes());
+        let digest = conduit_core::semantic_digest("human/image-text-record@1", &self.digest_input);
+        self.output.clear();
+        self.output.extend_from_slice(&self.record_type);
+        record_start(&mut self.output, 4);
+        field_leaf(&mut self.output, "caption", &self.caption);
+        field_leaf(&mut self.output, "content_digest", &digest);
+        text(&mut self.output, "image");
+        self.output.extend_from_slice(&self.image_node);
+        text(&mut self.output, "metadata");
+        self.output.push(1);
+        length(
+            &mut self.output,
+            conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES,
+        );
+        for _ in 0..conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES {
+            self.output.push(3);
+            text(&mut self.output, "absent");
+            self.output.push(0);
+            length(&mut self.output, 0);
+        }
         Ok(Some(&self.output))
     }
+}
+
+struct ParsedImage<'a> {
+    node: &'a [u8],
+    resource: &'a [u8],
+    width: u16,
+    height: u16,
+}
+
+fn parse_image<'a>(input: &'a [u8], expected_type: &[u8]) -> Result<ParsedImage<'a>, &'static str> {
+    let node = input
+        .strip_prefix(expected_type)
+        .ok_or("wrong image type")?;
+    let mut cursor = CanonicalCursor::new(node);
+    cursor.expect(2)?;
+    if cursor.length()? != 3 {
+        return Err("wrong image field count");
+    }
+    cursor.text("content")?;
+    cursor.expect(0)?;
+    let resource = cursor.bytes()?;
+    cursor.text("height")?;
+    let height = cursor.count()?;
+    cursor.text("width")?;
+    let width = cursor.count()?;
+    if !cursor.remaining.is_empty() {
+        return Err("trailing image value");
+    }
+    Ok(ParsedImage {
+        node,
+        resource,
+        width,
+        height,
+    })
+}
+
+struct CanonicalCursor<'a> {
+    remaining: &'a [u8],
+}
+impl<'a> CanonicalCursor<'a> {
+    fn new(remaining: &'a [u8]) -> Self {
+        Self { remaining }
+    }
+    fn take(&mut self, n: usize) -> Result<&'a [u8], &'static str> {
+        let (head, tail) = self
+            .remaining
+            .split_at_checked(n)
+            .ok_or("truncated image value")?;
+        self.remaining = tail;
+        Ok(head)
+    }
+    fn expect(&mut self, byte: u8) -> Result<(), &'static str> {
+        if self.take(1)? == [byte] {
+            Ok(())
+        } else {
+            Err("wrong image node")
+        }
+    }
+    fn length(&mut self) -> Result<usize, &'static str> {
+        Ok(u32::from_le_bytes(self.take(4)?.try_into().map_err(|_| "bad length")?) as usize)
+    }
+    fn bytes(&mut self) -> Result<&'a [u8], &'static str> {
+        let n = self.length()?;
+        self.take(n)
+    }
+    fn text(&mut self, expected: &str) -> Result<(), &'static str> {
+        if self.bytes()? == expected.as_bytes() {
+            Ok(())
+        } else {
+            Err("wrong image field")
+        }
+    }
+    fn count(&mut self) -> Result<u16, &'static str> {
+        self.expect(0)?;
+        let bytes: [u8; 8] = self.bytes()?.try_into().map_err(|_| "wrong count")?;
+        u16::try_from(u64::from_le_bytes(bytes)).map_err(|_| "count exceeds image dimensions")
+    }
+}
+
+fn length(output: &mut Vec<u8>, value: usize) {
+    output.extend_from_slice(&(value as u32).to_le_bytes());
+}
+fn text(output: &mut Vec<u8>, value: &str) {
+    length(output, value.len());
+    output.extend_from_slice(value.as_bytes());
+}
+fn record_start(output: &mut Vec<u8>, fields: usize) {
+    output.push(2);
+    length(output, fields);
+}
+fn field_leaf(output: &mut Vec<u8>, name: &str, value: &[u8]) {
+    text(output, name);
+    output.push(0);
+    length(output, value.len());
+    output.extend_from_slice(value);
 }
 
 pub(super) fn prepare_hosts(fragment: &conduit_core::PlanFragment) -> Vec<Option<ImageTextHost>> {
@@ -179,7 +332,7 @@ mod tests {
     use super::*;
     use conduit_core::{
         kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
-        ResourceSemanticIdentity, ResourceVersionIdentity,
+        ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoValue,
     };
 
     fn image_value() -> (conduit_core::KindId, Vec<u8>) {
@@ -250,7 +403,7 @@ mod tests {
                 b"not structured"
             )
             .unwrap_err()
-            .contains("image value"));
+            .contains("image type"));
         assert!(host
             .execute(conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION, &[0xff])
             .unwrap_err()

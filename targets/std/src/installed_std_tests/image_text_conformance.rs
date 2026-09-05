@@ -123,6 +123,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     )
     .unwrap();
     let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.post_play_start_allocations, 0);
     assert_eq!(kernel.identity.lengths(), (2, 0, 1));
     assert_eq!(
         kernel.value_allocation_capacity_before,
