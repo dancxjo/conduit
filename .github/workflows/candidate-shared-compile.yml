@@ -1,0 +1,128 @@
+name: candidate-shared-compile
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: true
+        type: string
+      candidate_sha:
+        required: true
+        type: string
+      pr_number:
+        required: false
+        type: number
+      classify_stack:
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      stack_role:
+        value: ${{ jobs.compile.outputs.stack_role }}
+      packages:
+        value: ${{ jobs.compile.outputs.packages }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      stack_role: ${{ steps.stack.outputs.role || 'independent' }}
+      packages: ${{ steps.selection.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 0
+      - name: Resolve and materialize the current trusted controller
+        id: controller
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          read -r controller_sha _ < <(git ls-remote --exit-code origin "refs/heads/$DEFAULT_BRANCH")
+          test "$controller_sha" != ''
+          echo "sha=$controller_sha" >> "$GITHUB_OUTPUT"
+          git fetch --no-tags origin "$controller_sha"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$controller_sha"
+      - name: Classify the immutable PR stack position
+        id: stack
+        if: inputs.classify_stack
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_PR_NUMBER: ${{ inputs.pr_number }}
+          CONDUIT_STACK_ROLE_OUT: target/ci-plans/pr-stack-role.json
+        run: |
+          mkdir -p target/ci-plans
+          node "$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+      - name: Preserve the intermediate slice without expensive work
+        if: steps.stack.outputs.role == 'intermediate'
+        run: git diff --check '${{ inputs.base_sha }}' '${{ inputs.candidate_sha }}'
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: steps.stack.outputs.role != 'intermediate'
+      - name: Build the dependency-light trusted planner
+        if: steps.stack.outputs.role != 'intermediate'
+        run: >-
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target"
+          cargo build
+          --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml"
+          --package conduit-xtask-dispatch --locked
+      - name: Select shared compilation prerequisites
+        id: impact
+        if: steps.stack.outputs.role != 'intermediate'
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci plan '${{ inputs.base_sha }}' '${{ inputs.candidate_sha }}' --locked
+          --json-out target/ci-plans/ci-impact-plan.json
+          --summary-out "$GITHUB_STEP_SUMMARY"
+          >> "$GITHUB_OUTPUT"
+      - name: Normalize the trusted shared-compilation selection
+        id: selection
+        if: steps.stack.outputs.role != 'intermediate'
+        env:
+          SELECTED_PACKAGES: ${{ steps.impact.outputs.shared_compile_packages }}
+        run: |
+          packages=${SELECTED_PACKAGES:-[]}
+          jq -e 'type == "array" and all(.[]; type == "string")' <<<"$packages" >/dev/null
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+      - name: Compile each shared changed package exactly once
+        if: steps.stack.outputs.role != 'intermediate' && steps.selection.outputs.packages != '[]'
+        env:
+          SHARED_COMPILE_PACKAGES: ${{ steps.selection.outputs.packages }}
+        run: |
+          mapfile -t packages < <(jq -r '.[]' <<<"$SHARED_COMPILE_PACKAGES")
+          args=()
+          for package in "${packages[@]}"; do args+=(-p "$package"); done
+          cargo check --locked "${args[@]}"
+          printf 'Shared compilation passed for: `%s`\n' "${packages[*]}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Attest the exact successful shared compilation proposition
+        id: attest
+        if: steps.stack.outputs.role != 'intermediate' && steps.selection.outputs.packages != '[]'
+        env:
+          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
+        run: |
+          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "workspace.shared-compile"'; then
+            echo 'supported=false' >> "$GITHUB_OUTPUT"
+            echo 'Trusted controller predates the shared-compile receipt; bootstrap execution remains authoritative.'
+            exit 0
+          fi
+          mkdir -p target/ci-receipts
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci attest-success '${{ inputs.candidate_sha }}' workspace.shared-compile \
+            --evidence "packages:${{ steps.selection.outputs.packages }}" \
+            --out target/ci-receipts/workspace.shared-compile.json --locked
+          echo 'supported=true' >> "$GITHUB_OUTPUT"
+      - name: Retain immutable shared compilation evidence
+        if: steps.attest.outputs.supported == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-workspace.shared-compile-${{ inputs.candidate_sha }}
+          path: target/ci-receipts/workspace.shared-compile.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Explain the causal no-op
+        if: steps.stack.outputs.role != 'intermediate' && steps.selection.outputs.packages == '[]'
+        run: echo 'No shared changed package feeds multiple selected proof worlds.' >> "$GITHUB_STEP_SUMMARY"

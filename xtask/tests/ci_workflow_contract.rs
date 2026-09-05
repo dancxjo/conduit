@@ -569,7 +569,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         workflow
             .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")
             .count(),
-        2
+        3
     );
     assert!(workflow.contains(
         "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
@@ -582,12 +582,8 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
-    assert!(workflow.contains(
-        "if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'"
-    ));
-    assert!(workflow.contains(
-        "if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'"
-    ));
+    assert!(workflow.contains("needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'"));
+    assert!(workflow.contains("needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'"));
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.locate.outputs.published }}"));
@@ -599,21 +595,19 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(!workflow.contains(
         "needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
     ));
-    assert!(workflow.contains(
-        "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
-    ));
+    assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
     assert!(workflow.contains(
         "CONDUIT_PUBLISH_REQUIRED_ADMISSION: ${{ github.event_name == 'workflow_dispatch' }}"
     ));
     assert_eq!(workflow.matches("contents: write").count(), 2);
-    assert!(workflow.contains("candidate-check:\n    needs: resolve"));
+    assert!(workflow.contains("candidate-check:\n    needs: [resolve, shared-compile]"));
     assert!(workflow.contains(
-        "candidate-check:\n    needs: resolve\n    if: needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
+        "candidate-check:\n    needs: [resolve, shared-compile]\n    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
     ));
-    assert!(workflow.contains("candidate-products:\n    needs: resolve"));
+    assert!(workflow.contains("candidate-products:\n    needs: [resolve, shared-compile]"));
     assert!(workflow.contains(
-        "candidate-products:\n    needs: resolve\n    if: needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
+        "candidate-products:\n    needs: [resolve, shared-compile]\n    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
     ));
 
     assert!(check.contains("workflow_call:"));
@@ -621,6 +615,39 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha"
     ));
     assert!(!check.contains("name: conduitos-limine-${{ github.sha }}"));
+}
+
+#[test]
+fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let controller = fs::read_to_string(root.join(".github/workflows/candidate.yml"))
+        .expect("read candidate controller");
+    let prerequisite =
+        fs::read_to_string(root.join(".github/workflows/candidate-shared-compile.yml"))
+            .expect("read shared compile workflow");
+    let check = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+    let products =
+        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+
+    assert_eq!(
+        controller
+            .matches("uses: ./.github/workflows/candidate-shared-compile.yml")
+            .count(),
+        1
+    );
+    assert!(controller.contains("check:\n    needs: shared-compile"));
+    assert!(controller.contains("products:\n    needs: shared-compile"));
+    assert!(controller.contains("blocked-by: workspace.shared-compile"));
+    assert!(controller.contains("conduit.ci.causal-block/v1"));
+    assert_eq!(
+        prerequisite
+            .matches("cargo check --locked \"${args[@]}\"")
+            .count(),
+        1
+    );
+    assert!(prerequisite.contains("shared_compile_packages"));
+    assert!(!check.contains("  pull_request:\n"));
+    assert!(!products.contains("  pull_request:\n"));
 }
 
 #[test]

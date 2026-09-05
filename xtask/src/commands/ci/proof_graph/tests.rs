@@ -77,6 +77,7 @@ fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
             ("lint".to_owned(), false),
         ]),
         full_fallback: false,
+        shared_compile_packages: vec!["conduit-presentation".to_owned()],
         pages_products_required: true,
         pages_product_proofs: vec!["products.patchbay-debugger".to_owned()],
         esp32_required: false,
@@ -87,6 +88,10 @@ fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
         conduitos_aarch64_product_required: false,
     };
     assert!(is_selected(spec("workspace.products"), Some(&selected)));
+    assert!(is_selected(
+        spec("workspace.shared-compile"),
+        Some(&selected)
+    ));
     assert!(is_selected(spec("browser.tour"), Some(&selected)));
     assert!(is_selected(
         spec("browser.patchbay-debugger"),

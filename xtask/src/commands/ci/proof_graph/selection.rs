@@ -9,6 +9,8 @@ pub(super) struct ImpactSelection {
     pub(super) ci_controller_proofs: Vec<String>,
     pub(super) workspace_shards: BTreeMap<String, bool>,
     pub(super) full_fallback: bool,
+    #[serde(default)]
+    pub(super) shared_compile_packages: Vec<String>,
     pub(super) pages_products_required: bool,
     pub(super) pages_product_proofs: Vec<String>,
     pub(super) esp32_required: bool,
@@ -38,11 +40,15 @@ pub(super) fn is_selected(spec: &ProofSpec, selected: Option<&ImpactSelection>) 
     let Some(selected) = selected else {
         return true;
     };
+    if matches!(spec.selection, Selection::SharedCompile) {
+        return !selected.shared_compile_packages.is_empty();
+    }
     if selected.full_fallback {
         return true;
     }
     match spec.selection {
         Selection::CiController => !selected.ci_controller_proofs.is_empty(),
+        Selection::SharedCompile => unreachable!("shared compile handled before fallback"),
         Selection::WorkspaceShard(shard) => selected
             .workspace_shards
             .get(shard)

@@ -29,6 +29,15 @@ test("inherits only exact successful GitHub Actions aggregate evidence", () => {
   assert.equal(selected.id, 4);
 });
 
+test("locates aggregate receipts inside the single candidate controller run", () => {
+  const checks = [
+    { id: 10, name: "check / check", status: "completed", conclusion: "success", details_url: runUrl(700), app: { slug: "github-actions" } },
+    { id: 11, name: "products / products-proof", status: "completed", conclusion: "success", details_url: runUrl(700), app: { slug: "github-actions" } },
+  ];
+  assert.equal(laneReceiptRunLocator(checks, "check").id, 10);
+  assert.equal(laneReceiptRunLocator(checks, "products-proof").id, 11);
+});
+
 test("a failed aggregate run may locate successful child receipts but is not evidence", () => {
   const checks = [{
     id: 45, name: "products-proof", status: "completed", conclusion: "failure",

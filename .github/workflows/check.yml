@@ -9,7 +9,6 @@ on:
       candidate_sha:
         required: true
         type: string
-  pull_request:
   merge_group:
 
 permissions:

@@ -1,4 +1,8 @@
 const LANES = ["check", "products-proof"];
+const LANE_CHECK_NAMES = new Map([
+  ["check", new Set(["check", "check / check"])],
+  ["products-proof", new Set(["products-proof", "products / products-proof"])],
+]);
 const ADMISSION_EVIDENCE = "admission-evidence";
 const REQUIRED_ADMISSION = "admission";
 
@@ -30,7 +34,7 @@ function validate(repository, pullNumber, candidateSha) {
 
 export function successfulLaneEvidence(checkRuns, lane) {
   if (!LANES.includes(lane)) throw new Error(`unknown reconciliation lane ${lane}`);
-  return checkRuns.filter((check) => check.name === lane
+  return checkRuns.filter((check) => LANE_CHECK_NAMES.get(lane).has(check.name)
     && check.status === "completed"
     && check.conclusion === "success"
     && check.app?.slug === "github-actions"
@@ -42,7 +46,7 @@ export function successfulLaneEvidence(checkRuns, lane) {
 
 export function laneReceiptRunLocator(checkRuns, lane) {
   if (!LANES.includes(lane)) throw new Error(`unknown reconciliation lane ${lane}`);
-  return checkRuns.filter((check) => check.name === lane
+  return checkRuns.filter((check) => LANE_CHECK_NAMES.get(lane).has(check.name)
     && check.status === "completed"
     && check.app?.slug === "github-actions"
     && Number.isSafeInteger(check.id)
