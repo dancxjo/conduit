@@ -150,9 +150,18 @@ jobs:
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
         with:
           components: clippy,rustfmt
+      - name: Build the dependency-light trusted CI controller
+        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        run: >-
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target"
+          cargo build
+          --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml"
+          --package conduit-xtask-dispatch --locked
       - name: Verify the exact generic Rust toolchain before proof fan-out
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
-        run: cargo +1.98.1 xtask ci rust-toolchain-preflight --locked
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci rust-toolchain-preflight --locked
       - name: Plan exact CI impact
         id: impact
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
@@ -160,14 +169,8 @@ jobs:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
-          controller=(cargo xtask)
-          if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
-            CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-              cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-              --package conduit-xtask-dispatch --locked
-            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
-          fi
-          "${controller[@]}" ci plan "$BASE_SHA" "$HEAD_SHA" --locked \
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci plan "$BASE_SHA" "$HEAD_SHA" --locked \
             --json-out target/ci-plans/ci-impact-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"

@@ -106,21 +106,24 @@ jobs:
         if: steps.stack.outputs.role != 'intermediate'
         with:
           components: clippy,rustfmt
+      - name: Build the dependency-light trusted CI controller
+        if: steps.stack.outputs.role != 'intermediate'
+        run: >-
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target"
+          cargo build
+          --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml"
+          --package conduit-xtask-dispatch --locked
       - name: Verify the exact generic Rust toolchain before product fan-out
         if: steps.stack.outputs.role != 'intermediate'
-        run: cargo +1.98.1 xtask ci rust-toolchain-preflight --locked
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci rust-toolchain-preflight --locked
       - name: Select exact product proof impact
         id: impact
         if: steps.stack.outputs.role != 'intermediate'
         run: |
-          controller=(cargo xtask)
-          if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
-            CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-              cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-              --package conduit-xtask-dispatch --locked
-            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
-          fi
-          "${controller[@]}" ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
             --json-out target/product-plan/impact.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"

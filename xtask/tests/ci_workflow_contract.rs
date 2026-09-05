@@ -239,11 +239,23 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
             .find("components: clippy,rustfmt")
             .map(|offset| setup + offset)
             .expect("exact generic components");
+        let trusted_controller = workflow
+            .find("name: Build the dependency-light trusted CI controller")
+            .expect("trusted dependency-light controller build");
         let preflight = workflow
-            .find("cargo +1.98.1 xtask ci rust-toolchain-preflight --locked")
+            .find("ci rust-toolchain-preflight --locked")
             .expect("exact toolchain preflight");
         let planner = workflow.find("ci plan").expect("CI impact planner");
-        assert!(setup < components && components < preflight && preflight < planner);
+        assert!(
+            setup < components
+                && components < trusted_controller
+                && trusted_controller < preflight
+                && preflight < planner
+        );
+        assert!(workflow.contains(
+            "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci rust-toolchain-preflight --locked"
+        ));
+        assert!(!workflow.contains("cargo +1.98.1 xtask ci rust-toolchain-preflight"));
     }
 }
 
@@ -764,9 +776,7 @@ fn every_active_check_matrix_retains_an_exact_proof_receipt() {
     }
     assert_eq!(
         workflow
-            .matches(
-                "cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""
-            )
+            .matches("--manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\"")
             .count(),
         1,
         "the trusted attestation controller must be built once, not once per proof job"
