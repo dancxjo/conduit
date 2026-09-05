@@ -84,6 +84,7 @@ pub(super) enum TourHostEffect {
     Manifestation(Box<TourEffect>),
     Timer(Box<TourTimerEffect>),
     KeyEvent(Box<TourKeyEventEffect>),
+    PointerEvent(Box<TourKeyEventEffect>),
     ButtonTransition(Box<TourButtonTransitionEffect>),
 }
 
@@ -96,6 +97,7 @@ impl TourHostEffect {
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Timer(effect) => effect.source_interaction = Some(source_interaction),
             Self::KeyEvent(effect) => effect.source_interaction = Some(source_interaction),
+            Self::PointerEvent(effect) => effect.source_interaction = Some(source_interaction),
             Self::ButtonTransition(effect) => effect.source_interaction = Some(source_interaction),
         }
     }
@@ -205,6 +207,19 @@ pub(super) fn decode_manifestation(
                 &manifestation.canonical_value,
             )
             .map_err(|error| format!("decode structured manifestation: {error:?}"))?;
+            if value.value_type() == &conduit_semantic_catalog::wrapped_quantity_type() {
+                let quantity =
+                    crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
+                return Ok((
+                    0,
+                    Vec::new(),
+                    Some(format!(
+                        "{} {}",
+                        quantity.value(),
+                        quantity.unit().form_suffix()
+                    )),
+                ));
+            }
             if value.value_type() != &conduit_language::annotation_bundle_four_type() {
                 return Err("structured manifestation has the wrong exact type".into());
             }

@@ -2,22 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-function pullRequestPaths(path, marker) {
-  const lines = readFileSync(path, "utf8").split("\n");
-  const start = lines.findIndex((line) => line.trimStart().startsWith(marker));
-  assert.notEqual(start, -1, `${path} omits ${marker}`);
-  const paths = [];
-  for (const line of lines.slice(start + 1)) {
-    const match = line.match(/^      - (.+)$/);
-    if (match) {
-      paths.push(match[1]);
-      continue;
-    }
-    if (paths.length > 0 && !line.startsWith("      ")) break;
-  }
-  return paths;
-}
-
 test("the PR product controller owns applicability while promotion stays privileged", () => {
   const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
@@ -30,14 +14,9 @@ test("the PR product controller owns applicability while promotion stays privile
   assert.match(productWorkflow, /git worktree add --detach "\$RUNNER_TEMP\/conduit-ci-controller"/);
   assert.match(productWorkflow, /pages_products_required/);
 
-  const deployPaths = pullRequestPaths(
-    ".github/workflows/executable-book-deploy.yml",
-    "paths:",
-  );
-  assert.ok(deployPaths.includes("products/tour/**"));
-  assert.ok(deployPaths.includes("products/patchbay/**"));
-  assert.ok(!deployPaths.includes("tour/book/**"));
-  assert.ok(!deployPaths.some((path) => path.startsWith("apps/patchbay/")));
+  const deploy = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
+  assert.match(deploy, /pull_request_target:\n    types: \[closed\]\n    branches: \[main\]/);
+  assert.doesNotMatch(deploy, /^    paths(?:-ignore)?:/m);
 });
 
 test("every browser product admits the complete shared presentation theme", () => {

@@ -77,7 +77,32 @@ impl TourSession {
         play_sequence: u64,
         realization: MorseRealization,
     ) -> Result<(Self, TourHostEffect), String> {
-        let (startup, catalog) = catalogs()?;
+        Self::prepare_with_profile(host_id, boot_id, source, play_sequence, realization, false)
+    }
+
+    fn prepare_with_profile(
+        host_id: &str,
+        boot_id: &str,
+        source: &str,
+        play_sequence: u64,
+        realization: MorseRealization,
+        quantity_presentation: bool,
+    ) -> Result<(Self, TourHostEffect), String> {
+        let (mut startup, catalog) = if quantity_presentation {
+            crate::installed_browser::catalogs_with_quantity_presentation()?
+        } else {
+            catalogs()?
+        };
+        if quantity_presentation {
+            startup.insert_value_kind_alias(
+                "Scalar",
+                conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),
+            )?;
+            startup.insert_value_kind_alias(
+                "Quantity",
+                conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
+            )?;
+        }
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
@@ -106,7 +131,14 @@ impl TourSession {
             )
             .map_err(|error| format!("expand recursive executable-tour Form: {error:?}"))?,
         };
-        let host = advertisement(host_id.into(), boot_id.into());
+        let host = if quantity_presentation {
+            crate::installed_browser::advertisement_with_quantity_presentation(
+                host_id.into(),
+                boot_id.into(),
+            )
+        } else {
+            advertisement(host_id.into(), boot_id.into())
+        };
         let hosts = [host];
         let placements = default_expanded_placements(&form, &hosts)
             .map_err(|error| format!("place executable-tour Form: {error:?}"))?;
@@ -264,6 +296,20 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 })))
             }
+            engine::BrowserHostEffect::PointerEvent => {
+                Ok(TourHostEffect::PointerEvent(Box::new(TourKeyEventEffect {
+                    schema: "conduit.browser/pointer-event-effect@1",
+                    effect_kind: "pointer-event",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: self.pending.request.request.0,
+                    maximum_output_bytes: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
+                        as u32,
+                    source_interaction: self.source_interaction.clone(),
+                })))
+            }
             engine::BrowserHostEffect::KeyEvent => {
                 Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
                     schema: "conduit.tour/key-event-effect@1",
@@ -364,5 +410,7 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
         .ok_or_else(|| "executable-tour Plan has no fragment".into())
 }
 
+#[cfg(test)]
+mod quantity_output_tests;
 #[cfg(test)]
 mod tests;
