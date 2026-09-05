@@ -445,7 +445,10 @@ fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
     assert!(workflow.contains("id: debugger-bootstrap"));
     assert!(workflow.contains("reason=proof-definition-bootstrap"));
     assert!(workflow.contains(
-        "patchbay_debugger_required: ${{ steps.exact.outputs.patchbay_debugger_required || steps.debugger-bootstrap.outputs.required }}"
+        "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)"
+    ));
+    assert!(workflow.contains(
+        "inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true'"
     ));
     assert_eq!(
         proof
@@ -844,10 +847,19 @@ fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
     assert!(products.contains("execute_proofs:\n"));
     assert!(products
         .contains("ci product-execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
-    assert!(
-        products.contains("pages_carrier_required: ${{ steps.exact.outputs.pages_carrier_required")
-    );
+    assert!(products.contains(
+        "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)"
+    ));
     assert!(products
         .contains("Complete the exact Tour proposition without entering the carrier pipeline"));
     assert!(products.contains("needs.plan.outputs.pages_carrier_required == 'true'"));
+    assert!(products.contains("exact_execution: ${{ inputs.execute_proofs != '' }}"));
+    assert!(products.contains(
+        "inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)"
+    ));
+    assert!(products.contains(
+        "inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')"
+    ));
+    assert!(!products
+        .contains("steps.exact.outputs.pages_carrier_required || steps.slice.outputs.required"));
 }
