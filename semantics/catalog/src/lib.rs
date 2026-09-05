@@ -176,6 +176,12 @@ mod math;
 pub use math::*;
 mod quantity_mapping;
 pub use quantity_mapping::*;
+mod signal_garden;
+pub use signal_garden::*;
+#[cfg(feature = "form-catalog")]
+mod signal_garden_catalog;
+#[cfg(feature = "form-catalog")]
+pub use signal_garden_catalog::*;
 mod layout;
 pub use layout::*;
 mod patchbay_presentation;
