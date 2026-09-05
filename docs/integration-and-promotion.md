@@ -26,6 +26,8 @@ The earlier candidate reconciliation and workflow-run retirement controllers rem
 
 After a promotion merges, Pages deployment accepts the carrier produced by that exact promotion run. Deployment remains privileged and separate; it does not execute code from an untrusted `pull_request_target` checkout.
 
+The Pages resolver admits `promotion.yml` as an exact carrier producer even though `dev` is the repository default. An explicit recovery deployment still verifies the requested SHA against `refs/heads/main`; default-branch metadata is not publication identity.
+
 ## Evidence meanings
 
 | Boundary | Question answered | Cost |

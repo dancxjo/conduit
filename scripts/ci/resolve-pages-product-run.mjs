@@ -25,8 +25,6 @@ let runId = "";
 let carrierPresent = false;
 let directMain = false;
 if (requestedMain) {
-  const repositoryDocument = await api(`/repos/${repository}`);
-  if (repositoryDocument.default_branch !== "main") throw new Error("Pages current-main admission requires main to be the default branch");
   const reference = await api(`/repos/${repository}/git/ref/heads/main`);
   source = await resolveExactMainSource(
     requestedMain,
