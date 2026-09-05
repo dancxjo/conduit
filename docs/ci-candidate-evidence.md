@@ -248,7 +248,9 @@ so a lane is inherited only when every applicable proof key is present.
 
 Selected ConduitOS x86 propositions share one Ubuntu runner and one prepared
 toolchain through `cargo xtask conduitos prove-many`. The command admits at most
-eight named proofs and runs no more than four children concurrently. Each child
+eight named proofs and admits a bounded concurrency ceiling. Hosted CI uses two
+children so QEMU's existing bounded interaction deadlines remain meaningful on
+the two-core runner while still overlapping independent proofs. Each child
 has a distinct target root, QMP/socket namespace, logs, evidence, result JSON,
 and proof receipt. A failure is collected without cancelling its siblings, so
 environment batching never turns eight propositions into one proof. The

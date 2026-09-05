@@ -966,7 +966,7 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     assert!(workflow.contains("conduitos-proof-image:"));
     assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
     assert!(workflow.contains("cargo xtask conduitos prove-many"));
-    assert!(workflow.contains("--max-parallel 4 --locked"));
+    assert!(workflow.contains("--max-parallel 2 --locked"));
     assert!(workflow.contains(
         "shard: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.workspace_matrix"
     ));

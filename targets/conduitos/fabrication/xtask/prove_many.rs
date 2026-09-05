@@ -268,6 +268,7 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
     )?;
     let failures = failure_names(&results);
     if !failures.is_empty() {
+        print_failure_tails(&results);
         return Err(ConduitosError::refusal(
             "proof-batch-failed",
             format!("failed proofs: {}", failures.join(", ")),
@@ -277,6 +278,19 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
         println!("ConduitOS x86 proof batch: {}", output_root.display());
     }
     Ok(())
+}
+
+fn print_failure_tails(results: &[ProofResult]) {
+    for result in results.iter().filter(|result| result.status != "success") {
+        let Ok(contents) = fs::read_to_string(&result.stderr_log) else {
+            continue;
+        };
+        let lines: Vec<_> = contents.lines().rev().take(24).collect();
+        eprintln!("--- {} stderr tail ---", result.proof.as_str());
+        for line in lines.into_iter().rev() {
+            eprintln!("{line}");
+        }
+    }
 }
 
 fn failure_names(results: &[ProofResult]) -> Vec<&'static str> {

@@ -879,13 +879,22 @@ jobs:
           path: target/conduitos/x86_64
           expected-digest: ${{ needs.conduitos-proof-image.outputs.artifact_digest }}
       - name: Run selected x86 proofs in one bounded environment
+        id: x86-proofs
+        continue-on-error: true
         env:
           SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
         run: |
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
           args=()
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
-          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 4 --locked
+          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --locked
+      - name: Validate the complete x86 batch contract
+        id: x86-contract
+        if: always()
+        continue-on-error: true
+        env:
+          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+        run: |
           jq -e --argjson expected "$SELECTED_PROOFS" '
             .schema == "conduit.conduitos.prove-many/v1" and
             (($expected | length) == 1 or .maximum_observed_parallelism > 1) and
@@ -893,6 +902,7 @@ jobs:
             all(.results[]; .status == "success")
           ' target/conduitos/prove-many/summary.json
       - name: Retain distinct bounded x86 proof evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: conduitos-x86-batch-${{ env.CONDUIT_CHECKOUT_SHA }}
@@ -908,19 +918,19 @@ jobs:
           retention-days: 14
           compression-level: 0
       - name: Receive the trusted candidate proof plan
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/download-artifact@v8
         with:
           name: ci-plan-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-plan
       - name: Receive the trusted attestation controller
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/download-artifact@v8
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-attestation
       - name: Retain one exact receipt per successful x86 proof
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           SELECTED_PROOFS: ${{ needs.classify.outputs.conduitos_x86_matrix }}
         run: |
@@ -938,13 +948,16 @@ jobs:
               --out "target/ci-receipts/$proof_id.json" --locked
           done
       - name: Retain immutable x86 proof receipts
-        if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/upload-artifact@v7
         with:
           name: ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: target/ci-receipts/conduitos.x86.*.json
           if-no-files-found: error
           retention-days: 14
+      - name: Preserve the exact x86 batch as the proof gate
+        if: always() && (steps.x86-proofs.outcome != 'success' || steps.x86-contract.outcome != 'success')
+        run: exit 1
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]

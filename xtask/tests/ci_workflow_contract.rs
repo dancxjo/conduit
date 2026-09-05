@@ -802,10 +802,12 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(!x86.contains("matrix:"));
     assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
     assert!(x86.contains("cargo xtask conduitos prove-many"));
-    assert!(x86.contains("--max-parallel 4 --locked"));
+    assert!(x86.contains("--max-parallel 2 --locked"));
     assert!(x86.contains("maximum_observed_parallelism > 1"));
     assert!(x86.contains("proof_id=\"conduitos.x86.$proof\""));
     assert!(x86.contains("--out \"target/ci-receipts/$proof_id.json\""));
     assert!(x86.contains("target/conduitos/prove-many/results/$proof.json"));
     assert!(x86.contains("ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}"));
+    assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
+    assert!(x86.contains("if: always()\n        uses: actions/upload-artifact@v7"));
 }
