@@ -10,6 +10,8 @@ const PLAN_SCHEMA: &str = "conduit.ci.reconciliation-plan/v1";
 mod execution;
 #[path = "proof_graph/fingerprint.rs"]
 mod fingerprinting;
+#[path = "proof_graph/product_execution.rs"]
+mod product_execution;
 #[path = "proof_graph/receipt.rs"]
 mod receipt;
 #[path = "proof_graph/selection.rs"]
@@ -20,6 +22,12 @@ use fingerprinting::{fingerprint, proof_key};
 use receipt::{load_receipts, ProofReceipt, ReceiptLoad, RECEIPT_SCHEMA};
 use selection::{is_selected, load as load_selection, ImpactSelection};
 use spec::{Applicability, ProofKind, ProofSpec, PROOFS};
+
+pub(super) fn product_execution_plan(
+    proof_ids_json: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    product_execution::emit(proof_ids_json)
+}
 
 #[derive(Debug, Serialize)]
 struct ProofPlan {

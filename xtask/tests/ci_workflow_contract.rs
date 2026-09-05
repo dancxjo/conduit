@@ -288,7 +288,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
         );
     }
     assert!(products.contains(
-        "if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.required == 'true'"
+        "if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true'"
     ));
 }
 
@@ -444,8 +444,9 @@ fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
     assert!(gate.contains("tour-patchbay-proof"));
     assert!(workflow.contains("id: debugger-bootstrap"));
     assert!(workflow.contains("reason=proof-definition-bootstrap"));
-    assert!(workflow
-        .contains("patchbay_debugger_required: ${{ steps.debugger-bootstrap.outputs.required }}"));
+    assert!(workflow.contains(
+        "patchbay_debugger_required: ${{ steps.exact.outputs.patchbay_debugger_required || steps.debugger-bootstrap.outputs.required }}"
+    ));
     assert_eq!(
         proof
             .matches("if: needs.plan.outputs.patchbay_debugger_required == 'true'")
@@ -819,9 +820,13 @@ fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
         .expect("read reconciliation workflow");
     let check =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
 
     assert!(reconciliation
         .contains("execute_proofs: ${{ needs.resolve.outputs.check_execute_proofs }}"));
+    assert!(reconciliation
+        .contains("execute_proofs: ${{ needs.resolve.outputs.products_execute_proofs }}"));
     assert!(check.contains("execute_proofs:\n"));
     assert!(check.contains("ci execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
     assert!(check.contains(
@@ -836,4 +841,13 @@ fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
     assert!(check.contains(
         "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.tools\"')"
     ));
+    assert!(products.contains("execute_proofs:\n"));
+    assert!(products
+        .contains("ci product-execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
+    assert!(
+        products.contains("pages_carrier_required: ${{ steps.exact.outputs.pages_carrier_required")
+    );
+    assert!(products
+        .contains("Complete the exact Tour proposition without entering the carrier pipeline"));
+    assert!(products.contains("needs.plan.outputs.pages_carrier_required == 'true'"));
 }

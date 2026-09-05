@@ -218,6 +218,7 @@ jobs:
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
       shared_compile_result: ${{ needs.shared-compile.result }}
       shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
+      execute_proofs: ${{ needs.resolve.outputs.products_execute_proofs }}
 
   report:
     name: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'reopened' || (github.event.action == 'edited' && github.event.changes.base.ref != '') || (github.event.action == 'labeled' && github.event.label.name == 'ci:reconcile')) && 'admission' || 'ignored-reconciliation-event' }}

@@ -6,6 +6,7 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
     match arguments.get(1).map(String::as_str) {
         Some("plan") => plan(arguments),
         Some("execution-plan") => execution_plan(arguments),
+        Some("product-execution-plan") => product_execution_plan(arguments),
         Some("integration") => integration(arguments),
         Some("candidate") => candidate(arguments),
         Some("reconcile") => reconcile(arguments),
@@ -18,6 +19,30 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),
     }
+}
+
+fn product_execution_plan(arguments: &[String]) -> Result<(), String> {
+    let mut values = arguments.iter().skip(2);
+    let mut proof_ids_json = None;
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--proof-ids-json" => {
+                proof_ids_json = Some(required(&mut values, "--proof-ids-json value")?)
+            }
+            other => {
+                return Err(format!(
+                    "unsupported ci product-execution-plan argument: {other}"
+                ))
+            }
+        }
+    }
+    crate::proof_graph::product_execution_plan(
+        proof_ids_json
+            .as_deref()
+            .ok_or_else(|| "ci product-execution-plan requires --proof-ids-json".to_owned())?,
+    )
+    .map_err(|error| error.to_string())
 }
 
 fn execution_plan(arguments: &[String]) -> Result<(), String> {

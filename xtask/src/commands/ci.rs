@@ -38,6 +38,12 @@ enum CiCommand {
         #[arg(long)]
         proof_ids_json: String,
     },
+    /// Project exact reconciliation proof IDs onto the product workflow graph.
+    ProductExecutionPlan {
+        /// Canonical JSON array of exact product proof IDs requiring execution.
+        #[arg(long)]
+        proof_ids_json: String,
+    },
     /// Resolve the exact prospective integration tree without rewriting either input.
     Integration {
         /// Current target-branch commit SHA or ref.
@@ -127,6 +133,9 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
             summary_out,
         } => impact::run(&base, &head, json_out.as_deref(), summary_out.as_deref()),
         CiCommand::ExecutionPlan { proof_ids_json } => proof_graph::execution_plan(&proof_ids_json),
+        CiCommand::ProductExecutionPlan { proof_ids_json } => {
+            proof_graph::product_execution_plan(&proof_ids_json)
+        }
         CiCommand::Candidate {
             head,
             receipts,
