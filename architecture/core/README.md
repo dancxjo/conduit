@@ -25,6 +25,7 @@ depends on semantic, application, target, or proof packages.
 | `resource_admission.rs` | universal architecture | Atomic admission of finite current Host resources before Play. |
 | `route.rs` | universal architecture | Exact planned/admitted Line, Base, endpoint, authority, and route truth. |
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
+| `state_delay.rs` | universal architecture | Explicit typed computational-state identity, continuation, and retained-resource admission. |
 | `deadline.rs` | generic mechanism | Exact bounded monotonic-deadline operation/resource contract; no clock implementation or scheduling policy. |
 | `resource_reference.rs` | generic mechanism | Portable bounded reference envelope with no path, URL, credential, or ambient authority. |
 | `resource_reference_access.rs` | generic mechanism | Separately admitted Host-local dereference requirement and outcome. |
