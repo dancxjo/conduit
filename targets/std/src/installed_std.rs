@@ -40,6 +40,7 @@ mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod presentation_composition;
+mod quantity_mapping;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;
@@ -383,7 +384,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         &active_play,
         request_capacity,
         presentation_capacity,
-        presentation_capacity.saturating_add(1),
+        presentation_capacity.saturating_add(2),
     )
     .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
@@ -422,7 +423,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let chords_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::CHORDS_HOST_OPERATION);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
-    let math_host = math_host::MathHost::new();
+    let mut math_host = math_host::MathHost::prepare(fragment)?;
     let layout_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::LAYOUT_HOST_OPERATION);
     let layout_target_kinds = [
@@ -1776,10 +1777,30 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 )
                 .map_err(|error| format!("complete std host operation: {error:?}"))?;
         }
-        match scheduler
-            .step()
-            .map_err(|error| format!("installed kernel step: {error:?}"))?
-        {
+        let status = match scheduler.step() {
+            Ok(status) => status,
+            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(detail))
+                if math_host.accept_failure(
+                    scheduler
+                        .signs()
+                        .events()
+                        .filter(|event| event.kind == conduit_kernel::KernelEventKind::Decision)
+                        .last()
+                        .map(|event| event.node),
+                    detail,
+                ) =>
+            {
+                scheduler
+                    .cancel()
+                    .map_err(|error| format!("clean up failed quantity Play: {error:?}"))?;
+                deadlines.clear();
+                break TerminalDisposition::Failed {
+                    reason: conduit_core::FailureReason::RequiredBranchFailed,
+                };
+            }
+            Err(error) => return Err(format!("installed kernel step: {error:?}")),
+        };
+        match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => break TerminalDisposition::Completed,
             SchedulerStatus::Idle => {
@@ -1949,6 +1970,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }
+    if !matches!(terminal_disposition, TerminalDisposition::Completed) {
+        structured_presentation_host.retain_realized_effects();
+    }
     let (mut observations, presentation_ids) = structured_presentation_host.project(
         advertisement,
         fragment,
@@ -1957,6 +1981,15 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         &mut execution_identity,
         next_sign_sequence,
     )?;
+    if let Some(failure) = math_host.failure_observation(
+        advertisement,
+        fragment,
+        &active_play,
+        &mut execution_identity,
+        next_sign_sequence,
+    )? {
+        observations.push(failure);
+    }
     let terminal_sign = bind_sign(
         &advertisement.host_id,
         &advertisement.boot_id,

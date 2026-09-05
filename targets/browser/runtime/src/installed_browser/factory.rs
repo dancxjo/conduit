@@ -2,7 +2,7 @@
 
 use super::{
     button_indicator, delay, input, layout, linguistics, logic, math, morse, morse_composition,
-    presentation, state_time, text, values,
+    presentation, quantity, quantity_output, state_time, text, values,
 };
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
@@ -50,6 +50,12 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &math::CLAMP,
     &math::SCALE,
     &math::DEADBAND,
+    &quantity::MAP,
+    &super::normalized_quantity::NORMALIZE,
+    &super::pointer::POINTER,
+    &super::pointer_selector::POSITION,
+    &super::pointer_selector::X,
+    &quantity_output::WRAP,
     &logic::COMPARE,
     &logic::NOT,
     &logic::SELECT,
@@ -162,14 +168,35 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
 
 pub(crate) fn catalogs(
 ) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
+    catalogs_for_presentation(false)
+}
+
+pub(crate) fn catalogs_with_quantity_presentation(
+) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
+    catalogs_for_presentation(true)
+}
+
+fn catalogs_for_presentation(
+    quantity: bool,
+) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
-    linguistics::install_catalogs(&mut startup, &mut profile)?;
+    if quantity {
+        conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
+        quantity_output::install_catalogs(&mut startup, &mut profile)?;
+    } else {
+        linguistics::install_catalogs(&mut startup, &mut profile)?;
+    }
     conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
+    super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
@@ -198,6 +225,9 @@ pub(crate) fn backs(
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
+        return Some(&quantity_output::PRESENTATION);
+    }
     INSTALLATIONS
         .iter()
         .copied()
@@ -211,6 +241,22 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         BrowserMachinery::from_selected(&selected_human_machinery())
             .expect("ordinary browser profile contains reviewed machinery"),
     )
+}
+
+pub(crate) fn advertisement_with_quantity_presentation(
+    host_id: HostId,
+    boot_id: BootId,
+) -> HostAdvertisement {
+    let mut host = advertisement(host_id, boot_id);
+    host.capabilities.retain(|offer| {
+        offer.kind_id.as_str() != conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
+    });
+    let mut presenter = quantity_output::presentation_offer();
+    presenter.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    host.capabilities.push(presenter);
+    host.capabilities
+        .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    host
 }
 
 /// The bounded admission profile used by the ordinary browser membership
