@@ -7,6 +7,7 @@ pub use tick::*;
 
 mod calendar;
 mod calendar_proposal;
+mod replay_codec;
 mod replay_control;
 mod temporal_recurrence;
 mod temporal_recurrence_civil;
@@ -15,6 +16,7 @@ mod temporal_window;
 
 pub use calendar::*;
 pub use calendar_proposal::*;
+pub use replay_codec::*;
 pub use replay_control::*;
 pub use temporal_recurrence::*;
 pub use temporal_recurrence_civil::*;
