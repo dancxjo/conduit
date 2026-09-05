@@ -67,6 +67,16 @@ fn reseal(encoded: &mut [u8]) {
     encoded[payload_length..].copy_from_slice(&digest);
 }
 
+fn overflow_policy_offset(encoded: &[u8]) -> usize {
+    let profile_length = usize::from(u16::from_le_bytes([encoded[5], encoded[6]]));
+    let clock_length_offset = 7 + profile_length;
+    let clock_length = usize::from(u16::from_le_bytes([
+        encoded[clock_length_offset],
+        encoded[clock_length_offset + 1],
+    ]));
+    clock_length_offset + 2 + clock_length + 1 + 2 + 8
+}
+
 #[test]
 fn complete_timeline_state_round_trips_through_caller_storage() {
     let source = timeline();
@@ -141,6 +151,19 @@ fn corrupted_resource_and_invalid_snapshot_sequence_fail_closed() {
     assert!(matches!(
         decode_historical_timeline(&encoded),
         Err(HistoricalTimelineCodecRefusal::Integrity)
+    ));
+
+    let mut encoded = vec![0_u8; MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES];
+    let length = encode_historical_timeline_into(&timeline(), &mut encoded).unwrap();
+    encoded.truncate(length);
+    let overflow = overflow_policy_offset(&encoded);
+    encoded[overflow] = 0;
+    reseal(&mut encoded);
+    assert!(matches!(
+        decode_historical_timeline(&encoded),
+        Err(HistoricalTimelineCodecRefusal::Timeline(
+            HistoricalTimelineRefusal::InvalidSnapshot
+        ))
     ));
 
     let mut source = timeline();

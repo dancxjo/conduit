@@ -60,6 +60,7 @@ pub enum HistoricalTimelineRefusal {
     SequenceExhausted,
     UnknownSequence,
     InvalidSnapshot,
+    AccountingOverflow,
 }
 
 /// An allocation-stable ring after construction. Values are exact resource
@@ -150,7 +151,7 @@ impl BoundedHistoricalTimeline {
                 while self.length == self.slots.len()
                     || self.referenced_bytes + bytes > self.maximum_referenced_bytes
                 {
-                    self.evict_oldest();
+                    self.evict_oldest()?;
                 }
             }
         }
@@ -199,29 +200,40 @@ impl BoundedHistoricalTimeline {
         Ok(())
     }
 
-    fn evict_oldest(&mut self) {
+    fn evict_oldest(&mut self) -> Result<(), HistoricalTimelineRefusal> {
+        let oldest = self.slots[self.head]
+            .entry
+            .as_ref()
+            .expect("a nonempty timeline has an oldest entry");
+        let updated_gap = match self.retention_gap {
+            Some(gap) => HistoricalRetentionGap {
+                first_sequence: gap.first_sequence,
+                last_sequence: oldest.sequence,
+                entries: gap
+                    .entries
+                    .checked_add(1)
+                    .ok_or(HistoricalTimelineRefusal::AccountingOverflow)?,
+                referenced_bytes: gap
+                    .referenced_bytes
+                    .checked_add(oldest.value.extent.bytes)
+                    .ok_or(HistoricalTimelineRefusal::AccountingOverflow)?,
+            },
+            None => HistoricalRetentionGap {
+                first_sequence: oldest.sequence,
+                last_sequence: oldest.sequence,
+                entries: 1,
+                referenced_bytes: oldest.value.extent.bytes,
+            },
+        };
         let evicted = self.slots[self.head]
             .entry
             .take()
-            .expect("a nonempty timeline has an oldest entry");
+            .expect("the preflighted oldest entry remains present");
         self.referenced_bytes -= evicted.value.extent.bytes;
         self.head = (self.head + 1) % self.slots.len();
         self.length -= 1;
-        match &mut self.retention_gap {
-            Some(gap) => {
-                gap.last_sequence = evicted.sequence;
-                gap.entries += 1;
-                gap.referenced_bytes += evicted.value.extent.bytes;
-            }
-            None => {
-                self.retention_gap = Some(HistoricalRetentionGap {
-                    first_sequence: evicted.sequence,
-                    last_sequence: evicted.sequence,
-                    entries: 1,
-                    referenced_bytes: evicted.value.extent.bytes,
-                });
-            }
-        }
+        self.retention_gap = Some(updated_gap);
+        Ok(())
     }
 
     pub fn remove(
@@ -372,11 +384,16 @@ impl BoundedHistoricalTimeline {
             timeline.length += 1;
             prior_sequence = Some(sequence);
         }
-        if retention_gap.is_some_and(|gap| {
-            gap.entries == 0
+        let invalid_gap = retention_gap.is_some_and(|gap| {
+            overflow != HistoricalOverflowPolicy::EvictOldestWithGap
+                || gap.entries == 0
                 || gap.first_sequence > gap.last_sequence
                 || gap.last_sequence >= next_sequence
-        }) {
+                || timeline
+                    .entry(0)
+                    .is_some_and(|first| gap.last_sequence >= first.sequence)
+        });
+        if invalid_gap {
             return Err(HistoricalTimelineRefusal::InvalidSnapshot);
         }
         timeline.next_sequence = next_sequence;
