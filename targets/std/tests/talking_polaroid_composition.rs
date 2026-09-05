@@ -1,8 +1,9 @@
 //! Cross-domain proof that portable image/text values reuse ordinary history and record delivery.
 
 use conduit_core::{
-    kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity, TemporalInstant, TemporalScale,
+    kind_id, BootId, BoundedResourceRef, HostId, Observation, ObservationKind, ResourceClassId,
+    ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, SignId,
+    TemporalInstant, TemporalScale, ValuePayload,
 };
 use conduit_human::{
     compose_image_text, ImageObservationReference, ImageTextMetadata, ImageTextRecord,
@@ -188,4 +189,35 @@ fn transport_loss_is_not_misreported_as_storage_or_composition_failure() {
         RecordDeliveryStateRef::TransportUnavailable { code: 17 }
     );
     assert!(record.caption.starts_with("Inspection"));
+}
+
+#[test]
+fn structural_inspection_is_sign_bound_and_does_not_claim_image_manifestation() {
+    let (profile, record) = composed();
+    let value = image_text_record_value(&record, &profile).unwrap();
+    let sign = Observation {
+        sign_id: SignId::from("sign/polaroid-composed"),
+        active_play_id: None,
+        presentation_id: None,
+        host_id: HostId::from("host/fixture"),
+        boot_id: BootId::from("boot/fixture"),
+        plan_id: None,
+        placement_id: None,
+        connection_id: None,
+        kind: ObservationKind::ValuePresented {
+            value: ValuePayload {
+                value_kind: value.value_type().profile().unwrap().value_kind().clone(),
+                encoded: value.canonical_bytes().unwrap(),
+            },
+        },
+    };
+    let inspection =
+        conduit_presentation::StructuredSignPresentation::from_sign(1, &sign, value.value_type())
+            .unwrap();
+    assert_eq!(inspection.presentation.basis.sign_ids, vec![sign.sign_id]);
+    assert!(inspection.presentation.text.is_empty());
+    assert!(inspection.presentation.properties.iter().any(|property| {
+        property.name == "leaf-content-redacted"
+            && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+    }));
 }
