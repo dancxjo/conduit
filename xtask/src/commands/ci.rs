@@ -52,6 +52,9 @@ enum CiCommand {
         /// Previously retained proof receipts to consider, if any.
         #[arg(long = "receipt")]
         receipts: Vec<PathBuf>,
+        /// Exact typed impact plan selecting applicable candidate proofs.
+        #[arg(long)]
+        impact_plan: Option<PathBuf>,
         /// Write the machine-readable candidate plan to this path.
         #[arg(long)]
         json_out: Option<PathBuf>,
@@ -68,6 +71,9 @@ enum CiCommand {
         /// Previously retained proof receipts to consider, if any.
         #[arg(long = "receipt")]
         receipts: Vec<PathBuf>,
+        /// Retained exact candidate impact plan selecting applicable proofs.
+        #[arg(long)]
+        impact_plan: Option<PathBuf>,
         /// Write the machine-readable reconciliation plan to this path.
         #[arg(long)]
         json_out: Option<PathBuf>,
@@ -117,11 +123,13 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
         CiCommand::Candidate {
             head,
             receipts,
+            impact_plan,
             json_out,
             summary_out,
         } => proof_graph::candidate(
             &head,
             &receipts,
+            impact_plan.as_deref(),
             json_out.as_deref(),
             summary_out.as_deref(),
         ),
@@ -135,12 +143,14 @@ pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
             base,
             head,
             receipts,
+            impact_plan,
             json_out,
             summary_out,
         } => proof_graph::reconcile(
             &base,
             &head,
             &receipts,
+            impact_plan.as_deref(),
             json_out.as_deref(),
             summary_out.as_deref(),
         ),

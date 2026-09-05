@@ -1,17 +1,22 @@
 use serde::Serialize;
-use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 const PLAN_SCHEMA: &str = "conduit.ci.reconciliation-plan/v1";
 
+#[path = "proof_graph/fingerprint.rs"]
+mod fingerprinting;
 #[path = "proof_graph/receipt.rs"]
 mod receipt;
+#[path = "proof_graph/selection.rs"]
+mod selection;
 #[path = "proof_graph/spec.rs"]
 mod spec;
+use fingerprinting::{fingerprint, proof_key};
 use receipt::{load_receipts, ProofReceipt, ReceiptLoad, RECEIPT_SCHEMA};
+use selection::{is_selected, load as load_selection, ImpactSelection};
 use spec::{Applicability, ProofKind, ProofSpec, PROOFS};
 
 #[derive(Debug, Serialize)]
@@ -50,6 +55,7 @@ struct Plan {
 pub(super) fn candidate(
     head: &str,
     receipt_paths: &[PathBuf],
+    impact_plan: Option<&Path>,
     json_out: Option<&Path>,
     summary_out: Option<&Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -58,6 +64,7 @@ pub(super) fn candidate(
     let tree = resolve_tree(&root, &candidate_sha)?;
     validate_registry_paths(&root, &tree)?;
     let receipts = load_receipts(receipt_paths);
+    let selected = load_selection(impact_plan)?;
     let plan = build_plan(
         &root,
         PlanContext {
@@ -72,6 +79,7 @@ pub(super) fn candidate(
             integration_status: "not-requested",
         },
         &receipts,
+        selected.as_ref(),
     )?;
     emit(&plan, json_out, summary_out)
 }
@@ -80,6 +88,7 @@ pub(super) fn reconcile(
     base: &str,
     head: &str,
     receipt_paths: &[PathBuf],
+    impact_plan: Option<&Path>,
     json_out: Option<&Path>,
     summary_out: Option<&Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -89,7 +98,9 @@ pub(super) fn reconcile(
     let candidate_tree = resolve_tree(&root, &candidate_sha)?;
     validate_registry_paths(&root, &candidate_tree)?;
     let receipts = load_receipts(receipt_paths);
-    let candidate_evidence_status = evidence_status(&root, &candidate_tree, &receipts)?;
+    let selected = load_selection(impact_plan)?;
+    let candidate_evidence_status =
+        evidence_status(&root, &candidate_tree, &receipts, selected.as_ref())?;
     let integration = super::integration::resolve(&root, &base_sha, &candidate_sha)?;
     let plan = if integration.status == "conflict" {
         Plan {
@@ -123,6 +134,7 @@ pub(super) fn reconcile(
                 integration_status: "clean",
             },
             &receipts,
+            selected.as_ref(),
         )?
     };
     emit(&plan, json_out, summary_out)
@@ -188,6 +200,7 @@ fn build_plan(
     root: &Path,
     context: PlanContext,
     receipts: &[ReceiptLoad],
+    selected: Option<&ImpactSelection>,
 ) -> Result<Plan, Box<dyn std::error::Error>> {
     let proof_tree = context
         .integration_tree
@@ -196,6 +209,9 @@ fn build_plan(
     validate_registry_paths(root, proof_tree)?;
     let mut proofs = Vec::new();
     for spec in PROOFS {
+        if !is_selected(spec, selected) {
+            continue;
+        }
         let input_digest = fingerprint(root, proof_tree, spec)?;
         let proof_key = proof_key(spec, &input_digest, &BTreeMap::new());
         let inherited = receipts.iter().any(|loaded| {
@@ -230,7 +246,8 @@ fn build_plan(
         .filter(|proof| proof.disposition == "inherited")
         .count();
     let execute = proofs.len() - inherited;
-    let candidate_evidence_status = evidence_status(root, &context.candidate_tree, receipts)?;
+    let candidate_evidence_status =
+        evidence_status(root, &context.candidate_tree, receipts, selected)?;
     Ok(Plan {
         schema: PLAN_SCHEMA,
         mode: context.mode,
@@ -264,26 +281,6 @@ fn merge_tree(root: &Path, base: &str, head: &str) -> Result<MergeTree, String> 
     })
 }
 
-fn fingerprint(root: &Path, tree: &str, spec: &ProofSpec) -> Result<String, String> {
-    let mut entries = BTreeSet::new();
-    collect_entries(root, tree, "input", spec.inputs, &mut entries)?;
-    collect_entries(
-        root,
-        tree,
-        "implementation",
-        spec.implementation_inputs,
-        &mut entries,
-    )?;
-    let mut hash = Sha256::new();
-    hash_field(&mut hash, "proof", spec.id.as_bytes());
-    hash_field(&mut hash, "contract", &spec.contract_version.to_be_bytes());
-    hash_field(&mut hash, "environment", spec.environment.as_bytes());
-    for entry in entries {
-        hash_field(&mut hash, "git", entry.as_bytes());
-    }
-    Ok(format!("sha256:{:x}", hash.finalize()))
-}
-
 fn validate_registry_paths(root: &Path, tree: &str) -> Result<(), String> {
     for spec in PROOFS {
         for (class, paths) in [
@@ -308,50 +305,6 @@ fn validate_registry_paths(root: &Path, tree: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn collect_entries(
-    root: &Path,
-    tree: &str,
-    class: &str,
-    paths: &[&str],
-    entries: &mut BTreeSet<String>,
-) -> Result<(), String> {
-    let mut command = git_command(root);
-    command.args(["ls-tree", "-r", "-z", tree, "--"]);
-    command.args(paths);
-    let output = command
-        .output()
-        .map_err(|error| format!("run git ls-tree: {error}"))?;
-    if !output.status.success() {
-        return Err(command_error("git ls-tree", &output));
-    }
-    for raw in output
-        .stdout
-        .split(|byte| *byte == 0)
-        .filter(|entry| !entry.is_empty())
-    {
-        let text =
-            std::str::from_utf8(raw).map_err(|_| "git ls-tree emitted non-UTF-8".to_owned())?;
-        let (metadata, path) = text
-            .split_once('\t')
-            .ok_or_else(|| "malformed git ls-tree entry".to_owned())?;
-        entries.insert(format!("{class}\0{path}\0{metadata}"));
-    }
-    Ok(())
-}
-
-fn proof_key(spec: &ProofSpec, input_digest: &str, artifacts: &BTreeMap<String, String>) -> String {
-    let mut hash = Sha256::new();
-    hash_field(&mut hash, "proof", spec.id.as_bytes());
-    hash_field(&mut hash, "contract", &spec.contract_version.to_be_bytes());
-    hash_field(&mut hash, "inputs", input_digest.as_bytes());
-    hash_field(&mut hash, "environment", spec.environment.as_bytes());
-    for (name, digest) in artifacts {
-        hash_field(&mut hash, "artifact-name", name.as_bytes());
-        hash_field(&mut hash, "artifact-digest", digest.as_bytes());
-    }
-    format!("sha256:{:x}", hash.finalize())
-}
-
 fn receipt_matches(
     receipt: &ProofReceipt,
     spec: &ProofSpec,
@@ -372,9 +325,15 @@ fn evidence_status(
     root: &Path,
     tree: &str,
     receipts: &[ReceiptLoad],
+    selected: Option<&ImpactSelection>,
 ) -> Result<&'static str, String> {
     let mut inherited = 0;
+    let mut applicable = 0;
     for spec in PROOFS {
+        if !is_selected(spec, selected) {
+            continue;
+        }
+        applicable += 1;
         let input_digest = fingerprint(root, tree, spec)?;
         let key = proof_key(spec, &input_digest, &BTreeMap::new());
         if receipts.iter().any(|loaded| {
@@ -383,20 +342,13 @@ fn evidence_status(
             inherited += 1;
         }
     }
-    Ok(if inherited == PROOFS.len() {
+    Ok(if inherited == applicable {
         "pass"
     } else if inherited > 0 {
         "partial"
     } else {
         "unproven"
     })
-}
-
-fn hash_field(hash: &mut Sha256, label: &str, value: &[u8]) {
-    hash.update((label.len() as u64).to_be_bytes());
-    hash.update(label.as_bytes());
-    hash.update((value.len() as u64).to_be_bytes());
-    hash.update(value);
 }
 
 fn resolve_commit(root: &Path, revision: &str) -> Result<String, String> {

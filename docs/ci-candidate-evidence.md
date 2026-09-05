@@ -65,7 +65,7 @@ inherit product, browser, firmware, and ConduitOS proof domains.
 
 ## Proof keys
 
-`cargo xtask ci candidate HEAD` reads registered proof specifications and fingerprints their actual Git blobs from `HEAD^{tree}`. Each proof key includes:
+`cargo xtask ci candidate HEAD --impact-plan PLAN` reads registered proof specifications, selects the exact proofs applicable to the candidate, and fingerprints their actual Git blobs from `HEAD^{tree}`. A missing or malformed retained applicability plan conservatively selects the complete registry. Each proof key includes:
 
 - proof ID and contract version;
 - relevant source and proof-implementation Git objects;
@@ -94,7 +94,7 @@ error, never an empty input set that can accidentally inherit an old receipt.
 
 ## Reconciliation
 
-`cargo xtask ci reconcile BASE HEAD --receipt RECEIPT...` asks Git for the prospective integration tree with `git merge-tree --write-tree`. It never rebases or mutates `HEAD`.
+`cargo xtask ci reconcile BASE HEAD --impact-plan PLAN --receipt RECEIPT...` asks Git for the prospective integration tree with `git merge-tree --write-tree`. The retained candidate impact plan distinguishes a proof that was intentionally inapplicable from missing evidence for an applicable proof. It never rebases or mutates `HEAD`.
 
 `cargo xtask ci integration BASE HEAD` owns the lower-level composition
 decision. It first uses Git's genealogical merge base. If that reports a
@@ -134,11 +134,13 @@ can never reverse that relationship.
 When an unchanged candidate needs policy from a newer trusted controller, the
 `reconcile-candidate` workflow is requested explicitly with the PR number and
 exact current head. Its trusted resolver refuses a stale or closed lifecycle.
-It considers an already-successful `check` or `products-proof` aggregate
-attached to that immutable candidate only after the trusted impact graph
-classifies the candidate-to-integration delta. A lane inherits only when that
-graph proves none of its inputs changed; a changed or unknown input executes
-the lane against the integration. The resolver freezes the current prospective
+It uses an already-successful `check` or `products-proof` aggregate attached to
+that immutable candidate only as a location for immutable receipt artifacts.
+The aggregate name is never proof equivalence. The trusted current-main
+controller verifies each recognized receipt against the prospective integration
+tree and the retained candidate applicability plan. A lane inherits only when
+every applicable proof disposition in that lane is `inherited`; missing,
+malformed, ambiguous, or unknown evidence produces fresh execution. The resolver freezes the current prospective
 integration commit separately from the candidate head; novel lanes execute
 against that integration commit, while inherited candidate receipts remain
 historical evidence about the immutable head. A main-only repair therefore
@@ -219,7 +221,14 @@ new CI command can therefore be validated without rebasing merely to acquire
 the command implementation; the preflight still inspects that candidate's
 exact manifests and locks.
 
-The first registry slice is intentionally broad and conservative. It proves the identity, receipt, and reconciliation mechanism for workspace products, Tour browser proof, and ESP32-C3. Subsequent work can split nodes, teach merge-group orchestration to retrieve retained candidate receipts, model fabricated artifacts as independent graph nodes, remove duplicated path-filtered workflows, batch shared browser/QEMU environments, and make Crèche payload delivery lazy without changing this identity contract.
+The first registry slice is intentionally broad and conservative. Candidate
+jobs retain exact receipts for workspace products, Tour browser proof, the
+Patchbay debugger, and ESP32-C3; the trusted on-demand reconciler retrieves and
+verifies those receipts before scheduling. Subsequent work can split nodes,
+extend exact receipts across the remaining proof registry, model fabricated
+artifacts as independent graph nodes, remove duplicated path-filtered workflows,
+batch shared browser/QEMU environments, and make Crèche payload delivery lazy
+without changing this identity contract.
 
 Product workflow dependencies follow consumed artifacts rather than the final
 deployment bundle. The Tour and its embedded real Patchbay consume the browser

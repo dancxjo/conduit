@@ -187,7 +187,11 @@ jobs:
           if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
             controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
           fi
-          "${controller[@]}" ci candidate "$HEAD_SHA" --locked \
+          applicability=()
+          if grep -Fq '"--impact-plan"' "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs" 2>/dev/null; then
+            applicability=(--impact-plan target/ci-plans/ci-impact-plan.json)
+          fi
+          "${controller[@]}" ci candidate "$HEAD_SHA" --locked "${applicability[@]}" \
             --json-out target/ci-plans/ci-proof-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Fingerprint prospective integration proof inputs
@@ -366,6 +370,33 @@ jobs:
           CONDUIT_CI_LINT_PACKAGES: ${{ needs.classify.outputs.workspace_lint_packages }}
           CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}
         run: cargo xtask check workspace-${{ matrix.shard }} --locked
+      - name: Materialize the trusted attestation controller
+        if: matrix.shard == 'test-products' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        env:
+          CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful product-workspace proof proposition
+        if: matrix.shard == 'test-products' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci attest-success "$CONDUIT_CHECKOUT_SHA"
+          workspace.products
+          --evidence workspace-test-products
+          --out target/ci-receipts/workspace.products.json
+          --locked
+      - name: Retain immutable product-workspace proof evidence
+        if: matrix.shard == 'test-products' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-workspace.products-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: target/ci-receipts/workspace.products.json
+          if-no-files-found: error
+          retention-days: 14
 
   standalone-locks:
     needs: classify
@@ -457,6 +488,33 @@ jobs:
         run: cargo +1.98.1 xtask esp32-firmware check --locked
       - name: Build the exact ESP32 firmware image
         run: cargo +1.98.1 xtask esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
+      - name: Materialize the trusted attestation controller
+        if: matrix.target == 'c3' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        env:
+          CONTROLLER_SHA: ${{ needs.classify.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful ESP32-C3 proof proposition
+        if: matrix.target == 'c3' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci attest-success "$CONDUIT_CHECKOUT_SHA"
+          machine.esp32-c3
+          --evidence esp32-c3-firmware-build
+          --out target/ci-receipts/machine.esp32-c3.json
+          --locked
+      - name: Retain immutable ESP32-C3 proof evidence
+        if: matrix.target == 'c3' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-machine.esp32-c3-${{ env.CONDUIT_CHECKOUT_SHA }}
+          path: target/ci-receipts/machine.esp32-c3.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:

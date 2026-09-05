@@ -32,19 +32,24 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
+      actions: read
       checks: write
       contents: write
       pull-requests: read
       issues: write
     outputs:
-      base_sha: ${{ steps.resolve.outputs.base_sha }}
-      integration_sha: ${{ steps.resolve.outputs.integration_sha }}
+      base_sha: ${{ steps.integration.outputs.base_sha }}
+      integration_sha: ${{ steps.integration.outputs.integration_sha }}
       integration_ref: ${{ steps.integration.outputs.integration_ref }}
-      check_inherited: ${{ steps.resolve.outputs.check_inherited }}
-      check_evidence_url: ${{ steps.resolve.outputs.check_evidence_url }}
-      products_inherited: ${{ steps.resolve.outputs.products_inherited }}
-      products_evidence_url: ${{ steps.resolve.outputs.products_evidence_url }}
-      published: ${{ steps.resolve.outputs.published }}
+      check_inherited: ${{ steps.exact.outputs.check_inherited || steps.locate.outputs.check_inherited }}
+      check_evidence_url: ${{ steps.locate.outputs.check_evidence_url }}
+      check_inherited_proofs: ${{ steps.exact.outputs.check_inherited_proofs }}
+      check_execute_proofs: ${{ steps.exact.outputs.check_execute_proofs }}
+      products_inherited: ${{ steps.exact.outputs.products_inherited || steps.locate.outputs.products_inherited }}
+      products_evidence_url: ${{ steps.locate.outputs.products_evidence_url }}
+      products_inherited_proofs: ${{ steps.exact.outputs.products_inherited_proofs }}
+      products_execute_proofs: ${{ steps.exact.outputs.products_execute_proofs }}
+      published: ${{ steps.locate.outputs.published }}
     steps:
       - name: Consume the bounded on-demand reconciliation request
         if: github.event_name == 'pull_request_target' && github.event.action == 'labeled'
@@ -102,16 +107,8 @@ jobs:
           echo "effective_merge_base_sha=$effective_merge_base_sha" >> "$GITHUB_OUTPUT"
           echo "effective_merge_base_tree=$effective_merge_base_tree" >> "$GITHUB_OUTPUT"
           echo "merge_base_method=$merge_base_method" >> "$GITHUB_OUTPUT"
-      - name: Classify candidate-to-integration proof impact
-        env:
-          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
-          INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
-        run: |
-          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
-            ci plan "$CANDIDATE_SHA" "$INTEGRATION_SHA" --locked \
-            --json-out reconciliation-impact.json
-      - name: Resolve the unchanged candidate and reusable aggregate evidence
-        id: resolve
+      - name: Locate immutable candidate receipt runs
+        id: locate
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -119,13 +116,60 @@ jobs:
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
           CONDUIT_BASE_SHA: ${{ steps.integration.outputs.base_sha }}
           CONDUIT_INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
-          CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -o pipefail
           node scripts/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
+      - name: Retrieve candidate proof receipts from their aggregate run locations
+        if: steps.locate.outputs.published != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+          CHECK_RUN_ID: ${{ steps.locate.outputs.check_run_id }}
+          PRODUCTS_RUN_ID: ${{ steps.locate.outputs.products_run_id }}
+        run: |
+          mkdir -p candidate-receipts
+          for run_id in "$CHECK_RUN_ID" "$PRODUCTS_RUN_ID"; do
+            if test -n "$run_id"; then
+              gh run download "$run_id" --repo "${{ github.repository }}" \
+                --pattern "ci-proof-*-$CANDIDATE_SHA" --dir candidate-receipts ||
+                printf 'No reusable receipt bundle was available from run %s; affected proof will execute.\n' "$run_id"
+            fi
+          done
+          if test -n "$CHECK_RUN_ID"; then
+            gh run download "$CHECK_RUN_ID" --repo "${{ github.repository }}" \
+              --pattern "ci-plan-$CANDIDATE_SHA" --dir candidate-receipts ||
+              printf 'No retained applicability plan was available; all registered proofs will execute.\n'
+          fi
+      - name: Reconcile exact proof keys with the trusted controller
+        id: exact
+        if: steps.locate.outputs.published != 'true'
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ steps.integration.outputs.base_sha }}
+          CONDUIT_EXACT_PROOF_PLAN: exact-proof-plan.json
+        run: |
+          receipts=()
+          while IFS= read -r -d '' receipt; do receipts+=(--receipt "$receipt"); done \
+            < <(find candidate-receipts -type f -name '*.json' ! -name 'ci-impact-plan.json' ! -name 'ci-proof-plan.json' ! -name 'pr-stack-role.json' -print0)
+          applicability=()
+          impact_plans=()
+          while IFS= read -r -d '' plan; do impact_plans+=("$plan"); done \
+            < <(find candidate-receipts -type f -name 'ci-impact-plan.json' -print0)
+          if test "${#impact_plans[@]}" -eq 1; then
+            applicability=(--impact-plan "${impact_plans[0]}")
+          elif test "${#impact_plans[@]}" -gt 1; then
+            echo 'Ambiguous retained applicability plans; selecting the complete proof registry.'
+          fi
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci reconcile "$BASE_SHA" "$CANDIDATE_SHA" "${receipts[@]}" "${applicability[@]}" --locked \
+            --json-out "$CONDUIT_EXACT_PROOF_PLAN" --summary-out exact-proof-summary.md
+          cat exact-proof-summary.md >> "$GITHUB_STEP_SUMMARY"
+          node scripts/ci/reconcile-candidate-request.mjs classify | tee exact-lane-disposition.json
       - name: Publish the immutable integration commit for proof jobs
-        if: steps.resolve.outputs.published != 'true'
+        if: steps.locate.outputs.published != 'true'
         env:
           INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
           INTEGRATION_REF: ${{ steps.integration.outputs.integration_ref }}
@@ -184,9 +228,13 @@ jobs:
           CONDUIT_CHECK_INHERITED: ${{ needs.resolve.outputs.check_inherited }}
           CONDUIT_CHECK_RESULT: ${{ needs.candidate-check.result }}
           CONDUIT_CHECK_EVIDENCE_URL: ${{ needs.resolve.outputs.check_evidence_url }}
+          CONDUIT_CHECK_INHERITED_PROOFS: ${{ needs.resolve.outputs.check_inherited_proofs }}
+          CONDUIT_CHECK_EXECUTE_PROOFS: ${{ needs.resolve.outputs.check_execute_proofs }}
           CONDUIT_PRODUCTS_INHERITED: ${{ needs.resolve.outputs.products_inherited }}
           CONDUIT_PRODUCTS_RESULT: ${{ needs.candidate-products.result }}
           CONDUIT_PRODUCTS_EVIDENCE_URL: ${{ needs.resolve.outputs.products_evidence_url }}
+          CONDUIT_PRODUCTS_INHERITED_PROOFS: ${{ needs.resolve.outputs.products_inherited_proofs }}
+          CONDUIT_PRODUCTS_EXECUTE_PROOFS: ${{ needs.resolve.outputs.products_execute_proofs }}
           CONDUIT_PUBLISH_REQUIRED_ADMISSION: ${{ github.event_name == 'workflow_dispatch' }}
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |

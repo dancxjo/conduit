@@ -545,7 +545,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("labels/ci%3Areconcile"));
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("issues: write"));
-    assert!(workflow.contains("integration_sha: ${{ steps.resolve.outputs.integration_sha }}"));
+    assert!(workflow.contains("integration_sha: ${{ steps.integration.outputs.integration_sha }}"));
     assert!(workflow.contains("ci integration \"$base_sha\" \"$CANDIDATE_SHA\" --locked"));
     assert!(workflow.contains("status=$(jq -r '.status' integration.json)"));
     assert!(workflow.contains("effective_merge_base_sha=$(jq -r '.effective_merge_base_sha'"));
@@ -554,19 +554,17 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         .contains("git commit-tree \"$integration_tree\" -p \"$base_sha\" -p \"$CANDIDATE_SHA\""));
     assert!(workflow.contains("git push origin \"$INTEGRATION_SHA:$INTEGRATION_REF\""));
     assert!(workflow.contains("git push origin \":$INTEGRATION_REF\""));
-    assert!(workflow.contains("name: Classify candidate-to-integration proof impact"));
     let toolchain = workflow
         .find("name: Install the repository Rust toolchain for the impact controller")
         .expect("reconciliation installs the controller toolchain");
-    let classify = workflow
-        .find("name: Classify candidate-to-integration proof impact")
-        .expect("reconciliation classifies integration impact");
+    let exact = workflow
+        .find("name: Reconcile exact proof keys with the trusted controller")
+        .expect("reconciliation computes exact proof keys");
     assert!(
-        toolchain < classify,
-        "the dependency-light impact controller cannot be built before Rust is installed"
+        toolchain < exact,
+        "the dependency-light proof controller cannot be built before Rust is installed"
     );
-    assert!(workflow.contains("ci plan \"$CANDIDATE_SHA\" \"$INTEGRATION_SHA\" --locked"));
-    assert!(workflow.contains("CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json"));
+    assert!(!workflow.contains("reconciliation-impact.json"));
     assert_eq!(
         workflow
             .matches("candidate_sha: ${{ needs.resolve.outputs.integration_sha }}")
@@ -592,7 +590,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     ));
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
-    assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
+    assert!(workflow.contains("published: ${{ steps.locate.outputs.published }}"));
+    assert!(workflow.contains("ci reconcile \"$BASE_SHA\" \"$CANDIDATE_SHA\""));
+    assert!(workflow.contains("--impact-plan \"${impact_plans[0]}\""));
+    assert!(workflow.contains("reconcile-candidate-request.mjs classify"));
     assert!(workflow.contains("&& 'admission' || 'ignored-reconciliation-event'"));
     assert!(workflow.contains("if: always() && needs.resolve.outputs.integration_ref != ''"));
     assert!(!workflow.contains(
