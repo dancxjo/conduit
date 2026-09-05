@@ -892,7 +892,7 @@ jobs:
           path: target/conduitos/x86_64
           expected-digest: ${{ needs.conduitos-proof-image.outputs.artifact_digest }}
       - name: Run selected x86 proofs in one bounded environment
-        id: x86_proofs
+        id: x86-proofs
         continue-on-error: true
         env:
           SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
@@ -902,7 +902,7 @@ jobs:
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
           cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --locked
       - name: Validate the complete x86 batch contract
-        id: x86_contract
+        id: x86-contract
         if: always()
         continue-on-error: true
         env:
@@ -931,19 +931,19 @@ jobs:
           retention-days: 14
           compression-level: 0
       - name: Receive the trusted candidate proof plan
-        if: steps.x86_proofs.outcome == 'success' && steps.x86_contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/download-artifact@v8
         with:
           name: ci-plan-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-plan
       - name: Receive the trusted attestation controller
-        if: steps.x86_proofs.outcome == 'success' && steps.x86_contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/download-artifact@v8
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-attestation
       - name: Retain one exact receipt per successful x86 proof
-        if: steps.x86_proofs.outcome == 'success' && steps.x86_contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           SELECTED_PROOFS: ${{ needs.classify.outputs.conduitos_x86_matrix }}
         run: |
@@ -961,7 +961,7 @@ jobs:
               --out "target/ci-receipts/$proof_id.json" --locked
           done
       - name: Retain immutable x86 proof receipts
-        if: steps.x86_proofs.outcome == 'success' && steps.x86_contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/upload-artifact@v7
         with:
           name: ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}
@@ -969,7 +969,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Preserve the exact x86 batch as the proof gate
-        if: always() && (steps.x86_proofs.outcome != 'success' || steps.x86_contract.outcome != 'success')
+        if: always() && (steps.x86-proofs.outcome != 'success' || steps.x86-contract.outcome != 'success')
         run: exit 1
 
   conduitos-architecture:

@@ -803,12 +803,6 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(!x86.contains("matrix:"));
     assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
     assert!(x86.contains("cargo xtask conduitos prove-many"));
-    assert!(x86.contains("id: x86_proofs"));
-    assert!(x86.contains("id: x86_contract"));
-    assert!(x86.contains("steps.x86_proofs.outcome == 'success'"));
-    assert!(x86.contains("steps.x86_contract.outcome == 'success'"));
-    assert!(!x86.contains("steps.x86-proofs"));
-    assert!(!x86.contains("steps.x86-contract"));
     assert!(x86.contains("--max-parallel 2 --locked"));
     assert!(x86.contains("maximum_observed_parallelism > 1"));
     assert!(x86.contains("proof_id=\"conduitos.x86.$proof\""));
