@@ -1,0 +1,7 @@
+form measurement-summary (
+    window: MeasurementWindow > summary: MeasurementSummary
+) {
+    summarize: data/measurement-summary
+    window > summarize.window
+    summarize.summary > summary
+}
