@@ -160,13 +160,13 @@ fn eviction_reports_the_exact_whole_entry_gap() {
     let replay = history.replay_metadata();
     assert_eq!(replay.len(), 1);
     assert_eq!(replay[0].identity, "c");
-    assert_eq!(replay[0].event_ticks, 3);
+    assert_eq!(replay[0].event_time, time(3));
     let mut controller =
         BoundedReplayController::new(&replay, ReplayPolicy::OriginalTiming).unwrap();
     controller.start(100).unwrap();
     let emitted = controller.poll(100).unwrap().unwrap();
     assert_eq!(emitted.historical_identity, "c");
-    assert_eq!(emitted.historical_event_ticks, 3);
+    assert_eq!(emitted.historical_event_time, &time(3));
 }
 
 #[test]

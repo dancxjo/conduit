@@ -1,16 +1,20 @@
 use conduit_time::*;
 
+fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
+    HistoricalReplayEntry {
+        identity: identity.into(),
+        event_time: TemporalInstant {
+            ticks,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: "observation-clock".into(),
+            resolution_ticks: 2,
+            uncertainty_ticks: 1,
+        },
+    }
+}
+
 fn entries() -> Vec<HistoricalReplayEntry> {
-    vec![
-        HistoricalReplayEntry {
-            identity: "observation/one".into(),
-            event_ticks: 700,
-        },
-        HistoricalReplayEntry {
-            identity: "observation/two".into(),
-            event_ticks: 725,
-        },
-    ]
+    vec![entry("observation/one", 700), entry("observation/two", 725)]
 }
 
 #[test]
@@ -83,57 +87,42 @@ fn empty_duplicate_reordered_and_oversized_timelines_refuse() {
         encode_replay_timeline_into(&[], &mut output),
         Err(ReplayTimelineCodecRefusal::EmptyTimeline)
     );
-    let duplicate = vec![
-        HistoricalReplayEntry {
-            identity: "same".into(),
-            event_ticks: 1,
-        },
-        HistoricalReplayEntry {
-            identity: "same".into(),
-            event_ticks: 2,
-        },
-    ];
+    let duplicate = vec![entry("same", 1), entry("same", 2)];
     assert_eq!(
         encode_replay_timeline_into(&duplicate, &mut output),
         Err(ReplayTimelineCodecRefusal::DuplicateIdentity)
     );
-    let reordered = vec![
-        HistoricalReplayEntry {
-            identity: "one".into(),
-            event_ticks: 2,
-        },
-        HistoricalReplayEntry {
-            identity: "two".into(),
-            event_ticks: 1,
-        },
-    ];
+    let reordered = vec![entry("one", 2), entry("two", 1)];
     assert_eq!(
         encode_replay_timeline_into(&reordered, &mut output),
         Err(ReplayTimelineCodecRefusal::ReorderedHistoricalTime)
     );
+    let mut invalid_time = entry("invalid-time", 1);
+    invalid_time.event_time.resolution_ticks = 0;
+    assert_eq!(
+        encode_replay_timeline_into(&[invalid_time], &mut output),
+        Err(ReplayTimelineCodecRefusal::InvalidHistoricalTime)
+    );
+    let mut incomparable = vec![entry("one", 1), entry("two", 2)];
+    incomparable[1].event_time.clock_basis = "different-clock".into();
+    assert_eq!(
+        encode_replay_timeline_into(&incomparable, &mut output),
+        Err(ReplayTimelineCodecRefusal::IncomparableHistoricalTime)
+    );
     let too_many = (0..=MAXIMUM_REPLAY_ENTRIES)
-        .map(|index| HistoricalReplayEntry {
-            identity: format!("event/{index}"),
-            event_ticks: index as u64,
-        })
+        .map(|index| entry(format!("event/{index}"), index as u64))
         .collect::<Vec<_>>();
     assert_eq!(
         encode_replay_timeline_into(&too_many, &mut output),
         Err(ReplayTimelineCodecRefusal::TooManyEntries)
     );
 
-    let empty_identity = vec![HistoricalReplayEntry {
-        identity: String::new(),
-        event_ticks: 0,
-    }];
+    let empty_identity = vec![entry(String::new(), 0)];
     assert_eq!(
         encode_replay_timeline_into(&empty_identity, &mut output),
         Err(ReplayTimelineCodecRefusal::EmptyIdentity)
     );
-    let long_identity = vec![HistoricalReplayEntry {
-        identity: "x".repeat(MAXIMUM_REPLAY_IDENTITY_BYTES + 1),
-        event_ticks: 0,
-    }];
+    let long_identity = vec![entry("x".repeat(MAXIMUM_REPLAY_IDENTITY_BYTES + 1), 0)];
     assert_eq!(
         encode_replay_timeline_into(&long_identity, &mut output),
         Err(ReplayTimelineCodecRefusal::IdentityTooLong)

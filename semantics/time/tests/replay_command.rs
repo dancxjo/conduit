@@ -1,16 +1,20 @@
 use conduit_time::*;
 
+fn entry(identity: &str, ticks: u64) -> HistoricalReplayEntry {
+    HistoricalReplayEntry {
+        identity: identity.into(),
+        event_time: conduit_core::TemporalInstant {
+            ticks,
+            scale: conduit_core::TemporalScale::Milliseconds,
+            clock_basis: "history-clock".into(),
+            resolution_ticks: 1,
+            uncertainty_ticks: 0,
+        },
+    }
+}
+
 fn entries() -> Vec<HistoricalReplayEntry> {
-    vec![
-        HistoricalReplayEntry {
-            identity: "event/a".into(),
-            event_ticks: 10,
-        },
-        HistoricalReplayEntry {
-            identity: "event/b".into(),
-            event_ticks: 20,
-        },
-    ]
+    vec![entry("event/a", 10), entry("event/b", 20)]
 }
 
 #[test]

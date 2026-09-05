@@ -1,3 +1,4 @@
+use conduit_core::{TemporalInstant, TemporalScale};
 use conduit_time::{
     decode_replay_event, decode_replay_state, encode_replay_event_into, encode_replay_state_into,
     OwnedReplayEvent, ReplayEmission, ReplayOutputCodecRefusal, ReplayState,
@@ -5,12 +6,22 @@ use conduit_time::{
     MAXIMUM_REPLAY_STATE_BYTES,
 };
 
+fn historical_time(ticks: u64) -> TemporalInstant {
+    TemporalInstant {
+        ticks,
+        scale: TemporalScale::Milliseconds,
+        clock_basis: "memory-lantern/event-clock".into(),
+        resolution_ticks: 2,
+        uncertainty_ticks: 1,
+    }
+}
+
 #[test]
 fn replay_event_round_trip_preserves_both_time_domains_and_identity() {
     let event = ReplayEmission {
         ordinal: 3,
         historical_identity: "bench/observation/amber",
-        historical_event_ticks: 1_250,
+        historical_event_time: &historical_time(1_250),
         playback_ticks: 9_000,
     };
     let mut encoded = [0; MAXIMUM_REPLAY_EVENT_BYTES];
@@ -21,7 +32,7 @@ fn replay_event_round_trip_preserves_both_time_domains_and_identity() {
         Ok(OwnedReplayEvent {
             ordinal: 3,
             historical_identity: "bench/observation/amber".into(),
-            historical_event_ticks: 1_250,
+            historical_event_time: historical_time(1_250),
             playback_ticks: 9_000,
         })
     );
@@ -45,10 +56,11 @@ fn every_replay_state_has_an_exact_round_trip() {
 #[test]
 fn event_encoding_refuses_invalid_identity_ordinal_and_capacity() {
     let mut encoded = [0; MAXIMUM_REPLAY_EVENT_BYTES];
+    let time = historical_time(1);
     let event = |ordinal, identity| ReplayEmission {
         ordinal,
         historical_identity: identity,
-        historical_event_ticks: 1,
+        historical_event_time: &time,
         playback_ticks: 2,
     };
 
@@ -78,7 +90,7 @@ fn malformed_values_remain_machine_readable_refusals() {
         ReplayEmission {
             ordinal: 0,
             historical_identity: "event",
-            historical_event_ticks: 1,
+            historical_event_time: &historical_time(1),
             playback_ticks: 2,
         },
         &mut event,

@@ -63,11 +63,11 @@ fn bench_history_projects_only_retained_entries_and_keeps_the_gap_explicit() {
         vec![
             HistoricalReplayEntry {
                 identity: "bench/record/b".into(),
-                event_ticks: 120,
+                event_time: event_time(120),
             },
             HistoricalReplayEntry {
                 identity: "bench/record/c".into(),
-                event_ticks: 150,
+                event_time: event_time(150),
             },
         ]
     );

@@ -1,3 +1,4 @@
+use conduit_core::{TemporalInstant, TemporalScale};
 use conduit_time::{
     decode_replay_event, decode_replay_state, encode_replay_command_into,
     encode_replay_timeline_into, BoundedReplayOperation, HistoricalReplayEntry, ReplayCommand,
@@ -6,15 +7,25 @@ use conduit_time::{
     MAXIMUM_REPLAY_TIMELINE_BYTES,
 };
 
+fn historical_time(ticks: u64) -> TemporalInstant {
+    TemporalInstant {
+        ticks,
+        scale: TemporalScale::Milliseconds,
+        clock_basis: "memory-lantern/event-clock".into(),
+        resolution_ticks: 2,
+        uncertainty_ticks: 1,
+    }
+}
+
 fn timeline() -> Vec<u8> {
     let entries = [
         HistoricalReplayEntry {
             identity: "memory-lantern/amber".into(),
-            event_ticks: 1_000,
+            event_time: historical_time(1_000),
         },
         HistoricalReplayEntry {
             identity: "memory-lantern/blue".into(),
-            event_ticks: 1_250,
+            event_time: historical_time(1_250),
         },
     ];
     let mut encoded = vec![0; MAXIMUM_REPLAY_TIMELINE_BYTES];
@@ -60,7 +71,7 @@ fn ordinary_values_drive_original_timing_without_merging_time_domains() {
     let first = operation.poll(9_000, &mut event, &mut state).unwrap();
     let first_event = decode_replay_event(&event[..first.event_bytes.unwrap()]).unwrap();
     assert_eq!(first_event.historical_identity, "memory-lantern/amber");
-    assert_eq!(first_event.historical_event_ticks, 1_000);
+    assert_eq!(first_event.historical_event_time, historical_time(1_000));
     assert_eq!(first_event.playback_ticks, 9_000);
     assert_eq!(
         decode_replay_state(&state[..first.state_bytes.unwrap()]),
@@ -77,7 +88,7 @@ fn ordinary_values_drive_original_timing_without_merging_time_domains() {
     let second = operation.poll(9_250, &mut event, &mut state).unwrap();
     let second_event = decode_replay_event(&event[..second.event_bytes.unwrap()]).unwrap();
     assert_eq!(second_event.historical_identity, "memory-lantern/blue");
-    assert_eq!(second_event.historical_event_ticks, 1_250);
+    assert_eq!(second_event.historical_event_time, historical_time(1_250));
     assert_eq!(second_event.playback_ticks, 9_250);
     assert_eq!(
         decode_replay_state(&state[..second.state_bytes.unwrap()]),

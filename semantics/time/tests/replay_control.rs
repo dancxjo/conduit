@@ -1,20 +1,24 @@
-use conduit_core::{ConfigurationEntry, ConfigurationValue};
+use conduit_core::{ConfigurationEntry, ConfigurationValue, TemporalInstant, TemporalScale};
 use conduit_time::*;
+
+fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
+    HistoricalReplayEntry {
+        identity: identity.into(),
+        event_time: TemporalInstant {
+            ticks,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: "history-clock".into(),
+            resolution_ticks: 1,
+            uncertainty_ticks: 0,
+        },
+    }
+}
 
 fn entries() -> Vec<HistoricalReplayEntry> {
     vec![
-        HistoricalReplayEntry {
-            identity: "event/a".into(),
-            event_ticks: 100,
-        },
-        HistoricalReplayEntry {
-            identity: "event/b".into(),
-            event_ticks: 120,
-        },
-        HistoricalReplayEntry {
-            identity: "event/c".into(),
-            event_ticks: 160,
-        },
+        entry("event/a", 100),
+        entry("event/b", 120),
+        entry("event/c", 160),
     ]
 }
 
@@ -28,7 +32,7 @@ fn original_timing_preserves_history_and_uses_a_separate_playback_clock() {
         (
             first.ordinal,
             first.historical_identity,
-            first.historical_event_ticks
+            first.historical_event_time.ticks
         ),
         (0, "event/a", 100)
     );
@@ -40,7 +44,12 @@ fn original_timing_preserves_history_and_uses_a_separate_playback_clock() {
         "event/b"
     );
     assert_eq!(
-        replay.poll(1_060).unwrap().unwrap().historical_event_ticks,
+        replay
+            .poll(1_060)
+            .unwrap()
+            .unwrap()
+            .historical_event_time
+            .ticks,
         160
     );
     assert_eq!(replay.state(), ReplayState::Completed);
@@ -63,7 +72,7 @@ fn pause_excludes_paused_duration_and_rate_scales_only_playback_schedule() {
     replay.resume(100).unwrap();
     assert_eq!(replay.poll(105), Ok(None));
     let second = replay.poll(106).unwrap().unwrap();
-    assert_eq!(second.historical_event_ticks, 120);
+    assert_eq!(second.historical_event_time.ticks, 120);
     assert_eq!(second.playback_ticks, 106);
 }
 
@@ -87,33 +96,27 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         BoundedReplayController::new(&[], ReplayPolicy::Step),
         Err(ReplayRefusal::EmptyTimeline)
     ));
-    let duplicate = vec![
-        HistoricalReplayEntry {
-            identity: "same".into(),
-            event_ticks: 1,
-        },
-        HistoricalReplayEntry {
-            identity: "same".into(),
-            event_ticks: 2,
-        },
-    ];
+    let duplicate = vec![entry("same", 1), entry("same", 2)];
     assert!(matches!(
         BoundedReplayController::new(&duplicate, ReplayPolicy::Step),
         Err(ReplayRefusal::DuplicateIdentity)
     ));
-    let reordered = vec![
-        HistoricalReplayEntry {
-            identity: "a".into(),
-            event_ticks: 2,
-        },
-        HistoricalReplayEntry {
-            identity: "b".into(),
-            event_ticks: 1,
-        },
-    ];
+    let reordered = vec![entry("a", 2), entry("b", 1)];
     assert!(matches!(
         BoundedReplayController::new(&reordered, ReplayPolicy::Step),
         Err(ReplayRefusal::ReorderedHistoricalTime)
+    ));
+    let mut invalid_time = entry("invalid", 1);
+    invalid_time.event_time.resolution_ticks = 0;
+    assert!(matches!(
+        BoundedReplayController::new(&[invalid_time], ReplayPolicy::Step),
+        Err(ReplayRefusal::InvalidHistoricalTime)
+    ));
+    let mut incomparable = vec![entry("a", 1), entry("b", 2)];
+    incomparable[1].event_time.scale = TemporalScale::Seconds;
+    assert!(matches!(
+        BoundedReplayController::new(&incomparable, ReplayPolicy::Step),
+        Err(ReplayRefusal::IncomparableHistoricalTime)
     ));
     assert!(matches!(
         BoundedReplayController::new(
@@ -126,19 +129,13 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         Err(ReplayRefusal::InvalidRate)
     ));
     let too_many = (0..=MAXIMUM_REPLAY_ENTRIES)
-        .map(|index| HistoricalReplayEntry {
-            identity: format!("event/{index}"),
-            event_ticks: index as u64,
-        })
+        .map(|index| entry(format!("event/{index}"), index as u64))
         .collect::<Vec<_>>();
     assert!(matches!(
         BoundedReplayController::new(&too_many, ReplayPolicy::Step),
         Err(ReplayRefusal::TooManyEntries)
     ));
-    let long_identity = vec![HistoricalReplayEntry {
-        identity: "x".repeat(MAXIMUM_REPLAY_IDENTITY_BYTES + 1),
-        event_ticks: 0,
-    }];
+    let long_identity = vec![entry("x".repeat(MAXIMUM_REPLAY_IDENTITY_BYTES + 1), 0)];
     assert!(matches!(
         BoundedReplayController::new(&long_identity, ReplayPolicy::Step),
         Err(ReplayRefusal::IdentityTooLong)
@@ -151,16 +148,7 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
 
 #[test]
 fn arithmetic_refusal_does_not_advance_the_playback_clock() {
-    let entries = vec![
-        HistoricalReplayEntry {
-            identity: "event/first".into(),
-            event_ticks: 0,
-        },
-        HistoricalReplayEntry {
-            identity: "event/overflow".into(),
-            event_ticks: u64::MAX,
-        },
-    ];
+    let entries = vec![entry("event/first", 0), entry("event/overflow", u64::MAX)];
     let mut replay = BoundedReplayController::new(
         &entries,
         ReplayPolicy::Rate {

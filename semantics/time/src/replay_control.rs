@@ -1,7 +1,7 @@
 //! Finite replay sequencing with historical and playback time kept distinct.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{ConfigurationEntry, ConfigurationValue};
+use conduit_core::{ConfigurationEntry, ConfigurationValue, TemporalInstant};
 
 pub const MAXIMUM_REPLAY_ENTRIES: usize = 64;
 pub const MAXIMUM_REPLAY_IDENTITY_BYTES: usize = 128;
@@ -16,7 +16,7 @@ pub const REPLAY_CONTROL_CONTRACT_REVISION: &str = "conduit.time/replay-control@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoricalReplayEntry {
     pub identity: String,
-    pub event_ticks: u64,
+    pub event_time: TemporalInstant,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -39,7 +39,7 @@ pub enum ReplayState {
 pub struct ReplayEmission<'a> {
     pub ordinal: usize,
     pub historical_identity: &'a str,
-    pub historical_event_ticks: u64,
+    pub historical_event_time: &'a TemporalInstant,
     pub playback_ticks: u64,
 }
 
@@ -52,6 +52,8 @@ pub enum ReplayRefusal {
     DuplicateIdentity,
     ReorderedHistoricalTime,
     InvalidRate,
+    InvalidHistoricalTime,
+    IncomparableHistoricalTime,
     InvalidState,
     PlaybackClockRegressed,
     ArithmeticOverflow,
@@ -145,7 +147,17 @@ impl BoundedReplayController {
             if entry.identity.len() > MAXIMUM_REPLAY_IDENTITY_BYTES {
                 return Err(ReplayRefusal::IdentityTooLong);
             }
-            if index > 0 && entry.event_ticks < entries[index - 1].event_ticks {
+            entry
+                .event_time
+                .validate()
+                .map_err(|_| ReplayRefusal::InvalidHistoricalTime)?;
+            if index > 0
+                && (entry.event_time.clock_basis != entries[0].event_time.clock_basis
+                    || entry.event_time.scale != entries[0].event_time.scale)
+            {
+                return Err(ReplayRefusal::IncomparableHistoricalTime);
+            }
+            if index > 0 && entry.event_time.ticks < entries[index - 1].event_time.ticks {
                 return Err(ReplayRefusal::ReorderedHistoricalTime);
             }
             if entries[..index]
@@ -254,7 +266,7 @@ impl BoundedReplayController {
         Ok(ReplayEmission {
             ordinal,
             historical_identity: &entry.identity,
-            historical_event_ticks: entry.event_ticks,
+            historical_event_time: &entry.event_time,
             playback_ticks,
         })
     }
@@ -275,8 +287,9 @@ impl BoundedReplayController {
 
     fn required_elapsed(&self, ordinal: usize) -> Result<u64, ReplayRefusal> {
         let historical = self.entries[ordinal]
-            .event_ticks
-            .checked_sub(self.entries[0].event_ticks)
+            .event_time
+            .ticks
+            .checked_sub(self.entries[0].event_time.ticks)
             .ok_or(ReplayRefusal::ReorderedHistoricalTime)?;
         match self.policy {
             ReplayPolicy::Step => Err(ReplayRefusal::InvalidState),
