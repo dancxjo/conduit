@@ -92,6 +92,8 @@ mod presentation_execution;
 pub use presentation_execution::*;
 mod browser_human_io;
 pub use browser_human_io::*;
+mod human_media_catalog;
+pub use human_media_catalog::*;
 #[cfg(feature = "body-coordination-plan")]
 mod body_coordination_plan;
 #[cfg(feature = "body-coordination-plan")]
