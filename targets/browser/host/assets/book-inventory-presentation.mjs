@@ -153,28 +153,51 @@ function createGalleryCard(document, form, crecheUrl, onOpen) {
 }
 
 export function presentTourInventory(presentation, inventory) {
-  const installed = inventory.entries.filter((entry) => entry.implementation_id !== null);
-  const nodes = [
-    {
-      parent: null,
-      component: "disclosure",
-      key: "inventory",
-      text: `Available gears · ${installed.length} exact browser implementations · ${inventory.limits.maximum_gears} Gear / ${inventory.limits.maximum_cords} Cord bound`,
-      action: null,
-    },
-    { parent: 0, component: "definition-table", key: "offers", text: "Exact browser planning offers", action: null },
-  ];
-  for (const [index, entry] of inventory.entries.entries()) {
-    const availability = entry.implementation_id ? "available" : "unavailable";
-    nodes.push({
-      parent: 1,
-      component: "definition",
-      key: `offer-${availability}-${index}`,
-      text: entry.kind_id,
-      value: `${entry.family} · ${entry.classification} · ${entry.reason}`,
-      valueCapacity: 1024,
-      action: null,
-    });
-  }
-  presentation.present("book-inventory", { revision: ++revision, actions: [], nodes });
+  // Two inventory nodes, at most 32 offers, and three navigation nodes fit
+  // the existing 40-node application presentation envelope.
+  const pageSize = 32;
+  const pageCount = Math.max(1, Math.ceil(inventory.entries.length / pageSize));
+  let page = 0;
+  const render = () => {
+    const installed = inventory.entries.filter((entry) => entry.implementation_id !== null);
+    const nodes = [
+      {
+        parent: null,
+        component: "disclosure",
+        key: "inventory",
+        text: `Available gears · ${installed.length} exact browser implementations · ${inventory.limits.maximum_gears} Gear / ${inventory.limits.maximum_cords} Cord bound`,
+        action: null,
+      },
+      { parent: 0, component: "definition-table", key: "offers", text: "Exact browser planning offers", action: null },
+    ];
+    for (const [offset, entry] of inventory.entries.slice(page * pageSize, (page + 1) * pageSize).entries()) {
+      const index = page * pageSize + offset;
+      const availability = entry.implementation_id ? "available" : "unavailable";
+      nodes.push({
+        parent: 1,
+        component: "definition",
+        key: `offer-${availability}-${index}`,
+        text: entry.kind_id,
+        value: `${entry.family} · ${entry.classification} · ${entry.reason}`,
+        valueCapacity: 1024,
+        action: null,
+      });
+    }
+    nodes.push(
+      { parent: 0, component: "status", key: "inventory-page", text: `Offers page ${page + 1} of ${pageCount}`, action: null },
+      { parent: 0, component: "button", key: "inventory-previous", text: "Previous offers", action: page > 0 ? 0 : null },
+      { parent: 0, component: "button", key: "inventory-next", text: "Next offers", action: page + 1 < pageCount ? 1 : null },
+    );
+    presentation.present("book-inventory", { revision: ++revision, actions: [
+      { id: "book.inventory.previous", event: "activate" },
+      { id: "book.inventory.next", event: "activate" },
+    ], nodes }, { onEvent(event) {
+      presentation.nextEvent("book-inventory");
+      if (event.action === "book.inventory.previous" && page > 0) page -= 1;
+      else if (event.action === "book.inventory.next" && page + 1 < pageCount) page += 1;
+      else return;
+      render();
+    } });
+  };
+  render();
 }
