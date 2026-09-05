@@ -173,3 +173,88 @@ fn prepare(
         complete: false,
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::{
+        kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
+        ResourceSemanticIdentity, ResourceVersionIdentity,
+    };
+
+    fn image_value() -> (conduit_core::KindId, Vec<u8>) {
+        let profile = kind_id("media/image-rgba8@1");
+        let image = conduit_human::ImageObservationReference::new(
+            BoundedResourceRef {
+                identity: ResourceSemanticIdentity::from_digest([7; 32]),
+                content_profile: profile.clone(),
+                access_class: ResourceClassId::from("conduit.resource/portable-content@1"),
+                extent: ResourceExtent {
+                    bytes: 12_288,
+                    items: Some(1),
+                },
+                lifetime: ResourceLifetime {
+                    version: ResourceVersionIdentity::from_digest([8; 32]),
+                    expires_at: None,
+                },
+            },
+            64,
+            48,
+            &profile,
+        )
+        .unwrap();
+        let value = conduit_semantic_catalog::image_observation_value(&image).unwrap();
+        (profile, value.canonical_bytes().unwrap())
+    }
+
+    #[test]
+    fn host_composes_after_either_exact_input_order() {
+        let (profile, image) = image_value();
+        for image_first in [true, false] {
+            let mut host = ImageTextHost::new();
+            let first = if image_first {
+                host.execute(conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION, &image)
+            } else {
+                host.execute(
+                    conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION,
+                    b"At the pier",
+                )
+            };
+            assert!(first.unwrap().is_none());
+            let encoded = if image_first {
+                host.execute(
+                    conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION,
+                    b"At the pier",
+                )
+            } else {
+                host.execute(conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION, &image)
+            }
+            .unwrap()
+            .unwrap()
+            .to_vec();
+            let value = StructuredInfoValue::from_canonical_bytes(&encoded).unwrap();
+            let record =
+                conduit_semantic_catalog::image_text_record_from_value(&value, &profile).unwrap();
+            assert_eq!(record.caption, "At the pier");
+            assert_eq!(record.image.width, 64);
+            assert!(record.metadata.is_empty());
+        }
+    }
+
+    #[test]
+    fn malformed_inputs_refuse_without_manufacturing_a_record() {
+        let mut host = ImageTextHost::new();
+        assert!(host
+            .execute(
+                conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION,
+                b"not structured"
+            )
+            .unwrap_err()
+            .contains("image value"));
+        assert!(host
+            .execute(conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION, &[0xff])
+            .unwrap_err()
+            .contains("UTF-8"));
+        assert!(host.output.is_empty());
+    }
+}

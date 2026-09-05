@@ -234,7 +234,7 @@ fn metadata_type() -> StructuredInfoType {
         .clone()
 }
 
-fn image_observation_value(
+pub fn image_observation_value(
     image: &conduit_human::ImageObservationReference,
 ) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
     StructuredInfoValue::record(
