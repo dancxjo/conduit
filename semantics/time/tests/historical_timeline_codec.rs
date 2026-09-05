@@ -102,6 +102,67 @@ fn complete_timeline_state_round_trips_through_caller_storage() {
 }
 
 #[test]
+fn maximum_entry_count_with_maximal_identities_fits_the_snapshot_envelope() {
+    let profile = "p".repeat(conduit_core::MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES);
+    let clock = "c".repeat(conduit_core::MAXIMUM_TEMPORAL_IDENTITY_BYTES);
+    let mut source = BoundedHistoricalTimeline::new(
+        kind_id(&profile),
+        &clock,
+        TemporalScale::Nanoseconds,
+        MAXIMUM_HISTORICAL_TIMELINE_ENTRIES,
+        MAXIMUM_HISTORICAL_TIMELINE_ENTRIES as u64,
+        HistoricalOverflowPolicy::Refuse,
+        0,
+    )
+    .unwrap();
+    for index in 0..MAXIMUM_HISTORICAL_TIMELINE_ENTRIES {
+        let seed = u8::try_from(index + 1).unwrap();
+        source
+            .append(
+                format!("event/{index:03}/{}", "i".repeat(118)),
+                TemporalInstant {
+                    ticks: index as u64,
+                    scale: TemporalScale::Nanoseconds,
+                    clock_basis: clock.clone(),
+                    resolution_ticks: 1,
+                    uncertainty_ticks: 0,
+                },
+                HistoricalEntryOrigin::MachineObservation,
+                BoundedResourceRef {
+                    identity: ResourceSemanticIdentity::from_digest([seed; 32]),
+                    content_profile: kind_id(&profile),
+                    access_class: ResourceClassId::from("r"),
+                    extent: ResourceExtent {
+                        bytes: 1,
+                        items: Some(1),
+                    },
+                    lifetime: ResourceLifetime {
+                        version: ResourceVersionIdentity::from_digest([seed.wrapping_add(64); 32]),
+                        expires_at: Some(TemporalInstant {
+                            ticks: index as u64 + 1,
+                            scale: TemporalScale::Nanoseconds,
+                            clock_basis: clock.clone(),
+                            resolution_ticks: 1,
+                            uncertainty_ticks: 0,
+                        }),
+                    },
+                },
+            )
+            .unwrap();
+    }
+
+    let mut encoded = vec![0; MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES];
+    let length = encode_historical_timeline_into(&source, &mut encoded).unwrap();
+    assert!(length <= MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES);
+    assert_eq!(
+        decode_historical_timeline(&encoded[..length])
+            .unwrap()
+            .len(),
+        64
+    );
+}
+
+#[test]
 fn output_truncation_magic_version_and_trailing_bytes_are_distinct() {
     let source = timeline();
     let mut encoded = vec![0_u8; MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES];

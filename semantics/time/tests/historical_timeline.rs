@@ -222,6 +222,22 @@ fn wrong_type_time_resource_order_and_entry_size_refuse_before_mutation() {
 }
 
 #[test]
+fn timeline_value_profile_is_bounded_before_any_snapshot_exists() {
+    assert!(matches!(
+        BoundedHistoricalTimeline::new(
+            kind_id(&"x".repeat(conduit_core::MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES + 1)),
+            "clock/source",
+            TemporalScale::Milliseconds,
+            1,
+            1,
+            HistoricalOverflowPolicy::Refuse,
+            0,
+        ),
+        Err(HistoricalTimelineRefusal::InvalidValueProfile)
+    ));
+}
+
+#[test]
 fn remove_and_clear_are_explicit_without_rewinding_sequence() {
     let mut history = timeline(3, 20, HistoricalOverflowPolicy::Refuse);
     history

@@ -10,7 +10,9 @@ use crate::{
 };
 
 pub const HISTORICAL_TIMELINE_SNAPSHOT_VERSION: u8 = 1;
-pub const MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES: usize = 48 * 1024;
+/// Covers 64 maximally encoded entries, including their exact temporal and
+/// resource-reference identities, plus complete timeline configuration.
+pub const MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES: usize = 64 * 1024;
 const MAGIC: [u8; 4] = *b"CHTL";
 const DIGEST_BYTES: usize = 32;
 const SNAPSHOT_DIGEST_DOMAIN: &str = "history/timeline-snapshot@1";

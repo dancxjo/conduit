@@ -1,7 +1,10 @@
 //! Typed finite historical indexes over separately realized resource content.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{BoundedResourceRef, KindId, TemporalInstant, TemporalScale};
+use conduit_core::{
+    BoundedResourceRef, KindId, TemporalInstant, TemporalScale,
+    MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
+};
 
 pub const MAXIMUM_HISTORICAL_TIMELINE_ENTRIES: usize = 64;
 pub const MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES: usize = 128;
@@ -90,7 +93,9 @@ impl BoundedHistoricalTimeline {
         overflow: HistoricalOverflowPolicy,
         first_sequence: u64,
     ) -> Result<Self, HistoricalTimelineRefusal> {
-        if value_profile.as_str().is_empty() {
+        if value_profile.as_str().is_empty()
+            || value_profile.as_str().len() > MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES
+        {
             return Err(HistoricalTimelineRefusal::InvalidValueProfile);
         }
         if clock_basis.is_empty()
