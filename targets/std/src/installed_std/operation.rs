@@ -76,6 +76,7 @@ impl Operation for InstalledOperation {
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
             Self::Json(operation) => operation.start(),
+            Self::ImageText(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
             Self::StructuredPresentation(operation) => operation.start(),
@@ -196,6 +197,7 @@ impl Operation for InstalledOperation {
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
             (Self::Json(operation), input) => operation.resume(input),
+            (Self::ImageText(operation), input) => operation.resume(input),
             (Self::StructuredSelector(operation), input) => operation.resume(input),
             (Self::StructuredLiteral(_), _) => Self::fail(153),
             (Self::StructuredPresentation(operation), input) => operation.resume(input),
@@ -366,6 +368,7 @@ impl Operation for InstalledOperation {
             Self::VectorSearch(operation) => operation.advance(),
             Self::HttpClient(operation) => operation.advance(),
             Self::HttpServer(operation) => operation.advance(),
+            Self::ImageText(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -417,6 +420,7 @@ impl Operation for InstalledOperation {
     }
 
     fn cancel(&mut self) {
+        self.cancel_installed();
         self.cancel_installed();
     }
 

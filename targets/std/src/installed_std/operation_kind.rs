@@ -13,6 +13,7 @@ use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
+use super::image_text_operation::ImageTextOperation;
 use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
 use super::instrument_map_operation::InstrumentMapOperation;
 use super::json_operations::JsonOperation;
@@ -133,6 +134,7 @@ pub(super) enum InstalledOperation {
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),
     Json(JsonOperation),
+    ImageText(ImageTextOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),

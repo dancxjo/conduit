@@ -71,6 +71,7 @@ impl InstalledOperation {
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),
             Self::Json(operation) => operation.cancel(),
+            Self::ImageText(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
             Self::StructuredLiteral(_) => {}
             Self::StructuredPresentation(operation) => operation.cancel(),

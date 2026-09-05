@@ -21,6 +21,7 @@ mod flow_state_operations;
 mod generate_text;
 mod http;
 mod http_host;
+mod image_text_operation;
 mod input_semantic_operations;
 mod instrument_map_operation;
 mod json_operations;
@@ -433,6 +434,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
+    let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
             fragment,
@@ -646,6 +648,55 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION
+                    | conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION
+            ) {
+                let completion = image_text_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "image-text request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let output = encoded
+                            .map(|encoded| scheduler.store_host_value(encoded))
+                            .transpose()
+                            .map_err(|error| format!("store image-text output: {error:?}"))?
+                            .map(|value| {
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                            })
+                            .transpose()
+                            .map_err(|error| format!("bound image-text output: {error:?}"))?;
+                        (HostOperationDisposition::Completed, output, None)
+                    }
+                    Err(_) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: 1,
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete image-text operation: {error:?}"))?;
+                continue;
+            }
             if json_operations::matches(contract.as_str()) {
                 let completion =
                     json_host.execute(usize::from(request.node.0), contract.as_str(), input);

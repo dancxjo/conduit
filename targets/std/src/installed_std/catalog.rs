@@ -19,6 +19,7 @@ use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
+use super::image_text_operation::FACTORY as IMAGE_TEXT_FACTORY;
 use super::input_semantic_operations::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
 use super::instrument_map_operation::FACTORY as INSTRUMENT_MAP_FACTORY;
 use super::json_operations::{
@@ -204,6 +205,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_REMOTE_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
+    &IMAGE_TEXT_FACTORY,
     &JSON_ENCODE_FACTORY,
     &JSON_COLLECTION_STEP_FACTORY,
     &JSON_BOOLEAN_SUMMARY_FACTORY,
