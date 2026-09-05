@@ -6,12 +6,17 @@ use std::path::Path;
 
 #[derive(Deserialize)]
 pub(super) struct ImpactSelection {
+    pub(super) ci_controller_proofs: Vec<String>,
     pub(super) workspace_shards: BTreeMap<String, bool>,
     pub(super) full_fallback: bool,
     pub(super) pages_products_required: bool,
     pub(super) pages_product_proofs: Vec<String>,
     pub(super) esp32_required: bool,
     pub(super) esp32_targets: Vec<String>,
+    pub(super) conduitos_required: bool,
+    pub(super) conduitos_x86_proofs: Vec<String>,
+    pub(super) conduitos_architectures: Vec<String>,
+    pub(super) conduitos_aarch64_product_required: bool,
 }
 
 pub(super) fn load(
@@ -37,6 +42,7 @@ pub(super) fn is_selected(spec: &ProofSpec, selected: Option<&ImpactSelection>) 
         return true;
     }
     match spec.selection {
+        Selection::CiController => !selected.ci_controller_proofs.is_empty(),
         Selection::WorkspaceShard(shard) => selected
             .workspace_shards
             .get(shard)
@@ -47,6 +53,7 @@ pub(super) fn is_selected(spec: &ProofSpec, selected: Option<&ImpactSelection>) 
             .pages_product_proofs
             .iter()
             .any(|candidate| candidate == id),
+        Selection::Esp32Required => selected.esp32_required,
         Selection::Esp32Target(target) => {
             selected.esp32_required
                 && selected
@@ -54,5 +61,15 @@ pub(super) fn is_selected(spec: &ProofSpec, selected: Option<&ImpactSelection>) 
                     .iter()
                     .any(|candidate| candidate == target)
         }
+        Selection::ConduitosRequired => selected.conduitos_required,
+        Selection::ConduitosX86(proof) => selected
+            .conduitos_x86_proofs
+            .iter()
+            .any(|candidate| candidate == proof),
+        Selection::ConduitosArchitecture(architecture) => selected
+            .conduitos_architectures
+            .iter()
+            .any(|candidate| candidate == architecture),
+        Selection::ConduitosAarch64Product => selected.conduitos_aarch64_product_required,
     }
 }

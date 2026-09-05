@@ -656,3 +656,51 @@ fn candidate_lifecycle_controllers_use_the_lightweight_automation_lane() {
     assert!(reconciliation.contains("timeout-minutes: 2"));
     assert!(retirement.contains("timeout-minutes: 2"));
 }
+
+#[test]
+fn every_active_check_matrix_retains_an_exact_proof_receipt() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let action = fs::read_to_string(root.join(".github/actions/attest-ci-proof/action.yml"))
+        .expect("read exact proof attestation action");
+
+    for proof in [
+        "ci.controller-contracts",
+        "repository.standalone-locks",
+        "conduitos.limine",
+        "conduitos.tools",
+        "conduitos.aarch64-product",
+    ] {
+        assert!(
+            workflow.contains(&format!("proof-id: {proof}")),
+            "check workflow omits an exact receipt for {proof}"
+        );
+    }
+    for dynamic in [
+        "workspace-${{ matrix.shard }}",
+        "machine.esp32-${{ matrix.target }}",
+        "conduitos.x86.${{ matrix.proof }}",
+        "conduitos.architecture.${{ matrix.architecture }}",
+    ] {
+        assert!(
+            workflow.contains(dynamic),
+            "check workflow omits matrix receipt mapping {dynamic}"
+        );
+    }
+    assert_eq!(
+        workflow
+            .matches(
+                "cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""
+            )
+            .count(),
+        1,
+        "the trusted attestation controller must be built once, not once per proof job"
+    );
+    assert!(workflow.contains("name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}"));
+    assert!(action.contains("name: ci-plan-${{ inputs.candidate-sha }}"));
+    assert!(action.contains("any(.proofs[]; .proof_id == $proof_id)"));
+    assert!(action.contains("attestation begins after this registry reaches main"));
+    assert!(action.contains("ci attest-success \"$CANDIDATE_SHA\" \"$PROOF_ID\""));
+    assert!(action.contains("ci-proof-${{ inputs.proof-id }}-${{ inputs.candidate-sha }}"));
+}

@@ -71,6 +71,7 @@ fn spec(id: &str) -> &'static ProofSpec {
 #[test]
 fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
     let selected = ImpactSelection {
+        ci_controller_proofs: Vec::new(),
         workspace_shards: BTreeMap::from([
             ("test-products".to_owned(), true),
             ("lint".to_owned(), false),
@@ -80,6 +81,10 @@ fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
         pages_product_proofs: vec!["products.patchbay-debugger".to_owned()],
         esp32_required: false,
         esp32_targets: vec!["c3".to_owned()],
+        conduitos_required: false,
+        conduitos_x86_proofs: Vec::new(),
+        conduitos_architectures: Vec::new(),
+        conduitos_aarch64_product_required: false,
     };
     assert!(is_selected(spec("workspace.products"), Some(&selected)));
     assert!(is_selected(spec("browser.tour"), Some(&selected)));

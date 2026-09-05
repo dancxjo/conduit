@@ -221,14 +221,21 @@ new CI command can therefore be validated without rebasing merely to acquire
 the command implementation; the preflight still inspects that candidate's
 exact manifests and locks.
 
-The first registry slice is intentionally broad and conservative. Candidate
-jobs retain exact receipts for workspace products, Tour browser proof, the
-Patchbay debugger, and ESP32-C3; the trusted on-demand reconciler retrieves and
-verifies those receipts before scheduling. Subsequent work can split nodes,
-extend exact receipts across the remaining proof registry, model fabricated
-artifacts as independent graph nodes, remove duplicated path-filtered workflows,
-batch shared browser/QEMU environments, and make Crèche payload delivery lazy
-without changing this identity contract.
+The registry remains intentionally broad and conservative, but every active
+`check` matrix row now retains its own exact receipt: CI-controller contracts,
+all workspace shards, standalone fabrication locks, every ESP32 target, Limine
+and ConduitOS tool admission, every selected x86 and architecture proof, and
+the AArch64 product. The classifier builds the trusted dependency-light
+attestation controller once and distributes that immutable executable to proof
+jobs; matrix rows do not rebuild it. Product CI separately retains exact Tour,
+Patchbay-debugger, workspace-product, and Pages-carrier receipts. The trusted
+on-demand reconciler retrieves and verifies these receipts before scheduling,
+so a lane is inherited only when every applicable proof key is present.
+
+Later work can split broad nodes, model fabricated artifacts as independent
+graph nodes, remove duplicated path-filtered workflows, batch shared
+browser/QEMU environments, and make Crèche payload delivery lazy without
+changing this identity contract.
 
 Product workflow dependencies follow consumed artifacts rather than the final
 deployment bundle. The Tour and its embedded real Patchbay consume the browser
