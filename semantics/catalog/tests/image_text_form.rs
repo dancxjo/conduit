@@ -174,3 +174,52 @@ fn delivery_record_is_an_ordinary_composition_over_shared_framing() {
         record
     );
 }
+
+#[test]
+fn reusable_and_composed_inspection_forms_use_generic_structured_presentation() {
+    for (name, source, gears, connections) in [
+        (
+            "image-text-inspection",
+            include_str!("../../../forms/image-text-inspection/main.conduit"),
+            1,
+            0,
+        ),
+        (
+            "talking-polaroid-inspection",
+            include_str!("../../../forms/talking-polaroid-inspection/main.conduit"),
+            2,
+            1,
+        ),
+    ] {
+        let lower = source.to_ascii_lowercase();
+        for forbidden in [
+            "browser",
+            "dom",
+            "canvas",
+            "indexeddb",
+            "device",
+            "transport",
+            "socket",
+            "host",
+        ] {
+            assert!(!lower.contains(forbidden), "Form contains {forbidden}");
+        }
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_human_media_catalogs(&mut startup, &mut profile).unwrap();
+        install_image_text_inspection_catalog(&mut startup, &mut profile).unwrap();
+        let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+        let authored = expand_canonical_form_for_authoring(&checked, name, &profile).unwrap();
+        assert_eq!(authored.expanded.gears.len(), gears);
+        assert_eq!(authored.expanded.connections.len(), connections);
+        assert!(authored.expanded.gears.iter().any(|gear| {
+            gear.kind_id.as_str() == STRUCTURED_PRESENTATION_KIND
+                && gear.inputs[0].value_kind
+                    == image_text_record_type()
+                        .profile()
+                        .unwrap()
+                        .value_kind()
+                        .clone()
+        }));
+    }
+}

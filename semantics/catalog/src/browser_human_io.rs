@@ -16,6 +16,30 @@ pub const IMAGE_TEXT_TYPED_RECORD_REVISION: &str = "conduit.human/image-text-typ
 pub const IMAGE_REFERENCE_TYPE: &str = "ImageObservationReference";
 pub const IMAGE_TEXT_RECORD_TYPE: &str = "ImageTextRecord";
 
+#[cfg(feature = "form-catalog")]
+pub fn install_image_text_inspection_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_form::{KindDefinition, KindSignature};
+
+    let contract =
+        crate::structured_presentation_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: vec![],
+        })
+        .map_err(|error| error.to_string())
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ImageTextValueRefusal {
     InvalidRecord(conduit_human::ImageTextRefusal),
