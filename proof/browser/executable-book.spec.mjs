@@ -173,16 +173,16 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
 
 test("Tour route mutation crosses the finite Browser Host operation boundary", async ({ page }) => {
   const [source, routing, manifest] = await Promise.all([
-    page.request.get(new URL("book.mjs", entrance.url).href).then((response) => response.text()),
-    page.request.get(new URL("book-routing.mjs", entrance.url).href).then((response) => response.text()),
+    page.request.get(new URL("tour.mjs", entrance.url).href).then((response) => response.text()),
+    page.request.get(new URL("tour-routing.mjs", entrance.url).href).then((response) => response.text()),
     page.request.get(new URL("tour.application.json", entrance.url).href).then((response) => response.json()),
   ]);
-  expect(source).toContain('from "./book-routing.mjs"');
+  expect(source).toContain('from "./tour-routing.mjs"');
   expect(source).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
-  expect(routing).toContain('from "./browser-host-operations.mjs"');
+  expect(routing).toContain('from "../../../targets/browser/host/assets/browser-host-operations.mjs"');
   expect(routing).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
   expect(manifest.resources.some((resource) => resource.role === "browser-host-operations")).toBe(true);
-  expect(manifest.resources.some((resource) => resource.role === "book-routing")).toBe(true);
+  expect(manifest.resources.some((resource) => resource.role === "tour-routing")).toBe(true);
 
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
@@ -200,7 +200,7 @@ test("the Tour navigation remains legible and interactive in both theme modes", 
     await page.getByRole("button", { name: "Next" }).click();
     await page.mouse.move(0, 0);
 
-    const navigation = page.locator('[data-application-slot="book-navigation"]');
+    const navigation = page.locator('[data-application-slot="tour-navigation"]');
     const progress = navigation.locator('[data-application-key="progress"]');
     const previous = navigation.getByRole("button", { name: "Previous" });
     const next = navigation.getByRole("button", { name: "Next" });
@@ -242,11 +242,11 @@ test("every executable listing uses the real Patchbay renderer for checked Form 
       await expect(runner.locator('[data-application-component="form-field"]')).toHaveCount(1);
       await expect(runner.locator('[data-application-component="field-label"]')).toHaveCount(1);
       await expect(runner.locator('[data-application-component="field-help"]')).toHaveCount(1);
-      await expect(source).toHaveAttribute("data-application-action", "book.source.input");
+      await expect(source).toHaveAttribute("data-application-action", "tour.source.input");
       await expect(source).toHaveAttribute("maxlength", "65536");
       await expect(source).toHaveAttribute("aria-describedby", /application-\d+-description-4/);
       await expect(patchbay).toHaveAttribute("data-disposition", "accepted");
-      await expect(patchbay.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
+      await expect(patchbay.locator(".tour-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
       await expect(patchbay.locator(".react-flow").first()).toBeVisible();
       await expect(patchbay.locator(".flow-faceplate").first()).toBeVisible();
       await expect(patchbay.locator(".compact-patchbay-text li").first()).toContainText("Gear");
@@ -290,7 +290,7 @@ test("Tour owns the desktop viewport while the lesson reader scrolls independent
     const masthead = document.querySelector('[data-application-key="product-masthead"]').getBoundingClientRect();
     const workspace = document.querySelector(".tour-workspace").getBoundingClientRect();
     const reader = document.querySelector("#chapter");
-    const navigation = document.querySelector('[data-application-slot="book-navigation"]').getBoundingClientRect();
+    const navigation = document.querySelector('[data-application-slot="tour-navigation"]').getBoundingClientRect();
     return {
       viewportHeight: innerHeight,
       documentHeight: document.scrollingElement.scrollHeight,
@@ -349,7 +349,7 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const narrow = await page.evaluate(() => {
     const reader = document.querySelector("#chapter");
-    const navigation = document.querySelector('[data-application-slot="book-navigation"]').getBoundingClientRect();
+    const navigation = document.querySelector('[data-application-slot="tour-navigation"]').getBoundingClientRect();
     return {
       viewportHeight: innerHeight,
       documentHeight: document.scrollingElement.scrollHeight,
@@ -357,7 +357,7 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
       readerClientHeight: reader.clientHeight,
       readerScrollHeight: reader.scrollHeight,
       navigationBottom: navigation.bottom,
-      workbenches: document.querySelectorAll(".book-workbench").length,
+      workbenches: document.querySelectorAll(".tour-workbench").length,
     };
   });
   expect(narrow.documentHeight).toBe(narrow.viewportHeight);
@@ -366,11 +366,11 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
   expect(narrow.navigationBottom).toBeLessThanOrEqual(narrow.viewportHeight);
   expect(narrow.workbenches).toBe(1);
   await expect(page.locator(".chapter-copy").first()).toBeVisible();
-  await expect(page.locator(".book-workbench")).toBeHidden();
+  await expect(page.locator(".tour-workbench")).toBeHidden();
   await expect(page.getByRole("button", { name: "Previous" })).toBeInViewport();
   await expect(page.getByRole("button", { name: "Next" })).toBeInViewport();
   await page.getByRole("button", { name: "Laboratory", exact: true }).click();
-  await expect(page.locator(".book-workbench")).toBeVisible();
+  await expect(page.locator(".tour-workbench")).toBeVisible();
   await expect(page.locator(".chapter-copy").first()).toBeHidden();
   expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
 });
@@ -484,10 +484,10 @@ test("one persistent Tour laboratory switches stable specimens in place and rest
   await openStep(page, 0);
   const laboratory = page.locator('[data-application-component="tour-laboratory"]');
   await expect(laboratory).toHaveCount(1);
-  await expect(page.locator(".book-workbench")).toHaveCount(1);
+  await expect(page.locator(".tour-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".tour-stage-selector")).toHaveCount(3);
-  expect(await page.evaluate(() => globalThis.__conduitTourLaboratory === document.querySelector(".book-workbench"))).toBe(true);
+  expect(await page.evaluate(() => globalThis.__conduitTourLaboratory === document.querySelector(".tour-workbench"))).toBe(true);
 
   const listing = laboratory.locator("textarea");
   const firstIdentity = await laboratory.getAttribute("data-specimen-id");
@@ -507,7 +507,7 @@ test("one persistent Tour laboratory switches stable specimens in place and rest
   await expect(page.locator(".runner")).toHaveCount(1);
 
   await page.getByRole("button", { name: "Next" }).click();
-  expect(await page.evaluate(() => globalThis.__conduitTourLaboratory === document.querySelector(".book-workbench"))).toBe(true);
+  expect(await page.evaluate(() => globalThis.__conduitTourLaboratory === document.querySelector(".tour-workbench"))).toBe(true);
 });
 
 test("laboratory replacement cancels the active Play before selecting the next lesson state", async ({ page }) => {
@@ -625,7 +625,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
   try {
     await page.goto(`${book.url}a-form-you-can-run/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-    await expect(page.locator(".book-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
+    await expect(page.locator(".tour-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
     await expect(page.locator('meta[name="conduit-application-package"]')).toHaveAttribute("content", "./tour.application.json");
     await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/tour");
@@ -746,7 +746,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     });
     const downloadedIso = await downloadArtifact(page, conduitosDownload);
     expect(downloadedIso.filename).toMatch(/-conduitos-native\.iso$/);
-    const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+    const { readBodyProvisionedMedia } = await import("../../products/creche/browser/creche-native-disk.mjs");
     const nativeIso = {
       isoMagic: new TextDecoder().decode(downloadedIso.bytes.subarray(32769, 32774)),
       contentDigest: await sha256(downloadedIso.bytes),
@@ -901,7 +901,7 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(cards.first().locator(".form-gallery-realization li")).toHaveCount(2);
   await expect(cards.first()).toContainText("current offer · local/kernel");
   await expect(cards.first()).toContainText("Browsing acquires no resource or authority");
-  await expect(page.locator(".book-workbench")).toHaveCount(1);
+  await expect(page.locator(".tour-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
 
@@ -916,7 +916,7 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   const memory = cards.filter({ has: page.getByRole("heading", { name: "Memory Lantern" }) });
   const reviewedIdentity = await memory.locator("code").textContent();
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
-  const laboratory = page.locator(".book-workbench");
+  const laboratory = page.locator(".tour-workbench");
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
   await expect(memory).toHaveAttribute("aria-current", "true");
   await expect(cards.first()).not.toHaveAttribute("aria-current", "true");
@@ -964,7 +964,7 @@ test("the Tour opens with one logical Body premise and keeps Crèche machinery l
   await expect(page.locator("#chapter")).toContainText("Gear, Port, Cord, Form");
   await expect(page.locator("#chapter")).not.toContainText(/Crèche/i);
   await expect(page.locator(".body-birth-runner, .first-host-runner, .physical-host-runner, .graduation-runner")).toHaveCount(0);
-  await expect(page.locator('[data-application-slot="book-inventory"]')).toHaveCount(0);
+  await expect(page.locator('[data-application-slot="tour-inventory"]')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Birth a Body" })).toHaveCount(0);
 
   await openStep(page, 1);
@@ -1277,7 +1277,7 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   });
   const downloadedBundle = await downloadArtifact(page, bundleHandoff);
   expect(downloadedBundle.filename).toMatch(/-browser-wasm32-page\.zip$/);
-  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const { readBodyBoundZip } = await import("../../products/creche/browser/creche-native-zip.mjs");
   const archive = readBodyBoundZip(downloadedBundle.bytes);
   const bundle = {
     magic: new TextDecoder().decode(downloadedBundle.bytes.subarray(0, 4)),
@@ -1366,7 +1366,7 @@ test("a native Linux target produces an exact spore but refuses to invent an ins
   });
   const downloadedHosted = await downloadArtifact(page, hostedHandoff);
   expect(downloadedHosted.filename).toMatch(/-hosted-linux-x86_64\.zip$/);
-  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const { readBodyBoundZip } = await import("../../products/creche/browser/creche-native-zip.mjs");
   const hostedArchive = readBodyBoundZip(downloadedHosted.bytes);
   const hostedPackage = {
     magic: new TextDecoder().decode(downloadedHosted.bytes.subarray(0, 4)),
@@ -1955,7 +1955,7 @@ test("stopping state over time cancels the pending timer without a late completi
 test("Hosts chapter shows the exact installed offers from the planning advertisement", async ({ page }) => {
   await openStep(page, 2);
   await expect(page.getByRole("heading", { name: "Hosts make Forms real" })).toBeVisible();
-  const inventory = page.locator('[data-application-slot="book-inventory"]');
+  const inventory = page.locator('[data-application-slot="tour-inventory"]');
   await expect(inventory).toHaveCount(1);
   await expect(inventory).toHaveAttribute("data-application-revision", "1");
   await expect(inventory.locator('[data-application-component="disclosure"]')).toBeVisible();
@@ -1999,12 +1999,12 @@ test("Hosts chapter shows the exact installed offers from the planning advertise
     "layout/viewport", "time/delay", "input/keyboard", "presentation/bool",
   ]));
   const [source, manifest] = await Promise.all([
-    page.request.get(new URL("book.mjs", entrance.url).href).then((response) => response.text()),
+    page.request.get(new URL("tour.mjs", entrance.url).href).then((response) => response.text()),
     page.request.get(new URL("tour.application.json", entrance.url).href).then((response) => response.json()),
   ]);
-  expect(source).toContain('from "./book-inventory-presentation.mjs"');
+  expect(source).toContain('from "./tour-inventory-presentation.mjs"');
   expect(source).not.toContain('className = "gear-inventory"');
-  expect(manifest.resources.some((resource) => resource.role === "book-inventory-presentation")).toBe(true);
+  expect(manifest.resources.some((resource) => resource.role === "tour-inventory-presentation")).toBe(true);
 });
 
 test("Two browser Hosts executes one unchanged Form across independent Hosts", async ({ page }) => {
@@ -2048,7 +2048,7 @@ test("Plans and Plays compact and raw views project the same exact immutable Pla
   await expect(runner.locator('[data-application-key="hosts"] [data-application-component="artifact"]')).toHaveCount(2);
   await expect(runner.locator('[data-application-key="hosts"]')).toContainText("text/literal");
   await expect(runner.locator('[data-application-key="hosts"]')).toContainText("presentation/text");
-  await expect(runner.locator('[data-application-slot^="book-plan-evidence-"] [data-application-component="panel"]')).toHaveCount(1);
+  await expect(runner.locator('[data-application-slot^="tour-plan-evidence-"] [data-application-component="panel"]')).toHaveCount(1);
 });
 
 test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers, Plan, and Play distinct", async ({ page }) => {

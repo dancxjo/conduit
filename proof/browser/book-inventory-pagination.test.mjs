@@ -1,17 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { presentTourInventory } from "../../targets/browser/host/assets/book-inventory-presentation.mjs";
+import { presentTourInventory } from "../../products/tour/browser/tour-inventory-presentation.mjs";
 
 test("all inventory offers remain reachable inside the unchanged 40-node bound", () => {
   for (const count of [0, 32, 33, 64, 65]) {
     let current;
     const presentation = {
       present(slot, view, handlers) {
-        assert.equal(slot, "book-inventory");
+        assert.equal(slot, "tour-inventory");
         assert.ok(view.nodes.length <= 40);
         current = { view, handlers };
       },
-      nextEvent(slot) { assert.equal(slot, "book-inventory"); },
+      nextEvent(slot) { assert.equal(slot, "tour-inventory"); },
     };
     const entries = Array.from({ length: count }, (_, index) => ({
       kind_id: `kind-${index}`, implementation_id: `impl-${index}`,

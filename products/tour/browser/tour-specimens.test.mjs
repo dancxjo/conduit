@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { conceptualTourStage, createTourStage, identifyTourSpecimen } from "./book-state.mjs";
-import { parseTourPages } from "./book-routing.mjs";
+import { conceptualTourStage, createTourStage, identifyTourSpecimen } from "./tour-state.mjs";
+import { parseTourPages } from "./tour-routing.mjs";
 
 const source = (name, message = "hello") => `form ${name} {\n  words: text/literal("${message}")\n}`;
 
@@ -54,7 +54,7 @@ test("workspace geometry restores only admitted bounded presentation state", asy
       : null,
     writeJson: async (key, value) => { written = { key, value }; },
   };
-  const { openTourReadingState } = await import("./book-state.mjs");
+  const { openTourReadingState } = await import("./tour-state.mjs");
   const state = await openTourReadingState(storage);
   assert.equal(state.workspace.narrativePercent, 61);
   assert.equal(state.workspace.patchbayPercent, 55);
@@ -78,7 +78,7 @@ test("workspace geometry restores only admitted bounded presentation state", asy
 });
 
 test("current workspace geometry restores all independent pane preferences", async () => {
-  const { openTourReadingState } = await import("./book-state.mjs");
+  const { openTourReadingState } = await import("./tour-state.mjs");
   const state = await openTourReadingState({
     readJson: async (key) => key === "workspace-layout" ? {
       schema: "conduit.tour/workspace-layout@2",
@@ -92,7 +92,7 @@ test("current workspace geometry restores all independent pane preferences", asy
 });
 
 test("malformed persisted workspace geometry refuses", async () => {
-  const { openTourReadingState } = await import("./book-state.mjs");
+  const { openTourReadingState } = await import("./tour-state.mjs");
   await assert.rejects(() => openTourReadingState({
     readJson: async (key) => key === "workspace-layout"
       ? { schema: "conduit.tour/workspace-layout@1", narrative_percent: 100 }

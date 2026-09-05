@@ -40,7 +40,7 @@ export function createTourRunnerField(presentation, slot, listingId, label, sour
   let revision = 0;
   presentation.present(slot, {
     revision: ++revision,
-    actions: [{ id: "book.source.input", event: "input" }],
+    actions: [{ id: "tour.source.input", event: "input" }],
     nodes: [
       { parent: null, component: "stack", key: "source-editor", text: "", action: null },
       { parent: 0, component: "form-field", key: "source-field", text: "", action: null },
@@ -57,7 +57,7 @@ export function createTourRunnerField(presentation, slot, listingId, label, sour
   }, {
     onEvent(event) {
       presentation.nextEvent(slot);
-      if (event.action === "book.source.input") onInput(decoder.decode(event.value));
+      if (event.action === "tour.source.input") onInput(decoder.decode(event.value));
     },
   });
 }

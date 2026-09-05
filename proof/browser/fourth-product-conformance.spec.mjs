@@ -45,8 +45,8 @@ test.afterAll(async () => { if (stagedFixture) await rm(stagedFixture, { recursi
 
 test("one semantic ProductMasthead composition replaces product-private global chrome", async () => {
   const productSurfaces = [
-    ["Tour", "targets/browser/host/assets/book.html", "targets/browser/host/assets/book.css", "targets/browser/host/assets/book.mjs"],
-    ["Crèche", "targets/browser/host/assets/creche.html", "targets/browser/host/assets/creche.css", "targets/browser/host/assets/creche.mjs"],
+    ["Tour", "products/tour/browser/tour.html", "products/tour/browser/tour.css", "products/tour/browser/tour.mjs"],
+    ["Crèche", "products/creche/browser/creche.html", "products/creche/browser/creche.css", "products/creche/browser/creche.mjs"],
     ["Patchbay", "products/patchbay/html/assets/index.html", "products/patchbay/html/assets/app.css", "products/patchbay/html/assets/app.js"],
   ];
   for (const [name, htmlPath, cssPath, modulePath] of productSurfaces) {

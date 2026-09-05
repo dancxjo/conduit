@@ -10,6 +10,8 @@ This document records the boundary before code is moved. It is not evidence that
 the shared runtime or any application migration exists. Current executable truth
 continues to belong in [`STATUS.md`](../STATUS.md).
 
+Current source ownership is described in [Browser product source ownership](browser-product-source-ownership.md). The inventory below preserves its observed base.
+
 ## Decision
 
 Book, Crèche, and Patchbay are applications. They own their meaning, application

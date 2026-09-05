@@ -2,7 +2,7 @@ export function createTourNavigation(presentation, navigate) {
   let revision = 0;
   return Object.freeze({
     render(currentPage, pageCount, running) {
-      presentation.present("book-navigation", {
+      presentation.present("tour-navigation", {
         revision: ++revision,
         actions: [
           { id: "book.previous", event: "activate" },
@@ -16,7 +16,7 @@ export function createTourNavigation(presentation, navigate) {
         ],
       }, {
         onEvent(event) {
-          presentation.nextEvent("book-navigation");
+          presentation.nextEvent("tour-navigation");
           if (event.action === "book.previous") navigate(-1);
           else if (event.action === "book.next") navigate(1);
         },

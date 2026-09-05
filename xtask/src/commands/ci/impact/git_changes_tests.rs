@@ -81,14 +81,14 @@ fn moving_base_does_not_change_immutable_candidate_paths() {
     repo.write("targets/esp32/a.rs", "A1");
     let a1 = repo.commit("A1");
     repo.branch("candidate-b", &m0);
-    repo.write("targets/browser/host/assets/book.css", "B1");
+    repo.write("products/tour/browser/tour.css", "B1");
     let b1 = repo.commit("B1");
 
     let before = candidate_changed_paths(&repo.root, &m0, &b1).unwrap();
     let after = candidate_changed_paths(&repo.root, &a1, &b1).unwrap();
     assert_eq!(before.comparison_base, m0);
     assert_eq!(after.comparison_base, m0);
-    assert_eq!(before.paths, ["targets/browser/host/assets/book.css"]);
+    assert_eq!(before.paths, ["products/tour/browser/tour.css"]);
     assert_eq!(after.paths, before.paths);
 }
 

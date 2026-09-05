@@ -1,5 +1,5 @@
 import { nameFor, NAMING_SYSTEM_OPTIONS } from "./creche-names.mjs";
-import { attachConduitSyntaxEditor } from "./application-syntax-presentation.mjs";
+import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
 import {
   encodedFormSelection,
   reviewInitialWorkload,

@@ -8,7 +8,7 @@ import {
   PERSONA_CATALOG_VERSION,
   PERSONA_SYSTEM_COUNTS,
   PERSONA_SYSTEMS,
-} from "../../targets/browser/host/assets/creche-names.mjs";
+} from "../../products/creche/browser/creche-names.mjs";
 
 const encoder = new TextEncoder();
 const UUID = "550e8400-e29b-41d4-a716-446655440000";

@@ -92,7 +92,7 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
   });
   const downloaded = await downloadArtifact(page, handoff);
   expect(downloaded.filename).toMatch(/-conduitos-orange-pi-5\.img$/);
-  const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+  const { readBodyProvisionedMedia } = await import("../../products/creche/browser/creche-native-disk.mjs");
   const nativeImage = {
     mbrMagic: Array.from(downloaded.bytes.subarray(510, 512)),
     bytes: downloaded.bytes.byteLength,

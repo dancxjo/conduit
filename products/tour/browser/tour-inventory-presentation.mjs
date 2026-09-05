@@ -188,11 +188,11 @@ export function presentTourInventory(presentation, inventory) {
       { parent: 0, component: "button", key: "inventory-previous", text: "Previous offers", action: page > 0 ? 0 : null },
       { parent: 0, component: "button", key: "inventory-next", text: "Next offers", action: page + 1 < pageCount ? 1 : null },
     );
-    presentation.present("book-inventory", { revision: ++revision, actions: [
+    presentation.present("tour-inventory", { revision: ++revision, actions: [
       { id: "book.inventory.previous", event: "activate" },
       { id: "book.inventory.next", event: "activate" },
     ], nodes }, { onEvent(event) {
-      presentation.nextEvent("book-inventory");
+      presentation.nextEvent("tour-inventory");
       if (event.action === "book.inventory.previous" && page > 0) page -= 1;
       else if (event.action === "book.inventory.next" && page + 1 < pageCount) page += 1;
       else return;

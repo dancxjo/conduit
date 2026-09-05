@@ -269,12 +269,13 @@ jobs:
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
           chmod 755 target/debug/conduit-browser-host
-          scripts/ci/stage-book-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
       - name: Prove exact live-debugger projection
         run: >-
           node --test
           proof/browser/patchbay-debugger-projection.test.mjs
           proof/browser/playwright-config.test.mjs
+          proof/ci/browser-product-ownership.test.mjs
       - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
         if: needs.plan.outputs.tour_required == 'true'
         run: >-
@@ -755,7 +756,7 @@ jobs:
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/tour-product target/creche-product target/patchbay-product
           scripts/ci/stage-pages-root.sh target/pages-root
-          scripts/ci/stage-book-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
           scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
           scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Retain the exact staged products once for parallel consumers

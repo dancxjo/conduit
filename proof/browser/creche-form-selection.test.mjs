@@ -8,9 +8,9 @@ import {
   searchForms,
   setFormSelected,
   toggleForm,
-} from "../../targets/browser/host/assets/creche-form-selection.mjs";
-import { exportBodyEvidence } from "../../targets/browser/host/assets/creche-graduation.mjs";
-import { initialFormSelectionNotice, selectedCanonicalSource } from "../../targets/browser/host/assets/creche-lifecycle.mjs";
+} from "../../products/creche/browser/creche-form-selection.mjs";
+import { exportBodyEvidence } from "../../products/creche/browser/creche-graduation.mjs";
+import { initialFormSelectionNotice, selectedCanonicalSource } from "../../products/creche/browser/creche-lifecycle.mjs";
 
 const inventory = Object.freeze({
   schema: "conduit.creche/reviewed-form-inventory@1",

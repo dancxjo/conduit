@@ -260,7 +260,7 @@ fn is_creche_presentation_path(path: &str) -> bool {
         || path == "targets/browser/host/src/server.rs"
         || path == "targets/browser/host/src/server/tests.rs"
         || path == "targets/browser/host/assets/application-presentation.mjs"
-        || path.starts_with("targets/browser/host/assets/creche")
+        || path.starts_with("products/creche/browser/creche")
 }
 
 fn is_repository_tool_test(path: &str) -> bool {
@@ -561,7 +561,7 @@ fn plan_for_paths(
         .all(|path| is_creche_presentation_path(path))
         && substantive
             .iter()
-            .any(|path| path.starts_with("targets/browser/host/assets/creche"))
+            .any(|path| path.starts_with("products/creche/browser/creche"))
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/browser/executable-book.spec.mjs");

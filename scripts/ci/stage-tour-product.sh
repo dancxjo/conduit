@@ -1,23 +1,23 @@
 #!/bin/sh
 set -eu
 
-runtime=${1:?usage: stage-book-product.sh RUNTIME DESTINATION}
-destination=${2:?usage: stage-book-product.sh RUNTIME DESTINATION}
+runtime=${1:?usage: stage-tour-product.sh RUNTIME DESTINATION}
+destination=${2:?usage: stage-tour-product.sh RUNTIME DESTINATION}
 
 test -f "$runtime"
 test ! -e "$destination"
 mkdir -p "$destination"
 mkdir -p "$destination/assets"
 
-cp targets/browser/host/assets/book.html "$destination/index.html"
-cp targets/browser/host/assets/book.css "$destination/book.css"
-cp targets/browser/host/assets/book.mjs "$destination/book.mjs"
-cp targets/browser/host/assets/book-state.mjs "$destination/book-state.mjs"
+cp products/tour/browser/tour.html "$destination/index.html"
+cp products/tour/browser/tour.css "$destination/tour.css"
+cp products/tour/browser/tour.mjs "$destination/tour.mjs"
+cp products/tour/browser/tour-state.mjs "$destination/tour-state.mjs"
 cp targets/browser/host/assets/browser-human-input.mjs "$destination/browser-human-input.mjs"
-cp targets/browser/host/assets/book-navigation.mjs "$destination/book-navigation.mjs"
-cp targets/browser/host/assets/book-inventory-presentation.mjs "$destination/book-inventory-presentation.mjs"
-cp targets/browser/host/assets/book-routing.mjs "$destination/book-routing.mjs"
-cp targets/browser/host/assets/book-runner-presentation.mjs "$destination/book-runner-presentation.mjs"
+cp products/tour/browser/tour-navigation.mjs "$destination/tour-navigation.mjs"
+cp products/tour/browser/tour-inventory-presentation.mjs "$destination/tour-inventory-presentation.mjs"
+cp products/tour/browser/tour-routing.mjs "$destination/tour-routing.mjs"
+cp products/tour/browser/tour-runner-presentation.mjs "$destination/tour-runner-presentation.mjs"
 cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination/application-syntax-presentation.mjs"
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp targets/browser/host/assets/browser-host-membership.mjs "$destination/browser-host-membership.mjs"
@@ -56,7 +56,7 @@ many-forms-one-body-wide-realization
 birth-spores-and-the-creche'
 printf '%s\n' "$page_routes" | while IFS= read -r route; do
     mkdir "$destination/$route"
-    cp targets/browser/host/assets/book.html "$destination/$route/index.html"
+    cp products/tour/browser/tour.html "$destination/$route/index.html"
 done
 
 # Preserve the two public chapter URLs published before the chapter-title refresh.
@@ -64,11 +64,11 @@ legacy_page_routes='meet-one-gear
 same-face-different-implementation'
 printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
     mkdir "$destination/$route"
-    cp targets/browser/host/assets/book.html "$destination/$route/index.html"
+    cp products/tour/browser/tour.html "$destination/$route/index.html"
 done
 
 node scripts/ci/build-browser-application-package.mjs \
-    targets/browser/host/assets/book.application.template.json "$destination" tour.application.json
+    products/tour/browser/tour.application.template.json "$destination" tour.application.json
 
 test "$(find "$destination" -type f | wc -l)" -eq 48
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
