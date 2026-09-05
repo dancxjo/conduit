@@ -1,8 +1,9 @@
 use super::{host, installed_std};
 use crate::TimerAdapter;
+use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, BodyWorkset, ResidentForm};
 use conduit_core::{
     BaseImplementationId, ConfigurationValue, ObservationKind, PortDirection, PortTemporal,
-    ResourceClassId, ResourceOffer, ResourcePoolId, StructuredInfoValue,
+    ResourceClassId, ResourceOffer, ResourcePoolId, SignId, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
@@ -208,6 +209,75 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         },
     )
     .unwrap();
+    let secret_knock_form = ResidentForm::new(
+        plan.source_document_id.clone(),
+        plan.checked_form_id.clone(),
+    );
+    let unrelated = conduit_form::parse(
+        "form unrelated_status {\n clock: time/tick(count = 2, period-ms = 5)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
+        &installed_std::test_catalog(),
+    )
+    .unwrap();
+    let unrelated_placements = conduit_planner::default_placements(&unrelated, &hosts).unwrap();
+    let unrelated_plan = conduit_planner::plan_with_options(
+        &unrelated,
+        &hosts,
+        &unrelated_placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 8,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap();
+    let unrelated_form = ResidentForm::new(
+        unrelated_plan.source_document_id.clone(),
+        unrelated_plan.checked_form_id.clone(),
+    );
+    let body = Body::born_with_forms(
+        BodyWorkset::from_forms([secret_knock_form.clone(), unrelated_form.clone()]).unwrap(),
+        1,
+        SignId::from("sign/secret-knock-body-born"),
+    )
+    .unwrap();
+    let wake = body
+        .wake(1, SignId::from("sign/secret-knock-body-woke"))
+        .unwrap()
+        .1;
+    let body_plan = BodyPlan::seal(
+        &wake,
+        vec![
+            BodyFormPlan {
+                form: secret_knock_form,
+                plan: plan.clone(),
+            },
+            BodyFormPlan {
+                form: unrelated_form,
+                plan: unrelated_plan.clone(),
+            },
+        ],
+    )
+    .unwrap();
+    let body_play = BodyPlayIdentity::bind(&body_plan, 1);
+    let playing = wake
+        .body_plan_ready(&body_plan, SignId::from("sign/secret-knock-body-planned"))
+        .unwrap()
+        .body_play_started(
+            &body_plan,
+            &body_play,
+            SignId::from("sign/secret-knock-body-playing"),
+        )
+        .unwrap();
+    assert_eq!(body_plan.forms.len(), 2);
+    assert_eq!(
+        playing.plans[0].active_play_id.as_ref(),
+        Some(&body_play.active_play_id)
+    );
     let storage = plan.fragments[0]
         .placements
         .iter()
@@ -236,13 +306,36 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
             calendar: None,
         },
         &plan.fragments[0],
-        0,
+        body_play.play_sequence,
         &mut sign_sequence,
         &mut output,
         &mut timer,
         &crate::RunControl::default(),
     )
     .expect("Secret Knock executes as one production-kernel Play");
+    let unrelated_report = installed_std::run_fragment(
+        installed_std::InstalledRunHost {
+            advertisement: &advertisement,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            keyboard: None,
+            local_model: None,
+            vector_search: None,
+            calendar: None,
+        },
+        &unrelated_plan.fragments[0],
+        body_play.play_sequence,
+        &mut sign_sequence,
+        &mut output,
+        &mut timer,
+        &crate::RunControl::default(),
+    )
+    .expect("unrelated Form executes under the same Body-wide Play");
+    assert_eq!(
+        unrelated_report.kernel.unwrap().post_play_start_allocations,
+        0
+    );
     let kernel = report.kernel.unwrap();
     assert_eq!(kernel.post_play_start_allocations, 0);
     assert!(kernel.identity.lengths().0 >= 8);
