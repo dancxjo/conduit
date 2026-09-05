@@ -75,6 +75,13 @@ update uses `-f base=dev`. Send only the intended field. Continue using ordinary
 `gh pr edit` for broader metadata operations when it works. These requests change
 PR metadata only; they do not admit code or establish proof.
 
+For a partial issue slice, write `Owning issue: #1234` and
+`Remaining work is tracked in #1234`. Avoid negating closing keywords: GitHub
+can still interpret `does not close #1234` as a closing link. Before admission,
+inspect the PR's linked closing issues and remove unintended links from its
+description. After merging, verify the affected issues remain open until their
+complete acceptance criteria and promotion evidence are met.
+
 ## Roles
 
 Product agents get useful Conduit into `dev`: small owned deltas, focused local proof, and prompt refresh when stale. Agent Fiona is the current PR shepherd: keep `dev` integrable, watch Actions and the open queue, resolve jams, and promote proven batches to `main`. CI work is justified when it protects these two boundaries or removes a demonstrated jam, not merely because a more elaborate evidence theory is possible.
