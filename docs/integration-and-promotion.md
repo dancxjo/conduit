@@ -54,6 +54,27 @@ Commits admitted to `dev` after `S` belong to the next promotion. They neither c
 
 An uber-PR is recovery, not the steady state. The shepherd records the exact head of every stranded PR, combines reviewed deltas once on current `dev`, resolves shared fallout, validates the combined head, and closes an old PR only after its head is an ancestor or its exact patch is demonstrably present. Explicit maintainer authorization may permit a leased force update to `dev`; it never permits an unproven tree to bypass promotion into `main`.
 
+## Updating PR metadata
+
+For a title, body, or base update that fails because `gh pr edit` queries the
+deprecated Projects Classic API, use the narrow Pull Requests REST endpoint.
+This administrative operation requires no checkout or CI run. Prepare the
+description in a UTF-8 file with actual newlines; do not interpolate its contents
+into shell code. Replace the example PR number and file path:
+
+```sh
+gh api --method PATCH repos/dancxjo/conduit/pulls/1234 \
+  -F body=@/absolute/path/pr-body.md \
+  --jq '{number, html_url, body}'
+```
+
+`-F body=@...` reads the file as the sole changed field. Verify the returned
+`number`, repository in `html_url`, and `body` before reporting success. A title
+update instead uses `-f title='Reviewed title'`; a deliberate development-base
+update uses `-f base=dev`. Send only the intended field. Continue using ordinary
+`gh pr edit` for broader metadata operations when it works. These requests change
+PR metadata only; they do not admit code or establish proof.
+
 ## Roles
 
 Product agents get useful Conduit into `dev`: small owned deltas, focused local proof, and prompt refresh when stale. Agent Fiona is the current PR shepherd: keep `dev` integrable, watch Actions and the open queue, resolve jams, and promote proven batches to `main`. CI work is justified when it protects these two boundaries or removes a demonstrated jam, not merely because a more elaborate evidence theory is possible.
