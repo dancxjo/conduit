@@ -97,6 +97,16 @@ entry = "memory_lantern"
 initial_body_order = 2
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
 [[forms]]
+slug = "measurement-summary"
+title = "Measurement Summary"
+entry = "measurement-summary"
+deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" }
+[[forms]]
+slug = "measurement-threshold"
+title = "Measurement Threshold"
+entry = "measurement-threshold"
+deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_form_independent_of_presentation" }
+[[forms]]
 slug = "measurement-window"
 title = "Measurement Window"
 entry = "measurement-window"
@@ -156,6 +166,11 @@ title = "Scheduling Workflow"
 entry = "workflow-state"
 reusable_entries = [{ entry = "bounded-schedule", title = "Bounded Schedule" }]
 deterministic = { package = "conduit-semantic-catalog", test = "scheduling_forms", case = "deterministic_fixture_produces_exact_late_assessment_without_executing" }
+[[forms]]
+slug = "secret-knock"
+title = "Secret Knock"
+entry = "secret-knock"
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "secret_knock_form", case = "canonical_secret_knock_is_a_host_free_composition_of_reusable_forms" }
 [[forms]]
 slug = "signal-demo"
 title = "Signal Demo"

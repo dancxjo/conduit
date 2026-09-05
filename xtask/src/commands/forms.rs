@@ -433,6 +433,8 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_finance_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_measurement_window_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_summary_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_threshold_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)?;
@@ -442,6 +444,32 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     conduit_semantic_catalog::install_education_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_template_storage_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_final_normalized_pattern_catalogs(
+        &mut startup,
+        &mut profile,
+    )?;
+    conduit_semantic_catalog::install_pattern_comparison_catalogs(&mut startup, &mut profile)?;
+    startup.insert(conduit_form::KindSignature {
+        kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
+        startup_parameters: Vec::new(),
+    })?;
+    let comparison_presentation = conduit_semantic_catalog::structured_presentation_contract(
+        conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
+        &conduit_semantic_catalog::pattern_comparison_type(),
+    );
+    profile
+        .insert(conduit_form::KindDefinition {
+            kind_id: comparison_presentation.kind_id,
+            kind_contract_revision: comparison_presentation.kind_contract_revision,
+            inputs: comparison_presentation.inputs,
+            outputs: comparison_presentation.outputs,
+            configuration: Vec::new(),
+        })
+        .map_err(|error| error.to_string())?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_human_media_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_pool_chat_catalogs(&mut startup, &mut profile)?;
