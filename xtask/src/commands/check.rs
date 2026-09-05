@@ -88,6 +88,22 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
 
 const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(
+        "quantity-mapping.browser-build",
+        "Build the actual browser quantity runtime",
+        "cargo",
+        &[
+            "build",
+            "-p",
+            "conduit-browser-runtime",
+            "--target",
+            "wasm32-unknown-unknown",
+            "--release",
+            "--features",
+            "book-surface",
+            "--locked",
+        ],
+    ),
+    Step::new(
         "quantity-mapping.contract",
         "Check exact mapping refusals and bounded structured Quantity encoding",
         "cargo",
@@ -111,6 +127,39 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
             "--lib",
             "--locked",
             "quantity_",
+        ],
+    ),
+    Step::new(
+        "quantity-mapping.browser-runtime",
+        "Execute authored quantity Forms through browser kernel and typed output effects",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-browser-runtime",
+            "--lib",
+            "--locked",
+            "quantity",
+        ],
+    ),
+    Step::new(
+        "quantity-mapping.inventory-bound",
+        "Preserve bounded browser inventory navigation as installed offers grow",
+        "node",
+        &["--test", "proof/browser/book-inventory-pagination.test.mjs"],
+    ),
+    Step::new(
+        "quantity-mapping.chromium",
+        "Prove real pointer causality and deterministic alternate input in pinned Chromium",
+        "npx",
+        &[
+            "--no-install",
+            "playwright",
+            "test",
+            "--config",
+            "proof/browser/playwright.config.mjs",
+            "--project=chromium",
+            "quantity-controller.spec.mjs",
         ],
     ),
 ];
