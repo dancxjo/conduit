@@ -48,6 +48,7 @@ jobs:
     steps:
       - name: Consume the bounded on-demand reconciliation request
         if: github.event_name == 'pull_request_target' && github.event.action == 'labeled'
+        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
