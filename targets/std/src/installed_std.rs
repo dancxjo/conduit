@@ -128,8 +128,8 @@ use conduit_plan_lowering::lowering::{
 use std::io::Write;
 use std::time::Duration;
 
-const MAX_NODES: usize = 8;
-const MAX_CORDS: usize = 8;
+const MAX_NODES: usize = 16;
+const MAX_CORDS: usize = 16;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 64;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;

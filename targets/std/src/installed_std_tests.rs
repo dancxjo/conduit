@@ -27,6 +27,7 @@ mod presentation_composition;
 mod recurrence_conformance;
 mod rhythm_compare_conformance;
 mod robotics_conformance;
+mod secret_knock_conformance;
 mod sequence_normalization_conformance;
 mod sound_replanning;
 mod structured_selector_conformance;
