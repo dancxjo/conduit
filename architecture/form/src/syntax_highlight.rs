@@ -252,6 +252,15 @@ mod tests {
     }
 
     #[test]
+    fn inline_comments_are_distinct_from_hashes_inside_strings() {
+        let source = "form note { value = \"channel #7\" # visible note\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        assert!(pieces.contains(&(SyntaxHighlightKind::String, "\"channel #7\"")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Comment, "# visible note")));
+    }
+
+    #[test]
     fn source_and_token_pressure_refuse_distinctly() {
         let oversized = "x".repeat(MAXIMUM_FORM_SOURCE_BYTES + 1);
         assert_eq!(
