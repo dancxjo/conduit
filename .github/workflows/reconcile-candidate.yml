@@ -59,6 +59,12 @@ jobs:
         with:
           ref: refs/heads/${{ github.event.repository.default_branch }}
           fetch-depth: 0
+      - name: Install the repository Rust toolchain for the impact controller
+        uses: dtolnay/rust-toolchain@1.98.1
+      - name: Build the dependency-light CI controller
+        run: |
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --package conduit-xtask-dispatch --locked
       - name: Materialize the current prospective integration locally
         id: integration
         shell: bash
@@ -68,7 +74,19 @@ jobs:
         run: |
           git fetch --no-tags origin "$CANDIDATE_SHA"
           base_sha=$(git rev-parse HEAD)
-          integration_tree=$(git merge-tree --write-tree "$base_sha" "$CANDIDATE_SHA")
+          controller="$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          "$controller" ci integration "$base_sha" "$CANDIDATE_SHA" --locked \
+            --json-out integration.json --summary-out integration-summary.md
+          cat integration-summary.md >> "$GITHUB_STEP_SUMMARY"
+          status=$(jq -r '.status' integration.json)
+          if [[ "$status" != clean ]]; then
+            echo "Prospective integration is structurally conflicted." >&2
+            exit 1
+          fi
+          integration_tree=$(jq -r '.integration_tree' integration.json)
+          effective_merge_base_sha=$(jq -r '.effective_merge_base_sha' integration.json)
+          effective_merge_base_tree=$(jq -r '.effective_merge_base_tree' integration.json)
+          merge_base_method=$(jq -r '.merge_base_method' integration.json)
           export GIT_AUTHOR_NAME='Conduit CI'
           export GIT_AUTHOR_EMAIL='ci@conduit.invalid'
           export GIT_AUTHOR_DATE='2000-01-01T00:00:00Z'
@@ -81,15 +99,14 @@ jobs:
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "integration_sha=$integration_sha" >> "$GITHUB_OUTPUT"
           echo "integration_ref=$integration_ref" >> "$GITHUB_OUTPUT"
-      - name: Install the repository Rust toolchain for the impact controller
-        uses: dtolnay/rust-toolchain@1.98.1
+          echo "effective_merge_base_sha=$effective_merge_base_sha" >> "$GITHUB_OUTPUT"
+          echo "effective_merge_base_tree=$effective_merge_base_tree" >> "$GITHUB_OUTPUT"
+          echo "merge_base_method=$merge_base_method" >> "$GITHUB_OUTPUT"
       - name: Classify candidate-to-integration proof impact
         env:
           CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
           INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
         run: |
-          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-            cargo build --package conduit-xtask-dispatch --locked
           "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
             ci plan "$CANDIDATE_SHA" "$INTEGRATION_SHA" --locked \
             --json-out reconciliation-impact.json

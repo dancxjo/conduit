@@ -5,6 +5,7 @@ mod pages_resolver;
 pub(super) fn run(arguments: &[String]) -> Result<(), String> {
     match arguments.get(1).map(String::as_str) {
         Some("plan") => plan(arguments),
+        Some("integration") => integration(arguments),
         Some("candidate") => candidate(arguments),
         Some("reconcile") => reconcile(arguments),
         Some("reconcile-product") => reconcile_product(arguments),
@@ -16,6 +17,20 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),
     }
+}
+
+fn integration(arguments: &[String]) -> Result<(), String> {
+    let mut values = arguments.iter().skip(2);
+    let base = required(&mut values, "base commit")?;
+    let head = required(&mut values, "candidate commit")?;
+    let options = common_options(values)?;
+    crate::integration::run(
+        &base,
+        &head,
+        options.json_out.as_deref(),
+        options.summary_out.as_deref(),
+    )
+    .map_err(|error| error.to_string())
 }
 
 fn rust_toolchain_preflight(arguments: &[String]) -> Result<(), String> {
