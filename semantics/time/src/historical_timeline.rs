@@ -284,6 +284,23 @@ impl BoundedHistoricalTimeline {
     pub const fn clear_revision(&self) -> u64 {
         self.clear_revision
     }
+
+    /// Project only the currently retained identities and original event
+    /// coordinates. Any retention gap remains separately inspectable and is
+    /// never converted into a replay event.
+    pub fn replay_metadata(&self) -> Vec<crate::HistoricalReplayEntry> {
+        let mut replay = Vec::with_capacity(self.length);
+        for index in 0..self.length {
+            let entry = self
+                .entry(index)
+                .expect("a retained timeline index names one exact entry");
+            replay.push(crate::HistoricalReplayEntry {
+                identity: entry.identity.clone(),
+                event_ticks: entry.event_time.ticks,
+            });
+        }
+        replay
+    }
 }
 
 #[cfg(feature = "form-catalog")]
