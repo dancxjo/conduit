@@ -86,6 +86,7 @@ mod tick_presentation;
 mod timing_configuration;
 mod timing_operations;
 mod toggle_operation;
+mod typed_record_operation;
 mod vector_search_host;
 mod vector_search_operation;
 
@@ -459,6 +460,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
+    let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
             fragment,
@@ -649,6 +651,47 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
+            if contract.as_str() == conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION {
+                let completion = typed_record_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "typed-record frame request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store framed typed record: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound framed typed record: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: refusal as u16,
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete typed-record frame: {error:?}"))?;
+                continue;
+            }
             if contract.as_str() == conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION {
                 let encoded = image_text_record_hosts
                     .get_mut(usize::from(request.node.0))

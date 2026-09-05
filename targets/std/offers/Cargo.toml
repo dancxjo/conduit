@@ -8,6 +8,7 @@ description = "Exact realization offers owned by the hosted std Host"
 conduit-alife = { path = "../../../semantics/alife" }
 conduit-audio = { path = "../../../semantics/audio" }
 conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-midi = { path = "../../../mechanisms/protocols/midi" }
 conduit-net = { path = "../../../semantics/net" }

@@ -58,6 +58,7 @@ use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
+use super::typed_record_operation::TypedRecordFrameOperation;
 use super::vector_search_operation::VectorSearchOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
@@ -118,6 +119,7 @@ pub(super) enum InstalledOperation {
     HttpServer(HttpServerOperation),
     ImageText(ImageTextOperation),
     ImageTextRecord(ImageTextRecordOperation),
+    TypedRecordFrame(TypedRecordFrameOperation),
     JsonEncode(JsonOperation),
     JsonDecode(JsonOperation),
     StructuredSelector(StructuredSelectorOperation),

@@ -60,6 +60,7 @@ impl Operation for InstalledOperation {
             Self::HttpServer(operation) => operation.start(),
             Self::ImageText(operation) => operation.start(),
             Self::ImageTextRecord(operation) => operation.start(),
+            Self::TypedRecordFrame(operation) => operation.start(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
@@ -170,6 +171,7 @@ impl Operation for InstalledOperation {
             (Self::HttpServer(operation), input) => operation.resume(input),
             (Self::ImageText(operation), input) => operation.resume(input),
             (Self::ImageTextRecord(operation), input) => operation.resume(input),
+            (Self::TypedRecordFrame(operation), input) => operation.resume(input),
             (Self::JsonEncode(operation), input) | (Self::JsonDecode(operation), input) => {
                 operation.resume(input)
             }
@@ -322,6 +324,7 @@ impl Operation for InstalledOperation {
             Self::HttpServer(operation) => operation.advance(),
             Self::ImageText(_) => OperationAction::Await,
             Self::ImageTextRecord(_) => OperationAction::Await,
+            Self::TypedRecordFrame(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -429,6 +432,7 @@ impl Operation for InstalledOperation {
             Self::HttpServer(operation) => operation.cancel(),
             Self::ImageText(operation) => operation.cancel(),
             Self::ImageTextRecord(operation) => operation.cancel(),
+            Self::TypedRecordFrame(operation) => operation.cancel(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
             Self::StructuredLiteral(_) => {}
