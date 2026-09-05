@@ -12,8 +12,6 @@ on:
         description: Exact unchanged current pull-request head
         required: true
         type: string
-  pull_request_target:
-    types: [edited, labeled, reopened]
 
 permissions:
   contents: read

@@ -20,6 +20,8 @@ feature branch
 
 Every `dev` update runs integration smoke on the combined tree. A failure is an integration incident: repairing `dev` takes priority over merging more product work. The PR shepherd owns triage and keeps the queue from turning into stacks of mutually stale candidates.
 
+The earlier candidate reconciliation and workflow-run retirement controllers remain manually dispatchable during migration but do not run on ordinary PR lifecycle events. Native merged-branch deletion replaces the latter in the steady state.
+
 `main` is the stable publication branch. Its only routine input is a same-repository PR from `dev`. The stable `promotion` check forces the complete workspace and product proof graphs, including release fabrication. A feature branch aimed directly at `main` fails the branch boundary rather than acquiring an alternative path.
 
 After a promotion merges, Pages deployment accepts the carrier produced by that exact promotion run. Deployment remains privileged and separate; it does not execute code from an untrusted `pull_request_target` checkout.
