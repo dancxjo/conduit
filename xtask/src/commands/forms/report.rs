@@ -91,7 +91,7 @@ mod tests {
     fn static_report_has_every_mode_without_execution_claims() {
         let root = crate::workspace::workspace_root().unwrap();
         let report = build(&root).unwrap();
-        assert_eq!(report.results.len(), 35 * 3 + 10 * 3 + 3);
+        assert_eq!(report.results.len(), 37 * 3 + 10 * 3 + 3);
         for slug in report
             .results
             .iter()
