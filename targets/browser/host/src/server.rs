@@ -25,6 +25,8 @@ const INITIAL_BODY_FORMS: &str = concat!(
     include_str!("../../../../forms/memory-lantern/main.conduit"),
     "\n",
     include_str!("../../../../forms/desk-telegraph/main.conduit"),
+    "\n",
+    include_str!("../../../../forms/button-across-room/main.conduit"),
 );
 const MAX_RUNTIME_BYTES: usize = 8 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = 4096;

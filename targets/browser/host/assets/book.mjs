@@ -113,6 +113,7 @@ function requireTourAbi(api) {
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
+    "conduit_tour_encode_button_transition",
     "conduit_tour_project_patchbay", "conduit_tour_project_patchbay_recursive",
     "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
     "conduit_syntax_output_ptr", "conduit_syntax_output_len", "conduit_syntax_project",
@@ -420,6 +421,7 @@ function createRunner(source, recursive = false, presentation = {}) {
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
+      <button type="button" class="input-button" hidden>Hold to control indicator</button>
       <h2>Planned result</h2>
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
@@ -1035,16 +1037,40 @@ async function runListing(runner, source, recursive) {
         if (completion < 0) throw new Error(`keyboard completion refused (${completion})`);
         progress = readOutput(api);
         continue;
+      } else if (progress.effect_kind === "button-transition") {
+        runner.querySelector(".input-button").hidden = false;
+        runner.playStatus.ordinary("Waiting for one admitted button transition…");
+        const event = await humanInput.nextButton();
+        if (current !== generation) return;
+        const encodedCode = api.conduit_tour_encode_button_transition(
+          event.pressed ? 1 : 0,
+          BigInt(event.sequence),
+        );
+        if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
+        const encoded = new Uint8Array(
+          api.memory.buffer,
+          api.conduit_book_output_ptr(),
+          api.conduit_book_output_len(),
+        ).slice();
+        new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
+        const completion = api.conduit_browser_form_complete_with_output(encoded.length);
+        if (completion < 0) throw new Error(`button completion refused (${completion})`);
+        progress = readOutput(api);
+        continue;
       } else if (progress.effect_kind === "manifestation") {
         runner.querySelector(".morse").textContent =
           progress.text ?? renderMorse(progress.segments);
         renderIdentities(runner, progress);
-        for (const segment of progress.segments) {
-          if (current !== generation) return;
-          setIndicator(runner, segment.level);
-          if (!await delay(segment.units * progress.unit_millis, current)) return;
+        if (progress.presentation_kind === "presentation/indicator-state") {
+          setIndicator(runner, progress.text === "true");
+        } else {
+          for (const segment of progress.segments) {
+            if (current !== generation) return;
+            setIndicator(runner, segment.level);
+            if (!await delay(segment.units * progress.unit_millis, current)) return;
+          }
+          setIndicator(runner, false);
         }
-        setIndicator(runner, false);
         runner.playStatus.ordinary("Observed planned presentation; continuing the same Play…");
       } else {
         throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
@@ -1056,7 +1082,7 @@ async function runListing(runner, source, recursive) {
     }
     runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
-      : "Completed — one bounded Play, one planned manifestation.");
+      : `Completed — one bounded Play, ${progress.manifestation_completions} planned manifestations.`);
     appendRunEvidence(runner, [
       ["Terminal Sign", progress.terminal_sign_id],
       ["Timer completions", String(progress.timer_completions)],

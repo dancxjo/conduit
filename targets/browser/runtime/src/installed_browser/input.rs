@@ -12,7 +12,9 @@ use conduit_kernel::{
 
 pub(crate) const WINDOW_INPUT_RESOURCE_CLASS: &str = "conduit.resource/browser-window-input@1";
 pub(crate) const KEY_EVENT_OPERATION: &str = "conduit.host/browser-key-event@1";
+pub(crate) const BUTTON_EVENT_OPERATION: &str = "conduit.host/browser-button-transition@1";
 pub(super) const KEYBOARD_IMPLEMENTATION: &str = "browser/window-keyboard@1";
+pub(super) const BUTTON_IMPLEMENTATION: &str = "browser/window-primary-button@1";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-input@1";
 
 pub(super) static KEYBOARD: BrowserInstallation = BrowserInstallation {
@@ -21,6 +23,34 @@ pub(super) static KEYBOARD: BrowserInstallation = BrowserInstallation {
     prepare,
     perform: None,
 };
+pub(super) static BUTTON: BrowserInstallation = BrowserInstallation {
+    implementation_id: BUTTON_IMPLEMENTATION,
+    offer: button_offer,
+    prepare: prepare_button,
+    perform: None,
+};
+
+fn button_offer() -> conduit_core::CapabilityOffer {
+    conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::button_source_contract(),
+        conduit_semantic_catalog::BUTTON_SOURCE_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: BUTTON_IMPLEMENTATION,
+            execution_profile: BUTTON_IMPLEMENTATION,
+            implementation: BUTTON_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(BUTTON_EVENT_OPERATION),
+            target_kind: Some(kind_id("input/button-transition@1")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 1,
+            maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+        }],
+        vec![resource_requirement(WINDOW_INPUT_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
+}
 
 fn offer() -> conduit_core::CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
@@ -57,6 +87,84 @@ fn prepare(
         pending: false,
         emitted: false,
     }))
+}
+
+fn prepare_button(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<BrowserOperation, String> {
+    validate_placement(placement, &button_offer())?;
+    let request = [
+        values
+            .store(&[0])
+            .map_err(|error| format!("store first button request: {error:?}"))?,
+        values
+            .store(&[0])
+            .map_err(|error| format!("store second button request: {error:?}"))?,
+    ];
+    Ok(BrowserOperation::installed(ButtonOperation {
+        request,
+        pending: false,
+        delivered: 0,
+    }))
+}
+
+struct ButtonOperation {
+    request: [ValueRef; 2],
+    pending: bool,
+    delivered: u32,
+}
+
+impl ButtonOperation {
+    fn request(&mut self) -> OperationAction {
+        self.pending = true;
+        OperationAction::RequestHostOperation {
+            request: RequestId(self.delivered),
+            operation: HostOperationId(0),
+            input: BoundedValueRef::new(self.request[self.delivered as usize], 1)
+                .expect("button request is one byte"),
+        }
+    }
+}
+
+impl Operation for ButtonOperation {
+    fn start(&mut self) -> OperationAction {
+        self.request()
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending
+                    && request == RequestId(self.delivered)
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.failure.is_none() =>
+            {
+                let Some(output) = outcome.output else {
+                    return fail();
+                };
+                self.pending = false;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value: output.value,
+                }
+            }
+            _ => fail(),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        self.delivered += 1;
+        if self.delivered == 2 {
+            OperationAction::Complete
+        } else {
+            self.request()
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
 }
 
 struct KeyboardOperation {

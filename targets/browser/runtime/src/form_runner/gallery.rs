@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-const REVIEWED_SOURCES: [(&str, &str, &str); 3] = [
+const REVIEWED_SOURCES: [(&str, &str, &str); 4] = [
     (
         "morse_network",
         "Morse Network",
@@ -15,6 +15,11 @@ const REVIEWED_SOURCES: [(&str, &str, &str); 3] = [
         "desk_telegraph",
         "Desk Telegraph",
         include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+    ),
+    (
+        "button_across_room",
+        "Button Across the Room",
+        include_str!("../../../../../forms/button-across-room/main.conduit"),
     ),
 ];
 
@@ -132,8 +137,8 @@ mod tests {
     #[test]
     fn gallery_projects_exact_checked_canonical_sources() {
         let gallery = reviewed_gallery().unwrap();
-        assert_eq!(gallery.maximum_forms, 3);
-        assert_eq!(gallery.forms.len(), 3);
+        assert_eq!(gallery.maximum_forms, 4);
+        assert_eq!(gallery.forms.len(), 4);
         for form in gallery.forms {
             assert!(!form.source_document_id.is_empty());
             assert!(!form.checked_form_id.is_empty());

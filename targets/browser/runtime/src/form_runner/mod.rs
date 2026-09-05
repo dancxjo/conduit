@@ -17,8 +17,9 @@ use conduit_planner::{
 };
 pub(super) use protocol::refusal;
 use protocol::{
-    decode_manifestation, receipt, TourBackEvidence, TourEffect, TourGearEvidence, TourHostEffect,
-    TourKeyEventEffect, TourProgress, TourReceipt, TourTimerEffect,
+    decode_manifestation, receipt, TourBackEvidence, TourButtonTransitionEffect, TourEffect,
+    TourGearEvidence, TourHostEffect, TourKeyEventEffect, TourProgress, TourReceipt,
+    TourTimerEffect,
 };
 use std::collections::BTreeMap;
 
@@ -276,6 +277,19 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 })))
             }
+            engine::BrowserHostEffect::ButtonTransition => Ok(TourHostEffect::ButtonTransition(
+                Box::new(TourButtonTransitionEffect {
+                    schema: "conduit.tour/button-transition-effect@1",
+                    effect_kind: "button-transition",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: self.pending.request.request.0,
+                    maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
+                    source_interaction: self.source_interaction.clone(),
+                }),
+            )),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
                 let observation_sequence = self.pending.request.request.0;
                 let presentation = bind_presentation(

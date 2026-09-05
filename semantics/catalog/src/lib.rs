@@ -55,6 +55,8 @@ mod education_catalog;
 pub use education_catalog::*;
 mod generalized_input;
 pub use generalized_input::*;
+mod button_indicator;
+pub use button_indicator::*;
 mod generalized_input_realization;
 pub use generalized_input_realization::*;
 #[cfg(feature = "form-catalog")]

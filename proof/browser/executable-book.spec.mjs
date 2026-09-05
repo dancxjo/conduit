@@ -896,8 +896,8 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page).toHaveTitle("Form Gallery · Tour");
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
   const cards = page.locator(".form-gallery-card");
-  await expect(cards).toHaveCount(3);
-  await expect(cards.locator('[data-status="runnable-on-current-browser-host"]')).toHaveCount(3);
+  await expect(cards).toHaveCount(4);
+  await expect(cards.locator('[data-status="runnable-on-current-browser-host"]')).toHaveCount(4);
   await expect(cards.first().locator(".form-gallery-realization li")).toHaveCount(2);
   await expect(cards.first()).toContainText("current offer · local/kernel");
   await expect(cards.first()).toContainText("Browsing acquires no resource or authority");
@@ -927,9 +927,21 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(laboratory.locator(".morse")).toHaveText("READY");
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("Completed");
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
+  const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
+
+  const button = cards.filter({ has: page.getByRole("heading", { name: "Button Across the Room" }) });
+  await button.getByRole("button", { name: "Inspect Patchbay" }).click();
+  await laboratory.getByRole("button", { name: "Run" }).click();
+  const control = laboratory.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.dispatchEvent("pointerdown", { buttons: 1 });
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("button transition");
+  await control.dispatchEvent("pointerup", { buttons: 0 });
+  await expect(laboratory.locator('[role="img"]')).toHaveAttribute("aria-label", "Indicator off");
+  await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("2 planned manifestations");
+  expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const add = memory.getByRole("link", { name: "Add to new Body" });
   const handoff = new URL(await add.getAttribute("href"));
-  const reviewedSourceIdentity = await laboratory.locator(".compact-patchbay").getAttribute("data-source-document-id");
   expect(handoff.pathname).toBe(new URL("../creche/", entrance.url).pathname);
   expect(Object.fromEntries(handoff.searchParams)).toEqual({
     form: "memory_lantern",
