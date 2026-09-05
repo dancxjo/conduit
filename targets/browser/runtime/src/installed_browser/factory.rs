@@ -2,7 +2,7 @@
 
 use super::{
     button_indicator, delay, input, layout, linguistics, logic, math, morse, morse_composition,
-    presentation, state_time, text, values,
+    presentation, quantity, state_time, text, values,
 };
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
@@ -50,6 +50,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &math::CLAMP,
     &math::SCALE,
     &math::DEADBAND,
+    &quantity::MAP,
     &logic::COMPARE,
     &logic::NOT,
     &logic::SELECT,
@@ -170,6 +171,7 @@ pub(crate) fn catalogs(
     linguistics::install_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;

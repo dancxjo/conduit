@@ -66,7 +66,8 @@ fn family(kind: &str) -> &'static str {
         }
         conduit_semantic_catalog::MATH_CLAMP_KIND
         | conduit_semantic_catalog::MATH_SCALE_KIND
-        | conduit_semantic_catalog::MATH_DEADBAND_KIND => "math",
+        | conduit_semantic_catalog::MATH_DEADBAND_KIND
+        | conduit_semantic_catalog::QUANTITY_MAP_KIND => "math",
         conduit_semantic_catalog::LOGIC_COMPARE_KIND
         | conduit_semantic_catalog::LOGIC_NOT_KIND
         | conduit_semantic_catalog::LOGIC_SELECT_KIND => "logic",
