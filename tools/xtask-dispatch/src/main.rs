@@ -102,6 +102,8 @@ mod integration;
 mod monitor;
 #[path = "../../../xtask/src/commands/ci/product_reconciliation.rs"]
 mod product_reconciliation;
+#[path = "../../../xtask/src/commands/ci/promotion_snapshot.rs"]
+mod promotion_snapshot;
 #[path = "../../../xtask/src/commands/ci/proof_graph.rs"]
 mod proof_graph;
 #[path = "../../../xtask/src/commands/ci/rust_toolchain.rs"]

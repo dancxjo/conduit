@@ -22,7 +22,7 @@ Every `dev` update runs integration smoke on the combined tree. A failure is an 
 
 The earlier candidate reconciliation and workflow-run retirement controllers remain manually dispatchable during migration but do not run on ordinary PR lifecycle events. Native merged-branch deletion replaces the latter in the steady state.
 
-`main` is the stable publication branch. Its only routine input is a same-repository PR from `dev`. The stable `promotion` check forces the complete workspace and product proof graphs, including release fabrication. A feature branch aimed directly at `main` fails the branch boundary rather than acquiring an alternative path.
+`main` is the stable publication branch. Its only routine input is a same-repository frozen snapshot named `promote/<full-dev-sha>`. The stable `promotion` check forces the complete workspace and product proof graphs, including release fabrication. A feature branch or the moving `dev` ref aimed directly at `main` fails the branch boundary rather than acquiring an alternative path.
 
 After a promotion merges, Pages deployment accepts the carrier produced by that exact promotion run. Deployment remains privileged and separate; it does not execute code from an untrusted `pull_request_target` checkout.
 
@@ -34,18 +34,21 @@ The Pages resolver admits `promotion.yml` as an exact carrier producer even thou
 | --- | --- | --- |
 | feature PR to `dev` | Is this delta sound enough to integrate? | Focused by actual impact |
 | push on `dev` | Does the current combined development tree work in affected domains? | Focused integration smoke |
-| `dev` to `main` | Is this exact integrated tree releasable? | Exhaustive |
+| frozen `dev` snapshot to `main` | Is this exact integrated tree releasable? | Exhaustive |
 
 Passing a feature PR does not promise eternal compatibility with later `dev`. When an old PR is ready to enter integration, rebase it or reapply its clean product delta onto current `dev` and prove that refreshed head.
 
 ## Promotion procedure
 
-1. Require green `dev` integration smoke and a controlled open-PR queue.
-2. Open or refresh the sole `dev`-to-`main` promotion PR without adding a synthetic product delta.
-3. Require the stable `promotion` result at the exact `dev` head. Do not substitute local, candidate, canceled, or older evidence.
-4. Merge without rewriting the proven source tree. Verify the resulting `main` tree is the promoted `dev` tree.
-5. Let the trusted post-merge deployment upload the already-proven Pages carrier.
-6. Close issues only when their stated proof class and stable-main requirements are actually met.
+1. Require green `dev` integration smoke and record its exact commit `S`. Product admission to `dev` does not pause after this point.
+2. Run `cargo xtask ci promotion-snapshot --push --locked`. This publishes `promote/<full-S>` without moving or rewriting `dev`; an existing ref with different content is refused.
+3. Open the sole `promote/<full-S>`-to-`main` promotion PR without adding a synthetic product delta.
+4. Require the stable `promotion` result at exact snapshot `S`. Do not substitute evidence from later `dev`, local, candidate, canceled, or older runs.
+5. Merge without rewriting the proven source tree. Verify the resulting `main` tree is `S`, then delete the snapshot branch after deployment has consumed its exact carrier.
+6. Let the trusted post-merge deployment upload the already-proven Pages carrier.
+7. Close issues only when their stated proof class and stable-main requirements are actually met.
+
+Commits admitted to `dev` after `S` belong to the next promotion. They neither cancel nor enlarge the in-flight proof. A merge commit may leave `main` and `dev` with different ancestry even when their trees agree; synchronize that bookkeeping opportunistically and never make product agents wait for it.
 
 ## Emergency queue consolidation
 

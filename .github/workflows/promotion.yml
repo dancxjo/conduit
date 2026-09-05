@@ -20,11 +20,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Admit only the repository dev branch for stable promotion
+      - name: Admit only an exact frozen dev snapshot for stable promotion
         env:
           CONDUIT_EVENT_NAME: pull_request
           CONDUIT_BASE_REF: ${{ github.event.pull_request.base.ref }}
           CONDUIT_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          CONDUIT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           CONDUIT_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           CONDUIT_REPOSITORY: ${{ github.repository }}
         run: node scripts/ci/branch-boundary.mjs promotion

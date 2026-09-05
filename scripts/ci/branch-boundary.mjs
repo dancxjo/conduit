@@ -6,6 +6,12 @@ function requireExact(actual, expected, name) {
   }
 }
 
+function requireCommitSha(actual, name) {
+  if (!/^[0-9a-f]{40}$/.test(actual || "")) {
+    throw new Error(`${name} must be a full lowercase Git commit SHA; received ${actual || "<empty>"}`);
+  }
+}
+
 export function validateBoundary(mode, environment) {
   if (mode === "candidate") {
     requireExact(environment.CONDUIT_EVENT_NAME, "pull_request", "event");
@@ -20,9 +26,17 @@ export function validateBoundary(mode, environment) {
   if (mode === "promotion") {
     requireExact(environment.CONDUIT_EVENT_NAME, "pull_request", "event");
     requireExact(environment.CONDUIT_BASE_REF, "main", "promotion base");
-    requireExact(environment.CONDUIT_HEAD_REF, "dev", "promotion source");
     requireExact(environment.CONDUIT_HEAD_REPOSITORY, environment.CONDUIT_REPOSITORY, "promotion repository");
-    return { mode, admission: "exhaustive", source: "dev", target: "main" };
+    requireCommitSha(environment.CONDUIT_HEAD_SHA, "promotion snapshot identity");
+    const expectedRef = `promote/${environment.CONDUIT_HEAD_SHA}`;
+    requireExact(environment.CONDUIT_HEAD_REF, expectedRef, "promotion snapshot ref");
+    return {
+      mode,
+      admission: "exhaustive",
+      source: "frozen-dev-snapshot",
+      snapshot: environment.CONDUIT_HEAD_SHA,
+      target: "main",
+    };
   }
   throw new Error(`unknown branch boundary ${mode || "<empty>"}`);
 }

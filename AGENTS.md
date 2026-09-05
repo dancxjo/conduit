@@ -13,7 +13,7 @@ When these sources differ, do not improvise a synthesis. Current executable trut
 
 ## Before starting
 
-- Start ordinary work from an explicit, current `dev` commit and record it in the issue or PR. Only the PR shepherd prepares `dev`-to-`main` promotion work.
+- Start ordinary work from an explicit, current `dev` commit and record it in the issue or PR. Only the PR shepherd prepares frozen-`dev` promotion work for `main`.
 - State the one outcome being attempted, its non-goals, and the proof needed to accept it.
 - Identify the files and contracts the work is expected to own.
 - Check open PRs for overlapping files or architectural surfaces.
@@ -66,8 +66,8 @@ Disk cleanup is machine maintenance, not permission to change Conduit source or 
 
 ## Change discipline
 
-- Do not push directly to `main`. Stable `main` accepts only the exact head of the repository's `dev` branch through a promotion PR whose exhaustive gate succeeded.
-- Do not open feature, documentation, maintenance, or CI PRs directly against `main`. The sole routine `main` PR is `dev` to `main` promotion.
+- Do not push directly to `main`. Stable `main` accepts only an immutable `promote/<full-dev-sha>` snapshot through a promotion PR whose exhaustive gate succeeded.
+- Do not open feature, documentation, maintenance, or CI PRs directly against `main`. The sole routine `main` PR is a frozen `dev` snapshot promotion.
 - Keep PRs reviewable. A large milestone may use several small PRs, but closing the parent issue requires the complete acceptance proof.
 - Do not introduce broad renames, compatibility layers, dependencies, generated files, or cleanup unrelated to the owned outcome.
 - Do not rebuild archived subsystems wholesale. Recover the smallest reviewed concept demanded by a working vertical slice and record its provenance in `docs/reuse-ledger.md`.
@@ -117,15 +117,15 @@ A green check proves only the commands and environments it actually ran.
 
 - `dev` is the construction site. Feature PRs receive focused impact-based proof sufficient to admit them into integration; one PR never cancels another.
 - A push to `dev` proves the combined development tree with integration smoke. A red `dev` blocks further admission until repaired.
-- `main` is stable and releasable. A same-repository `dev`-to-`main` promotion PR runs the exhaustive workspace, product, browser, firmware, and ConduitOS gate against its exact head.
+- `main` is stable and releasable. A same-repository frozen `promote/<full-dev-sha>` snapshot PR to `main` runs the exhaustive workspace, product, browser, firmware, and ConduitOS gate against its exact head. `dev` remains open for product admission while that snapshot is proved.
 - Candidate evidence answers whether a change is sound enough for `dev`. Development evidence answers whether the current combined tree basically works. Promotion evidence alone answers whether an exact tree may become `main`.
 - Merging or advancing `dev` does not require old feature heads to negotiate with future CI. Refresh stale candidates onto current `dev` when they approach admission.
-- Pages deployment consumes the already-proven carrier from the successful promotion and runs only after that promotion merges. Privileged deployment code never executes untrusted PR-controlled code.
+- Pages deployment consumes the already-proven carrier from the successful frozen-snapshot promotion and runs only after that promotion merges. Privileged deployment code never executes untrusted PR-controlled code.
 - Emergency consolidation is exceptional recovery: snapshot every open head, combine only reviewed deltas on a branch from current `dev`, resolve fallout once, prove the combined tree, merge it to `dev`, verify every absorbed head or patch is represented, then close superseded PRs with signed evidence. Never force an unproven recovery tree into `main`.
 
 ### PR shepherd
 
-The named PR shepherd keeps the queue moving and the branch boundaries truthful. They monitor open PRs and Actions, redirect PRs aimed at the wrong branch, refresh old product deltas onto current `dev`, sequence overlapping work, resolve integration failures before accepting more changes, close absorbed or obsolete PRs with evidence, and open periodic `dev`-to-`main` promotions. They simplify avoidable process rather than adding ceremonial bytes or compatibility layers. They do not weaken proof classes, cross privilege boundaries, or claim a deployment before exact promotion evidence exists.
+The named PR shepherd keeps the queue moving and the branch boundaries truthful. They monitor open PRs and Actions, redirect PRs aimed at the wrong branch, refresh old product deltas onto current `dev`, sequence overlapping work, resolve integration failures before accepting more changes, close absorbed or obsolete PRs with evidence, and open periodic frozen-snapshot promotions to `main`. They simplify avoidable process rather than adding ceremonial bytes or compatibility layers. They do not weaken proof classes, cross privilege boundaries, or claim a deployment before exact promotion evidence exists.
 
 ## PR contract
 
