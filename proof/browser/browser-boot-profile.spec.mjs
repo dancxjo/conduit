@@ -99,6 +99,61 @@ test("selected durable storage reopens one maximum bounded binary value exactly"
   });
 });
 
+test("binary durable storage keeps corruption and application quota exhaustion distinct", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const module = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+    const selected = { implementationRegistry: ["browser/indexeddb@1"] };
+    const digest = `sha256:${"b".repeat(64)}`;
+    const corrupt = await module.openBrowserApplicationStorage("proof/history-corrupt", 1, digest, selected);
+    await corrupt.writeBytes("timeline", new Uint8Array([1, 2, 3]));
+
+    const request = indexedDB.open("conduit-browser-host-applications", 2);
+    const database = await new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction("application-state", "readwrite");
+    const store = transaction.objectStore("application-state");
+    const identity = "proof/history-corrupt@1\u0000timeline";
+    const record = await new Promise((resolve, reject) => {
+      const get = store.get(identity);
+      get.addEventListener("success", () => resolve(get.result), { once: true });
+      get.addEventListener("error", () => reject(get.error), { once: true });
+    });
+    store.put({ ...record, valueBytes: record.valueBytes + 1 });
+    await new Promise((resolve, reject) => {
+      transaction.addEventListener("complete", resolve, { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+    let corruptRecord;
+    try { await corrupt.readBytes("timeline"); } catch (error) { corruptRecord = error.code; }
+    await corrupt.clearApplication();
+    corrupt.close();
+
+    const quota = await module.openBrowserApplicationStorage("proof/history-quota", 1, digest, selected);
+    const valuesThatFit = quota.bounds.maximumApplicationBytes / quota.bounds.maximumValueBytes;
+    const value = new Uint8Array(quota.bounds.maximumValueBytes);
+    for (let index = 0; index < valuesThatFit; index += 1) {
+      await quota.writeBytes(`timeline-${index}`, value);
+    }
+    let quotaExhausted;
+    try { await quota.writeBytes("timeline-overflow", value); }
+    catch (error) { quotaExhausted = error.code; }
+    const overflowAbsent = await quota.readBytes("timeline-overflow");
+    await quota.clearApplication();
+    quota.close();
+    return { corruptRecord, quotaExhausted, overflowAbsent, valuesThatFit };
+  });
+  expect(result).toEqual({
+    corruptRecord: "CorruptRecord",
+    quotaExhausted: "ApplicationCapacityExhausted",
+    overflowAbsent: null,
+    valuesThatFit: 16,
+  });
+});
+
 test("device PROFILE selection offers only acquisition without permission or resource claims", async ({ page }) => {
   const ids = ["browser/webserial@1", "browser/webusb@1"];
   const fixture = await makeImage(ids);
