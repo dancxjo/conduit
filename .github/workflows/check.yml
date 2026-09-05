@@ -932,37 +932,39 @@ jobs:
         continue-on-error: true
         env:
           SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+          CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
           args=()
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
-          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --locked
+          cargo xtask conduitos prove-many "${args[@]}" --max-parallel 2 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
       - name: Validate the complete x86 batch contract
         id: x86-contract
         if: always()
         continue-on-error: true
         env:
           SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+          CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           jq -e --argjson expected "$SELECTED_PROOFS" '
             .schema == "conduit.conduitos.prove-many/v1" and
             (($expected | length) == 1 or .maximum_observed_parallelism > 1) and
             ([.results[].proof] == ($expected | sort)) and
             all(.results[]; .status == "success")
-          ' target/conduitos/prove-many/summary.json
+          ' "$CONDUIT_X86_BATCH_ROOT/summary.json"
       - name: Retain distinct bounded x86 proof evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: conduitos-x86-batch-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: |
-            target/conduitos/prove-many/summary.json
-            target/conduitos/prove-many/results
-            target/conduitos/prove-many/runs/*/logs
-            target/conduitos/prove-many/runs/*/evidence
-            target/conduitos/prove-many/runs/*/conduitos/**/*.json
-            target/conduitos/prove-many/runs/*/conduitos/**/*.log
-            target/conduitos/prove-many/runs/*/conduitos/**/*.png
+            ${{ runner.temp }}/conduitos-prove-many/summary.json
+            ${{ runner.temp }}/conduitos-prove-many/results
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/logs
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/evidence
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/conduitos/**/*.json
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/conduitos/**/*.log
+            ${{ runner.temp }}/conduitos-prove-many/runs/*/conduitos/**/*.png
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
@@ -982,6 +984,7 @@ jobs:
         if: steps.x86-proofs.outcome == 'success' && steps.x86-contract.outcome == 'success' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           SELECTED_PROOFS: ${{ needs.classify.outputs.conduitos_x86_matrix }}
+          CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           chmod 755 "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch"
           mkdir -p target/ci-receipts
@@ -993,7 +996,7 @@ jobs:
               "$RUNNER_TEMP/conduit-ci-plan/ci-proof-plan.json" >/dev/null
             "$RUNNER_TEMP/conduit-ci-attestation/conduit-xtask-dispatch" \
               ci attest-success "$CONDUIT_CHECKOUT_SHA" "$proof_id" \
-              --evidence "target/conduitos/prove-many/results/$proof.json" \
+              --evidence "$CONDUIT_X86_BATCH_ROOT/results/$proof.json" \
               --out "target/ci-receipts/$proof_id.json" --locked
           done
       - name: Retain immutable x86 proof receipts
