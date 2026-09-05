@@ -130,7 +130,7 @@ fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
     state: ReplayState...| >
     gap: HistoricalRetentionGap >
 ) {
-    history: history/bounded-typed(value-profile = "bench/record@1", maximum-entries = 8, maximum-referenced-bytes = 4096, overflow-policy = "evict-oldest-with-gap")
+    history: history/bounded-typed(value-profile = "bench/record@1", clock-basis = "bench/session-clock", time-scale = "milliseconds", maximum-entries = 8, maximum-referenced-bytes = 4096, overflow-policy = "evict-oldest-with-gap", first-sequence = 0)
     source: history/replay-source
     replay: time/replay-control("original-timing", 1, 1)
     command > history.command

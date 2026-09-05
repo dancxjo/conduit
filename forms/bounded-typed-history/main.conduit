@@ -1,12 +1,15 @@
 form bounded-typed-history (
     value-profile: Text = "value/text@1"
+    clock-basis: Text = "history/event-clock"
+    time-scale: Text = "milliseconds"
     maximum-entries: Count = 16
     maximum-referenced-bytes: Count = 1048576
     overflow-policy: Text = "refuse"
+    first-sequence: Count = 0
     > command: HistoricalTimelineCommand...|
     timeline: HistoricalTypedTimeline >
 ) {
-    history: history/bounded-typed(value-profile, maximum-entries, maximum-referenced-bytes, overflow-policy)
+    history: history/bounded-typed(value-profile, clock-basis, time-scale, maximum-entries, maximum-referenced-bytes, overflow-policy, first-sequence)
     command > history.command
     history.timeline > timeline
 }

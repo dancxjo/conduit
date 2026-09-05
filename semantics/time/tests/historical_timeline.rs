@@ -290,5 +290,5 @@ fn typed_history_is_an_ordinary_checked_form_with_explicit_policy() {
     assert_eq!(authored.output_bindings.len(), 1);
     let history = &authored.expanded.gears[0];
     assert_eq!(history.kind_id.as_str(), HISTORICAL_TIMELINE_KIND);
-    assert_eq!(history.configuration.len(), 4);
+    assert_eq!(history.configuration.len(), 7);
 }

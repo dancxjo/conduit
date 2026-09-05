@@ -175,6 +175,16 @@ pub fn install_historical_timeline_catalog(
                 default: Some("value/text@1".to_string()),
             },
             StartupParameterSignature {
+                name: "clock-basis".to_string(),
+                value_type: "Text".to_string(),
+                default: Some("history/event-clock".to_string()),
+            },
+            StartupParameterSignature {
+                name: "time-scale".to_string(),
+                value_type: "Text".to_string(),
+                default: Some(crate::HISTORICAL_TIME_SCALE_MILLISECONDS.to_string()),
+            },
+            StartupParameterSignature {
                 name: "maximum-entries".to_string(),
                 value_type: "Count".to_string(),
                 default: Some("16".to_string()),
@@ -188,6 +198,11 @@ pub fn install_historical_timeline_catalog(
                 name: "overflow-policy".to_string(),
                 value_type: "Text".to_string(),
                 default: Some("refuse".to_string()),
+            },
+            StartupParameterSignature {
+                name: "first-sequence".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("0".to_string()),
             },
         ],
     })?;
