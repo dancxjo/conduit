@@ -1,0 +1,12 @@
+# Follow peer rhythm with a finite deterministic adjustment policy.
+# This is phase following, not distributed consensus.
+form phase-synchronization (
+    local: time/rhythm-state@1...|
+    peer: time/pulse-observation@1...|
+    > updated: time/rhythm-state@1...|
+) {
+    synchronize: time/phase-synchronize
+    local > synchronize.local
+    peer > synchronize.peer
+    synchronize.updated > updated
+}

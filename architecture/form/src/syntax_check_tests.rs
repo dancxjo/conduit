@@ -51,6 +51,22 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
 }
 
 #[test]
+fn comment_only_edits_change_source_identity_but_not_checked_meaning() {
+    let plain = check("form a {\n clock: time/every(1s)\n clock > sink\n}\n");
+    let commented = check(
+        "# document note\nform a { # header\n clock: time/every(1s) # source\n clock > sink # route\n} # close\n",
+    );
+
+    assert_ne!(plain.source_document_id, commented.source_document_id);
+    assert_eq!(
+        plain.forms[0].checked_form_id,
+        commented.forms[0].checked_form_id
+    );
+    assert_eq!(plain.forms[0].gears, commented.forms[0].gears);
+    assert_eq!(plain.forms[0].cords, commented.forms[0].cords);
+}
+
+#[test]
 fn positional_named_and_local_reference_bindings_are_semantically_equivalent() {
     let positional = check("form a {\n clock: time/every(1s)\n}\n");
     let named = check("form a {\n clock: time/every(freq = 1s)\n}\n");

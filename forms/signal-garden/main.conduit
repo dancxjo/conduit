@@ -1,0 +1,22 @@
+# A meaningful minimal Garden has only its explicitly required clock source.
+form signal-garden-minimal (
+    state: GardenState >
+) {
+    observations: garden/deterministic-observations
+    evolve: state/garden-step
+    observations.prior > evolve.prior
+    observations.clock > evolve.clock
+    evolve.next > state
+}
+
+# Contact enriches the same state family through a distinct mandatory typed port.
+form signal-garden-interactive (
+    state: GardenState >
+) {
+    observations: garden/deterministic-observations
+    evolve: state/garden-step-contact
+    observations.prior > evolve.prior
+    observations.clock > evolve.clock
+    observations.contact > evolve.contact
+    evolve.next > state
+}

@@ -1,0 +1,11 @@
+# Reusable minimal evolution from explicit prior state and clock observation.
+form garden-state-step (
+    > prior: GardenState
+    > clock: GardenClockObservation
+    next: GardenState >
+) {
+    evolve: state/garden-step
+    prior > evolve.prior
+    clock > evolve.clock
+    evolve.next > next
+}

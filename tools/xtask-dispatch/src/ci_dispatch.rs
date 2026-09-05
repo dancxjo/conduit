@@ -11,6 +11,7 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some("candidate") => candidate(arguments),
         Some("reconcile") => reconcile(arguments),
         Some("reconcile-product") => reconcile_product(arguments),
+        Some("promotion-snapshot") => promotion_snapshot(arguments),
         Some("attest-success") => attest(arguments),
         Some("rust-toolchain-preflight") => rust_toolchain_preflight(arguments),
         Some("standalone-locks") => standalone_locks(arguments),
@@ -19,6 +20,30 @@ pub(super) fn run(arguments: &[String]) -> Result<(), String> {
         Some(command) => Err(format!("unsupported ci command: {command}")),
         None => Err("missing ci command".to_owned()),
     }
+}
+
+fn promotion_snapshot(arguments: &[String]) -> Result<(), String> {
+    let mut values = arguments.iter().skip(2);
+    let mut dev_ref = "origin/dev".to_owned();
+    let mut main_ref = "origin/main".to_owned();
+    let mut remote = "origin".to_owned();
+    let mut push = false;
+    while let Some(argument) = values.next() {
+        match argument.as_str() {
+            "--locked" => {}
+            "--dev-ref" => dev_ref = required(&mut values, "--dev-ref value")?,
+            "--main-ref" => main_ref = required(&mut values, "--main-ref value")?,
+            "--remote" => remote = required(&mut values, "--remote value")?,
+            "--push" => push = true,
+            other => {
+                return Err(format!(
+                    "unsupported ci promotion-snapshot argument: {other}"
+                ))
+            }
+        }
+    }
+    crate::promotion_snapshot::run(&dev_ref, &main_ref, &remote, push)
+        .map_err(|error| error.to_string())
 }
 
 fn product_execution_plan(arguments: &[String]) -> Result<(), String> {

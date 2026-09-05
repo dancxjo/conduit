@@ -1,0 +1,8 @@
+# Collect exactly four ordered points into one semantic bounded stroke.
+form bounded-stroke-capture (
+    point: Point2...| > stroke: Path2Four
+) {
+    capture: geometry/capture-bounded-stroke
+    point > capture.point
+    capture.stroke > stroke
+}

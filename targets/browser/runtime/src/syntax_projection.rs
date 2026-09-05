@@ -173,6 +173,22 @@ mod tests {
     }
 
     #[test]
+    fn inline_comment_projects_through_the_existing_browser_comment_kind() {
+        let source = "form note { value = \"channel #7\" # visible note\n}\n";
+        let projection = project(source).unwrap();
+        assert!(projection
+            .spans
+            .iter()
+            .any(|(start, end, kind)| *kind == SyntaxKind::Comment as u8
+                && &source[*start as usize..*end as usize] == "# visible note"));
+        assert!(projection
+            .spans
+            .iter()
+            .any(|(start, end, kind)| *kind == SyntaxKind::String as u8
+                && &source[*start as usize..*end as usize] == "\"channel #7\""));
+    }
+
+    #[test]
     fn worst_case_book_input_fits_the_bounded_output_arena() {
         let source = "x ".repeat(INPUT_BYTES / 2);
         let encoded = serde_json::to_vec(&project(&source).unwrap()).unwrap();

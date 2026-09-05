@@ -174,6 +174,14 @@ mod logic;
 pub use logic::*;
 mod math;
 pub use math::*;
+mod quantity_mapping;
+pub use quantity_mapping::*;
+mod signal_garden;
+pub use signal_garden::*;
+#[cfg(feature = "form-catalog")]
+mod signal_garden_catalog;
+#[cfg(feature = "form-catalog")]
+pub use signal_garden_catalog::*;
 mod layout;
 pub use layout::*;
 mod patchbay_presentation;
@@ -272,6 +280,7 @@ pub enum TerminalBehavior {
 /// installed std implementation. This is discovery truth, not a Host offer.
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
+    contracts.push(quantity_map_contract());
     contracts.extend(patchbay_presentation_contracts());
     contracts.extend(alife_contracts());
     contracts.extend(robotics_hazard_contracts());
