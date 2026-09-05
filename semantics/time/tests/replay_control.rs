@@ -119,6 +119,18 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         Err(ReplayRefusal::IncomparableHistoricalTime)
     ));
     assert!(matches!(
+        BoundedReplayController::new_with_maximum_duration(
+            &[entry("a", 0), entry("b", 1_001)],
+            ReplayPolicy::Step,
+            1,
+        ),
+        Err(ReplayRefusal::ReplayDurationExceeded)
+    ));
+    assert!(matches!(
+        BoundedReplayController::new_with_maximum_duration(&entries(), ReplayPolicy::Step, 0),
+        Err(ReplayRefusal::InvalidDurationLimit)
+    ));
+    assert!(matches!(
         BoundedReplayController::new(
             &entries(),
             ReplayPolicy::Rate {
@@ -147,28 +159,6 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
 }
 
 #[test]
-fn arithmetic_refusal_does_not_advance_the_playback_clock() {
-    let entries = vec![entry("event/first", 0), entry("event/overflow", u64::MAX)];
-    let mut replay = BoundedReplayController::new(
-        &entries,
-        ReplayPolicy::Rate {
-            numerator: 1,
-            denominator: MAXIMUM_REPLAY_RATE_TERM,
-        },
-    )
-    .unwrap();
-    replay.start(0).unwrap();
-    assert_eq!(replay.poll(0).unwrap().unwrap().ordinal, 0);
-
-    assert_eq!(replay.poll(10), Err(ReplayRefusal::ArithmeticOverflow));
-    assert_eq!(replay.cursor(), 1);
-    assert_eq!(replay.state(), ReplayState::Running);
-    assert_eq!(replay.poll(9), Err(ReplayRefusal::ArithmeticOverflow));
-    assert_eq!(replay.cursor(), 1);
-    assert_eq!(replay.state(), ReplayState::Running);
-}
-
-#[test]
 fn replay_policy_is_exact_inspectable_configuration() {
     let entries = |mode: ConfigurationValue, numerator, denominator| {
         vec![
@@ -184,6 +174,10 @@ fn replay_policy_is_exact_inspectable_configuration() {
                 key: "rate-denominator".into(),
                 value: ConfigurationValue::U64(denominator),
             },
+            ConfigurationEntry {
+                key: "maximum-duration-seconds".into(),
+                value: ConfigurationValue::U64(60),
+            },
         ]
     };
     assert_eq!(
@@ -193,6 +187,32 @@ fn replay_policy_is_exact_inspectable_configuration() {
             1,
         )),
         Ok(ReplayPolicy::Step)
+    );
+    assert_eq!(
+        replay_maximum_duration_from_configuration(&entries(
+            ConfigurationValue::Text(REPLAY_MODE_STEP.into()),
+            1,
+            1,
+        )),
+        Ok(60)
+    );
+    assert_eq!(
+        replay_maximum_duration_from_configuration(&[]),
+        Err(ReplayDurationConfigurationRefusal::Missing)
+    );
+    assert_eq!(
+        replay_maximum_duration_from_configuration(&[ConfigurationEntry {
+            key: "maximum-duration-seconds".into(),
+            value: ConfigurationValue::Text("one day".into()),
+        }]),
+        Err(ReplayDurationConfigurationRefusal::WrongType)
+    );
+    assert_eq!(
+        replay_maximum_duration_from_configuration(&[ConfigurationEntry {
+            key: "maximum-duration-seconds".into(),
+            value: ConfigurationValue::U64(0),
+        }]),
+        Err(ReplayDurationConfigurationRefusal::OutOfBounds)
     );
     assert_eq!(
         replay_policy_from_configuration(&entries(
@@ -255,7 +275,7 @@ fn replay_control_is_an_ordinary_checked_form() {
         authored.expanded.gears[0].kind_id.as_str(),
         REPLAY_CONTROL_KIND
     );
-    assert_eq!(authored.expanded.gears[0].configuration.len(), 3);
+    assert_eq!(authored.expanded.gears[0].configuration.len(), 4);
     assert_eq!(
         replay_policy_from_configuration(&authored.expanded.gears[0].configuration),
         Ok(ReplayPolicy::OriginalTiming)

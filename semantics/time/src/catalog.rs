@@ -135,6 +135,11 @@ pub fn install_replay_control_catalog(
                 value_type: "Count".to_string(),
                 default: Some("1".to_string()),
             },
+            StartupParameterSignature {
+                name: "maximum-duration-seconds".to_string(),
+                value_type: "Count".to_string(),
+                default: Some(crate::MAXIMUM_REPLAY_DURATION_SECONDS.to_string()),
+            },
         ],
     })?;
     profile

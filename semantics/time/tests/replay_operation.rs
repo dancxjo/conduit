@@ -159,6 +159,13 @@ fn missing_or_invalid_timeline_and_policy_remain_distinct() {
         }),
         Err(ReplayOperationRefusal::InvalidPolicy)
     ));
+    assert!(matches!(
+        BoundedReplayOperation::new_with_maximum_duration(ReplayPolicy::Step, 0),
+        Err(ReplayOperationRefusal::InvalidDurationLimit)
+    ));
+    let mut bounded =
+        BoundedReplayOperation::new_with_maximum_duration(ReplayPolicy::Step, 1).unwrap();
+    assert!(matches!(bounded.load_timeline(&timeline()), Ok(())));
     let mut operation = BoundedReplayOperation::new(ReplayPolicy::Step).unwrap();
     let (mut event, mut state) = outputs();
     assert_eq!(

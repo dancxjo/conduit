@@ -1,11 +1,12 @@
 //! Finite replay sequencing with historical and playback time kept distinct.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{ConfigurationEntry, ConfigurationValue, TemporalInstant};
+use conduit_core::TemporalInstant;
 
 pub const MAXIMUM_REPLAY_ENTRIES: usize = 64;
 pub const MAXIMUM_REPLAY_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_REPLAY_RATE_TERM: u32 = 1_000;
+pub const MAXIMUM_REPLAY_DURATION_SECONDS: u64 = 86_400;
 pub const REPLAY_MODE_STEP: &str = "step";
 pub const REPLAY_MODE_ORIGINAL_TIMING: &str = "original-timing";
 pub const REPLAY_MODE_RATE: &str = "rate";
@@ -52,67 +53,13 @@ pub enum ReplayRefusal {
     DuplicateIdentity,
     ReorderedHistoricalTime,
     InvalidRate,
+    InvalidDurationLimit,
+    ReplayDurationExceeded,
     InvalidHistoricalTime,
     IncomparableHistoricalTime,
     InvalidState,
     PlaybackClockRegressed,
     ArithmeticOverflow,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ReplayPolicyConfigurationRefusal {
-    Missing(&'static str),
-    WrongType(&'static str),
-    UnknownMode,
-    RateOutOfBounds,
-}
-
-pub fn replay_policy_from_configuration(
-    entries: &[ConfigurationEntry],
-) -> Result<ReplayPolicy, ReplayPolicyConfigurationRefusal> {
-    let mut mode = None;
-    let mut numerator = None;
-    let mut denominator = None;
-    for entry in entries {
-        match (entry.key.as_str(), &entry.value) {
-            ("mode", ConfigurationValue::Text(value)) => mode = Some(value.as_str()),
-            ("rate-numerator", ConfigurationValue::U64(value)) => numerator = Some(*value),
-            ("rate-denominator", ConfigurationValue::U64(value)) => denominator = Some(*value),
-            ("mode", _) => return Err(ReplayPolicyConfigurationRefusal::WrongType("mode")),
-            ("rate-numerator", _) => {
-                return Err(ReplayPolicyConfigurationRefusal::WrongType(
-                    "rate-numerator",
-                ));
-            }
-            ("rate-denominator", _) => {
-                return Err(ReplayPolicyConfigurationRefusal::WrongType(
-                    "rate-denominator",
-                ));
-            }
-            _ => {}
-        }
-    }
-    let mode = mode.ok_or(ReplayPolicyConfigurationRefusal::Missing("mode"))?;
-    let numerator = numerator.ok_or(ReplayPolicyConfigurationRefusal::Missing("rate-numerator"))?;
-    let denominator = denominator.ok_or(ReplayPolicyConfigurationRefusal::Missing(
-        "rate-denominator",
-    ))?;
-    if numerator == 0
-        || denominator == 0
-        || numerator > u64::from(MAXIMUM_REPLAY_RATE_TERM)
-        || denominator > u64::from(MAXIMUM_REPLAY_RATE_TERM)
-    {
-        return Err(ReplayPolicyConfigurationRefusal::RateOutOfBounds);
-    }
-    match mode {
-        REPLAY_MODE_STEP => Ok(ReplayPolicy::Step),
-        REPLAY_MODE_ORIGINAL_TIMING => Ok(ReplayPolicy::OriginalTiming),
-        REPLAY_MODE_RATE => Ok(ReplayPolicy::Rate {
-            numerator: numerator as u32,
-            denominator: denominator as u32,
-        }),
-        _ => Err(ReplayPolicyConfigurationRefusal::UnknownMode),
-    }
 }
 
 /// A bounded controller over retained entry metadata. Payload ownership stays
@@ -133,7 +80,20 @@ impl BoundedReplayController {
         entries: &[HistoricalReplayEntry],
         policy: ReplayPolicy,
     ) -> Result<Self, ReplayRefusal> {
+        Self::new_with_maximum_duration(entries, policy, MAXIMUM_REPLAY_DURATION_SECONDS)
+    }
+
+    pub fn new_with_maximum_duration(
+        entries: &[HistoricalReplayEntry],
+        policy: ReplayPolicy,
+        maximum_duration_seconds: u64,
+    ) -> Result<Self, ReplayRefusal> {
         validate_policy(policy)?;
+        if maximum_duration_seconds == 0
+            || maximum_duration_seconds > MAXIMUM_REPLAY_DURATION_SECONDS
+        {
+            return Err(ReplayRefusal::InvalidDurationLimit);
+        }
         if entries.is_empty() {
             return Err(ReplayRefusal::EmptyTimeline);
         }
@@ -159,6 +119,12 @@ impl BoundedReplayController {
             }
             if index > 0 && entry.event_time.ticks < entries[index - 1].event_time.ticks {
                 return Err(ReplayRefusal::ReorderedHistoricalTime);
+            }
+            if index > 0
+                && entry.event_time.ticks - entries[0].event_time.ticks
+                    > maximum_duration_ticks(entry.event_time.scale, maximum_duration_seconds)
+            {
+                return Err(ReplayRefusal::ReplayDurationExceeded);
             }
             if entries[..index]
                 .iter()
@@ -372,6 +338,15 @@ impl BoundedReplayController {
     }
 }
 
+const fn maximum_duration_ticks(scale: conduit_core::TemporalScale, seconds: u64) -> u64 {
+    match scale {
+        conduit_core::TemporalScale::Seconds => seconds,
+        conduit_core::TemporalScale::Milliseconds => seconds * 1_000,
+        conduit_core::TemporalScale::Microseconds => seconds * 1_000_000,
+        conduit_core::TemporalScale::Nanoseconds => seconds * 1_000_000_000,
+    }
+}
+
 fn validate_policy(policy: ReplayPolicy) -> Result<(), ReplayRefusal> {
     if let ReplayPolicy::Rate {
         numerator,
@@ -387,92 +362,4 @@ fn validate_policy(policy: ReplayPolicy) -> Result<(), ReplayRefusal> {
         }
     }
     Ok(())
-}
-
-#[cfg(feature = "form-catalog")]
-pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
-    use alloc::string::ToString;
-    use conduit_core::{
-        kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-        StructuredInfoType,
-    };
-    use conduit_form::{ConfigurationField, ConfigurationRule};
-    let port = |name, value_kind, direction, temporal| PortDescriptor {
-        port_id: port_id(name),
-        value_kind: StructuredInfoType::leaf(kind_id(value_kind))
-            .expect("reviewed replay value identity")
-            .profile()
-            .expect("reviewed replay value profile")
-            .value_kind()
-            .clone(),
-        direction,
-        temporal,
-    };
-    conduit_form::KindDefinition {
-        kind_id: kind_id(REPLAY_CONTROL_KIND),
-        kind_contract_revision: KindContractRevision::from(REPLAY_CONTROL_CONTRACT_REVISION),
-        inputs: alloc::vec![
-            port(
-                "timeline",
-                "history/replay-timeline@1",
-                PortDirection::Input,
-                PortTemporal::Value,
-            ),
-            port(
-                "control",
-                "history/replay-control@1",
-                PortDirection::Input,
-                PortTemporal::Flow { closes: true }
-            ),
-            port(
-                "clock",
-                "time/playback-tick@1",
-                PortDirection::Input,
-                PortTemporal::Flow { closes: true }
-            ),
-        ],
-        outputs: alloc::vec![
-            port(
-                "event",
-                "history/replay-event@1",
-                PortDirection::Output,
-                PortTemporal::Flow { closes: true }
-            ),
-            port(
-                "state",
-                "history/replay-state@1",
-                PortDirection::Output,
-                PortTemporal::Flow { closes: true }
-            ),
-        ],
-        configuration: alloc::vec![
-            ConfigurationField {
-                key: "mode".to_string(),
-                default_value: ConfigurationValue::Text(REPLAY_MODE_ORIGINAL_TIMING.to_string()),
-                validation: ConfigurationRule::TextOneOf {
-                    values: alloc::vec![
-                        REPLAY_MODE_STEP.to_string(),
-                        REPLAY_MODE_ORIGINAL_TIMING.to_string(),
-                        REPLAY_MODE_RATE.to_string(),
-                    ],
-                },
-            },
-            ConfigurationField {
-                key: "rate-numerator".to_string(),
-                default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: u64::from(MAXIMUM_REPLAY_RATE_TERM),
-                },
-            },
-            ConfigurationField {
-                key: "rate-denominator".to_string(),
-                default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: u64::from(MAXIMUM_REPLAY_RATE_TERM),
-                },
-            },
-        ],
-    }
 }

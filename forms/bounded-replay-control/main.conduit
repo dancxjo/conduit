@@ -2,13 +2,14 @@ form bounded-replay-control (
     mode: Text = "original-timing"
     rate-numerator: Count = 1
     rate-denominator: Count = 1
+    maximum-duration-seconds: Count = 86400
     > timeline: ReplayTimeline
     > control: ReplayControl...|
     > clock: PlaybackTick...|
     event: ReplayEvent...| >
     state: ReplayState...| >
 ) {
-    replay: time/replay-control(mode, rate-numerator, rate-denominator)
+    replay: time/replay-control(mode, rate-numerator, rate-denominator, maximum-duration-seconds)
     timeline > replay.timeline
     control > replay.control
     clock > replay.clock
