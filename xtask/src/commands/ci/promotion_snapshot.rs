@@ -166,7 +166,7 @@ mod tests {
             .stdout(Stdio::piped())
             .spawn()
             .unwrap();
-        write!(child.stdin.as_mut().unwrap(), "independent test history\n").unwrap();
+        writeln!(child.stdin.as_mut().unwrap(), "independent test history").unwrap();
         let output = child.wait_with_output().unwrap();
         assert!(output.status.success());
         String::from_utf8(output.stdout).unwrap().trim().to_owned()
