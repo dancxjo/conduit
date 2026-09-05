@@ -21,6 +21,16 @@ impl BatchTempRoot {
         let sequence = NEXT_BATCH.fetch_add(1, Ordering::Relaxed);
         let path =
             std::env::temp_dir().join(format!("conduit-x86-{}-{sequence}", std::process::id()));
+        let longest_socket = path.join("product-journey/x86_64/journey-monitor.sock");
+        if longest_socket.as_os_str().len() >= 108 {
+            return Err(ConduitosError::refusal(
+                "proof-batch-temp-path-too-long",
+                format!(
+                    "QMP socket path exceeds the UNIX bound: {}",
+                    longest_socket.display()
+                ),
+            ));
+        }
         fs::create_dir(&path).map_err(|error| {
             ConduitosError::refusal(
                 "proof-batch-temp-unavailable",

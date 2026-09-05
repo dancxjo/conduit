@@ -77,6 +77,13 @@ impl X86Proof {
         )
     }
 
+    /// Rescue drives several timing-sensitive guest boots in sequence. Giving it
+    /// the whole local QEMU environment avoids starving unrelated HID proofs;
+    /// the other propositions remain safe to overlap within the declared bound.
+    fn requires_exclusive_environment(self) -> bool {
+        self == Self::Rescue
+    }
+
     fn arguments(self, evidence_root: &Path) -> Vec<String> {
         let mut arguments = vec!["conduitos".to_owned()];
         match self {
@@ -180,9 +187,13 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
 
     while !pending.is_empty() || !running.is_empty() {
         while running.len() < args.max_parallel {
-            let Some(proof) = pending.pop_front() else {
+            let Some(proof) = pending.front().copied() else {
                 break;
             };
+            if !may_launch(proof, &running) {
+                break;
+            }
+            pending.pop_front();
             started += 1;
             let spawned = spawn_proof(
                 proof,
@@ -295,6 +306,16 @@ pub(super) fn execute(args: ProveManyArgs, opts: &GlobalOpts) -> Result<(), Cond
         println!("ConduitOS x86 proof batch: {}", output_root.display());
     }
     Ok(())
+}
+
+fn may_launch(proof: X86Proof, running: &[RunningProof]) -> bool {
+    running
+        .iter()
+        .all(|running| may_share_environment(proof, running.proof))
+}
+
+fn may_share_environment(left: X86Proof, right: X86Proof) -> bool {
+    !left.requires_exclusive_environment() && !right.requires_exclusive_environment()
 }
 
 fn refuse_nonempty_root(output_root: &Path) -> Result<(), ConduitosError> {

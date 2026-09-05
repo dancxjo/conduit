@@ -101,3 +101,12 @@ fn one_failure_does_not_erase_a_completed_sibling_result() {
     assert_eq!(failure_names(&results), ["usb"]);
     assert_eq!(results[1].status, "success");
 }
+
+#[test]
+fn rescue_owns_the_qemu_environment_while_other_proofs_can_overlap() {
+    assert!(X86Proof::Rescue.requires_exclusive_environment());
+    assert!(!X86Proof::Usb.requires_exclusive_environment());
+    assert!(may_share_environment(X86Proof::Usb, X86Proof::Xhci));
+    assert!(!may_share_environment(X86Proof::Rescue, X86Proof::Usb));
+    assert!(!may_share_environment(X86Proof::Usb, X86Proof::Rescue));
+}

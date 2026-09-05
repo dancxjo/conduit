@@ -250,7 +250,10 @@ Selected ConduitOS x86 propositions share one Ubuntu runner and one prepared
 toolchain through `cargo xtask conduitos prove-many`. The command admits at most
 eight named proofs and admits a bounded concurrency ceiling. Hosted CI uses two
 children so QEMU's existing bounded interaction deadlines remain meaningful on
-the two-core runner while still overlapping independent proofs. Each child
+the two-core runner while still overlapping independent proofs. The rescue
+proposition performs several timing-sensitive guest boots and therefore owns
+the local QEMU environment while it runs; ordinary x86 propositions retain
+two-way overlap before that barrier. Each child
 has a distinct short-lived target root (short enough for UNIX QMP socket
 bounds), QMP/socket namespace, logs, evidence, result JSON,
 and proof receipt. A failure is collected without cancelling its siblings, so
