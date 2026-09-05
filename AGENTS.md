@@ -48,6 +48,21 @@ Parallel work is encouraged only when ownership is clear.
 - Do not edit another agent's branch, rewrite its history, or absorb its issue without an explicit handoff.
 - A green exact-PR-head proof remains valid when `main` advances through changes that are disjoint from the PR's owned files, dependencies, proof inputs, and governing contracts and GitHub still computes a clean merge. Record that disjointness check; do not rebase or rerun merely to refresh ancestry. Rebase or merge current `main` and rerun only when the intervening changes overlap one of those surfaces, alter the prospective merge, or make the prior proof materially stale.
 
+## Local machine disk cleanup
+
+Aggressive cleanup is a valid maintenance option only on Dan's user-owned local-network machines whose hostname is `victus.local` or ends in `.local`. It is never valid in cloud, CI, hosted runner, shared, or otherwise remotely managed environments, even when disk pressure is severe. Verify the hostname and environment before deleting anything; an unknown environment means stop and report the disk-pressure blocker.
+
+On an eligible `.local` machine, recover space in this order:
+
+1. Inventory filesystem usage and the largest directories before changing state. Check for active Cargo, compiler, browser-proof, VM, and other processes that may own candidate artifacts.
+2. Remove regenerable build outputs such as inactive Rust `target` directories and tool caches. Preserve outputs used by a running process. Do not delete source trees, repositories, credentials, downloads, virtual-machine images, or other user data merely because they are large.
+3. Empty desktop trash and remove stale user-owned temporary artifacts. Do not disturb active sockets, sessions, system-owned temporary paths, or recent artifacts whose ownership is unclear.
+4. Use package-native cleanup for package caches and bounded journal retention when available. Do not bypass missing privileges or turn a cleanup into an operating-system reconfiguration.
+5. Before deleting a Git worktree, fetch and prune `origin`, verify that the worktree is not the active checkout, verify `git status --porcelain` is empty including untracked files, and verify its exact `HEAD` is reachable from at least one current `origin/*` ref. Retain and report every dirty, untracked, unpushed, unreachable, or unverifiable worktree. Remove qualifying worktrees through `git worktree remove`, then run `git worktree prune`; do not delete their directories directly.
+6. Report the before/after free space, what classes of data were removed, what large candidates were deliberately preserved, and any cleanup blocked by permissions.
+
+Disk cleanup is machine maintenance, not permission to change Conduit source or enlarge an issue's implementation scope.
+
 ## Change discipline
 
 - Do not push directly to `main`.
