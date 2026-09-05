@@ -264,6 +264,29 @@ material, not evidence and is not uploaded. This replaces up to eight
 simultaneous x86 runners with one while leaving the stable `check` aggregate and
 exact proof keys intact.
 
+Reconciliation does not stop at a lane-level decision. The trusted controller
+projects its bounded list of novel check proof IDs through the typed proof
+registry into exact workspace, ESP32, ConduitOS x86, architecture, and
+controller selections. The reusable check workflow uses that projection in
+place of ordinary path impact for integration execution. Inherited proof IDs
+therefore do not produce new proof receipts merely because one sibling
+proposition is novel. A selected machine proof may still prepare an inherited
+tool or image environment that it actually needs, but that preparation is not
+reported as a newly executed proof. Unknown, duplicate, oversized, or
+product-lane IDs fail before fan-out.
+Ordinary pull-request candidates and merge-group planning continue to use the
+normal impact graph when no reconciliation delta is supplied.
+
+The product lane receives its own exact projection rather than reducing the
+verified delta back to the `products-proof` aggregate. A novel `browser.tour`
+key prepares the browser runtime and completes the Tour proof in one Playwright
+environment without fabricating hardware or a Pages carrier. A novel Patchbay
+debugger key runs only that bounded proof surface. Only a novel
+`products.pages-carrier` key admits the full staged catalog, browser shards,
+and carrier fabrication. Unknown, duplicate, oversized, or check-lane IDs fail
+before product fan-out. Ordinary candidate product runs still use the typed
+impact plan when no reconciliation delta is supplied.
+
 Later work can split broad nodes, model fabricated artifacts as independent
 graph nodes, remove duplicated path-filtered workflows, batch the shared
 browser environment, and make Crèche payload delivery lazy without changing

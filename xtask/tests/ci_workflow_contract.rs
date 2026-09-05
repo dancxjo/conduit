@@ -288,7 +288,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
         );
     }
     assert!(products.contains(
-        "if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.required == 'true'"
+        "if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true'"
     ));
 }
 
@@ -444,8 +444,9 @@ fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
     assert!(gate.contains("tour-patchbay-proof"));
     assert!(workflow.contains("id: debugger-bootstrap"));
     assert!(workflow.contains("reason=proof-definition-bootstrap"));
-    assert!(workflow
-        .contains("patchbay_debugger_required: ${{ steps.debugger-bootstrap.outputs.required }}"));
+    assert!(workflow.contains(
+        "patchbay_debugger_required: ${{ steps.exact.outputs.patchbay_debugger_required || steps.debugger-bootstrap.outputs.required }}"
+    ));
     assert_eq!(
         proof
             .matches("if: needs.plan.outputs.patchbay_debugger_required == 'true'")
@@ -810,4 +811,43 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(x86.contains("ci-proof-conduitos.x86.batch-${{ env.CONDUIT_CHECKOUT_SHA }}"));
     assert!(x86.contains("name: Preserve the exact x86 batch as the proof gate"));
     assert!(x86.contains("if: always()\n        uses: actions/upload-artifact@v7"));
+}
+
+#[test]
+fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    let reconciliation = fs::read_to_string(root.join(".github/workflows/reconcile-candidate.yml"))
+        .expect("read reconciliation workflow");
+    let check =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+        .expect("read product workflow");
+
+    assert!(reconciliation
+        .contains("execute_proofs: ${{ needs.resolve.outputs.check_execute_proofs }}"));
+    assert!(reconciliation
+        .contains("execute_proofs: ${{ needs.resolve.outputs.products_execute_proofs }}"));
+    assert!(check.contains("execute_proofs:\n"));
+    assert!(check.contains("ci execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
+    assert!(check.contains(
+        "workspace_matrix: ${{ steps.execution.outputs.workspace_matrix || steps.impact.outputs.workspace_matrix"
+    ));
+    assert!(check.contains(
+        "conduitos_x86_matrix: ${{ steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix"
+    ));
+    assert!(check.contains(
+        "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.limine\"')"
+    ));
+    assert!(check.contains(
+        "inputs.execute_proofs == '' || contains(inputs.execute_proofs, '\"conduitos.tools\"')"
+    ));
+    assert!(products.contains("execute_proofs:\n"));
+    assert!(products
+        .contains("ci product-execution-plan --proof-ids-json \"$EXECUTE_PROOFS\" --locked"));
+    assert!(
+        products.contains("pages_carrier_required: ${{ steps.exact.outputs.pages_carrier_required")
+    );
+    assert!(products
+        .contains("Complete the exact Tour proposition without entering the carrier pipeline"));
+    assert!(products.contains("needs.plan.outputs.pages_carrier_required == 'true'"));
 }
