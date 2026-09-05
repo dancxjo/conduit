@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+const SHARED_COMPILE_FAILURE_FIXTURE: = ();
+
 mod application_event;
 mod application_theme;
 mod application_view;

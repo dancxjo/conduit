@@ -2,6 +2,8 @@
 
 extern crate alloc;
 
+// CI fixture: select independent pinned ConduitOS prerequisites.
+
 pub mod allocation;
 pub mod arch;
 pub mod boot;

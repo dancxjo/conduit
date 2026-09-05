@@ -91,3 +91,4 @@ impl HostFabricationPackage for Esp32FabricationPackage {
         })
     }
 }
+// CI fixture: select the independent standalone-lock prerequisite.
