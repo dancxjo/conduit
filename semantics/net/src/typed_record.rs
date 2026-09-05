@@ -248,14 +248,35 @@ fn validate_record(record: TypedRecordRef<'_>) -> Result<(), TypedRecordFrameRef
     if record.payload.len() > MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES {
         return Err(TypedRecordFrameRefusal::PayloadTooLarge);
     }
-    let value = StructuredInfoValue::from_canonical_bytes(record.payload)
+    let value = conduit_core::validate_canonical_structured_value(record.payload)
         .map_err(|_| TypedRecordFrameRefusal::MalformedPayload)?;
-    let payload_kind = value
-        .value_type()
-        .profile()
-        .map_err(|_| TypedRecordFrameRefusal::MalformedPayload)?;
-    if payload_kind.value_kind().as_str() != record.value_kind {
+    if !profile_matches(value.type_semantic_digest(), record.value_kind) {
         return Err(TypedRecordFrameRefusal::PayloadTypeMismatch);
     }
     Ok(())
+}
+
+fn profile_matches(digest: [u8; 32], candidate: &str) -> bool {
+    let Some(hex) = candidate
+        .strip_prefix("structured-info/profile-")
+        .and_then(|value| value.strip_suffix("@1"))
+    else {
+        return false;
+    };
+    if hex.len() != 64 {
+        return false;
+    }
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    hex.as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .zip(digest)
+        .all(|(pair, byte)| {
+            *pair
+                == [
+                    DIGITS[usize::from(byte >> 4)],
+                    DIGITS[usize::from(byte & 0x0f)],
+                ]
+        })
 }

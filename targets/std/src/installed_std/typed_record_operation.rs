@@ -1,5 +1,5 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
-use conduit_core::{PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
     PortId, RequestId,
@@ -69,12 +69,20 @@ impl TypedRecordFrameOperation {
 
 pub(super) struct TypedRecordFrameHost {
     frame: [u8; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES],
+    typed_type: Vec<u8>,
+    framed_type: Vec<u8>,
     output: Vec<u8>,
 }
 impl TypedRecordFrameHost {
     fn new() -> Self {
         Self {
             frame: [0; conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES],
+            typed_type: conduit_net::typed_record_type()
+                .canonical_bytes()
+                .expect("typed-record type is finite"),
+            framed_type: conduit_net::framed_typed_record_type()
+                .canonical_bytes()
+                .expect("framed-record type is finite"),
             output: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         }
     }
@@ -82,15 +90,47 @@ impl TypedRecordFrameHost {
         &mut self,
         input: &[u8],
     ) -> Result<&[u8], conduit_net::TypedRecordFrameRefusal> {
-        let value = StructuredInfoValue::from_canonical_bytes(input)
-            .map_err(|_| conduit_net::TypedRecordFrameRefusal::WrongTypedRecordValueType)?;
-        let written = conduit_net::frame_typed_record_value_into(&value, &mut self.frame)?;
-        let framed = conduit_net::framed_typed_record_value(&self.frame[..written])?;
-        self.output = framed
-            .canonical_bytes()
-            .map_err(|_| conduit_net::TypedRecordFrameRefusal::FrameTooLarge)?;
+        let node = input
+            .strip_prefix(self.typed_type.as_slice())
+            .ok_or(conduit_net::TypedRecordFrameRefusal::WrongTypedRecordValueType)?;
+        let encoded = leaf_bytes(node)
+            .ok_or(conduit_net::TypedRecordFrameRefusal::WrongTypedRecordValueType)?;
+        if encoded.len() < 2 {
+            return Err(conduit_net::TypedRecordFrameRefusal::MalformedPayload);
+        }
+        let kind_len = usize::from(u16::from_le_bytes([encoded[0], encoded[1]]));
+        let kind_end = 2_usize
+            .checked_add(kind_len)
+            .ok_or(conduit_net::TypedRecordFrameRefusal::LengthOverflow)?;
+        let kind = core::str::from_utf8(
+            encoded
+                .get(2..kind_end)
+                .ok_or(conduit_net::TypedRecordFrameRefusal::MalformedPayload)?,
+        )
+        .map_err(|_| conduit_net::TypedRecordFrameRefusal::InvalidValueKindEncoding)?;
+        let payload = encoded
+            .get(kind_end..)
+            .ok_or(conduit_net::TypedRecordFrameRefusal::MalformedPayload)?;
+        let written = conduit_net::encode_typed_record_into(
+            conduit_net::TypedRecordRef::new(kind, payload)?,
+            &mut self.frame,
+        )?;
+        self.output.clear();
+        self.output.extend_from_slice(&self.framed_type);
+        self.output.push(0);
+        self.output
+            .extend_from_slice(&(written as u32).to_le_bytes());
+        self.output.extend_from_slice(&self.frame[..written]);
         Ok(&self.output)
     }
+}
+
+fn leaf_bytes(node: &[u8]) -> Option<&[u8]> {
+    if node.first() != Some(&0) || node.len() < 5 {
+        return None;
+    }
+    let length = usize::try_from(u32::from_le_bytes(node[1..5].try_into().ok()?)).ok()?;
+    (node.len() == 5 + length).then_some(&node[5..])
 }
 
 pub(super) fn prepare_hosts(

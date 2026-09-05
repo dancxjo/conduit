@@ -1,8 +1,8 @@
 use conduit_core::{
-    KindId, RuntimeStructuredInfo, StartupStructuredValue, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
-    StructuredVariantCase, MAXIMUM_STRUCTURED_COLLECTION_ITEMS, MAXIMUM_STRUCTURED_INFO_DEPTH,
-    MAXIMUM_STRUCTURED_LEAF_BYTES,
+    validate_canonical_structured_value, KindId, RuntimeStructuredInfo, StartupStructuredValue,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
+    MAXIMUM_STRUCTURED_INFO_DEPTH, MAXIMUM_STRUCTURED_LEAF_BYTES,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -164,6 +164,9 @@ fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
     let type_bytes = collection_type.canonical_bytes().unwrap();
     let node = canonical.strip_prefix(type_bytes.as_slice()).unwrap();
     assert_eq!(collection_type.validate_canonical_node(node), Ok(()));
+    let validated = validate_canonical_structured_value(&canonical).unwrap();
+    assert_eq!(validated.type_bytes(), type_bytes);
+    assert_eq!(validated.value_node(), node);
     let mut malformed = node.to_vec();
     malformed.push(0);
     assert_eq!(
