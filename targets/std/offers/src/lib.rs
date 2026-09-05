@@ -20,6 +20,8 @@ mod copy_file;
 pub use copy_file::*;
 mod structured_values;
 pub use structured_values::*;
+mod image_text;
+pub use image_text::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod keyboard;
