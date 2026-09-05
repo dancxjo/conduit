@@ -1,7 +1,63 @@
 use crate::{
-    parse_syntax_document, Argument, BackStatement, ConstructionRole, CordStage, ExpressionSyntax,
-    RuntimePortDirection, RuntimePortTemporal,
+    parse_syntax_document, Argument, BackStatement, ConstructionRole, CordStage, CstTokenKind,
+    ExpressionSyntax, RuntimePortDirection, RuntimePortTemporal,
 };
+use alloc::vec::Vec;
+
+#[test]
+fn inline_comments_are_lossless_trivia_across_surface_roles() {
+    let source = "# before definitions\nform peer ( # face opens\n    label: Text = \"channel #7\" # startup\n    input: Text > output: Text # runtime face\n) { # back opens\n    # inside back\n    local = \"value # retained\" # local value\n    gear: text/constant(value = \"gear # retained\") # named gear\n    pool peers: peer(size = 2) # bounded pool\n    input > gear > output # cord\n} # form closes\nhost workstation { # host opens\n    profile = \"host # one\" # host declaration\n} # host closes\nbody household { # body opens\n    member = \"body # one\" # body declaration\n} # body closes\n";
+    let document = parse_syntax_document(source);
+    assert_eq!(document.round_trip(), source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.forms.len(), 1);
+    assert_eq!(document.forms[0].face.startup_parameters.len(), 1);
+    assert_eq!(document.forms[0].face.runtime_ports.len(), 2);
+    assert_eq!(document.forms[0].back.len(), 4);
+    assert_eq!(document.constructions.len(), 2);
+    assert_eq!(document.constructions[0].role, ConstructionRole::Host);
+    assert_eq!(document.constructions[1].role, ConstructionRole::Body);
+    assert_eq!(
+        document.forms[0].face.startup_parameters[0]
+            .default
+            .as_ref()
+            .unwrap()
+            .text,
+        "\"channel #7\""
+    );
+    assert_eq!(
+        document.constructions[0].declarations[0].value.text,
+        "\"host # one\""
+    );
+
+    let comments = document
+        .tokens
+        .iter()
+        .filter(|token| token.kind == CstTokenKind::Comment)
+        .map(|token| token.text.as_str())
+        .collect::<Vec<_>>();
+    assert!(comments.contains(&"# startup"));
+    assert!(comments.contains(&"# cord"));
+    assert!(!comments.iter().any(|comment| comment.contains("retained")));
+}
+
+#[test]
+fn malformed_statement_before_inline_comment_keeps_its_exact_span() {
+    let source = "form bad {\n    clock: # missing kind\n}\n";
+    let document = parse_syntax_document(source);
+    let diagnostic = document.diagnostics.first().unwrap();
+    assert_eq!(
+        &source[diagnostic.span.start..diagnostic.span.end],
+        "clock:"
+    );
+    assert_eq!(diagnostic.span.line, 2);
+    assert_eq!(diagnostic.span.column, 5);
+    assert_eq!(document.round_trip(), source);
+}
 
 #[test]
 fn canonical_document_roles_share_tokens_declarations_values_and_diagnostics() {

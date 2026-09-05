@@ -565,7 +565,7 @@ fn tokenize_losslessly(source: &str) -> Result<Vec<CstToken>, Span> {
             }
         } else {
             kind = CstTokenKind::Lexeme;
-            let quote = matches!(first, '\'' | '"').then_some(first);
+            let mut quote = None;
             let mut escaped = false;
             while offset < source.len() {
                 let next = source[offset..]
@@ -576,11 +576,16 @@ fn tokenize_losslessly(source: &str) -> Result<Vec<CstToken>, Span> {
                     break;
                 }
                 advance(next, &mut offset, &mut line, &mut column);
-                if let Some(quote) = quote {
-                    if next == quote && offset > start + next.len_utf8() && !escaped {
-                        break;
+                if let Some(active) = quote {
+                    if next == active && !escaped {
+                        quote = None;
                     }
                     escaped = next == '\\' && !escaped;
+                    if next != '\\' {
+                        escaped = false;
+                    }
+                } else if matches!(next, '\'' | '"') {
+                    quote = Some(next);
                 }
             }
         }
