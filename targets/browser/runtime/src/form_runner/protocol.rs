@@ -84,6 +84,7 @@ pub(super) enum TourHostEffect {
     Manifestation(Box<TourEffect>),
     Timer(Box<TourTimerEffect>),
     KeyEvent(Box<TourKeyEventEffect>),
+    PointerEvent(Box<TourKeyEventEffect>),
     ButtonTransition(Box<TourButtonTransitionEffect>),
 }
 
@@ -96,6 +97,7 @@ impl TourHostEffect {
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Timer(effect) => effect.source_interaction = Some(source_interaction),
             Self::KeyEvent(effect) => effect.source_interaction = Some(source_interaction),
+            Self::PointerEvent(effect) => effect.source_interaction = Some(source_interaction),
             Self::ButtonTransition(effect) => effect.source_interaction = Some(source_interaction),
         }
     }

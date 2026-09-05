@@ -12,7 +12,10 @@ mod logic;
 mod math;
 mod morse;
 mod morse_composition;
+mod normalized_quantity;
 mod operation;
+mod pointer;
+pub(crate) mod pointer_selector;
 mod presentation;
 mod quantity;
 mod quantity_output;
@@ -38,9 +41,14 @@ pub(crate) use limits::{
     BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS, BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS,
     MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
 };
+pub(crate) use normalized_quantity::{
+    transform as normalize_quantity, HOST_OPERATION as NORMALIZE_QUANTITY_OPERATION,
+};
 pub(crate) use operation::BrowserOperation;
+pub(crate) use pointer::HOST_OPERATION as POINTER_EVENT_OPERATION;
 pub(crate) use quantity::{
-    transform as transform_quantity, HOST_OPERATION as QUANTITY_HOST_OPERATION,
+    configuration as prepare_quantity_mapping, transform as transform_quantity,
+    HOST_OPERATION as QUANTITY_HOST_OPERATION,
 };
 pub(crate) use quantity_output::{
     decode as decode_quantity_leaf, wrap as wrap_quantity,

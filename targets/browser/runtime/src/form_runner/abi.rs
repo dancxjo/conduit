@@ -56,6 +56,44 @@ pub extern "C" fn conduit_tour_encode_button_transition(pressed: u32, sequence: 
     }
 }
 
+/// Encode an acquired pointer sample with the existing portable input codec.
+/// This creates no Plan or Play and performs no quantity mapping.
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_encode_pointer(
+    position_x: i32,
+    position_y: i32,
+    delta_x: i32,
+    delta_y: i32,
+    primary_pressed: u32,
+    coalesced: u32,
+    dropped: u32,
+    queue_capacity: u32,
+    sequence: u32,
+) -> i32 {
+    clear_output();
+    if primary_pressed > 1 {
+        return ERROR_INPUT;
+    }
+    let sample = conduit_semantic_catalog::NormalizedPointerSample {
+        position_x: position_x.into(),
+        position_y: position_y.into(),
+        delta_x: delta_x.into(),
+        delta_y: delta_y.into(),
+        primary_pressed: primary_pressed == 1,
+        coalesced: coalesced.into(),
+        dropped: dropped.into(),
+        queue_capacity: queue_capacity.into(),
+        sequence: sequence.into(),
+    };
+    let encoded = conduit_semantic_catalog::normalized_pointer_value(sample)
+        .map_err(|_| ())
+        .and_then(|value| value.canonical_bytes().map_err(|_| ()));
+    match encoded.and_then(|bytes| write_output_bytes(&bytes)) {
+        Ok(()) => STATUS_READY,
+        Err(()) => ERROR_INPUT,
+    }
+}
+
 /// Writes the machine-readable browser Gear inventory derived from the same
 /// Host advertisement used by planning.
 #[no_mangle]

@@ -66,7 +66,7 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
     assert_eq!(placement.host_operations[0].maximum_input_bytes, 8);
     assert_eq!(placement.host_operations[0].maximum_output_bytes, 9);
     let value = crate::installed_browser::transform_quantity(
-        placement,
+        crate::installed_browser::prepare_quantity_mapping(placement).unwrap(),
         &conduit_core::Scalar::from_raw_microunits(-1).encode(),
     )
     .unwrap()

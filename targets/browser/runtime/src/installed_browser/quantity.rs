@@ -47,7 +47,7 @@ fn offer() -> conduit_core::CapabilityOffer {
     offer
 }
 
-fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, String> {
+pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, String> {
     let number = |key: &str| {
         placement
             .configuration
@@ -107,10 +107,9 @@ fn prepare(
 }
 
 pub(crate) fn transform(
-    placement: &PlannedGear,
+    mapping: QuantityMapping,
     input: &[u8],
 ) -> Result<Result<[u8; conduit_core::QUANTITY_ENCODED_LEN], Failure>, String> {
-    let mapping = configuration(placement)?;
     Ok(Scalar::decode(input)
         .map_err(|_| failure(1))
         .and_then(|scalar| {
