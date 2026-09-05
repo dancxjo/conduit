@@ -85,6 +85,10 @@ entry = "memory_lantern"
 initial_body_order = 2
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
 [[forms]]
+slug = "measurement-window"
+title = "Measurement Window"
+entry = "measurement-window"
+[[forms]]
 slug = "messaging-delivery"
 title = "Messaging Delivery"
 entry = "messaging-delivery"

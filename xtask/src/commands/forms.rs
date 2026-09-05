@@ -431,6 +431,7 @@ fn catalogs() -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCata
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_finance_catalogs(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_window_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)?;

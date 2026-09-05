@@ -24,8 +24,20 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 37);
+    assert_eq!(checks.len(), 38);
     assert!(checks.iter().all(|result| result.status == "passed"));
+    let measurement_window = checks
+        .iter()
+        .find(|result| result.slug == "measurement-window")
+        .expect("measurement-window is explicitly reviewed");
+    assert_eq!(measurement_window.title, "Measurement Window");
+    assert_eq!(measurement_window.form_entry, "measurement-window");
+    assert_eq!(
+        measurement_window.source_path,
+        "forms/measurement-window/main.conduit"
+    );
+    assert!(measurement_window.source_document_id.is_some());
+    assert!(measurement_window.checked_form_id.is_some());
     assert!(report
         .results
         .iter()
