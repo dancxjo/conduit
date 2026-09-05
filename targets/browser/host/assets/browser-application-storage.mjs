@@ -107,7 +107,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     }
   }
 
-  async function readJson(key) {
+  async function readRecord(key) {
     requireCurrent();
     exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
     const transaction = database.transaction(STORE_NAME, "readonly");
@@ -126,6 +126,15 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     if (record.applicationIdentity !== applicationIdentity || record.applicationVersion !== applicationVersion) {
       refuse("CorruptRecord", "application storage identity changed");
     }
+    return record;
+  }
+
+  async function readJson(key) {
+    const record = await readRecord(key);
+    if (!record) return null;
+    if (record.encoding !== undefined && record.encoding !== "json") {
+      refuse("ValueKindMismatch", "application storage value is not JSON");
+    }
     try {
       return JSON.parse(record.value);
     } catch {
@@ -133,16 +142,9 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     }
   }
 
-  async function writeJson(key, value) {
+  async function writeValue(key, encoding, value, valueBytes) {
     requireCurrent();
     exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
-    let encoded;
-    try { encoded = JSON.stringify(value); }
-    catch (error) { refuse("ValueEncoding", "application storage value is not JSON encodable", error); }
-    if (typeof encoded !== "string") refuse("ValueEncoding", "application storage value is not JSON encodable");
-    const valueBytes = encoder.encode(encoded).length;
-    if (valueBytes > MAXIMUM_VALUE_BYTES) refuse("ValueBound", "application storage value exceeds its admitted bound");
-
     const transaction = database.transaction(STORE_NAME, "readwrite");
     const store = transaction.objectStore(STORE_NAME);
     const hostRecords = await requestResult(store.getAll(null, MAXIMUM_HOST_RECORDS + 1));
@@ -175,10 +177,50 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
       applicationVersion,
       packageDigest,
       key,
-      value: encoded,
+      encoding,
+      value,
       valueBytes,
     });
     await transactionComplete(transaction);
+  }
+
+  async function writeJson(key, value) {
+    requireCurrent();
+    exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
+    let encoded;
+    try { encoded = JSON.stringify(value); }
+    catch (error) { refuse("ValueEncoding", "application storage value is not JSON encodable", error); }
+    if (typeof encoded !== "string") refuse("ValueEncoding", "application storage value is not JSON encodable");
+    const valueBytes = encoder.encode(encoded).length;
+    if (valueBytes > MAXIMUM_VALUE_BYTES) refuse("ValueBound", "application storage value exceeds its admitted bound");
+    await writeValue(key, "json", encoded, valueBytes);
+  }
+
+  async function readBytes(key) {
+    const record = await readRecord(key);
+    if (!record) return null;
+    if (record.encoding !== "bytes") {
+      refuse("ValueKindMismatch", "application storage value is not bytes");
+    }
+    if (!(record.value instanceof ArrayBuffer) || record.value.byteLength !== record.valueBytes
+      || record.valueBytes > MAXIMUM_VALUE_BYTES) {
+      refuse("CorruptRecord", "application storage byte value is malformed");
+    }
+    return new Uint8Array(record.value.slice(0));
+  }
+
+  async function writeBytes(key, value) {
+    requireCurrent();
+    exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
+    if (!(value instanceof Uint8Array) || !(value.buffer instanceof ArrayBuffer)) {
+      refuse("ValueEncoding", "application storage byte value must be a Uint8Array");
+    }
+    const valueBytes = value.byteLength;
+    if (valueBytes > MAXIMUM_VALUE_BYTES) {
+      refuse("ValueBound", "application storage value exceeds its admitted bound");
+    }
+    const copy = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+    await writeValue(key, "bytes", copy, valueBytes);
   }
 
   async function deleteJson(key) {
@@ -229,6 +271,8 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     durability,
     readJson,
     writeJson,
+    readBytes,
+    writeBytes,
     deleteJson,
     clearApplication,
     close,

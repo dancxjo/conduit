@@ -7,10 +7,12 @@ use conduit_form::{
 };
 
 use crate::{
-    tick_outputs, MAX_TICK_COUNT, PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION,
-    PULSE_OBSERVATION_VALUE_KIND, PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION,
-    RHYTHM_STATE_VALUE_KIND, TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND,
-    TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
+    historical_timeline_kind_definition, replay_control_kind_definition,
+    replay_source_kind_definition, tick_outputs, HISTORICAL_TIMELINE_KIND, MAX_TICK_COUNT,
+    PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION, PULSE_OBSERVATION_VALUE_KIND,
+    PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION, REPLAY_SOURCE_KIND, RHYTHM_STATE_VALUE_KIND,
+    TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND, TIME_EVERY_CONTRACT_REVISION,
+    TIME_EVERY_KIND,
 };
 use conduit_core::{port_id, PortDescriptor, PortDirection, PortTemporal};
 
@@ -162,6 +164,139 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         direction,
         temporal: PortTemporal::Flow { closes: true },
     }
+}
+
+pub fn install_replay_control_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    for (name, identity) in [
+        ("ReplayTimeline", "history/replay-timeline@1"),
+        ("ReplayControl", "history/replay-control@1"),
+        ("PlaybackTick", "time/playback-tick@1"),
+        ("ReplayEvent", "history/replay-event@1"),
+        ("ReplayState", "history/replay-state@1"),
+    ] {
+        startup
+            .insert_structured_type(
+                name,
+                conduit_core::StructuredInfoType::leaf(kind_id(identity))
+                    .expect("reviewed replay value identity"),
+            )
+            .map_err(|error| error.to_string())?;
+    }
+    startup.insert(KindSignature {
+        kind: crate::REPLAY_CONTROL_KIND.to_string(),
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "mode".to_string(),
+                value_type: "Text".to_string(),
+                default: Some(crate::REPLAY_MODE_ORIGINAL_TIMING.to_string()),
+            },
+            StartupParameterSignature {
+                name: "rate-numerator".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1".to_string()),
+            },
+            StartupParameterSignature {
+                name: "rate-denominator".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1".to_string()),
+            },
+            StartupParameterSignature {
+                name: "maximum-duration-seconds".to_string(),
+                value_type: "Count".to_string(),
+                default: Some(crate::MAXIMUM_REPLAY_DURATION_SECONDS.to_string()),
+            },
+        ],
+    })?;
+    profile
+        .insert(replay_control_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn install_historical_timeline_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    for (name, identity) in [
+        (
+            "HistoricalTimelineCommand",
+            crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID,
+        ),
+        ("HistoricalTypedTimeline", "history/typed-timeline@1"),
+    ] {
+        startup
+            .insert_structured_type(
+                name,
+                conduit_core::StructuredInfoType::leaf(kind_id(identity))
+                    .expect("reviewed history value identity"),
+            )
+            .map_err(|error| error.to_string())?;
+    }
+    startup.insert(KindSignature {
+        kind: HISTORICAL_TIMELINE_KIND.to_string(),
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "value-profile".to_string(),
+                value_type: "Text".to_string(),
+                default: Some("value/text@1".to_string()),
+            },
+            StartupParameterSignature {
+                name: "clock-basis".to_string(),
+                value_type: "Text".to_string(),
+                default: Some("history/event-clock".to_string()),
+            },
+            StartupParameterSignature {
+                name: "time-scale".to_string(),
+                value_type: "Text".to_string(),
+                default: Some(crate::HISTORICAL_TIME_SCALE_MILLISECONDS.to_string()),
+            },
+            StartupParameterSignature {
+                name: "maximum-entries".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("16".to_string()),
+            },
+            StartupParameterSignature {
+                name: "maximum-referenced-bytes".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1048576".to_string()),
+            },
+            StartupParameterSignature {
+                name: "overflow-policy".to_string(),
+                value_type: "Text".to_string(),
+                default: Some("refuse".to_string()),
+            },
+            StartupParameterSignature {
+                name: "first-sequence".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("0".to_string()),
+            },
+        ],
+    })?;
+    profile
+        .insert(historical_timeline_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn install_replay_source_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    startup
+        .insert_structured_type(
+            "HistoricalRetentionGap",
+            conduit_core::StructuredInfoType::leaf(kind_id("history/retention-gap@1"))
+                .expect("reviewed retention-gap value identity"),
+        )
+        .map_err(|error| error.to_string())?;
+    startup.insert(KindSignature {
+        kind: REPLAY_SOURCE_KIND.to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(replay_source_kind_definition())
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(test)]

@@ -1,0 +1,10 @@
+form bounded-replay-source (
+    > timeline: HistoricalTypedTimeline
+    replay: ReplayTimeline >
+    gap: HistoricalRetentionGap >
+) {
+    source: history/replay-source
+    timeline > source.timeline
+    source.replay > replay
+    source.gap > gap
+}
