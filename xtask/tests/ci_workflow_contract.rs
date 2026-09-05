@@ -416,6 +416,10 @@ fn tour_proof_has_one_authoritative_candidate_workflow() {
     assert!(proof.contains("proof/browser/patchbay-debugger-projection.test.mjs"));
     assert!(proof.contains("proof/browser/playwright-config.test.mjs"));
     assert!(proof.contains("real Patchbay renderer|animated Cords"));
+    assert!(proof.contains("Form Gallery browses exact canonical Forms"));
+    assert!(proof.contains(
+        "if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true'"
+    ));
 }
 
 #[test]
