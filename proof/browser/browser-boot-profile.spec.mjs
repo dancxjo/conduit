@@ -51,6 +51,11 @@ test("selected durable storage reopens one maximum bounded binary value exactly"
     source[0] = 0;
     first.close();
 
+    const incompatible = await module.openBrowserApplicationStorage("proof/history-snapshot", 2, digest, selected);
+    let versionMismatch;
+    try { await incompatible.readBytes("timeline"); } catch (error) { versionMismatch = error.code; }
+    incompatible.close();
+
     const reopened = await module.openBrowserApplicationStorage("proof/history-snapshot", 1, digest, selected);
     const restored = await reopened.readBytes("timeline");
     let kindMismatch;
@@ -72,6 +77,7 @@ test("selected durable storage reopens one maximum bounded binary value exactly"
       first: restored[0],
       second: restored[1],
       last: restored.at(-1),
+      versionMismatch,
       kindMismatch,
       jsonMismatch,
       oversize,
@@ -84,6 +90,7 @@ test("selected durable storage reopens one maximum bounded binary value exactly"
     first: 0x43,
     second: 0x48,
     last: 0x54,
+    versionMismatch: "VersionMismatch",
     kindMismatch: "ValueKindMismatch",
     jsonMismatch: "ValueKindMismatch",
     oversize: "ValueBound",

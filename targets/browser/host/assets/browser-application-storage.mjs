@@ -107,7 +107,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     }
   }
 
-  async function readJson(key) {
+  async function readRecord(key) {
     requireCurrent();
     exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
     const transaction = database.transaction(STORE_NAME, "readonly");
@@ -126,6 +126,12 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     if (record.applicationIdentity !== applicationIdentity || record.applicationVersion !== applicationVersion) {
       refuse("CorruptRecord", "application storage identity changed");
     }
+    return record;
+  }
+
+  async function readJson(key) {
+    const record = await readRecord(key);
+    if (!record) return null;
     if (record.encoding !== undefined && record.encoding !== "json") {
       refuse("ValueKindMismatch", "application storage value is not JSON");
     }
@@ -191,15 +197,8 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
   }
 
   async function readBytes(key) {
-    requireCurrent();
-    exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
-    const transaction = database.transaction(STORE_NAME, "readonly");
-    const record = await requestResult(transaction.objectStore(STORE_NAME).get(prefix + key));
-    await transactionComplete(transaction);
+    const record = await readRecord(key);
     if (!record) return null;
-    if (record.applicationIdentity !== applicationIdentity || record.applicationVersion !== applicationVersion) {
-      refuse("CorruptRecord", "application storage identity changed");
-    }
     if (record.encoding !== "bytes") {
       refuse("ValueKindMismatch", "application storage value is not bytes");
     }
