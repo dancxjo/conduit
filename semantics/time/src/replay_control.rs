@@ -240,6 +240,37 @@ impl BoundedReplayController {
         self.accumulated_pause = 0;
     }
 
+    pub fn stop(&mut self) -> Result<(), ReplayRefusal> {
+        if !matches!(self.state, ReplayState::Running | ReplayState::Paused) {
+            return Err(ReplayRefusal::InvalidState);
+        }
+        self.state = ReplayState::Stopped;
+        self.playback_origin = 0;
+        self.last_playback_ticks = 0;
+        self.paused_at = None;
+        self.accumulated_pause = 0;
+        Ok(())
+    }
+
+    pub fn apply(
+        &mut self,
+        command: crate::ReplayCommand,
+        playback_ticks: u64,
+    ) -> Result<Option<ReplayEmission<'_>>, ReplayRefusal> {
+        match command {
+            crate::ReplayCommand::Start => self.start(playback_ticks).map(|()| None),
+            crate::ReplayCommand::Stop => self.stop().map(|()| None),
+            crate::ReplayCommand::Pause => self.pause(playback_ticks).map(|()| None),
+            crate::ReplayCommand::Resume => self.resume(playback_ticks).map(|()| None),
+            crate::ReplayCommand::Restart => {
+                self.restart();
+                Ok(None)
+            }
+            crate::ReplayCommand::Step => self.step(playback_ticks).map(Some),
+            crate::ReplayCommand::Fail { code } => self.fail(code).map(|()| None),
+        }
+    }
+
     pub fn fail(&mut self, code: u16) -> Result<(), ReplayRefusal> {
         if matches!(
             self.state,
