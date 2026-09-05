@@ -148,6 +148,37 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
     assert_eq!(replay.poll(19), Err(ReplayRefusal::PlaybackClockRegressed));
 }
 
+#[test]
+fn arithmetic_refusal_does_not_advance_the_playback_clock() {
+    let entries = vec![
+        HistoricalReplayEntry {
+            identity: "event/first".into(),
+            event_ticks: 0,
+        },
+        HistoricalReplayEntry {
+            identity: "event/overflow".into(),
+            event_ticks: u64::MAX,
+        },
+    ];
+    let mut replay = BoundedReplayController::new(
+        &entries,
+        ReplayPolicy::Rate {
+            numerator: 1,
+            denominator: MAXIMUM_REPLAY_RATE_TERM,
+        },
+    )
+    .unwrap();
+    replay.start(0).unwrap();
+    assert_eq!(replay.poll(0).unwrap().unwrap().ordinal, 0);
+
+    assert_eq!(replay.poll(10), Err(ReplayRefusal::ArithmeticOverflow));
+    assert_eq!(replay.cursor(), 1);
+    assert_eq!(replay.state(), ReplayState::Running);
+    assert_eq!(replay.poll(9), Err(ReplayRefusal::ArithmeticOverflow));
+    assert_eq!(replay.cursor(), 1);
+    assert_eq!(replay.state(), ReplayState::Running);
+}
+
 #[cfg(feature = "form-catalog")]
 #[test]
 fn replay_control_is_an_ordinary_checked_form() {

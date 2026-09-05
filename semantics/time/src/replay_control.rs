@@ -128,8 +128,9 @@ impl BoundedReplayController {
         if self.state != ReplayState::Running {
             return Err(ReplayRefusal::InvalidState);
         }
-        self.observe_clock(playback_ticks)?;
+        self.validate_clock(playback_ticks)?;
         self.elapsed(playback_ticks)?;
+        self.last_playback_ticks = playback_ticks;
         self.paused_at = Some(playback_ticks);
         self.state = ReplayState::Paused;
         Ok(())
@@ -139,7 +140,7 @@ impl BoundedReplayController {
         if self.state != ReplayState::Paused || self.policy == ReplayPolicy::Step {
             return Err(ReplayRefusal::InvalidState);
         }
-        self.observe_clock(playback_ticks)?;
+        self.validate_clock(playback_ticks)?;
         let paused_at = self.paused_at.ok_or(ReplayRefusal::InvalidState)?;
         let paused_duration = playback_ticks
             .checked_sub(paused_at)
@@ -148,6 +149,7 @@ impl BoundedReplayController {
             .accumulated_pause
             .checked_add(paused_duration)
             .ok_or(ReplayRefusal::ArithmeticOverflow)?;
+        self.last_playback_ticks = playback_ticks;
         self.paused_at = None;
         self.state = ReplayState::Running;
         Ok(())
@@ -160,9 +162,10 @@ impl BoundedReplayController {
         if self.state != ReplayState::Running {
             return Err(ReplayRefusal::InvalidState);
         }
-        self.observe_clock(playback_ticks)?;
+        self.validate_clock(playback_ticks)?;
         let elapsed = self.elapsed(playback_ticks)?;
         let required = self.required_elapsed(self.cursor)?;
+        self.last_playback_ticks = playback_ticks;
         if elapsed < required {
             return Ok(None);
         }
@@ -173,7 +176,8 @@ impl BoundedReplayController {
         if self.state != ReplayState::Paused || self.policy != ReplayPolicy::Step {
             return Err(ReplayRefusal::InvalidState);
         }
-        self.observe_clock(playback_ticks)?;
+        self.validate_clock(playback_ticks)?;
+        self.last_playback_ticks = playback_ticks;
         self.emit(playback_ticks)
     }
 
@@ -202,11 +206,10 @@ impl BoundedReplayController {
             .ok_or(ReplayRefusal::PlaybackClockRegressed)
     }
 
-    fn observe_clock(&mut self, playback_ticks: u64) -> Result<(), ReplayRefusal> {
+    fn validate_clock(&self, playback_ticks: u64) -> Result<(), ReplayRefusal> {
         if playback_ticks < self.last_playback_ticks {
             return Err(ReplayRefusal::PlaybackClockRegressed);
         }
-        self.last_playback_ticks = playback_ticks;
         Ok(())
     }
 
