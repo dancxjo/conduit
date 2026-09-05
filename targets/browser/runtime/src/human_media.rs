@@ -1,11 +1,11 @@
 //! Admitted browser media lifecycle. Browser APIs remain outside this module.
 
-use conduit_core::{AuthorityGrantId, HostOperationId, PlanId};
+use conduit_core::{AuthorityGrantId, BoundedResourceRef, HostOperationId, KindId, PlanId};
 use conduit_human::{
     plan_media_acquisition, select_acquired_media, AcquiredMediaResource,
-    MediaAcquisitionAuthority, MediaAcquisitionOffer, MediaAcquisitionPlan,
-    MediaAcquisitionRequest, MediaAcquisitionResult, MediaPlanningRefusal, MediaUseRequirement,
-    SelectedMediaResource,
+    ImageObservationReference, ImageObservationRefusal, MediaAcquisitionAuthority,
+    MediaAcquisitionOffer, MediaAcquisitionPlan, MediaAcquisitionRequest, MediaAcquisitionResult,
+    MediaPlanningRefusal, MediaUseRequirement, SelectedMediaResource,
 };
 
 mod abi;
@@ -63,6 +63,7 @@ pub enum BrowserMediaRefusal {
     MalformedCompletion,
     ValueTooLarge,
     Pressure,
+    ImageObservation(ImageObservationRefusal),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -219,6 +220,24 @@ impl BrowserMediaSession {
         self.retained_bytes = bytes;
         self.observed_values += 1;
         Ok(())
+    }
+
+    /// Admit one already-materialized image value from the selected camera
+    /// flow. The browser adapter owns byte capture and resource realization;
+    /// this boundary validates only exact portable observation truth.
+    pub fn admit_image_observation(
+        &mut self,
+        content: BoundedResourceRef,
+        width: u16,
+        height: u16,
+        expected_profile: &KindId,
+    ) -> Result<ImageObservationReference, BrowserMediaRefusal> {
+        let bytes = usize::try_from(content.extent.bytes)
+            .map_err(|_| BrowserMediaRefusal::ValueTooLarge)?;
+        let observation = ImageObservationReference::new(content, width, height, expected_profile)
+            .map_err(BrowserMediaRefusal::ImageObservation)?;
+        self.admit_value(bytes)?;
+        Ok(observation)
     }
 
     pub fn release_value(&mut self) -> Result<(), BrowserMediaRefusal> {
