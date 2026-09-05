@@ -76,6 +76,25 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         workspace_packages: &[],
     },
     ControllerProofSpec {
+        id: "ci.merged-branch-retirement",
+        implementation_inputs: &[
+            ".github/workflows/retire-merged-pr-branch.yml",
+            "proof/ci/retire-merged-pr-branch.spec.mjs",
+            "scripts/ci/retire-merged-pr-branch.mjs",
+            "xtask/src/commands/ci/impact.rs",
+            "xtask/src/commands/ci/impact/tests.rs",
+            "xtask/tests/ci_workflow_contract.rs",
+        ],
+        // Planner/test files are bounded to this controller only when its
+        // complete executable slice anchors the same change.
+        required_inputs: &[
+            ".github/workflows/retire-merged-pr-branch.yml",
+            "proof/ci/retire-merged-pr-branch.spec.mjs",
+            "scripts/ci/retire-merged-pr-branch.mjs",
+        ],
+        workspace_packages: &["xtask"],
+    },
+    ControllerProofSpec {
         id: "ci.actions-monitor",
         implementation_inputs: &[
             "tools/xtask-dispatch/src/main.rs",
