@@ -8,7 +8,9 @@ use alloc::vec::Vec;
 
 use crate::KindId;
 
+mod borrowed;
 mod canonical;
+pub use borrowed::*;
 mod inspection;
 mod profile;
 mod selection;
