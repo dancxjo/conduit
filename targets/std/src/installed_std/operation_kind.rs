@@ -25,6 +25,7 @@ use super::math_operations::MathScalarOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
+use super::pattern_comparison_operation::PatternComparisonOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
@@ -92,6 +93,7 @@ pub(super) enum InstalledOperation {
     InputChords(InputSemanticOperation),
     InstrumentMap(InstrumentMapOperation),
     RhythmCompare(RhythmCompareOperation),
+    PatternComparison(PatternComparisonOperation),
     SequenceNormalization(SequenceNormalizationOperation),
     TimedPattern(TimedPatternOperation),
     LogicCompareScalar(LogicCompareScalarOperation),

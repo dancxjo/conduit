@@ -21,6 +21,7 @@ mod logic_conformance;
 mod math_conformance;
 mod midi_input_conformance;
 mod midi_output_conformance;
+mod pattern_comparison_conformance;
 mod presentation_composition;
 mod recurrence_conformance;
 mod rhythm_compare_conformance;

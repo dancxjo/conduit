@@ -8,6 +8,8 @@ mod timed_pattern;
 pub use timed_pattern::*;
 mod sequence_normalization;
 pub use sequence_normalization::*;
+mod pattern_comparison;
+pub use pattern_comparison::*;
 mod presentation_structure;
 pub use presentation_structure::*;
 mod presentation_sinks;

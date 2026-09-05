@@ -36,6 +36,7 @@ mod operation;
 mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
+mod pattern_comparison_operation;
 mod presentation_composition;
 mod recurrence_codec;
 mod recurrence_encoding;
@@ -473,6 +474,20 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 == conduit_std_offers::RHYTHM_COMPARE_STD_IMPLEMENTATION
             {
                 rhythm_compare_host::RhythmCompareHost::from_placement(placement).map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut pattern_comparison_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::COMPARE_PATTERN_STD_IMPLEMENTATION
+            {
+                pattern_comparison_operation::PatternComparisonHost::from_placement(placement)
+                    .map(Some)
             } else {
                 Ok(None)
             }
@@ -942,6 +957,57 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete bounded rhythm comparison: {error:?}"))?;
+                continue;
+            }
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::COMPARE_PATTERN_CANDIDATE_OPERATION
+                    | conduit_std_offers::COMPARE_PATTERN_TEMPLATE_OPERATION
+            ) {
+                let completion = pattern_comparison_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "pattern request has no admitted comparison host".to_string())?
+                    .execute(contract.as_str(), input);
+                let (disposition, output, failure) = match completion {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pattern comparison: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound pattern comparison: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: pattern_comparison_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete bounded pattern comparison: {error:?}"))?;
                 continue;
             }
             if matches!(

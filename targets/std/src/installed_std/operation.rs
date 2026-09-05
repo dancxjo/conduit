@@ -34,6 +34,7 @@ impl Operation for InstalledOperation {
             Self::InputKeymap(operation) | Self::InputChords(operation) => operation.start(),
             Self::InstrumentMap(operation) => operation.start(),
             Self::RhythmCompare(operation) => operation.start(),
+            Self::PatternComparison(operation) => operation.start(),
             Self::SequenceNormalization(operation) => operation.start(),
             Self::TimedPattern(operation) => operation.start(),
             Self::LogicCompareScalar(operation) => operation.start(),
@@ -144,6 +145,7 @@ impl Operation for InstalledOperation {
             }
             (Self::InstrumentMap(operation), input) => operation.resume(input),
             (Self::RhythmCompare(operation), input) => operation.resume(input),
+            (Self::PatternComparison(operation), input) => operation.resume(input),
             (Self::SequenceNormalization(operation), input) => operation.resume(input),
             (Self::TimedPattern(operation), input) => operation.resume(input),
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
@@ -296,6 +298,7 @@ impl Operation for InstalledOperation {
             Self::InputKeymap(_) | Self::InputChords(_) => OperationAction::Await,
             Self::InstrumentMap(operation) => operation.advance(),
             Self::RhythmCompare(operation) => operation.advance(),
+            Self::PatternComparison(operation) => operation.advance(),
             Self::SequenceNormalization(operation) => operation.advance(),
             Self::TimedPattern(operation) => operation.advance(),
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
@@ -403,6 +406,7 @@ impl Operation for InstalledOperation {
             Self::InputKeymap(operation) | Self::InputChords(operation) => operation.cancel(),
             Self::InstrumentMap(operation) => operation.cancel(),
             Self::RhythmCompare(operation) => operation.cancel(),
+            Self::PatternComparison(operation) => operation.cancel(),
             Self::SequenceNormalization(operation) => operation.cancel(),
             Self::TimedPattern(operation) => operation.cancel(),
             Self::LogicCompareScalar(operation) => operation.cancel(),
