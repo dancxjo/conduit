@@ -3,6 +3,7 @@ mod integration;
 #[cfg(test)]
 mod monitor;
 mod product_reconciliation;
+mod promotion_snapshot;
 mod proof_graph;
 mod standalone_locks;
 
@@ -19,6 +20,18 @@ pub struct CiArgs {
 enum CiCommand {
     /// Fail fast when a separately rooted fabrication lock is stale.
     StandaloneLocks,
+    /// Name or publish one immutable snapshot of the current development branch.
+    PromotionSnapshot {
+        /// Fetched development ref to snapshot.
+        #[arg(long, default_value = "origin/dev")]
+        dev_ref: String,
+        /// Git remote that will own the immutable snapshot ref.
+        #[arg(long, default_value = "origin")]
+        remote: String,
+        /// Publish the snapshot ref. Without this flag, print the exact plan only.
+        #[arg(long)]
+        push: bool,
+    },
     /// Plan heavyweight CI obligations for one exact Git diff.
     Plan {
         /// Exact base commit SHA.
@@ -126,6 +139,11 @@ enum CiCommand {
 pub fn run(args: CiArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         CiCommand::StandaloneLocks => standalone_locks::run(),
+        CiCommand::PromotionSnapshot {
+            dev_ref,
+            remote,
+            push,
+        } => promotion_snapshot::run(&dev_ref, &remote, push),
         CiCommand::Plan {
             base,
             head,
