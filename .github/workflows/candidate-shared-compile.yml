@@ -54,6 +54,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CONDUIT_PR_NUMBER: ${{ inputs.pr_number }}
+          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           CONDUIT_STACK_ROLE_OUT: target/ci-plans/pr-stack-role.json
         run: |
           mkdir -p target/ci-plans
