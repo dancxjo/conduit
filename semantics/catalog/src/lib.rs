@@ -99,6 +99,34 @@ pub use time_every::*;
 mod timing;
 pub use timing::*;
 #[cfg(feature = "form-catalog")]
+mod timed_pattern;
+#[cfg(feature = "form-catalog")]
+pub use timed_pattern::*;
+#[cfg(feature = "form-catalog")]
+mod timed_button_attempt;
+#[cfg(feature = "form-catalog")]
+pub use timed_button_attempt::*;
+#[cfg(feature = "form-catalog")]
+mod sequence_normalization;
+#[cfg(feature = "form-catalog")]
+pub use sequence_normalization::*;
+#[cfg(feature = "form-catalog")]
+mod final_normalized_pattern;
+#[cfg(feature = "form-catalog")]
+pub use final_normalized_pattern::*;
+#[cfg(feature = "form-catalog")]
+mod pattern_comparison;
+#[cfg(feature = "form-catalog")]
+pub use pattern_comparison::*;
+#[cfg(feature = "form-catalog")]
+mod template_collection;
+#[cfg(feature = "form-catalog")]
+pub use template_collection::*;
+#[cfg(feature = "form-catalog")]
+mod template_storage;
+#[cfg(feature = "form-catalog")]
+pub use template_storage::*;
+#[cfg(feature = "form-catalog")]
 mod recurrence_catalog;
 #[cfg(feature = "form-catalog")]
 pub use recurrence_catalog::*;

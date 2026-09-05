@@ -18,6 +18,9 @@ mod state_time;
 mod text;
 mod values;
 
+#[cfg(test)]
+mod secret_knock_trigger_plan;
+
 pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, membership_advertisement,
     selected_human_machinery, BrowserManifestation,

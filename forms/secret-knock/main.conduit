@@ -1,0 +1,23 @@
+# A bounded timing-pattern Form. Trigger, clock, storage, and presentation
+# realizations remain Host choices made by an exact Plan.
+form secret-knock (
+    > transitions: InputButtonTransition...|
+    > template_commands: NamedPatternTemplateCommand...|
+) {
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)
+    intervals: time/ordered-event-intervals
+    normalize: sequence/normalize-relative-duration
+    storage: storage/named-pattern-templates(maximum-commands = 2)
+    final_template: sequence/final-normalized-pattern(maximum-values = 1)
+    compare: sequence/compare-normalized-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 1)
+    manifest: presentation/structured-info
+
+    transitions > attempt.transition
+    attempt.events > intervals.events
+    intervals.intervals > normalize.intervals
+    normalize.normalized > compare.candidate
+    template_commands > storage.command
+    storage.result > select(NamedPatternTemplateResult.found, unmatched=drop) > project(NamedPatternTemplate.pattern) > final_template.patterns
+    final_template.pattern > compare.template
+    compare.comparison > manifest.input
+}

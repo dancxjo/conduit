@@ -12,6 +12,7 @@ use super::calendar_provider_operation::{
 };
 use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
+use super::final_normalized_pattern_operation::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
 use super::flow_gate_operation::FLOW_GATE_SCALAR_FACTORY;
 use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
 use super::generate_text::{
@@ -37,6 +38,7 @@ use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
+use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
 use super::presentation_composition::{
     GRAPHICS_ICON_FACTORY, GRAPHICS_PRESENTATION_FACTORY, GRAPHICS_RECT_FACTORY,
     GRAPHICS_TEXT_FACTORY, PRESENTATION_BADGE_FACTORY, PRESENTATION_FRAME_FACTORY,
@@ -52,6 +54,7 @@ use super::robotics_operations::{
     ROBOTICS_OBSERVE_BUMP_FACTORY, ROBOTICS_OBSERVE_IMU_FACTORY, ROBOTICS_OBSERVE_ODOMETRY_FACTORY,
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
+use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
 use super::state_select_operation::STATE_SELECT_SCALAR_FACTORY;
 use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
 use super::structured_values_operation::{
@@ -59,6 +62,7 @@ use super::structured_values_operation::{
     PRESENTATION_FACTORY as STRUCTURED_PRESENTATION_FACTORY,
 };
 use super::synth_operation::MUSIC_SYNTH_FACTORY;
+use super::template_storage_operation::FACTORY as TEMPLATE_STORAGE_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
@@ -93,6 +97,8 @@ use super::text_operations::{
 use super::tick_operations::TEST_OBSERVER_FACTORY;
 use super::tick_operations::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
+use super::timed_button_attempt_operation::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
+use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
@@ -135,6 +141,12 @@ const FACTORIES: &[&InstalledFactory] = &[
     &CHORDS_FACTORY,
     &INSTRUMENT_MAP_FACTORY,
     &RHYTHM_COMPARE_FACTORY,
+    &PATTERN_COMPARISON_FACTORY,
+    &SEQUENCE_NORMALIZATION_FACTORY,
+    &FINAL_NORMALIZED_PATTERN_FACTORY,
+    &TIMED_PATTERN_FACTORY,
+    &TIMED_BUTTON_ATTEMPT_FACTORY,
+    &TEMPLATE_STORAGE_FACTORY,
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,

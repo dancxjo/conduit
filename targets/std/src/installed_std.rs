@@ -15,6 +15,7 @@ mod external_websocket;
 mod external_websocket_host;
 mod facade;
 mod factory;
+mod final_normalized_pattern_operation;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;
@@ -36,6 +37,7 @@ mod operation;
 mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
+mod pattern_comparison_operation;
 mod presentation_composition;
 mod recurrence_codec;
 mod recurrence_encoding;
@@ -45,12 +47,15 @@ pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
 mod robotics_effect;
 mod robotics_operations;
+mod sequence_normalization_operation;
 mod state_select_operation;
 mod structured_presentation_host;
 mod structured_selector_operation;
 mod structured_values_operation;
 mod synth_operation;
 mod synth_render;
+mod template_storage_host;
+mod template_storage_operation;
 mod test_audio_source;
 #[cfg(test)]
 mod test_gate;
@@ -81,6 +86,9 @@ mod text_operations;
 mod text_operations_tests;
 mod tick_operations;
 mod tick_presentation;
+mod timed_button_attempt_host;
+mod timed_button_attempt_operation;
+mod timed_pattern_operation;
 mod timing_configuration;
 mod timing_operations;
 mod toggle_operation;
@@ -120,8 +128,8 @@ use conduit_plan_lowering::lowering::{
 use std::io::Write;
 use std::time::Duration;
 
-const MAX_NODES: usize = 8;
-const MAX_CORDS: usize = 8;
+const MAX_NODES: usize = 16;
+const MAX_CORDS: usize = 16;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 64;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
@@ -454,6 +462,26 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut http_output =
         Vec::with_capacity(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut json_host = json_operations::JsonHost::prepare();
+    let mut sequence_normalization_host =
+        sequence_normalization_operation::SequenceNormalizationHost::prepare();
+    let mut timed_pattern_host = timed_pattern_operation::TimedPatternHost::prepare();
+    let mut timed_button_attempt_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::TIMED_BUTTON_ATTEMPT_STD_IMPLEMENTATION
+            {
+                timed_button_attempt_operation::host_maximum(placement).map(|maximum| {
+                    Some(timed_button_attempt_host::TimedButtonAttemptHost::prepare(
+                        maximum,
+                    ))
+                })
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
@@ -473,6 +501,29 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut pattern_comparison_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::COMPARE_PATTERN_STD_IMPLEMENTATION
+            {
+                pattern_comparison_operation::PatternComparisonHost::from_placement(placement)
+                    .map(Some)
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut template_storage_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            (placement.implementation_id.as_str()
+                == conduit_std_offers::TEMPLATE_STORAGE_STD_IMPLEMENTATION)
+                .then(template_storage_host::TemplateStorageHost::prepare)
+        })
+        .collect::<Vec<_>>();
     let mut generate_text_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     let mut vector_search_output =
@@ -691,6 +742,123 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded JSON operation: {error:?}"))?;
                 continue;
             }
+            if contract.as_str() == conduit_std_offers::TEMPLATE_STORAGE_HOST_OPERATION {
+                let completion = template_storage_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "template request has no admitted storage host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store bounded template result: {error:?}"))?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound template result: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: template_storage_operation::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION
+            {
+                let now_micros = timer.monotonic_now_micros().ok_or_else(|| {
+                    "admitted pressed-button monotonic-microsecond Base is unavailable".to_string()
+                })?;
+                let completion = timed_button_attempt_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "pressed-button request has no admitted observation host".to_string()
+                    })?
+                    .observe(input, now_micros);
+                let (disposition, output, failure) = match completion {
+                    Ok(timed_button_attempt_host::Observation::Released) => {
+                        (HostOperationDisposition::Completed, None, None)
+                    }
+                    Ok(timed_button_attempt_host::Observation::Pressed) => {
+                        let value = scheduler.store_host_value(&[0]).map_err(|error| {
+                            format!("store bounded pressed-button marker: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(BoundedValueRef::new(value, 1).map_err(|error| {
+                                format!("bound pressed-button marker: {error:?}")
+                            })?),
+                            None,
+                        )
+                    }
+                    Ok(timed_button_attempt_host::Observation::Complete(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pressed-button attempt: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound pressed-button attempt: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: timed_button_attempt_operation::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded pressed-button observation: {error:?}")
+                    })?;
+                continue;
+            }
             if contract.as_str() == conduit_std_offers::STRUCTURED_SELECTOR_HOST_OPERATION {
                 let completion = structured_selector_hosts
                     .get_mut(usize::from(request.node.0))
@@ -739,6 +907,96 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| {
                         format!("complete bounded structured selector operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::ORDERED_EVENT_INTERVALS_HOST_OPERATION {
+                let completion = timed_pattern_host.execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded timed-pattern output: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound timed-pattern output: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: timed_pattern_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded timed-pattern operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::NORMALIZE_SEQUENCE_HOST_OPERATION {
+                let completion = sequence_normalization_host.execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded normalized sequence: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound normalized sequence: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: sequence_normalization_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded normalization operation: {error:?}")
                     })?;
                 continue;
             }
@@ -847,6 +1105,57 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete bounded rhythm comparison: {error:?}"))?;
+                continue;
+            }
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::COMPARE_PATTERN_CANDIDATE_OPERATION
+                    | conduit_std_offers::COMPARE_PATTERN_TEMPLATE_OPERATION
+            ) {
+                let completion = pattern_comparison_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "pattern request has no admitted comparison host".to_string())?
+                    .execute(contract.as_str(), input);
+                let (disposition, output, failure) = match completion {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pattern comparison: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound pattern comparison: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: pattern_comparison_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete bounded pattern comparison: {error:?}"))?;
                 continue;
             }
             if matches!(

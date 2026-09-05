@@ -8,6 +8,7 @@ use super::bool_presentation::BoolPresentationOperation;
 use super::calendar_proposal_operation::CalendarProposalOperation;
 use super::calendar_provider_operation::CalendarProviderOperation;
 use super::count_operations::{CountPresentationOperation, StateCountOperation};
+use super::final_normalized_pattern_operation::FinalNormalizedPatternOperation;
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
@@ -25,6 +26,7 @@ use super::math_operations::MathScalarOperation;
 use super::midi_input_operation::MidiInputOperation;
 use super::midi_output_operation::MidiOutputOperation;
 use super::pacing_operations::{DelayOperation, ThrottleOperation};
+use super::pattern_comparison_operation::PatternComparisonOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
@@ -33,12 +35,14 @@ use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
+use super::sequence_normalization_operation::SequenceNormalizationOperation;
 use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
 use super::structured_values_operation::{
     StructuredLiteralOperation, StructuredPresentationOperation,
 };
 use super::synth_operation::MusicSynthOperation;
+use super::template_storage_operation::TemplateStorageOperation;
 #[cfg(test)]
 use super::test_json_codec::{TestJsonSinkOperation, TestJsonSourceOperation};
 #[cfg(any(test, feature = "local-model-proof"))]
@@ -54,6 +58,8 @@ use super::text_operations::{
 use super::tick_operations::TestObserverOperation;
 use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
+use super::timed_button_attempt_operation::TimedButtonAttemptOperation;
+use super::timed_pattern_operation::TimedPatternOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
 use super::vector_search_operation::VectorSearchOperation;
@@ -90,6 +96,12 @@ pub(super) enum InstalledOperation {
     InputChords(InputSemanticOperation),
     InstrumentMap(InstrumentMapOperation),
     RhythmCompare(RhythmCompareOperation),
+    PatternComparison(PatternComparisonOperation),
+    SequenceNormalization(SequenceNormalizationOperation),
+    FinalNormalizedPattern(FinalNormalizedPatternOperation),
+    TimedPattern(TimedPatternOperation),
+    TimedButtonAttempt(TimedButtonAttemptOperation),
+    TemplateStorage(TemplateStorageOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),
