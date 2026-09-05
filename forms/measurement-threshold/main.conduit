@@ -1,0 +1,10 @@
+form measurement-threshold (
+    > summary: MeasurementSummary
+    > policy: MeasurementThresholdPolicy
+    decision: MeasurementThresholdDecision >
+) {
+    threshold: data/measurement-hysteresis
+    summary > threshold.summary
+    policy > threshold.policy
+    threshold.decision > decision
+}
