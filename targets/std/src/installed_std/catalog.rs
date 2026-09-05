@@ -157,6 +157,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &MATH_SCALE_FACTORY,
     &MATH_DEADBAND_FACTORY,
     &super::math_operations::QUANTITY_MAP_FACTORY,
+    &super::math_operations::QUANTITY_INFO_FACTORY,
     &LAYOUT_VIEWPORT_FACTORY,
     &LAYOUT_INSET_FACTORY,
     &LAYOUT_ROW_FACTORY,

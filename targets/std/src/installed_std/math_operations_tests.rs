@@ -13,6 +13,7 @@ fn operation() -> MathScalarOperation {
     MathScalarOperation {
         pending: None,
         completed: false,
+        input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: SCALAR_ENCODED_LEN as u32,
     }
 }
@@ -23,6 +24,7 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
     let mut active = MathScalarOperation {
         pending: None,
         completed: false,
+        input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
     };
     active.resume(OperationInput::Value {
@@ -48,6 +50,7 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
     let mut active = MathScalarOperation {
         pending: None,
         completed: false,
+        input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
     };
     active.resume(OperationInput::Value {

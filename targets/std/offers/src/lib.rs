@@ -4,6 +4,8 @@ mod flow_state;
 pub use flow_state::*;
 mod quantity_mapping;
 pub use quantity_mapping::*;
+mod quantity_info;
+pub use quantity_info::*;
 mod timing;
 pub use timing::*;
 mod timed_pattern;
@@ -212,6 +214,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         math_scale_offer(),
         math_deadband_offer(),
         quantity_map_offer(),
+        quantity_info_offer(),
         layout_viewport_offer(),
         layout_inset_offer(),
         layout_row_offer(),

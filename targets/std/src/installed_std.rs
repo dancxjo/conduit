@@ -1970,6 +1970,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             )
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }
+    if !matches!(terminal_disposition, TerminalDisposition::Completed) {
+        structured_presentation_host.retain_realized_effects();
+    }
     let (mut observations, presentation_ids) = structured_presentation_host.project(
         advertisement,
         fragment,

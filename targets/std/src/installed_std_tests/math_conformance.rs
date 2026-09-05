@@ -174,3 +174,279 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
         assert!(timer.waits.is_empty());
     }
 }
+
+fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, crate::StdRunReport) {
+    let mut catalog = installed_std::test_catalog();
+    let value_type = conduit_semantic_catalog::wrapped_quantity_type();
+    let contract =
+        conduit_semantic_catalog::structured_presentation_contract("Quantity", &value_type);
+    catalog
+        .insert(conduit_form::KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: Vec::new(),
+        })
+        .unwrap();
+    let syntax = conduit_form::parse_syntax_document(source);
+    let mut startup = catalog.startup_catalog().unwrap();
+    startup
+        .insert_value_kind_alias(
+            "Scalar",
+            conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),
+        )
+        .unwrap();
+    startup
+        .insert_value_kind_alias(
+            "Quantity",
+            conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
+        )
+        .unwrap();
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let form = conduit_form::expand_canonical_form(&checked, entry, &catalog).unwrap();
+    let limits = form
+        .connections
+        .iter()
+        .map(|cord| {
+            let bytes = if cord.value_kind.as_str() == conduit_core::SCALAR_INFO_ID {
+                8
+            } else if cord.value_kind.as_str() == conduit_core::QUANTITY_INFO_ID {
+                9
+            } else {
+                conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32
+            };
+            (
+                (
+                    cord.source_gear_id.clone(),
+                    cord.source_port_id.clone(),
+                    cord.sink_gear_id.clone(),
+                    cord.sink_port_id.clone(),
+                ),
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: bytes,
+                },
+            )
+        })
+        .collect();
+    let mut advertisement = host("quantity-output-host").advertisement().clone();
+    advertisement
+        .capabilities
+        .push(conduit_std_offers::structured_presentation_std_offer(
+            "Quantity",
+            &value_type,
+        ));
+    advertisement
+        .capabilities
+        .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    let hosts = [advertisement.clone()];
+    let placements = conduit_planner::default_expanded_placements(&form, &hosts).unwrap();
+    let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &limits,
+    )
+    .unwrap();
+    let mut output = Vec::new();
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let report = installed_std::run_fragment(
+        installed_std::InstalledRunHost {
+            advertisement: &advertisement,
+            playback: None,
+            midi_input: None,
+            midi_output: None,
+            keyboard: None,
+            local_model: None,
+            vector_search: None,
+            calendar: None,
+        },
+        &plan.fragments[0],
+        0,
+        &mut 0,
+        &mut output,
+        &mut timer,
+        &crate::RunControl::default(),
+    )
+    .unwrap();
+    assert!(timer.waits.is_empty());
+    (plan, report)
+}
+
+#[test]
+fn quantity_mapping_completes_one_admitted_kernel_request() {
+    let source = r#"form quantity_success {
+ source: conduit-test/scalar-literal
+ map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
+ wrap: structured-info/wrap-quantity
+ show: presentation/structured-info
+ source.value > map.in
+ map.out > wrap.in
+ wrap.out > show.input
+}
+"#;
+    let (plan, report) = run_presented_quantity(source, "quantity_success");
+    assert_quantity_presented(
+        &plan,
+        &report,
+        conduit_core::Quantity::new(50, conduit_core::QuantityUnit::Percent),
+    );
+    assert_eq!(
+        report
+            .kernel
+            .as_ref()
+            .unwrap()
+            .kernel_sign
+            .iter()
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .count(),
+        3
+    );
+}
+
+fn assert_quantity_presented(
+    plan: &conduit_core::Plan,
+    report: &crate::StdRunReport,
+    quantity: conduit_core::Quantity,
+) {
+    let value_type = conduit_semantic_catalog::wrapped_quantity_type();
+    let presented = report
+        .observations
+        .iter()
+        .find(|sign| matches!(sign.kind, ObservationKind::ValuePresented { .. }))
+        .unwrap();
+    let ObservationKind::ValuePresented { value } = &presented.kind else {
+        unreachable!()
+    };
+    let expected =
+        conduit_core::StructuredInfoValue::leaf(value_type.clone(), quantity.encode().to_vec())
+            .unwrap();
+    assert_eq!(
+        value.value_kind,
+        *value_type.profile().unwrap().value_kind()
+    );
+    assert_eq!(value.encoded, expected.canonical_bytes().unwrap());
+    assert_eq!(presented.plan_id.as_ref(), Some(&plan.plan_id));
+    assert!(presented.active_play_id.is_some());
+    assert!(presented.placement_id.is_some());
+    assert!(presented.connection_id.is_some());
+    assert!(matches!(
+        report.observations.last().unwrap().kind,
+        ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        }
+    ));
+    let kernel = report.kernel.as_ref().unwrap();
+    let identity = kernel.identity.sign_identity(&presented.sign_id).unwrap();
+    assert_eq!(identity.presentation_id, presented.presentation_id);
+    assert!(kernel
+        .identity
+        .request(identity.node.unwrap(), identity.request.unwrap())
+        .is_some());
+    assert_eq!(
+        presented.active_play_id.as_ref(),
+        Some(&kernel.active_play_id)
+    );
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
+fn quantity_refusals_do_not_fabricate_a_connected_presentation() {
+    for (minimum, maximum, expected) in [(0, 1_000_000, "out-of-range"), (-1_000_000, 0, "inexact")]
+    {
+        let source = format!(
+            r#"form quantity_refusal {{
+ source: conduit-test/scalar-literal
+ map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = "%", range-policy = "refuse", quantization = "exact")
+ wrap: structured-info/wrap-quantity
+ show: presentation/structured-info
+ source.value > map.in
+ map.out > wrap.in
+ wrap.out > show.input
+}}"#
+        );
+        let (plan, report) = run_presented_quantity(&source, "quantity_refusal");
+        assert!(!report
+            .observations
+            .iter()
+            .any(|sign| matches!(sign.kind, ObservationKind::ValuePresented { .. })));
+        let failure = report.observations.iter().find(|sign| matches!(&sign.kind,
+            ObservationKind::Failure { message: Some(message), .. } if message == &format!("math/map-quantity:{expected}"))).unwrap();
+        assert_eq!(failure.plan_id.as_ref(), Some(&plan.plan_id));
+        assert!(failure.active_play_id.is_some());
+        assert!(failure.placement_id.is_some());
+        assert!(matches!(
+            report.observations.last().unwrap().kind,
+            ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Failed { .. }
+            }
+        ));
+        let kernel = report.kernel.unwrap();
+        let identity = kernel.identity.sign_identity(&failure.sign_id).unwrap();
+        let request = kernel
+            .identity
+            .request(identity.node.unwrap(), identity.request.unwrap())
+            .unwrap();
+        assert_eq!(
+            request.contract_id.as_str(),
+            conduit_std_offers::QUANTITY_MAP_HOST_OPERATION
+        );
+        assert_eq!(
+            failure.active_play_id.as_ref(),
+            Some(&kernel.active_play_id)
+        );
+        assert_eq!(kernel.post_play_start_allocations, 0);
+        assert!(kernel.presentation_ids.is_empty());
+    }
+}
+
+#[test]
+fn authored_quantity_forms_execute_and_present_through_the_production_kernel() {
+    use conduit_core::{Quantity, QuantityUnit};
+    for (authored, name, output, expected) in [
+        (
+            include_str!("../../../../forms/quantity-range-map/main.conduit"),
+            "quantity-range-map",
+            "quantity",
+            Quantity::new(10010, QuantityUnit::Hertz),
+        ),
+        (
+            include_str!("../../../../forms/normalized-light-intensity/main.conduit"),
+            "normalized-light-intensity",
+            "intensity",
+            Quantity::new(50, QuantityUnit::Percent),
+        ),
+    ] {
+        let source = format!(
+            r#"{authored}
+form quantity_composition {{
+ source: conduit-test/scalar-literal
+ input: math/scale(gain = -500000000000)
+ map: {name}
+ wrap: structured-info/wrap-quantity
+ show: presentation/structured-info
+ source.value > input.in
+ input.out > map.control
+ map.{output} > wrap.in
+ wrap.out > show.input
+}}"#
+        );
+        let (plan, report) = run_presented_quantity(&source, "quantity_composition");
+        assert_quantity_presented(&plan, &report, expected);
+    }
+}

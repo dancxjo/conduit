@@ -88,6 +88,8 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("math catalogs are exact and unique");
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut catalog)
         .expect("quantity mapping catalog is exact and unique");
+    conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut catalog)
+        .expect("quantity wrapping catalog is exact and unique");
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut catalog)
         .expect("layout catalogs are exact and unique");
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)

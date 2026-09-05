@@ -226,6 +226,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::math_scale_offer(),
             conduit_std_offers::math_deadband_offer(),
             conduit_std_offers::quantity_map_offer(),
+            conduit_std_offers::quantity_info_offer(),
         ]);
     }
     if composition.layout {

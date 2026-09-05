@@ -39,6 +39,8 @@ pub enum CheckSuite {
     FormS3,
     Observatory,
     SemanticCatalog,
+    /// Execute authored quantity mappings through the std production kernel and presentation.
+    QuantityMapping,
     InputSemantics,
     All,
 }
@@ -73,6 +75,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::FormS3 => run_suite(FORM_S3_STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
+        CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
@@ -82,6 +85,35 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
     }
 }
+
+const QUANTITY_MAPPING_STEPS: &[Step] = &[
+    Step::new(
+        "quantity-mapping.contract",
+        "Check exact mapping refusals and bounded structured Quantity encoding",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-semantic-catalog",
+            "--all-features",
+            "--locked",
+            "quantity_",
+        ],
+    ),
+    Step::new(
+        "quantity-mapping.kernel",
+        "Execute authored quantity Forms with output, correlated Signs and connected refusals",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "--locked",
+            "quantity_",
+        ],
+    ),
+];
 
 fn run_workspace_shard(
     shard: WorkspaceShard,

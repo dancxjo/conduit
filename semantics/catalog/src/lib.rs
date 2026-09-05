@@ -14,7 +14,9 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 mod functional_face;
+mod quantity_info;
 pub use functional_face::{realization_offer, RealizationOfferIdentity};
+pub use quantity_info::*;
 mod keyboard;
 pub use keyboard::*;
 mod input_semantics;

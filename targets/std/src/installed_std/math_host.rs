@@ -6,7 +6,8 @@ use conduit_kernel::scheduler::HostOperationRequest;
 use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
 
 pub(super) struct MathHost {
-    bindings: [(HostOperationContractId, KindId); 4],
+    bindings: [(HostOperationContractId, KindId); 5],
+    quantity_info_prefix: Vec<u8>,
     failures: [Option<(HostOperationRequest, conduit_kernel::Failure)>; super::MAX_NODES],
     terminal_failure: Option<(HostOperationRequest, conduit_kernel::Failure)>,
 }
@@ -14,9 +15,14 @@ pub(super) struct MathHost {
 impl MathHost {
     pub(super) fn new() -> Self {
         Self {
+            quantity_info_prefix: conduit_semantic_catalog::quantity_info_prefix(),
             failures: [None; super::MAX_NODES],
             terminal_failure: None,
             bindings: [
+                (
+                    conduit_std_offers::QUANTITY_INFO_HOST_OPERATION,
+                    conduit_semantic_catalog::QUANTITY_INFO_WRAP_KIND,
+                ),
                 (
                     conduit_std_offers::QUANTITY_MAP_HOST_OPERATION,
                     conduit_semantic_catalog::QUANTITY_MAP_KIND,
@@ -64,6 +70,42 @@ impl MathHost {
         let input = scheduler
             .host_value(request.input.value)
             .map_err(|error| format!("read math scalar input: {error:?}"))?;
+        if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_INFO_WRAP_KIND {
+            let outcome = if conduit_core::Quantity::decode(input).is_err() {
+                HostOperationOutcome {
+                    disposition: HostOperationDisposition::Failed,
+                    output: None,
+                    failure: Some(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::InvalidInput,
+                        detail: 6,
+                    }),
+                }
+            } else {
+                let mut encoded = [0; conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES];
+                let prefix_len = self.quantity_info_prefix.len();
+                let length = prefix_len + input.len();
+                encoded[..prefix_len].copy_from_slice(&self.quantity_info_prefix);
+                encoded[prefix_len..length].copy_from_slice(input);
+                let value = scheduler
+                    .store_host_value(&encoded[..length])
+                    .map_err(|error| format!("store structured Quantity: {error:?}"))?;
+                HostOperationOutcome {
+                    disposition: HostOperationDisposition::Completed,
+                    output: Some(
+                        BoundedValueRef::new(value, length as u32)
+                            .map_err(|error| format!("bound structured Quantity: {error:?}"))?,
+                    ),
+                    failure: None,
+                }
+            };
+            requests.push(request);
+            if let Some(failure) = outcome.failure {
+                self.failures[usize::from(request.node.0)] = Some((request, failure));
+            }
+            return scheduler
+                .complete_host_operation(request.node, request.request, outcome)
+                .map_err(|error| format!("complete Quantity wrapping: {error:?}"));
+        }
         if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
             let mapping = super::quantity_mapping::configuration(placement)?;
             let outcome = match super::quantity_mapping::transform(mapping, input) {
@@ -158,6 +200,7 @@ impl MathHost {
             3 => "math/map-quantity:out-of-range",
             4 => "math/map-quantity:inexact",
             5 => "math/map-quantity:overflow",
+            6 => "structured-info/wrap-quantity:malformed-quantity",
             _ => return Err("unknown quantity failure detail".into()),
         };
         Ok(Some(conduit_core::Observation {

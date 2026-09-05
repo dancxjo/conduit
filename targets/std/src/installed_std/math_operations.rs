@@ -27,6 +27,12 @@ pub(super) static QUANTITY_MAP_FACTORY: InstalledFactory = InstalledFactory {
     prepare: prepare_quantity,
 };
 
+pub(super) static QUANTITY_INFO_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::QUANTITY_INFO_IMPLEMENTATION,
+    budget: quantity_info_budget,
+    prepare: prepare_quantity_info,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum MathTransform {
     Clamp { minimum: Scalar, maximum: Scalar },
@@ -52,6 +58,7 @@ impl MathTransform {
 pub(super) struct MathScalarOperation {
     pending: Option<RequestId>,
     completed: bool,
+    input_bytes: u32,
     output_bytes: u32,
 }
 
@@ -67,14 +74,14 @@ impl MathScalarOperation {
                 value,
             } if self.pending.is_none()
                 && !self.completed
-                && value.byte_len == SCALAR_ENCODED_LEN as u32 =>
+                && value.byte_len == self.input_bytes =>
             {
                 let request = RequestId(0);
                 self.pending = Some(request);
                 OperationAction::RequestHostOperation {
                     request,
                     operation: HostOperationId(0),
-                    input: match BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32) {
+                    input: match BoundedValueRef::new(value, self.input_bytes) {
                         Ok(input) => input,
                         Err(_) => return InstalledOperation::fail(25),
                     },
@@ -232,6 +239,7 @@ fn operation() -> InstalledOperation {
     InstalledOperation::MathScalar(MathScalarOperation {
         pending: None,
         completed: false,
+        input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: SCALAR_ENCODED_LEN as u32,
     })
 }
@@ -254,7 +262,31 @@ fn prepare_quantity(
     Ok(InstalledOperation::MathScalar(MathScalarOperation {
         pending: None,
         completed: false,
+        input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+    }))
+}
+
+fn quantity_info_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+    validate(placement, &conduit_std_offers::quantity_info_offer(), 0)?;
+    Ok(OperationBudget {
+        value_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+        maximum_value_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+        ..budget()
+    })
+}
+
+fn prepare_quantity_info(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    quantity_info_budget(placement)?;
+    Ok(InstalledOperation::MathScalar(MathScalarOperation {
+        pending: None,
+        completed: false,
+        input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+        output_bytes: (conduit_semantic_catalog::quantity_info_prefix().len()
+            + conduit_core::QUANTITY_ENCODED_LEN) as u32,
     }))
 }
 
