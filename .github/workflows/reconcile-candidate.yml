@@ -1,5 +1,5 @@
 name: reconcile-candidate
-run-name: reconcile PR #${{ inputs.pr_number }} at ${{ inputs.candidate_sha }}
+run-name: reconcile PR #${{ inputs.pr_number || github.event.pull_request.number }} at ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
 
 on:
   workflow_dispatch:
@@ -12,22 +12,30 @@ on:
         description: Exact unchanged current pull-request head
         required: true
         type: string
+  pull_request_target:
+    types: [edited, labeled, reopened]
 
 permissions:
   contents: read
 
 concurrency:
-  group: reconcile-candidate-${{ inputs.pr_number }}-${{ inputs.candidate_sha }}
+  group: reconcile-candidate-${{ inputs.pr_number || github.event.pull_request.number }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   cancel-in-progress: false
 
 jobs:
   resolve:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.action == 'reopened' ||
+      (github.event.action == 'edited' && github.event.changes.base.ref != '') ||
+      (github.event.action == 'labeled' && github.event.label.name == 'ci:reconcile')
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       checks: write
       contents: write
       pull-requests: read
+      issues: write
     outputs:
       base_sha: ${{ steps.resolve.outputs.base_sha }}
       integration_sha: ${{ steps.resolve.outputs.integration_sha }}
@@ -38,6 +46,13 @@ jobs:
       products_evidence_url: ${{ steps.resolve.outputs.products_evidence_url }}
       published: ${{ steps.resolve.outputs.published }}
     steps:
+      - name: Consume the bounded on-demand reconciliation request
+        if: github.event_name == 'pull_request_target' && github.event.action == 'labeled'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api --method DELETE "repos/${{ github.repository }}/issues/$PR_NUMBER/labels/ci%3Areconcile"
       - name: Check out only the current trusted controller
         uses: actions/checkout@v7
         with:
@@ -47,8 +62,8 @@ jobs:
         id: integration
         shell: bash
         env:
-          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
-          PR_NUMBER: ${{ inputs.pr_number }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
         run: |
           git fetch --no-tags origin "$CANDIDATE_SHA"
           base_sha=$(git rev-parse HEAD)
@@ -69,7 +84,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.98.1
       - name: Classify candidate-to-integration proof impact
         env:
-          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
           INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
         run: |
           CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
@@ -82,8 +97,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          CONDUIT_PR_NUMBER: ${{ inputs.pr_number }}
-          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CONDUIT_PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
           CONDUIT_BASE_SHA: ${{ steps.integration.outputs.base_sha }}
           CONDUIT_INTEGRATION_SHA: ${{ steps.integration.outputs.integration_sha }}
           CONDUIT_RECONCILIATION_PLAN: reconciliation-impact.json
@@ -127,7 +142,7 @@ jobs:
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
 
   report:
-    name: admission
+    name: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'reopened' || (github.event.action == 'edited' && github.event.changes.base.ref != '') || (github.event.action == 'labeled' && github.event.label.name == 'ci:reconcile')) && 'admission' || 'ignored-reconciliation-event' }}
     needs: [resolve, candidate-check, candidate-products]
     if: always() && needs.resolve.outputs.integration_ref != ''
     runs-on: ubuntu-slim
@@ -145,7 +160,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
           CONDUIT_BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
           CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}
           CONDUIT_CHECK_INHERITED: ${{ needs.resolve.outputs.check_inherited }}

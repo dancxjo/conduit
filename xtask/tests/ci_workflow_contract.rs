@@ -507,8 +507,17 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
 
     assert!(workflow.contains(
-        "group: reconcile-candidate-${{ inputs.pr_number }}-${{ inputs.candidate_sha }}"
+        "group: reconcile-candidate-${{ inputs.pr_number || github.event.pull_request.number }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
     ));
+    assert!(workflow.contains("pull_request_target:\n    types: [edited, labeled, reopened]"));
+    assert!(
+        workflow.contains("github.event.action == 'edited' && github.event.changes.base.ref != ''")
+    );
+    assert!(workflow.contains("github.event.label.name == 'ci:reconcile'"));
+    assert!(workflow.contains("name: Consume the bounded on-demand reconciliation request"));
+    assert!(workflow.contains("labels/ci%3Areconcile"));
+    assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
+    assert!(workflow.contains("issues: write"));
     assert!(workflow.contains("integration_sha: ${{ steps.resolve.outputs.integration_sha }}"));
     assert!(workflow.contains("git merge-tree --write-tree \"$base_sha\" \"$CANDIDATE_SHA\""));
     assert!(workflow
@@ -534,12 +543,15 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
             .count(),
         2
     );
-    assert!(workflow.contains("CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}"));
+    assert!(workflow.contains(
+        "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
+    ));
     assert!(
         workflow.contains("CONDUIT_INTEGRATION_SHA: ${{ needs.resolve.outputs.integration_sha }}")
     );
     assert!(workflow.contains("cancel-in-progress: false"));
-    assert!(workflow.contains("resolve:\n    runs-on: ubuntu-slim\n    timeout-minutes: 5"));
+    assert!(workflow.contains("resolve:\n    if:"));
+    assert!(workflow.contains("runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
     assert!(workflow.contains(
@@ -551,7 +563,7 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.resolve.outputs.published }}"));
-    assert!(workflow.contains("report:\n    name: admission"));
+    assert!(workflow.contains("&& 'admission' || 'ignored-reconciliation-event'"));
     assert!(workflow.contains("if: always() && needs.resolve.outputs.integration_ref != ''"));
     assert!(!workflow.contains(
         "needs.resolve.outputs.integration_ref != '' && needs.resolve.outputs.published != 'true'"
