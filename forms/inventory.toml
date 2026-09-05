@@ -60,6 +60,12 @@ entry = "desk_telegraph"
 initial_body_order = 3
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
 [[forms]]
+slug = "garden-state-step"
+title = "Garden State Step"
+entry = "garden-state-step"
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
+browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
+[[forms]]
 slug = "generalized-input"
 title = "Generalized Input"
 entry = "generalized-input"
@@ -218,6 +224,13 @@ slug = "signal-demo"
 title = "Signal Demo"
 entry = "signal-demo"
 deterministic = { package = "conduit", test = "two_std_line", case = "installed_run_reports_two_hosts_one_line_and_terminal_values" }
+[[forms]]
+slug = "signal-garden"
+title = "Signal Garden"
+entry = "signal-garden-interactive"
+reusable_entries = [{ entry = "signal-garden-minimal", title = "Signal Garden Minimal" }]
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
+browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
 [[forms]]
 slug = "socket-client"
 title = "Socket Client"
