@@ -423,7 +423,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let chords_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::CHORDS_HOST_OPERATION);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
-    let mut math_host = math_host::MathHost::new();
+    let mut math_host = math_host::MathHost::prepare(fragment)?;
     let layout_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::LAYOUT_HOST_OPERATION);
     let layout_target_kinds = [

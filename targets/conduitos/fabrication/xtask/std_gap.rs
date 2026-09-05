@@ -203,13 +203,13 @@ mod tests {
     #[test]
     fn compatibility_report_uses_the_authoritative_profile_inventory() {
         let report = build_report().unwrap();
-        assert_eq!(report.catalog_entry_count, 58);
+        assert_eq!(report.catalog_entry_count, 60);
         assert_eq!(
             report.implemented_count + report.missing_count,
             report.catalog_entry_count
         );
         assert_eq!(report.implemented_count, 57);
-        assert_eq!(report.missing_count, 1);
+        assert_eq!(report.missing_count, 3);
         let state_select = report
             .entries
             .iter()
