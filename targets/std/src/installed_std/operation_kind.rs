@@ -57,6 +57,7 @@ use super::text_operations::{
 use super::tick_operations::TestObserverOperation;
 use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
+use super::timed_button_attempt_operation::TimedButtonAttemptOperation;
 use super::timed_pattern_operation::TimedPatternOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
@@ -97,6 +98,7 @@ pub(super) enum InstalledOperation {
     PatternComparison(PatternComparisonOperation),
     SequenceNormalization(SequenceNormalizationOperation),
     TimedPattern(TimedPatternOperation),
+    TimedButtonAttempt(TimedButtonAttemptOperation),
     TemplateStorage(TemplateStorageOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),

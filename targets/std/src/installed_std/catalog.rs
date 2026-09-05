@@ -96,6 +96,7 @@ use super::text_operations::{
 use super::tick_operations::TEST_OBSERVER_FACTORY;
 use super::tick_operations::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
+use super::timed_button_attempt_operation::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
 use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
@@ -142,6 +143,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &PATTERN_COMPARISON_FACTORY,
     &SEQUENCE_NORMALIZATION_FACTORY,
     &TIMED_PATTERN_FACTORY,
+    &TIMED_BUTTON_ATTEMPT_FACTORY,
     &TEMPLATE_STORAGE_FACTORY,
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,

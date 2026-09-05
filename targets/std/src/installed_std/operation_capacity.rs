@@ -11,6 +11,7 @@ impl InstalledOperation {
             Self::TimeTimeout(operation) => operation.allocation_capacity(),
             Self::TimeDelay(operation) => operation.allocation_capacity(),
             Self::TimeThrottle(operation) => operation.allocation_capacity(),
+            Self::TimedButtonAttempt(operation) => operation.allocation_capacity(),
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),
             Self::MusicSynth(_) => 0,
@@ -18,6 +19,10 @@ impl InstalledOperation {
             Self::AudioPlay(_) => 0,
             #[cfg(test)]
             Self::TestTextSource(operation) => operation.values.capacity(),
+            #[cfg(test)]
+            Self::TestStructuredSource(operation) => {
+                operation.values.capacity() + operation.waits.capacity()
+            }
             Self::TestPcmSource(_) => 0,
             #[cfg(test)]
             Self::TestKeyEventSource(operation) => {

@@ -15,6 +15,8 @@ use conduit_form::{
 pub const TIMED_BUTTON_ATTEMPT_KIND: &str = "time/pressed-button-attempt";
 pub const TIMED_BUTTON_ATTEMPT_REVISION: &str = "conduit.time/pressed-button-attempt@1";
 pub const DEFAULT_ATTEMPT_PRESSES: u64 = 4;
+pub const DEFAULT_ATTEMPT_TRANSITIONS: u64 = 16;
+pub const MAXIMUM_ATTEMPT_TRANSITIONS: u64 = 32;
 pub const DEFAULT_ATTEMPT_TIMEOUT_MS: u64 = 3_000;
 pub const MAXIMUM_ATTEMPT_TIMEOUT_MS: u64 = 60_000;
 
@@ -52,6 +54,14 @@ pub fn timed_button_attempt_definition() -> KindDefinition {
                 },
             },
             ConfigurationField {
+                key: "maximum-transitions".into(),
+                default_value: ConfigurationValue::U64(DEFAULT_ATTEMPT_TRANSITIONS),
+                validation: ConfigurationRule::U64Range {
+                    minimum: 2,
+                    maximum: MAXIMUM_ATTEMPT_TRANSITIONS,
+                },
+            },
+            ConfigurationField {
                 key: "timeout-ms".into(),
                 default_value: ConfigurationValue::U64(DEFAULT_ATTEMPT_TIMEOUT_MS),
                 validation: ConfigurationRule::DurationMillis {
@@ -71,6 +81,11 @@ pub fn install_timed_button_attempt_catalogs(
         .insert(KindSignature {
             kind: TIMED_BUTTON_ATTEMPT_KIND.into(),
             startup_parameters: vec![
+                StartupParameterSignature {
+                    name: "maximum-transitions".into(),
+                    value_type: "Count".into(),
+                    default: Some(DEFAULT_ATTEMPT_TRANSITIONS.to_string()),
+                },
                 StartupParameterSignature {
                     name: "maximum-presses".into(),
                     value_type: "Count".into(),
@@ -101,7 +116,7 @@ mod tests {
             PortTemporal::Flow { closes: true }
         );
         assert_eq!(definition.outputs[0].temporal, PortTemporal::Value);
-        assert_eq!(definition.configuration.len(), 2);
+        assert_eq!(definition.configuration.len(), 3);
         let debug = alloc::format!("{definition:?}");
         for forbidden in ["browser", "dom", "gpio", "socket", "address"] {
             assert!(!debug.contains(forbidden));

@@ -37,6 +37,7 @@ impl Operation for InstalledOperation {
             Self::PatternComparison(operation) => operation.start(),
             Self::SequenceNormalization(operation) => operation.start(),
             Self::TimedPattern(operation) => operation.start(),
+            Self::TimedButtonAttempt(operation) => operation.start(),
             Self::TemplateStorage(operation) => operation.start(),
             Self::LogicCompareScalar(operation) => operation.start(),
             Self::LogicNot(operation) => operation.start(),
@@ -149,6 +150,7 @@ impl Operation for InstalledOperation {
             (Self::PatternComparison(operation), input) => operation.resume(input),
             (Self::SequenceNormalization(operation), input) => operation.resume(input),
             (Self::TimedPattern(operation), input) => operation.resume(input),
+            (Self::TimedButtonAttempt(operation), input) => operation.resume(input),
             (Self::TemplateStorage(operation), input) => operation.resume(input),
             (Self::LogicCompareScalar(operation), input) => operation.resume(input),
             (Self::LogicNot(operation), input) => operation.resume(input),
@@ -192,7 +194,7 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             (Self::TestJsonSink(operation), input) => operation.resume(input),
             #[cfg(test)]
-            (Self::TestStructuredSource(_), _) => Self::fail(152),
+            (Self::TestStructuredSource(operation), input) => operation.resume(input),
             #[cfg(test)]
             (Self::TestStructuredSink(operation), input) => operation.resume(input),
             #[cfg(any(test, feature = "local-model-proof"))]
@@ -261,6 +263,9 @@ impl Operation for InstalledOperation {
             Self::MidiInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
+            Self::TimedButtonAttempt(operation) => {
+                operation.resume_host_operation(request, outcome, canonical)
+            }
             _ => self.resume(OperationInput::HostOperationCompleted { request, outcome }),
         }
     }
@@ -303,6 +308,7 @@ impl Operation for InstalledOperation {
             Self::PatternComparison(operation) => operation.advance(),
             Self::SequenceNormalization(operation) => operation.advance(),
             Self::TimedPattern(operation) => operation.advance(),
+            Self::TimedButtonAttempt(operation) => operation.advance(),
             Self::TemplateStorage(operation) => operation.advance(),
             Self::LogicCompareScalar(_) | Self::LogicNot(_) | Self::LogicSelectScalar(_) => {
                 OperationAction::Complete
@@ -412,6 +418,7 @@ impl Operation for InstalledOperation {
             Self::PatternComparison(operation) => operation.cancel(),
             Self::SequenceNormalization(operation) => operation.cancel(),
             Self::TimedPattern(operation) => operation.cancel(),
+            Self::TimedButtonAttempt(operation) => operation.cancel(),
             Self::TemplateStorage(operation) => operation.cancel(),
             Self::LogicCompareScalar(operation) => operation.cancel(),
             Self::LogicNot(operation) => operation.cancel(),
@@ -453,7 +460,9 @@ impl Operation for InstalledOperation {
             #[cfg(test)]
             Self::TestJsonSink(operation) => operation.cancel(),
             #[cfg(test)]
-            Self::TestStructuredSource(_) | Self::TestStructuredSink(_) => {}
+            Self::TestStructuredSource(operation) => operation.cancel(),
+            #[cfg(test)]
+            Self::TestStructuredSink(_) => {}
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestLocalModelSource(_) | Self::TestLocalModelSink(_) => {}
             #[cfg(test)]
@@ -491,6 +500,7 @@ impl Operation for InstalledOperation {
             Self::LogicSelectScalar(operation) => operation.retains_resumed_value(),
             Self::TimeDebounce(operation) => operation.retains_resumed_value(),
             Self::TimeDelay(operation) => operation.retains_resumed_value(),
+            Self::TimedButtonAttempt(operation) => operation.retains_resumed_value(),
             Self::MusicSynth(operation) => operation.retains_resumed_value(),
             _ => false,
         }
@@ -507,6 +517,7 @@ impl Operation for InstalledOperation {
             Self::TimeTimeout(operation) => operation.take_released_value(),
             Self::TimeDelay(operation) => operation.take_released_value(),
             Self::TimeThrottle(operation) => operation.take_released_value(),
+            Self::TimedButtonAttempt(operation) => operation.take_released_value(),
             Self::MusicSynth(operation) => operation.take_released_value(),
             Self::HttpServer(operation) => operation.take_released_value(),
             _ => None,
@@ -520,6 +531,7 @@ impl Operation for InstalledOperation {
                 | Self::TimeTimeout(_)
                 | Self::TimeDelay(_)
                 | Self::TimeThrottle(_)
+                | Self::TimedButtonAttempt(_)
         )
     }
 
@@ -528,6 +540,7 @@ impl Operation for InstalledOperation {
             Self::TimeDebounce(operation) => operation.take_host_operation_cancellation(),
             Self::TimeTimeout(operation) => operation.take_host_operation_cancellation(),
             Self::TimeThrottle(operation) => operation.take_host_operation_cancellation(),
+            Self::TimedButtonAttempt(operation) => operation.take_host_operation_cancellation(),
             _ => None,
         }
     }

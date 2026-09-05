@@ -6,7 +6,8 @@ use conduit_core::{
     StructuredInfoType, StructuredInfoValue,
 };
 use conduit_kernel::{
-    HostedValueStore, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    BoundedValueRef, HostOperationDisposition, HostOperationId, HostedValueStore, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(crate) const SOURCE_KIND: &str = "conduit-test/structured-source";
@@ -26,22 +27,70 @@ pub(super) static SINK_FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(super) struct SourceOperation {
-    value: Option<ValueRef>,
+    pub(super) values: Vec<ValueRef>,
+    pub(super) waits: Vec<ValueRef>,
+    next: usize,
+    pending: Option<RequestId>,
 }
 
 impl SourceOperation {
     pub(super) fn start(&mut self) -> OperationAction {
-        self.value
-            .take()
-            .map(|value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-            .unwrap_or(OperationAction::Complete)
+        if self.waits.is_empty() {
+            self.emit_or_complete()
+        } else {
+            self.request_wait()
+        }
     }
 
     pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
+        self.next += 1;
+        if self.next >= self.values.len() {
+            OperationAction::Complete
+        } else {
+            self.request_wait()
+        }
+    }
+
+    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.output.is_none()
+                    && outcome.failure.is_none() =>
+            {
+                self.pending = None;
+                self.emit_or_complete()
+            }
+            _ => InstalledOperation::fail(154),
+        }
+    }
+
+    pub(super) fn cancel(&mut self) {
+        self.pending = None;
+    }
+
+    fn emit_or_complete(&self) -> OperationAction {
+        self.values
+            .get(self.next)
+            .copied()
+            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
+                port: PortId(0),
+                value,
+            })
+    }
+
+    fn request_wait(&mut self) -> OperationAction {
+        let request = RequestId(u32::try_from(self.next).expect("bounded fixture request"));
+        let Some(value) = self.waits.get(self.next).copied() else {
+            return InstalledOperation::fail(155);
+        };
+        self.pending = Some(request);
+        OperationAction::RequestHostOperation {
+            request,
+            operation: HostOperationId(0),
+            input: BoundedValueRef::new(value, 8).expect("fixture wait is exactly eight bytes"),
+        }
     }
 }
 
@@ -154,11 +203,17 @@ pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
 }
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    let maximum = configured_bytes(placement)?.len() as u32;
+    let configured = configured_values(placement)?;
+    let count = u16::try_from(configured.len()).map_err(|_| "too many structured fixtures")?;
+    let maximum = configured.iter().map(Vec::len).max().unwrap_or_default() as u32;
     Ok(OperationBudget {
-        value_items: 2,
-        value_bytes: maximum.saturating_mul(2),
-        host_requests: 0,
+        value_items: count.saturating_add(1),
+        value_bytes: configured
+            .iter()
+            .map(|value| value.len() as u32)
+            .sum::<u32>()
+            .saturating_add(maximum),
+        host_requests: configured.len(),
         sign_items: 8,
         maximum_value_bytes: maximum,
     })
@@ -168,12 +223,30 @@ fn prepare_source(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    let value = configured_bytes(placement)?;
-    let value = values
-        .store(&value)
-        .map_err(|error| format!("store fixture: {error:?}"))?;
+    let stored = configured_values(placement)?
+        .iter()
+        .map(|value| {
+            values
+                .store(value)
+                .map_err(|error| format!("store fixture: {error:?}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let waits = if stored.len() > 1 {
+        (0..stored.len())
+            .map(|_| {
+                values
+                    .store(&conduit_time::encode_tick(0))
+                    .map_err(|error| format!("store fixture wait: {error:?}"))
+            })
+            .collect::<Result<Vec<_>, _>>()?
+    } else {
+        Vec::new()
+    };
     Ok(InstalledOperation::TestStructuredSource(SourceOperation {
-        value: Some(value),
+        values: stored,
+        waits,
+        next: 0,
+        pending: None,
     }))
 }
 
@@ -191,18 +264,26 @@ fn prepare_sink(
 }
 
 fn configured_value(placement: &PlannedGear) -> Result<StructuredInfoValue, String> {
-    StructuredInfoValue::from_canonical_bytes(&configured_bytes(placement)?)
+    let values = configured_values(placement)?;
+    let [value] = values.as_slice() else {
+        return Err("structured sink requires one value".into());
+    };
+    StructuredInfoValue::from_canonical_bytes(value)
         .map_err(|error| format!("structured fixture refusal: {error:?}"))
 }
 
-fn configured_bytes(placement: &PlannedGear) -> Result<Vec<u8>, String> {
+fn configured_values(placement: &PlannedGear) -> Result<Vec<Vec<u8>>, String> {
     let [entry] = placement.configuration.as_slice() else {
         return Err("structured fixture requires one value".into());
     };
-    let ("value", ConfigurationValue::Text(encoded)) = (entry.key.as_str(), &entry.value) else {
+    let ConfigurationValue::Text(encoded) = &entry.value else {
         return Err("structured fixture value is malformed".into());
     };
-    unhex(encoded)
+    match entry.key.as_str() {
+        "value" => Ok(vec![unhex(encoded)?]),
+        "values" => encoded.split(',').map(unhex).collect(),
+        _ => Err("structured fixture value is malformed".into()),
+    }
 }
 
 fn hex(bytes: &[u8]) -> String {

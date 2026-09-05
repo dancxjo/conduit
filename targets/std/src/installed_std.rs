@@ -85,6 +85,8 @@ mod text_operations;
 mod text_operations_tests;
 mod tick_operations;
 mod tick_presentation;
+mod timed_button_attempt_host;
+mod timed_button_attempt_operation;
 mod timed_pattern_operation;
 mod timing_configuration;
 mod timing_operations;
@@ -462,6 +464,23 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut sequence_normalization_host =
         sequence_normalization_operation::SequenceNormalizationHost::prepare();
     let mut timed_pattern_host = timed_pattern_operation::TimedPatternHost::prepare();
+    let mut timed_button_attempt_hosts = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                == conduit_std_offers::TIMED_BUTTON_ATTEMPT_STD_IMPLEMENTATION
+            {
+                timed_button_attempt_operation::host_maximum(placement).map(|maximum| {
+                    Some(timed_button_attempt_host::TimedButtonAttemptHost::prepare(
+                        maximum,
+                    ))
+                })
+            } else {
+                Ok(None)
+            }
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
@@ -766,6 +785,77 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION
+            {
+                let now_micros = timer.monotonic_now_micros().ok_or_else(|| {
+                    "admitted pressed-button monotonic-microsecond Base is unavailable".to_string()
+                })?;
+                let completion = timed_button_attempt_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "pressed-button request has no admitted observation host".to_string()
+                    })?
+                    .observe(input, now_micros);
+                let (disposition, output, failure) = match completion {
+                    Ok(timed_button_attempt_host::Observation::Released) => {
+                        (HostOperationDisposition::Completed, None, None)
+                    }
+                    Ok(timed_button_attempt_host::Observation::Pressed) => {
+                        let value = scheduler.store_host_value(&[0]).map_err(|error| {
+                            format!("store bounded pressed-button marker: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(BoundedValueRef::new(value, 1).map_err(|error| {
+                                format!("bound pressed-button marker: {error:?}")
+                            })?),
+                            None,
+                        )
+                    }
+                    Ok(timed_button_attempt_host::Observation::Complete(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pressed-button attempt: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound pressed-button attempt: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: timed_button_attempt_operation::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded pressed-button observation: {error:?}")
+                    })?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::STRUCTURED_SELECTOR_HOST_OPERATION {
