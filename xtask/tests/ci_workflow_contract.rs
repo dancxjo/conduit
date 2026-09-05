@@ -239,11 +239,23 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
             .find("components: clippy,rustfmt")
             .map(|offset| setup + offset)
             .expect("exact generic components");
+        let trusted_controller = workflow
+            .find("name: Build the dependency-light trusted CI controller")
+            .expect("trusted dependency-light controller build");
         let preflight = workflow
-            .find("cargo +1.98.1 xtask ci rust-toolchain-preflight --locked")
+            .find("ci rust-toolchain-preflight --locked")
             .expect("exact toolchain preflight");
         let planner = workflow.find("ci plan").expect("CI impact planner");
-        assert!(setup < components && components < preflight && preflight < planner);
+        assert!(
+            setup < components
+                && components < trusted_controller
+                && trusted_controller < preflight
+                && preflight < planner
+        );
+        assert!(workflow.contains(
+            "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci rust-toolchain-preflight --locked"
+        ));
+        assert!(!workflow.contains("cargo +1.98.1 xtask ci rust-toolchain-preflight"));
     }
 }
 
@@ -276,7 +288,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
         );
     }
     assert!(products.contains(
-        "if: always() && needs.plan.result == 'success' && needs.plan.outputs.required == 'true'"
+        "if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.required == 'true'"
     ));
 }
 
@@ -586,8 +598,10 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert!(workflow.contains("runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
     assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
-    assert!(workflow.contains("needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'"));
-    assert!(workflow.contains("needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'"));
+    assert!(workflow.contains("shared_compile_result: ${{ needs.shared-compile.result }}"));
+    assert!(
+        workflow.contains("shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}")
+    );
     assert_eq!(workflow.matches("set -o pipefail").count(), 2);
     assert_eq!(workflow.matches("checks: write").count(), 2);
     assert!(workflow.contains("published: ${{ steps.locate.outputs.published }}"));
@@ -607,11 +621,11 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
     assert_eq!(workflow.matches("contents: write").count(), 2);
     assert!(workflow.contains("candidate-check:\n    needs: [resolve, shared-compile]"));
     assert!(workflow.contains(
-        "candidate-check:\n    needs: [resolve, shared-compile]\n    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
+        "candidate-check:\n    needs: [resolve, shared-compile]\n    if: always() && !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'\n    permissions:\n      actions: read\n      contents: read\n      pull-requests: read"
     ));
     assert!(workflow.contains("candidate-products:\n    needs: [resolve, shared-compile]"));
     assert!(workflow.contains(
-        "candidate-products:\n    needs: [resolve, shared-compile]\n    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
+        "candidate-products:\n    needs: [resolve, shared-compile]\n    if: always() && !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'\n    permissions:\n      contents: read\n      pull-requests: read"
     ));
 
     assert!(check.contains("workflow_call:"));
@@ -641,6 +655,18 @@ fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
     );
     assert!(controller.contains("check:\n    needs: shared-compile"));
     assert!(controller.contains("products:\n    needs: shared-compile"));
+    assert_eq!(
+        controller
+            .matches("if: always() && !cancelled() && needs.shared-compile.outputs.stack_role != 'intermediate'")
+            .count(),
+        2
+    );
+    assert_eq!(
+        controller
+            .matches("shared_compile_result: ${{ needs.shared-compile.result }}")
+            .count(),
+        2
+    );
     assert!(controller.contains("blocked-by: workspace.shared-compile"));
     assert!(controller.contains("conduit.ci.causal-block/v1"));
     assert_eq!(
@@ -650,6 +676,35 @@ fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
         1
     );
     assert!(prerequisite.contains("shared_compile_packages"));
+    assert!(
+        check.contains("shared_compile_result:\n        required: false\n        default: success")
+    );
+    assert!(products
+        .contains("shared_compile_result:\n        required: false\n        default: success"));
+    assert!(check.contains(
+        "CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}"
+    ));
+    assert!(products.contains(
+        "CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}"
+    ));
+    assert!(check.contains("workspace-check:\n    needs: classify\n    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success')"));
+    assert!(check.contains("esp32-firmware:\n    needs: [classify, standalone-locks]\n    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success')"));
+    assert!(check.contains("blocked_by\":\"workspace.shared-compile"));
+    assert!(products.contains(
+        "browser-runtimes:\n    needs: plan\n    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success')"
+    ));
+    assert!(products.contains("blocked_by\":\"workspace.shared-compile"));
+    assert!(!check.contains(
+        "conduitos-limine:\n    needs: classify\n    if: always() && inputs.shared_compile_result"
+    ));
+    assert!(!check.contains(
+        "conduitos-tools:\n    needs: classify\n    if: always() && inputs.shared_compile_result"
+    ));
+    assert!(!check.contains(
+        "standalone-locks:\n    needs: classify\n    if: always() && inputs.shared_compile_result"
+    ));
+    assert!(!products
+        .contains("standalone-locks:\n    needs: plan\n    if: inputs.shared_compile_result"));
     assert!(!check.contains("  pull_request:\n"));
     assert!(!products.contains("  pull_request:\n"));
 }
@@ -721,9 +776,7 @@ fn every_active_check_matrix_retains_an_exact_proof_receipt() {
     }
     assert_eq!(
         workflow
-            .matches(
-                "cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""
-            )
+            .matches("--manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\"")
             .count(),
         1,
         "the trusted attestation controller must be built once, not once per proof job"

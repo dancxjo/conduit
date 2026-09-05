@@ -9,6 +9,14 @@ on:
       candidate_sha:
         required: true
         type: string
+      shared_compile_result:
+        required: false
+        default: success
+        type: string
+      shared_compile_packages:
+        required: false
+        default: '[]'
+        type: string
   workflow_dispatch:
     inputs:
       base_sha:
@@ -27,6 +35,8 @@ permissions:
 env:
   CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   CONDUIT_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
+  CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}
+  CONDUIT_SHARED_COMPILE_PACKAGES: ${{ inputs.shared_compile_packages || '[]' }}
 concurrency:
   group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   cancel-in-progress: false
@@ -96,21 +106,24 @@ jobs:
         if: steps.stack.outputs.role != 'intermediate'
         with:
           components: clippy,rustfmt
+      - name: Build the dependency-light trusted CI controller
+        if: steps.stack.outputs.role != 'intermediate'
+        run: >-
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target"
+          cargo build
+          --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml"
+          --package conduit-xtask-dispatch --locked
       - name: Verify the exact generic Rust toolchain before product fan-out
         if: steps.stack.outputs.role != 'intermediate'
-        run: cargo +1.98.1 xtask ci rust-toolchain-preflight --locked
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci rust-toolchain-preflight --locked
       - name: Select exact product proof impact
         id: impact
         if: steps.stack.outputs.role != 'intermediate'
         run: |
-          controller=(cargo xtask)
-          if test -f "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs"; then
-            CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-              cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-              --package conduit-xtask-dispatch --locked
-            controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
-          fi
-          "${controller[@]}" ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
             --json-out target/product-plan/impact.json \
             --summary-out "$GITHUB_STEP_SUMMARY" \
             >> "$GITHUB_OUTPUT"
@@ -139,7 +152,7 @@ jobs:
 
   browser-runtimes:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -301,7 +314,7 @@ jobs:
 
   avr-release:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -330,7 +343,7 @@ jobs:
 
   browser-release:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -354,7 +367,7 @@ jobs:
 
   host-releases:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -398,7 +411,7 @@ jobs:
 
   raspberry-pi-release:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -432,7 +445,7 @@ jobs:
 
   orange-pi-release:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -465,7 +478,7 @@ jobs:
 
   conduitos-release-images:
     needs: plan
-    if: needs.plan.outputs.required == 'true'
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -564,7 +577,7 @@ jobs:
 
   esp32-release-images:
     needs: [plan, standalone-locks]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -946,6 +959,8 @@ jobs:
     steps:
       - name: Preserve the stable required product gate
         env:
+          SHARED_COMPILE_RESULT: ${{ env.CONDUIT_SHARED_COMPILE_RESULT }}
+          SHARED_COMPILE_PACKAGES: ${{ env.CONDUIT_SHARED_COMPILE_PACKAGES }}
           PRODUCT_REQUIRED: ${{ needs.plan.outputs.required }}
           PRODUCT_PROOFS: ${{ needs.plan.outputs.proofs }}
           TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
@@ -954,6 +969,12 @@ jobs:
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
         run: |
+          if test "${SHARED_COMPILE_RESULT:-success}" != success; then
+            printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["products-proof"]}\n' \
+              "${SHARED_COMPILE_PACKAGES:-[]}" | tee causal-block.json
+            printf 'blocked-by: workspace.shared-compile (%s)\n' "${SHARED_COMPILE_PACKAGES:-[]}" >&2
+            exit 1
+          fi
           if test "$PRODUCT_REQUIRED" != true; then
             echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
             exit 0
