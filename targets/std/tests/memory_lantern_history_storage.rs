@@ -5,26 +5,34 @@ use conduit_core::{
 };
 use conduit_kernel::{FixedValueStore, HostedValueStore, StorageError, ValueStorage};
 use conduit_time::{
-    decode_historical_timeline, encode_historical_timeline_into, BoundedHistoricalTimeline,
-    HistoricalEntryOrigin, HistoricalOverflowPolicy, MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES,
+    decode_historical_timeline, decode_replay_state, encode_historical_timeline_into,
+    encode_replay_command_into, encode_replay_timeline_into, BoundedHistoricalTimeline,
+    BoundedReplayOperation, HistoricalEntryOrigin, HistoricalOverflowPolicy,
+    HistoricalTimelineCodecRefusal, ReplayCommand, ReplayPolicy, ReplayState,
+    MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES, MAXIMUM_REPLAY_COMMAND_BYTES,
+    MAXIMUM_REPLAY_EVENT_BYTES, MAXIMUM_REPLAY_STATE_BYTES, MAXIMUM_REPLAY_TIMELINE_BYTES,
 };
 
 const SNAPSHOT_BYTES: u32 = MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES as u32;
 
 struct DeterministicDurableFixture {
     host_id: HostId,
+    available: bool,
     bytes: Vec<u8>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum DurableFixtureRefusal {
+    Unavailable,
     WrongHost,
+    Corrupt(HistoricalTimelineCodecRefusal),
 }
 
 impl DeterministicDurableFixture {
     fn new(host_id: HostId) -> Self {
         Self {
             host_id,
+            available: true,
             bytes: Vec::with_capacity(MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES),
         }
     }
@@ -35,14 +43,25 @@ impl DeterministicDurableFixture {
         self.bytes.extend_from_slice(snapshot);
     }
 
+    fn set_available(&mut self, available: bool) {
+        self.available = available;
+    }
+
+    fn corrupt(&mut self) {
+        self.bytes[0] ^= 1;
+    }
+
     fn reload(
         &self,
         requesting_host: &HostId,
     ) -> Result<BoundedHistoricalTimeline, DurableFixtureRefusal> {
+        if !self.available {
+            return Err(DurableFixtureRefusal::Unavailable);
+        }
         if requesting_host != &self.host_id {
             return Err(DurableFixtureRefusal::WrongHost);
         }
-        Ok(decode_historical_timeline(&self.bytes).unwrap())
+        decode_historical_timeline(&self.bytes).map_err(DurableFixtureRefusal::Corrupt)
     }
 }
 
@@ -149,6 +168,54 @@ fn storage_capacity_failure_remains_distinct_from_history_codec_failure() {
     );
     assert_eq!(storage.used_items(), 0);
     assert_eq!(storage.used_bytes(), 0);
+}
+
+#[test]
+fn unavailable_corrupt_quota_and_replay_failure_remain_distinct() {
+    let host_id = HostId::from("memory-lantern/browser-host");
+    let mut durable = DeterministicDurableFixture::new(host_id.clone());
+    durable.replace(&encoded_history());
+    durable.set_available(false);
+    assert!(matches!(
+        durable.reload(&host_id),
+        Err(DurableFixtureRefusal::Unavailable)
+    ));
+
+    durable.set_available(true);
+    durable.corrupt();
+    assert!(matches!(
+        durable.reload(&host_id),
+        Err(DurableFixtureRefusal::Corrupt(
+            HistoricalTimelineCodecRefusal::Integrity
+        ))
+    ));
+
+    let encoded = encoded_history();
+    let mut quota =
+        HostedValueStore::new(1, SNAPSHOT_BYTES, u32::try_from(encoded.len() - 1).unwrap())
+            .unwrap();
+    assert_eq!(
+        quota.store(&encoded),
+        Err(StorageError::ByteCapacityExceeded)
+    );
+
+    let entries = history().replay_metadata();
+    let mut timeline = vec![0; MAXIMUM_REPLAY_TIMELINE_BYTES];
+    let timeline_length = encode_replay_timeline_into(&entries, &mut timeline).unwrap();
+    let mut replay = BoundedReplayOperation::new(ReplayPolicy::Step).unwrap();
+    replay.load_timeline(&timeline[..timeline_length]).unwrap();
+    let mut command = [0; MAXIMUM_REPLAY_COMMAND_BYTES];
+    let command_length =
+        encode_replay_command_into(ReplayCommand::Fail { code: 37 }, &mut command).unwrap();
+    let mut event = [0; MAXIMUM_REPLAY_EVENT_BYTES];
+    let mut state = [0; MAXIMUM_REPLAY_STATE_BYTES];
+    let failed = replay
+        .apply_command(&command[..command_length], 0, &mut event, &mut state)
+        .unwrap();
+    assert_eq!(
+        decode_replay_state(&state[..failed.state_bytes.unwrap()]),
+        Ok(ReplayState::Failed { code: 37 })
+    );
 }
 
 #[test]
