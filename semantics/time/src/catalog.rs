@@ -7,8 +7,9 @@ use conduit_form::{
 };
 
 use crate::{
-    replay_control_kind_definition, tick_outputs, MAX_TICK_COUNT, TICK_CONTRACT_REVISION,
-    TICK_KIND, TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
+    historical_timeline_kind_definition, replay_control_kind_definition, tick_outputs,
+    HISTORICAL_TIMELINE_KIND, MAX_TICK_COUNT, TICK_CONTRACT_REVISION, TICK_KIND,
+    TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
 };
 
 pub fn tick_kind_definition() -> KindDefinition {
@@ -121,6 +122,52 @@ pub fn install_replay_control_catalog(
     })?;
     profile
         .insert(replay_control_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn install_historical_timeline_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    for (name, identity) in [
+        ("HistoricalTypedEntry", "history/typed-entry@1"),
+        ("HistoricalTypedTimeline", "history/typed-timeline@1"),
+    ] {
+        startup
+            .insert_structured_type(
+                name,
+                conduit_core::StructuredInfoType::leaf(kind_id(identity))
+                    .expect("reviewed history value identity"),
+            )
+            .map_err(|error| error.to_string())?;
+    }
+    startup.insert(KindSignature {
+        kind: HISTORICAL_TIMELINE_KIND.to_string(),
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "value-profile".to_string(),
+                value_type: "Text".to_string(),
+                default: Some("value/text@1".to_string()),
+            },
+            StartupParameterSignature {
+                name: "maximum-entries".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("16".to_string()),
+            },
+            StartupParameterSignature {
+                name: "maximum-referenced-bytes".to_string(),
+                value_type: "Count".to_string(),
+                default: Some("1048576".to_string()),
+            },
+            StartupParameterSignature {
+                name: "overflow-policy".to_string(),
+                value_type: "Text".to_string(),
+                default: Some("refuse".to_string()),
+            },
+        ],
+    })?;
+    profile
+        .insert(historical_timeline_kind_definition())
         .map_err(|error| error.to_string())
 }
 
