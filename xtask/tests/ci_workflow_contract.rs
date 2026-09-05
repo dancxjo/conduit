@@ -326,11 +326,22 @@ fn merged_branch_retirement_retargets_before_deletion_under_trusted_code() {
         .expect("read merged branch retirement workflow");
     assert!(workflow.contains("pull_request_target:"));
     assert!(workflow.contains("types: [closed]"));
+    assert!(workflow.contains("actions: write"));
     assert!(workflow.contains("pull-requests: write"));
     assert!(workflow.contains("contents: write"));
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("persist-credentials: false"));
     assert!(workflow.contains("node scripts/ci/retire-merged-pr-branch.mjs"));
+    let controller = fs::read_to_string(root.join("scripts/ci/retire-merged-pr-branch.mjs"))
+        .expect("read merged branch retirement controller");
+    let retarget = controller.find("/pulls/${dependent.number}").unwrap();
+    let dispatch = controller
+        .find("/actions/workflows/reconcile-candidate.yml/dispatches")
+        .unwrap();
+    let deletion = controller
+        .find("/git/refs/heads/${encodeRef(branch)}")
+        .unwrap();
+    assert!(retarget < dispatch && dispatch < deletion);
 }
 
 #[test]
@@ -575,6 +586,9 @@ fn unchanged_candidate_reconciliation_is_exact_head_and_least_privilege() {
         "name: Publish the reconciliation-owned admission gate\n        if: needs.resolve.result == 'success'"
     ));
     assert!(workflow.contains("name: Publish the reconciliation-owned admission gate"));
+    assert!(workflow.contains(
+        "CONDUIT_PUBLISH_REQUIRED_ADMISSION: ${{ github.event_name == 'workflow_dispatch' }}"
+    ));
     assert_eq!(workflow.matches("contents: write").count(), 2);
     assert!(workflow.contains("candidate-check:\n    needs: resolve"));
     assert!(workflow.contains(

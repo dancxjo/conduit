@@ -170,6 +170,7 @@ jobs:
           CONDUIT_PRODUCTS_INHERITED: ${{ needs.resolve.outputs.products_inherited }}
           CONDUIT_PRODUCTS_RESULT: ${{ needs.candidate-products.result }}
           CONDUIT_PRODUCTS_EVIDENCE_URL: ${{ needs.resolve.outputs.products_evidence_url }}
+          CONDUIT_PUBLISH_REQUIRED_ADMISSION: ${{ github.event_name == 'workflow_dispatch' }}
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -o pipefail

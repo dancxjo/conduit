@@ -1,5 +1,6 @@
 const LANES = ["check", "products-proof"];
 const ADMISSION_EVIDENCE = "admission-evidence";
+const REQUIRED_ADMISSION = "admission";
 
 function exactArray(value, label) {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) throw new Error(`${label} must be a string array`);
@@ -114,7 +115,7 @@ export async function resolveCandidateRequest({ repository, pullNumber, candidat
   };
 }
 
-export async function publishCandidateResults({ repository, candidateSha, baseSha, integrationSha, checkInherited, checkResult, checkEvidenceUrl, productsInherited, productsResult, productsEvidenceUrl, runUrl, token, request = fetch }) {
+export async function publishCandidateResults({ repository, candidateSha, baseSha, integrationSha, checkInherited, checkResult, checkEvidenceUrl, productsInherited, productsResult, productsEvidenceUrl, runUrl, publishRequiredAdmission = false, token, request = fetch }) {
   validate(repository, 1, candidateSha);
   exactIdentity(baseSha, "base SHA");
   exactIdentity(integrationSha, "integration SHA");
@@ -132,7 +133,7 @@ export async function publishCandidateResults({ repository, candidateSha, baseSh
     if (lane.inherited) return `${lane.name}: inherited exact success from ${lane.evidenceUrl}`;
     return `${lane.name}: current-controller execution ${lane.result}`;
   }).join("\n");
-  const body = {
+  const evidenceBody = {
     name: ADMISSION_EVIDENCE, head_sha: candidateSha, status: "completed", conclusion,
     external_id: `conduit.current-controller-reconciliation/v3:${candidateSha}:${baseSha}:${integrationSha}`,
     details_url: runUrl,
@@ -141,9 +142,25 @@ export async function publishCandidateResults({ repository, candidateSha, baseSh
       summary: `Current-controller admission for unchanged candidate ${candidateSha}.\n\nBase: ${baseSha}\nProspective integration: ${integrationSha}\n\n${laneSummary}\n\nRun: ${runUrl}`,
     },
   };
-  const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
-  if (!response.ok) throw new Error(`publish ${ADMISSION_EVIDENCE} check failed: HTTP ${response.status}`);
-  return [{ name: ADMISSION_EVIDENCE, conclusion, checkRunId: (await response.json()).id }];
+  const bodies = [evidenceBody];
+  if (publishRequiredAdmission) {
+    bodies.push({
+      ...evidenceBody,
+      name: REQUIRED_ADMISSION,
+      external_id: `conduit.required-admission/v1:${candidateSha}:${baseSha}:${integrationSha}`,
+      output: {
+        ...evidenceBody.output,
+        title: "Exact candidate admission gate",
+      },
+    });
+  }
+  const published = [];
+  for (const body of bodies) {
+    const response = await request(`https://api.github.com/repos/${repository}/check-runs`, { method: "POST", headers: requestHeaders, body: JSON.stringify(body) });
+    if (!response.ok) throw new Error(`publish ${body.name} check failed: HTTP ${response.status}`);
+    published.push({ name: body.name, conclusion, checkRunId: (await response.json()).id });
+  }
+  return published;
 }
 
 async function appendOutput(name, value) {
@@ -181,6 +198,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       baseSha: process.env.CONDUIT_BASE_SHA, integrationSha: process.env.CONDUIT_INTEGRATION_SHA,
       checkInherited: process.env.CONDUIT_CHECK_INHERITED === "true", checkResult: process.env.CONDUIT_CHECK_RESULT, checkEvidenceUrl: process.env.CONDUIT_CHECK_EVIDENCE_URL,
       productsInherited: process.env.CONDUIT_PRODUCTS_INHERITED === "true", productsResult: process.env.CONDUIT_PRODUCTS_RESULT, productsEvidenceUrl: process.env.CONDUIT_PRODUCTS_EVIDENCE_URL,
+      publishRequiredAdmission: process.env.CONDUIT_PUBLISH_REQUIRED_ADMISSION === "true",
       runUrl: process.env.CONDUIT_RUN_URL, token: process.env.GH_TOKEN,
     });
     process.stdout.write(`${JSON.stringify({ schema: "conduit.ci.current-controller-reconciliation/v1", candidate_sha: process.env.CONDUIT_CANDIDATE_SHA, published }, null, 2)}\n`);
