@@ -45,6 +45,7 @@ pub(super) mod rhythm_compare_host;
 mod rhythm_compare_operation;
 mod robotics_effect;
 mod robotics_operations;
+mod sequence_normalization_operation;
 mod state_select_operation;
 mod structured_presentation_host;
 mod structured_selector_operation;
@@ -455,6 +456,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut http_output =
         Vec::with_capacity(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut json_host = json_operations::JsonHost::prepare();
+    let mut sequence_normalization_host =
+        sequence_normalization_operation::SequenceNormalizationHost::prepare();
     let mut timed_pattern_host = timed_pattern_operation::TimedPatternHost::prepare();
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
@@ -787,6 +790,50 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| {
                         format!("complete bounded timed-pattern operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::NORMALIZE_SEQUENCE_HOST_OPERATION {
+                let completion = sequence_normalization_host.execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded normalized sequence: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound normalized sequence: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: sequence_normalization_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded normalization operation: {error:?}")
                     })?;
                 continue;
             }

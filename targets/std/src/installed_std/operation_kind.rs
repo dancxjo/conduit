@@ -33,6 +33,7 @@ use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
 use super::robotics_effect::SimulatedDriveEffect;
 use super::robotics_operations::{RoboticsDriveOperation, RoboticsSourceOperation};
+use super::sequence_normalization_operation::SequenceNormalizationOperation;
 use super::state_select_operation::StateSelectScalarOperation;
 use super::structured_selector_operation::StructuredSelectorOperation;
 use super::structured_values_operation::{
@@ -91,6 +92,7 @@ pub(super) enum InstalledOperation {
     InputChords(InputSemanticOperation),
     InstrumentMap(InstrumentMapOperation),
     RhythmCompare(RhythmCompareOperation),
+    SequenceNormalization(SequenceNormalizationOperation),
     TimedPattern(TimedPatternOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
