@@ -583,6 +583,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-std-offers",
  "conduit-text",
  "conduit-time",
  "conduit-wire",
