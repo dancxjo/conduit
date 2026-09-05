@@ -12,6 +12,7 @@ use super::calendar_provider_operation::{
 };
 use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
+use super::final_normalized_pattern_operation::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
 use super::flow_gate_operation::FLOW_GATE_SCALAR_FACTORY;
 use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
 use super::generate_text::{
@@ -142,6 +143,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &RHYTHM_COMPARE_FACTORY,
     &PATTERN_COMPARISON_FACTORY,
     &SEQUENCE_NORMALIZATION_FACTORY,
+    &FINAL_NORMALIZED_PATTERN_FACTORY,
     &TIMED_PATTERN_FACTORY,
     &TIMED_BUTTON_ATTEMPT_FACTORY,
     &TEMPLATE_STORAGE_FACTORY,

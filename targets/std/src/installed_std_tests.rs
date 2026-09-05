@@ -11,6 +11,7 @@ mod audio_playback_conformance;
 mod bool_presentation_conformance;
 mod calendar_proposal_conformance;
 mod calendar_provider_conformance;
+mod final_normalized_pattern_conformance;
 mod gate_conformance;
 mod graphics_conformance;
 mod input_semantics_conformance;

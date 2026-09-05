@@ -111,6 +111,10 @@ mod sequence_normalization;
 #[cfg(feature = "form-catalog")]
 pub use sequence_normalization::*;
 #[cfg(feature = "form-catalog")]
+mod final_normalized_pattern;
+#[cfg(feature = "form-catalog")]
+pub use final_normalized_pattern::*;
+#[cfg(feature = "form-catalog")]
 mod pattern_comparison;
 #[cfg(feature = "form-catalog")]
 pub use pattern_comparison::*;

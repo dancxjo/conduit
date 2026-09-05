@@ -15,6 +15,7 @@ mod external_websocket;
 mod external_websocket_host;
 mod facade;
 mod factory;
+mod final_normalized_pattern_operation;
 mod flow_gate_operation;
 mod flow_state_operations;
 mod generate_text;

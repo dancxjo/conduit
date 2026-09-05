@@ -10,6 +10,8 @@ mod timed_button_attempt;
 pub use timed_button_attempt::*;
 mod sequence_normalization;
 pub use sequence_normalization::*;
+mod final_normalized_pattern;
+pub use final_normalized_pattern::*;
 mod pattern_comparison;
 pub use pattern_comparison::*;
 mod template_storage;
