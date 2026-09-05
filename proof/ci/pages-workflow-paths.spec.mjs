@@ -20,7 +20,10 @@ function pullRequestPaths(path, marker) {
 
 test("the PR product controller owns applicability while promotion stays privileged", () => {
   const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
-  assert.match(productWorkflow, /^  pull_request:\s*$/m);
+  const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
+  assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
+  assert.match(candidateWorkflow, /uses: \.\/\.github\/workflows\/executable-book-pages\.yml/);
+  assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
   assert.match(productWorkflow, /jobs:\n  plan:/);
   assert.match(productWorkflow, /Resolve the current trusted CI controller/);

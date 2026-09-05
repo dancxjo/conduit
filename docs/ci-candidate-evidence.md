@@ -173,6 +173,16 @@ Merged branches are retired by repository machinery rather than GitHub's immedia
 
 Branch protection's stable `admission` context is the final lightweight job in the reconciliation workflow, not an ad hoc check run racing unrelated check-suite completion. Even when every proof is inherited, reconciliation reaches that job, publishes a separately named `admission-evidence` detail record, retires its temporary integration ref, and lets the job's own terminal result satisfy protection. Duplicate dispatches do not cancel one another, so a later canceled suite cannot replace the established success merely as bookkeeping.
 
+Candidate proof begins with one typed shared-compilation prerequisite selected
+from changed Cargo packages that feed more than one scheduled proof world. The
+prerequisite runs once, under the exact Rust toolchain, before the workspace and
+product graphs are released concurrently. If it fails, neither graph allocates
+its browser, firmware, Host, or ConduitOS consumers; the controller emits a
+`conduit.ci.causal-block/v1` record naming `workspace.shared-compile` and the
+blocked aggregate lanes. Reconciliation applies the same prerequisite to the
+prospective integration tree. An empty shared-package set is an explicit no-op,
+not evidence, and unknown/global impact keeps the existing conservative graph.
+
 An exact successful `admission-evidence` identity includes candidate, base, and
 prospective integration identities. A later lifecycle event with that same
 triple inherits the complete admitted proposition without re-running its lane

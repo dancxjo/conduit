@@ -17,6 +17,7 @@ pub(super) enum Applicability {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum Selection {
     CiController,
+    SharedCompile,
     WorkspaceShard(&'static str),
     PagesProducts,
     PagesProductProof(&'static str),
@@ -88,6 +89,30 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::CiController,
         command: "cargo test --locked --package conduit-xtask-dispatch && node --test proof/ci/check-result-gate.spec.mjs proof/ci/retire-superseded-candidates.spec.mjs proof/ci/reconcile-candidate-request.spec.mjs",
+    },
+    ProofSpec {
+        id: "workspace.shared-compile",
+        contract_version: 1,
+        kind: ProofKind::Workspace,
+        inputs: &[
+            "Cargo.toml",
+            "Cargo.lock",
+            "architecture",
+            "fabrication",
+            "mechanisms",
+            "products",
+            "semantics",
+            "targets",
+        ],
+        implementation_inputs: &[
+            ".github/workflows",
+            "xtask/src/commands/ci/impact.rs",
+        ],
+        consumed_artifacts: &[],
+        environment: "ubuntu-rust-1.98.1-shared-compile-v1",
+        applicability: Applicability::CandidateAndIntegration,
+        selection: Selection::SharedCompile,
+        command: "cargo check --locked -p <each changed shared package>",
     },
     ProofSpec {
         id: "workspace.lint",

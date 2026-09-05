@@ -626,6 +626,9 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     assert!(!shared_browser_presentation.conduitos_required);
     assert!(shared_browser_presentation.pages_products_required);
     assert!(shared_browser_presentation.workspace_shards["lint"]);
+    assert!(shared_browser_presentation
+        .shared_compile_packages
+        .contains(&"conduit-presentation".to_owned()));
 
     let creche_presentation = plan_for_paths(
         &root,
@@ -868,6 +871,9 @@ fn esp32_paths_select_exact_target_obligations() {
     )
     .unwrap();
     assert_eq!(shared_dependency.esp32_targets.len(), 3);
+    assert!(shared_dependency
+        .shared_compile_packages
+        .contains(&"conduit-kernel".to_owned()));
 }
 
 #[test]
@@ -924,9 +930,10 @@ fn conduitos_paths_select_exact_proof_obligations() {
 fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     let root = crate::workspace::workspace_root().unwrap();
     let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
+    let candidate = fs::read_to_string(root.join(".github/workflows/candidate.yml")).unwrap();
 
     assert!(workflow.contains("  workflow_call:\n"));
-    assert!(workflow.contains("  pull_request:\n"));
+    assert!(candidate.contains("  pull_request:\n"));
     assert!(workflow.contains("  merge_group:\n"));
     assert!(!workflow.contains("\n  push:"));
 

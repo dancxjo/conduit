@@ -50,6 +50,14 @@ test("a cumulative tip retires active expensive runs for exact ancestor candidat
   assert.deepEqual(ancestorStackCandidateRuns(runs, members, 7).map(({ id }) => id), [1, 2]);
 });
 
+test("the unified candidate controller is retired by immutable head identity", () => {
+  const runs = [
+    { id: 1, event: "pull_request", name: "candidate", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
+    { id: 2, event: "pull_request", name: "candidate", status: "in_progress", head_sha: current, pull_requests: [{ number: 7 }] },
+  ];
+  assert.deepEqual(supersededCandidateRuns(runs, 7, current).map(({ id }) => id), [1]);
+});
+
 test("historical success never retires the sole active aggregate-gate run", () => {
   const runs = [
     { id: 1, event: "pull_request", name: "check", status: "completed", conclusion: "success", head_sha: current, pull_requests: [{ number: 7 }] },

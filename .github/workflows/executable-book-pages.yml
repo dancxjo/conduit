@@ -19,7 +19,6 @@ on:
         description: Exact immutable candidate commit
         required: true
         type: string
-  pull_request:
 
 permissions:
   contents: read
