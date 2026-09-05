@@ -29,6 +29,7 @@ mod keyboard_input_operation;
 mod layout_operations;
 mod local_model_operation;
 mod logic_operations;
+mod math_host;
 mod math_operations;
 mod midi_input_operation;
 mod midi_output_operation;
@@ -112,7 +113,6 @@ use conduit_core::present_host_operation_requirement;
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_operation_requirement, CancellationReason,
     HostAdvertisement, Observation, ObservationKind, PlanFragment, TerminalDisposition,
-    SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
@@ -422,16 +422,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let chords_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::CHORDS_HOST_OPERATION);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
-    let math_clamp_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::MATH_CLAMP_HOST_OPERATION);
-    let math_scale_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::MATH_SCALE_HOST_OPERATION);
-    let math_deadband_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::MATH_DEADBAND_HOST_OPERATION,
-    );
-    let math_clamp_target_kind = kind_id(conduit_semantic_catalog::MATH_CLAMP_KIND);
-    let math_scale_target_kind = kind_id(conduit_semantic_catalog::MATH_SCALE_KIND);
-    let math_deadband_target_kind = kind_id(conduit_semantic_catalog::MATH_DEADBAND_KIND);
+    let math_host = math_host::MathHost::new();
     let layout_contract_id =
         conduit_core::HostOperationContractId::from(conduit_std_offers::LAYOUT_HOST_OPERATION);
     let layout_target_kinds = [
@@ -1610,40 +1601,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         format!("complete input semantic host operation: {error:?}")
                     })?;
                 continue;
-            } else if [
-                (&math_clamp_contract_id, &math_clamp_target_kind),
-                (&math_scale_contract_id, &math_scale_target_kind),
-                (&math_deadband_contract_id, &math_deadband_target_kind),
-            ]
-            .iter()
-            .any(|(expected_contract, expected_target)| {
-                contract == *expected_contract
-                    && lowered_operation.target_kind.as_ref() == Some(*expected_target)
-            }) {
-                let placement = fragment
-                    .placements
-                    .get(usize::from(request.node.0))
-                    .ok_or_else(|| "math request has no exact placement".to_string())?;
-                let encoded = math_operations::transform_bytes(placement, input)?;
-                let value = scheduler
-                    .store_host_value(&encoded)
-                    .map_err(|error| format!("store math scalar output: {error:?}"))?;
-                requests.push(request);
-                scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32).map_err(
-                                    |error| format!("bound math scalar output: {error:?}"),
-                                )?,
-                            ),
-                            failure: None,
-                        },
-                    )
-                    .map_err(|error| format!("complete math scalar transform: {error:?}"))?;
+            } else if math_host.matches(contract, lowered_operation.target_kind.as_ref()) {
+                math_host.complete(fragment, request, &mut scheduler, &mut requests)?;
                 continue;
             } else if contract == &layout_contract_id
                 && lowered_operation
