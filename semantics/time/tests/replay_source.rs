@@ -62,12 +62,18 @@ fn bench_history_projects_only_retained_entries_and_keeps_the_gap_explicit() {
         projection.entries,
         vec![
             HistoricalReplayEntry {
+                sequence: 41,
                 identity: "bench/record/b".into(),
                 event_time: event_time(120),
+                origin: HistoricalEntryOrigin::MachineObservation,
+                value: value(3),
             },
             HistoricalReplayEntry {
+                sequence: 42,
                 identity: "bench/record/c".into(),
                 event_time: event_time(150),
+                origin: HistoricalEntryOrigin::MachineObservation,
+                value: value(5),
             },
         ]
     );

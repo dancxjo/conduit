@@ -313,8 +313,11 @@ impl BoundedHistoricalTimeline {
                 .entry(index)
                 .expect("a retained timeline index names one exact entry");
             replay.push(crate::HistoricalReplayEntry {
+                sequence: entry.sequence,
                 identity: entry.identity.clone(),
                 event_time: entry.event_time.clone(),
+                origin: entry.origin,
+                value: entry.value.clone(),
             });
         }
         replay

@@ -1,8 +1,10 @@
 use conduit_core::{ConfigurationEntry, ConfigurationValue, TemporalInstant, TemporalScale};
 use conduit_time::*;
+mod common;
 
 fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
     HistoricalReplayEntry {
+        sequence: ticks,
         identity: identity.into(),
         event_time: TemporalInstant {
             ticks,
@@ -11,6 +13,8 @@ fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
             resolution_ticks: 1,
             uncertainty_ticks: 0,
         },
+        origin: HistoricalEntryOrigin::MachineObservation,
+        value: common::replay_value(1, "bench/record@1"),
     }
 }
 
@@ -105,6 +109,24 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
     assert!(matches!(
         BoundedReplayController::new(&reordered, ReplayPolicy::Step),
         Err(ReplayRefusal::ReorderedHistoricalTime)
+    ));
+    let mut reordered_sequence = vec![entry("a", 1), entry("b", 2)];
+    reordered_sequence[1].sequence = reordered_sequence[0].sequence;
+    assert!(matches!(
+        BoundedReplayController::new(&reordered_sequence, ReplayPolicy::Step),
+        Err(ReplayRefusal::ReorderedHistoricalSequence)
+    ));
+    let mut inconsistent_profile = vec![entry("a", 1), entry("b", 2)];
+    inconsistent_profile[1].value = common::replay_value(3, "other/record@1");
+    assert!(matches!(
+        BoundedReplayController::new(&inconsistent_profile, ReplayPolicy::Step),
+        Err(ReplayRefusal::InconsistentValueProfile)
+    ));
+    let mut invalid_resource = entry("invalid-resource", 1);
+    invalid_resource.value.content_profile = conduit_core::kind_id("");
+    assert!(matches!(
+        BoundedReplayController::new(&[invalid_resource], ReplayPolicy::Step),
+        Err(ReplayRefusal::InvalidResource)
     ));
     let mut invalid_time = entry("invalid", 1);
     invalid_time.event_time.resolution_ticks = 0;

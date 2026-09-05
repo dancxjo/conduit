@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 use crate::{
     encode_historical_retention_gap_into, encode_replay_timeline_fields_into,
     BoundedHistoricalTimeline, HistoricalReplayEntry, HistoricalRetentionGap,
-    HistoricalRetentionGapCodecRefusal, ReplayTimelineCodecRefusal, HISTORICAL_RETENTION_GAP_BYTES,
-    MAXIMUM_REPLAY_TIMELINE_BYTES,
+    HistoricalRetentionGapCodecRefusal, ReplayEntryFields, ReplayTimelineCodecRefusal,
+    HISTORICAL_RETENTION_GAP_BYTES, MAXIMUM_REPLAY_TIMELINE_BYTES,
 };
 
 pub const REPLAY_SOURCE_KIND: &str = "history/replay-source";
@@ -62,7 +62,13 @@ impl<'a> BoundedReplaySourceOperation<'a> {
                     .timeline
                     .entry(index)
                     .expect("a retained replay-source index names one entry");
-                (entry.identity.as_str(), &entry.event_time)
+                ReplayEntryFields {
+                    sequence: entry.sequence,
+                    identity: entry.identity.as_str(),
+                    event_time: &entry.event_time,
+                    origin: entry.origin,
+                    value: &entry.value,
+                }
             },
             replay_output,
         )

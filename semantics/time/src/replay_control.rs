@@ -1,7 +1,7 @@
 //! Finite replay sequencing with historical and playback time kept distinct.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::TemporalInstant;
+use conduit_core::{BoundedResourceRef, TemporalInstant};
 
 pub const MAXIMUM_REPLAY_ENTRIES: usize = 64;
 pub const MAXIMUM_REPLAY_IDENTITY_BYTES: usize = 128;
@@ -16,8 +16,11 @@ pub const REPLAY_CONTROL_CONTRACT_REVISION: &str = "conduit.time/replay-control@
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoricalReplayEntry {
+    pub sequence: u64,
     pub identity: String,
     pub event_time: TemporalInstant,
+    pub origin: crate::HistoricalEntryOrigin,
+    pub value: BoundedResourceRef,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -39,8 +42,11 @@ pub enum ReplayState {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ReplayEmission<'a> {
     pub ordinal: usize,
+    pub historical_sequence: u64,
     pub historical_identity: &'a str,
     pub historical_event_time: &'a TemporalInstant,
+    pub historical_origin: crate::HistoricalEntryOrigin,
+    pub value: &'a BoundedResourceRef,
     pub playback_ticks: u64,
 }
 
@@ -51,19 +57,22 @@ pub enum ReplayRefusal {
     EmptyIdentity,
     IdentityTooLong,
     DuplicateIdentity,
+    ReorderedHistoricalSequence,
     ReorderedHistoricalTime,
     InvalidRate,
     InvalidDurationLimit,
     ReplayDurationExceeded,
     InvalidHistoricalTime,
     IncomparableHistoricalTime,
+    InvalidResource,
+    InconsistentValueProfile,
     InvalidState,
     PlaybackClockRegressed,
     ArithmeticOverflow,
 }
 
-/// A bounded controller over retained entry metadata. Payload ownership stays
-/// with the history source; an emission names the exact retained ordinal.
+/// A bounded controller over exact retained entries. Resource values remain
+/// typed references; an emission preserves their historical identity.
 pub struct BoundedReplayController {
     entries: Vec<HistoricalReplayEntry>,
     policy: ReplayPolicy,
@@ -131,6 +140,16 @@ impl BoundedReplayController {
                 .any(|prior| prior.identity == entry.identity)
             {
                 return Err(ReplayRefusal::DuplicateIdentity);
+            }
+            if index > 0 && entry.sequence <= entries[index - 1].sequence {
+                return Err(ReplayRefusal::ReorderedHistoricalSequence);
+            }
+            entry
+                .value
+                .validate()
+                .map_err(|_| ReplayRefusal::InvalidResource)?;
+            if index > 0 && entry.value.content_profile != entries[0].value.content_profile {
+                return Err(ReplayRefusal::InconsistentValueProfile);
             }
         }
         let mut owned = Vec::with_capacity(entries.len());
@@ -231,8 +250,11 @@ impl BoundedReplayController {
         }
         Ok(ReplayEmission {
             ordinal,
+            historical_sequence: entry.sequence,
             historical_identity: &entry.identity,
             historical_event_time: &entry.event_time,
+            historical_origin: entry.origin,
+            value: &entry.value,
             playback_ticks,
         })
     }

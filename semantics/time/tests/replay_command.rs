@@ -1,7 +1,9 @@
 use conduit_time::*;
+mod common;
 
 fn entry(identity: &str, ticks: u64) -> HistoricalReplayEntry {
     HistoricalReplayEntry {
+        sequence: ticks,
         identity: identity.into(),
         event_time: conduit_core::TemporalInstant {
             ticks,
@@ -10,6 +12,8 @@ fn entry(identity: &str, ticks: u64) -> HistoricalReplayEntry {
             resolution_ticks: 1,
             uncertainty_ticks: 0,
         },
+        origin: HistoricalEntryOrigin::MachineObservation,
+        value: common::replay_value(1, "bench/record@1"),
     }
 }
 

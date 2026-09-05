@@ -1,7 +1,9 @@
 use conduit_time::*;
+mod common;
 
 fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
     HistoricalReplayEntry {
+        sequence: ticks,
         identity: identity.into(),
         event_time: TemporalInstant {
             ticks,
@@ -10,6 +12,8 @@ fn entry(identity: impl Into<String>, ticks: u64) -> HistoricalReplayEntry {
             resolution_ticks: 2,
             uncertainty_ticks: 1,
         },
+        origin: HistoricalEntryOrigin::MachineObservation,
+        value: common::replay_value(1, "bench/record@1"),
     }
 }
 
@@ -52,7 +56,7 @@ fn output_truncation_magic_version_utf8_and_trailing_fail_distinctly() {
         Err(ReplayTimelineCodecRefusal::UnsupportedVersion)
     );
     malformed = encoded[..length].to_vec();
-    malformed[9] = 0xff;
+    malformed[17] = 0xff;
     assert_eq!(
         decode_replay_timeline(&malformed),
         Err(ReplayTimelineCodecRefusal::InvalidUtf8)
@@ -65,15 +69,15 @@ fn output_truncation_magic_version_utf8_and_trailing_fail_distinctly() {
     );
 
     malformed = encoded[..length].to_vec();
-    malformed.truncate(9);
+    malformed.truncate(17);
     assert_eq!(
         decode_replay_timeline(&malformed),
         Err(ReplayTimelineCodecRefusal::Truncated)
     );
 
     malformed = encoded[..length].to_vec();
-    let first_identity_length = usize::from(u16::from_le_bytes([malformed[7], malformed[8]]));
-    malformed.truncate(9 + first_identity_length + 7);
+    let first_identity_length = usize::from(u16::from_le_bytes([malformed[15], malformed[16]]));
+    malformed.truncate(17 + first_identity_length + 7);
     assert_eq!(
         decode_replay_timeline(&malformed),
         Err(ReplayTimelineCodecRefusal::Truncated)
@@ -96,6 +100,24 @@ fn empty_duplicate_reordered_and_oversized_timelines_refuse() {
     assert_eq!(
         encode_replay_timeline_into(&reordered, &mut output),
         Err(ReplayTimelineCodecRefusal::ReorderedHistoricalTime)
+    );
+    let mut reordered_sequence = vec![entry("one", 1), entry("two", 2)];
+    reordered_sequence[1].sequence = reordered_sequence[0].sequence;
+    assert_eq!(
+        encode_replay_timeline_into(&reordered_sequence, &mut output),
+        Err(ReplayTimelineCodecRefusal::ReorderedHistoricalSequence)
+    );
+    let mut inconsistent_profile = vec![entry("one", 1), entry("two", 2)];
+    inconsistent_profile[1].value = common::replay_value(3, "other/record@1");
+    assert_eq!(
+        encode_replay_timeline_into(&inconsistent_profile, &mut output),
+        Err(ReplayTimelineCodecRefusal::InconsistentValueProfile)
+    );
+    let mut invalid_resource = entry("invalid-resource", 1);
+    invalid_resource.value.content_profile = conduit_core::kind_id("");
+    assert_eq!(
+        encode_replay_timeline_into(&[invalid_resource], &mut output),
+        Err(ReplayTimelineCodecRefusal::InvalidResource)
     );
     let mut invalid_time = entry("invalid-time", 1);
     invalid_time.event_time.resolution_ticks = 0;
@@ -137,7 +159,7 @@ fn empty_duplicate_reordered_and_oversized_timelines_refuse() {
         Err(ReplayTimelineCodecRefusal::TooManyEntries)
     );
 
-    let mut declared_empty_identity = vec![0_u8; 9];
+    let mut declared_empty_identity = vec![0_u8; 17];
     declared_empty_identity[..4].copy_from_slice(b"CRTL");
     declared_empty_identity[4] = REPLAY_TIMELINE_WIRE_VERSION;
     declared_empty_identity[5..7].copy_from_slice(&1_u16.to_le_bytes());

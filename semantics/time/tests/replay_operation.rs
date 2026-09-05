@@ -6,6 +6,7 @@ use conduit_time::{
     MAXIMUM_REPLAY_COMMAND_BYTES, MAXIMUM_REPLAY_EVENT_BYTES, MAXIMUM_REPLAY_STATE_BYTES,
     MAXIMUM_REPLAY_TIMELINE_BYTES,
 };
+mod common;
 
 fn historical_time(ticks: u64) -> TemporalInstant {
     TemporalInstant {
@@ -20,12 +21,18 @@ fn historical_time(ticks: u64) -> TemporalInstant {
 fn timeline() -> Vec<u8> {
     let entries = [
         HistoricalReplayEntry {
+            sequence: 41,
             identity: "memory-lantern/amber".into(),
             event_time: historical_time(1_000),
+            origin: conduit_time::HistoricalEntryOrigin::MachineObservation,
+            value: common::replay_value(1, "memory-lantern/color@1"),
         },
         HistoricalReplayEntry {
+            sequence: 42,
             identity: "memory-lantern/blue".into(),
             event_time: historical_time(1_250),
+            origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
+            value: common::replay_value(3, "memory-lantern/color@1"),
         },
     ];
     let mut encoded = vec![0; MAXIMUM_REPLAY_TIMELINE_BYTES];
@@ -71,7 +78,16 @@ fn ordinary_values_drive_original_timing_without_merging_time_domains() {
     let first = operation.poll(9_000, &mut event, &mut state).unwrap();
     let first_event = decode_replay_event(&event[..first.event_bytes.unwrap()]).unwrap();
     assert_eq!(first_event.historical_identity, "memory-lantern/amber");
+    assert_eq!(first_event.historical_sequence, 41);
     assert_eq!(first_event.historical_event_time, historical_time(1_000));
+    assert_eq!(
+        first_event.historical_origin,
+        conduit_time::HistoricalEntryOrigin::MachineObservation
+    );
+    assert_eq!(
+        first_event.value,
+        common::replay_value(1, "memory-lantern/color@1")
+    );
     assert_eq!(first_event.playback_ticks, 9_000);
     assert_eq!(
         decode_replay_state(&state[..first.state_bytes.unwrap()]),
@@ -88,7 +104,16 @@ fn ordinary_values_drive_original_timing_without_merging_time_domains() {
     let second = operation.poll(9_250, &mut event, &mut state).unwrap();
     let second_event = decode_replay_event(&event[..second.event_bytes.unwrap()]).unwrap();
     assert_eq!(second_event.historical_identity, "memory-lantern/blue");
+    assert_eq!(second_event.historical_sequence, 42);
     assert_eq!(second_event.historical_event_time, historical_time(1_250));
+    assert_eq!(
+        second_event.historical_origin,
+        conduit_time::HistoricalEntryOrigin::OperatorAuthored
+    );
+    assert_eq!(
+        second_event.value,
+        common::replay_value(3, "memory-lantern/color@1")
+    );
     assert_eq!(second_event.playback_ticks, 9_250);
     assert_eq!(
         decode_replay_state(&state[..second.state_bytes.unwrap()]),

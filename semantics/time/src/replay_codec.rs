@@ -1,13 +1,22 @@
 //! Bounded canonical transport for retained replay timeline metadata.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{TemporalInstant, TemporalScale, MAXIMUM_TEMPORAL_IDENTITY_BYTES};
+use conduit_core::{
+    BoundedResourceRef, TemporalInstant, TemporalScale, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES,
+    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+};
 
-use crate::{HistoricalReplayEntry, MAXIMUM_REPLAY_ENTRIES, MAXIMUM_REPLAY_IDENTITY_BYTES};
+use crate::{
+    HistoricalEntryOrigin, HistoricalReplayEntry, MAXIMUM_REPLAY_ENTRIES,
+    MAXIMUM_REPLAY_IDENTITY_BYTES,
+};
 
 pub const REPLAY_TIMELINE_WIRE_VERSION: u8 = 1;
 pub const MAXIMUM_REPLAY_TIMELINE_BYTES: usize = 7 + MAXIMUM_REPLAY_ENTRIES
-    * (29 + MAXIMUM_REPLAY_IDENTITY_BYTES + MAXIMUM_TEMPORAL_IDENTITY_BYTES);
+    * (40
+        + MAXIMUM_REPLAY_IDENTITY_BYTES
+        + MAXIMUM_TEMPORAL_IDENTITY_BYTES
+        + MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES);
 const MAGIC: [u8; 4] = *b"CRTL";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -17,16 +26,28 @@ pub enum ReplayTimelineCodecRefusal {
     EmptyIdentity,
     IdentityTooLong,
     DuplicateIdentity,
+    ReorderedHistoricalSequence,
     ReorderedHistoricalTime,
     InvalidHistoricalTime,
     IncomparableHistoricalTime,
+    InvalidResource,
+    InconsistentValueProfile,
     OutputTooSmall,
     Truncated,
     InvalidMagic,
     UnsupportedVersion,
     InvalidUtf8,
     UnknownTimeScale,
+    UnknownOrigin,
     TrailingBytes,
+}
+
+pub(crate) struct ReplayEntryFields<'a> {
+    pub sequence: u64,
+    pub identity: &'a str,
+    pub event_time: &'a TemporalInstant,
+    pub origin: HistoricalEntryOrigin,
+    pub value: &'a BoundedResourceRef,
 }
 
 pub fn encode_replay_timeline_into(
@@ -35,22 +56,34 @@ pub fn encode_replay_timeline_into(
 ) -> Result<usize, ReplayTimelineCodecRefusal> {
     encode_replay_timeline_fields_into(
         entries.len(),
-        |index| (&entries[index].identity, &entries[index].event_time),
+        |index| ReplayEntryFields {
+            sequence: entries[index].sequence,
+            identity: &entries[index].identity,
+            event_time: &entries[index].event_time,
+            origin: entries[index].origin,
+            value: &entries[index].value,
+        },
         output,
     )
 }
 
 pub(crate) fn encode_replay_timeline_fields_into<'a>(
     count: usize,
-    entry_at: impl Fn(usize) -> (&'a str, &'a TemporalInstant),
+    entry_at: impl Fn(usize) -> ReplayEntryFields<'a>,
     output: &mut [u8],
 ) -> Result<usize, ReplayTimelineCodecRefusal> {
     validate_entry_fields(count, &entry_at)?;
     let required = 7
         + (0..count)
             .map(|index| {
-                let (identity, event_time) = entry_at(index);
-                29 + identity.len() + event_time.clock_basis.len()
+                let entry = entry_at(index);
+                40 + entry.identity.len()
+                    + entry.event_time.clock_basis.len()
+                    + entry
+                        .value
+                        .encode()
+                        .expect("validated replay resource remains encodable")
+                        .len()
             })
             .sum::<usize>();
     if output.len() < required {
@@ -61,25 +94,39 @@ pub(crate) fn encode_replay_timeline_fields_into<'a>(
     output[5..7].copy_from_slice(&(count as u16).to_le_bytes());
     let mut cursor = 7;
     for index in 0..count {
-        let (identity, event_time) = entry_at(index);
-        let identity = identity.as_bytes();
+        let entry = entry_at(index);
+        output[cursor..cursor + 8].copy_from_slice(&entry.sequence.to_le_bytes());
+        cursor += 8;
+        let identity = entry.identity.as_bytes();
         output[cursor..cursor + 2].copy_from_slice(&(identity.len() as u16).to_le_bytes());
         cursor += 2;
         output[cursor..cursor + identity.len()].copy_from_slice(identity);
         cursor += identity.len();
-        output[cursor..cursor + 8].copy_from_slice(&event_time.ticks.to_le_bytes());
+        output[cursor..cursor + 8].copy_from_slice(&entry.event_time.ticks.to_le_bytes());
         cursor += 8;
-        output[cursor] = encode_scale(event_time.scale);
+        output[cursor] = encode_scale(entry.event_time.scale);
         cursor += 1;
-        let basis = event_time.clock_basis.as_bytes();
+        let basis = entry.event_time.clock_basis.as_bytes();
         output[cursor..cursor + 2].copy_from_slice(&(basis.len() as u16).to_le_bytes());
         cursor += 2;
         output[cursor..cursor + basis.len()].copy_from_slice(basis);
         cursor += basis.len();
-        output[cursor..cursor + 8].copy_from_slice(&event_time.resolution_ticks.to_le_bytes());
+        output[cursor..cursor + 8]
+            .copy_from_slice(&entry.event_time.resolution_ticks.to_le_bytes());
         cursor += 8;
-        output[cursor..cursor + 8].copy_from_slice(&event_time.uncertainty_ticks.to_le_bytes());
+        output[cursor..cursor + 8]
+            .copy_from_slice(&entry.event_time.uncertainty_ticks.to_le_bytes());
         cursor += 8;
+        output[cursor] = encode_origin(entry.origin);
+        cursor += 1;
+        let resource = entry
+            .value
+            .encode()
+            .expect("validated replay resource remains encodable");
+        output[cursor..cursor + 2].copy_from_slice(&(resource.len() as u16).to_le_bytes());
+        cursor += 2;
+        output[cursor..cursor + resource.len()].copy_from_slice(&resource);
+        cursor += resource.len();
     }
     Ok(cursor)
 }
@@ -106,6 +153,7 @@ pub fn decode_replay_timeline(
     let mut entries = Vec::with_capacity(count);
     let mut cursor = 7;
     for _ in 0..count {
+        let sequence = read_u64(encoded, &mut cursor)?;
         let identity_length = usize::from(read_u16(encoded, &mut cursor)?);
         if identity_length == 0 {
             return Err(ReplayTimelineCodecRefusal::EmptyIdentity);
@@ -135,7 +183,20 @@ pub fn decode_replay_timeline(
         cursor = basis_end;
         let resolution_ticks = read_u64(encoded, &mut cursor)?;
         let uncertainty_ticks = read_u64(encoded, &mut cursor)?;
+        let origin = decode_origin(read_u8(encoded, &mut cursor)?)?;
+        let resource_length = usize::from(read_u16(encoded, &mut cursor)?);
+        if resource_length > MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES {
+            return Err(ReplayTimelineCodecRefusal::InvalidResource);
+        }
+        let resource_end = cursor
+            .checked_add(resource_length)
+            .filter(|end| *end <= encoded.len())
+            .ok_or(ReplayTimelineCodecRefusal::Truncated)?;
+        let value = BoundedResourceRef::decode(&encoded[cursor..resource_end])
+            .map_err(|_| ReplayTimelineCodecRefusal::InvalidResource)?;
+        cursor = resource_end;
         entries.push(HistoricalReplayEntry {
+            sequence,
             identity: String::from(identity),
             event_time: TemporalInstant {
                 ticks,
@@ -144,6 +205,8 @@ pub fn decode_replay_timeline(
                 resolution_ticks,
                 uncertainty_ticks,
             },
+            origin,
+            value,
         });
     }
     if cursor != encoded.len() {
@@ -154,14 +217,18 @@ pub fn decode_replay_timeline(
 }
 
 fn validate_entries(entries: &[HistoricalReplayEntry]) -> Result<(), ReplayTimelineCodecRefusal> {
-    validate_entry_fields(entries.len(), &|index| {
-        (&entries[index].identity, &entries[index].event_time)
+    validate_entry_fields(entries.len(), &|index| ReplayEntryFields {
+        sequence: entries[index].sequence,
+        identity: &entries[index].identity,
+        event_time: &entries[index].event_time,
+        origin: entries[index].origin,
+        value: &entries[index].value,
     })
 }
 
 fn validate_entry_fields<'a>(
     count: usize,
-    entry_at: &impl Fn(usize) -> (&'a str, &'a TemporalInstant),
+    entry_at: &impl Fn(usize) -> ReplayEntryFields<'a>,
 ) -> Result<(), ReplayTimelineCodecRefusal> {
     if count == 0 {
         return Err(ReplayTimelineCodecRefusal::EmptyTimeline);
@@ -170,28 +237,39 @@ fn validate_entry_fields<'a>(
         return Err(ReplayTimelineCodecRefusal::TooManyEntries);
     }
     for index in 0..count {
-        let (identity, event_time) = entry_at(index);
-        if identity.is_empty() {
+        let entry = entry_at(index);
+        if entry.identity.is_empty() {
             return Err(ReplayTimelineCodecRefusal::EmptyIdentity);
         }
-        if identity.len() > MAXIMUM_REPLAY_IDENTITY_BYTES {
+        if entry.identity.len() > MAXIMUM_REPLAY_IDENTITY_BYTES {
             return Err(ReplayTimelineCodecRefusal::IdentityTooLong);
         }
-        event_time
+        entry
+            .event_time
             .validate()
             .map_err(|_| ReplayTimelineCodecRefusal::InvalidHistoricalTime)?;
-        let (_, first_time) = entry_at(0);
+        let first = entry_at(0);
         if index > 0
-            && (event_time.clock_basis != first_time.clock_basis
-                || event_time.scale != first_time.scale)
+            && (entry.event_time.clock_basis != first.event_time.clock_basis
+                || entry.event_time.scale != first.event_time.scale)
         {
             return Err(ReplayTimelineCodecRefusal::IncomparableHistoricalTime);
         }
-        if index > 0 && event_time.ticks < entry_at(index - 1).1.ticks {
+        if index > 0 && entry.event_time.ticks < entry_at(index - 1).event_time.ticks {
             return Err(ReplayTimelineCodecRefusal::ReorderedHistoricalTime);
         }
-        if (0..index).any(|prior| entry_at(prior).0 == identity) {
+        if (0..index).any(|prior| entry_at(prior).identity == entry.identity) {
             return Err(ReplayTimelineCodecRefusal::DuplicateIdentity);
+        }
+        if index > 0 && entry.sequence <= entry_at(index - 1).sequence {
+            return Err(ReplayTimelineCodecRefusal::ReorderedHistoricalSequence);
+        }
+        entry
+            .value
+            .encode()
+            .map_err(|_| ReplayTimelineCodecRefusal::InvalidResource)?;
+        if index > 0 && entry.value.content_profile != first.value.content_profile {
+            return Err(ReplayTimelineCodecRefusal::InconsistentValueProfile);
         }
     }
     Ok(())
@@ -245,5 +323,20 @@ fn decode_scale(value: u8) -> Result<TemporalScale, ReplayTimelineCodecRefusal> 
         2 => Ok(TemporalScale::Microseconds),
         3 => Ok(TemporalScale::Nanoseconds),
         _ => Err(ReplayTimelineCodecRefusal::UnknownTimeScale),
+    }
+}
+
+fn encode_origin(origin: HistoricalEntryOrigin) -> u8 {
+    match origin {
+        HistoricalEntryOrigin::MachineObservation => 0,
+        HistoricalEntryOrigin::OperatorAuthored => 1,
+    }
+}
+
+fn decode_origin(value: u8) -> Result<HistoricalEntryOrigin, ReplayTimelineCodecRefusal> {
+    match value {
+        0 => Ok(HistoricalEntryOrigin::MachineObservation),
+        1 => Ok(HistoricalEntryOrigin::OperatorAuthored),
+        _ => Err(ReplayTimelineCodecRefusal::UnknownOrigin),
     }
 }
