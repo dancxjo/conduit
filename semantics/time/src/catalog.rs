@@ -7,9 +7,10 @@ use conduit_form::{
 };
 
 use crate::{
-    historical_timeline_kind_definition, replay_control_kind_definition, tick_outputs,
-    HISTORICAL_TIMELINE_KIND, MAX_TICK_COUNT, TICK_CONTRACT_REVISION, TICK_KIND,
-    TIME_EVERY_CONTRACT_REVISION, TIME_EVERY_KIND,
+    historical_timeline_kind_definition, replay_control_kind_definition,
+    replay_source_kind_definition, tick_outputs, HISTORICAL_TIMELINE_KIND, MAX_TICK_COUNT,
+    REPLAY_SOURCE_KIND, TICK_CONTRACT_REVISION, TICK_KIND, TIME_EVERY_CONTRACT_REVISION,
+    TIME_EVERY_KIND,
 };
 
 pub fn tick_kind_definition() -> KindDefinition {
@@ -171,6 +172,26 @@ pub fn install_historical_timeline_catalog(
     })?;
     profile
         .insert(historical_timeline_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn install_replay_source_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    startup
+        .insert_structured_type(
+            "HistoricalRetentionGap",
+            conduit_core::StructuredInfoType::leaf(kind_id("history/retention-gap@1"))
+                .expect("reviewed retention-gap value identity"),
+        )
+        .map_err(|error| error.to_string())?;
+    startup.insert(KindSignature {
+        kind: REPLAY_SOURCE_KIND.to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(replay_source_kind_definition())
         .map_err(|error| error.to_string())
 }
 
