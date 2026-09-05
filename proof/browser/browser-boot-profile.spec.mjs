@@ -37,6 +37,123 @@ test("durable storage is offered only when its exact implementation is selected 
   expect(result.selected.inspection[0]).toMatchObject({ implementation_id: "browser/indexeddb@1", configured: true, initialized: true, offered: true });
 });
 
+test("selected durable storage reopens one maximum bounded binary value exactly", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const module = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+    const selected = { implementationRegistry: ["browser/indexeddb@1"] };
+    const digest = `sha256:${"a".repeat(64)}`;
+    const first = await module.openBrowserApplicationStorage("proof/history-snapshot", 1, digest, selected);
+    const source = new Uint8Array(first.bounds.maximumValueBytes);
+    source[0] = 0x43;
+    source[1] = 0x48;
+    source[source.length - 1] = 0x54;
+    await first.writeBytes("timeline", source);
+    source[0] = 0;
+    first.close();
+
+    const incompatible = await module.openBrowserApplicationStorage("proof/history-snapshot", 2, digest, selected);
+    let versionMismatch;
+    try { await incompatible.readBytes("timeline"); } catch (error) { versionMismatch = error.code; }
+    incompatible.close();
+
+    const reopened = await module.openBrowserApplicationStorage("proof/history-snapshot", 1, digest, selected);
+    const restored = await reopened.readBytes("timeline");
+    let kindMismatch;
+    try { await reopened.readJson("timeline"); } catch (error) { kindMismatch = error.code; }
+    await reopened.writeJson("metadata", { entries: 2 });
+    let jsonMismatch;
+    try { await reopened.readBytes("metadata"); } catch (error) { jsonMismatch = error.code; }
+    let oversize;
+    try { await reopened.writeBytes("oversize", new Uint8Array(reopened.bounds.maximumValueBytes + 1)); }
+    catch (error) { oversize = error.code; }
+    let wrongValue;
+    try { await reopened.writeBytes("wrong-value", [1, 2, 3]); }
+    catch (error) { wrongValue = error.code; }
+    await reopened.clearApplication();
+    const afterClear = await reopened.readBytes("timeline");
+    reopened.close();
+    return {
+      byteLength: restored.byteLength,
+      first: restored[0],
+      second: restored[1],
+      last: restored.at(-1),
+      versionMismatch,
+      kindMismatch,
+      jsonMismatch,
+      oversize,
+      wrongValue,
+      afterClear,
+    };
+  });
+  expect(result).toEqual({
+    byteLength: 64 * 1024,
+    first: 0x43,
+    second: 0x48,
+    last: 0x54,
+    versionMismatch: "VersionMismatch",
+    kindMismatch: "ValueKindMismatch",
+    jsonMismatch: "ValueKindMismatch",
+    oversize: "ValueBound",
+    wrongValue: "ValueEncoding",
+    afterClear: null,
+  });
+});
+
+test("binary durable storage keeps corruption and application quota exhaustion distinct", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const module = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+    const selected = { implementationRegistry: ["browser/indexeddb@1"] };
+    const digest = `sha256:${"b".repeat(64)}`;
+    const corrupt = await module.openBrowserApplicationStorage("proof/history-corrupt", 1, digest, selected);
+    await corrupt.writeBytes("timeline", new Uint8Array([1, 2, 3]));
+
+    const request = indexedDB.open("conduit-browser-host-applications", 2);
+    const database = await new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction("application-state", "readwrite");
+    const store = transaction.objectStore("application-state");
+    const identity = "proof/history-corrupt@1\u0000timeline";
+    const record = await new Promise((resolve, reject) => {
+      const get = store.get(identity);
+      get.addEventListener("success", () => resolve(get.result), { once: true });
+      get.addEventListener("error", () => reject(get.error), { once: true });
+    });
+    store.put({ ...record, valueBytes: record.valueBytes + 1 });
+    await new Promise((resolve, reject) => {
+      transaction.addEventListener("complete", resolve, { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+    let corruptRecord;
+    try { await corrupt.readBytes("timeline"); } catch (error) { corruptRecord = error.code; }
+    await corrupt.clearApplication();
+    corrupt.close();
+
+    const quota = await module.openBrowserApplicationStorage("proof/history-quota", 1, digest, selected);
+    const valuesThatFit = quota.bounds.maximumApplicationBytes / quota.bounds.maximumValueBytes;
+    const value = new Uint8Array(quota.bounds.maximumValueBytes);
+    for (let index = 0; index < valuesThatFit; index += 1) {
+      await quota.writeBytes(`timeline-${index}`, value);
+    }
+    let quotaExhausted;
+    try { await quota.writeBytes("timeline-overflow", value); }
+    catch (error) { quotaExhausted = error.code; }
+    const overflowAbsent = await quota.readBytes("timeline-overflow");
+    await quota.clearApplication();
+    quota.close();
+    return { corruptRecord, quotaExhausted, overflowAbsent, valuesThatFit };
+  });
+  expect(result).toEqual({
+    corruptRecord: "CorruptRecord",
+    quotaExhausted: "ApplicationCapacityExhausted",
+    overflowAbsent: null,
+    valuesThatFit: 16,
+  });
+});
+
 test("device PROFILE selection offers only acquisition without permission or resource claims", async ({ page }) => {
   const ids = ["browser/webserial@1", "browser/webusb@1"];
   const fixture = await makeImage(ids);
