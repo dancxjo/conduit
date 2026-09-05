@@ -78,6 +78,21 @@ fn quiet_dry_runs_emit_no_ordinary_stdout() {
 }
 
 #[test]
+fn demo_tour_dry_run_uses_the_canonical_tour_product_route() {
+    let output = xtask(&["--dry-run", "demo", "tour"]);
+    assert!(
+        output.status.success(),
+        "{:?}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("target/tour-product"), "{stdout}");
+    assert!(stdout.contains("--mount /tour/"), "{stdout}");
+    assert!(!stdout.contains("target/book-product"), "{stdout}");
+    assert!(!stdout.contains("--mount /book/"), "{stdout}");
+}
+
+#[test]
 fn live_pico_structured_modes_refuse_before_dispatch() {
     let json = xtask(&["--json", "pico", "drive-create", "--wheels-off-floor"]);
     assert!(!json.status.success());
