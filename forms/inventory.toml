@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 64
+maximum_forms = 72
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -14,11 +14,29 @@ title = "Bounded Job"
 entry = "bounded-job"
 deterministic = { package = "conduit-semantic-catalog", test = "job_forms", case = "ordinary_form_plans_one_bounded_admitted_job" }
 [[forms]]
+slug = "bounded-replay-control"
+title = "Bounded Replay Control"
+entry = "bounded-replay-control"
+deterministic = { package = "conduit-time", test = "replay_control", case = "replay_control_is_an_ordinary_checked_form" }
+browser_safe_not_applicable = "portable replay control has no installed browser realization"
+[[forms]]
+slug = "bounded-replay-source"
+title = "Bounded Replay Source"
+entry = "bounded-replay-source"
+deterministic = { package = "conduit-time", test = "replay_source", case = "replay_source_is_an_ordinary_checked_form_between_history_and_control" }
+browser_safe_not_applicable = "portable replay projection has no installed browser realization"
+[[forms]]
 slug = "bounded-stroke-capture"
 title = "Bounded Stroke Capture"
 entry = "bounded-stroke-capture"
 deterministic = { package = "conduit-presentation", test = "stroke_capture_form", case = "capture_and_route_consumer_are_checked_and_mechanism_free" }
 browser_safe_not_applicable = "portable stroke semantics have no reviewed browser Host execution oracle"
+[[forms]]
+slug = "bounded-typed-history"
+title = "Bounded Typed History"
+entry = "bounded-typed-history"
+deterministic = { package = "conduit-time", test = "historical_timeline", case = "typed_history_is_an_ordinary_checked_form_with_explicit_policy" }
+browser_safe_not_applicable = "portable typed history has no installed browser realization"
 [[forms]]
 slug = "button-across-room"
 title = "Button Across the Room"
