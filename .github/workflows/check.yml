@@ -575,10 +575,10 @@ jobs:
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
           EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
-          if test "$SHARED_COMPILE_RESULT" != success; then
+          if test "${SHARED_COMPILE_RESULT:-success}" != success; then
             printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["workspace","browser","candidate-machine"]}\n' \
               "${SHARED_COMPILE_PACKAGES:-[]}" | tee causal-block.json
-            printf 'blocked-by: workspace.shared-compile (%s)\n' "$SHARED_COMPILE_PACKAGES" >&2
+            printf 'blocked-by: workspace.shared-compile (%s)\n' "${SHARED_COMPILE_PACKAGES:-[]}" >&2
             exit 1
           fi
           require_result() {

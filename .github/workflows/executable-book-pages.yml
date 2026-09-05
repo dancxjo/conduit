@@ -969,10 +969,10 @@ jobs:
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
           RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
         run: |
-          if test "$SHARED_COMPILE_RESULT" != success; then
+          if test "${SHARED_COMPILE_RESULT:-success}" != success; then
             printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["products-proof"]}\n' \
               "${SHARED_COMPILE_PACKAGES:-[]}" | tee causal-block.json
-            printf 'blocked-by: workspace.shared-compile (%s)\n' "$SHARED_COMPILE_PACKAGES" >&2
+            printf 'blocked-by: workspace.shared-compile (%s)\n' "${SHARED_COMPILE_PACKAGES:-[]}" >&2
             exit 1
           fi
           if test "$PRODUCT_REQUIRED" != true; then

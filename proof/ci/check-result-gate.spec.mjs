@@ -47,6 +47,16 @@ test("selective pull request admits intentionally skipped ConduitOS", () => {
   assert.equal(prove(results()).status, 0);
 });
 
+test("shared compile failure causally blocks candidate-code proof domains", () => {
+  const blocked = prove(results({
+    SHARED_COMPILE_RESULT: "failure",
+    SHARED_COMPILE_PACKAGES: '["conduit-presentation"]',
+    WORKSPACE_RESULT: "skipped",
+  }));
+  assert.notEqual(blocked.status, 0);
+  assert.match(blocked.stderr, /blocked-by: workspace\.shared-compile/);
+});
+
 test("selective pull request admits only its required x86 subset", () => {
   assert.equal(prove(results({
     CONDUITOS_REQUIRED: "true",
