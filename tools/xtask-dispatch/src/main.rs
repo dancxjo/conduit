@@ -114,6 +114,7 @@ mod standalone_locks;
 mod workspace;
 
 mod ci_dispatch;
+mod local_storage;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
