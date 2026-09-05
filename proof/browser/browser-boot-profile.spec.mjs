@@ -37,6 +37,61 @@ test("durable storage is offered only when its exact implementation is selected 
   expect(result.selected.inspection[0]).toMatchObject({ implementation_id: "browser/indexeddb@1", configured: true, initialized: true, offered: true });
 });
 
+test("selected durable storage reopens one maximum bounded binary value exactly", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const module = await import(new URL("../../targets/browser/host/assets/browser-application-storage.mjs", location.href).href);
+    const selected = { implementationRegistry: ["browser/indexeddb@1"] };
+    const digest = `sha256:${"a".repeat(64)}`;
+    const first = await module.openBrowserApplicationStorage("proof/history-snapshot", 1, digest, selected);
+    const source = new Uint8Array(first.bounds.maximumValueBytes);
+    source[0] = 0x43;
+    source[1] = 0x48;
+    source[source.length - 1] = 0x54;
+    await first.writeBytes("timeline", source);
+    source[0] = 0;
+    first.close();
+
+    const reopened = await module.openBrowserApplicationStorage("proof/history-snapshot", 1, digest, selected);
+    const restored = await reopened.readBytes("timeline");
+    let kindMismatch;
+    try { await reopened.readJson("timeline"); } catch (error) { kindMismatch = error.code; }
+    await reopened.writeJson("metadata", { entries: 2 });
+    let jsonMismatch;
+    try { await reopened.readBytes("metadata"); } catch (error) { jsonMismatch = error.code; }
+    let oversize;
+    try { await reopened.writeBytes("oversize", new Uint8Array(reopened.bounds.maximumValueBytes + 1)); }
+    catch (error) { oversize = error.code; }
+    let wrongValue;
+    try { await reopened.writeBytes("wrong-value", [1, 2, 3]); }
+    catch (error) { wrongValue = error.code; }
+    await reopened.clearApplication();
+    const afterClear = await reopened.readBytes("timeline");
+    reopened.close();
+    return {
+      byteLength: restored.byteLength,
+      first: restored[0],
+      second: restored[1],
+      last: restored.at(-1),
+      kindMismatch,
+      jsonMismatch,
+      oversize,
+      wrongValue,
+      afterClear,
+    };
+  });
+  expect(result).toEqual({
+    byteLength: 64 * 1024,
+    first: 0x43,
+    second: 0x48,
+    last: 0x54,
+    kindMismatch: "ValueKindMismatch",
+    jsonMismatch: "ValueKindMismatch",
+    oversize: "ValueBound",
+    wrongValue: "ValueEncoding",
+    afterClear: null,
+  });
+});
+
 test("device PROFILE selection offers only acquisition without permission or resource claims", async ({ page }) => {
   const ids = ["browser/webserial@1", "browser/webusb@1"];
   const fixture = await makeImage(ids);
