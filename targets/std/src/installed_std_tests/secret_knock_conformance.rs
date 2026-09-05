@@ -264,6 +264,13 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     )
     .unwrap();
     let body_play = BodyPlayIdentity::bind(&body_plan, 1);
+    super::secret_knock_body_admission::admit_combined_resources(
+        &body,
+        &body_plan,
+        &advertisement,
+        &plan,
+        &unrelated_plan,
+    );
     let playing = wake
         .body_plan_ready(&body_plan, SignId::from("sign/secret-knock-body-planned"))
         .unwrap()
