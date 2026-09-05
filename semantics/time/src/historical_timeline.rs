@@ -59,6 +59,7 @@ pub enum HistoricalTimelineRefusal {
     ByteCapacityExceeded,
     SequenceExhausted,
     UnknownSequence,
+    InvalidSnapshot,
 }
 
 /// An allocation-stable ring after construction. Values are exact resource
@@ -300,6 +301,88 @@ impl BoundedHistoricalTimeline {
             });
         }
         replay
+    }
+
+    pub(crate) fn snapshot_configuration(
+        &self,
+    ) -> (
+        &KindId,
+        &str,
+        TemporalScale,
+        usize,
+        u64,
+        HistoricalOverflowPolicy,
+        u64,
+        u64,
+    ) {
+        (
+            &self.value_profile,
+            &self.clock_basis,
+            self.time_scale,
+            self.slots.len(),
+            self.maximum_referenced_bytes,
+            self.overflow,
+            self.next_sequence,
+            self.clear_revision,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn restore(
+        value_profile: KindId,
+        clock_basis: &str,
+        time_scale: TemporalScale,
+        maximum_entries: usize,
+        maximum_referenced_bytes: u64,
+        overflow: HistoricalOverflowPolicy,
+        next_sequence: u64,
+        clear_revision: u64,
+        retention_gap: Option<HistoricalRetentionGap>,
+        entries: Vec<HistoricalTimelineEntry>,
+    ) -> Result<Self, HistoricalTimelineRefusal> {
+        let first_sequence = entries
+            .first()
+            .map_or(next_sequence, |entry| entry.sequence);
+        let mut timeline = Self::new(
+            value_profile,
+            clock_basis,
+            time_scale,
+            maximum_entries,
+            maximum_referenced_bytes,
+            overflow,
+            first_sequence,
+        )?;
+        let mut prior_sequence = None;
+        for entry in entries {
+            if prior_sequence.is_some_and(|prior| entry.sequence <= prior)
+                || entry.sequence >= next_sequence
+            {
+                return Err(HistoricalTimelineRefusal::InvalidSnapshot);
+            }
+            timeline.validate_entry(&entry.identity, &entry.event_time, &entry.value)?;
+            if timeline.length == timeline.slots.len()
+                || timeline.referenced_bytes + entry.value.extent.bytes
+                    > timeline.maximum_referenced_bytes
+            {
+                return Err(HistoricalTimelineRefusal::InvalidSnapshot);
+            }
+            let sequence = entry.sequence;
+            timeline.referenced_bytes += entry.value.extent.bytes;
+            timeline.slots[timeline.length].entry = Some(entry);
+            timeline.length += 1;
+            prior_sequence = Some(sequence);
+        }
+        if retention_gap.is_some_and(|gap| {
+            gap.entries == 0
+                || gap.first_sequence > gap.last_sequence
+                || gap.last_sequence >= next_sequence
+        }) {
+            return Err(HistoricalTimelineRefusal::InvalidSnapshot);
+        }
+        timeline.next_sequence = next_sequence;
+        timeline.clear_revision = clear_revision;
+        timeline.retention_gap = retention_gap;
+        Ok(timeline)
     }
 }
 
