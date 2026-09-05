@@ -46,6 +46,7 @@ export async function openTourStep(page, entrance, index) {
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   for (let current = 0; current < index; current += 1) {
     await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.locator('[data-application-key="progress"]')).toHaveText(new RegExp(`^Page ${current + 2} of \\d+$`));
   }
   await expect(page.locator('[data-application-key="progress"]')).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
 }

@@ -56,6 +56,44 @@ pub extern "C" fn conduit_tour_encode_button_transition(pressed: u32, sequence: 
     }
 }
 
+/// Encode an acquired pointer sample with the existing portable input codec.
+/// This creates no Plan or Play and performs no quantity mapping.
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_encode_pointer(
+    position_x: i32,
+    position_y: i32,
+    delta_x: i32,
+    delta_y: i32,
+    primary_pressed: u32,
+    coalesced: u32,
+    dropped: u32,
+    queue_capacity: u32,
+    sequence: u32,
+) -> i32 {
+    clear_output();
+    if primary_pressed > 1 {
+        return ERROR_INPUT;
+    }
+    let sample = conduit_semantic_catalog::NormalizedPointerSample {
+        position_x: position_x.into(),
+        position_y: position_y.into(),
+        delta_x: delta_x.into(),
+        delta_y: delta_y.into(),
+        primary_pressed: primary_pressed == 1,
+        coalesced: coalesced.into(),
+        dropped: dropped.into(),
+        queue_capacity: queue_capacity.into(),
+        sequence: sequence.into(),
+    };
+    let encoded = conduit_semantic_catalog::normalized_pointer_value(sample)
+        .map_err(|_| ())
+        .and_then(|value| value.canonical_bytes().map_err(|_| ()));
+    match encoded.and_then(|bytes| write_output_bytes(&bytes)) {
+        Ok(()) => STATUS_READY,
+        Err(()) => ERROR_INPUT,
+    }
+}
+
 /// Writes the machine-readable browser Gear inventory derived from the same
 /// Host advertisement used by planning.
 #[no_mangle]
@@ -182,6 +220,7 @@ pub extern "C" fn conduit_tour_start(
         source_length,
         play_sequence,
         false,
+        false,
     )
 }
 
@@ -193,7 +232,32 @@ pub extern "C" fn conduit_tour_start_recursive(
     source_length: usize,
     play_sequence: u64,
 ) -> i32 {
-    start(host_length, boot_length, source_length, play_sequence, true)
+    start(
+        host_length,
+        boot_length,
+        source_length,
+        play_sequence,
+        true,
+        false,
+    )
+}
+
+/// Select the exact Quantity-leaf presentation profile, without changing authored meaning.
+#[no_mangle]
+pub extern "C" fn conduit_tour_start_quantity(
+    host_length: usize,
+    boot_length: usize,
+    source_length: usize,
+    play_sequence: u64,
+) -> i32 {
+    start(
+        host_length,
+        boot_length,
+        source_length,
+        play_sequence,
+        false,
+        true,
+    )
 }
 
 fn start(
@@ -202,6 +266,7 @@ fn start(
     source_length: usize,
     play_sequence: u64,
     recursive: bool,
+    quantity_presentation: bool,
 ) -> i32 {
     clear_output();
     let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
@@ -248,7 +313,16 @@ fn start(
                 .map_err(|_| ERROR_OUTPUT)?;
                 return Err(ERROR_INTERACTION);
             }
-            let prepared = if recursive {
+            let prepared = if quantity_presentation {
+                TourSession::prepare_with_profile(
+                    host,
+                    boot,
+                    source,
+                    play_sequence,
+                    super::MorseRealization::Direct,
+                    true,
+                )
+            } else if recursive {
                 TourSession::prepare_recursive(host, boot, source, play_sequence)
             } else {
                 TourSession::prepare(host, boot, source, play_sequence)

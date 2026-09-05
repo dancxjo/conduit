@@ -3,8 +3,8 @@
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, QUANTITY_INFO_ID,
-    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN,
+    QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
@@ -122,7 +122,7 @@ pub fn quantity_map_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            max_queue_bytes: SCALAR_ENCODED_LEN as u32,
+            max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
         },
         terminal_behavior: TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,

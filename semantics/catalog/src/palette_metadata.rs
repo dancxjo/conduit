@@ -234,6 +234,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["map", "quantity", "unit", "range"],
             PaletteIconKey::ChartColumnsIncreasing,
         ),
+        crate::QUANTITY_INFO_WRAP_KIND => metadata(
+            PaletteCategory::Transform,
+            &["quantity", "structured", "leaf", "wrap"],
+            PaletteIconKey::Combine,
+        ),
         LAYOUT_VIEWPORT_KIND => metadata(
             PaletteCategory::Presentation,
             &["layout", "viewport", "extent"],
@@ -474,7 +479,15 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 70);
+        assert_eq!(contracts.len(), 71);
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|contract| &contract.kind_id)
+                .collect::<BTreeSet<_>>()
+                .len(),
+            contracts.len()
+        );
         for contract in contracts {
             let metadata = palette_metadata(&contract.kind_id).expect("palette metadata");
             assert!(!metadata.tags.is_empty());

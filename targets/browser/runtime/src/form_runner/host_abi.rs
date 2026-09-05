@@ -61,6 +61,16 @@ pub extern "C" fn conduit_browser_form_start(
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_form_start_quantity(
+    host_length: usize,
+    boot_length: usize,
+    source_length: usize,
+    play_sequence: u64,
+) -> i32 {
+    abi::conduit_tour_start_quantity(host_length, boot_length, source_length, play_sequence)
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_form_start_recursive(
     host_length: usize,
     boot_length: usize,

@@ -43,6 +43,7 @@ export default defineConfig({
     "browser-bundle-build.spec.mjs",
     "browser-boot-profile.spec.mjs",
     "browser-form-runner.spec.mjs",
+    "quantity-controller.spec.mjs",
     "reviewed-form-conformance.spec.mjs",
     "pages-front-door.spec.mjs",
     "creche-avr.spec.mjs",
