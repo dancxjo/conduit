@@ -32,6 +32,7 @@ jobs:
     with:
       base_sha: ${{ github.event.before }}
       candidate_sha: ${{ github.sha }}
+      development_admission: true
 
   products:
     needs: boundary
@@ -39,6 +40,7 @@ jobs:
     with:
       base_sha: ${{ github.event.before }}
       candidate_sha: ${{ github.sha }}
+      development_admission: true
 
   dev-integration:
     needs: [boundary, check, products]

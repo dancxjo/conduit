@@ -44,6 +44,7 @@ jobs:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       shared_compile_result: ${{ needs.shared-compile.result }}
       shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
+      development_admission: true
 
   products:
     needs: shared-compile
@@ -54,6 +55,7 @@ jobs:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       shared_compile_result: ${{ needs.shared-compile.result }}
       shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
+      development_admission: true
 
   candidate:
     needs: [boundary, shared-compile, check, products]

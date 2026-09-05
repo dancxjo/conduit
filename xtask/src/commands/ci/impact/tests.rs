@@ -940,11 +940,13 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     assert!(workflow.contains(
         "browser_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.browser_required }}"
     ));
-    for output in ["esp32_required", "conduitos_required"] {
-        assert!(workflow.contains(&format!(
-            "{output}: ${{{{ inputs.full_suite && 'true' || steps.execution.outputs.{output} || steps.impact.outputs.{output} }}}}"
-        )));
-    }
+    assert!(workflow.contains(
+        "esp32_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.esp32_required"
+    ));
+    assert!(workflow.contains(
+        "conduitos_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required"
+    ));
+    assert!(workflow.contains("Bound development machine proof to directly changed target worlds"));
     assert!(workflow.contains(
         "(github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true'"
     ));
@@ -964,11 +966,10 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     ));
     assert!(workflow.contains("name: esp32-firmware-${{ matrix.target }}"));
     assert!(workflow.contains(
-        "conduitos_x86_matrix: ${{ inputs.full_suite && '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\"]'"
+        "inputs.full_suite && '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\"]'"
     ));
-    assert!(workflow.contains(
-        "conduitos_architecture_matrix: ${{ inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"
-    ));
+    assert!(workflow
+        .contains("inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"));
     assert!(workflow.contains("conduitos-proof-image:"));
     assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
     assert!(workflow.contains("cargo xtask conduitos prove-many"));
