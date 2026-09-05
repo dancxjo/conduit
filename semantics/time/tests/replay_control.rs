@@ -124,6 +124,24 @@ fn timeline_identity_order_count_rate_and_clock_fail_closed() {
         ),
         Err(ReplayRefusal::InvalidRate)
     ));
+    let too_many = (0..=MAXIMUM_REPLAY_ENTRIES)
+        .map(|index| HistoricalReplayEntry {
+            identity: format!("event/{index}"),
+            event_ticks: index as u64,
+        })
+        .collect::<Vec<_>>();
+    assert!(matches!(
+        BoundedReplayController::new(&too_many, ReplayPolicy::Step),
+        Err(ReplayRefusal::TooManyEntries)
+    ));
+    let long_identity = vec![HistoricalReplayEntry {
+        identity: "x".repeat(MAXIMUM_REPLAY_IDENTITY_BYTES + 1),
+        event_ticks: 0,
+    }];
+    assert!(matches!(
+        BoundedReplayController::new(&long_identity, ReplayPolicy::Step),
+        Err(ReplayRefusal::IdentityTooLong)
+    ));
     let mut replay =
         BoundedReplayController::new(&entries(), ReplayPolicy::OriginalTiming).unwrap();
     replay.start(20).unwrap();
