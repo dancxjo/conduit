@@ -91,3 +91,65 @@ fn resource_owner_refuses_a_second_writer_before_displacing_existing_admission()
     );
     assert_eq!(owner, before);
 }
+
+#[test]
+fn planner_refuses_two_publication_writers_for_one_exact_resource() {
+    use conduit_core::*;
+    use conduit_planner::{
+        default_expanded_placements, plan_expanded_canonical_with_options, PlannerError,
+        PlanningOptions,
+    };
+    use std::collections::BTreeMap;
+    let mut proof = frame_resource_plan(false, false).unwrap();
+    let second = proof
+        .host
+        .capabilities
+        .iter_mut()
+        .find(|c| c.kind_id.as_str() == "frame/display")
+        .unwrap();
+    second
+        .resource_requirements
+        .iter_mut()
+        .find(|r| r.class_id.as_str() == "resource/frame")
+        .unwrap()
+        .content = Some(frame_content());
+    let grants = proof
+        .host
+        .capabilities
+        .iter()
+        .flat_map(|c| {
+            c.authority_requirements.iter().map(|r| {
+                authority_grant(
+                    &format!("grant/{}", c.kind_id.as_str()),
+                    r,
+                    proof.host.host_id.clone(),
+                    proof.host.boot_id.clone(),
+                    c.capability_id.clone(),
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+    let placements =
+        default_expanded_placements(&proof.expanded, core::slice::from_ref(&proof.host)).unwrap();
+    let result = plan_expanded_canonical_with_options(
+        &proof.expanded,
+        core::slice::from_ref(&proof.host),
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 4,
+            connection_byte_capacity: 512,
+            authority_grants: &grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    );
+    assert_eq!(
+        result,
+        Err(PlannerError::ResourceContentRefused(
+            ResourceContentRefusal::MultipleWriters
+        ))
+    );
+}
