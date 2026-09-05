@@ -20,6 +20,8 @@ mod typed_record;
 pub use typed_record::*;
 mod ordered_record_queue;
 pub use ordered_record_queue::*;
+mod record_transcript;
+pub use record_transcript::*;
 #[cfg(feature = "form-catalog")]
 mod typed_record_catalog;
 #[cfg(feature = "form-catalog")]
@@ -28,6 +30,10 @@ pub use typed_record_catalog::*;
 mod ordered_record_queue_catalog;
 #[cfg(feature = "form-catalog")]
 pub use ordered_record_queue_catalog::*;
+#[cfg(feature = "form-catalog")]
+mod record_transcript_catalog;
+#[cfg(feature = "form-catalog")]
+pub use record_transcript_catalog::*;
 mod network_info;
 pub use network_info::*;
 mod application_info;
