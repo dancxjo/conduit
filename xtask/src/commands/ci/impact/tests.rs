@@ -978,16 +978,13 @@ fn workflow_validates_before_merge_without_a_post_merge_push_run() {
     assert!(workflow.contains(
         "CONDUIT_CI_TEST_PACKAGES: ${{ needs.classify.outputs.workspace_test_packages }}"
     ));
-    assert!(workflow.contains("\"${controller[@]}\" ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"));
+    assert!(workflow.contains(
+        "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\" \\\n            ci plan \"$BASE_SHA\" \"$HEAD_SHA\" --locked"
+    ));
     assert!(workflow.contains("name: Resolve the current trusted CI controller"));
     assert!(workflow.contains("git ls-remote --exit-code origin"));
     assert!(workflow.contains("git worktree add --detach \"$RUNNER_TEMP/conduit-ci-controller\""));
-    assert!(workflow.contains("controller=(cargo xtask)"));
-    assert!(workflow.contains(
-        "controller=(\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\")"
-    ));
-    assert!(workflow
-        .contains("cargo build --manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""));
+    assert!(workflow.contains("--manifest-path \"$RUNNER_TEMP/conduit-ci-controller/Cargo.toml\""));
     assert!(workflow.contains("--summary-out \"$GITHUB_STEP_SUMMARY\""));
     assert!(workflow.contains(
         "comparison_base_sha: ${{ steps.slice.outputs.comparison_base_sha || steps.changes.outputs.comparison_base_sha }}"
