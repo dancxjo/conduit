@@ -257,7 +257,7 @@ fn image_observation_value(
     .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
-fn image_observation_from_value(
+pub fn image_observation_from_value(
     value: &StructuredInfoValue,
 ) -> Result<conduit_human::ImageObservationReference, ImageTextValueRefusal> {
     if value.value_type() != &image_observation_reference_type() {

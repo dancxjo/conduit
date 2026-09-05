@@ -58,6 +58,7 @@ impl Operation for InstalledOperation {
             Self::VectorSearch(operation) => operation.start(),
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
+            Self::ImageText(operation) => operation.start(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
@@ -166,6 +167,7 @@ impl Operation for InstalledOperation {
             (Self::VectorSearch(operation), input) => operation.resume(input),
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
+            (Self::ImageText(operation), input) => operation.resume(input),
             (Self::JsonEncode(operation), input) | (Self::JsonDecode(operation), input) => {
                 operation.resume(input)
             }
@@ -316,6 +318,7 @@ impl Operation for InstalledOperation {
             Self::VectorSearch(operation) => operation.advance(),
             Self::HttpClient(operation) => operation.advance(),
             Self::HttpServer(operation) => operation.advance(),
+            Self::ImageText(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -421,6 +424,7 @@ impl Operation for InstalledOperation {
             Self::VectorSearch(operation) => operation.cancel(),
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),
+            Self::ImageText(operation) => operation.cancel(),
             Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
             Self::StructuredLiteral(_) => {}
