@@ -6,6 +6,38 @@ use conduit_form::{
 };
 use conduit_semantic_catalog::*;
 
+fn composed_record() -> (conduit_core::KindId, conduit_human::ImageTextRecord) {
+    use conduit_core::{
+        kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
+        ResourceSemanticIdentity, ResourceVersionIdentity,
+    };
+    let profile = kind_id("media/image-rgba8@1");
+    let image = BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        content_profile: profile.clone(),
+        access_class: ResourceClassId::from("conduit.resource/image-content@1"),
+        extent: ResourceExtent {
+            bytes: 4_096,
+            items: Some(1),
+        },
+        lifetime: ResourceLifetime {
+            version: ResourceVersionIdentity::from_digest([2; 32]),
+            expires_at: None,
+        },
+    };
+    let record = conduit_human::compose_image_text(
+        &profile,
+        image,
+        "north wall".into(),
+        vec![conduit_human::ImageTextMetadata {
+            key: "operator".into(),
+            value: "Ada".into(),
+        }],
+    )
+    .unwrap();
+    (profile, record)
+}
+
 #[test]
 fn image_text_composition_is_an_ordinary_browser_neutral_form() {
     let source = include_str!("../../../forms/image-text-compose/main.conduit");
@@ -65,4 +97,27 @@ fn composed_schema_is_finite_and_keeps_image_as_a_resource_reference() {
         StructuredInfoTypeShape::Collection { length, .. }
             if usize::from(length) == conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES
     ));
+}
+
+#[test]
+fn composed_record_round_trips_as_the_exact_structured_port_value() {
+    let (profile, record) = composed_record();
+    let value = image_text_record_value(&record, &profile).unwrap();
+    assert_eq!(value.value_type(), &image_text_record_type());
+    assert_eq!(
+        image_text_record_from_value(&value, &profile).unwrap(),
+        record
+    );
+}
+
+#[test]
+fn structured_port_decode_keeps_profile_and_integrity_refusals_exact() {
+    let (profile, record) = composed_record();
+    let value = image_text_record_value(&record, &profile).unwrap();
+    assert_eq!(
+        image_text_record_from_value(&value, &conduit_core::kind_id("media/image-gray8@1")),
+        Err(ImageTextValueRefusal::InvalidRecord(
+            conduit_human::ImageTextRefusal::WrongImageProfile
+        ))
+    );
 }
