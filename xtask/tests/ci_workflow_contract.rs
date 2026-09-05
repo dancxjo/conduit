@@ -811,9 +811,7 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
     assert!(!x86.contains("matrix:"));
     assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
     assert!(x86.contains("cargo xtask conduitos prove-many"));
-    assert!(x86.contains(
-        "--max-parallel 2 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"
-    ));
+    assert!(x86.contains("--max-parallel 2 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"));
     assert_eq!(
         x86.matches("CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many")
             .count(),

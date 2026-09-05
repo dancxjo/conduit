@@ -973,9 +973,9 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     assert!(workflow.contains("conduitos-proof-image:"));
     assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
     assert!(workflow.contains("cargo xtask conduitos prove-many"));
-    assert!(workflow.contains(
-        "--max-parallel 2 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"
-    ));
+    assert!(
+        workflow.contains("--max-parallel 2 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked")
+    );
     assert!(workflow.contains(
         "shard: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.workspace_matrix"
     ));
