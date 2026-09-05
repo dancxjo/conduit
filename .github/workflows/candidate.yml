@@ -23,19 +23,23 @@ jobs:
 
   check:
     needs: shared-compile
-    if: needs.shared-compile.result == 'success' && needs.shared-compile.outputs.stack_role != 'intermediate'
+    if: always() && !cancelled() && needs.shared-compile.outputs.stack_role != 'intermediate'
     uses: ./.github/workflows/check.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
       candidate_sha: ${{ github.event.pull_request.head.sha }}
+      shared_compile_result: ${{ needs.shared-compile.result }}
+      shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
 
   products:
     needs: shared-compile
-    if: needs.shared-compile.result == 'success' && needs.shared-compile.outputs.stack_role != 'intermediate'
+    if: always() && !cancelled() && needs.shared-compile.outputs.stack_role != 'intermediate'
     uses: ./.github/workflows/executable-book-pages.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
       candidate_sha: ${{ github.event.pull_request.head.sha }}
+      shared_compile_result: ${{ needs.shared-compile.result }}
+      shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
 
   candidate:
     needs: [shared-compile, check, products]

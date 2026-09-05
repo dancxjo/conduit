@@ -176,12 +176,16 @@ Branch protection's stable `admission` context is the final lightweight job in t
 Candidate proof begins with one typed shared-compilation prerequisite selected
 from changed Cargo packages that feed more than one scheduled proof world. The
 prerequisite runs once, under the exact Rust toolchain, before the workspace and
-product graphs are released concurrently. If it fails, neither graph allocates
-its browser, firmware, Host, or ConduitOS consumers; the controller emits a
-`conduit.ci.causal-block/v1` record naming `workspace.shared-compile` and the
-blocked aggregate lanes. Reconciliation applies the same prerequisite to the
-prospective integration tree. An empty shared-package set is an explicit no-op,
-not evidence, and unknown/global impact keeps the existing conservative graph.
+product graphs are released concurrently. Both graphs still run their trusted
+classifiers, planners, and independent artifact or lock prerequisites when the
+shared compile fails. Proof nodes that compile or realize candidate code remain
+blocked, so they cannot rediscover the same compiler failure or allocate a
+browser, firmware, Host, or ConduitOS consumer. Each stable aggregate emits a
+`conduit.ci.causal-block/v1` record naming `workspace.shared-compile`, its exact
+package set, and the dependent proof domain. Reconciliation applies the same
+proof-node boundary to the prospective integration tree. An empty shared-package
+set is an explicit no-op, not evidence, and unknown/global impact keeps the
+existing conservative graph.
 
 An exact successful `admission-evidence` identity includes candidate, base, and
 prospective integration identities. A later lifecycle event with that same

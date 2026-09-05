@@ -9,6 +9,14 @@ on:
       candidate_sha:
         required: true
         type: string
+      shared_compile_result:
+        required: false
+        default: success
+        type: string
+      shared_compile_packages:
+        required: false
+        default: '[]'
+        type: string
   merge_group:
 
 permissions:
@@ -30,6 +38,8 @@ env:
   CONDUIT_INTEGRATION_SHA: ${{ github.event.merge_group.head_sha || '' }}
   CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
   CONDUIT_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+  CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}
+  CONDUIT_SHARED_COMPILE_PACKAGES: ${{ inputs.shared_compile_packages || '[]' }}
 
 jobs:
   classify:
@@ -380,7 +390,7 @@ jobs:
 
   workspace-check:
     needs: classify
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.workspace_matrix != '[]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -452,7 +462,7 @@ jobs:
 
   esp32-firmware:
     needs: [classify, standalone-locks]
-    if: always() && needs.classify.outputs.docs_only != 'true' && needs.standalone-locks.result == 'success' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.outputs.docs_only != 'true' && needs.standalone-locks.result == 'success' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.esp32_required == 'true')
     runs-on: ubuntu-latest
     # A cold Xtensa row may install substantial pinned tooling. Each row owns
     # exactly one target, while exhaustive main runs retain all three rows.
@@ -541,6 +551,8 @@ jobs:
     steps:
       - name: Preserve the stable required workspace gate
         env:
+          SHARED_COMPILE_RESULT: ${{ env.CONDUIT_SHARED_COMPILE_RESULT }}
+          SHARED_COMPILE_PACKAGES: ${{ env.CONDUIT_SHARED_COMPILE_PACKAGES }}
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
           WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
@@ -560,6 +572,12 @@ jobs:
           ESP32_REQUIRED: ${{ needs.classify.outputs.esp32_required }}
           EVENT_NAME: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && 'pull_request' || github.event_name }}
         run: |
+          if test "$SHARED_COMPILE_RESULT" != success; then
+            printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["workspace","browser","candidate-machine"]}\n' \
+              "${SHARED_COMPILE_PACKAGES:-[]}" | tee causal-block.json
+            printf 'blocked-by: workspace.shared-compile (%s)\n' "$SHARED_COMPILE_PACKAGES" >&2
+            exit 1
+          fi
           require_result() {
             local name=$1 actual=$2 expected=$3
             if test "$actual" != "$expected"; then
@@ -765,7 +783,7 @@ jobs:
 
   conduitos-proof-image:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')) && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')) && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     outputs:
@@ -816,7 +834,7 @@ jobs:
 
   conduitos-x86:
     needs: [classify, conduitos-limine, conduitos-tools, conduitos-proof-image]
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_x86_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
@@ -899,7 +917,7 @@ jobs:
 
   conduitos-architecture:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_architecture_matrix != '[]') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
@@ -955,7 +973,7 @@ jobs:
 
   conduitos-aarch64-product:
     needs: [classify, conduitos-limine, conduitos-tools]
-    if: always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.conduitos_aarch64_product_required == 'true') && needs.conduitos-limine.result == 'success' && needs.conduitos-tools.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:

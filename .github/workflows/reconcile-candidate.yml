@@ -193,7 +193,7 @@ jobs:
 
   candidate-check:
     needs: [resolve, shared-compile]
-    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.check_inherited != 'true'
+    if: always() && !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.check_inherited != 'true'
     permissions:
       actions: read
       contents: read
@@ -202,10 +202,12 @@ jobs:
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
+      shared_compile_result: ${{ needs.shared-compile.result }}
+      shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
 
   candidate-products:
     needs: [resolve, shared-compile]
-    if: needs.resolve.result == 'success' && needs.shared-compile.result == 'success' && needs.resolve.outputs.products_inherited != 'true'
+    if: always() && !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.products_inherited != 'true'
     permissions:
       contents: read
       pull-requests: read
@@ -213,6 +215,8 @@ jobs:
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
+      shared_compile_result: ${{ needs.shared-compile.result }}
+      shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}
 
   report:
     name: ${{ (github.event_name == 'workflow_dispatch' || github.event.action == 'reopened' || (github.event.action == 'edited' && github.event.changes.base.ref != '') || (github.event.action == 'labeled' && github.event.label.name == 'ci:reconcile')) && 'admission' || 'ignored-reconciliation-event' }}
