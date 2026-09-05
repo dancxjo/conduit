@@ -192,6 +192,42 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
 }
 
 #[test]
+fn merged_branch_retirement_is_controller_work_not_machine_fabrication() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            ".github/workflows/reconcile-candidate.yml".to_owned(),
+            ".github/workflows/retire-merged-pr-branch.yml".to_owned(),
+            "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
+            "proof/ci/retire-merged-pr-branch.spec.mjs".to_owned(),
+            "scripts/ci/reconcile-candidate-request.mjs".to_owned(),
+            "scripts/ci/retire-merged-pr-branch.mjs".to_owned(),
+            "xtask/src/commands/ci/impact.rs".to_owned(),
+            "xtask/src/commands/ci/impact/tests.rs".to_owned(),
+            "xtask/tests/ci_workflow_contract.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert_eq!(
+        plan.ci_controller_proofs,
+        [
+            "ci.current-controller-reconciliation",
+            "ci.merged-branch-retirement",
+        ]
+    );
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert_eq!(plan.changed_packages, ["xtask"]);
+}
+
+#[test]
 fn check_result_gate_contract_does_not_fabricate_products() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();

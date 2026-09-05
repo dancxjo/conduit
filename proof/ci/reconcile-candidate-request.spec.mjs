@@ -151,6 +151,24 @@ test("all-inherited evidence still publishes through the stable admission job", 
   assert.match(posts[0].output.summary, new RegExp(`Prospective integration: ${integration}`));
 });
 
+test("trusted dispatch publishes the exact required PR-head gate", async () => {
+  const posts = [];
+  const published = await publishCandidateResults({
+    repository, candidateSha: candidate, baseSha: base, integrationSha: integration,
+    checkInherited: true, checkResult: "skipped", checkEvidenceUrl: "https://example.test/check",
+    productsInherited: true, productsResult: "skipped", productsEvidenceUrl: "https://example.test/products",
+    runUrl: "https://example.test/reconcile", publishRequiredAdmission: true, token: "test",
+    request: async (_url, options) => {
+      posts.push(JSON.parse(options.body));
+      return response({ id: 300 + posts.length }, 201);
+    },
+  });
+  assert.deepEqual(published.map(({ name }) => name), ["admission-evidence", "admission"]);
+  assert.equal(posts[1].head_sha, candidate);
+  assert.equal(posts[1].external_id, `conduit.required-admission/v1:${candidate}:${base}:${integration}`);
+  assert.equal(posts[1].conclusion, "success");
+});
+
 test("partial evidence remains fail-closed for execute then report", async () => {
   let posts = 0;
   const result = await resolveCandidateRequest({

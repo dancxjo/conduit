@@ -148,7 +148,7 @@ Merge-group validation identifies its checkout as integration rather than candid
 
 An expedited main admission does not need a ceremonial pull request solely to publish Pages. An explicit `book-and-creche-pages` dispatch may name the exact current `main` SHA. The trusted controller verifies that identity against the default-branch ref, derives its exact tree and parent, fabricates the carrier through the same unprivileged product workflow, verifies the resulting carrier, and only then promotes it. A stale or non-main SHA refuses before fabrication.
 
-Merged branches are retired by repository machinery rather than GitHub's immediate automatic deletion. The trusted closed-PR controller first retargets every open dependent to `main`, verifies that each immutable child head stayed exact, rescans for dependents, and only then deletes the merged branch. The resulting base-edit event requests trusted PR-head reconciliation automatically. Any malformed response, failed retarget, changed child head, or remaining dependent retains the branch and fails the controller visibly.
+Merged branches are retired by repository machinery rather than GitHub's immediate automatic deletion. The trusted closed-PR controller first retargets every open dependent to `main`, verifies that each immutable child head stayed exact, explicitly dispatches reconciliation for that PR/head, rescans for dependents, and only then deletes the merged branch. GitHub suppresses workflow events caused by a workflow's own `GITHUB_TOKEN`, so relying on the retarget's base-edit event would silently omit reconciliation. Any malformed response, failed retarget, refused dispatch, changed child head, or remaining dependent retains the branch and fails the controller visibly.
 
 Branch protection's stable `admission` context is the final lightweight job in the reconciliation workflow, not an ad hoc check run racing unrelated check-suite completion. Even when every proof is inherited, reconciliation reaches that job, publishes a separately named `admission-evidence` detail record, retires its temporary integration ref, and lets the job's own terminal result satisfy protection. Duplicate dispatches do not cancel one another, so a later canceled suite cannot replace the established success merely as bookkeeping.
 
@@ -165,7 +165,9 @@ again. That cleanup is best-effort bookkeeping: API congestion may leave the
 label present, but it cannot suppress exact PR/head validation.
 Reopen and base-edit lifecycle events reconcile automatically. A manually
 dispatched run remains useful diagnostic evidence, but its job belongs to the
-selected dispatch ref and therefore is not used as a PR-head protection gate.
+selected dispatch ref. After exact reconciliation succeeds, that trusted run
+publishes the required `admission` check directly onto the verified PR head;
+ordinary event-driven reconciliation continues to use the job gate itself.
 
 When a duplicate candidate workflow is deliberately cancelled, its aggregate
 `check` and `products-proof` joins do not manufacture new failure records while
