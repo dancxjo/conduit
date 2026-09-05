@@ -10,6 +10,7 @@ conduit-audio = { path = "../audio" }
 conduit-core = { path = "../../architecture/core" }
 conduit-human = { path = "../human" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
+conduit-net = { path = "../net", default-features = false, features = ["form-catalog"] }
 conduit-presentation = { path = "../presentation" }
 conduit-robotics = { path = "../robotics" }
 conduit-web = { path = "../web", default-features = false }

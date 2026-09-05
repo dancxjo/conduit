@@ -30,12 +30,15 @@ pub const MAXIMUM_MEDIA_QUEUE_BYTES: u32 = 4 * MAXIMUM_MEDIA_RESULT_BYTES;
 pub const MAXIMUM_MEDIA_VALUE_BYTES: u32 = 64 * 1024;
 pub const IMAGE_TEXT_COMPOSE_KIND: &str = "media/compose-image-text";
 pub const IMAGE_TEXT_COMPOSE_REVISION: &str = "conduit.human/image-text-compose@1";
+pub const IMAGE_TEXT_TYPED_RECORD_KIND: &str = "media/image-text-to-typed-record";
+pub const IMAGE_TEXT_TYPED_RECORD_REVISION: &str = "conduit.human/image-text-typed-record@1";
 pub const IMAGE_REFERENCE_TYPE: &str = "ImageObservationReference";
 pub const IMAGE_TEXT_RECORD_TYPE: &str = "ImageTextRecord";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ImageTextValueRefusal {
     InvalidRecord(conduit_human::ImageTextRefusal),
+    TypedRecord(conduit_net::TypedRecordFrameRefusal),
     Malformed,
 }
 
@@ -192,6 +195,14 @@ pub fn image_text_record_from_value(
     Ok(record)
 }
 
+pub fn image_text_typed_record_value(
+    record: &conduit_human::ImageTextRecord,
+    expected_image_profile: &KindId,
+) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
+    let value = image_text_record_value(record, expected_image_profile)?;
+    conduit_net::typed_record_value(&value).map_err(ImageTextValueRefusal::TypedRecord)
+}
+
 fn metadata_type() -> StructuredInfoType {
     let collection = metadata_collection_type();
     let StructuredInfoTypeShape::Collection { element, .. } = collection.shape() else {
@@ -285,6 +296,20 @@ pub fn install_human_media_catalogs(
             vec![structured_port(
                 "record",
                 &image_text_record_type(),
+                PortDirection::Output,
+            )],
+        ),
+        (
+            IMAGE_TEXT_TYPED_RECORD_KIND,
+            IMAGE_TEXT_TYPED_RECORD_REVISION,
+            vec![structured_port(
+                "record",
+                &image_text_record_type(),
+                PortDirection::Input,
+            )],
+            vec![structured_port(
+                "typed",
+                &conduit_net::typed_record_type(),
                 PortDirection::Output,
             )],
         ),
