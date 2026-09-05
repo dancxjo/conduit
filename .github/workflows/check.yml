@@ -17,7 +17,10 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+  # Reusable workflows share github.workflow with their top-level caller. A
+  # literal lane name prevents the caller and this callee from deadlocking on
+  # the same group while retaining exact candidate/integration isolation.
+  group: check-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
   cancel-in-progress: false
 
 env:
