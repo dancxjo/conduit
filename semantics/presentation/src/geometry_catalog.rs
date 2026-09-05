@@ -24,6 +24,7 @@ use crate::{
 pub const POINT2_LITERAL_KIND: &str = "geometry/point2";
 pub const APPLY_TRANSFORM2_KIND: &str = "geometry/apply-transform2";
 pub const TRANSFORM_PATH2_FOUR_KIND: &str = "geometry/transform-path2-four";
+pub const CAPTURE_BOUNDED_STROKE_KIND: &str = "geometry/capture-bounded-stroke";
 pub const GEOMETRY_REVISION: &str = "conduit.std/geometry-spatial@1";
 
 pub fn install_geometry_catalogs(
@@ -60,7 +61,21 @@ pub fn install_geometry_catalogs(
         vec![geometry_port("path", &path, PortDirection::Input)],
         vec![geometry_port("path", &path, PortDirection::Output)],
         Some(("transform", TRANSFORM2_TYPE, default_transform2()?)),
-    )
+    )?;
+    let stroke = path2_type(4).expect("four-point stroke bound is reviewed");
+    startup.insert(KindSignature {
+        kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: kind_id(CAPTURE_BOUNDED_STROKE_KIND),
+            kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
+            inputs: vec![flow_geometry_port("point", &point, PortDirection::Input)],
+            outputs: vec![geometry_port("stroke", &stroke, PortDirection::Output)],
+            configuration: vec![],
+        })
+        .map_err(|error| error.to_string())
 }
 
 pub fn geometry_types() -> Vec<(&'static str, StructuredInfoType)> {
@@ -147,6 +162,16 @@ pub fn geometry_port(
         direction,
         temporal: PortTemporal::Value,
     }
+}
+
+fn flow_geometry_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
+    let mut port = geometry_port(name, value_type, direction);
+    port.temporal = PortTemporal::Flow { closes: true };
+    port
 }
 
 fn default_point2() -> Result<StructuredInfoValue, String> {
