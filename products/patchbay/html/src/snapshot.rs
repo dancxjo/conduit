@@ -83,6 +83,7 @@ impl RendererSnapshot {
             authoring: None,
             body_workbench: None,
             body_host_offer_evidence: None,
+            body_host_planning_offer: None,
             debugger: None,
             watches: None,
             timeline: None,
@@ -255,6 +256,10 @@ impl RendererSnapshot {
             .body_host_offer_evidence
             .as_ref()
             .is_some_and(crate::server::body_host_offer_evidence::invalid_projection);
+        let invalid_body_host_planning_offer = self
+            .body_host_planning_offer
+            .as_ref()
+            .is_some_and(crate::server::body_host_planning_offer::invalid_projection);
         let invalid_debugger = self.debugger.as_ref().is_some_and(|debugger| {
             debugger.schema != patchbay_model::DEBUGGER_PRESENTATION_SCHEMA
                 || debugger.activities.len() > patchbay_model::MAX_DEBUGGER_SUBJECTS
@@ -419,6 +424,7 @@ impl RendererSnapshot {
             || invalid_temporal_context
             || invalid_workbench
             || invalid_body_host_offer
+            || invalid_body_host_planning_offer
             || invalid_debugger
             || invalid_watches
             || invalid_timeline
