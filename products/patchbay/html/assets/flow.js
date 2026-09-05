@@ -92,7 +92,12 @@ function presentEdges(edges) {
 }
 
 function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens, selectionGroup }) {
-  const projected = projectFlowScene(snapshot, lens);
+  const [openedBacks, setOpenedBacks] = React.useState(() => new Set());
+  React.useEffect(() => setOpenedBacks(new Set()), [
+    snapshot.presentation.basis.checked_form_id,
+    snapshot.presentation.basis.expanded_form_id,
+  ]);
+  const projected = projectFlowScene(snapshot, lens, openedBacks);
   const initial = React.useMemo(() => {
     const restored = restore(projected);
     return reconcileFlowScene(projected, restored);
@@ -137,7 +142,7 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens, s
       return next.nodes;
     });
     setEdges(presentEdges(projected.edges));
-  }, [projected.workspaceIdentity, projected.lens, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision]);
+  }, [projected.workspaceIdentity, projected.lens, openedBacks, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision]);
   arrangeCurrent = () => {
     const next = reconcileFlowScene(projected);
     setNodes(next.nodes);
@@ -146,7 +151,19 @@ function Workspace({ snapshot, onSelect, onConnect, onClear, onOpenBack, lens, s
   };
   const presentedNodes = nodes.map((node) => ({
     ...node,
-    data: { ...node.data, onActivate: onSelect, onOpenBack, selectionGroup },
+    data: {
+      ...node.data,
+      onActivate: onSelect,
+      onOpenBack: (identity) => {
+        setOpenedBacks((current) => {
+          const next = new Set(current);
+          if (next.has(identity)) next.delete(identity); else next.add(identity);
+          return next;
+        });
+        onOpenBack?.(identity);
+      },
+      selectionGroup,
+    },
   }));
   const liveSummary = (snapshot.debugger?.activities || [])
     .slice(-8)

@@ -25,7 +25,7 @@ pub use body_workbench_fixture::body_workbench_fixture_snapshot;
 pub use cross_host::{cross_host_demonstration_snapshot, CrossHostRendererError};
 pub use demo::{
     demonstration_snapshot, llm_documentary_snapshot, llm_embodiment_snapshot,
-    text_lab_split_loss_snapshot, text_lab_split_snapshot,
+    recursive_form_demonstration_snapshot, text_lab_split_loss_snapshot, text_lab_split_snapshot,
 };
 pub use form_sources::{
     load_form_sources, FormSource, FormSourceError, MAX_ADDITIONAL_FORMS, MAX_FORM_LABEL_BYTES,

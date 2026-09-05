@@ -116,7 +116,7 @@ function cordVisual(properties, lens) {
   };
 }
 
-export function projectFlowScene(snapshot, lens = "world") {
+export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set()) {
   const presentation = projectCurrent(snapshot);
   // Projection owns which subjects and relationships exist in this scene. The
   // canonical Presentation still owns the exact typed facts needed to draw
@@ -133,8 +133,22 @@ export function projectFlowScene(snapshot, lens = "world") {
     if (!children.has(relation.source)) children.set(relation.source, []);
     children.get(relation.source).push(relation.target);
   }
+  const visibleThroughBacks = (subject) => {
+    let parent = subjectProperties.get(subject.identity)?.get("recursive-parent");
+    const visited = new Set();
+    while (parent) {
+      if (visited.size === MAX_FLOW_SUBJECTS || visited.has(parent)) {
+        throw new Error("Recursive Back presentation is cyclic or exceeds its finite bound");
+      }
+      visited.add(parent);
+      if (!openedBacks.has(parent)) return false;
+      parent = subjectProperties.get(parent)?.get("recursive-parent");
+    }
+    return true;
+  };
   const subjects = presentation.subjects.filter((subject) =>
-    ["Form", "Body", "Host", "Part", "Gear"].includes(subject.role));
+    ["Form", "Body", "Host", "Part", "Gear"].includes(subject.role)
+      && visibleThroughBacks(subject));
   if (subjects.length > MAX_FLOW_SUBJECTS) throw new Error("Flow subject bound exceeded");
   const nodes = subjects.map((subject) => ({
     id: subject.identity,
@@ -148,7 +162,7 @@ export function projectFlowScene(snapshot, lens = "world") {
       iconName: subjectProperties.get(subject.identity)?.get("icon-name") || subject.role,
       clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
       reviewedBack: subjectProperties.get(subject.identity)?.get("reviewed-back") === "available",
-      backExpanded: subjectProperties.get(subject.identity)?.get("back-expanded") === "true",
+      backExpanded: openedBacks.has(subject.identity),
       diagnosticError: subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error",
       debugger: debuggerActivity.get(subject.identity) || null,
       causalTrace: causalTrace.has(subject.identity),
@@ -186,11 +200,15 @@ export function projectFlowScene(snapshot, lens = "world") {
   const edges = [];
   for (const cord of presentation.subjects.filter((subject) => subject.role === "Cord")) {
     const properties = snapshot.presentation.properties.filter((property) => property.subject === cord.identity);
-    const sourcePort = semanticSubjects.get(value(properties.find((property) => property.name === "source-port")));
-    const sinkPort = semanticSubjects.get(value(properties.find((property) => property.name === "sink-port")));
+    const propertiesMap = subjectProperties.get(cord.identity) || new Map();
+    let sourcePort = semanticSubjects.get(value(properties.find((property) => property.name === "source-port")));
+    let sinkPort = semanticSubjects.get(value(properties.find((property) => property.name === "sink-port")));
+    const collapsedSource = propertiesMap.get("collapsed-source-port");
+    const collapsedSink = propertiesMap.get("collapsed-sink-port");
+    if (collapsedSource) sourcePort = semanticSubjects.get(collapsedSource);
+    if (collapsedSink) sinkPort = semanticSubjects.get(collapsedSink);
     const source = owner.get(sourcePort);
     const target = owner.get(sinkPort);
-    const propertiesMap = subjectProperties.get(cord.identity) || new Map();
     const visual = cordVisual(propertiesMap, lens);
     const activity = debuggerActivity.get(cord.identity);
     const activityLabel = debuggerLabel(activity);
