@@ -17,9 +17,9 @@ use conduit_semantic_catalog::{
     image_text_record_from_value, image_text_record_type, image_text_record_value,
 };
 use conduit_time::{
-    decode_historical_timeline, encode_historical_timeline_into, BoundedHistoricalTimeline,
-    HistoricalEntryOrigin, HistoricalOverflowPolicy, HistoricalTimelineRefusal,
-    MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES,
+    reload_historical_timeline, retain_historical_timeline, BoundedHistoricalTimeline,
+    BoundedMemorySnapshotStore, HistoricalEntryOrigin, HistoricalOverflowPolicy,
+    HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES,
 };
 
 fn resource(profile: &str, identity: u8, bytes: u64) -> BoundedResourceRef {
@@ -134,9 +134,15 @@ fn composed_record_uses_shared_history_and_durable_snapshot_contract() {
         )
         .unwrap();
 
-    let mut snapshot = [0; MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES];
-    let written = encode_historical_timeline_into(&history, &mut snapshot).unwrap();
-    let reloaded = decode_historical_timeline(&snapshot[..written]).unwrap();
+    let mut storage = BoundedMemorySnapshotStore::new(
+        1,
+        MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES,
+        MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES,
+    )
+    .unwrap();
+    let mut scratch = [0; MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES];
+    retain_historical_timeline(&mut storage, "polaroid/history", &history, &mut scratch).unwrap();
+    let reloaded = reload_historical_timeline(&storage, "polaroid/history").unwrap();
     assert_eq!(reloaded.len(), 1);
     assert_eq!(reloaded.entry(0).unwrap().identity, "inspection-a");
 

@@ -7,6 +7,7 @@ pub use tick::*;
 
 mod calendar;
 mod calendar_proposal;
+mod historical_store;
 mod historical_timeline;
 mod historical_timeline_codec;
 mod replay_codec;
@@ -18,6 +19,7 @@ mod temporal_window;
 
 pub use calendar::*;
 pub use calendar_proposal::*;
+pub use historical_store::*;
 pub use historical_timeline::*;
 pub use historical_timeline_codec::*;
 pub use replay_codec::*;
