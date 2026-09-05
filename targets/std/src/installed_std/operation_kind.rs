@@ -54,6 +54,7 @@ use super::text_operations::{
 use super::tick_operations::TestObserverOperation;
 use super::tick_operations::TickOperation;
 use super::tick_presentation::TickPresentationOperation;
+use super::timed_pattern_operation::TimedPatternOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
 use super::vector_search_operation::VectorSearchOperation;
@@ -90,6 +91,7 @@ pub(super) enum InstalledOperation {
     InputChords(InputSemanticOperation),
     InstrumentMap(InstrumentMapOperation),
     RhythmCompare(RhythmCompareOperation),
+    TimedPattern(TimedPatternOperation),
     LogicCompareScalar(LogicCompareScalarOperation),
     LogicNot(LogicNotOperation),
     LogicSelectScalar(LogicSelectScalarOperation),

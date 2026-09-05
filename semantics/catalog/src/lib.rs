@@ -99,6 +99,10 @@ pub use time_every::*;
 mod timing;
 pub use timing::*;
 #[cfg(feature = "form-catalog")]
+mod timed_pattern;
+#[cfg(feature = "form-catalog")]
+pub use timed_pattern::*;
+#[cfg(feature = "form-catalog")]
 mod recurrence_catalog;
 #[cfg(feature = "form-catalog")]
 pub use recurrence_catalog::*;

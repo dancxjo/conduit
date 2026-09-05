@@ -4,6 +4,8 @@ mod flow_state;
 pub use flow_state::*;
 mod timing;
 pub use timing::*;
+mod timed_pattern;
+pub use timed_pattern::*;
 mod presentation_structure;
 pub use presentation_structure::*;
 mod presentation_sinks;

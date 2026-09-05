@@ -93,6 +93,7 @@ use super::text_operations::{
 use super::tick_operations::TEST_OBSERVER_FACTORY;
 use super::tick_operations::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
+use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
@@ -135,6 +136,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &CHORDS_FACTORY,
     &INSTRUMENT_MAP_FACTORY,
     &RHYTHM_COMPARE_FACTORY,
+    &TIMED_PATTERN_FACTORY,
     &LOGIC_COMPARE_SCALAR_FACTORY,
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,

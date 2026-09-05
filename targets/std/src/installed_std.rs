@@ -81,6 +81,7 @@ mod text_operations;
 mod text_operations_tests;
 mod tick_operations;
 mod tick_presentation;
+mod timed_pattern_operation;
 mod timing_configuration;
 mod timing_operations;
 mod toggle_operation;
@@ -454,6 +455,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut http_output =
         Vec::with_capacity(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
     let mut json_host = json_operations::JsonHost::prepare();
+    let mut timed_pattern_host = timed_pattern_operation::TimedPatternHost::prepare();
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
@@ -739,6 +741,52 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| {
                         format!("complete bounded structured selector operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::ORDERED_EVENT_INTERVALS_HOST_OPERATION {
+                let completion = timed_pattern_host.execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded timed-pattern output: {error:?}")
+                        })?;
+                        (
+                            HostOperationDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound timed-pattern output: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: timed_pattern_operation::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded timed-pattern operation: {error:?}")
                     })?;
                 continue;
             }
