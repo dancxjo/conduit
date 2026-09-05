@@ -97,8 +97,8 @@ pub(crate) fn bind_resources(
             .writers
             .insert((host.host_id.clone(), resource.pool_id.clone()))
         {
-            return Err(PlannerError::InvalidResourceContract(
-                "multiple writers for one published-generation resource".into(),
+            return Err(PlannerError::ResourceContentRefused(
+                conduit_core::ResourceContentRefusal::MultipleWriters,
             ));
         }
         let protected = bind_protected_resource(
@@ -116,9 +116,7 @@ pub(crate) fn bind_resources(
                 &host.host_id,
                 &host.boot_id,
             )
-            .map_err(|error| {
-                PlannerError::InvalidResourceContract(format!("resource content: {error:?}"))
-            })?,
+            .map_err(PlannerError::ResourceContentRefused)?,
             pool_id: resource.pool_id.clone(),
             class_id: resource.class_id.clone(),
             units: selected_units,

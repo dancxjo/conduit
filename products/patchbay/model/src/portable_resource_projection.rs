@@ -25,11 +25,13 @@ pub(super) fn append_resources(
         let c = &residence.contract;
         let identity = c
             .identity
+            .digest()
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
         let version = c
             .version
+            .digest()
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect::<String>();

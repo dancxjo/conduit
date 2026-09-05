@@ -2,8 +2,8 @@ use conduit_core::*;
 
 fn contract() -> ResourceContentRequirement {
     ResourceContentRequirement {
-        identity: [1; 32],
-        version: [2; 32],
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        version: ResourceVersionIdentity::from_digest([2; 32]),
         content_profile: kind_id("image/rgba@1"),
         maximum_bytes: 262144,
         maximum_items: 65536,
@@ -57,14 +57,17 @@ fn content_contract_admission_preserves_exact_meaning_and_refuses_foreign_reside
         Err(ResourceContentRefusal::ForeignResidence)
     );
     let mut forged = binding.clone();
-    forged.content.as_mut().unwrap().contract.version = [3; 32];
+    forged.content.as_mut().unwrap().contract.version =
+        ResourceVersionIdentity::from_digest([3; 32]);
     assert!(!resource_binding_satisfies(&forged, &required, &offered));
     for mutate in [
         |c: &mut ResourceContentRequirement| c.maximum_bytes = 0,
         |c: &mut ResourceContentRequirement| c.reader_leases = 0,
         |c: &mut ResourceContentRequirement| c.generation_slots = 0,
         |c: &mut ResourceContentRequirement| c.publication_slots = 2,
-        |c: &mut ResourceContentRequirement| c.version = [0; 32],
+        |c: &mut ResourceContentRequirement| {
+            c.version = ResourceVersionIdentity::from_digest([0; 32])
+        },
     ] {
         let mut c = contract();
         mutate(&mut c);
@@ -81,7 +84,7 @@ fn content_contract_admission_preserves_exact_meaning_and_refuses_foreign_reside
 fn reference_encoding_remains_portable_and_lifetime_and_coherence_are_separate_contracts() {
     let c = contract();
     let reference = BoundedResourceRef {
-        identity: ResourceSemanticIdentity::from_digest(c.identity),
+        identity: c.identity,
         content_profile: c.content_profile.clone(),
         access_class: ResourceClassId::from("frame"),
         extent: ResourceExtent {
@@ -89,7 +92,7 @@ fn reference_encoding_remains_portable_and_lifetime_and_coherence_are_separate_c
             items: Some(65536),
         },
         lifetime: ResourceLifetime {
-            version: ResourceVersionIdentity::from_digest(c.version),
+            version: c.version,
             expires_at: None,
         },
     };

@@ -31,8 +31,8 @@ pub enum ResourceAccessMode {
 /// Finite obligations for one addressable content identity. No residence or handle.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ResourceContentRequirement {
-    pub identity: [u8; 32],
-    pub version: [u8; 32],
+    pub identity: crate::ResourceSemanticIdentity,
+    pub version: crate::ResourceVersionIdentity,
     pub content_profile: KindId,
     pub maximum_bytes: u32,
     pub maximum_items: u32,
@@ -59,6 +59,7 @@ pub struct ResourceContentOffer {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ResourceContentRefusal {
     InvalidContract,
+    MultipleWriters,
     UnsupportedCoherence,
     ContractMismatch,
     ForeignResidence,
@@ -70,8 +71,8 @@ impl ResourceContentRequirement {
         if self.sharing == ResourceSharing::SynchronizedMutable {
             return Err(ResourceContentRefusal::UnsupportedCoherence);
         }
-        if self.identity == [0; 32]
-            || self.version == [0; 32]
+        if self.identity.digest() == [0; 32]
+            || self.version.digest() == [0; 32]
             || self.content_profile.as_str().is_empty()
             || self.content_profile.as_str().len() > 128
             || self.maximum_bytes == 0
@@ -102,8 +103,8 @@ impl ResourceContentRequirement {
     ) -> Result<(), ResourceContentRefusal> {
         self.validate()?;
         if reference.validate().is_err()
-            || reference.identity.digest() != self.identity
-            || reference.lifetime.version.digest() != self.version
+            || reference.identity != self.identity
+            || reference.lifetime.version != self.version
             || reference.content_profile != self.content_profile
             || reference.extent.bytes > u64::from(self.maximum_bytes)
             || reference

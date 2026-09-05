@@ -17,8 +17,8 @@ pub fn prepared(sharing: ResourceSharing, generation: u8) -> HostedResourceGener
         },
     };
     let contract = ResourceContentRequirement {
-        identity: reference.identity.digest(),
-        version: reference.lifetime.version.digest(),
+        identity: reference.identity,
+        version: reference.lifetime.version,
         content_profile: reference.content_profile.clone(),
         maximum_bytes: FRAME_BYTES as u32,
         maximum_items: 65536,

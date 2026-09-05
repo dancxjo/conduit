@@ -27,8 +27,8 @@ pub enum ResourcePublicationRefusal {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResourceReadLease {
     scope: [u8; 32],
-    identity: [u8; 32],
-    version: [u8; 32],
+    identity: conduit_core::ResourceSemanticIdentity,
+    version: conduit_core::ResourceVersionIdentity,
     slot: usize,
     issuance: u64,
 }

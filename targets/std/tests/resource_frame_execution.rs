@@ -32,7 +32,7 @@ fn provider(
 ) -> HostedResourceGeneration {
     let c = &binding.content.as_ref().unwrap().contract;
     let reference = BoundedResourceRef {
-        identity: ResourceSemanticIdentity::from_digest(c.identity),
+        identity: c.identity,
         content_profile: c.content_profile.clone(),
         access_class: binding.class_id.clone(),
         extent: ResourceExtent {
@@ -40,7 +40,7 @@ fn provider(
             items: Some(65536),
         },
         lifetime: ResourceLifetime {
-            version: ResourceVersionIdentity::from_digest(c.version),
+            version: c.version,
             expires_at: None,
         },
     };

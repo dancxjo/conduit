@@ -25,8 +25,8 @@ pub struct FrameResourcePlan {
 
 pub fn frame_content() -> ResourceContentRequirement {
     ResourceContentRequirement {
-        identity: [1; 32],
-        version: [3; 32],
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        version: ResourceVersionIdentity::from_digest([3; 32]),
         content_profile: kind_id("image/rgba@1"),
         maximum_bytes: FRAME_BYTES,
         maximum_items: 65536,
@@ -101,7 +101,7 @@ pub fn frame_resource_plan(
     });
     let mut input_resource = resource_offer("pool/frame-input", "resource/input-frame", 2);
     let mut initial = resource.content.clone().unwrap();
-    initial.contract.version = [2; 32];
+    initial.contract.version = ResourceVersionIdentity::from_digest([2; 32]);
     initial.contract.sharing = ResourceSharing::ImmutableReadMany;
     initial.contract.access = ResourceAccessMode::ReadPublished;
     initial.contract.publication_slots = 0;

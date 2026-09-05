@@ -55,8 +55,8 @@ pub(crate) fn push_resource_binding(canonical: &mut Vec<u8>, binding: &ResourceB
 
 fn push_content(bytes: &mut Vec<u8>, offer: &ResourceContentOffer) {
     let c = &offer.contract;
-    bytes.extend_from_slice(&c.identity);
-    bytes.extend_from_slice(&c.version);
+    bytes.extend_from_slice(&c.identity.digest());
+    bytes.extend_from_slice(&c.version.digest());
     push_string(bytes, c.content_profile.as_str());
     push_u32(bytes, c.maximum_bytes);
     push_u32(bytes, c.maximum_items);

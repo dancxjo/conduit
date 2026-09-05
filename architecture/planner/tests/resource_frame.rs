@@ -33,7 +33,9 @@ fn resource_generation_bounds_and_residence_are_sealed_into_plan_identity() {
         expanded_form_id: original.expanded_form_id.clone(),
     };
     for change in [
-        |c: &mut ResourceContentOffer| c.contract.version = [9; 32],
+        |c: &mut ResourceContentOffer| {
+            c.contract.version = ResourceVersionIdentity::from_digest([9; 32])
+        },
         |c: &mut ResourceContentOffer| c.contract.reader_leases = 2,
         |c: &mut ResourceContentOffer| c.contract.retention = ResourceRetention::Boot,
         |c: &mut ResourceContentOffer| c.residence_profile = kind_id("different/residence@1"),
@@ -85,7 +87,7 @@ fn resource_owner_refuses_a_second_writer_before_displacing_existing_admission()
     let before = owner.clone();
     assert_eq!(
         owner.admit_planned_placement(PlanId::from("another/plan"), compose, &observations),
-        Err(ResourceAdmissionRefusal::InvalidBinding)
+        Err(ResourceAdmissionRefusal::CompetingResourceWriter)
     );
     assert_eq!(owner, before);
 }

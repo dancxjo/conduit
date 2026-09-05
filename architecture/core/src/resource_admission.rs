@@ -78,6 +78,7 @@ pub enum ResourceAdmissionRefusal {
     StaleObservation,
     Unavailable,
     InvalidBinding,
+    CompetingResourceWriter,
     Overcommitted,
     UnknownAdmission,
     AssignmentCapacityExceeded,
@@ -235,7 +236,7 @@ impl ResourceAdmissionOwner {
                         })
                 })
             {
-                return Err(ResourceAdmissionRefusal::InvalidBinding);
+                return Err(ResourceAdmissionRefusal::CompetingResourceWriter);
             }
             let observation = observations
                 .iter()
