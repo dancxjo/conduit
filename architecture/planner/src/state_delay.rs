@@ -1,3 +1,5 @@
+pub mod analysis;
+
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
@@ -7,6 +9,7 @@ use conduit_form::{CheckedConnection, CheckedForm};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedStateGraph {
+    pub form_identity: conduit_core::FormIdentity,
     pub startup_order: Vec<GearId>,
     pub states: Vec<PlannedStateBoundary>,
     pub resources: StateResourceBudget,
@@ -77,6 +80,7 @@ pub fn admit_state_graph(
     )
     .ok_or(StateGraphError::OrdinaryCycle)?;
     Ok(AdmittedStateGraph {
+        form_identity: form.identity(),
         startup_order: order,
         states,
         resources,
