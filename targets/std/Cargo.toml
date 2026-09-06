@@ -39,7 +39,7 @@ conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["body-coordination-plan", "form-catalog", "text-lab-plan"] }
 conduit-std-offers = { path = "offers" }
-conduit-time = { path = "../../semantics/time" }
+conduit-time = { path = "../../semantics/time", features = ["kernel-operation"] }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false }
