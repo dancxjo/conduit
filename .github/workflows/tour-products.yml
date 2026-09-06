@@ -822,6 +822,7 @@ jobs:
         if: matrix.shard != 'tour'
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
+          CONDUIT_CRECHE_SPORE_OUTPUT: ${{ runner.temp }}/creche-export.iso
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
@@ -829,6 +830,15 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+      - name: Retain the exact Crèche-exported ConduitOS spore
+        if: matrix.shard == 'creche-machines'
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-creche-conduitos-spore-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/creche-export.iso
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Prove the remaining Tour surface in pinned Chromium
         if: matrix.shard == 'tour'
         run: >-
