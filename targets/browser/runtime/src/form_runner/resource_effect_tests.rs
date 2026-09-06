@@ -180,7 +180,12 @@ fn browser_resource_missing_authority_and_failed_storage_never_become_success() 
         }),
     )
     .unwrap();
-    assert!(
-        matches!(drive(&mut scheduler, &fragment), Err(ref error) if error == "OperationFailed(211)")
+    assert!(drive(&mut scheduler, &fragment).is_err());
+    assert_eq!(
+        scheduler.failure,
+        Some(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostOperationFailed,
+            detail: 211,
+        })
     );
 }
