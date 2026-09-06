@@ -65,6 +65,7 @@ mod kernel_signal;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
 mod run_control;
+pub mod state_value;
 pub use run_control::{
     RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,
     RunControlRequestId,
