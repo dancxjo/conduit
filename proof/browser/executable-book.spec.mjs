@@ -559,6 +559,7 @@ test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains t
     };
   });
   expect(editorGeometry).toEqual({ left: 0, top: 0, width: 0, height: 0 });
+  await expect(listing).toHaveCSS("padding", await highlight.evaluate((element) => getComputedStyle(element).padding));
 
   await listing.fill('form unfinished { value=text/literal("still typing');
   await expect(listing).toHaveAttribute("data-syntax-disposition", "accepted");

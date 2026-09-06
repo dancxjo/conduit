@@ -41,14 +41,14 @@
   font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
 [data-application-syntax="conduit"] .syntax-editor > textarea {
-  display: block; width: 100%;
+  display: block; width: 100%; border: 0;
+  padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
   position: relative; z-index: 1; color: transparent; caret-color: #fff; background: transparent;
   -webkit-text-fill-color: transparent;
   font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
 [data-application-syntax="conduit"] .syntax-editor > textarea::selection {
-  /* The editor's ordinary glyphs are transparent so the projected spans show
-     through. Selection must paint its own foreground above the backdrop. */
+  /* Selection paints readable glyphs above the backdrop. */
   color: #fff; background: rgb(119 218 168 / 45%); -webkit-text-fill-color: #fff;
 }
 :where(.syntax-comment) { color: #91aa9d; font-style: italic; }

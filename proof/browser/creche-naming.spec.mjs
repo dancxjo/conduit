@@ -40,6 +40,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
     };
   });
   expect(editorGeometry).toEqual({ left: 0, top: 0, width: 0, height: 0 });
+  await expect(source).toHaveCSS("padding", await syntax.evaluate((element) => getComputedStyle(element).padding));
   await source.evaluate((element) => element.setSelectionRange(0, 4));
   const selectedStyle = await source.evaluate((element) => {
     const style = getComputedStyle(element, "::selection");
