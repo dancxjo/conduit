@@ -1,5 +1,6 @@
 //! Ordinary Host reservation, execution and owned State result handling.
 use super::*;
+mod reporting;
 
 impl StdHost {
     pub fn run_fragment_to<W: Write, T: TimerAdapter>(
@@ -107,8 +108,7 @@ impl StdHost {
         let run = result?;
         release?;
         let report = &run.report;
-        writeln!(output, "plan {} complete", fragment.plan_id.as_str())
-            .map_err(|error| error.to_string())?;
+        reporting::write_terminal(output, &fragment, report)?;
         if let (Some(first), Some(last)) = (report.receipts.first(), report.receipts.last()) {
             writeln!(
                 output,
