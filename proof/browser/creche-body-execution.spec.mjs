@@ -91,6 +91,22 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect(execution.receipt.active_play_id).toBe(terminal.body_planning.execution_claims[0].play.active_play_id);
     expect(execution.receipt.timer_completions).toBe(4);
     expect(execution.receipt.manifestation_completions).toBe(7);
+    const signs = execution.receipt.kernel_signs;
+    expect(signs.schema).toBe("conduit.browser/kernel-sign-evidence@1");
+    expect(signs.active_play_id).toBe(execution.play.active_play_id);
+    expect(signs.host_id).toBe(terminal.body_planning.execution_claims[0].host_id);
+    expect(signs.boot_id).toBe(terminal.body_planning.execution_claims[0].boot_id);
+    expect(signs.events.length).toBeGreaterThan(0);
+    expect(signs.events.length).toBeLessThanOrEqual(signs.item_capacity);
+    expect(signs.events.some(event => event.kind === "HostOperationCompleted")).toBe(true);
+    for (const completion of signs.events.filter(event => event.kind === "HostOperationCompleted")) {
+      expect(signs.events.some(request => request.kind === "HostOperationRequested"
+        && request.node === completion.node && request.request === completion.request
+        && request.sequence < completion.sequence)).toBe(true);
+    }
+    expect(signs.placements.map(binding => binding.placement_id).sort()).toEqual(
+      proposal.plan.forms.flatMap(form => form.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id))).sort(),
+    );
     await page.getByText("Inspect selected Body Plan", { exact: true }).click();
     const inspection = page.locator("#body-plan-inspection");
     await expect(inspection).toContainText(proposal.plan.plan_id);

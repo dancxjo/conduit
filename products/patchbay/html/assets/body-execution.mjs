@@ -22,7 +22,10 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   const output = document.createElement("div");output.id = "body-execution-output";
   const evidence = document.createElement("pre");evidence.id = "body-execution-evidence";
   const exact = document.createElement("details"), summary = document.createElement("summary");
-  summary.textContent = "Exact Body Play evidence";exact.append(summary, evidence);
+  summary.textContent = "Exact Body Play evidence";
+  const evidenceScope = document.createElement("p");
+  evidenceScope.textContent = "Kernel event sequences are scoped to this Play and mapped to exact Plan placements. They are not global Sign IDs or causal-parent references. Host reports remain SelfReported.";
+  exact.append(summary, evidenceScope, evidence);
   const selection = document.createElement("details"), selectionTitle = document.createElement("summary");
   selectionTitle.textContent = "Inspect selected Body Plan";
   const planInspection = document.createElement("div");planInspection.id = "body-plan-inspection";

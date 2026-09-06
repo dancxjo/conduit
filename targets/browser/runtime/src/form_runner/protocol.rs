@@ -131,6 +131,8 @@ pub(super) struct TourReceipt {
     pub(super) terminal_sign_id: String,
     pub(super) timer_completions: u32,
     pub(super) manifestation_completions: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) kernel_signs: Option<super::session_signs::KernelSignEvidence>,
 }
 
 #[derive(Debug, Serialize)]
@@ -332,6 +334,7 @@ pub(super) fn receipt(
         terminal_sign_id: sign.sign_id.as_str().into(),
         timer_completions,
         manifestation_completions,
+        kernel_signs: None,
     }
 }
 

@@ -10,6 +10,7 @@ mod multihost;
 mod protocol;
 mod session_cancellation;
 mod session_effects;
+mod session_signs;
 
 #[cfg(test)]
 use crate::installed_browser::{advertisement, catalogs};
@@ -241,14 +242,14 @@ impl TourSession {
             Some(&self.active_play_id),
             self.terminal_sign_sequence,
         );
-        Ok(receipt(
+        Ok(self.with_kernel_signs(receipt(
             "cancelled",
             &self.active_play_id,
             self.latest_presentation.as_ref(),
             &sign,
             self.timer_completions,
             self.manifestation_completions,
-        ))
+        )))
     }
 
     fn project_pending_effect(&mut self, index: usize) -> Result<TourHostEffect, String> {
@@ -403,14 +404,14 @@ impl TourSession {
             Some(&self.active_play_id),
             self.terminal_sign_sequence,
         );
-        receipt(
+        self.with_kernel_signs(receipt(
             "completed",
             &self.active_play_id,
             self.latest_presentation.as_ref(),
             &sign,
             self.timer_completions,
             self.manifestation_completions,
-        )
+        ))
     }
 }
 
