@@ -7,7 +7,7 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::StdHostComposition;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, StdHostConfig, ThreadTimer};
 use patchbay_model::{admit_run, FormEditor, PatchbayRequestId, PlanDocument, PlayDocument};
-use std::collections::BTreeMap;
+mod input_plan;
 use std::collections::VecDeque;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::sync::{Arc, Mutex};
@@ -177,32 +177,14 @@ impl NativeControl {
         let expanded = editor
             .expand_form(&form_name)
             .map_err(|error| error.to_string())?;
-        let plan = if expanded
-            .gears
-            .iter()
-            .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
-        {
-            let hosts = [self.advertisement.clone()];
-            let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
-                .map_err(|error| error.to_string())?;
-            conduit_planner::plan_expanded_canonical_with_options(
-                &expanded,
-                &hosts,
-                &placements,
-                &[conduit_core::BaseImplementationId::from(
-                    "conduit.base/local@1",
-                )],
-                conduit_planner::PlanningOptions {
-                    connection_bases: &BTreeMap::new(),
-                    line_candidates: &BTreeMap::new(),
-                    connection_item_capacity: 1,
-                    connection_byte_capacity: conduit_semantic_catalog::KEYBOARD_MAX_QUEUE_BYTES,
-                    authority_grants: &[],
-                    protected_resource_grants: &[],
-                    line_offers: &[],
-                },
+        let plan = if expanded.gears.iter().any(|gear| {
+            matches!(
+                gear.kind_id.as_str(),
+                conduit_semantic_catalog::KEYBOARD_KIND
+                    | conduit_semantic_catalog::BUTTON_SOURCE_KIND
             )
-            .map_err(|error| error.to_string())?
+        }) {
+            input_plan::plan(&expanded, &self.advertisement)?
         } else {
             self.host
                 .plan_expanded_local(&expanded)
