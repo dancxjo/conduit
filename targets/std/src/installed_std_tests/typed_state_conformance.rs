@@ -154,7 +154,7 @@ fn run(
     let mut execution_host = host("typed-state-host");
     execution_host.advertisement = advertisement.clone();
     execution_host.kernel_resources =
-        crate::kernel_preparation::KernelResourceLedger::new(&advertisement).unwrap();
+        crate::kernel_preparation::KernelResourceLedger::new(advertisement).unwrap();
     let continuity = sources.is_some();
     let result = if let Some(sources) = sources {
         execution_host
@@ -177,7 +177,7 @@ fn run(
     // The Host releases old realization reservations before yielding State.
     let reservation = execution_host
         .kernel_resources
-        .prepare_and_reserve_with_continuity(&advertisement, fragment, continuity)
+        .prepare_and_reserve_with_continuity(advertisement, fragment, continuity)
         .unwrap();
     execution_host
         .kernel_resources

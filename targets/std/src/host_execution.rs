@@ -77,10 +77,7 @@ impl StdHost {
         control: &RunControl,
         inputs: HostRunInputs<'_>,
     ) -> Result<state_value::RetainedStdRun, String> {
-        let HostRunInputs {
-            keyboard,
-            mut retained,
-        } = inputs;
+        let HostRunInputs { keyboard, retained } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
         let installed_standard = installed_std::supports(&fragment);
@@ -124,10 +121,7 @@ impl StdHost {
                     &mut self.next_kernel_sign_sequence,
                     output,
                     timer,
-                    installed_std::RunLifecycle {
-                        control,
-                        retained: retained.as_deref_mut(),
-                    },
+                    installed_std::RunLifecycle { control, retained },
                 )
             } else {
                 if control.requested_stop().is_some() {

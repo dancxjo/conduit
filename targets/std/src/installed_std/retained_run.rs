@@ -44,7 +44,10 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
         next_sign_sequence,
         output,
         timer,
-        control,
+        RunLifecycle {
+            control,
+            retained: None,
+        },
     )
     .map(|run| run.report)
 }
