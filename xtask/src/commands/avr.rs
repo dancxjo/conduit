@@ -15,9 +15,9 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 mod audible_probe;
 mod avr_toolchain;
 mod build_identity;
-mod release;
 mod observe;
 mod plan;
+mod release;
 mod rust_firmware;
 mod rx_check;
 

@@ -19,8 +19,8 @@ pub use failure::{Failure, FailureCode};
 pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
-pub mod state_delay;
 mod single_source;
+pub mod state_delay;
 pub mod static_merge;
 
 pub use single_source::*;
