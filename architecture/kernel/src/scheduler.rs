@@ -245,6 +245,7 @@ struct AdapterTransaction<const PORTS: usize> {
 impl<const PORTS: usize> AdapterTransaction<PORTS> {
     fn is_empty_continue(&self) -> bool {
         self.outputs.iter().all(Option::is_none)
+            && self.canonical_output.is_none()
             && self.host_request.is_none()
             && self.host_cancellation.is_none()
             && !self.retain_resumed_value

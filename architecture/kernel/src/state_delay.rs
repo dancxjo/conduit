@@ -1,5 +1,7 @@
 //! Allocation-independent explicit state/delay transition primitive.
 
+pub mod operation;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct StateValueIdentity {
     pub slot: u16,
