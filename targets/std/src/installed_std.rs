@@ -40,6 +40,7 @@ mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod presentation_composition;
+mod presentation_construction_host;
 mod quantity_mapping;
 mod recurrence_codec;
 mod recurrence_encoding;
@@ -424,29 +425,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         conduit_core::HostOperationContractId::from(conduit_std_offers::CHORDS_HOST_OPERATION);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
     let mut math_host = math_host::MathHost::prepare(fragment)?;
-    let layout_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::LAYOUT_HOST_OPERATION);
-    let layout_target_kinds = [
-        kind_id(conduit_semantic_catalog::LAYOUT_INSET_KIND),
-        kind_id(conduit_semantic_catalog::LAYOUT_ROW_KIND),
-        kind_id(conduit_semantic_catalog::LAYOUT_COLUMN_KIND),
-        kind_id(conduit_semantic_catalog::LAYOUT_STACK_KIND),
-        kind_id(conduit_semantic_catalog::LAYOUT_ALIGN_KIND),
-    ];
-    let presentation_composition_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::PRESENTATION_COMPOSITION_HOST_OPERATION,
-    );
-    let presentation_composition_target_kinds = [
-        kind_id(conduit_semantic_catalog::PRESENTATION_FRAME_KIND),
-        kind_id(conduit_semantic_catalog::PRESENTATION_BADGE_KIND),
-    ];
-    let graphics_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::GRAPHICS_HOST_OPERATION);
-    let graphics_target_kinds = [
-        kind_id(conduit_semantic_catalog::GRAPHICS_RECT_KIND),
-        kind_id(conduit_semantic_catalog::GRAPHICS_TEXT_KIND),
-        kind_id(conduit_semantic_catalog::GRAPHICS_ICON_KIND),
-    ];
+    let presentation_construction =
+        presentation_construction_host::PresentationConstructionHost::prepare();
     let mut uppercase_buffer = Vec::with_capacity(contract::MAX_TEXT_BYTES as usize);
     let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
     let mut external_output =
@@ -1605,110 +1585,17 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             } else if math_host.matches(contract, lowered_operation.target_kind.as_ref()) {
                 math_host.complete(fragment, request, &mut scheduler, &mut requests)?;
                 continue;
-            } else if contract == &layout_contract_id
-                && lowered_operation
-                    .target_kind
-                    .as_ref()
-                    .is_some_and(|target| layout_target_kinds.contains(target))
+            } else if presentation_construction
+                .matches(contract, lowered_operation.target_kind.as_ref())
             {
-                let placement = fragment
-                    .placements
-                    .get(usize::from(request.node.0))
-                    .ok_or_else(|| "layout request has no exact placement".to_string())?;
-                let (encoded, encoded_len) = layout_operations::transform_bytes(placement, input)?;
-                let value = scheduler
-                    .store_host_value(&encoded[..encoded_len])
-                    .map_err(|error| format!("store layout frame output: {error:?}"))?;
-                requests.push(request);
-                scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(
-                                    value,
-                                    conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
-                                )
-                                .map_err(|error| format!("bound layout frame output: {error:?}"))?,
-                            ),
-                            failure: None,
-                        },
-                    )
-                    .map_err(|error| format!("complete layout frame host operation: {error:?}"))?;
-                continue;
-            } else if contract == &graphics_contract_id
-                && lowered_operation
-                    .target_kind
-                    .as_ref()
-                    .is_some_and(|target| graphics_target_kinds.contains(target))
-            {
-                let placement = fragment
-                    .placements
-                    .get(usize::from(request.node.0))
-                    .ok_or_else(|| "graphics request has no exact placement".to_string())?;
-                let (encoded, encoded_len) =
-                    presentation_composition::transform_graphics_bytes(placement, input)?;
-                let value = scheduler
-                    .store_host_value(&encoded[..encoded_len])
-                    .map_err(|error| format!("store graphics scene: {error:?}"))?;
-                requests.push(request);
-                scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(
-                                    value,
-                                    conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32,
-                                )
-                                .map_err(|error| format!("bound graphics scene: {error:?}"))?,
-                            ),
-                            failure: None,
-                        },
-                    )
-                    .map_err(|error| format!("complete graphics host operation: {error:?}"))?;
-                continue;
-            } else if contract == &presentation_composition_contract_id
-                && lowered_operation
-                    .target_kind
-                    .as_ref()
-                    .is_some_and(|target| presentation_composition_target_kinds.contains(target))
-            {
-                let placement = fragment
-                    .placements
-                    .get(usize::from(request.node.0))
-                    .ok_or_else(|| {
-                        "presentation composition request has no exact placement".to_string()
-                    })?;
-                let (encoded, encoded_len) =
-                    presentation_composition::transform_bytes(placement, input)?;
-                let value = scheduler
-                    .store_host_value(&encoded[..encoded_len])
-                    .map_err(|error| format!("store presentation composition: {error:?}"))?;
-                requests.push(request);
-                scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(
-                                    value,
-                                    conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-                                )
-                                .map_err(|error| {
-                                    format!("bound presentation composition: {error:?}")
-                                })?,
-                            ),
-                            failure: None,
-                        },
-                    )
-                    .map_err(|error| format!("complete presentation composition: {error:?}"))?;
+                presentation_construction.complete(
+                    fragment,
+                    request,
+                    contract,
+                    lowered_operation.target_kind.as_ref(),
+                    &mut scheduler,
+                    &mut requests,
+                )?;
                 continue;
             } else if lowered_operation.target_kind.as_ref()
                 == Some(&graphics_presentation_target_kind)
