@@ -7,14 +7,31 @@ mod common;
 
 #[test]
 fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
-    let profile = conduit_semantic_catalog::standard_profile_catalog();
-    let startup = profile.startup_catalog().unwrap();
+    let mut profile = conduit_semantic_catalog::standard_profile_catalog();
+    let mut startup = profile.startup_catalog().unwrap();
+    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile).unwrap();
     let form = conduit_form::parse_with_startup(
         "form retained {\n source: scalar/literal(value = 7)\n cell: state/latest\n source.value > cell.in\n}\n",
         &startup,
         &profile,
     ).unwrap();
-    let host = common::standard_planning_fixture("host", "boot");
+    let mut host = common::standard_planning_fixture("host", "boot");
+    // Scalar literals are a portable contract, but not an installed nucleus
+    // source. Supply an honestly named planning-only fixture realization.
+    host.capabilities
+        .push(conduit_semantic_catalog::realization_offer(
+            conduit_semantic_catalog::scalar_literal_contract(),
+            conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
+            conduit_semantic_catalog::RealizationOfferIdentity {
+                capability: "fixture/scalar-literal",
+                execution_profile: "fixture/scalar-literal@1",
+                implementation: "fixture/scalar-literal@1",
+                artifact: "fixture/planning-only@1",
+            },
+            vec![],
+            vec![],
+            vec![],
+        ));
     let hosts = [host];
     let placements = default_placements(&form, &hosts).unwrap();
     let ordinary = plan(&form, &hosts, &placements, &[]).unwrap();
