@@ -16,6 +16,13 @@ pub(super) fn prepare_operations(
         || play.plan_id != fragment.plan_id
         || play.host_id != fragment.host_id
         || play.boot_id != fragment.boot_id
+        || *play
+            != conduit_core::bind_active_play(
+                &fragment.plan_id,
+                &fragment.host_id,
+                &fragment.boot_id,
+                play.play_sequence,
+            )
     {
         return Err("operation preparation requires the exact partition Plan and Play".into());
     }

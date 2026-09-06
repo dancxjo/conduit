@@ -208,6 +208,18 @@ fn wrong_partition_and_out_of_range_nodes_refuse_before_value_preparation() {
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
     let result = prepare_operations(&plans[1].fragments[0], &lowered, &mut values, &play, None);
     assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
+    // A Body-wide Play or any unrelated Play cannot be relabeled as this
+    // constituent Plan merely by copying its Plan/Host/Boot fields.
+    let mut relabeled = play.clone();
+    relabeled.active_play_id = conduit_core::bind_active_play(
+        &plans[1].plan_id,
+        &fragment.host_id,
+        &fragment.boot_id,
+        play.play_sequence,
+    )
+    .active_play_id;
+    let result = prepare_operations(fragment, &lowered, &mut values, &relabeled, None);
+    assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
     lowered.nodes[0].node.0 = MAX_NODES as u16;
     let result = prepare_operations(fragment, &lowered, &mut values, &play, None);
     assert!(matches!(result, Err(reason) if reason.contains("driver capacity")));
