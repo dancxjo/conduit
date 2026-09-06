@@ -13,7 +13,9 @@ extern crate alloc;
 use core::mem::size_of;
 
 pub mod debug_observation;
+mod failure;
 mod operation;
+pub use failure::{Failure, FailureCode};
 pub mod scheduler;
 pub mod shared_flow;
 pub mod shared_pool;
@@ -93,23 +95,6 @@ impl BoundedValueRef {
             admitted_bytes,
         })
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum FailureCode {
-    InvalidInput,
-    InvalidPort,
-    InvalidLifecycle,
-    StorageExhausted,
-    HostOperationDenied,
-    HostOperationFailed,
-    Cancelled,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Failure {
-    pub code: FailureCode,
-    pub detail: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

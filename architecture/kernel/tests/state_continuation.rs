@@ -189,7 +189,7 @@ fn a_larger_transition_allowance_executes_the_same_input_without_hiding_exhausti
                     play.step(),
                     Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
                         conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::StorageExhausted,
+                            code: conduit_kernel::FailureCode::WorkBudgetExhausted,
                             detail: 2
                         }
                     ))
