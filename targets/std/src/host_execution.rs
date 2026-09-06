@@ -1,6 +1,12 @@
 //! Ordinary Host reservation, execution and owned State result handling.
 use super::*;
+pub(crate) mod continuity;
 mod reporting;
+
+struct HostRunInputs<'a> {
+    keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,
+    retained: Option<&'a mut Vec<state_value::RetainedTypedState>>,
+}
 
 impl StdHost {
     pub fn run_fragment_to<W: Write, T: TimerAdapter>(
@@ -30,8 +36,17 @@ impl StdHost {
         control: &RunControl,
         keyboard: Option<&mut dyn hosted_keyboard::HostedKeyboardAdapter>,
     ) -> Result<StdRunReport, String> {
-        self.run_fragment_owned_with_keyboard_to(fragment, output, timer, control, keyboard)
-            .map(|run| run.report)
+        self.run_fragment_owned_with_keyboard_to(
+            fragment,
+            output,
+            timer,
+            control,
+            HostRunInputs {
+                keyboard,
+                retained: None,
+            },
+        )
+        .map(|run| run.report)
     }
 
     /// Retain typed State ownership after ordinary admitted execution ends.
@@ -42,7 +57,16 @@ impl StdHost {
         timer: &mut T,
         control: &RunControl,
     ) -> Result<state_value::RetainedStdRun, String> {
-        self.run_fragment_owned_with_keyboard_to(fragment, output, timer, control, None)
+        self.run_fragment_owned_with_keyboard_to(
+            fragment,
+            output,
+            timer,
+            control,
+            HostRunInputs {
+                keyboard: None,
+                retained: None,
+            },
+        )
     }
 
     fn run_fragment_owned_with_keyboard_to<W: Write, T: TimerAdapter>(
@@ -51,8 +75,9 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
         control: &RunControl,
-        keyboard: Option<&mut dyn hosted_keyboard::HostedKeyboardAdapter>,
+        inputs: HostRunInputs<'_>,
     ) -> Result<state_value::RetainedStdRun, String> {
+        let HostRunInputs { keyboard, retained } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
         let installed_standard = installed_std::supports(&fragment);
@@ -61,9 +86,21 @@ impl StdHost {
         }
 
         let advertisement = self.advertisement().clone();
-        let reservation = self
-            .kernel_resources
-            .prepare_and_reserve(&advertisement, &fragment)?;
+        if let Some(sources) = retained.as_deref() {
+            let lowered = installed_std::lower_fragment_with_continuity(&fragment, true)?;
+            let identity = conduit_core::bind_active_play(
+                &fragment.plan_id,
+                &fragment.host_id,
+                &fragment.boot_id,
+                self.next_kernel_play_sequence,
+            );
+            installed_std::validate_retained_inputs(&fragment, &lowered, &identity, sources)?;
+        }
+        let reservation = self.kernel_resources.prepare_and_reserve_with_continuity(
+            &advertisement,
+            &fragment,
+            retained.is_some(),
+        )?;
         let result = (|| {
             let play = self.issue_kernel_play(&fragment)?;
             let play_sequence = play.identity.play_sequence;
@@ -84,7 +121,7 @@ impl StdHost {
                     &mut self.next_kernel_sign_sequence,
                     output,
                     timer,
-                    control,
+                    installed_std::RunLifecycle { control, retained },
                 )
             } else {
                 if control.requested_stop().is_some() {

@@ -60,7 +60,20 @@ impl KernelResourceLedger {
         advertisement: &HostAdvertisement,
         fragment: &PlanFragment,
     ) -> Result<KernelResourceReservation, String> {
-        let lowered = lower_plan_fragment_for_profile(fragment, state_storage_profile())
+        self.prepare_and_reserve_with_continuity(advertisement, fragment, false)
+    }
+
+    pub(super) fn prepare_and_reserve_with_continuity(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        continuity: bool,
+    ) -> Result<KernelResourceReservation, String> {
+        let mut profile = state_storage_profile();
+        if continuity {
+            profile = profile.with_owned_state_continuity();
+        }
+        let lowered = lower_plan_fragment_for_profile(fragment, profile)
             .map_err(|error| format!("kernel preparation lowering: {error:?}"))?;
         validate_exact_profile(advertisement, fragment)?;
 
