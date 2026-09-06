@@ -183,9 +183,8 @@ test("a released timed attempt reaches its rearmed deadline and retires cleanly"
     await page.mouse.down();
     await expect(status).toContainText("Waiting for planned tick");
     await page.mouse.up();
-    // Native conformance establishes timeout detail 4. This browser boundary
-    // currently reports a completion refusal; it must never claim success.
-    await expect(status).toContainText("effect completion refused", { timeout: 3000 });
+    // Preserve the kernel detail across the actual browser completion boundary.
+    await expect(status).toContainText("OperationFailed(4)", { timeout: 3000 });
     await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
     await runner.locator("textarea").fill(FORM);
     await runner.getByRole("button", { name: "Run", exact: true }).click();

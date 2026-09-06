@@ -46,6 +46,7 @@ type BrowserKernel = FixedScheduler<
 
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
+    pub(super) failure_detail: Option<u16>,
     kernel: BrowserKernel,
     selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
         MAXIMUM_BROWSER_GEARS],
@@ -276,7 +277,13 @@ pub(super) fn drive(
             }
             continue;
         }
-        match scheduler.step().map_err(debug_error)? {
+        let status = scheduler.step().map_err(|error| {
+            if let conduit_kernel::scheduler::SchedulerError::OperationFailed(detail) = &error {
+                scheduler.failure_detail = Some(*detail);
+            }
+            debug_error(error)
+        })?;
+        match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
             SchedulerStatus::Idle if scheduler.pending_host_operation_count() > 0 => {

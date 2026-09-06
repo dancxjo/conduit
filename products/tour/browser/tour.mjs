@@ -1145,7 +1145,10 @@ async function runListing(runner, source, recursive) {
         play.length, placement.length, effect.request_sequence ?? effect.observation_sequence,
         output.length,
       );
-      if (completion < 0) throw new Error(`effect completion refused (${completion})`);
+      if (completion < 0) {
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
+        throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
+      }
       progress = readOutput(api);
     }
     if (current !== generation) return;

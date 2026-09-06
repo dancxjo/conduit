@@ -86,7 +86,33 @@ fn progress(
         };
         let result = match action(session) {
             Ok(result) => result,
-            Err(_) => return ERROR_COMPLETE,
+            Err(message) => {
+                #[derive(serde::Serialize)]
+                struct CompletionRefusal<'a> {
+                    schema: &'static str,
+                    disposition: &'static str,
+                    active_play_id: &'a str,
+                    kernel_failure_detail: Option<u16>,
+                    message: &'a str,
+                }
+                let detail = session.scheduler.failure_detail;
+                let refusal = CompletionRefusal {
+                    schema: "conduit.browser/completion-refusal@1",
+                    disposition: if detail.is_some() {
+                        "failed"
+                    } else {
+                        "refused"
+                    },
+                    active_play_id: session.active_play_id.as_str(),
+                    kernel_failure_detail: detail,
+                    message: &message,
+                };
+                return if write_output(&refusal).is_ok() {
+                    ERROR_COMPLETE
+                } else {
+                    ERROR_OUTPUT
+                };
+            }
         };
         if write_output(&result).is_err() {
             return ERROR_OUTPUT;
@@ -117,6 +143,15 @@ mod tests {
             complete("stale", &placement, request.request.0),
             ERROR_COMPLETE
         );
+        let refusal: serde_json::Value = OUTPUT.with(|output| {
+            OUTPUT_LEN.with(|length| {
+                serde_json::from_slice(&output.borrow()[..*length.borrow()]).unwrap()
+            })
+        });
+        assert_eq!(refusal["schema"], "conduit.browser/completion-refusal@1");
+        assert_eq!(refusal["disposition"], "refused");
+        assert!(refusal["kernel_failure_detail"].is_null());
+        assert_eq!(refusal["active_play_id"], play);
         SESSION.with(|slot| assert_eq!(slot.borrow().as_ref().unwrap().pending.len(), 1));
         assert_eq!(complete(&play, &placement, request.request.0), STATUS_READY);
         SESSION.with(|slot| assert!(slot.borrow().is_none()));
