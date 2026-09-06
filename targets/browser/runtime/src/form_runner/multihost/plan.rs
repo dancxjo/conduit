@@ -14,11 +14,11 @@ use conduit_planner::{
 use std::collections::BTreeMap;
 
 pub(super) const MEMORY_BASE: &str = "conduit.base/browser-memory@1";
-const LINE_ID: &str = "book/browser-memory-line";
-const BINDING_ID: &str = "book/browser-memory-binding";
-const BASE_INSTANCE_ID: &str = "book/browser-memory-instance";
-const SOURCE_ENDPOINT_ID: &str = "book/browser-a-egress";
-const SINK_ENDPOINT_ID: &str = "book/browser-b-ingress";
+const LINE_ID: &str = "tour/browser-memory-line";
+const BINDING_ID: &str = "tour/browser-memory-binding";
+const BASE_INSTANCE_ID: &str = "tour/browser-memory-instance";
+const SOURCE_ENDPOINT_ID: &str = "tour/browser-a-egress";
+const SINK_ENDPOINT_ID: &str = "tour/browser-b-ingress";
 
 pub(super) struct PreparedPlan {
     pub(super) plan: Plan,
@@ -245,7 +245,7 @@ fn memory_line(source: &HostAdvertisement, sink: &HostAdvertisement) -> LineOffe
             line_id: LineId::from(LINE_ID),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: SignId::from("book/browser-memory-line/ready"),
+            sign_id: SignId::from("tour/browser-memory-line/ready"),
         },
         binding,
         contract: LineContract {
