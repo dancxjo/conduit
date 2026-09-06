@@ -481,4 +481,14 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
     assert!(cancelled_output.is_empty());
     assert_eq!(untouched.0.len(), 2);
     assert_eq!(plan, original);
+    let original_failure = failed.failure.clone();
+    let original_terminal = failed.terminal;
+    let retained = crate::body_execution::finish_body_release(
+        Ok(failed),
+        vec!["injected release failure".to_string()],
+    )
+    .unwrap();
+    assert_eq!(retained.failure, original_failure);
+    assert_eq!(retained.terminal, original_terminal);
+    assert!(retained.cleanup_failure.is_some());
 }

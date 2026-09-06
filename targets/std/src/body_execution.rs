@@ -21,6 +21,7 @@ pub struct BodyRunReport {
     pub play: BodyPlayIdentity,
     /// Historical lifecycle record at start, not a current liveness claim.
     pub wake_at_start: Wake,
+    /// Kernel execution disposition; cleanup may independently fail afterward.
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
     pub cleanup_failure: Option<String>,
@@ -33,6 +34,9 @@ pub struct BodyRunReport {
 impl StdHost {
     /// Execute the exact local workload. Unsupported contracts refuse before
     /// Play; remote, State, fusion and shared-pool composition remain separate.
+    /// `Ok` returns execution evidence, not a success claim: callers must inspect
+    /// both `terminal` and `cleanup_failure`. Post-execution cleanup never erases
+    /// the report or replaces the original execution failure.
     pub fn run_body_plan_to<W: Write, T: TimerAdapter>(
         &mut self,
         request: BodyRunRequest<'_>,
@@ -103,15 +107,32 @@ impl StdHost {
                 kernel_events: result.events,
             })
         })();
-        let mut release_error = None;
+        let mut release_errors = Vec::new();
         for reservation in reservations {
             if let Err(error) = self.kernel_resources.release(reservation) {
-                release_error.get_or_insert(error);
+                release_errors.push(error);
             }
         }
-        if let Some(error) = release_error {
-            return Err(format!("Body reservation release: {error}"));
+        finish_body_release(result, release_errors)
+    }
+}
+
+pub(crate) fn finish_body_release(
+    result: Result<BodyRunReport, String>,
+    release_errors: Vec<String>,
+) -> Result<BodyRunReport, String> {
+    if release_errors.is_empty() {
+        return result;
+    }
+    let release_failure = format!("Body reservation release: {}", release_errors.join("; "));
+    match result {
+        Ok(mut report) => {
+            report.cleanup_failure = Some(match report.cleanup_failure.take() {
+                Some(previous) => format!("{previous}; {release_failure}"),
+                None => release_failure,
+            });
+            Ok(report)
         }
-        result
+        Err(original) => Err(format!("{original}; {release_failure}")),
     }
 }

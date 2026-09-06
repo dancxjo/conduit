@@ -117,4 +117,55 @@ fn pending_keyboard_cancellation_releases_the_whole_workload_for_another_play() 
         completed.failure
     );
     assert_ne!(cancelled.play.active_play_id, completed.play.active_play_id);
+    // Inject only the finalization error, not a claim that the real ledger
+    // failed. Execution identity and all evidence must survive cleanup failure.
+    let play = completed.play.clone();
+    let terminal_sign = completed.terminal_sign.clone();
+    let evidence = format!(
+        "{:?}",
+        (
+            &completed.partitions,
+            &completed.requests,
+            &completed.kernel_events
+        )
+    );
+    let mut completed = completed;
+    completed.cleanup_failure = Some("earlier cleanup failure".to_string());
+    let retained = crate::body_execution::finish_body_release(
+        Ok(completed),
+        vec!["first release".to_string(), "second release".to_string()],
+    )
+    .unwrap();
+    assert_eq!(retained.play, play);
+    assert_eq!(retained.terminal_sign, terminal_sign);
+    assert_eq!(retained.terminal, TerminalDisposition::Completed);
+    assert!(retained.failure.is_none());
+    assert_eq!(
+        format!(
+            "{:?}",
+            (
+                &retained.partitions,
+                &retained.requests,
+                &retained.kernel_events
+            )
+        ),
+        evidence
+    );
+    assert_eq!(
+        retained.cleanup_failure.as_deref(),
+        Some("earlier cleanup failure; Body reservation release: first release; second release")
+    );
+}
+
+#[test]
+fn release_failure_retains_the_original_pre_play_refusal() {
+    let error = crate::body_execution::finish_body_release(
+        Err("Body Sign sequence exhausted".to_string()),
+        vec!["reservation unavailable".to_string()],
+    )
+    .unwrap_err();
+    assert_eq!(
+        error,
+        "Body Sign sequence exhausted; Body reservation release: reservation unavailable"
+    );
 }
