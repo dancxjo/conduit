@@ -10,6 +10,7 @@ fn operation(
         .map(|_| store.store(&encode_monotonic_duration(50)).unwrap())
         .collect();
     TimedButtonAttemptOperation {
+        maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         durations,
         released: Vec::with_capacity(maximum_transitions as usize + 1),
         next_duration: 0,
@@ -174,4 +175,21 @@ fn shared_operation_retains_transition_until_exact_deadline_cancellation() {
         disposition: HostOperationDisposition::Cancelled, output: None, failure: None,
     }, None), OperationAction::RequestHostOperation { request: RequestId(2), operation: HostOperationId(1), input } if input.value == next)
     );
+}
+
+#[test]
+fn observation_request_uses_the_callers_admitted_input_bound() {
+    let mut store = conduit_kernel::HostedValueStore::new(8, 4096, 32768).unwrap();
+    let value = store.store(b"transition").unwrap();
+    let mut operation = TimedButtonAttemptOperation::from_prepared_durations(Vec::new(), 2, 4096);
+    let OperationAction::RequestHostOperation { input, .. } =
+        operation.resume(OperationInput::Value {
+            port: PortId(0),
+            value,
+        })
+    else {
+        panic!("transition must request clock observation");
+    };
+    assert_eq!(input.admitted_bytes, 4096);
+    assert_eq!(input.value, value);
 }

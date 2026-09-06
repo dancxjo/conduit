@@ -91,7 +91,11 @@ fn prepare(
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(InstalledOperation::TimedButtonAttempt(
-        TimedButtonAttemptOperation::from_prepared_durations(durations, transitions),
+        TimedButtonAttemptOperation::from_prepared_durations(
+            durations,
+            transitions,
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        ),
     ))
 }
 

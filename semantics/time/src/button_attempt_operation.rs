@@ -11,6 +11,7 @@ enum Pending {
 }
 
 pub struct TimedButtonAttemptOperation {
+    maximum_input_bytes: u32,
     durations: Vec<ValueRef>,
     released: Vec<ValueRef>,
     next_duration: usize,
@@ -27,8 +28,13 @@ pub struct TimedButtonAttemptOperation {
 impl TimedButtonAttemptOperation {
     /// Construct before Play from one admitted duration value per transition.
     /// The caller validates the finite transition limit and owns value admission.
-    pub fn from_prepared_durations(durations: Vec<ValueRef>, maximum_transitions: u64) -> Self {
+    pub fn from_prepared_durations(
+        durations: Vec<ValueRef>,
+        maximum_transitions: u64,
+        maximum_input_bytes: u32,
+    ) -> Self {
         TimedButtonAttemptOperation {
+            maximum_input_bytes,
             durations,
             released: Vec::with_capacity(maximum_transitions as usize + 1),
             next_duration: 0,
@@ -183,11 +189,8 @@ impl TimedButtonAttemptOperation {
         OperationAction::RequestHostOperation {
             request,
             operation: HostOperationId(1),
-            input: BoundedValueRef::new(
-                value,
-                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            )
-            .expect("button transition is bounded by its exact port"),
+            input: BoundedValueRef::new(value, self.maximum_input_bytes)
+                .expect("button transition is bounded by its exact port"),
         }
     }
 
