@@ -2,7 +2,6 @@
 
 use std::{
     fs,
-    io::BufReader,
     os::unix::net::UnixStream,
     path::Path,
     process::Child,
@@ -51,7 +50,7 @@ pub(super) fn inject(
 
 fn inject_keyboard_text(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     serial_path: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
@@ -256,7 +255,7 @@ pub(super) fn inject_near_miss(
 
 fn send_key(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     down: bool,
 ) -> Result<(), ConduitosError> {
     let command = if down {
@@ -276,7 +275,7 @@ fn send_key(
 
 fn send_rescue_keys(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     down: bool,
 ) -> Result<(), ConduitosError> {
     let state = if down { "true" } else { "false" };
@@ -297,7 +296,7 @@ fn send_rescue_keys(
 
 fn send_rescue_modifiers(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
 ) -> Result<(), ConduitosError> {
     let command = b"{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"key\",\"data\":{\"down\":true,\"key\":{\"type\":\"qcode\",\"data\":\"ctrl\"}}},{\"type\":\"key\",\"data\":{\"down\":true,\"key\":{\"type\":\"qcode\",\"data\":\"alt\"}}}]}}\r\n";
     qmp::request(qmp, reader, command.as_ref(), "rescue-modifiers-down")
@@ -305,7 +304,7 @@ fn send_rescue_modifiers(
 
 fn send_rescue_delete(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
 ) -> Result<(), ConduitosError> {
     let command = b"{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"key\",\"data\":{\"down\":true,\"key\":{\"type\":\"qcode\",\"data\":\"delete\"}}}]}}\r\n";
     qmp::request(qmp, reader, command.as_ref(), "rescue-delete-down")
@@ -313,7 +312,7 @@ fn send_rescue_delete(
 
 pub(super) fn send_named_keys(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     keys: &[&str],
     down: bool,
     action: &'static str,

@@ -11,26 +11,89 @@ use std::{
 const MAXIMUM_MESSAGE_BYTES: usize = 16 * 1024;
 const MAXIMUM_EVENTS: usize = 8;
 
+pub(super) struct Reader {
+    inner: BufReader<UnixStream>,
+    transcript: Option<std::fs::File>,
+    trace_bytes: usize,
+}
+impl Reader {
+    fn new(stream: UnixStream) -> Self {
+        Self {
+            inner: BufReader::new(stream),
+            transcript: None,
+            trace_bytes: 0,
+        }
+    }
+    fn record(&mut self, direction: &str, bytes: &[u8]) -> Result<(), ConduitosError> {
+        let Some(file) = &mut self.transcript else {
+            return Ok(());
+        };
+        let entry =
+            serde_json::json!({"direction":direction,"message":String::from_utf8_lossy(bytes)})
+                .to_string();
+        if self.trace_bytes + entry.len() + 1 > 1024 * 1024 {
+            return Err(ConduitosError::refusal(
+                "qemu-qmp-transcript-bound",
+                "transcript exceeds 1 MiB",
+            ));
+        }
+        writeln!(file, "{entry}").map_err(|error| {
+            ConduitosError::refusal("qemu-qmp-transcript-io", error.to_string())
+        })?;
+        self.trace_bytes += entry.len() + 1;
+        Ok(())
+    }
+}
+impl std::ops::Deref for Reader {
+    type Target = BufReader<UnixStream>;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl std::ops::DerefMut for Reader {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 pub(super) fn connect(
     socket: &Path,
     child: &mut Child,
-) -> Result<(UnixStream, BufReader<UnixStream>), ConduitosError> {
+) -> Result<(UnixStream, Reader), ConduitosError> {
+    connect_traced(socket, child, None)
+}
+
+pub(super) fn connect_traced(
+    socket: &Path,
+    child: &mut Child,
+    transcript: Option<&Path>,
+) -> Result<(UnixStream, Reader), ConduitosError> {
     let deadline = Instant::now() + Duration::from_secs(2);
     let mut qmp = loop {
         match UnixStream::connect(socket) {
             Ok(stream) => break stream,
             Err(_) if Instant::now() < deadline => thread::sleep(Duration::from_millis(10)),
             Err(error) => {
-                return super::hid_qmp::stop(child, "qemu-qmp-unavailable", error.to_string())
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(ConduitosError::refusal(
+                    "qemu-qmp-unavailable",
+                    error.to_string(),
+                ));
             }
         }
     };
     qmp.set_read_timeout(Some(Duration::from_secs(2)))
         .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?;
-    let mut reader = BufReader::new(
+    let mut reader = Reader::new(
         qmp.try_clone()
             .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?,
     );
+    if let Some(path) = transcript {
+        reader.transcript = Some(std::fs::File::create(path).map_err(|error| {
+            ConduitosError::refusal("qemu-qmp-transcript-io", error.to_string())
+        })?);
+    }
     let greeting = read_message(&mut reader, Instant::now() + Duration::from_secs(2))?;
     if !greeting
         .get("QMP")
@@ -52,7 +115,7 @@ pub(super) fn connect(
 
 pub(super) fn request(
     stream: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut Reader,
     command: &[u8],
     id: &str,
 ) -> Result<(), ConduitosError> {
@@ -61,7 +124,7 @@ pub(super) fn request(
 
 pub(super) fn request_value(
     stream: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut Reader,
     command: &[u8],
     id: &str,
 ) -> Result<serde_json::Value, ConduitosError> {
@@ -79,6 +142,7 @@ pub(super) fn request_value(
             "command too large",
         ));
     }
+    reader.record("command", &encoded)?;
     encoded.push(b'\n');
     stream
         .set_write_timeout(Some(Duration::from_secs(2)))
@@ -117,7 +181,7 @@ pub(super) fn request_value(
 }
 
 fn read_message(
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut Reader,
     deadline: Instant,
 ) -> Result<serde_json::Value, ConduitosError> {
     let mut bytes = Vec::new();
@@ -165,6 +229,7 @@ fn read_message(
             break;
         }
     }
+    reader.record("response", &bytes)?;
     serde_json::from_slice(&bytes)
         .map_err(|error| ConduitosError::refusal("qemu-qmp-malformed-response", error.to_string()))
 }
@@ -177,14 +242,14 @@ mod tests {
         let (mut client, mut server) = UnixStream::pair().unwrap();
         let response = response.to_vec();
         let worker = thread::spawn(move || {
-            let mut reader = BufReader::new(server.try_clone().unwrap());
+            let mut reader = Reader::new(server.try_clone().unwrap());
             let mut command = String::new();
             reader.read_line(&mut command).unwrap();
             let command: serde_json::Value = serde_json::from_str(&command).unwrap();
             assert_eq!(command["id"], "proof");
             server.write_all(&response).unwrap();
         });
-        let mut reader = BufReader::new(client.try_clone().unwrap());
+        let mut reader = Reader::new(client.try_clone().unwrap());
         let result = request(
             &mut client,
             &mut reader,
@@ -193,6 +258,29 @@ mod tests {
         );
         worker.join().unwrap();
         result
+    }
+
+    #[test]
+    fn expired_deadline_and_transcript_capacity_have_distinct_refusals() {
+        let (_sender, stream) = UnixStream::pair().unwrap();
+        let mut reader = Reader::new(stream);
+        assert_eq!(
+            read_message(&mut reader, Instant::now())
+                .unwrap_err()
+                .reason,
+            "qemu-qmp-timeout"
+        );
+        reader.transcript = Some(
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open("/dev/null")
+                .unwrap(),
+        );
+        reader.trace_bytes = 1024 * 1024;
+        assert_eq!(
+            reader.record("command", b"{}").unwrap_err().reason,
+            "qemu-qmp-transcript-bound"
+        );
     }
 
     #[test]
@@ -215,7 +303,7 @@ mod tests {
             .write_all(&vec![b'x'; MAXIMUM_MESSAGE_BYTES + 1])
             .unwrap();
         assert!(read_message(
-            &mut BufReader::new(stream),
+            &mut Reader::new(stream),
             Instant::now() + Duration::from_secs(1)
         )
         .is_err());

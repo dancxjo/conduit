@@ -96,7 +96,7 @@ pub(super) fn require_content(frame: &Pixmap) -> Result<(), ConduitosError> {
 /// Capture uses the same negotiated QMP channel as keyboard input.
 pub(super) fn capture(
     stream: &mut std::os::unix::net::UnixStream,
-    reader: &mut std::io::BufReader<std::os::unix::net::UnixStream>,
+    reader: &mut super::qmp::Reader,
     directory: &std::path::Path,
     checkpoint: &str,
 ) -> Result<serde_json::Value, ConduitosError> {

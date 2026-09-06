@@ -1,13 +1,7 @@
 //! Explicit, bounded visual evidence for one ordinary QEMU journey.
 use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
-use std::{
-    fs,
-    io::{BufReader, Read},
-    os::unix::net::UnixStream,
-    path::PathBuf,
-    time::Instant,
-};
+use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -39,7 +33,7 @@ impl Artifacts {
     pub(super) fn capture(
         &mut self,
         stream: &mut UnixStream,
-        reader: &mut BufReader<UnixStream>,
+        reader: &mut super::qmp::Reader,
         checkpoint: &str,
         expect_change: bool,
     ) -> Result<(), ConduitosError> {
@@ -65,6 +59,7 @@ impl Artifacts {
             ConduitosError::refusal("qemu-display-serial-invalid", error.to_string())
         })?;
         let record = super::journey_records::decode(text)?.pop();
+        let boot = super::journey_records::boot(text)?;
         let frame = qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
         let pixels = frame["pixel_sha256"]
             .as_str()
@@ -73,7 +68,7 @@ impl Artifacts {
         let unchanged = expect_change && self.previous_pixels.as_ref() == Some(&pixels);
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
-            "guest_record":record,"frame":frame,"expected_change":expect_change,"unchanged":unchanged}));
+            "guest_record":record,"guest_boot_record":boot,"frame":frame,"expected_change":expect_change,"unchanged":unchanged}));
         self.previous_pixels = Some(pixels);
         self.write("running", None)?;
         if unchanged {

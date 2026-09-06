@@ -121,7 +121,11 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 
     let result = (|| {
         let interaction = (|| {
-            let (mut qmp, mut reader) = hid_qmp::connect(&monitor_socket, &mut child)?;
+            let (mut qmp, mut reader) = super::qmp::connect_traced(
+                &monitor_socket,
+                &mut child,
+                Some(&paths.target.join("journey-qmp.log")),
+            )?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
@@ -359,7 +363,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 
 fn key_pair(
     qmp: &mut std::os::unix::net::UnixStream,
-    reader: &mut std::io::BufReader<std::os::unix::net::UnixStream>,
+    reader: &mut super::qmp::Reader,
     key: &str,
     label: &'static str,
 ) -> Result<(), ConduitosError> {

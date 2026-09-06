@@ -15,6 +15,19 @@ pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
         .collect()
 }
 
+pub(super) fn boot(serial: &str) -> Result<Option<Value>, ConduitosError> {
+    serial
+        .split_inclusive('\n')
+        .filter(|line| line.ends_with('\n'))
+        .filter_map(|line| line.strip_prefix("CONDUIT_BOOT_SIGN "))
+        .last()
+        .map(serde_json::from_str)
+        .transpose()
+        .map_err(|error| {
+            ConduitosError::refusal("product-journey-boot-sign-invalid", error.to_string())
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

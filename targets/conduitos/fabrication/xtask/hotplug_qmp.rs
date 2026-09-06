@@ -64,7 +64,7 @@ pub(super) fn execute(
 
 fn command(
     qmp: &mut std::os::unix::net::UnixStream,
-    reader: &mut std::io::BufReader<std::os::unix::net::UnixStream>,
+    reader: &mut super::qmp::Reader,
     command: &[u8],
     action: &'static str,
 ) -> Result<(), ConduitosError> {
