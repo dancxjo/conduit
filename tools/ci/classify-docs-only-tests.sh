@@ -77,6 +77,12 @@ classification="$(cd "$fixture" && "$classifier" "$advanced_main" "$candidate_do
 grep -qx 'docs_only=true' <<<"$classification"
 grep -qx "comparison_base_sha=$mixed" <<<"$classification"
 
+# Markdown cannot recreate a retired owner while bypassing structural checks.
+invalid_owner="$(commit_file apps/README.md 'retired root')"
+assert_classification false "$advanced_main" "$invalid_owner"
+invalid_product="$(commit_file targets/browser/host/assets/tour.md 'product source')"
+assert_classification false "$invalid_owner" "$invalid_product"
+
 assert_classification false 0000000000000000000000000000000000000000 "$mixed"
 assert_classification false "$mixed" "$mixed"
 printf 'docs-only classifier fixtures passed\n'

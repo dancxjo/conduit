@@ -591,7 +591,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "products/creche/tools/stage-creche-product.sh".to_owned(),
-            "targets/raspberry-pi/fabrication-package/src/lib.rs".to_owned(),
+            "targets/raspberry-pi/fabrication/src/lib.rs".to_owned(),
         ],
         &packages,
     )
@@ -897,7 +897,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
 
     let riscv = plan_for_paths(
         &root,
-        vec!["targets/conduitos/proof-appliances/riscv64/a3.rs".to_owned()],
+        vec!["targets/conduitos/proof/appliances/riscv64/a3.rs".to_owned()],
         &packages,
     )
     .unwrap();

@@ -239,7 +239,9 @@ fn execute_with_features(
         .env("CONDUITOS_IMAGE_ID", image_binding);
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
-        let script = paths.root.join("targets/conduitos/linker/ia32_product.ld");
+        let script = paths
+            .root
+            .join("targets/conduitos/firmware/linker/ia32_product.ld");
         command.env(
             "RUSTFLAGS",
             format!(
@@ -252,13 +254,13 @@ fn execute_with_features(
         let linker = riscv64_a0::rust_lld(&paths.root)?;
         let script = paths
             .root
-            .join("targets/conduitos/linker/riscv64_product.ld");
+            .join("targets/conduitos/firmware/linker/riscv64_product.ld");
         command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
         let script = paths
             .root
-            .join("targets/conduitos/linker/loongarch64_product.ld");
+            .join("targets/conduitos/firmware/linker/loongarch64_product.ld");
         command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else {
         command.env("RUSTFLAGS", "-C relocation-model=static -C panic=abort");

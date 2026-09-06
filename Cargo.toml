@@ -58,17 +58,17 @@ members = [
 	# Exact Host, machine, board, and target-family realizations.
 	"targets/avr/fabrication",
 	"targets/browser/host",
-	"targets/browser/host/fabrication-package",
+	"targets/browser/fabrication",
 	"targets/browser/runtime",
 	"targets/conduitos",
-	"targets/conduitos/fabrication-package",
+	"targets/conduitos/fabrication",
 	"targets/esp32/fabrication",
-	"targets/orange-pi/fabrication-package",
-	"targets/raspberry-pi/fabrication-package",
+	"targets/orange-pi/fabrication",
+	"targets/raspberry-pi/fabrication",
 	"targets/rp2040/fabrication",
 	"targets/rp2040/network-realization",
 	"targets/std",
-	"targets/std/fabrication-package",
+	"targets/std/fabrication",
 	"targets/std/offers",
 
 	# Explicit proof and conformance packages.

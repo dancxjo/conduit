@@ -233,12 +233,12 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     "proof/browser/executable-tour.spec.mjs",
     "products/creche/tools/stage-creche-product.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
-    "targets/raspberry-pi/browser-deployment/creche-adapter.mjs",
-    "targets/raspberry-pi/browser-deployment/image.mjs",
-    "targets/raspberry-pi/fabrication-package/src/lib.rs",
+    "targets/raspberry-pi/deployment/browser/creche-adapter.mjs",
+    "targets/raspberry-pi/deployment/browser/image.mjs",
+    "targets/raspberry-pi/fabrication/src/lib.rs",
     "targets/raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_image.rs",
     "targets/raspberry-pi/fabrication/xtask/armv6_rpi_board.rs",
-    "targets/std/browser-deployment/creche-adapter.mjs",
+    "targets/std/deployment/browser/creche-adapter.mjs",
     "tools/xtask/src/commands/host_release.rs",
 ];
 fn is_tongues_analysis_path(path: &str) -> bool {
@@ -554,7 +554,7 @@ fn plan_for_paths(
             "proof/browser/executable-tour.spec.mjs",
             "products/creche/tools/stage-creche-product.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
-            "targets/raspberry-pi/fabrication-package/src/lib.rs",
+            "targets/raspberry-pi/fabrication/src/lib.rs",
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
@@ -876,7 +876,7 @@ fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
     }
     for architecture in CONDUITOS_ARCHITECTURES {
         if path.starts_with(&format!(
-            "targets/conduitos/proof-appliances/{architecture}/"
+            "targets/conduitos/proof/appliances/{architecture}/"
         )) {
             impact.architectures.insert(architecture.to_owned());
             return;

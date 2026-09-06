@@ -65,14 +65,14 @@ for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduit
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
-cp targets/avr/browser-deployment/*.mjs "$destination/targets/avr/browser-deployment/"
-cp targets/rp2040/browser-deployment/*.mjs "$destination/targets/rp2040/browser-deployment/"
-cp targets/esp32/browser-deployment/*.mjs "$destination/targets/esp32/browser-deployment/"
-cp targets/std/browser-deployment/*.mjs "$destination/targets/std/browser-deployment/"
-cp targets/browser/host/browser-deployment/*.mjs "$destination/targets/browser/browser-deployment/"
-cp targets/orange-pi/browser-deployment/*.mjs "$destination/targets/orange-pi/browser-deployment/"
-cp targets/raspberry-pi/browser-deployment/*.mjs "$destination/targets/raspberry-pi/browser-deployment/"
-cp targets/conduitos/browser-deployment/*.mjs "$destination/targets/conduitos/browser-deployment/"
+cp targets/avr/deployment/browser/*.mjs "$destination/targets/avr/browser-deployment/"
+cp targets/rp2040/deployment/browser/*.mjs "$destination/targets/rp2040/browser-deployment/"
+cp targets/esp32/deployment/browser/*.mjs "$destination/targets/esp32/browser-deployment/"
+cp targets/std/deployment/browser/*.mjs "$destination/targets/std/browser-deployment/"
+cp targets/browser/deployment/browser/*.mjs "$destination/targets/browser/browser-deployment/"
+cp targets/orange-pi/deployment/browser/*.mjs "$destination/targets/orange-pi/browser-deployment/"
+cp targets/raspberry-pi/deployment/browser/*.mjs "$destination/targets/raspberry-pi/browser-deployment/"
+cp targets/conduitos/deployment/browser/*.mjs "$destination/targets/conduitos/browser-deployment/"
 
 for route in birth first-host physical-host graduate; do
   mkdir "$destination/$route"
