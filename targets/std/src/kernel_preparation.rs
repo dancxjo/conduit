@@ -69,6 +69,49 @@ impl KernelResourceLedger {
         fragment: &PlanFragment,
         continuity: bool,
     ) -> Result<KernelResourceReservation, String> {
+        self.prepare_and_reserve_partitions(advertisement, &[(fragment, continuity)])?
+            .pop()
+            .ok_or_else(|| "single partition reservation disappeared".to_string())
+    }
+
+    /// Admit the complete local workload before committing any pool usage.
+    /// Each reservation retains its original Plan identity. BodyPlan/workset
+    /// validation remains the caller's responsibility; this grants no Play.
+    pub(super) fn prepare_and_reserve_partitions(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        partitions: &[(&PlanFragment, bool)],
+    ) -> Result<Vec<KernelResourceReservation>, String> {
+        if partitions.is_empty() || partitions.len() > conduit_body::MAX_BODY_FORMS {
+            return Err("local workload partition count exceeds the admitted profile".into());
+        }
+        for (index, (fragment, _)) in partitions.iter().enumerate() {
+            if partitions[..index].iter().any(|(prior, _)| {
+                prior.plan_id == fragment.plan_id && prior.fragment_id == fragment.fragment_id
+            }) {
+                return Err("duplicate local workload partition".into());
+            }
+        }
+        // Staging is pre-Play, finite, and includes all existing reservations.
+        // A late invalid partition or combined shortage discards the candidate
+        // ledger without requiring fallible rollback of the live ledger.
+        let mut staged = self.clone();
+        let mut reservations = Vec::with_capacity(partitions.len());
+        for (fragment, continuity) in partitions {
+            reservations.push(staged.reserve_partition(advertisement, fragment, *continuity)?);
+        }
+        for (live, admitted) in self.pools.iter_mut().zip(staged.pools) {
+            live.used_units = admitted.used_units;
+        }
+        Ok(reservations)
+    }
+
+    fn reserve_partition(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        continuity: bool,
+    ) -> Result<KernelResourceReservation, String> {
         let mut profile = state_storage_profile();
         if continuity {
             profile = profile.with_owned_state_continuity();
@@ -148,6 +191,10 @@ impl KernelResourceLedger {
         self.pools.capacity()
     }
 }
+
+#[cfg(test)]
+#[path = "kernel_partition_reservation_tests.rs"]
+mod partition_tests;
 
 fn validate_exact_profile(
     advertisement: &HostAdvertisement,
