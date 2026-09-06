@@ -28,11 +28,8 @@ impl TourSession {
             .iter()
             .position(|effect| {
                 effect.request.request.0 == request
-                    && self
-                        .fragment
-                        .placements
-                        .get(usize::from(effect.request.node.0))
-                        .is_some_and(|gear| gear.placement_id.as_str() == placement)
+                    && super::placement_in_fragments(&self.fragments, effect.request.node)
+                        .is_some_and(|(_, gear)| gear.placement_id.as_str() == placement)
             })
             .ok_or("unknown or completed browser effect identity")?;
         self.complete_pending(index, output)
@@ -64,7 +61,9 @@ impl TourSession {
         if let Some(cancellation) = self.poll_cancellation()? {
             return Ok(cancellation);
         }
-        match engine::drive(&mut self.scheduler, &self.fragment)? {
+        match engine::drive_with_placement(&mut self.scheduler, |node| {
+            super::placement_in_fragments(&self.fragments, node).map(|(_, gear)| gear)
+        })? {
             engine::DriveStatus::Effect(effect) => {
                 if self.pending.len() == self.pending.capacity() {
                     return Err("browser pending effect capacity exhausted".into());
@@ -116,7 +115,7 @@ mod tests {
             .position(|effect| matches!(effect.effect, engine::BrowserHostEffect::ButtonTransition))
             .unwrap();
         let request = session.pending[button].request;
-        let placement = session.fragment.placements[usize::from(request.node.0)]
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
             .placement_id
             .as_str()
             .to_owned();
@@ -181,7 +180,7 @@ fn pressed_attempt_observes_clock_before_requesting_its_deadline() {
         .unwrap();
     assert!(engine::complete_host_effect(&mut session.scheduler, clock).is_err());
     let play = session.active_play_id.as_str().to_owned();
-    let placement = session.fragment.placements[usize::from(clock.request.node.0)]
+    let placement = session.fragments[0].placements[usize::from(clock.request.node.0)]
         .placement_id
         .as_str()
         .to_owned();
@@ -200,7 +199,7 @@ fn pressed_attempt_observes_clock_before_requesting_its_deadline() {
         .iter()
         .find(|pending| matches!(pending.effect, engine::BrowserHostEffect::ButtonTransition))
         .unwrap();
-    let placement = session.fragment.placements[usize::from(button.request.node.0)]
+    let placement = session.fragments[0].placements[usize::from(button.request.node.0)]
         .placement_id
         .as_str()
         .to_owned();

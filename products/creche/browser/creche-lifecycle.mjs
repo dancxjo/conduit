@@ -158,7 +158,7 @@ function birthSelectionNodes(state, inventory, visible, actions) {
     const label = nodes.length;
     nodes.push({ parent: 6, component: "choice-option-label", action: null, key: `form-${form.name}-label`, text: form.title });
     nodes.push({ parent: label, component: "independent-choice", action: action(`form.toggle.${form.name}`), key: `form-${form.name}`, text: form.name, value: String(selected), valueCapacity: 5 });
-    nodes.push({ parent: 6, component: "paragraph", action: null, key: `form-${form.name}-requirements`, text: form.required_kinds.join(" · ") });
+    nodes.push({ parent: 6, component: "paragraph", action: null, key: `form-${form.name}-kinds`, text: form.required_kinds.join(" · ") });
   }
   nodes.push({ parent: 6, component: "paragraph", action: null, key: "initial-forms-help", text: `${state.initialForms.length} of ${inventory.forms.length} reviewed Forms selected; maximum ${inventory.maximum_selection}.` });
   return nodes;

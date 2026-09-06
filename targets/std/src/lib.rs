@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_coordination;
+pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
 mod composition;
@@ -42,8 +43,12 @@ pub mod hosted_data;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;
+pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
+#[cfg(unix)]
+pub mod pico_indicator;
+pub use host_execution::HostedRunAdapters;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
