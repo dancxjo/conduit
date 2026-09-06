@@ -129,7 +129,7 @@ A discovered device is not automatically a host. A host on the network is not au
 ### Least authority and finite embodiment
 
 An implementation must not possess materially more effect authority than the
-exact admitted realization it executes. Computational expressiveness and
+exact admitted realization it executes. General-purpose computation and
 continuous lifetime grant no filesystem, network, device, subprocess,
 credential, or other effect authority. Every concrete Play remains finitely
 admitted, including its memory, queues, operations, Resources, and mandatory
@@ -238,6 +238,25 @@ Automatic retry is a semantic promise and therefore must be planned. A base may 
 Portable std, browser, Pico, future Android, and ConduitOS profiles use the same execution protocol and scheduler semantics.
 
 Temporary compatibility façades may help migrate old tests or composite fixtures. They must be named as compatibility surfaces, excluded from production paths, and prevented from becoming a permanent second engine.
+
+## General-purpose finite computation
+
+Conduit targets general-purpose computation under explicit finite bounds.
+Every checked executable Form has exact finite semantic/resource capacities
+after specialization. Reusable algorithms may parameterize those capacities;
+a different semantic bound may produce a different checked identity. Large
+finite state spaces remain finite but may be impractical to enumerate.
+
+General typed State, branching/selection, explicit recurrence and bounded
+structured memory provide computational generality through ordinary typed
+composition. Continuous externally driven lifetime requires no special mode
+and does not imply unbounded retained State or instantaneous resources.
+Strict Turing completeness and semantically infinite memory are not current
+requirements. They require a new concrete architectural justification before
+introduction, rather than an opt-out flag added for convenience. The
+[finite computation contract](architecture/decidable-default-universal-extension.md)
+records the revised #2682 direction and its analysis, lifecycle, timing,
+continuity and confinement obligations.
 
 ## Form and composition direction
 
