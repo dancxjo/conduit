@@ -6,7 +6,7 @@ use conduit_host_fabrication::{
 
 use crate::{esp32_descriptor_binding, Esp32FabricationPackage, Esp32FamilyTarget};
 
-const HEADLESS: &str = include_str!("../../../../profiles/hosts/conduitos-headless.profile.json");
+const HEADLESS: &str = include_str!("../../../conduitos/profiles/conduitos-headless.profile.json");
 
 fn profile(target: Esp32FamilyTarget) -> HostProfile {
     let facts = target.facts();

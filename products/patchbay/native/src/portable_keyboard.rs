@@ -1,4 +1,6 @@
 //! Bounded native-window entrance at the portable key-event seam.
+mod button;
+pub use button::append_offers as append_button_offers;
 
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,

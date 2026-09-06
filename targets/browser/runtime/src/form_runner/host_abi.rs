@@ -100,7 +100,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn normal_form_abi_and_legacy_book_envelope_share_one_session_and_inventory() {
+    fn normal_form_abi_and_legacy_tour_envelope_share_one_session_and_inventory() {
         assert_eq!(conduit_browser_form_inventory(), 0);
         assert_eq!(
             conduit_browser_form_output_ptr(),

@@ -13,21 +13,21 @@ bench = false
 
 [[bin]]
 name = "conduitos-aarch64-a0"
-path = "proof-appliances/aarch64/a0.rs"
+path = "proof/appliances/aarch64/a0.rs"
 test = false
 bench = false
 required-features = ["aarch64-a0"]
 
 [[bin]]
 name = "conduitos-aarch64-a2"
-path = "proof-appliances/aarch64/a2.rs"
+path = "proof/appliances/aarch64/a2.rs"
 test = false
 bench = false
 required-features = ["aarch64-a2"]
 
 [[bin]]
 name = "conduitos-aarch64-a3"
-path = "proof-appliances/aarch64/a3.rs"
+path = "proof/appliances/aarch64/a3.rs"
 test = false
 bench = false
 required-features = ["aarch64-a3"]
@@ -48,42 +48,42 @@ required-features = ["aarch64-orange-pi-5"]
 
 [[bin]]
 name = "conduitos-armv6-rpi-b-plus-a0"
-path = "proof-appliances/armv6-rpi-b-plus/a0.rs"
+path = "proof/appliances/armv6-rpi-b-plus/a0.rs"
 test = false
 bench = false
 required-features = ["armv6-rpi-b-plus-a0"]
 
 [[bin]]
 name = "conduitos-armv6-rpi-b-plus-a2"
-path = "proof-appliances/armv6-rpi-b-plus/a2.rs"
+path = "proof/appliances/armv6-rpi-b-plus/a2.rs"
 test = false
 bench = false
 required-features = ["armv6-rpi-b-plus-a2"]
 
 [[bin]]
 name = "conduitos-armv6-rpi-b-plus-a3"
-path = "proof-appliances/armv6-rpi-b-plus/a3.rs"
+path = "proof/appliances/armv6-rpi-b-plus/a3.rs"
 test = false
 bench = false
 required-features = ["armv6-rpi-b-plus-a3"]
 
 [[bin]]
 name = "conduitos-ia32-a0"
-path = "proof-appliances/ia32/a0.rs"
+path = "proof/appliances/ia32/a0.rs"
 test = false
 bench = false
 required-features = ["ia32-a0"]
 
 [[bin]]
 name = "conduitos-ia32-a2"
-path = "proof-appliances/ia32/a2.rs"
+path = "proof/appliances/ia32/a2.rs"
 test = false
 bench = false
 required-features = ["ia32-a2"]
 
 [[bin]]
 name = "conduitos-ia32-a3"
-path = "proof-appliances/ia32/a3.rs"
+path = "proof/appliances/ia32/a3.rs"
 test = false
 bench = false
 required-features = ["ia32-a3"]
@@ -97,7 +97,7 @@ required-features = ["ia32-product"]
 
 [[bin]]
 name = "conduitos-riscv64-a0"
-path = "proof-appliances/riscv64/a0.rs"
+path = "proof/appliances/riscv64/a0.rs"
 test = false
 bench = false
 required-features = ["riscv64-a0"]
@@ -111,28 +111,28 @@ required-features = ["riscv64-product"]
 
 [[bin]]
 name = "conduitos-riscv64-a2"
-path = "proof-appliances/riscv64/a2.rs"
+path = "proof/appliances/riscv64/a2.rs"
 test = false
 bench = false
 required-features = ["riscv64-a2"]
 
 [[bin]]
 name = "conduitos-riscv64-a3"
-path = "proof-appliances/riscv64/a3.rs"
+path = "proof/appliances/riscv64/a3.rs"
 test = false
 bench = false
 required-features = ["riscv64-a3"]
 
 [[bin]]
 name = "conduitos-riscv64-a4"
-path = "proof-appliances/riscv64/a4.rs"
+path = "proof/appliances/riscv64/a4.rs"
 test = false
 bench = false
 required-features = ["riscv64-a4"]
 
 [[bin]]
 name = "conduitos-loongarch64-a0"
-path = "proof-appliances/loongarch64/a0.rs"
+path = "proof/appliances/loongarch64/a0.rs"
 test = false
 bench = false
 required-features = ["loongarch64-a0"]
@@ -146,21 +146,21 @@ required-features = ["loongarch64-product"]
 
 [[bin]]
 name = "conduitos-loongarch64-a2"
-path = "proof-appliances/loongarch64/a2.rs"
+path = "proof/appliances/loongarch64/a2.rs"
 test = false
 bench = false
 required-features = ["loongarch64-a2"]
 
 [[bin]]
 name = "conduitos-loongarch64-a3"
-path = "proof-appliances/loongarch64/a3.rs"
+path = "proof/appliances/loongarch64/a3.rs"
 test = false
 bench = false
 required-features = ["loongarch64-a3"]
 
 [[bin]]
 name = "conduitos-loongarch64-a4"
-path = "proof-appliances/loongarch64/a4.rs"
+path = "proof/appliances/loongarch64/a4.rs"
 test = false
 bench = false
 required-features = ["loongarch64-a4"]
@@ -175,7 +175,7 @@ scripted-keyboard-proof = []
 native-compositor = []
 native-http-client = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
-# proof-appliances tree and remains absent from an ordinary product build.
+# proof/appliances tree and remains absent from an ordinary product build.
 aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []

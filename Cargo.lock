@@ -503,6 +503,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-assigned-plan"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-audio"
 version = "0.1.0"
 dependencies = [
@@ -622,6 +626,7 @@ dependencies = [
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
+ "conduit-assigned-plan",
  "libm",
  "serde",
  "sha2 0.10.9",
@@ -928,7 +933,9 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
+ "conduit-net",
  "conduit-planner",
  "conduit-presentation",
  "conduit-robotics",
@@ -1026,8 +1033,10 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-form",
  "conduit-human",
  "conduit-midi",
+ "conduit-net",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -1069,6 +1078,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-kernel",
  "serde",
 ]
 
@@ -4568,6 +4578,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
+ "conduit-embedded-build",
  "conduit-form",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",

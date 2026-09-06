@@ -1,0 +1,153 @@
+name: tour-and-creche-pages
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged pull request whose successful product carrier should be promoted
+        required: false
+        type: number
+      main_sha:
+        description: Exact current main commit to fabricate and promote
+        required: false
+        type: string
+
+concurrency:
+  group: tour-and-creche-pages
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+  pages: write
+  id-token: write
+
+jobs:
+  resolve:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && startsWith(github.event.pull_request.head.ref, 'promote/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      run_id: ${{ steps.resolve.outputs.run_id }}
+      carrier_present: ${{ steps.resolve.outputs.carrier_present }}
+      merge_commit: ${{ steps.resolve.outputs.merge_commit }}
+      source_head: ${{ steps.resolve.outputs.source_head }}
+      source_tree: ${{ steps.resolve.outputs.source_tree }}
+      integration_base: ${{ steps.resolve.outputs.integration_base }}
+      integration_tree: ${{ steps.resolve.outputs.integration_tree }}
+      pr_number: ${{ steps.resolve.outputs.pr_number }}
+      disposition: ${{ steps.direct.outputs.disposition || steps.materialize.outputs.disposition }}
+      direct_main: ${{ steps.resolve.outputs.direct_main }}
+    steps:
+      - name: Check out trusted merged workflow machinery
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Resolve the exact successful PR product run
+        id: resolve
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/ci/resolve-pages-product-run.mjs
+      - name: Check out the exact merged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.resolve.outputs.merge_commit }}
+          fetch-depth: 0
+      - name: Fetch the immutable candidate object without executing it
+        if: steps.resolve.outputs.direct_main != 'true'
+        env:
+          PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
+          SOURCE_HEAD: ${{ steps.resolve.outputs.source_head }}
+        run: |
+          git fetch --no-tags origin "refs/pull/$PR_NUMBER/head"
+          test "$(git rev-parse FETCH_HEAD)" = "$SOURCE_HEAD"
+      - name: Prepare the dependency-light merged controller
+        uses: dtolnay/rust-toolchain@1.98.1
+      - name: Reconcile exact Pages carrier inputs with the merged tree
+        id: reconcile
+        if: steps.resolve.outputs.direct_main != 'true'
+        env:
+          SOURCE_HEAD: ${{ steps.resolve.outputs.source_head }}
+          MERGE_COMMIT: ${{ steps.resolve.outputs.merge_commit }}
+        run: |
+          cargo build --locked --package conduit-xtask-dispatch
+          target/debug/conduit-xtask-dispatch ci reconcile-product \
+            products.pages-carrier "$SOURCE_HEAD" "$MERGE_COMMIT" \
+            --locked --allow-execute \
+            --json-out target/pages-product-reconciliation.json \
+            >> "$GITHUB_OUTPUT"
+      - name: Require exact carrier bytes for inherited promotion
+        id: materialize
+        if: steps.resolve.outputs.direct_main != 'true'
+        env:
+          RECONCILED_DISPOSITION: ${{ steps.reconcile.outputs.disposition }}
+          CARRIER_PRESENT: ${{ steps.resolve.outputs.carrier_present }}
+        run: |
+          disposition=$RECONCILED_DISPOSITION
+          if test "$disposition" = inherited && test "$CARRIER_PRESENT" != true; then
+            disposition=execute
+            echo 'Exact proof is inherited, but its carrier payload is absent; fabricate the merged tree.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "disposition=$disposition" >> "$GITHUB_OUTPUT"
+      - name: Fabricate the exact explicitly requested current main carrier
+        id: direct
+        if: steps.resolve.outputs.direct_main == 'true'
+        run: echo 'disposition=execute' >> "$GITHUB_OUTPUT"
+
+  integration-products:
+    needs: resolve
+    if: needs.resolve.outputs.disposition == 'execute'
+    uses: ./.github/workflows/tour-products.yml
+    with:
+      base_sha: ${{ needs.resolve.outputs.integration_base }}
+      candidate_sha: ${{ needs.resolve.outputs.merge_commit }}
+
+  deploy:
+    needs: [resolve, integration-products]
+    if: >-
+      always() && needs.resolve.result == 'success' &&
+      (needs.resolve.outputs.disposition == 'inherited' || needs.integration-products.result == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the exact merged commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.merge_commit }}
+      - name: Download the inherited candidate Pages carrier
+        if: needs.resolve.outputs.disposition == 'inherited'
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-pages-carrier
+          path: target/pages-carrier
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.resolve.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download the newly proven integration Pages carrier
+        if: needs.resolve.outputs.disposition == 'execute'
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-pages-carrier
+          path: target/pages-carrier
+      - name: Admit the exact carrier selected by reconciliation
+        env:
+          EXPECTED_TREE: ${{ needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree }}
+        run: node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$EXPECTED_TREE"
+      - name: Upload the already-proven Pages carrier
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/pages-carrier/site
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Deploy Conduit Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

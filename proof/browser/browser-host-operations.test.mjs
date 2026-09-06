@@ -116,11 +116,11 @@ test("location movement is bounded presentation state and remains correlated", a
   const result = await operations.moveLocation(request("location", "location/page-2", {
     presentationRevision: 9,
     mode: "replace",
-    path: "/book/page-2/",
+    path: "/tour/page-2/",
   }));
-  assert.deepEqual(moves, [{ mode: "replace", path: "/book/page-2/" }]);
+  assert.deepEqual(moves, [{ mode: "replace", path: "/tour/page-2/" }]);
   assert.equal(result.disposition, "completed");
-  assert.equal(result.path, "/book/page-2/");
+  assert.equal(result.path, "/tour/page-2/");
   assert.equal(result.operationId, "location/page-2");
   assert.equal("membership" in result, false);
   assert.equal("lifecycle" in result, false);

@@ -5,9 +5,11 @@ edition = "2021"
 
 [features]
 default = ["form-catalog"]
+kernel-operation = ["dep:conduit-kernel"]
 form-catalog = ["dep:conduit-form"]
 
 [dependencies]
+conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

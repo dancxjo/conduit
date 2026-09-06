@@ -142,7 +142,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     }
   }
 
-  async function writeValue(key, encoding, value, valueBytes) {
+  async function writeValue(key, encoding, value, valueBytes, immutable = false) {
     requireCurrent();
     exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
     const transaction = database.transaction(STORE_NAME, "readwrite");
@@ -155,6 +155,12 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     const records = hostRecords.filter((record) => record.applicationIdentity === applicationIdentity);
     const currentIdentity = prefix + key;
     const current = records.find((record) => record.identity === currentIdentity);
+    if (current && (immutable || current.immutable === true)) {
+      // The read and publication share one readwrite transaction. Two publishers
+      // cannot both admit the same generation, even from separate connections.
+      transaction.abort();
+      refuse("PublishedImmutable", "published application bytes cannot be replaced");
+    }
     const nextCount = records.length + (current ? 0 : 1);
     const nextBytes = records.reduce((total, record) => total + record.valueBytes, 0)
       - (current?.valueBytes ?? 0) + valueBytes;
@@ -180,6 +186,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
       encoding,
       value,
       valueBytes,
+      immutable,
     });
     await transactionComplete(transaction);
   }
@@ -210,6 +217,16 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
   }
 
   async function writeBytes(key, value) {
+    return storeBytes(key, value, false);
+  }
+
+  // A storage realization primitive, not Resource admission or authority.
+  // The caller must supply the exact admitted generation key.
+  async function publishBytes(key, value) {
+    return storeBytes(key, value, true);
+  }
+
+  async function storeBytes(key, value, immutable) {
     requireCurrent();
     exactText(key, "application storage key", MAXIMUM_KEY_BYTES);
     if (!(value instanceof Uint8Array) || !(value.buffer instanceof ArrayBuffer)) {
@@ -220,7 +237,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
       refuse("ValueBound", "application storage value exceeds its admitted bound");
     }
     const copy = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
-    await writeValue(key, "bytes", copy, valueBytes);
+    await writeValue(key, "bytes", copy, valueBytes, immutable);
   }
 
   async function deleteJson(key) {
@@ -273,6 +290,7 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     writeJson,
     readBytes,
     writeBytes,
+    publishBytes,
     deleteJson,
     clearApplication,
     close,

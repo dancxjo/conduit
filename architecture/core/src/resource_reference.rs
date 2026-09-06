@@ -63,6 +63,14 @@ pub enum ResourceReferenceRefusal {
     UnsupportedEncodingVersion,
 }
 
+/// Validated allocation-free access to the fields needed to admit encoded content.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EncodedResourceReference<'a> {
+    pub content_profile: &'a str,
+    pub access_class: &'a str,
+    pub extent: ResourceExtent,
+}
+
 impl ResourceSemanticIdentity {
     pub const fn from_digest(digest: [u8; RESOURCE_REFERENCE_DIGEST_BYTES]) -> Self {
         Self(digest)
@@ -100,6 +108,68 @@ impl ResourceVersionIdentity {
 }
 
 impl BoundedResourceRef {
+    pub fn validate_encoded(
+        encoded: &[u8],
+    ) -> Result<EncodedResourceReference<'_>, ResourceReferenceRefusal> {
+        if encoded.len() > MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES {
+            return Err(ResourceReferenceRefusal::EncodingTooLarge);
+        }
+        let mut cursor = Cursor::new(encoded);
+        if cursor.u8()? != RESOURCE_REFERENCE_ENCODING_VERSION {
+            return Err(ResourceReferenceRefusal::UnsupportedEncodingVersion);
+        }
+        if cursor.digest()? == [0; RESOURCE_REFERENCE_DIGEST_BYTES] {
+            return Err(ResourceReferenceRefusal::ZeroSemanticIdentity);
+        }
+        if cursor.digest()? == [0; RESOURCE_REFERENCE_DIGEST_BYTES] {
+            return Err(ResourceReferenceRefusal::ZeroVersionIdentity);
+        }
+        let content_profile = cursor.identity_ref()?;
+        validate_identity(
+            content_profile,
+            ResourceReferenceRefusal::EmptyContentProfile,
+            ResourceReferenceRefusal::ContentProfileTooLarge,
+        )?;
+        let access_class = cursor.identity_ref()?;
+        validate_identity(
+            access_class,
+            ResourceReferenceRefusal::EmptyAccessClass,
+            ResourceReferenceRefusal::AccessClassTooLarge,
+        )?;
+        let extent = ResourceExtent {
+            bytes: cursor.u64()?,
+            items: cursor.optional_u64()?,
+        };
+        if extent.bytes > MAXIMUM_REFERENCED_BYTES {
+            return Err(ResourceReferenceRefusal::ByteBoundExceeded);
+        }
+        match cursor.u8()? {
+            0 => {}
+            1 => {
+                let _ticks = cursor.u64()?;
+                decode_scale(cursor.u8()?)?;
+                let clock_basis = cursor.identity_ref()?;
+                let resolution_ticks = cursor.u64()?;
+                let _uncertainty_ticks = cursor.u64()?;
+                if clock_basis.is_empty()
+                    || clock_basis.len() > crate::MAXIMUM_TEMPORAL_IDENTITY_BYTES
+                    || resolution_ticks == 0
+                {
+                    return Err(ResourceReferenceRefusal::InvalidExpiry);
+                }
+            }
+            _ => return Err(ResourceReferenceRefusal::MalformedEncoding),
+        }
+        if !cursor.finished() {
+            return Err(ResourceReferenceRefusal::MalformedEncoding);
+        }
+        Ok(EncodedResourceReference {
+            content_profile,
+            access_class,
+            extent,
+        })
+    }
+
     pub fn validate(&self) -> Result<(), ResourceReferenceRefusal> {
         self.identity.validate()?;
         self.lifetime.version.validate()?;
@@ -327,10 +397,12 @@ impl<'a> Cursor<'a> {
     }
 
     fn identity(&mut self) -> Result<String, ResourceReferenceRefusal> {
+        self.identity_ref().map(String::from)
+    }
+
+    fn identity_ref(&mut self) -> Result<&'a str, ResourceReferenceRefusal> {
         let length = usize::from(self.u16()?);
-        let bytes = self.take(length)?;
-        core::str::from_utf8(bytes)
-            .map(String::from)
+        core::str::from_utf8(self.take(length)?)
             .map_err(|_| ResourceReferenceRefusal::MalformedEncoding)
     }
 

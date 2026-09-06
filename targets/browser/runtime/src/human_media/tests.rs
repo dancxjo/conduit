@@ -1,6 +1,8 @@
 use super::*;
 use conduit_core::{
-    AuthorityContractId, BootId, HostId, KindId, OfferGeneration, ResourceClassId, ResourceHandleId,
+    kind_id, AuthorityContractId, BootId, BoundedResourceRef, HostId, KindId, OfferGeneration,
+    ResourceClassId, ResourceExtent, ResourceHandleId, ResourceLifetime, ResourceSemanticIdentity,
+    ResourceVersionIdentity,
 };
 use conduit_human::{
     HumanMediaKind, KnownPermissionState, MediaConstraints, MediaFlowBounds,
@@ -113,6 +115,22 @@ fn playing() -> BrowserMediaSession {
     session
 }
 
+fn image_content(profile: &str, bytes: u64) -> BoundedResourceRef {
+    BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest([3; 32]),
+        content_profile: kind_id(profile),
+        access_class: ResourceClassId::from("browser/materialized-image@1"),
+        extent: ResourceExtent {
+            bytes,
+            items: Some(1),
+        },
+        lifetime: ResourceLifetime {
+            version: ResourceVersionIdentity::from_digest([4; 32]),
+            expires_at: None,
+        },
+    }
+}
+
 #[test]
 fn successful_sequence_requires_two_plans_and_observes_one_bounded_value() {
     let mut session = playing();
@@ -132,6 +150,37 @@ fn successful_sequence_requires_two_plans_and_observes_one_bounded_value() {
     assert_eq!(
         session.phase(),
         &BrowserMediaPhase::Terminal(BrowserMediaTerminal::MediaClosed)
+    );
+}
+
+#[test]
+fn selected_camera_materializes_the_same_portable_observation_as_other_hosts() {
+    let profile = kind_id("media/image-rgba8@1");
+    let mut session = playing();
+    let observation = session
+        .admit_image_observation(image_content(profile.as_str(), 4_096), 640, 480, &profile)
+        .unwrap();
+    assert_eq!(observation.width, 640);
+    assert_eq!(observation.content.content_profile, profile);
+    assert_eq!(
+        (session.retained_bytes(), session.observed_values()),
+        (4_096, 1)
+    );
+}
+
+#[test]
+fn image_materialization_refuses_semantic_bounds_before_consuming_flow_capacity() {
+    let profile = kind_id("media/image-rgba8@1");
+    let mut session = playing();
+    assert_eq!(
+        session.admit_image_observation(image_content(profile.as_str(), 4_096), 0, 480, &profile,),
+        Err(BrowserMediaRefusal::ImageObservation(
+            conduit_human::ImageObservationRefusal::InvalidDimensions
+        ))
+    );
+    assert_eq!(
+        (session.retained_bytes(), session.observed_values()),
+        (0, 0)
     );
 }
 

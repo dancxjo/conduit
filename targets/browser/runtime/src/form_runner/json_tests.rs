@@ -5,7 +5,7 @@ use conduit_form::{KindDefinition, KindSignature};
 use std::collections::BTreeMap;
 const TODO: &str = include_str!("../../../../../forms/todo/main.conduit");
 
-fn execute(input: &str, entry: &str) -> Result<String, String> {
+pub(super) fn execute(input: &str, entry: &str) -> Result<String, String> {
     let (mut startup, mut profile) = crate::installed_browser::catalogs().unwrap();
     let mut host =
         crate::installed_browser::advertisement("todo-browser".into(), "todo-boot".into());
@@ -118,14 +118,42 @@ fn browser_todo_refusals_preserve_kernel_failure_details() {
             "todo/command-snapshot"
         )
         .unwrap_err(),
-        "OperationFailed(105)"
+        "OperationFailed(Failure { code: InvalidInput, detail: 105 })"
     );
     assert_eq!(
         execute(r#"[{"text":"missing"}]"#, "todo/restore-summary").unwrap_err(),
-        "OperationFailed(123)"
+        "OperationFailed(Failure { code: InvalidInput, detail: 123 })"
     );
     assert_eq!(
         execute(r#"[{"complete":0}]"#, "todo/restore-summary").unwrap_err(),
-        "OperationFailed(124)"
+        "OperationFailed(Failure { code: InvalidInput, detail: 124 })"
+    );
+}
+
+#[test]
+fn browser_todo_snapshot_record_restores_through_the_same_authored_form() {
+    use crate::resource_snapshot::{tests::placement, PreparedSnapshotRecord};
+    let snapshot = execute(
+        r#"{"collection":[],"command":{"op":"append","value":{"complete":false,"text":"Milk"}}}"#,
+        "todo/command-snapshot",
+    )
+    .unwrap();
+    let (write, reference) = placement("boot/one", true, snapshot.len());
+    let mut writer = PreparedSnapshotRecord::prepare(&write, &reference).unwrap();
+    let record = writer
+        .publication(&write.authority[0], snapshot.as_bytes())
+        .unwrap()
+        .to_vec();
+    let (read, _) = placement("boot/two", false, snapshot.len());
+    let reader = PreparedSnapshotRecord::prepare(&read, &reference).unwrap();
+    let restored = reader.restore(&read.authority[0], &record).unwrap();
+    assert_eq!(restored, snapshot.as_bytes());
+    assert_eq!(
+        execute(
+            std::str::from_utf8(restored).unwrap(),
+            "todo/restore-summary"
+        )
+        .unwrap(),
+        r#"{"false":1,"total":1,"true":0}"#
     );
 }

@@ -18,7 +18,7 @@ let generation = 0;
 let running = false;
 let runnerSlotSequence = 0;
 let activeRunner = null;
-let activeDelay = null;
+const activeDelays = new Set();
 let humanInput = null;
 let currentPage = 0;
 let guidedPages = [];
@@ -110,6 +110,8 @@ function requireTourAbi(api) {
   const required = [
     "memory", "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
     "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
+    "conduit_browser_form_acknowledge_cancellation", "conduit_browser_form_poll_effect", "conduit_browser_form_complete_effect", "conduit_browser_form_pending_capacity",
+    "conduit_browser_form_start_with_presentation", "conduit_browser_form_project_with_presentation",
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
@@ -120,7 +122,7 @@ function requireTourAbi(api) {
     "conduit_tour_multi_input_ptr", "conduit_tour_multi_input_capacity",
     "conduit_tour_multi_output_ptr", "conduit_tour_multi_output_len",
     "conduit_tour_multi_admit_source_interaction", "conduit_tour_multi_start_source",
-    "conduit_tour_multi_start_sink",
+    "conduit_tour_multi_start_sink", "conduit_tour_multi_complete_input",
     "conduit_tour_multi_ingest", "conduit_tour_multi_complete", "conduit_tour_multi_cancel",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-tour ABI is incomplete");
@@ -418,6 +420,14 @@ function createRunner(source, recursive = false, presentation = {}) {
     <div class="editor">
       <div data-application-slot="${fieldSlot}"></div>
       <div data-application-slot="${actionsSlot}"></div>
+      ${recursive ? "" : `<label>Structured output
+        <select class="structured-output-profile">
+          <option value="0">Annotations</option>
+          <option value="1">Quantities</option>
+          <option value="2">Relative durations</option>
+          <option value="3">Pattern comparison</option>
+        </select>
+      </label>`}
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
@@ -440,6 +450,10 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
+  runner.querySelector(".structured-output-profile")?.addEventListener("change", () => {
+    if (running && activeRunner === runner) stopListing(runner);
+    refreshCompactPatchbay(runner, textarea.value, recursive);
+  });
   runner.actionControls = createTourRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
@@ -483,6 +497,8 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
         <article class="host-card host-b"><span>Host B · presentation</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
       </div>
       <h2>Planned result on Host B</h2>
+      <button type="button" class="input-button" hidden>Hold to control indicator</button>
+      <div class="indicator" aria-label="Indicator off"></div>
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
@@ -555,8 +571,9 @@ function refreshCompactPatchbay(runner, source, recursive) {
   ).set(sourceBytes);
   const project = recursive
     ? host.runtime.conduit_tour_project_patchbay_recursive
-    : host.runtime.conduit_tour_project_patchbay;
-  const code = project(sourceBytes.length, BigInt(expected));
+    : host.runtime.conduit_browser_form_project_with_presentation;
+  const profile = Number(runner.querySelector(".structured-output-profile")?.value ?? 0);
+  const code = project(sourceBytes.length, BigInt(expected), profile);
   const output = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0) {
     renderCompactPatchbayRefusal(figure, output?.message ?? `Projection refused (${code}).`);
@@ -809,60 +826,93 @@ async function runMultiHostListing(runner, source) {
     const sourceBytes = encoder.encode(source);
     admitMultiSource(host.runtime, sourceBytes, current);
     admitMultiSource(peer.runtime, sourceBytes, current);
-    const sourceProgress = startMultiSource(host.runtime, host, peer, sourceBytes, current);
+    let sourceProgress = startMultiSource(host.runtime, host, peer, sourceBytes, current);
     const sinkProgress = startMultiSink(
       peer.runtime,
       peer,
       sourceProgress.plan_projection.raw_plan,
       current,
     );
-    if (sourceProgress.effect_kind !== "line" || sinkProgress.effect_kind !== "waiting") {
+    if (!["line", "input"].includes(sourceProgress.effect_kind) || sinkProgress.effect_kind !== "waiting") {
       throw new Error("two-Host runner did not start at the exact planned Line boundary");
     }
     const plan = sourceProgress.plan_projection;
     renderPlanProjection(runner, plan);
     const line = new BrowserMemoryLine(
-      plan.raw_plan.fragments[0].connections[0].selected_line.binding.limits.maximum_frame_bytes,
+      plan.raw_plan.fragments.flatMap((fragment) => fragment.connections)
+        .find((cord) => cord.selected_line)?.selected_line.binding.limits.maximum_frame_bytes,
       plan.cord.maximum_payload_bytes,
     );
     activeMemoryLine = line;
-    renderHostCard(runner, "a", host, "offered one typed value");
-    runner.playStatus.ordinary("Host A offered one value on the exact planned Cord…");
-    if (!await nextPaint(current)) return;
-    const presentation = line.transfer(sourceProgress.frame, peer.runtime);
-    if (presentation.effect_kind !== "manifestation") {
-      throw new Error("Host B did not request its planned presentation");
+    while (sourceProgress.effect_kind === "input" || sourceProgress.frame?.phase === "value") {
+      if (sourceProgress.effect_kind === "input") {
+        runner.querySelector(".input-button").hidden = false;
+        runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");
+        const event = await humanInput.nextButton();
+        if (current !== generation) return;
+        const api = host.runtime;
+        const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
+        if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
+        const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        const play = encoder.encode(sourceProgress.input.active_play_id);
+        if (bytes.length > sourceProgress.input.maximum_output_bytes || play.length + bytes.length > api.conduit_tour_multi_input_capacity()) {
+          throw new Error("button transition exceeds its admitted completion bound");
+        }
+        const completion = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), play.length + bytes.length);
+        completion.set(play);
+        completion.set(bytes, play.length);
+        const code = api.conduit_tour_multi_complete_input(play.length, sourceProgress.input.request_sequence, bytes.length);
+        if (code < 0) throw new Error(`multi-Host input completion refused (${code})`);
+        sourceProgress = readMultiOutput(api);
+        continue;
+      }
+      renderHostCard(runner, "a", host, "offered one typed value");
+      runner.playStatus.ordinary("Host A offered one value on the exact planned Cord…");
+      if (!await nextPaint(current)) return;
+      const presentation = line.transfer(sourceProgress.frame, peer.runtime);
+      if (presentation.effect_kind !== "manifestation") {
+        throw new Error("Host B did not request its planned presentation");
+      }
+      const accepted = line.transfer(presentation.accepted_frame, host.runtime);
+      if (accepted.effect_kind !== "waiting") {
+        throw new Error("Host A did not retain exact remote acceptance");
+      }
+      renderHostCard(runner, "a", host, "accepted · awaiting delivery");
+      renderHostCard(runner, "b", peer, "presenting exact value");
+      runner.querySelector(".morse").textContent = presentation.manifestation.text;
+      if (presentation.manifestation.presentation_kind === "presentation/indicator-state") {
+        setIndicator(runner, presentation.manifestation.text === "true");
+      }
+      renderIdentities(runner, presentation.manifestation);
+      renderPlanProjection(runner, presentation.plan_projection);
+      runner.playStatus.ordinary("Host B observed the planned presentation; acknowledging delivery…");
+      if (!await nextPaint(current)) return;
+      const completion = peer.runtime.conduit_tour_multi_complete();
+      if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
+      const delivered = readMultiOutput(peer.runtime);
+      sourceProgress = line.transfer(delivered.frame, host.runtime);
     }
-    const accepted = line.transfer(presentation.accepted_frame, host.runtime);
-    if (accepted.effect_kind !== "waiting") {
-      throw new Error("Host A did not retain exact remote acceptance");
-    }
-    renderHostCard(runner, "a", host, "accepted · awaiting delivery");
-    renderHostCard(runner, "b", peer, "presenting exact value");
-    runner.querySelector(".morse").textContent = presentation.manifestation.text;
-    renderIdentities(runner, presentation.manifestation);
-    renderPlanProjection(runner, presentation.plan_projection);
-    runner.playStatus.ordinary("Host B observed the planned presentation; acknowledging delivery…");
-    if (!await nextPaint(current)) return;
-    const completion = peer.runtime.conduit_tour_multi_complete();
-    if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
-    const delivered = readMultiOutput(peer.runtime);
-    const close = line.transfer(delivered.frame, host.runtime);
-    const terminal = line.transfer(close.frame, peer.runtime);
+    if (sourceProgress.frame?.phase !== "close") throw new Error("source did not close its planned Cord");
+    const terminal = line.transfer(sourceProgress.frame, peer.runtime);
     const sourceReceipt = line.transfer(terminal.frame, host.runtime);
     if (terminal.receipt?.disposition !== "completed" || sourceReceipt.receipt?.disposition !== "completed") {
       throw new Error("two-Host Play did not retain reciprocal terminal receipts");
     }
     renderHostCard(runner, "a", host, "completed");
     renderHostCard(runner, "b", peer, "completed");
-    runner.playStatus.success("Completed — one immutable Plan, two independent Plays, one delivered cross-Host value.");
+    const count = sourceReceipt.receipt.transferred_values;
+    runner.playStatus.success(count === 1
+      ? "Completed — one immutable Plan, two independent Plays, one delivered cross-Host value."
+      : `Completed — one immutable Plan, two independent Plays, ${count} delivered cross-Host values.`);
     appendRunEvidence(runner, [
       ["Terminal source receipt", sourceReceipt.receipt.terminal_sign_id],
       ["Terminal sink receipt", terminal.receipt.terminal_sign_id],
     ]);
     finishRun(runner);
   } catch (error) {
+    if (current !== generation) return;
     cancelMultiSessions();
+    setIndicator(runner, false);
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     finishRun(runner);
   }
@@ -967,6 +1017,7 @@ function nextPaint(expectedGeneration) {
 }
 
 function finishRun(runner) {
+  humanInput?.cancelPending();
   activeMemoryLine = null;
   running = false;
   activeRunner = null;
@@ -1007,8 +1058,9 @@ async function runListing(runner, source, recursive) {
   input.set(hostBytes);
   input.set(bootBytes, hostBytes.length);
   input.set(sourceBytes, hostBytes.length + bootBytes.length);
-  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start;
-  const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current));
+  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start_with_presentation;
+  const profile = Number(runner.querySelector(".structured-output-profile")?.value ?? 0);
+  const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current), profile);
   if (code < 0) {
     const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
     runner.playStatus.failure(refusal?.message
@@ -1023,20 +1075,23 @@ async function runListing(runner, source, recursive) {
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
-    while (progress.effect_kind) {
-      if (progress.effect_kind === "timer") {
+    const effects = new Map();
+    let wake = null;
+    const capacity = api.conduit_browser_form_pending_capacity();
+    const perform = async (progress, signal) => {
+      if (progress.effect_kind === "clock-observation") {
+        const bytes = new Uint8Array(8);
+        new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(performance.now() * 1000)), true);
+        return bytes;
+      } else if (progress.effect_kind === "timer") {
         runner.playStatus.ordinary(`Waiting for planned tick · ${progress.duration_millis} ms`);
-        if (!await delay(progress.duration_millis, current)) return;
+        if (!await delay(progress.duration_millis, current, signal)) return;
       } else if (progress.effect_kind === "key-event") {
         runner.playStatus.ordinary("Waiting for one admitted keyboard transition…");
         const event = await humanInput.nextKeyboard();
         if (current !== generation) return;
         const encoded = event.canonical_bytes;
-        new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
-        const completion = api.conduit_browser_form_complete_with_output(encoded.length);
-        if (completion < 0) throw new Error(`keyboard completion refused (${completion})`);
-        progress = readOutput(api);
-        continue;
+        return encoded;
       } else if (progress.effect_kind === "button-transition") {
         runner.querySelector(".input-button").hidden = false;
         runner.playStatus.ordinary("Waiting for one admitted button transition…");
@@ -1052,11 +1107,7 @@ async function runListing(runner, source, recursive) {
           api.conduit_browser_form_output_ptr(),
           api.conduit_browser_form_output_len(),
         ).slice();
-        new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
-        const completion = api.conduit_browser_form_complete_with_output(encoded.length);
-        if (completion < 0) throw new Error(`button completion refused (${completion})`);
-        progress = readOutput(api);
-        continue;
+        return encoded;
       } else if (progress.effect_kind === "manifestation") {
         runner.querySelector(".morse").textContent =
           progress.text ?? renderMorse(progress.segments);
@@ -1075,11 +1126,90 @@ async function runListing(runner, source, recursive) {
       } else {
         throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
       }
+    };
+    while (current === generation) {
+      while (progress.effect_kind) {
+        const effect = progress;
+        const key = JSON.stringify([effect.active_play_id, effect.placement_id,
+          effect.request_sequence ?? effect.observation_sequence]);
+        if (effect.effect_kind === "cancel") {
+          const pending = effects.get(key);
+          if (!pending || pending.effect.effect_kind !== "timer") {
+            throw new Error("kernel cancellation does not name a pending timer");
+          }
+          pending.controller.abort();
+          effects.delete(key);
+          const play = encoder.encode(effect.active_play_id);
+          const placement = encoder.encode(effect.placement_id);
+          const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), play.length + placement.length);
+          input.set(play);
+          input.set(placement, play.length);
+          const result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
+          if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
+          progress = readOutput(api);
+          continue;
+        }
+        if (effects.has(key) || effects.size >= capacity) {
+          throw new Error("browser Host effect identity or capacity violation");
+        }
+        const pending = { key, effect, ready: false, controller: new AbortController() };
+        effects.set(key, pending);
+        const settle = (result) => {
+          Object.assign(pending, result, { ready: true });
+          wake?.();
+          wake = null;
+        };
+        perform(effect, pending.controller.signal).then(
+          (output) => settle({ output }),
+          (error) => settle({ error }),
+        );
+        const poll = api.conduit_browser_form_poll_effect();
+        if (poll < 0) throw new Error(`effect poll refused (${poll})`);
+        progress = readOutput(api);
+      }
+      if (progress.disposition !== "waiting") {
+        if (effects.size) throw new Error("Play completed with platform effects pending");
+        break;
+      }
+      if (!effects.size) throw new Error("Play awaits an absent platform effect");
+      let completed = [...effects.values()].find((effect) => effect.ready);
+      if (!completed) {
+        const pending = [...effects.values()].map(({ effect }) => effect);
+        const timer = pending.find((effect) => effect.effect_kind === "timer");
+        const button = pending.some((effect) => effect.effect_kind === "button-transition");
+        runner.playStatus.ordinary(timer
+          ? `Waiting for planned tick · ${timer.duration_millis} ms${button ? " and button transition" : ""}`
+          : button ? "Waiting for one admitted button transition…"
+            : `Waiting for ${pending.length} admitted Host effect(s)…`);
+        await new Promise((resolve) => { wake = resolve; });
+        if (current !== generation) return;
+        completed = [...effects.values()].find((effect) => effect.ready);
+      }
       if (current !== generation) return;
-      const completion = api.conduit_browser_form_complete();
-      if (completion < 0) throw new Error(`completion refused (${completion})`);
+      effects.delete(completed.key);
+      if (completed.error) throw completed.error;
+      const { effect, output = new Uint8Array() } = completed;
+      const play = encoder.encode(effect.active_play_id);
+      const placement = encoder.encode(effect.placement_id);
+      const total = play.length + placement.length + output.length;
+      if (total > api.conduit_browser_form_input_capacity()) {
+        throw new Error("effect completion exceeds the admitted input bound");
+      }
+      const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
+      bytes.set(play);
+      bytes.set(placement, play.length);
+      bytes.set(output, play.length + placement.length);
+      const completion = api.conduit_browser_form_complete_effect(
+        play.length, placement.length, effect.request_sequence ?? effect.observation_sequence,
+        output.length,
+      );
+      if (completion < 0) {
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
+        throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
+      }
       progress = readOutput(api);
     }
+    if (current !== generation) return;
     runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
       : `Completed — one bounded Play, ${progress.manifestation_completions} planned manifestations.`);
@@ -1093,6 +1223,12 @@ async function runListing(runner, source, recursive) {
     setNavigationDisabled(false);
     runner.actionControls.render(false);
   } catch (error) {
+    if (current !== generation) return;
+    generation += 1;
+    cancelDelay();
+    humanInput?.cancelPending();
+    api.conduit_browser_form_cancel();
+    setIndicator(runner, false);
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     running = false;
     activeRunner = null;
@@ -1190,23 +1326,29 @@ function appendRunEvidence(runner, entries) {
   runner.evidence.appendRun(entries);
 }
 
-function delay(milliseconds, expectedGeneration) {
+function delay(milliseconds, expectedGeneration, signal) {
   return new Promise((resolve) => {
-    const pending = {
-      resolve,
-      timeout: setTimeout(() => {
-        if (activeDelay === pending) activeDelay = null;
-        resolve(expectedGeneration === generation);
-      }, milliseconds),
+    const finish = (accepted) => {
+      clearTimeout(pending.timeout);
+      activeDelays.delete(pending);
+      signal?.removeEventListener("abort", abort);
+      resolve(accepted);
     };
-    activeDelay = pending;
+    const abort = () => finish(false);
+    const pending = {
+      resolve: finish,
+      timeout: setTimeout(() => finish(expectedGeneration === generation), milliseconds),
+    };
+    activeDelays.add(pending);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
   });
 }
 
 function cancelDelay() {
-  if (!activeDelay) return;
-  clearTimeout(activeDelay.timeout);
-  const { resolve } = activeDelay;
-  activeDelay = null;
-  resolve(false);
+  for (const pending of activeDelays) {
+    clearTimeout(pending.timeout);
+    pending.resolve(false);
+  }
+  activeDelays.clear();
 }

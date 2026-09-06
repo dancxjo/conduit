@@ -231,6 +231,7 @@ fn graph_plan(stage: usize) -> Plan {
             placements,
             execution_regions: vec![],
             execution_fusions: vec![],
+            states: Vec::new(),
             connections,
             shared_pools: vec![],
             startup_dependencies: vec![],

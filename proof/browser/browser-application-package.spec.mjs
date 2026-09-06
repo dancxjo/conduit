@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
-import { openTourStep, startTour, startStaticProduct } from "./book-test-server.mjs";
+import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 
 let entrance;
 
@@ -83,10 +83,10 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   const separatedStyles = await page.evaluate(() => {
     const application = globalThis.__conduitBrowserApplication;
     const decode = (role) => new TextDecoder().decode(application.bytes(role));
-    return { book: decode("tour-style"), flow: decode("patchbay-flow-style") };
+    return { tour: decode("tour-style"), flow: decode("patchbay-flow-style") };
   });
-  expect(separatedStyles.book).not.toContain(".flow-faceplate header");
-  expect(separatedStyles.book).not.toContain(".react-flow__edge-path");
+  expect(separatedStyles.tour).not.toContain(".flow-faceplate header");
+  expect(separatedStyles.tour).not.toContain(".react-flow__edge-path");
   expect(separatedStyles.flow).toContain(".flow-faceplate header");
   expect(separatedStyles.flow).toContain(".react-flow__edge.animated");
   const runnerStatus = page.locator('[data-application-key="play-status"]');
@@ -113,11 +113,11 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   }
 });
 
-test("Tour migrates the finite legacy Tour reading state without changing its compatibility identity", async ({ page }) => {
+test("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   const legacy = {
-    schema: "conduit.tour/reading-state@1",
+    schema: "conduit.book/reading-state@1",
     drafts: [["runner-0", "legacy draft"]],
     expandedBacks: ["same-morse-caller/morse"],
   };
@@ -433,10 +433,25 @@ test("browser Host refuses changed resource bytes before launch", async ({ page 
 });
 
 test("browser Host refuses a changed aggregate package identity before launch", async ({ page }) => {
-  await mutatePackage(page, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
+  const resourceUrls = new Set();
+  const requestedResources = [];
+  await page.route("**/*", async (route) => {
+    if (resourceUrls.has(route.request().url())) {
+      requestedResources.push(route.request().url());
+      await route.abort();
+    } else {
+      await route.fallback();
+    }
+  });
+  await mutatePackage(page, (manifest) => {
+    for (const resource of manifest.resources) resourceUrls.add(new URL(resource.path, entrance.url).href);
+    manifest.package_digest = `sha256:${"0".repeat(64)}`;
+  });
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser application refused");
   await expect(page.locator("#chapter")).toHaveText("application package identity changed");
+  expect(requestedResources).toEqual([]);
+  expect(await page.evaluate(() => globalThis.__conduitTourHost)).toBeUndefined();
 });
 
 test("selected durable storage keeps scopes, lifecycle, and refusal states exact", async ({ page }) => {

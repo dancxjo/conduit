@@ -6,6 +6,7 @@ impl InstalledOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
             Self::KeyboardInput(_) => 0,
+            Self::ButtonInput(operation) => operation.allocation_capacity(),
             Self::Tick(operation) => operation.allocation_capacity(),
             Self::PulseObserve(operation) => operation.allocation_capacity(),
             Self::TimeDebounce(operation) => operation.allocation_capacity(),

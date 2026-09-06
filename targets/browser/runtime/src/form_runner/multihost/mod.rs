@@ -7,3 +7,6 @@ mod session;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod button_tests;

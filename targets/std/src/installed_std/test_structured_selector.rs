@@ -95,8 +95,8 @@ impl SourceOperation {
 }
 
 pub(super) struct SinkOperation {
-    expected: Vec<u8>,
-    received: bool,
+    expected: Vec<Vec<Vec<u8>>>,
+    received: usize,
 }
 
 impl SinkOperation {
@@ -105,16 +105,22 @@ impl SinkOperation {
     }
 
     pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        if port != PortId(0) || self.received || canonical != self.expected {
+        if port != PortId(0)
+            || !self.expected.get(self.received).is_some_and(|choices| {
+                choices
+                    .iter()
+                    .any(|expected| expected.as_slice() == canonical)
+            })
+        {
             return InstalledOperation::fail(150);
         }
-        self.received = true;
+        self.received += 1;
         OperationAction::Await
     }
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::Closed { port: PortId(0) } if self.received => {
+            OperationInput::Closed { port: PortId(0) } if self.received == self.expected.len() => {
                 OperationAction::Complete
             }
             _ => InstalledOperation::fail(151),
@@ -254,22 +260,33 @@ fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    let expected = configured_value(placement)?
-        .canonical_bytes()
-        .map_err(|error| format!("value: {error:?}"))?;
+    let expected = if let [ConfigurationEntry {
+        key,
+        value: ConfigurationValue::Text(encoded),
+    }] = placement.configuration.as_slice()
+    {
+        if key == "choices" {
+            encoded
+                .split(',')
+                .map(|row| row.split('|').map(unhex).collect::<Result<Vec<_>, _>>())
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            configured_values(placement)?
+                .into_iter()
+                .map(|value| vec![value])
+                .collect()
+        }
+    } else {
+        return Err("structured sink fixture configuration is malformed".into());
+    };
+    for value in expected.iter().flatten() {
+        StructuredInfoValue::from_canonical_bytes(value)
+            .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
+    }
     Ok(InstalledOperation::TestStructuredSink(SinkOperation {
         expected,
-        received: false,
+        received: 0,
     }))
-}
-
-fn configured_value(placement: &PlannedGear) -> Result<StructuredInfoValue, String> {
-    let values = configured_values(placement)?;
-    let [value] = values.as_slice() else {
-        return Err("structured sink requires one value".into());
-    };
-    StructuredInfoValue::from_canonical_bytes(value)
-        .map_err(|error| format!("structured fixture refusal: {error:?}"))
 }
 
 fn configured_values(placement: &PlannedGear) -> Result<Vec<Vec<u8>>, String> {
@@ -282,6 +299,7 @@ fn configured_values(placement: &PlannedGear) -> Result<Vec<Vec<u8>>, String> {
     match entry.key.as_str() {
         "value" => Ok(vec![unhex(encoded)?]),
         "values" => encoded.split(',').map(unhex).collect(),
+        "choices" => encoded.split([',', '|']).map(unhex).collect(),
         _ => Err("structured fixture value is malformed".into()),
     }
 }

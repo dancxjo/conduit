@@ -45,14 +45,16 @@ mod installed_browser;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+pub mod resource_snapshot;
+pub use installed_browser::resource::advertisement as snapshot_advertisement;
 #[cfg(any(
     feature = "form-runner",
-    feature = "book-surface",
+    feature = "tour-surface",
     feature = "creche-surface"
 ))]
 mod source_interaction;
 mod structured_offers;
-#[cfg(any(feature = "book-surface", feature = "creche-surface"))]
+#[cfg(any(feature = "tour-surface", feature = "creche-surface"))]
 mod syntax_projection;
 mod text_lab_live;
 pub mod text_lab_split;

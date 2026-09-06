@@ -151,7 +151,7 @@ fn build(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
     let linker = loongarch64_a0::rust_lld(&paths.root)?;
     let script = paths
         .root
-        .join("targets/conduitos/proof-appliances/loongarch64/linker/a2.ld");
+        .join("targets/conduitos/proof/appliances/loongarch64/linker/a2.ld");
     let rustflags = format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display());
     let mut command = Command::new("cargo");
     command

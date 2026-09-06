@@ -11,7 +11,7 @@ use conduit_core::{
 };
 use conduit_planner::BROWSER_PLANNER_PROFILE;
 
-pub(crate) const BOOK_LOCAL_BASE: &str = "conduit.base/local@1";
+pub(crate) const TOUR_LOCAL_BASE: &str = "conduit.base/local@1";
 pub(crate) struct BrowserManifestation {
     pub kind_id: &'static str,
     pub canonical_value: Vec<u8>,
@@ -36,6 +36,10 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::pattern_comparison::INSTALLATION,
+    &super::button_attempt::INSTALLATION,
+    &super::timing::INTERVALS,
+    &super::timing::NORMALIZE,
     &super::json::ENCODE,
     &super::json::DECODE,
     &super::json::COLLECTION,
@@ -170,69 +174,27 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     .selected_fabrication_ids()
 }
 
-pub(crate) fn catalogs(
-) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
-    catalogs_for_presentation(false)
-}
-
-pub(crate) fn catalogs_with_quantity_presentation(
-) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
-    catalogs_for_presentation(true)
-}
-
-fn catalogs_for_presentation(
-    quantity: bool,
-) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
-    conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
-    conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
-    if quantity {
-        conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
-        quantity_output::install_catalogs(&mut startup, &mut profile)?;
-    } else {
-        linguistics::install_catalogs(&mut startup, &mut profile)?;
-    }
-    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
-    super::pointer_selector::install_types(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
-    conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
-    startup.insert(conduit_form::KindSignature {
-        kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
-    })?;
-    conduit_semantic_catalog::install_bool_presentation_catalog(&mut profile)?;
-    Ok((startup, profile))
-}
-
-pub(crate) fn backs(
-    startup: &conduit_form::StartupCatalog,
-    profile: &conduit_form::ProfileCatalog,
-) -> Result<conduit_form::CanonicalBackCatalog, String> {
-    let mut backs = conduit_form::CanonicalBackCatalog::new();
-    conduit_text::install_morse_backs(startup, profile, &mut backs)?;
-    Ok(backs)
-}
+pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
 
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
+        return Some(resource);
+    }
     #[cfg(test)]
     if let Some(fixture) = super::test_json::factory(implementation_id.as_str()) {
         return Some(fixture);
+    }
+    #[cfg(test)]
+    if implementation_id.as_str() == super::test_timing_sink::KIND {
+        return Some(&super::test_timing_sink::SINK);
+    }
+    if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
+        return Some(&super::comparison_presentation::PRESENTATION);
+    }
+    if implementation_id.as_str() == super::normalized_presentation::IMPLEMENTATION {
+        return Some(&super::normalized_presentation::PRESENTATION);
     }
     if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
         return Some(&quantity_output::PRESENTATION);
@@ -252,15 +214,24 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
     )
 }
 
-pub(crate) fn advertisement_with_quantity_presentation(
+pub(crate) fn advertisement_for_presentation(
     host_id: HostId,
     boot_id: BootId,
+    profile: super::PresentationProfile,
 ) -> HostAdvertisement {
     let mut host = advertisement(host_id, boot_id);
+    if profile == super::PresentationProfile::Annotation {
+        return host;
+    }
     host.capabilities.retain(|offer| {
         offer.kind_id.as_str() != conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
     });
-    let mut presenter = quantity_output::presentation_offer();
+    let mut presenter = match profile {
+        super::PresentationProfile::Quantity => quantity_output::presentation_offer(),
+        super::PresentationProfile::PatternComparison => super::comparison_presentation::offer(),
+        super::PresentationProfile::NormalizedDurations => super::normalized_presentation::offer(),
+        super::PresentationProfile::Annotation => unreachable!(),
+    };
     presenter.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     host.capabilities.push(presenter);
     host.capabilities
@@ -308,6 +279,7 @@ pub(crate) fn advertisement_for_machinery(
         ));
     }
     resources.push(resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1));
+    super::button_attempt::admit_clock_resource(&mut resources);
     if machinery.keyboard || machinery.pointer {
         resources.push(resource_offer(
             "browser/window-input",
@@ -346,7 +318,7 @@ pub(crate) fn advertisement_for_machinery(
 }
 
 pub(crate) fn local_bases() -> [BaseImplementationId; 1] {
-    [BaseImplementationId::from(BOOK_LOCAL_BASE)]
+    [BaseImplementationId::from(TOUR_LOCAL_BASE)]
 }
 
 pub(super) fn validate_placement(
