@@ -51,7 +51,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             ".github/workflows/check.yml",
         ],
         consumed_artifacts: &[],
-        environment: "ubuntu-stable-rust-v1",
+        environment: "ubuntu-rust-1.98.1-v1",
         applicability: Applicability::CandidateAndIntegration,
         command: "cargo xtask check workspace-test-products --locked",
     },

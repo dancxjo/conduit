@@ -164,6 +164,20 @@ identity, and digest mismatch fail immediately. The machine-readable transport
 record keeps a retry distinct from proof success, and no fallback rebuild can
 manufacture supposedly equivalent bytes.
 
+## Exact generic Rust toolchain
+
+`rust-toolchain.toml` owns the reviewed generic Rust compiler, Clippy, and
+rustfmt identity used by repository development and CI. Generic Actions setup
+and any explicit Cargo toolchain selector name that exact version; neither may
+resolve the moving `stable` channel independently. Target-specific toolchains,
+such as the separately named ESP Xtensa installation, remain distinct.
+
+The exact generic version participates in the proof registry environment
+identity. Updating it is therefore an intentional proof-contract change: the
+affected proof keys change and current lint/test evidence is regenerated. A
+candidate cannot acquire a new warning merely because the upstream `stable`
+pointer moved between local proof and GitHub execution.
+
 ## Bounded run observation
 
 Use `cargo xtask ci monitor RUN_ID...` when shepherding Actions runs. The

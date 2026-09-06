@@ -88,7 +88,7 @@ jobs:
           BASE_SHA: ${{ steps.changes.outputs.comparison_base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         if: steps.changes.outputs.docs_only != 'true'
       - name: Plan exact CI impact
         id: impact
@@ -294,7 +294,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown,thumbv6m-none-eabi
       - uses: Swatinem/rust-cache@v2
@@ -322,7 +322,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Materialize the trusted CI controller outside the candidate workspace
         if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         env:
@@ -359,7 +359,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
       - name: Install the pinned ESP32-C3 Rust toolchain
         if: matrix.target == 'c3'
         uses: dtolnay/rust-toolchain@1.91.1
@@ -400,9 +400,9 @@ jobs:
           shared-key: esp32-${{ matrix.target }}-v4
       - name: Check the locked standalone fabrication package
         if: matrix.target == 'wroom'
-        run: cargo +stable xtask esp32-firmware check --locked
+        run: cargo +1.98.1 xtask esp32-firmware check --locked
       - name: Build the exact ESP32 firmware image
-        run: cargo +stable xtask esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
+        run: cargo +1.98.1 xtask esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
       - name: Retain the machine-only check receipt
         uses: actions/upload-artifact@v7
         with:
@@ -593,7 +593,7 @@ jobs:
           expected-digest: ${{ needs.browser-tools.outputs.artifact_digest }}
       - name: Install the exact browser-tool bundle without mirror access
         run: scripts/ci/browser-tools.sh install target/browser-tools/tool-bundle
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
@@ -656,7 +656,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -710,9 +710,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         if: matrix.proof == 'xhci' || matrix.proof == 'usb' || matrix.proof == 'hid' || matrix.proof == 'keyboard' || matrix.proof == 'rescue'
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         if: matrix.proof == 'kernel' || matrix.proof == 'front-door' || matrix.proof == 'product-journey'
         with:
           components: rust-src
@@ -786,7 +786,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
@@ -830,7 +830,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           components: rust-src
           targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
