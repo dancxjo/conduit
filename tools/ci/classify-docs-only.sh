@@ -28,6 +28,11 @@ done < <(git diff --name-only -z --diff-filter=ACDMRTUXB "$comparison_base_sha" 
 ((${#paths[@]} > 0)) || full "empty-change-set"
 for path in "${paths[@]}"; do
   [[ "$path" == *.md ]] || full "non-markdown-change"
+  # A newly tracked source-owner path needs the structural ownership guard,
+  # even when its only content is Markdown. Existing documentation stays cheap.
+  if [[ "$path" != docs/* ]] && ! git cat-file -e "$comparison_base_sha:$path" 2>/dev/null; then
+    full "new-source-owner-markdown"
+  fi
 done
 
 if git cat-file -e "$head_sha:docs/visual-evidence.md" 2>/dev/null; then
