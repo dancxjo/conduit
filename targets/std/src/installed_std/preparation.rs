@@ -120,6 +120,10 @@ pub(super) fn prepare_ordinary_operation(
 #[path = "preparation_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "body_workload_tests.rs"]
+mod body_workload_tests;
+
 pub(crate) fn lower_fragment_with_continuity(
     fragment: &PlanFragment,
     continuity: bool,
