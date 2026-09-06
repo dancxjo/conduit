@@ -490,3 +490,7 @@ pub use template_storage_operation::TemplateStorageOperation;
 mod template_store;
 #[cfg(feature = "form-catalog")]
 pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
+#[cfg(feature = "kernel-operation")]
+mod final_pattern_operation;
+#[cfg(feature = "kernel-operation")]
+pub use final_pattern_operation::FinalNormalizedPatternOperation;
