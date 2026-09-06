@@ -76,7 +76,7 @@ impl PatchbayHtmlServer {
                         .iter()
                         .any(|fragment| &fragment.host_id == leaving_host)
                 });
-                if selected {
+                if selected && planning.wake().lifecycle != conduit_body::WakeLifecycle::Lulled {
                     planning
                         .mark_current_unsatisfied(SignId::from(format!(
                             "patchbay-html/body-membership/{}/wake-unsatisfied",

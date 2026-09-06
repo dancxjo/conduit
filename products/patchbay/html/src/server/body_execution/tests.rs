@@ -79,6 +79,28 @@ fn claim_report_and_terminal_update_one_exact_snapshot_atomically() {
         serde_json::from_slice::<Value>(&server.encoded_snapshot).unwrap()["body_planning"],
         serde_json::to_value(snapshot).unwrap()
     );
+    let lull = request(json!({"kind": "Lull", "wake_id": wake.wake_id}));
+    server.apply_body_execution(&lull).unwrap();
+    let retained: conduit_body::BodyBiographyEvidence =
+        serde_json::from_slice(&server.current_body_evidence().unwrap()).unwrap();
+    assert_eq!(retained.body.state, conduit_body::BodyState::Lulled);
+    assert_eq!(
+        retained.wakes[0].lifecycle,
+        conduit_body::WakeLifecycle::Lulled
+    );
+    assert_eq!(
+        server
+            .body_planning
+            .as_ref()
+            .unwrap()
+            .snapshot()
+            .execution_claims[0]
+            .play,
+        claim.play
+    );
+    let before = server.encoded_snapshot.clone();
+    assert!(server.apply_body_execution(&lull).is_err());
+    assert_eq!(server.encoded_snapshot, before);
 }
 
 #[test]

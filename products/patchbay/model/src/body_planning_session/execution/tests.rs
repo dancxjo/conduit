@@ -35,6 +35,45 @@ fn claim(session: &mut BodyPlanningSession) -> BodyExecutionClaim {
         .unwrap()
 }
 
+#[test]
+fn explicit_lull_requires_terminal_accounting_and_next_wake_preserves_history() {
+    let mut session = proposal();
+    let old_plan = session.current_plan().clone();
+    let claimed = claim(&mut session);
+    let before = session.snapshot();
+    assert_eq!(
+        session.lull("sign/lull".into(), "sign/retained".into()),
+        Err(BodyPlanningSessionError::OutstandingExecution)
+    );
+    assert_eq!(session.snapshot(), before);
+    let running = started(&session, &claimed);
+    session
+        .report_execution_started(&claimed.play, &running)
+        .unwrap();
+    assert_eq!(
+        session.lull("sign/lull".into(), "sign/retained".into()),
+        Err(BodyPlanningSessionError::OutstandingExecution)
+    );
+    session
+        .report_execution_terminal(&claimed.play, "completed", &sign(&claimed, 2))
+        .unwrap();
+    assert_eq!(session.wake().lifecycle, WakeLifecycle::Playing);
+    session
+        .lull("sign/lull".into(), "sign/retained".into())
+        .unwrap();
+    assert_eq!(session.wake().lifecycle, WakeLifecycle::Lulled);
+    let body = session.body().clone();
+    session
+        .prepare_next_wake(&body, 2, "sign/next-wake".into(), old_plan.forms.clone())
+        .unwrap();
+    assert_ne!(session.current_plan().plan_id, old_plan.plan_id);
+    assert_eq!(session.plan(&old_plan.plan_id), Some(&old_plan));
+    assert_eq!(session.snapshot().execution_claims[0].play, claimed.play);
+    let next = claim(&mut session);
+    assert_eq!(next.play.play_sequence, 2);
+    assert_ne!(next.play.active_play_id, claimed.play.active_play_id);
+}
+
 fn sign(claim: &BodyExecutionClaim, sequence: u64) -> SignId {
     bind_sign(
         &claim.host_id,

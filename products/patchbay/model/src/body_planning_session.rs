@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::FormCandidate;
 
+mod continuity;
 mod execution;
 pub use execution::{BodyExecutionClaim, BodyExecutionClaimError, BodyExecutionPhase};
 
@@ -57,6 +58,8 @@ pub enum BodyPlanningSessionError {
     Plan(BodyPlanError),
     MissingUnsatisfiedSign,
     StaleCurrentPlan,
+    OutstandingExecution,
+    ExecutionTerminationAbsent,
     MissingForm,
     InvalidForm(String),
     Planning(String),

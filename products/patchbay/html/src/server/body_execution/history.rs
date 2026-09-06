@@ -9,7 +9,9 @@ pub(in crate::server) fn retain(
     planning: &BodyPlanningSession,
 ) -> Result<(PatchbayBodyWorkloadSession, RendererSnapshot), ServerError> {
     let evidence = session.evidence();
-    if &evidence.body == planning.body()
+    if (&evidence.body == planning.body()
+        || (planning.wake().lifecycle == conduit_body::WakeLifecycle::Lulled
+            && evidence.body.events.starts_with(&planning.body().events)))
         && evidence.wakes.iter().any(|wake| wake == planning.wake())
     {
         return Ok((session.clone(), prior.clone()));

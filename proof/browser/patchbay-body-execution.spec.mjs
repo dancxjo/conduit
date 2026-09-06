@@ -96,6 +96,7 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   expect(claim.play.plan_id).toBe(proposed.body_planning.current_plan_id);
   expect(claim.play.body_id).toBe(initial.body_workbench.body_id);
   expect(claim.started_reported).toBe(true);
+  await expect(page.locator("#body-workbench-action")).toBeDisabled();
   await expect(page.locator("#body-execution-output output")).toHaveCount(3);
   const competing = await page.request.post(new URL("/api/body-execution", page.url()).href, { data: {
     schema: "conduit.patchbay/body-execution-request@1",
@@ -118,6 +119,35 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   expect(evidence.receipt.active_play_id).toBe(claim.play.active_play_id);
   expect(evidence.receipt.manifestation_completions).toBe(7);
   expect(evidence.receipt.timer_completions).toBe(4);
+  await page.locator("#body-workbench-action").click();
+  await expect(page.locator("#body-workbench-action")).toHaveText("Wake");
+  const lulled = await snapshot(page);
+  expect(lulled.body_planning.lifecycle).toBe("Lulled");
+  const closedHistory = JSON.parse(Buffer.from(lulled.body_workbench.encoded_evidence).toString("utf8"));
+  expect(closedHistory.wakes[0].lifecycle).toBe("Lulled");
+  const active = page.locator('#body-workbench-forms [data-application-component="artifact"]');
+  await active.filter({ hasText: "Button to Indicator" }).getByRole("button", { name: "Remove from Body", exact: true }).click();
+  await expect(active).toHaveCount(2);
+  await page.locator('#body-workbench-available [data-application-component="artifact"]').filter({ hasText: "Button to Indicator" }).getByRole("button", { name: "Add to Body", exact: true }).click();
+  await expect(active).toHaveCount(3);
+  await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+  await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
+  await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+  await expect.poll(async () => (await snapshot(page)).body_planning.wake_id).not.toBe(running.body_planning.wake_id);
+  const next = await snapshot(page);
+  expect(next.body_workbench.body_id).toBe(initial.body_workbench.body_id);
+  expect(next.body_planning.historical_plan_ids[0]).toBe(claim.play.plan_id);
+  const nextHistory = JSON.parse(Buffer.from(next.body_workbench.encoded_evidence).toString("utf8"));
+  expect(nextHistory.wakes).toHaveLength(2);
+  expect(nextHistory.wakes[0]).toEqual(closedHistory.wakes[0]);
+  await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play running");
+  const second = await snapshot(page);
+  expect(second.body_planning.execution_claims).toHaveLength(2);
+  expect(second.body_planning.execution_claims[0].play).toEqual(claim.play);
+  expect(second.body_planning.execution_claims[1].play.play_sequence).toBe(2);
+  await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled");
   expect(errors).toEqual([]);
 });
 

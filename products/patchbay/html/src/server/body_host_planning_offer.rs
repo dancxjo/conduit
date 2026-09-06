@@ -113,8 +113,15 @@ impl PatchbayHtmlServer {
         };
         let next_planning = if let Some(current) = &self.body_planning {
             let mut next = current.clone();
-            next.replace_proposal(forms)
-                .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
+            if current.wake().lifecycle == conduit_body::WakeLifecycle::Lulled {
+                next.prepare_next_wake(&biography.body, sequence, sign("wake"), forms)
+                    .map_err(|error| {
+                        ServerError::Interaction(format!("Body next Wake: {error:?}"))
+                    })?;
+            } else {
+                next.replace_proposal(forms)
+                    .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
+            }
             next
         } else {
             patchbay_model::BodyPlanningSession::prepare(

@@ -21,6 +21,9 @@ struct ExecutionRequest {
 #[derive(Deserialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
 enum ExecutionAction {
+    Lull {
+        wake_id: conduit_body::WakeId,
+    },
     Claim {
         plan_id: PlanId,
         host_id: HostId,
@@ -61,6 +64,26 @@ impl PatchbayHtmlServer {
             .clone()
             .ok_or_else(|| ServerError::Interaction("BodyProposalAbsent".into()))?;
         let report = match request.action {
+            ExecutionAction::Lull { wake_id } => {
+                if planning.wake().wake_id != wake_id {
+                    return Err(ServerError::Interaction("BodyLullStaleWake".into()));
+                }
+                let sequence = self
+                    .snapshot
+                    .interaction
+                    .revision
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ServerError::Interaction("BodyExecutionRevisionExhausted".into())
+                    })?;
+                planning
+                    .lull(
+                        SignId::from(format!("patchbay-html/body-lull/{sequence}/wake")),
+                        SignId::from(format!("patchbay-html/body-lull/{sequence}/retained")),
+                    )
+                    .map_err(|error| ServerError::Interaction(format!("BodyLull{error:?}")))?;
+                Ok(())
+            }
             ExecutionAction::Claim {
                 plan_id,
                 host_id,
