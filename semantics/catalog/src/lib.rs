@@ -486,5 +486,7 @@ pub use pattern_comparison_operation::PatternComparisonOperation;
 mod template_storage_operation;
 #[cfg(feature = "kernel-operation")]
 pub use template_storage_operation::TemplateStorageOperation;
+#[cfg(feature = "form-catalog")]
 mod template_store;
+#[cfg(feature = "form-catalog")]
 pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
