@@ -67,7 +67,7 @@ impl Operation for InstalledOperation {
             Self::VectorSearch(operation) => operation.start(),
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
-            Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.start(),
+            Self::Json(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
             Self::StructuredPresentation(operation) => operation.start(),
@@ -184,9 +184,7 @@ impl Operation for InstalledOperation {
             (Self::VectorSearch(operation), input) => operation.resume(input),
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
-            (Self::JsonEncode(operation), input) | (Self::JsonDecode(operation), input) => {
-                operation.resume(input)
-            }
+            (Self::Json(operation), input) => operation.resume(input),
             (Self::StructuredSelector(operation), input) => operation.resume(input),
             (Self::StructuredLiteral(_), _) => Self::fail(153),
             (Self::StructuredPresentation(operation), input) => operation.resume(input),
@@ -304,7 +302,7 @@ impl Operation for InstalledOperation {
             Self::TextUpper(_) => OperationAction::Await,
             Self::TextJoin(_) => OperationAction::Await,
             Self::TextPresentation(_) => OperationAction::Await,
-            Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.advance(),
+            Self::Json(operation) => operation.advance(),
             Self::StructuredSelector(operation) => operation.advance(),
             Self::StructuredLiteral(operation) => operation.advance(),
             Self::StructuredPresentation(_) => OperationAction::Await,

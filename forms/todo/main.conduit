@@ -1,0 +1,29 @@
+# Task records are application data: { "complete": Boolean, "text": Text }.
+# State evolution uses the ordinary bounded collection contract. The request
+# carries the prior collection and one explicit command; no Host owns edits.
+form todo/state-step (
+    request: value/json@1 > tasks: value/json@1
+) {
+    edit: json/collection-step
+    request > edit.value
+    edit.value > tasks
+}
+
+# The same portable JSON waist supplies bounded persisted-state encoding.
+form todo/snapshot (
+    tasks: value/json@1 > snapshot: text/json-utf8@1
+) {
+    encode: json/encode
+    tasks > encode.value
+    encode.value > snapshot
+}
+
+form todo/command-snapshot (
+    request: value/json@1 > snapshot: text/json-utf8@1
+) {
+    update: todo/state-step
+    persistable: todo/snapshot
+    request > update.request
+    update.tasks > persistable.tasks
+    persistable.snapshot > snapshot
+}

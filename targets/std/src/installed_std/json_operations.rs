@@ -7,6 +7,10 @@ use conduit_kernel::{
 use conduit_web::{JsonRefusal, JsonValue};
 use std::vec::Vec;
 
+#[cfg(test)]
+#[path = "json_collection_tests.rs"]
+mod collection_tests;
+
 pub(super) struct JsonHost {
     output: Vec<u8>,
 }
@@ -18,12 +22,12 @@ impl JsonHost {
         }
     }
 
-    pub(super) fn execute<'a>(
-        &'a mut self,
-        contract: &str,
-        input: &[u8],
-    ) -> Result<&'a [u8], JsonRefusal> {
-        let encoded = transform(contract, input)?;
+    pub(super) fn execute<'a>(&'a mut self, contract: &str, input: &[u8]) -> Result<&'a [u8], u16> {
+        let encoded = if contract == conduit_std_offers::JSON_COLLECTION_STEP_HOST_OPERATION {
+            conduit_web::json_collection_step_bytes(input).map_err(collection_failure_detail)?
+        } else {
+            transform(contract, input).map_err(|error| error as u16)?
+        };
         self.output.clear();
         self.output.extend_from_slice(&encoded);
         Ok(&self.output)
@@ -156,7 +160,7 @@ fn prepare_encode(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     encode_budget(placement)?;
-    Ok(InstalledOperation::JsonEncode(JsonOperation {
+    Ok(InstalledOperation::Json(JsonOperation {
         pending: None,
         next: 0,
     }))
@@ -166,7 +170,54 @@ fn prepare_decode(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     decode_budget(placement)?;
-    Ok(InstalledOperation::JsonDecode(JsonOperation {
+    Ok(InstalledOperation::Json(JsonOperation {
+        pending: None,
+        next: 0,
+    }))
+}
+
+fn collection_failure_detail(error: conduit_web::JsonCollectionRefusal) -> u16 {
+    use conduit_web::JsonCollectionRefusal::*;
+    match error {
+        InvalidRequest => 100,
+        InvalidCollection => 101,
+        InvalidCommand => 102,
+        UnknownOperation => 103,
+        InvalidIndex => 104,
+        MissingIndex => 105,
+        MissingField => 106,
+        NotBoolean => 107,
+        CollectionFull => 108,
+        InvalidValue(error) => error as u16,
+    }
+}
+
+pub(super) fn matches(contract: &str) -> bool {
+    matches!(
+        contract,
+        conduit_std_offers::JSON_ENCODE_HOST_OPERATION
+            | conduit_std_offers::JSON_DECODE_HOST_OPERATION
+            | conduit_std_offers::JSON_COLLECTION_STEP_HOST_OPERATION
+    )
+}
+
+pub(super) static JSON_COLLECTION_STEP_FACTORY: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::JSON_COLLECTION_STEP_STD_IMPLEMENTATION,
+    budget: collection_budget,
+    prepare: prepare_collection,
+};
+fn collection_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+    budget(
+        placement,
+        conduit_std_offers::json_collection_step_std_offer(),
+    )
+}
+fn prepare_collection(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    collection_budget(placement)?;
+    Ok(InstalledOperation::Json(JsonOperation {
         pending: None,
         next: 0,
     }))

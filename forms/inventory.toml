@@ -236,6 +236,7 @@ deterministic = { package = "conduit-semantic-catalog", test = "scheduling_forms
 slug = "secret-knock"
 title = "Secret Knock"
 entry = "secret-knock"
+reusable_entries = [{ entry = "normalize-durations", title = "Relative Duration Normalization", composition = { parent = "secret-knock", occurrences = ["normalize"] } }]
 deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "secret_knock_form", case = "canonical_secret_knock_is_a_host_free_composition_of_reusable_forms" }
 [[forms]]
 slug = "signal-demo"
@@ -264,6 +265,16 @@ deterministic = { package = "conduit-std-host", test = "tabular_forms", case = "
 slug = "text-lab"
 title = "Text Lab"
 entry = "text-lab"
+[[forms]]
+slug = "todo"
+title = "Todo State Slice"
+entry = "todo/command-snapshot"
+reusable_entries = [
+  { entry = "todo/state-step", title = "Todo State Step", composition = { parent = "todo/command-snapshot", occurrences = ["update"] } },
+  { entry = "todo/snapshot", title = "Todo Snapshot", composition = { parent = "todo/command-snapshot", occurrences = ["persistable"] } },
+]
+deterministic_not_applicable = "production-kernel fixture proof is cargo xtask check todo-state; this inventory runner requires an integration-test oracle"
+browser_safe_not_applicable = "state-transition slice has no admitted browser input, persistent Resource, or presentation realization"
 [[forms]]
 slug = "tongues-bidirectional-inference"
 title = "Tongues Bidirectional Inference"

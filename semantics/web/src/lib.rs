@@ -14,5 +14,7 @@ pub use contract::PortableKindContract;
 pub use http::*;
 mod json;
 pub use json::*;
+mod json_collection;
+pub use json_collection::*;
 mod json_value;
 pub use json_value::*;

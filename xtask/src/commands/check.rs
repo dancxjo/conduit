@@ -1,6 +1,9 @@
 use clap::{Args, ValueEnum};
 use std::collections::BTreeSet;
 
+#[path = "../suites/todo.rs"]
+mod todo;
+
 use crate::{
     cli::GlobalOpts,
     process::{run_step, run_step_with_arguments, run_suite, Step, StepError},
@@ -41,6 +44,8 @@ pub enum CheckSuite {
     SemanticCatalog,
     /// Execute authored quantity mappings through the std production kernel and presentation.
     QuantityMapping,
+    /// Prove bounded Todo state transitions and recursive Form execution.
+    TodoState,
     InputSemantics,
     All,
 }
@@ -76,6 +81,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
+        CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::All => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;

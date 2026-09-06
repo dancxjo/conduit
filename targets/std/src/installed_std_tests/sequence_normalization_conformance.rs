@@ -25,13 +25,42 @@ fn reusable_normalization_form_executes_outside_secret_knock_without_play_alloca
     let sink_offer = fixture_offer(&normalized, PortDirection::Input);
     let (startup, profile) = catalogs(&intervals, &normalized, &source_offer, &sink_offer);
     let source = format!(
-        "form normalize-durations (\n    > intervals: IntervalSequence\n    normalized: NormalizedDurationSequence >\n) {{\n    normalize: sequence/normalize-relative-duration\n    intervals > normalize.intervals\n    normalize.normalized > normalized\n}}\nform protocol-cadence-proof {{\n    intervals: {SOURCE_KIND}(value = \"{}\")\n    normalize: normalize-durations\n    result: {SINK_KIND}(value = \"{}\")\n    intervals.output > normalize.intervals\n    normalize.normalized > result.input\n}}\n",
+        "{}\nform protocol-cadence-proof {{\n    intervals: {SOURCE_KIND}(value = \"{}\")\n    normalize: normalize-durations\n    result: {SINK_KIND}(value = \"{}\")\n    intervals.output > normalize.intervals\n    normalize.normalized > result.input\n}}\n",
+        include_str!("../../../../forms/secret-knock/main.conduit"),
         hex(&intervals.canonical_bytes().unwrap()),
         hex(&normalized.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let canonical = check_syntax_document(
+        &parse_syntax_document(include_str!("../../../../forms/secret-knock/main.conduit")),
+        &startup,
+    )
+    .unwrap();
+    let canonical_normalize = canonical
+        .forms
+        .iter()
+        .find(|form| form.name == "normalize-durations")
+        .unwrap();
+    let consumed_normalize = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "normalize-durations")
+        .unwrap();
+    assert_eq!(
+        canonical_normalize.checked_form_id,
+        consumed_normalize.checked_form_id
+    );
+    let consumer = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "protocol-cadence-proof")
+        .unwrap();
+    assert!(consumer
+        .gears
+        .iter()
+        .any(|gear| gear.kind == "normalize-durations"));
     let expanded = expand_canonical_form(&checked, "protocol-cadence-proof", &profile).unwrap();
     assert!(expanded.gears.iter().any(|gear| {
         gear.kind_id.as_str() == conduit_semantic_catalog::NORMALIZE_SEQUENCE_KIND
@@ -101,9 +130,7 @@ fn catalogs(
 ) -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)
-        .unwrap();
+    super::timing_form_catalogs::install_catalogs(&mut startup, &mut profile);
     for (kind, value, offer) in [
         (SOURCE_KIND, input, source_offer),
         (SINK_KIND, output, sink_offer),

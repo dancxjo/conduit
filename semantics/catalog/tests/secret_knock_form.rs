@@ -47,6 +47,21 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_forms() {
     assert_eq!(syntax.round_trip(), SOURCE);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let namesake = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "secret-knock")
+        .unwrap();
+    assert!(namesake.gears.iter().any(|gear| {
+        gear.name.as_deref() == Some("normalize") && gear.kind == "normalize-durations"
+    }));
+    let reusable = expand_canonical_form_for_authoring(&checked, "normalize-durations", &profile)
+        .expect("the canonical normalization Face expands independently");
+    assert_eq!(reusable.expanded.gears.len(), 1);
+    assert_eq!(
+        reusable.expanded.gears[0].kind_id.as_str(),
+        conduit_semantic_catalog::NORMALIZE_SEQUENCE_KIND
+    );
     for selector in checked
         .forms
         .iter()

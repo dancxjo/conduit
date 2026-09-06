@@ -722,3 +722,5 @@ form count-demo {
         kernel.value_allocation_capacity_after
     );
 }
+
+mod timing_form_catalogs;
