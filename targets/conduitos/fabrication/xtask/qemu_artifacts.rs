@@ -162,6 +162,7 @@ mod tests {
             Artifacts::new(directory.clone(), serial.clone(), json!({"fixture":true})).unwrap();
         fs::write(&serial, "CONDUIT_BOOT_STAGE front-door-ready\n").unwrap();
         let (mut client, mut server) = UnixStream::pair().unwrap();
+        let (release_server, await_release) = std::sync::mpsc::sync_channel(0);
         let worker = std::thread::spawn(move || {
             let mut input = String::new();
             BufReader::new(server.try_clone().unwrap())
@@ -174,11 +175,13 @@ mod tests {
             )
             .unwrap();
             writeln!(server, "{}", json!({"return":{},"id":command["id"]})).unwrap();
+            await_release.recv().unwrap();
         });
         let mut reader = super::super::qmp::Reader::new(client.try_clone().unwrap());
         let failure = artifacts
             .capture(&mut client, &mut reader, "uniform", false)
             .unwrap_err();
+        release_server.send(()).unwrap();
         worker.join().unwrap();
         assert_eq!(failure.reason, "qemu-display-uniform-frame");
         artifacts.finish(Some(&failure)).unwrap();
