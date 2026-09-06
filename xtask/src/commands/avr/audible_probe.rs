@@ -169,6 +169,7 @@ pub(super) fn build(
         return Ok(BuiltArtifact {
             path: artifact,
             artifact_sha256: String::new(),
+            flash_bytes: 0,
             identity,
         });
     }
@@ -208,6 +209,7 @@ pub(super) fn build(
     Ok(BuiltArtifact {
         path: artifact,
         artifact_sha256: digest,
+        flash_bytes: built.flash_bytes,
         identity,
     })
 }
