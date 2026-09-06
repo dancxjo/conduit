@@ -463,7 +463,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_book_start_is_refused_without_a_session() {
+    fn empty_tour_start_is_refused_without_a_session() {
         assert_eq!(conduit_tour_start(0, 0, 0, 0), ERROR_INPUT);
         assert_eq!(conduit_tour_complete(), ERROR_NOT_RUNNING);
 

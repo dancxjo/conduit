@@ -22,8 +22,8 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
     ProductProofSpec {
         id: "products.pages-carrier",
         exact_inputs: &[
-            ".github/workflows/executable-book-pages.yml",
-            ".github/workflows/executable-book-deploy.yml",
+            ".github/workflows/tour-products.yml",
+            ".github/workflows/tour-pages-deploy.yml",
             "Cargo.lock",
             "package.json",
             "package-lock.json",
@@ -31,7 +31,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "scripts/ci/render-product-masthead.mjs",
             "scripts/ci/seal-pages-carrier.mjs",
             "scripts/ci/verify-pages-carrier.mjs",
-            "proof/browser/executable-book.spec.mjs",
+            "proof/browser/executable-tour.spec.mjs",
             "proof/browser/browser-application-package.spec.mjs",
             "proof/browser/browser-bundle-build.spec.mjs",
             "proof/browser/browser-boot-profile.spec.mjs",
@@ -41,7 +41,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/presentation-nucleus.spec.mjs",
             "proof/browser/presentation-nucleus.test.html",
             "proof/browser/fourth-product-conformance.spec.mjs",
-            "proof/browser/book-test-server.mjs",
+            "proof/browser/tour-test-server.mjs",
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
             "proof/browser/creche-browser-configuration.spec.mjs",
@@ -77,7 +77,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
     ProductProofSpec {
         id: "products.patchbay-debugger",
         exact_inputs: &[
-            ".github/workflows/executable-book-pages.yml",
+            ".github/workflows/tour-products.yml",
             "Cargo.lock",
             "package.json",
             "package-lock.json",
@@ -167,7 +167,7 @@ mod tests {
             "proof/browser/presentation-nucleus.spec.mjs",
             "proof/browser/presentation-nucleus.test.html",
             "proof/browser/fourth-product-conformance.spec.mjs",
-            "proof/browser/book-test-server.mjs",
+            "proof/browser/tour-test-server.mjs",
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
             "proof/browser/fourth-product/application.mjs",

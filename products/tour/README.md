@@ -8,11 +8,16 @@ parser, checker, planner, lowering layer, and production kernel.
 From a repository checkout, open it with:
 
 ```sh
-cargo xtask demo book
+cargo xtask demo tour
 ```
 
-The repository-development command retains its current spelling; this path
-migration does not add a second product entrance or change route behavior.
+The current product route is `/tour/` (`/conduit/tour/` on Pages). The old
+`/book/` Pages route redirects to Tour, preserving its query and fragment.
+Tour retains the historical `conduit.application/book-reading-state` storage
+compatibility identity so existing drafts remain accessible. Its bounded
+reader accepts the historical reading-state schema and writes the Tour schema;
+it refuses malformed or over-capacity state. This is saved-state compatibility,
+not a second executable Book product.
 
 Tour does not own Body lifecycle truth, a compiler, simulator, scheduler,
 or alternate runtime.

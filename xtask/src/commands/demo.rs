@@ -24,7 +24,7 @@ pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 "--release",
                 "--no-default-features",
                 "--features",
-                "book-surface",
+                "tour-surface",
             ],
         ),
         &root,

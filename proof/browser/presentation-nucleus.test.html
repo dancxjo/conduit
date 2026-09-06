@@ -43,7 +43,7 @@ try {
   }
   assert(retiredThemeRefusal === "unsupported-version", "retired color-only theme refuses explicitly");
   const productThemeRoot = document.querySelector("#theme-products");
-  for (const product of ["book", "creche", "patchbay"]) {
+  for (const product of ["tour", "creche", "patchbay"]) {
     const productRoot = document.createElement("section");
     productRoot.dataset.conduitProduct = product;
     productRoot.dataset.conduitContrast = "high";

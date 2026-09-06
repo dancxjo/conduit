@@ -676,7 +676,7 @@ jobs:
   browser-tools:
     needs: classify
     # Paused with the repository-wide visual-evidence producer. The executable
-    # book owns a focused browser proof in executable-book-pages.yml.
+    # book owns a focused browser proof in tour-products.yml.
     if: ${{ false && always() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.browser_required == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10

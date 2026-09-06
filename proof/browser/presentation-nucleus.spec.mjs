@@ -159,7 +159,7 @@ test("one finite theme mechanism preserves contrast and responsive layout across
   await page.setViewportSize({ width: 680, height: 900 });
   await page.goto("/proof/browser/presentation-nucleus.test.html");
   await expect(page.locator("#result")).toHaveText("ok");
-  for (const product of ["book", "creche", "patchbay"]) {
+  for (const product of ["tour", "creche", "patchbay"]) {
     const root = page.locator(`[data-conduit-product="${product}"]`);
     await expect(root).toHaveAttribute("data-application-theme", "conduit.presentation/phosphor@1");
     await expect(root.locator('[data-application-component="panel"]')).toHaveCSS("border-radius", "9px");

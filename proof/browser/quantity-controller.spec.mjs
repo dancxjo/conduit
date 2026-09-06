@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { startStaticProduct } from "./book-test-server.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 
 let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("."); });

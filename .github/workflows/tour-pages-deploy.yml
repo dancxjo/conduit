@@ -1,4 +1,4 @@
-name: book-and-creche-pages
+name: tour-and-creche-pages
 
 on:
   pull_request_target:
@@ -16,7 +16,7 @@ on:
         type: string
 
 concurrency:
-  group: book-and-creche-pages
+  group: tour-and-creche-pages
   cancel-in-progress: false
 
 permissions:
@@ -103,7 +103,7 @@ jobs:
   integration-products:
     needs: resolve
     if: needs.resolve.outputs.disposition == 'execute'
-    uses: ./.github/workflows/executable-book-pages.yml
+    uses: ./.github/workflows/tour-products.yml
     with:
       base_sha: ${{ needs.resolve.outputs.integration_base }}
       candidate_sha: ${{ needs.resolve.outputs.merge_commit }}

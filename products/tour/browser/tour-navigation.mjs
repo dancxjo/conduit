@@ -5,8 +5,8 @@ export function createTourNavigation(presentation, navigate) {
       presentation.present("tour-navigation", {
         revision: ++revision,
         actions: [
-          { id: "book.previous", event: "activate" },
-          { id: "book.next", event: "activate" },
+          { id: "tour.previous", event: "activate" },
+          { id: "tour.next", event: "activate" },
         ],
         nodes: [
           { parent: null, component: "navigation", key: "navigation", text: "Tour pages", action: null },
@@ -17,8 +17,8 @@ export function createTourNavigation(presentation, navigate) {
       }, {
         onEvent(event) {
           presentation.nextEvent("tour-navigation");
-          if (event.action === "book.previous") navigate(-1);
-          else if (event.action === "book.next") navigate(1);
+          if (event.action === "tour.previous") navigate(-1);
+          else if (event.action === "tour.next") navigate(1);
         },
       });
     },
@@ -84,9 +84,9 @@ export function createTourRunnerActions(presentation, slot, runLabel, onRun, onS
       presentation.present(slot, {
         revision: ++revision,
         actions: [
-          { id: "book.run", event: "activate" },
-          { id: "book.stop", event: "activate" },
-          { id: "book.restore", event: "activate" },
+          { id: "tour.run", event: "activate" },
+          { id: "tour.stop", event: "activate" },
+          { id: "tour.restore", event: "activate" },
         ],
         nodes: [
           { parent: null, component: "action-group", key: "runner-actions", text: "Play and draft actions", action: null },
@@ -97,9 +97,9 @@ export function createTourRunnerActions(presentation, slot, runLabel, onRun, onS
       }, {
         onEvent(event) {
           presentation.nextEvent(slot);
-          if (event.action === "book.run") onRun();
-          else if (event.action === "book.stop") onStop();
-          else if (event.action === "book.restore") onRestore();
+          if (event.action === "tour.run") onRun();
+          else if (event.action === "tour.stop") onStop();
+          else if (event.action === "tour.restore") onRestore();
         },
       });
     },
