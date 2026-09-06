@@ -30,7 +30,10 @@ fn invalid_replacement_preserves_the_original_play_and_pending_effect() {
             let slot = slot.borrow();
             let current = slot.as_ref().expect("refusal preserves current session");
             assert_eq!(current.active_play_id, play);
-            assert_eq!(current.fragments.as_slice(), core::slice::from_ref(&fragment));
+            assert_eq!(
+                current.fragments.as_slice(),
+                core::slice::from_ref(&fragment)
+            );
             assert_eq!(current.pending.len(), 1);
             assert_eq!(current.pending[0].request, pending);
         });
