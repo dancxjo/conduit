@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <script>
-    const routedPage = /\/(?:a-form-you-can-run|meet-one-gear|faces-backs-and-implementation|same-face-different-implementation|hosts-make-forms-real|one-form-across-several-hosts|the-body-one-computer-one-machine-or-many|many-forms-one-body-wide-realization|birth-spores-and-the-creche)\/(?:index\.html)?$/.test(location.pathname);
+    const routedPage = /\/(?:one-program-many-computers|a-form-you-can-run|meet-one-gear|faces-backs-and-implementation|same-face-different-implementation|hosts-make-forms-real|one-form-across-several-hosts|the-body-one-computer-one-machine-or-many|many-forms-one-body-wide-realization|birth-spores-and-the-creche)\/(?:index\.html)?$/.test(location.pathname);
     const unslashedEntrance = /\/tour$/.test(location.pathname);
     const tourRoot = new URL(routedPage ? "../" : unslashedEntrance ? "./tour/" : "./", location.href).href;
     document.write(`<base href="${tourRoot}">`);
