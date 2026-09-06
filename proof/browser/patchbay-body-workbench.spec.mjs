@@ -107,6 +107,25 @@ test("a second browser replans one Body and its departure is explicit", async ({
   expect(planningInput.body_planning.body_id).toBe(bodyId);
   // Offer admission/planning is not evidence that the browser started a Play.
   expect(planningInput.body_planning.lifecycle).toBe("AwaitingPlan");
+  const proposalResponse = await page.request.get(new URL("/api/body-execution-proposal", patchbayUrl).href);
+  expect(proposalResponse.status()).toBe(200);
+  const proposal = await proposalResponse.json();
+  expect(proposal.schema).toBe("conduit.patchbay/body-execution-proposal@1");
+  expect(proposal.wake.wake_id).toBe(planningInput.body_planning.wake_id);
+  expect(proposal.wake.lifecycle).toBe("AwaitingPlan");
+  expect(proposal.wake.plans).toEqual([]);
+  expect(proposal.plan.plan_id).toBe(planningInput.body_planning.current_plan_id);
+  expect(proposal.plan.body_id).toBe(bodyId);
+  expect(proposal.plan.workset).toEqual(proposal.wake.workset);
+  expect(proposal.plan.forms.length).toBeGreaterThan(0);
+  for (const form of proposal.plan.forms) {
+    for (const fragment of form.plan.fragments) {
+      expect(fragment.host_id).toBe(admittedIdentity.hostId);
+      expect(fragment.boot_id).toBe(admittedIdentity.bootId);
+    }
+  }
+  expect(proposal.observations).toBeUndefined();
+  expect(proposal.play).toBeUndefined();
   expect(planningInput.body_planning.current_hosts).toEqual([{ host_id: admittedIdentity.hostId, boot_id: admittedIdentity.bootId }]);
   expect(planningInput.body_planning.historical_plan_ids).toEqual([planningInput.body_planning.current_plan_id]);
   expect(planningInput.interaction.last_disposition).toBe("Succeeded(PlanningInputAdmitted;BodyReplanned)");
@@ -227,6 +246,9 @@ test("a second browser replans one Body and its departure is explicit", async ({
     return Boolean(snapshot.body_planning?.unavailable_proposal_sign_id);
   }).toBe(true);
   const afterSecondLeave = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+  const unavailableProposal = await page.request.get(new URL("/api/body-execution-proposal", patchbayUrl).href);
+  expect(unavailableProposal.status()).toBe(409);
+  expect(await unavailableProposal.text()).toBe("BodyProposalUnavailable");
   expect(afterSecondLeave.body_planning.lifecycle).toBe("AwaitingPlan");
   expect(afterSecondLeave.body_planning.body_id).toBe(bodyId);
   expect(afterSecondLeave.body_planning.current_plan_id).toBe(replacementSnapshot.body_planning.current_plan_id);
