@@ -198,10 +198,10 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
 #[test]
 fn pulse_observation_is_an_explicit_effect_free_family() {
     let selected = host(StdHostComposition::minimal().with_pulse_observation());
-    assert_eq!(
-        selected.advertisement().capabilities,
-        [conduit_std_offers::pulse_observe_offer()]
-    );
+    let baseline = host(StdHostComposition::minimal());
+    let mut expected = vec![conduit_std_offers::pulse_observe_offer()];
+    expected.extend(baseline.advertisement().capabilities.iter().cloned());
+    assert_eq!(selected.advertisement().capabilities, expected);
     assert!(selected.advertisement().resources.is_empty());
     assert!(!offered(
         &host(StdHostComposition::reference()),
