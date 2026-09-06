@@ -41,6 +41,7 @@ mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
+mod preparation;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_operation;
@@ -255,28 +256,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut values =
         HostedValueStore::new(value_items.max(1), maximum_value_bytes, value_bytes.max(1))
             .map_err(|error| format!("installed value store: {error:?}"))?;
-    let mut operations = Vec::with_capacity(MAX_NODES);
-    for node in &lowered.nodes {
-        let placement = fragment
-            .placements
-            .get(usize::from(node.node.0))
-            .ok_or_else(|| "lowered node has no planned placement".to_string())?;
-        let factory = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned implementation is not installed".to_string())?;
-        operations.push((factory.prepare)(placement, &mut values)?);
-    }
-    while operations.len() < MAX_NODES {
-        operations.push(InstalledOperation::inactive());
-    }
-    let drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES] = operations
-        .into_iter()
-        .map(|operation| {
-            OperationDriver::new(operation)
-                .map_err(|error| format!("prepare installed operation: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .try_into()
-        .map_err(|_| "installed driver capacity changed".to_string())?;
+    let drivers = preparation::prepare_operations(fragment, &lowered, &mut values)?;
     let driver_capacity_before = drivers
         .iter()
         .map(|driver| driver.operation().allocation_capacity())
