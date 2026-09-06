@@ -9,6 +9,10 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "targets/avr/firmware/promicro-host/Cargo.toml",
+        lock: "targets/avr/firmware/promicro-host/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/esp32/firmware/c3-signal/Cargo.toml",
         lock: "targets/esp32/firmware/c3-signal/Cargo.lock",
     },
