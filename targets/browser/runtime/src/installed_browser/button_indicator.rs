@@ -88,6 +88,7 @@ fn prepare_mapper(
     let off = admitted_states(values, InfoBool::FALSE)?;
     let on = admitted_states(values, InfoBool::TRUE)?;
     Ok(BrowserOperation::installed(ButtonIndicatorOperation {
+        mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().map_err(debug)?,
         off,
         on,
         emitted: 0,
@@ -114,6 +115,7 @@ fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHo
 }
 
 struct ButtonIndicatorOperation {
+    mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper,
     off: Vec<ValueRef>,
     on: Vec<ValueRef>,
     emitted: usize,
@@ -140,7 +142,7 @@ impl Operation for ButtonIndicatorOperation {
         if port != PortId(0) {
             return fail(61);
         }
-        match conduit_semantic_catalog::map_button_transition_to_indicator(canonical) {
+        match self.mapper.map(canonical) {
             Ok(value) if self.emitted < self.on.len() => {
                 let emitted = self.emitted;
                 self.emitted += 1;
@@ -181,6 +183,7 @@ mod tests {
     #[test]
     fn pressed_and_released_emit_pre_admitted_current_states() {
         let mut operation = ButtonIndicatorOperation {
+            mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
             off: vec![value(1), value(3)],
             on: vec![value(2), value(4)],
             emitted: 0,
@@ -223,5 +226,45 @@ mod tests {
             generation: 1,
             byte_len: 1,
         }
+    }
+
+    #[test]
+    fn mapping_refuses_bad_input_and_exhaustion_and_preserves_closure() {
+        let mut operation = ButtonIndicatorOperation {
+            mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
+            off: vec![value(1)],
+            on: vec![value(2)],
+            emitted: 0,
+        };
+        let encoded = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        assert_eq!(operation.start(), OperationAction::Await);
+        assert_eq!(
+            operation.resume_value(PortId(1), value(0), &encoded),
+            fail(61)
+        );
+        assert_eq!(
+            operation.resume_value(PortId(0), value(0), b"pressed"),
+            fail(62)
+        );
+        assert_eq!(operation.emitted, 0);
+        assert_eq!(
+            operation.resume_value(PortId(0), value(0), &encoded),
+            OperationAction::Emit {
+                port: PortId(0),
+                value: value(2)
+            }
+        );
+        assert_eq!(operation.advance(), OperationAction::Await);
+        assert_eq!(
+            operation.resume_value(PortId(0), value(0), &encoded),
+            fail(63)
+        );
+        assert_eq!(
+            operation.resume(OperationInput::Closed { port: PortId(0) }),
+            OperationAction::Complete
+        );
     }
 }
