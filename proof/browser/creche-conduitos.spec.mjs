@@ -200,6 +200,6 @@ test("architecture, machine, firmware, bootloader, role, stale IMAGE, and absent
       unavailableWriter: capture(() => image.validateLoaderEvidence(null, adapter.CONDUITOS_X86_64_PROFILE, binding)),
       acceptedLoader: capture(() => image.validateLoaderEvidence(loader, adapter.CONDUITOS_X86_64_PROFILE, binding)),
     };
-  }, { manifest, imageUrl: new URL("targets/conduitos/deployment/browser/image.mjs", entrance.url).href, adapterUrl: new URL("targets/conduitos/deployment/browser/creche-adapter.mjs", entrance.url).href });
+  }, { manifest, imageUrl: new URL("targets/conduitos/browser-deployment/image.mjs", entrance.url).href, adapterUrl: new URL("targets/conduitos/browser-deployment/creche-adapter.mjs", entrance.url).href });
   expect(terminals).toEqual({ wrongArchitecture: "WrongArchitecture", wrongMachine: "WrongMachine", missingFirmware: "MissingFirmware", missingBootloader: "MissingBootloader", unsupportedRole: "UnsupportedProductRole", staleArtifact: "StaleArtifact", unavailableWriter: "UnavailableWriter", acceptedLoader: "accepted" });
 });

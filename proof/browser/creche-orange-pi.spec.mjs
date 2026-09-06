@@ -124,7 +124,7 @@ test("architecture, model, boot image, and writer refusals stay distinct", async
       absentWriter: capture(() => image.validateImageWriterEvidence(null, adapter.ORANGE_PI_5_PROFILE, binding)),
       acceptedWriter: capture(() => image.validateImageWriterEvidence(writer, adapter.ORANGE_PI_5_PROFILE, binding)),
     };
-  }, { releaseManifest: release, imageUrl: new URL("targets/orange-pi/deployment/browser/image.mjs", entrance.url).href, adapterUrl: new URL("targets/orange-pi/deployment/browser/creche-adapter.mjs", entrance.url).href });
+  }, { releaseManifest: release, imageUrl: new URL("targets/orange-pi/browser-deployment/image.mjs", entrance.url).href, adapterUrl: new URL("targets/orange-pi/browser-deployment/creche-adapter.mjs", entrance.url).href });
   expect(terminals).toEqual({ wrongModel: "WrongModel", wrongArchitecture: "WrongArchitecture", incompleteBootImage: "IncompleteBootImage", staleImage: "StaleImage", absentWriter: "AbsentWriter", acceptedWriter: "accepted" });
   const runner = await birthBody(page);
   for (const unsupported of ["conduitos/loongarch64/orange-pi-5-rk3588s", "std/aarch64/orange-pi-5-rk3588s", "conduitos/aarch64/orange-pi-5b-rk3588s", "conduitos/aarch64/orange-pi-5-plus-rk3588"]) await expect(runner.locator(`[data-application-key="physical-target"] option[value="${unsupported}"]`)).toHaveCount(0);
