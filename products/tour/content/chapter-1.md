@@ -1,12 +1,12 @@
 ---
 page: form-basics
-route: a-form-you-can-run
+route: one-program-many-computers
 companion: form-laboratory
 stage: canonical-form:meet-one-gear|run
 stage: canonical-form:edit-one-gear|run
 stage: canonical-form:branch-a-cord|run
 ---
-# A Form you can run
+# One Program, Many Computers
 
 Conduit lets you make **one logical computer — a Body — from one or many physical or virtual computers**. One Body might be a single multicore machine; another might combine a browser, laptop, VM, and microcontroller. The point of this chapter is smaller: build one Form you can run and read.
 

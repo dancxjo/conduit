@@ -39,8 +39,34 @@ pub(super) fn prepare_scheduler(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> Result<TourScheduler, String> {
-    let active_nodes = lowered.nodes.len();
-    let active_cords = lowered.cords.len();
+    prepare_partition_scheduler(&[(fragment, lowered)])
+}
+
+/// Compose already-lowered exact partitions without synthesizing a Plan.
+pub(in crate::form_runner) fn prepare_partition_scheduler(
+    partitions: &[(&PlanFragment, &LoweredPlanFragment)],
+) -> Result<TourScheduler, String> {
+    if partitions.is_empty()
+        || partitions.len() > conduit_body::MAX_BODY_FORMS
+        || partitions.iter().any(|(fragment, part)| {
+            part.identity.plan_id != fragment.plan_id
+                || part.identity.fragment_id != fragment.fragment_id
+                || part.nodes.len() != fragment.placements.len()
+        })
+    {
+        return Err("browser partitions do not match their original Plans".into());
+    }
+    let active_nodes = partitions
+        .iter()
+        .map(|(_, part)| part.nodes.len())
+        .sum::<usize>();
+    let active_cords = partitions
+        .iter()
+        .map(|(_, part)| part.cords.len())
+        .sum::<usize>();
+    if active_nodes > MAXIMUM_BROWSER_GEARS || active_cords > MAXIMUM_BROWSER_CORDS {
+        return Err("Body exceeds the installed browser kernel tables".into());
+    }
     let mut values = HostedValueStore::new(
         BROWSER_VALUE_ITEMS,
         MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -54,10 +80,17 @@ pub(super) fn prepare_scheduler(
     let mut attempts = core::array::from_fn(|_| None);
     let mut comparisons = core::array::from_fn(|_| None);
     let mut timing = core::array::from_fn(|_| None);
-    for node in &lowered.nodes {
+    for (fragment, node) in partitions
+        .iter()
+        .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))
+    {
+        if usize::from(node.node.0) != operations.len() {
+            return Err("browser partition nodes are not contiguous".into());
+        }
         let placement = fragment
             .placements
-            .get(usize::from(node.node.0))
+            .iter()
+            .find(|placement| placement.placement_id == node.placement_id)
             .ok_or_else(|| "lowered browser node has no planned placement".to_string())?;
         let installation = factory(&placement.implementation_id)
             .ok_or_else(|| "planned browser implementation is not installed".to_string())?;
@@ -105,7 +138,12 @@ pub(super) fn prepare_scheduler(
         maximum_step_work: 1,
     };
     let mut nodes = [inactive_node; MAXIMUM_BROWSER_GEARS];
-    nodes[..active_nodes].copy_from_slice(&lowered.node_specs);
+    for (destination, spec) in nodes
+        .iter_mut()
+        .zip(partitions.iter().flat_map(|(_, part)| &part.node_specs))
+    {
+        *destination = *spec;
+    }
     let inactive_cord = CordSpec {
         cord: CordId(u16::MAX),
         source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
@@ -115,13 +153,16 @@ pub(super) fn prepare_scheduler(
         byte_capacity: 0,
     };
     let mut cords = [inactive_cord; MAXIMUM_BROWSER_CORDS];
-    for (destination, lowered_cord) in cords.iter_mut().zip(&lowered.cords) {
+    for (destination, lowered_cord) in cords
+        .iter_mut()
+        .zip(partitions.iter().flat_map(|(_, part)| &part.cords))
+    {
         *destination = lowered_cord.spec;
     }
     let mut routes = FixedRoutes::<BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS>::new(
         BROWSER_PORTS_PER_GEAR as u16,
     );
-    for route in &lowered.routes {
+    for route in partitions.iter().flat_map(|(_, part)| &part.routes) {
         routes
             .install(
                 route.source_node,
@@ -135,7 +176,10 @@ pub(super) fn prepare_scheduler(
     let mut bindings = FixedHostOperationBindings::<BROWSER_HOST_OPERATION_BINDINGS>::new(
         BROWSER_HOST_OPERATIONS_PER_GEAR,
     );
-    for operation in &lowered.host_operations {
+    for operation in partitions
+        .iter()
+        .flat_map(|(_, part)| &part.host_operations)
+    {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;

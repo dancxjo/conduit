@@ -5,7 +5,7 @@ const EFFECT_CLOSE = 4;
 const EFFECT_PRESENT = 5;
 const STATUS_COMPLETE = 1;
 const INPUT_CAPACITY = 4096;
-const MAXIMUM_MEMBERSHIP_OUTPUT_BYTES = 24 * 1024;
+const MAXIMUM_MEMBERSHIP_OUTPUT_BYTES = 72 * 1024;
 
 function requireApi(api) {
   const names = [

@@ -8,6 +8,7 @@ import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "../../../
 import { createTourRouting, parseTourPages } from "./tour-routing.mjs";
 import { createReviewedFormGallery, presentTourInventory, readReviewedGallery, reviewedFormStage } from "./tour-inventory-presentation.mjs";
 import { openBrowserHumanInput } from "../../../targets/browser/host/assets/browser-human-input.mjs";
+import { drainBrowserEffects } from "../../../targets/browser/host/assets/browser-form-effects.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -1075,9 +1076,6 @@ async function runListing(runner, source, recursive) {
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
-    const effects = new Map();
-    let wake = null;
-    const capacity = api.conduit_browser_form_pending_capacity();
     const perform = async (progress, signal) => {
       if (progress.effect_kind === "clock-observation") {
         const bytes = new Uint8Array(8);
@@ -1127,88 +1125,18 @@ async function runListing(runner, source, recursive) {
         throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
       }
     };
-    while (current === generation) {
-      while (progress.effect_kind) {
-        const effect = progress;
-        const key = JSON.stringify([effect.active_play_id, effect.placement_id,
-          effect.request_sequence ?? effect.observation_sequence]);
-        if (effect.effect_kind === "cancel") {
-          const pending = effects.get(key);
-          if (!pending || pending.effect.effect_kind !== "timer") {
-            throw new Error("kernel cancellation does not name a pending timer");
-          }
-          pending.controller.abort();
-          effects.delete(key);
-          const play = encoder.encode(effect.active_play_id);
-          const placement = encoder.encode(effect.placement_id);
-          const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), play.length + placement.length);
-          input.set(play);
-          input.set(placement, play.length);
-          const result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
-          if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
-          progress = readOutput(api);
-          continue;
-        }
-        if (effects.has(key) || effects.size >= capacity) {
-          throw new Error("browser Host effect identity or capacity violation");
-        }
-        const pending = { key, effect, ready: false, controller: new AbortController() };
-        effects.set(key, pending);
-        const settle = (result) => {
-          Object.assign(pending, result, { ready: true });
-          wake?.();
-          wake = null;
-        };
-        perform(effect, pending.controller.signal).then(
-          (output) => settle({ output }),
-          (error) => settle({ error }),
-        );
-        const poll = api.conduit_browser_form_poll_effect();
-        if (poll < 0) throw new Error(`effect poll refused (${poll})`);
-        progress = readOutput(api);
-      }
-      if (progress.disposition !== "waiting") {
-        if (effects.size) throw new Error("Play completed with platform effects pending");
-        break;
-      }
-      if (!effects.size) throw new Error("Play awaits an absent platform effect");
-      let completed = [...effects.values()].find((effect) => effect.ready);
-      if (!completed) {
-        const pending = [...effects.values()].map(({ effect }) => effect);
+    progress = await drainBrowserEffects({
+      api, initialProgress: progress, readOutput, perform,
+      isCurrent: () => current === generation,
+      onWaiting: (pending) => {
         const timer = pending.find((effect) => effect.effect_kind === "timer");
         const button = pending.some((effect) => effect.effect_kind === "button-transition");
         runner.playStatus.ordinary(timer
           ? `Waiting for planned tick · ${timer.duration_millis} ms${button ? " and button transition" : ""}`
           : button ? "Waiting for one admitted button transition…"
             : `Waiting for ${pending.length} admitted Host effect(s)…`);
-        await new Promise((resolve) => { wake = resolve; });
-        if (current !== generation) return;
-        completed = [...effects.values()].find((effect) => effect.ready);
-      }
-      if (current !== generation) return;
-      effects.delete(completed.key);
-      if (completed.error) throw completed.error;
-      const { effect, output = new Uint8Array() } = completed;
-      const play = encoder.encode(effect.active_play_id);
-      const placement = encoder.encode(effect.placement_id);
-      const total = play.length + placement.length + output.length;
-      if (total > api.conduit_browser_form_input_capacity()) {
-        throw new Error("effect completion exceeds the admitted input bound");
-      }
-      const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
-      bytes.set(play);
-      bytes.set(placement, play.length);
-      bytes.set(output, play.length + placement.length);
-      const completion = api.conduit_browser_form_complete_effect(
-        play.length, placement.length, effect.request_sequence ?? effect.observation_sequence,
-        output.length,
-      );
-      if (completion < 0) {
-        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
-        throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
-      }
-      progress = readOutput(api);
-    }
+      },
+    });
     if (current !== generation) return;
     runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`

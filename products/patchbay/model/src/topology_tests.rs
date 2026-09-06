@@ -150,6 +150,39 @@ fn capability_inspection_descends_to_optional_device_provenance() {
     let lines = topology.document(None).unwrap().lines().join("\n");
     assert!(lines.contains("DEVICE device/provider-one"));
     assert!(lines.contains("DEVICE not identified"));
+    let placement = report
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.host_id == host_id
+                && placement.boot_id == boot_id
+                && placement.capability_id == capability_id
+        })
+        .unwrap();
+    assert_eq!(placement.offer_generation, offer_generation);
+    assert!(crate::topology_hosts::current_device_for_placement(report, placement).is_some());
+    assert!(lines.contains("SELECTED DEVICE device/provider-one"));
+    let mut changed = report.clone();
+    changed.devices[0].association.offer_generation =
+        conduit_core::OfferGeneration(offer_generation.0 + 1);
+    assert!(crate::topology_hosts::current_device_for_placement(&changed, placement).is_none());
+    changed.devices[0].association.offer_generation = offer_generation;
+    changed.devices[0].association.disposition = DeviceTruthDisposition::HistoricalLost {
+        terminal_sign_id: None,
+    };
+    assert!(crate::topology_hosts::current_device_for_placement(&changed, placement).is_none());
+    changed.devices[0].association.disposition = DeviceTruthDisposition::Current;
+    changed.devices[0].association.boot_id = BootId::from("different-boot");
+    assert!(crate::topology_hosts::current_device_for_placement(&changed, placement).is_none());
+    let sealed_plans = snapshot.plans.clone();
+    let newer = conduit_core::OfferGeneration(offer_generation.0 + 1);
+    snapshot.hosts[0].advertisement.offer_generation = newer;
+    snapshot.hosts[0].devices[0].offer_generation = newer;
+    topology.ingest(&snapshot).unwrap();
+    let updated = topology.document(None).unwrap().lines().join("\n");
+    assert!(updated.contains("DEVICE device/provider-one"));
+    assert!(!updated.contains("SELECTED DEVICE device/provider-one"));
+    assert_eq!(snapshot.plans, sealed_plans);
 }
 
 #[test]

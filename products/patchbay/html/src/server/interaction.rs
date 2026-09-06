@@ -14,6 +14,39 @@ impl PatchbayHtmlServer {
         let stale_presentation = input.presentation_id
             != self.snapshot.presentation.identity.as_str()
             || input.presentation_revision != self.snapshot.presentation.revision;
+        if input.kind == "invoke"
+            && !stale_presentation
+            && self.body_planning.is_some()
+            && self.snapshot.presentation.actions.iter().any(|action| {
+                Some(action.identity.as_str()) == input.action_id.as_deref()
+                    && action.intent == "conduit.intent/lull@1"
+                    && matches!(
+                        action.availability,
+                        conduit_presentation::PresentationActionAvailability::Available
+                    )
+                    && self
+                        .snapshot
+                        .presentation
+                        .basis
+                        .body_id
+                        .as_ref()
+                        .is_some_and(|id| action.target == format!("body/{}", id.as_str()))
+            })
+        {
+            let wake_id = self
+                .body_planning
+                .as_ref()
+                .expect("checked session")
+                .wake()
+                .wake_id
+                .clone();
+            let request = serde_json::to_vec(&serde_json::json!({
+                "schema": "conduit.patchbay/body-execution-request@1",
+                "action": {"kind": "Lull", "wake_id": wake_id},
+            }))
+            .map_err(|_| ServerError::InvalidRequest)?;
+            return self.apply_body_execution(&request);
+        }
         if input.kind == "clear" {
             self.snapshot.interaction.revision =
                 self.snapshot.interaction.revision.saturating_add(1);

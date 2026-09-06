@@ -54,6 +54,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_pattern_comparison_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;

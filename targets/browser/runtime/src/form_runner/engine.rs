@@ -3,7 +3,7 @@
 #[path = "engine_attempt.rs"]
 mod attempt;
 #[path = "engine_preparation.rs"]
-mod preparation;
+pub(super) mod preparation;
 #[path = "resource_effect.rs"]
 pub(super) mod resource_effect;
 #[path = "engine_transforms.rs"]
@@ -205,11 +205,56 @@ pub(super) fn drive(
     scheduler: &mut TourScheduler,
     fragment: &PlanFragment,
 ) -> Result<DriveStatus, String> {
+    drive_with_placement(scheduler, |node| {
+        fragment.placements.get(usize::from(node.0))
+    })
+}
+
+pub(super) fn drive_with_placement<'a>(
+    scheduler: &mut TourScheduler,
+    placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
+) -> Result<DriveStatus, String> {
+    drive_with_boundary(scheduler, placement_for, false, None)
+}
+
+/// The same installed effects, with an external Cord allowed to await traffic.
+/// Waiting is not completion; the remote owner must inspect its exact endpoint.
+#[cfg(test)]
+pub(super) fn drive_remote(
+    scheduler: &mut TourScheduler,
+    fragment: &PlanFragment,
+    endpoint: conduit_kernel::RemoteEndpointId,
+    cord: CordId,
+    egress: bool,
+) -> Result<DriveStatus, String> {
+    drive_with_boundary(
+        scheduler,
+        |node| fragment.placements.get(usize::from(node.0)),
+        true,
+        egress.then_some((endpoint, cord)),
+    )
+}
+
+fn drive_with_boundary<'a>(
+    scheduler: &mut TourScheduler,
+    placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
+    allow_remote_wait: bool,
+    remote_egress: Option<(conduit_kernel::RemoteEndpointId, CordId)>,
+) -> Result<DriveStatus, String> {
     loop {
+        if let Some((endpoint, cord)) = remote_egress {
+            if scheduler
+                .remote_egress_offer(endpoint, cord)
+                .map_err(debug_error)?
+                .is_some()
+            {
+                return Ok(DriveStatus::Waiting {
+                    pending_effects: scheduler.pending_host_operation_count(),
+                });
+            }
+        }
         if let Some(request) = scheduler.next_host_request() {
-            let placement = fragment
-                .placements
-                .get(usize::from(request.node.0))
+            let placement = placement_for(request.node)
                 .ok_or_else(|| "browser request has no planned placement".to_string())?;
             let operation = placement
                 .host_operations
@@ -304,7 +349,9 @@ pub(super) fn drive(
         match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
-            SchedulerStatus::Idle if scheduler.pending_host_operation_count() > 0 => {
+            SchedulerStatus::Idle
+                if allow_remote_wait || scheduler.pending_host_operation_count() > 0 =>
+            {
                 return Ok(DriveStatus::Waiting {
                     pending_effects: scheduler.pending_host_operation_count(),
                 });
@@ -314,6 +361,10 @@ pub(super) fn drive(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "body_partition_tests.rs"]
+mod body_partition_tests;
 
 fn decode_timer_duration(
     operation: &conduit_core::HostOperationRequirement,
