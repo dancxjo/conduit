@@ -133,6 +133,10 @@ mod final_normalized_pattern;
 #[cfg(feature = "form-catalog")]
 pub use final_normalized_pattern::*;
 #[cfg(feature = "form-catalog")]
+mod pattern_comparison_codec;
+#[cfg(feature = "form-catalog")]
+pub use pattern_comparison_codec::{BoundedPatternComparisonCodec, PatternComparisonInput};
+#[cfg(feature = "form-catalog")]
 mod pattern_comparison;
 #[cfg(feature = "form-catalog")]
 pub use pattern_comparison::*;
