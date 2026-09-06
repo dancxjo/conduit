@@ -6,7 +6,7 @@ form secret-knock (
 ) {
     attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)
     intervals: time/ordered-event-intervals
-    normalize: sequence/normalize-relative-duration
+    normalize: normalize-durations
     storage: storage/named-pattern-templates(maximum-commands = 2)
     final_template: sequence/final-normalized-pattern(maximum-values = 1)
     compare: sequence/compare-normalized-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 1)
@@ -20,4 +20,14 @@ form secret-knock (
     storage.result > select(NamedPatternTemplateResult.found, unmatched=drop) > project(NamedPatternTemplate.pattern) > final_template.patterns
     final_template.pattern > compare.template
     compare.comparison > manifest.input
+}
+
+# Reusable finite relative-duration normalization through its typed Face.
+form normalize-durations (
+    > intervals: IntervalSequence
+    normalized: NormalizedDurationSequence >
+) {
+    normalize: sequence/normalize-relative-duration
+    intervals > normalize.intervals
+    normalize.normalized > normalized
 }

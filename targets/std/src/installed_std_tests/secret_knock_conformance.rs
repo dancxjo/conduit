@@ -1,3 +1,4 @@
+use super::timing_form_catalogs::install_catalogs;
 use super::{host, installed_std};
 use crate::TimerAdapter;
 use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, BodyWorkset, ResidentForm};
@@ -91,8 +92,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let transition_values = encoded_values(&transitions);
     let command_values = encoded_values(&commands);
     let source = format!(
-        "form secret-knock (\n    > transitions: InputButtonTransition...|\n    > template_commands: NamedPatternTemplateCommand...|\n) {{\n    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n    intervals: time/ordered-event-intervals\n    normalize: sequence/normalize-relative-duration\n    storage: storage/named-pattern-templates(maximum-commands = 2)\n    final_template: sequence/final-normalized-pattern(maximum-values = 1)\n    compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 1)\n    manifest: presentation/structured-info\n    transitions > attempt.transition\n    attempt.events > intervals.events\n    intervals.intervals > normalize.intervals\n    normalize.normalized > compare.candidate\n    template_commands > storage.command\n    storage.result > select(NamedPatternTemplateResult.found, unmatched=drop) > project(NamedPatternTemplate.pattern) > final_template.patterns\n    final_template.pattern > compare.template\n    compare.comparison > manifest.input\n}}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output > knock.transitions\n    commands.output > knock.template_commands\n}}\n",
-        conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC,
+        "{}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output > knock.transitions\n    commands.output > knock.template_commands\n}}\n",
+        include_str!("../../../../forms/secret-knock/main.conduit"),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -357,35 +358,6 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         })
         .expect("comparison has one correlated manifestation");
     assert_eq!(presented.encoded, comparison.canonical_bytes().unwrap());
-}
-
-fn install_catalogs(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) {
-    conduit_semantic_catalog::install_generalized_input_catalogs(startup, profile).unwrap();
-    conduit_semantic_catalog::install_timed_pattern_catalogs(startup, profile).unwrap();
-    conduit_semantic_catalog::install_timed_button_attempt_catalogs(startup, profile).unwrap();
-    conduit_semantic_catalog::install_sequence_normalization_catalogs(startup, profile).unwrap();
-    conduit_semantic_catalog::install_template_storage_catalogs(startup, profile).unwrap();
-    conduit_semantic_catalog::install_final_normalized_pattern_catalogs(startup, profile).unwrap();
-    conduit_semantic_catalog::install_pattern_comparison_catalogs(startup, profile).unwrap();
-    startup
-        .insert(KindSignature {
-            kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
-            startup_parameters: Vec::new(),
-        })
-        .unwrap();
-    let presenter = conduit_semantic_catalog::structured_presentation_contract(
-        conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
-        &conduit_semantic_catalog::pattern_comparison_type(),
-    );
-    profile
-        .insert(KindDefinition {
-            kind_id: presenter.kind_id,
-            kind_contract_revision: presenter.kind_contract_revision,
-            inputs: presenter.inputs,
-            outputs: presenter.outputs,
-            configuration: Vec::new(),
-        })
-        .unwrap();
 }
 
 #[allow(clippy::too_many_arguments)]
