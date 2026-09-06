@@ -106,6 +106,9 @@ impl TimedButtonAttemptOperation {
             outcome.failure,
             canonical,
         ) {
+            (HostOperationDisposition::Completed, None, None, None) if self.next_duration > 0 => {
+                self.request_deadline()
+            }
             (HostOperationDisposition::Completed, None, None, None) => OperationAction::Await,
             (HostOperationDisposition::Completed, Some(_), None, Some([0])) => {
                 self.request_deadline()

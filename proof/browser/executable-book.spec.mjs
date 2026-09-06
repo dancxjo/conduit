@@ -934,9 +934,10 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await laboratory.getByRole("button", { name: "Run" }).click();
   const control = laboratory.getByRole("button", { name: "Hold to control indicator" });
   await expect(control).toBeVisible();
-  await control.dispatchEvent("pointerdown", { buttons: 1 });
+  await control.hover();
+  await page.mouse.down();
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("button transition");
-  await control.dispatchEvent("pointerup", { buttons: 0 });
+  await page.mouse.up();
   await expect(laboratory.locator('[role="img"]')).toHaveAttribute("aria-label", "Indicator off");
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("2 planned manifestations");
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);

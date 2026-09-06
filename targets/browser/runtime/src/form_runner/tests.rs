@@ -11,6 +11,7 @@ const HELLO_LIGHT: &str = r#"form hello-light {
 
 fn manifestation(effect: TourHostEffect) -> TourEffect {
     match effect {
+        TourHostEffect::ClockObservation(_) => panic!("unexpected clock observation"),
         TourHostEffect::Manifestation(effect) => *effect,
         TourHostEffect::Timer(_) => panic!("the fixture must manifest before requesting a timer"),
         TourHostEffect::KeyEvent(_) => panic!("the fixture must manifest before requesting input"),
@@ -264,6 +265,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 "timer:{}:{}",
                 timer.duration_millis, timer.request_sequence
             )),
+            TourHostEffect::ClockObservation(_) => panic!("unexpected clock observation"),
             TourHostEffect::KeyEvent(_) => panic!("timer fixture requested keyboard input"),
             TourHostEffect::PointerEvent(_) => panic!("timer fixture requested pointer input"),
             TourHostEffect::ButtonTransition(_) => {
@@ -272,6 +274,9 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
         }
         match session.advance().unwrap() {
             TourProgress::Effect(next) => effect = *next,
+            TourProgress::Waiting { .. } | TourProgress::Cancellation { .. } => {
+                panic!("serial fixture unexpectedly waits")
+            }
             TourProgress::Receipt(receipt) => {
                 assert_eq!(receipt.disposition, "completed");
                 return (

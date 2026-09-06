@@ -1,7 +1,11 @@
 //! Finite generic browser execution envelope for inline Forms.
 
+#[path = "engine_attempt.rs"]
+mod attempt;
 #[path = "engine_preparation.rs"]
 mod preparation;
+#[path = "engine_transforms.rs"]
+mod transforms;
 use preparation::{prepare_scheduler, validate_envelope};
 
 #[cfg(test)]
@@ -42,10 +46,13 @@ type BrowserKernel = FixedScheduler<
 
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
+    pub(super) failure_detail: Option<u16>,
     kernel: BrowserKernel,
     selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
         MAXIMUM_BROWSER_GEARS],
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
+    attempts: [Option<conduit_semantic_catalog::BoundedButtonAttemptCodec>; MAXIMUM_BROWSER_GEARS],
+    timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -68,6 +75,7 @@ pub(super) struct PendingHostEffect {
 }
 
 pub(super) enum BrowserHostEffect {
+    ClockObservation,
     Timer { duration_millis: u64 },
     KeyEvent,
     PointerEvent,
@@ -78,6 +86,7 @@ pub(super) enum BrowserHostEffect {
 pub(super) enum DriveStatus {
     Effect(PendingHostEffect),
     Complete,
+    Waiting { pending_effects: usize },
 }
 
 pub(super) fn prepare(
@@ -91,6 +100,9 @@ pub(super) fn prepare(
         DriveStatus::Effect(pending) => pending,
         DriveStatus::Complete => {
             return Err("Tour Play completed without a planned Host effect".into())
+        }
+        DriveStatus::Waiting { .. } => {
+            return Err("initial browser effect is already pending".into())
         }
     };
     Ok((scheduler, pending))
@@ -110,6 +122,9 @@ pub(super) fn complete_host_effect(
     scheduler: &mut TourScheduler,
     pending: &PendingHostEffect,
 ) -> Result<(), String> {
+    if matches!(pending.effect, BrowserHostEffect::ClockObservation) {
+        return Err("clock observation requires an exact timestamp".into());
+    }
     scheduler
         .complete_host_operation(
             pending.request.node,
@@ -129,6 +144,9 @@ pub(super) fn complete_host_effect_with_output(
     output: &[u8],
 ) -> Result<(), String> {
     let maximum_output_bytes = match &pending.effect {
+        BrowserHostEffect::ClockObservation => {
+            return attempt::complete_clock(scheduler, pending, output)
+        }
         BrowserHostEffect::PointerEvent => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(output)
                 .map_err(|error| format!("decode pointer input: {error:?}"))?;
@@ -151,7 +169,7 @@ pub(super) fn complete_host_effect_with_output(
         _ => return Err("browser Host effect does not accept completion output".into()),
     };
     let value = scheduler.store_host_value(output).map_err(debug_error)?;
-    scheduler
+    let result = scheduler
         .complete_host_operation(
             pending.request.node,
             pending.request.request,
@@ -164,7 +182,11 @@ pub(super) fn complete_host_effect_with_output(
                 failure: None,
             },
         )
-        .map_err(debug_error)
+        .map_err(debug_error);
+    if result.is_err() {
+        scheduler.discard_host_value(value).map_err(debug_error)?;
+    }
+    result
 }
 
 pub(super) fn drive(
@@ -181,165 +203,20 @@ pub(super) fn drive(
                 .host_operations
                 .get(usize::from(request.operation.0))
                 .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
-            if crate::installed_browser::json::OPERATIONS.contains(&operation.contract_id.as_str())
-            {
-                let result = crate::installed_browser::json::execute(
-                    placement,
-                    operation.contract_id.as_str(),
-                    scheduler
-                        .host_value(request.input.value)
-                        .map_err(debug_error)?,
-                );
-                let outcome = match result {
-                    Ok(bytes) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
-                        output: Some(
-                            BoundedValueRef::new(
-                                scheduler.store_host_value(&bytes).map_err(debug_error)?,
-                                operation.maximum_output_bytes,
-                            )
-                            .map_err(debug_error)?,
-                        ),
-                        failure: None,
-                    },
-                    Err(failure) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
-                        output: None,
-                        failure: Some(failure),
-                    },
-                };
-                scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(debug_error)?;
-                continue;
-            }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::pointer_selector::HOST_OPERATION
-            {
-                let input = scheduler
-                    .kernel
-                    .host_value(request.input.value)
-                    .map_err(debug_error)?;
-                let output = scheduler.selectors[usize::from(request.node.0)]
-                    .as_mut()
-                    .ok_or("selector was not prepared before Play")?
-                    .execute(input)?;
-                let value = scheduler
-                    .kernel
-                    .store_host_value(output)
-                    .map_err(debug_error)?;
-                scheduler
-                    .kernel
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(value, operation.maximum_output_bytes)
-                                    .map_err(debug_error)?,
-                            ),
-                            failure: None,
-                        },
-                    )
-                    .map_err(debug_error)?;
-                continue;
-            }
-            if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_HOST_OPERATION {
-                let encoded = crate::installed_browser::transform_quantity(
-                    scheduler.mappings[usize::from(request.node.0)]
-                        .ok_or("quantity mapping was not prepared before Play")?,
-                    scheduler
-                        .host_value(request.input.value)
-                        .map_err(debug_error)?,
-                )?;
-                let outcome = match encoded {
-                    Ok(bytes) => {
-                        let value = scheduler.store_host_value(&bytes).map_err(debug_error)?;
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(
-                                    value,
-                                    conduit_core::QUANTITY_ENCODED_LEN as u32,
-                                )
-                                .map_err(debug_error)?,
-                            ),
-                            failure: None,
-                        }
-                    }
-                    Err(failure) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
-                        output: None,
-                        failure: Some(failure),
-                    },
-                };
-                scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(debug_error)?;
-                continue;
-            }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::NORMALIZE_QUANTITY_OPERATION
-            {
-                let converted = crate::installed_browser::normalize_quantity(
-                    scheduler
-                        .host_value(request.input.value)
-                        .map_err(debug_error)?,
-                );
-                let outcome = match converted {
-                    Ok(bytes) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
-                        output: Some(
-                            BoundedValueRef::new(
-                                scheduler.store_host_value(&bytes).map_err(debug_error)?,
-                                conduit_core::SCALAR_ENCODED_LEN as u32,
-                            )
-                            .map_err(debug_error)?,
-                        ),
-                        failure: None,
-                    },
-                    Err(failure) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
-                        output: None,
-                        failure: Some(failure),
-                    },
-                };
-                scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(debug_error)?;
-                continue;
-            }
-            if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_WRAP_OPERATION {
-                let (encoded, length) = crate::installed_browser::wrap_quantity(
-                    scheduler
-                        .host_value(request.input.value)
-                        .map_err(debug_error)?,
-                )?;
-                let value = scheduler
-                    .store_host_value(&encoded[..length])
-                    .map_err(debug_error)?;
-                scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
-                            output: Some(
-                                BoundedValueRef::new(value, operation.maximum_output_bytes)
-                                    .map_err(debug_error)?,
-                            ),
-                            failure: None,
-                        },
-                    )
-                    .map_err(debug_error)?;
+            if transforms::complete_transform(scheduler, placement, operation, request)? {
                 continue;
             }
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(debug_error)?
                 .to_vec();
-            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT {
+            if operation.contract_id.as_str() == crate::installed_browser::button_attempt::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION {
+                return Ok(DriveStatus::Effect(PendingHostEffect { request, effect: BrowserHostEffect::ClockObservation }));
+            }
+            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT
+                || operation.contract_id.as_str()
+                    == conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+            {
                 let duration_millis = decode_timer_duration(operation, &input)?;
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
@@ -400,9 +277,20 @@ pub(super) fn drive(
             }
             continue;
         }
-        match scheduler.step().map_err(debug_error)? {
+        let status = scheduler.step().map_err(|error| {
+            if let conduit_kernel::scheduler::SchedulerError::OperationFailed(detail) = &error {
+                scheduler.failure_detail = Some(*detail);
+            }
+            debug_error(error)
+        })?;
+        match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
+            SchedulerStatus::Idle if scheduler.pending_host_operation_count() > 0 => {
+                return Ok(DriveStatus::Waiting {
+                    pending_effects: scheduler.pending_host_operation_count(),
+                });
+            }
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }
@@ -413,7 +301,14 @@ fn decode_timer_duration(
     operation: &conduit_core::HostOperationRequirement,
     input: &[u8],
 ) -> Result<u64, String> {
-    if operation.target_kind.is_some()
+    let expected_target = if operation.contract_id.as_str()
+        == conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+    {
+        Some(conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND.into())
+    } else {
+        None
+    };
+    if operation.target_kind != expected_target
         || operation.maximum_in_flight != 1
         || operation.maximum_input_bytes != conduit_time::TICK_ENCODED_LEN
         || operation.maximum_output_bytes != 0
@@ -435,3 +330,11 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 #[path = "json_tests.rs"]
 mod json_tests;
+
+#[cfg(test)]
+#[path = "timing_kernel_tests.rs"]
+mod timing_kernel_tests;
+
+#[cfg(test)]
+#[path = "concurrent_effect_tests.rs"]
+mod concurrent_effect_tests;

@@ -18,7 +18,7 @@ let generation = 0;
 let running = false;
 let runnerSlotSequence = 0;
 let activeRunner = null;
-let activeDelay = null;
+const activeDelays = new Set();
 let humanInput = null;
 let currentPage = 0;
 let guidedPages = [];
@@ -110,6 +110,8 @@ function requireTourAbi(api) {
   const required = [
     "memory", "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
     "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
+    "conduit_browser_form_acknowledge_cancellation", "conduit_browser_form_poll_effect", "conduit_browser_form_complete_effect", "conduit_browser_form_pending_capacity",
+    "conduit_browser_form_start_with_presentation", "conduit_browser_form_project_with_presentation",
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
@@ -418,6 +420,13 @@ function createRunner(source, recursive = false, presentation = {}) {
     <div class="editor">
       <div data-application-slot="${fieldSlot}"></div>
       <div data-application-slot="${actionsSlot}"></div>
+      ${recursive ? "" : `<label>Structured output
+        <select class="structured-output-profile">
+          <option value="0">Annotations</option>
+          <option value="1">Quantities</option>
+          <option value="2">Relative durations</option>
+        </select>
+      </label>`}
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
@@ -440,6 +449,10 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
+  runner.querySelector(".structured-output-profile")?.addEventListener("change", () => {
+    if (running && activeRunner === runner) stopListing(runner);
+    refreshCompactPatchbay(runner, textarea.value, recursive);
+  });
   runner.actionControls = createTourRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
@@ -555,8 +568,9 @@ function refreshCompactPatchbay(runner, source, recursive) {
   ).set(sourceBytes);
   const project = recursive
     ? host.runtime.conduit_tour_project_patchbay_recursive
-    : host.runtime.conduit_tour_project_patchbay;
-  const code = project(sourceBytes.length, BigInt(expected));
+    : host.runtime.conduit_browser_form_project_with_presentation;
+  const profile = Number(runner.querySelector(".structured-output-profile")?.value ?? 0);
+  const code = project(sourceBytes.length, BigInt(expected), profile);
   const output = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0) {
     renderCompactPatchbayRefusal(figure, output?.message ?? `Projection refused (${code}).`);
@@ -1007,8 +1021,9 @@ async function runListing(runner, source, recursive) {
   input.set(hostBytes);
   input.set(bootBytes, hostBytes.length);
   input.set(sourceBytes, hostBytes.length + bootBytes.length);
-  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start;
-  const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current));
+  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start_with_presentation;
+  const profile = Number(runner.querySelector(".structured-output-profile")?.value ?? 0);
+  const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current), profile);
   if (code < 0) {
     const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
     runner.playStatus.failure(refusal?.message
@@ -1023,20 +1038,23 @@ async function runListing(runner, source, recursive) {
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
-    while (progress.effect_kind) {
-      if (progress.effect_kind === "timer") {
+    const effects = new Map();
+    let wake = null;
+    const capacity = api.conduit_browser_form_pending_capacity();
+    const perform = async (progress, signal) => {
+      if (progress.effect_kind === "clock-observation") {
+        const bytes = new Uint8Array(8);
+        new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(performance.now() * 1000)), true);
+        return bytes;
+      } else if (progress.effect_kind === "timer") {
         runner.playStatus.ordinary(`Waiting for planned tick · ${progress.duration_millis} ms`);
-        if (!await delay(progress.duration_millis, current)) return;
+        if (!await delay(progress.duration_millis, current, signal)) return;
       } else if (progress.effect_kind === "key-event") {
         runner.playStatus.ordinary("Waiting for one admitted keyboard transition…");
         const event = await humanInput.nextKeyboard();
         if (current !== generation) return;
         const encoded = event.canonical_bytes;
-        new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
-        const completion = api.conduit_browser_form_complete_with_output(encoded.length);
-        if (completion < 0) throw new Error(`keyboard completion refused (${completion})`);
-        progress = readOutput(api);
-        continue;
+        return encoded;
       } else if (progress.effect_kind === "button-transition") {
         runner.querySelector(".input-button").hidden = false;
         runner.playStatus.ordinary("Waiting for one admitted button transition…");
@@ -1052,11 +1070,7 @@ async function runListing(runner, source, recursive) {
           api.conduit_browser_form_output_ptr(),
           api.conduit_browser_form_output_len(),
         ).slice();
-        new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), encoded.length).set(encoded);
-        const completion = api.conduit_browser_form_complete_with_output(encoded.length);
-        if (completion < 0) throw new Error(`button completion refused (${completion})`);
-        progress = readOutput(api);
-        continue;
+        return encoded;
       } else if (progress.effect_kind === "manifestation") {
         runner.querySelector(".morse").textContent =
           progress.text ?? renderMorse(progress.segments);
@@ -1075,11 +1089,90 @@ async function runListing(runner, source, recursive) {
       } else {
         throw new Error(`unsupported browser Host effect ${progress.effect_kind}`);
       }
+    };
+    while (current === generation) {
+      while (progress.effect_kind) {
+        const effect = progress;
+        const key = JSON.stringify([effect.active_play_id, effect.placement_id,
+          effect.request_sequence ?? effect.observation_sequence]);
+        if (effect.effect_kind === "cancel") {
+          const pending = effects.get(key);
+          if (!pending || pending.effect.effect_kind !== "timer") {
+            throw new Error("kernel cancellation does not name a pending timer");
+          }
+          pending.controller.abort();
+          effects.delete(key);
+          const play = encoder.encode(effect.active_play_id);
+          const placement = encoder.encode(effect.placement_id);
+          const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), play.length + placement.length);
+          input.set(play);
+          input.set(placement, play.length);
+          const result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
+          if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
+          progress = readOutput(api);
+          continue;
+        }
+        if (effects.has(key) || effects.size >= capacity) {
+          throw new Error("browser Host effect identity or capacity violation");
+        }
+        const pending = { key, effect, ready: false, controller: new AbortController() };
+        effects.set(key, pending);
+        const settle = (result) => {
+          Object.assign(pending, result, { ready: true });
+          wake?.();
+          wake = null;
+        };
+        perform(effect, pending.controller.signal).then(
+          (output) => settle({ output }),
+          (error) => settle({ error }),
+        );
+        const poll = api.conduit_browser_form_poll_effect();
+        if (poll < 0) throw new Error(`effect poll refused (${poll})`);
+        progress = readOutput(api);
+      }
+      if (progress.disposition !== "waiting") {
+        if (effects.size) throw new Error("Play completed with platform effects pending");
+        break;
+      }
+      if (!effects.size) throw new Error("Play awaits an absent platform effect");
+      let completed = [...effects.values()].find((effect) => effect.ready);
+      if (!completed) {
+        const pending = [...effects.values()].map(({ effect }) => effect);
+        const timer = pending.find((effect) => effect.effect_kind === "timer");
+        const button = pending.some((effect) => effect.effect_kind === "button-transition");
+        runner.playStatus.ordinary(timer
+          ? `Waiting for planned tick · ${timer.duration_millis} ms${button ? " and button transition" : ""}`
+          : button ? "Waiting for one admitted button transition…"
+            : `Waiting for ${pending.length} admitted Host effect(s)…`);
+        await new Promise((resolve) => { wake = resolve; });
+        if (current !== generation) return;
+        completed = [...effects.values()].find((effect) => effect.ready);
+      }
       if (current !== generation) return;
-      const completion = api.conduit_browser_form_complete();
-      if (completion < 0) throw new Error(`completion refused (${completion})`);
+      effects.delete(completed.key);
+      if (completed.error) throw completed.error;
+      const { effect, output = new Uint8Array() } = completed;
+      const play = encoder.encode(effect.active_play_id);
+      const placement = encoder.encode(effect.placement_id);
+      const total = play.length + placement.length + output.length;
+      if (total > api.conduit_browser_form_input_capacity()) {
+        throw new Error("effect completion exceeds the admitted input bound");
+      }
+      const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
+      bytes.set(play);
+      bytes.set(placement, play.length);
+      bytes.set(output, play.length + placement.length);
+      const completion = api.conduit_browser_form_complete_effect(
+        play.length, placement.length, effect.request_sequence ?? effect.observation_sequence,
+        output.length,
+      );
+      if (completion < 0) {
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
+        throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
+      }
       progress = readOutput(api);
     }
+    if (current !== generation) return;
     runner.playStatus.success(progress.timer_completions > 0
       ? `Completed — one bounded Play, ${progress.timer_completions} planned ticks, ${progress.manifestation_completions} presentations.`
       : `Completed — one bounded Play, ${progress.manifestation_completions} planned manifestations.`);
@@ -1093,6 +1186,12 @@ async function runListing(runner, source, recursive) {
     setNavigationDisabled(false);
     runner.actionControls.render(false);
   } catch (error) {
+    if (current !== generation) return;
+    generation += 1;
+    cancelDelay();
+    humanInput?.cancelPending();
+    api.conduit_browser_form_cancel();
+    setIndicator(runner, false);
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     running = false;
     activeRunner = null;
@@ -1190,23 +1289,29 @@ function appendRunEvidence(runner, entries) {
   runner.evidence.appendRun(entries);
 }
 
-function delay(milliseconds, expectedGeneration) {
+function delay(milliseconds, expectedGeneration, signal) {
   return new Promise((resolve) => {
-    const pending = {
-      resolve,
-      timeout: setTimeout(() => {
-        if (activeDelay === pending) activeDelay = null;
-        resolve(expectedGeneration === generation);
-      }, milliseconds),
+    const finish = (accepted) => {
+      clearTimeout(pending.timeout);
+      activeDelays.delete(pending);
+      signal?.removeEventListener("abort", abort);
+      resolve(accepted);
     };
-    activeDelay = pending;
+    const abort = () => finish(false);
+    const pending = {
+      resolve: finish,
+      timeout: setTimeout(() => finish(expectedGeneration === generation), milliseconds),
+    };
+    activeDelays.add(pending);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
   });
 }
 
 function cancelDelay() {
-  if (!activeDelay) return;
-  clearTimeout(activeDelay.timeout);
-  const { resolve } = activeDelay;
-  activeDelay = null;
-  resolve(false);
+  for (const pending of activeDelays) {
+    clearTimeout(pending.timeout);
+    pending.resolve(false);
+  }
+  activeDelays.clear();
 }

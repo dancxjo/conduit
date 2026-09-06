@@ -1,5 +1,10 @@
 //! Bounded WASM boundary for the single executable-tour Play.
 
+#[path = "abi_effects.rs"]
+mod effects;
+#[path = "abi_profiles.rs"]
+mod profiles;
+
 use super::TourSession;
 use std::cell::RefCell;
 
@@ -220,7 +225,7 @@ pub extern "C" fn conduit_tour_start(
         source_length,
         play_sequence,
         false,
-        false,
+        crate::installed_browser::PresentationProfile::Annotation,
     )
 }
 
@@ -238,7 +243,7 @@ pub extern "C" fn conduit_tour_start_recursive(
         source_length,
         play_sequence,
         true,
-        false,
+        crate::installed_browser::PresentationProfile::Annotation,
     )
 }
 
@@ -256,7 +261,7 @@ pub extern "C" fn conduit_tour_start_quantity(
         source_length,
         play_sequence,
         false,
-        true,
+        crate::installed_browser::PresentationProfile::Quantity,
     )
 }
 
@@ -266,7 +271,7 @@ fn start(
     source_length: usize,
     play_sequence: u64,
     recursive: bool,
-    quantity_presentation: bool,
+    presentation: crate::installed_browser::PresentationProfile,
 ) -> i32 {
     clear_output();
     let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
@@ -313,20 +318,21 @@ fn start(
                 .map_err(|_| ERROR_OUTPUT)?;
                 return Err(ERROR_INTERACTION);
             }
-            let prepared = if quantity_presentation {
-                TourSession::prepare_with_profile(
-                    host,
-                    boot,
-                    source,
-                    play_sequence,
-                    super::MorseRealization::Direct,
-                    true,
-                )
-            } else if recursive {
-                TourSession::prepare_recursive(host, boot, source, play_sequence)
-            } else {
-                TourSession::prepare(host, boot, source, play_sequence)
-            };
+            let prepared =
+                if presentation != crate::installed_browser::PresentationProfile::Annotation {
+                    TourSession::prepare_with_profile(
+                        host,
+                        boot,
+                        source,
+                        play_sequence,
+                        super::MorseRealization::Direct,
+                        presentation,
+                    )
+                } else if recursive {
+                    TourSession::prepare_recursive(host, boot, source, play_sequence)
+                } else {
+                    TourSession::prepare(host, boot, source, play_sequence)
+                };
             let (mut session, mut effect) = match prepared {
                 Ok(prepared) => prepared,
                 Err(message) => {
@@ -356,6 +362,13 @@ pub extern "C" fn conduit_tour_complete_with_output(output_length: usize) -> i32
         return ERROR_INPUT;
     }
     SESSION.with(|slot| {
+        if slot
+            .borrow()
+            .as_ref()
+            .is_some_and(|session| session.pending.len() != 1)
+        {
+            return ERROR_COMPLETE;
+        }
         let Some(mut session) = slot.borrow_mut().take() else {
             return ERROR_NOT_RUNNING;
         };
@@ -366,7 +379,7 @@ pub extern "C" fn conduit_tour_complete_with_output(output_length: usize) -> i32
                 .map_err(|_| ERROR_COMPLETE);
             input[..output_length].fill(0);
             match progress.and_then(|progress| {
-                let pending = matches!(progress, super::TourProgress::Effect(_));
+                let pending = !matches!(progress, super::TourProgress::Receipt(_));
                 write_output(&progress).map_err(|_| ERROR_OUTPUT)?;
                 if pending {
                     *slot.borrow_mut() = Some(session);
@@ -388,6 +401,14 @@ pub extern "C" fn conduit_tour_cancel() -> i32 {
 fn finish(cancel: bool) -> i32 {
     clear_output();
     SESSION.with(|slot| {
+        if !cancel
+            && slot
+                .borrow()
+                .as_ref()
+                .is_some_and(|session| session.pending.len() != 1)
+        {
+            return ERROR_COMPLETE;
+        }
         let Some(mut session) = slot.borrow_mut().take() else {
             return ERROR_NOT_RUNNING;
         };
@@ -404,7 +425,7 @@ fn finish(cancel: bool) -> i32 {
         }
         let progress = session.advance().map_err(|_| ERROR_COMPLETE);
         match progress.and_then(|progress| {
-            let pending = matches!(progress, super::TourProgress::Effect(_));
+            let pending = !matches!(progress, super::TourProgress::Receipt(_));
             write_output(&progress).map_err(|_| ERROR_OUTPUT)?;
             if pending {
                 *slot.borrow_mut() = Some(session);
