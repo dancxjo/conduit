@@ -327,7 +327,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/tools/xtask/profile.rs)" = 1
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/xtask/profile.rs)" = 1
           mkdir -p target/conduitos/vendor
           archive=target/conduitos/vendor/limine-binary-12.5.2.tar.gz
           if ! curl --fail --location --remove-on-error \
@@ -344,7 +344,7 @@ jobs:
           fi
       - name: Verify the pinned bootloader archive
         run: |
-          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/tools/xtask/profile.rs)" = 1
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/xtask/profile.rs)" = 1
           echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
       - name: Distribute the verified pinned archive
         id: upload

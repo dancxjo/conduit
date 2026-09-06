@@ -150,14 +150,14 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
             "sha256:485b9a6a941e3961b7dbabd811da32fa6f833a21a9ea896315ee4598f2a257c3",
         ),
         (
-            "targets/std/profiles/linux-computer.host.conduit",
-            "sha256:fae0becde708c48b6bb0f3adc795efbbdc39bb6d0e96f87a4762afd3beb20b26",
-            "sha256:747201fefd484f9f2e8582436b29d32cdcebaca631632756291a66ceea73a4e4",
-        ),
-        (
             "targets/rp2040/profiles/pico-w.host.conduit",
             "sha256:c3067ec55f4936c284666a3ab9c6cd39ace1db6edfb2783c673d6bba4174cf22",
             "sha256:fc4acf3747304e9aa55e981d6799938f4ab42a0bbff42849507ddb20ec0c96fa",
+        ),
+        (
+            "targets/std/profiles/linux-computer.host.conduit",
+            "sha256:fae0becde708c48b6bb0f3adc795efbbdc39bb6d0e96f87a4762afd3beb20b26",
+            "sha256:747201fefd484f9f2e8582436b29d32cdcebaca631632756291a66ceea73a4e4",
         ),
     ];
     let packages = test_package_set();

@@ -12,7 +12,7 @@ fn unique_report_path(name: &str) -> PathBuf {
 #[test]
 fn canonical_hello_runs_locally() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../..")
+        .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
     let form_path = workspace_root.join("forms/hello/main.conduit");
@@ -60,7 +60,7 @@ fn canonical_hello_runs_locally() {
 #[test]
 fn actual_std_run_writes_a_read_only_observatory_report() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../..")
+        .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
     let form_path = workspace_root.join("forms/hello/main.conduit");
@@ -196,7 +196,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
 #[test]
 fn product_run_refuses_precanonical_fixture_source() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../..")
+        .join("../..")
         .canonicalize()
         .expect("workspace root must exist");
     let canonical = workspace_root.join("forms/hello/main.conduit");
