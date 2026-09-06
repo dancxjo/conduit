@@ -48,7 +48,7 @@ printf '%s\n' "$chapters" | while IFS= read -r chapter; do
     cp "products/tour/content/$chapter" "$destination/$chapter"
 done
 
-page_routes='a-form-you-can-run
+page_routes='one-program-many-computers
 faces-backs-and-implementation
 hosts-make-forms-real
 one-form-across-several-hosts
