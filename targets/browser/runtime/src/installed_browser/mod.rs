@@ -60,3 +60,6 @@ pub(crate) use state_time::BROWSER_TIMER_MAXIMUM_MILLIS;
 
 #[cfg(test)]
 pub(crate) mod test_json;
+
+#[cfg(test)]
+pub(crate) mod test_timing_sink;

@@ -238,6 +238,10 @@ pub(crate) fn factory(
     if let Some(fixture) = super::test_json::factory(implementation_id.as_str()) {
         return Some(fixture);
     }
+    #[cfg(test)]
+    if implementation_id.as_str() == super::test_timing_sink::KIND {
+        return Some(&super::test_timing_sink::SINK);
+    }
     if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
         return Some(&quantity_output::PRESENTATION);
     }

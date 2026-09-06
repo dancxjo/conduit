@@ -474,3 +474,7 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 #[path = "json_tests.rs"]
 mod json_tests;
+
+#[cfg(test)]
+#[path = "timing_kernel_tests.rs"]
+mod timing_kernel_tests;
