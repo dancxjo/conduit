@@ -81,9 +81,62 @@ pub fn plan_body_workset_on_host(
             let hosts = [host.clone()];
             let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
                 .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
-            let plan =
-                conduit_planner::plan_expanded_canonical(&expanded, &hosts, &placements, bases)
-                    .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
+            let mut limits = std::collections::BTreeMap::new();
+            for cord in &expanded.connections {
+                let selected = |gear| {
+                    placements
+                        .by_gear
+                        .get(gear)
+                        .and_then(|choice| {
+                            host.capabilities
+                                .iter()
+                                .find(|offer| offer.capability_id == choice.capability_id)
+                        })
+                        .ok_or_else(|| {
+                            BodyPlanningSessionError::Planning(
+                                "Body Cord has no exact selected capability".into(),
+                            )
+                        })
+                };
+                let source = selected(&cord.source_gear_id)?;
+                let sink = selected(&cord.sink_gear_id)?;
+                limits.insert(
+                    (
+                        cord.source_gear_id.clone(),
+                        cord.source_port_id.clone(),
+                        cord.sink_gear_id.clone(),
+                        cord.sink_port_id.clone(),
+                    ),
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: source
+                            .limits
+                            .max_queue_items
+                            .min(sink.limits.max_queue_items)
+                            .min(4),
+                        byte_capacity: source
+                            .limits
+                            .max_queue_bytes
+                            .min(sink.limits.max_queue_bytes),
+                    },
+                );
+            }
+            let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
+                &expanded,
+                &hosts,
+                &placements,
+                bases,
+                conduit_planner::PlanningOptions {
+                    connection_bases: &Default::default(),
+                    line_candidates: &Default::default(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: 1,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                &limits,
+            )
+            .map_err(|error| BodyPlanningSessionError::Planning(error.to_string()))?;
             Ok(BodyFormPlan {
                 form: resident,
                 plan,
