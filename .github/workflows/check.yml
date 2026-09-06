@@ -165,29 +165,29 @@ jobs:
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: git diff --check "$BASE_SHA" "$HEAD_SHA"
       - uses: dtolnay/rust-toolchain@1.98.1
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         with:
           components: clippy,rustfmt
       - name: Build the dependency-light trusted CI controller
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         run: >-
           CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target"
           cargo build
           --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml"
           --package conduit-xtask-dispatch --locked
       - name: Verify tracked repository ownership before proof fan-out
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         run: |
           cargo test --locked --package conduit-xtask-dispatch --test repository_taxonomy
           node --test proof/ci/browser-product-ownership.test.mjs proof/ci/tour-compatibility.test.mjs
       - name: Verify the exact generic Rust toolchain before proof fan-out
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         run: >-
           "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
           ci rust-toolchain-preflight --locked
       - name: Plan exact CI impact
         id: impact
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true'
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true')
         env:
           BASE_SHA: ${{ steps.changes.outputs.base_sha }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
@@ -199,7 +199,7 @@ jobs:
             >> "$GITHUB_OUTPUT"
       - name: Project the exact reconciliation delta onto check jobs
         id: execution
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && inputs.execute_proofs != ''
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && inputs.execute_proofs != ''
         env:
           EXECUTE_PROOFS: ${{ inputs.execute_proofs }}
         run: |
@@ -246,7 +246,7 @@ jobs:
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: cargo test --locked --package conduit-xtask-dispatch
       - name: Verify the final result gate truth table
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (inputs.execute_proofs == '' || steps.execution.outputs.ci_controller_required == 'true')
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (inputs.execute_proofs == '' || steps.execution.outputs.ci_controller_required == 'true')
         env:
           CONDUIT_CHECK_WORKFLOW: ${{ github.workspace }}/.github/workflows/check.yml
         run: |
@@ -256,7 +256,7 @@ jobs:
           fi
           node --test "$proof" proof/ci/branch-boundary.spec.mjs
       - name: Fingerprint immutable candidate proof inputs
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
           CONDUIT_FULL_SUITE: ${{ inputs.full_suite }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
@@ -273,7 +273,7 @@ jobs:
             --json-out target/ci-plans/ci-proof-plan.json \
             --summary-out "$GITHUB_STEP_SUMMARY"
       - name: Retain the trusted attestation controller once for proof jobs
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/upload-artifact@v7
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
@@ -282,7 +282,7 @@ jobs:
           retention-days: 1
           compression-level: 0
       - name: Retain the trusted candidate proof and applicability plans
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: actions/upload-artifact@v7
         with:
           name: ci-plan-${{ steps.changes.outputs.head_sha }}
@@ -290,7 +290,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Retain the exact successful CI controller proof proposition
-        if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true')) && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
+        if: steps.stack.outputs.role != 'intermediate' && (inputs.full_suite || steps.changes.outputs.docs_only != 'true') && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true')) && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         uses: ./.github/actions/attest-ci-proof
         with:
           proof-id: ci.controller-contracts
