@@ -28,11 +28,22 @@ impl HostedKeyboardAdapter for Keyboard {
 
 #[test]
 fn unchanged_canonical_form_runs_on_native_kernel() {
+    run_form(SOURCE, 2);
+}
+
+#[test]
+fn maximum_button_bound_is_not_limited_by_the_unrelated_toggle_sink() {
+    let source = SOURCE.replace("input/button\n", "input/button(8)\n");
+    assert_ne!(source, SOURCE);
+    run_form(&source, 8);
+}
+
+fn run_form(source: &str, transitions: usize) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .unwrap();
-    let checked = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "button_across_room", &profile).unwrap();
     let mut advertisement = StdHost::new().advertisement().clone();
     advertisement.capabilities = vec![
@@ -90,7 +101,9 @@ fn unchanged_canonical_form_runs_on_native_kernel() {
     )
     .unwrap();
     assert_eq!(plan.fragments.len(), 1);
-    let mut keyboard = Keyboard(VecDeque::from([[4, 0, 0], [0x2c, 0, 0], [0x2c, 1, 0]]));
+    let mut events = VecDeque::from([[4, 0, 0]]);
+    events.extend((0..transitions).map(|sequence| [0x2c, (sequence % 2) as u8, 0]));
+    let mut keyboard = Keyboard(events);
     let mut output = Vec::new();
     let report = host
         .run_fragment_controlled_with_keyboard_to(
@@ -106,7 +119,10 @@ fn unchanged_canonical_form_runs_on_native_kernel() {
         .lines()
         .filter_map(|line| line.strip_prefix("bool value="))
         .collect::<Vec<_>>();
-    assert_eq!(states, ["true", "false"], "{output}");
+    let expected = (0..transitions)
+        .map(|sequence| if sequence % 2 == 0 { "true" } else { "false" })
+        .collect::<Vec<_>>();
+    assert_eq!(states, expected, "{output}");
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(ObservationKind::PlanTerminal {
