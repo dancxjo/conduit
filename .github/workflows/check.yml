@@ -60,7 +60,7 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ inputs.full_suite && 'false' || steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
+      docs_only: ${{ steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
       reason: ${{ steps.slice.outputs.reason || steps.changes.outputs.reason }}
       base_sha: ${{ steps.slice.outputs.base_sha || steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.slice.outputs.head_sha || steps.changes.outputs.head_sha }}
@@ -154,6 +154,7 @@ jobs:
         id: changes
         if: steps.stack.outputs.role != 'intermediate'
         env:
+          CONDUIT_FULL_SUITE: ${{ inputs.full_suite }}
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: tools/ci/classify-docs-only.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
@@ -239,6 +240,7 @@ jobs:
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
           proof/ci/classify-pr-stack.spec.mjs
+          proof/ci/branch-boundary.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
           proof/ci/tour-compatibility.test.mjs
       - name: Verify the dependency-light typed CI planner contracts
