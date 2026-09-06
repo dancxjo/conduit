@@ -45,6 +45,8 @@ pub mod hosted_http;
 pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
+#[cfg(unix)]
+pub mod pico_indicator;
 pub use host_execution::HostedRunAdapters;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
