@@ -10,7 +10,7 @@ form secret-knock (
     normalize: normalize-durations
     storage: storage/named-pattern-templates(maximum-commands = 2)
     final_template: sequence/final-normalized-pattern(maximum-values = 1)
-    compare: sequence/compare-normalized-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 1)
+    compare: compare-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 1)
     manifest: presentation/structured-info
 
     transitions > attempt.transition
@@ -41,4 +41,18 @@ form derive-intervals (
     derive: time/ordered-event-intervals
     events > derive.events
     derive.intervals > intervals
+}
+
+# Reusable pattern comparison with explicit semantic policy.
+form compare-pattern (
+    metric: Text = "maximum-absolute-millionths@1"
+    tolerance-millionths: Count = 1
+    > candidate: NormalizedDurationSequence
+    > template: NormalizedDurationSequence
+    comparison: PatternComparison >
+) {
+    compare: sequence/compare-normalized-pattern(metric = metric, tolerance-millionths = tolerance-millionths)
+    candidate > compare.candidate
+    template > compare.template
+    compare.comparison > comparison
 }

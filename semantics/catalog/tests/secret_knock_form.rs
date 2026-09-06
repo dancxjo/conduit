@@ -65,6 +65,17 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_forms() {
         intervals.expanded.gears[0].kind_id.as_str(),
         conduit_semantic_catalog::ORDERED_EVENT_INTERVALS_KIND
     );
+    assert!(namesake
+        .gears
+        .iter()
+        .any(|gear| gear.kind == "compare-pattern"));
+    let comparison = expand_canonical_form_for_authoring(&checked, "compare-pattern", &profile)
+        .expect("canonical comparison expands independently with explicit default policy");
+    assert_eq!(comparison.expanded.gears.len(), 1);
+    assert_eq!(
+        comparison.expanded.gears[0].kind_id.as_str(),
+        conduit_semantic_catalog::COMPARE_PATTERN_KIND
+    );
     let reusable = expand_canonical_form_for_authoring(&checked, "normalize-durations", &profile)
         .expect("the canonical normalization Face expands independently");
     assert_eq!(reusable.expanded.gears.len(), 1);
