@@ -2,6 +2,27 @@ use crate::{process::Step, proof::ProofClass};
 
 pub const PICO_COMPOSITION_STEPS: &[Step] = &[
     Step::typed(
+        "check.thumb.firmware-indicator-resource",
+        "Pico W acquired indicator peripheral Thumb check",
+        "cargo",
+        &[
+            "check",
+            "--manifest-path",
+            "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
+            "--bin",
+            "conduit-pico-w-signal",
+            "--no-default-features",
+            "--features",
+            "indicator-resource",
+            "--target",
+            "thumbv6m-none-eabi",
+        ],
+        None,
+        Some("thumbv6m-none-eabi"),
+        Some(ProofClass::ContractCompile),
+        &[],
+    ),
+    Step::typed(
         "check.thumb.firmware-usb-midi-fixture",
         "Pico W bounded breadboard USB-MIDI fixture Thumb check",
         "cargo",
@@ -205,6 +226,7 @@ mod tests {
         assert!(manifest.contains("usb-remote = [\"session-control\"]"));
         assert!(manifest.contains("triple-remote = [\"session-control\"]"));
         assert!(manifest.contains("light-switch = [\"session-control\"]"));
+        assert!(manifest.contains("indicator-resource = [\"light-switch\"]"));
         assert!(manifest.contains(
             "wifi-bootstrap = [\"session-control\", \"dep:conduit-net\", \"dep:conduit-rp2040-network-realization\", \"dep:conduit-r1-network-conformance\", \"dep:embassy-net\"]"
         ));
@@ -230,7 +252,19 @@ mod tests {
         ));
         assert!(firmware.contains("#[cfg(feature = \"pico-local-minimal\")]"));
         assert!(manifest.contains("usb-midi-fixture = [\"dep:embassy-futures\"]"));
-        assert_eq!(PICO_COMPOSITION_STEPS.len(), 10);
+        assert_eq!(PICO_COMPOSITION_STEPS.len(), 11);
+        let indicator = PICO_COMPOSITION_STEPS
+            .iter()
+            .find(|step| step.id == "check.thumb.firmware-indicator-resource")
+            .unwrap();
+        assert!(indicator
+            .args
+            .windows(2)
+            .any(|pair| pair == ["--features", "indicator-resource"]));
+        assert_eq!(
+            indicator.proof_class,
+            Some(crate::proof::ProofClass::ContractCompile)
+        );
     }
 
     #[test]
