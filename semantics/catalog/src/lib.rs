@@ -494,3 +494,7 @@ pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
 mod final_pattern_operation;
 #[cfg(feature = "kernel-operation")]
 pub use final_pattern_operation::FinalNormalizedPatternOperation;
+#[cfg(feature = "kernel-operation")]
+mod structured_selector_operation;
+#[cfg(feature = "kernel-operation")]
+pub use structured_selector_operation::StructuredSelectorOperation;
