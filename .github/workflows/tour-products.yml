@@ -204,6 +204,8 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
           cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
+          cargo build --locked -p patchbay-html --bin patchbay-html -p conduit-std-host --bin browser-admission-probe
+          cp target/debug/patchbay-html target/debug/browser-admission-probe target/browser-product-runtimes/
       - uses: actions/upload-artifact@v7
         with:
           name: conduit-browser-product-runtimes
@@ -748,6 +750,9 @@ jobs:
         run: |
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-admission-probe target/debug/
+          mkdir -p target/wasm32-unknown-unknown/release
+          cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
           chmod 755 target/debug/conduit-browser-host
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
@@ -763,6 +768,9 @@ jobs:
           name: conduit-staged-browser-products
           path: |
             target/debug/conduit-browser-host
+            target/debug/patchbay-html
+            target/debug/browser-admission-probe
+            target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
             target/pages-root
             target/tour-product
             target/creche-product
@@ -789,7 +797,7 @@ jobs:
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
-            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-body-execution.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs
     name: browser-proof-${{ matrix.shard }}
@@ -809,7 +817,7 @@ jobs:
           name: conduit-staged-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit-browser-host
+        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-admission-probe
       - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
         if: matrix.shard != 'tour'
         env:
