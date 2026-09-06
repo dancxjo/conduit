@@ -10,6 +10,13 @@ use conduit_kernel::{
 mod continuity;
 pub use continuity::{RetainedTypedState, StateContinuityFailure};
 
+/// Finished ordinary execution plus its separately owned retained State cells.
+/// The report's disposition remains authoritative; retention is not completion.
+pub struct RetainedStdRun {
+    pub report: crate::StdRunReport,
+    pub states: Vec<RetainedTypedState>,
+}
+
 pub struct TypedStateOperation {
     binding: Option<continuity::StateExecutionBinding>,
     operation: StateOperation<64>,

@@ -117,29 +117,40 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
         let mut timer = RecordingTimer {
             waits: Vec::with_capacity(2),
         };
-        installed_std::run_fragment(
-            installed_std::InstalledRunHost {
-                advertisement: &advertisement,
-                playback: None,
-                midi_input: None,
-                midi_output: None,
-                keyboard: None,
-                local_model: None,
-                vector_search: None,
-                calendar: None,
-            },
-            fragment,
-            0,
-            &mut 0,
+        let mut execution_host = host("typed-state-host");
+        execution_host.advertisement = advertisement.clone();
+        execution_host.kernel_resources =
+            crate::kernel_preparation::KernelResourceLedger::new(&advertisement).unwrap();
+        let result = execution_host.run_fragment_retaining_to(
+            fragment.clone(),
             &mut output,
             &mut timer,
             &crate::RunControl::default(),
-        )
+        );
+        // The Host releases old realization reservations before yielding State.
+        let reservation = execution_host
+            .kernel_resources
+            .prepare_and_reserve(&advertisement, fragment)
+            .unwrap();
+        execution_host
+            .kernel_resources
+            .release(reservation)
+            .unwrap();
+        result
     };
     assert!(run(&ordinary.fragments[0])
-        .unwrap_err()
+        .err()
+        .unwrap()
         .contains("lacks sealed State"));
     let report =
         run(&sealed.fragments[0]).expect("typed State executes through the installed kernel");
-    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
+    assert_eq!(report.states.len(), 1);
+    let retained = report.states[0].provenance();
+    assert_eq!(retained.current_value, next.canonical_bytes().unwrap());
+    assert_eq!(retained.generation, 2);
+    assert_eq!(retained.source_play.plan_id, sealed.plan_id);
+    assert_eq!(retained.source_form, form.identity());
+    let kernel = report.report.kernel.unwrap();
+    assert_eq!(retained.source_play.active_play_id, kernel.active_play_id);
+    assert_eq!(kernel.post_play_start_allocations, 0);
 }

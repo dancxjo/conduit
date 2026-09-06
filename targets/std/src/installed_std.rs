@@ -42,6 +42,11 @@ mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod preparation;
+pub(super) use preparation::state_storage_profile;
+mod retained_run;
+#[cfg(test)]
+pub(super) use retained_run::run_fragment;
+pub(super) use retained_run::InstalledRunHost;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_operation;
@@ -119,7 +124,7 @@ use super::{
 use conduit_core::present_host_operation_requirement;
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_operation_requirement, CancellationReason,
-    HostAdvertisement, Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
@@ -164,20 +169,7 @@ pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
 
-pub(super) struct InstalledRunHost<'a, 'keyboard, 'model> {
-    pub advertisement: &'a HostAdvertisement,
-    pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
-    pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,
-    pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,
-    pub keyboard: Option<&'keyboard mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
-    pub local_model:
-        Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
-    pub vector_search:
-        Option<&'model mut (dyn crate::hosted_vector_search::HostedVectorSearchAdapter + 'static)>,
-    pub calendar: Option<&'model mut (dyn crate::hosted_calendar::HostedCalendarAdapter + 'static)>,
-}
-
-pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
+pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     host: InstalledRunHost<'_, '_, '_>,
     fragment: &PlanFragment,
     play_sequence: u64,
@@ -185,7 +177,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     _output: &mut W,
     timer: &mut T,
     control: &RunControl,
-) -> Result<StdRunReport, String> {
+) -> Result<crate::state_value::RetainedStdRun, String> {
     let InstalledRunHost {
         advertisement,
         playback,
@@ -1916,7 +1908,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .flatten()
         .map(crate::hosted_midi::MidiOutputSession::report)
         .collect();
-    Ok(StdRunReport {
+    let report = StdRunReport {
         observations,
         receipts: Vec::new(),
         control_receipts,
@@ -1935,5 +1927,6 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             #[cfg(test)]
             post_play_start_allocations,
         }),
-    })
+    };
+    retained_run::finish(report, scheduler, fragment.states.len())
 }
