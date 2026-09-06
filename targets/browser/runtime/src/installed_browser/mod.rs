@@ -65,3 +65,5 @@ pub(crate) mod test_json;
 pub(crate) mod test_timing_sink;
 
 pub(crate) mod button_attempt;
+
+mod catalogs;
