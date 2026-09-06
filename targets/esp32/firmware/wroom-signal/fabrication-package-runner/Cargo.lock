@@ -29,6 +29,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-assigned-plan"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-audio"
 version = "0.1.0"
 dependencies = [
@@ -51,6 +55,7 @@ dependencies = [
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
+ "conduit-assigned-plan",
  "libm",
  "serde",
  "sha2",
