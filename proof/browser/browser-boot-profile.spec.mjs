@@ -1,3 +1,4 @@
+import "./browser-resource-publication.cases.mjs";
 import { expect, test } from "@playwright/test";
 
 const IDS = [
