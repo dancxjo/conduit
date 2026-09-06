@@ -6,6 +6,8 @@ use conduit_core::{BootId, HostId, PlanId, SignId};
 use serde::Deserialize;
 use std::net::TcpStream;
 
+pub(super) mod assets;
+
 const MAX_EXECUTION_REQUEST_BYTES: usize = 64 * 1024;
 
 #[derive(Deserialize)]

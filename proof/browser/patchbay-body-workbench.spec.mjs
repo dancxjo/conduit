@@ -100,7 +100,7 @@ test("a second browser replans one Body and its departure is explicit", async ({
   expect(requestedEvidence.capabilities.length).toBeGreaterThan(0);
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
   await expect(page.locator("#body-capability-evidence-status")).toContainText("display only");
-  await page.getByRole("button", { name: "Run active Forms on this Host", exact: true }).click();
+  await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
   await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
   const planningInput = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
   expect(planningInput.body_host_planning_offer.stage).toBe("Planning");
@@ -230,7 +230,7 @@ test("a second browser replans one Body and its departure is explicit", async ({
   expect(secondIdentity.hostId).not.toBe(admittedIdentity.hostId);
   await secondPage.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
   await expect.poll(() => secondPage.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.stage)).toBe("Planning");
-  await secondPage.getByRole("button", { name: "Run active Forms on this Host", exact: true }).click();
+  await secondPage.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
   await expect.poll(async () => {
     const snapshot = await secondPage.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
     return snapshot.body_planning?.historical_plan_ids?.length === 2 ? snapshot.body_planning : null;

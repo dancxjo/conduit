@@ -13,7 +13,7 @@ function fixture({ timer = false, text = "hello" } = {}) {
     ...(timer ? { effect_kind: "timer", duration_millis: 10_000 } : { effect_kind: "manifestation", presentation_kind: "presentation/text", text }) };
   const api = {
     memory,
-    conduit_browser_form_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", implementations: ["browser/dom-presentation@1", "browser/pointer-events@1"] });return 0; },
+    conduit_browser_form_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
     conduit_browser_form_output_ptr: () => 0, conduit_browser_form_output_len: () => length,
     conduit_browser_body_input_ptr: () => 256 * 1024, conduit_browser_body_input_capacity: () => 256 * 1024,
     conduit_browser_body_start(length) {
@@ -96,6 +96,39 @@ test("adapter failure is not converted into successful execution", async () => {
   await assert.rejects(owner.run(), /unsupported browser manifestation/);
   owner.close();
   assert.equal(f.count().cancels, 1);
+});
+
+test("pre-start refusal and an unknown WASM start outcome remain distinct", () => {
+  for (const [start, outcome, cancels] of [
+    [() => -1, "refused-before-play", 0],
+    [() => { throw new Error("WASM trap"); }, "unknown", 1],
+  ]) {
+    const f = fixture();f.api.conduit_browser_body_start = start;
+    const owner = acquireBrowserBodyHost(f);
+    assert.throws(() => owner.start(1));
+    const result = owner.close();
+    assert.equal(result.startOutcome, outcome);
+    assert.equal(f.count().cancels, cancels);
+    if (outcome === "unknown") assert.equal(result.receipt.disposition, "cancelled");
+    else assert.equal(result.receipt, null);
+  }
+  const f = fixture(), owner = acquireBrowserBodyHost(f);
+  assert.throws(() => owner.start(0));
+  assert.equal(owner.close().startOutcome, "not-attempted");
+});
+
+test("first access to the Body input arena may replace the WASM memory buffer", () => {
+  const f = fixture();
+  f.api.conduit_browser_body_input_ptr = () => {
+    const next = new ArrayBuffer(1024 * 1024);
+    new Uint8Array(next).set(new Uint8Array(f.api.memory.buffer));
+    f.api.memory.buffer = next;
+    return 256 * 1024;
+  };
+  const owner = acquireBrowserBodyHost(f);
+  owner.start(1);
+  assert.equal(f.request().play_sequence, 1);
+  owner.close();
 });
 
 test("malformed successful start output still retires the acquired session", () => {

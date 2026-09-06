@@ -61,12 +61,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   }
   if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
   const machinery = readOutput(api);
-  if (machinery.schema !== "conduit.browser/selected-human-machinery@1") throw new Error("invalid browser machinery");
+  if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64) throw new Error("invalid browser machinery");
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
   const slots = new Map();
   const presentationTimers = new Map();
   const elements = [];
   let input = null, timer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
+  let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
   owners.add(api);
   try {
@@ -77,7 +78,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       timer = { pending: null, cancel: null };
     }
     for (const placement of placements.filter(item => item.resources.some(resource => resource.class_id === PRESENTATION))) {
-      if (!machinery.implementations.includes("browser/dom-presentation@1")) throw new Error("browser presentation not installed");
+      if (!machinery.implementations.some(entry => entry.id === "browser/dom-presentation@1")) throw new Error("browser presentation not installed");
       const output = outputRoot.ownerDocument.createElement("output");
       output.dataset.placementId = placement.placement_id;
       output.setAttribute("aria-label", placement.gear_id);
@@ -172,8 +173,20 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (startAccepted || !Number.isSafeInteger(playSequence) || playSequence < 1) throw new Error("browser Body start refused");
       const request = new TextEncoder().encode(JSON.stringify({ wake: proposal.wake, plan: proposal.plan, play_sequence: playSequence, observations: observations() }));
       if (request.length > api.conduit_browser_body_input_capacity()) throw new Error("browser Body input bound exceeded");
-      new Uint8Array(api.memory.buffer, api.conduit_browser_body_input_ptr(), request.length).set(request);
-      if (api.conduit_browser_body_start(request.length) < 0) throw new Error("browser Body admission refused");
+      // The heap-backed input arena may grow WASM memory on first access.
+      // Obtain the pointer before reading memory.buffer, which growth detaches.
+      const inputPointer = api.conduit_browser_body_input_ptr();
+      new Uint8Array(api.memory.buffer, inputPointer, request.length).set(request);
+      startOutcome = "unknown";
+      const startStatus = api.conduit_browser_body_start(request.length);
+      if (startStatus < 0) {
+        startOutcome = "refused-before-play";
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
+        const error = new Error(`browser Body admission refused (${startStatus}): ${refusal?.message ?? "no refusal detail"}`);
+        error.status = startStatus;error.refusal = refusal;
+        throw error;
+      }
+      startOutcome = "accepted";
       startAccepted = true;
       started = readOutput(api);
       if (started.schema !== "conduit.browser/body-started@1" ||
@@ -195,10 +208,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       input?.close();
       timer?.cancel?.();
       for (const timer of presentationTimers.values()) timer.cancel?.();
-      const status = startAccepted && !terminal ? api.conduit_tour_cancel() : null;
+      const status = (startAccepted || startOutcome === "unknown") && !terminal ? api.conduit_tour_cancel() : null;
       try {
         const receipt = status !== null && status >= 0 ? readOutput(api) : terminal;
-        return { status, receipt };
+        return { status, receipt, startOutcome };
       } finally { elements.forEach(element => element.remove());owners.delete(api); }
     },
   });

@@ -187,7 +187,7 @@ impl PatchbayHtmlServer {
             "assets/react.min.js" => Some(REACT),
             "assets/react-dom.min.js" => Some(REACT_DOM),
             "assets/react-flow.min.js" => Some(REACT_FLOW),
-            _ => None,
+            _ => body_execution::assets::resource(path),
         }
     }
 

@@ -175,6 +175,18 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     .selected_fabrication_ids()
 }
 
+/// Exact installed capabilities supported by the local Form/Body executor.
+/// Membership may additionally advertise implementations for other entrances.
+pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
+    let machinery = BrowserMachinery::from_selected(&selected_human_machinery())
+        .expect("ordinary browser profile contains reviewed machinery");
+    INSTALLATIONS
+        .iter()
+        .filter(|entry| machinery.admits(entry))
+        .map(|entry| (entry.offer)().capability_id)
+        .collect()
+}
+
 pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
 
 pub(crate) fn factory(
@@ -238,32 +250,6 @@ pub(crate) fn advertisement_for_presentation(
     host.capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
     host
-}
-
-/// The bounded admission profile used by the ordinary browser membership
-/// entrance. It combines the live webchat machinery with the installed text
-/// literal needed by small canonical browser Forms.
-pub(crate) fn membership_advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
-    let mut advertisement = crate::webchat::admission_advertisement(host_id, boot_id);
-    advertisement.capabilities.push((text::LITERAL.offer)());
-    if !advertisement
-        .resources
-        .iter()
-        .any(|offer| offer.class_id.as_str() == PRESENTATION_RESOURCE_CLASS)
-    {
-        advertisement.resources.push(resource_offer(
-            "browser/presentation",
-            PRESENTATION_RESOURCE_CLASS,
-            super::MAXIMUM_BROWSER_GEARS as u32,
-        ));
-        advertisement
-            .resources
-            .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    }
-    advertisement
-        .capabilities
-        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    advertisement
 }
 
 pub(crate) fn advertisement_for_machinery(

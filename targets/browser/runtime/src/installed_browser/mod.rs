@@ -11,6 +11,7 @@ mod limits;
 mod linguistics;
 mod logic;
 mod math;
+mod membership_offer;
 mod morse;
 mod morse_composition;
 mod normalized_quantity;
@@ -31,10 +32,12 @@ mod values;
 mod secret_knock_trigger_plan;
 
 pub(crate) use factory::{
-    advertisement, backs, catalogs, factory, local_bases, membership_advertisement,
-    selected_human_machinery, BrowserManifestation,
+    advertisement, backs, catalogs, factory, local_bases, selected_human_machinery,
+    BrowserManifestation,
 };
-pub(crate) use factory::{advertisement_for_presentation, catalogs_for_presentation};
+pub(crate) use factory::{
+    advertisement_for_presentation, catalogs_for_presentation, execution_capability_ids,
+};
 pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
 pub(crate) use limits::{
@@ -43,6 +46,7 @@ pub(crate) use limits::{
     BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS, BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS,
     MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS, MAXIMUM_BROWSER_VALUE_BYTES,
 };
+pub(crate) use membership_offer::advertisement as membership_advertisement;
 pub(crate) use normalized_quantity::{
     transform as normalize_quantity, HOST_OPERATION as NORMALIZE_QUANTITY_OPERATION,
 };

@@ -9,6 +9,19 @@ impl PatchbayHtmlServer {
         stream: &mut TcpStream,
         body: &[u8],
     ) -> Option<Result<(), ServerError>> {
+        if let Some(path) = request_line
+            .strip_prefix("GET /")
+            .and_then(|line| line.strip_suffix(" HTTP/1.1"))
+        {
+            if let Some(bytes) = super::body_execution::assets::resource(path) {
+                return Some(super::write_response(
+                    stream,
+                    "200 OK",
+                    "text/javascript; charset=utf-8",
+                    bytes,
+                ));
+            }
+        }
         Some(match request_line {
             "POST /api/body-execution HTTP/1.1" => self.deliver_body_execution(stream, body),
             "POST /api/body-workload HTTP/1.1" => self.deliver_body_workload(stream, body),

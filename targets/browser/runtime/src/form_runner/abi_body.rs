@@ -14,6 +14,18 @@ pub extern "C" fn conduit_browser_body_input_capacity() -> usize {
     BODY_INPUT_BYTES
 }
 
+/// Read-only execution support, distinct from the Host's complete advertisement.
+#[no_mangle]
+pub extern "C" fn conduit_browser_body_capabilities() -> i32 {
+    clear_output();
+    write_output(&serde_json::json!({
+        "schema": "conduit.browser/body-capabilities@1",
+        "capability_ids": crate::installed_browser::execution_capability_ids(),
+    }))
+    .map(|()| STATUS_READY)
+    .unwrap_or(ERROR_OUTPUT)
+}
+
 /// The trusted browser Host supplies exact resource observations. This does
 /// not discover or acquire devices, grant permission, or implicitly replace Play.
 #[no_mangle]
@@ -59,6 +71,22 @@ pub extern "C" fn conduit_browser_body_start(length: usize) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn execution_capability_disclosure_is_exact_and_does_not_start_a_play() {
+        assert!(SESSION.with(|slot| slot.borrow().is_none()));
+        assert_eq!(conduit_browser_body_capabilities(), STATUS_READY);
+        let value: serde_json::Value = OUTPUT.with(|output| {
+            serde_json::from_slice(&output.borrow()[..conduit_tour_output_len()]).unwrap()
+        });
+        assert_eq!(value["schema"], "conduit.browser/body-capabilities@1");
+        assert_eq!(
+            value["capability_ids"],
+            serde_json::to_value(crate::installed_browser::execution_capability_ids()).unwrap()
+        );
+        assert!(conduit_tour_output_len() <= 16 * 1024);
+        assert!(SESSION.with(|slot| slot.borrow().is_none()));
+    }
 
     #[test]
     fn body_start_uses_the_existing_slot_and_completion_abi() {
