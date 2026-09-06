@@ -6,6 +6,8 @@ mod quantity_mapping;
 pub use quantity_mapping::*;
 mod quantity_info;
 pub use quantity_info::*;
+mod pulse_observation;
+pub use pulse_observation::*;
 mod timing;
 pub use timing::*;
 mod timed_pattern;

@@ -105,18 +105,24 @@ pub fn install_rhythm_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    insert_rhythm_kind(
-        startup,
-        profile,
-        PULSE_OBSERVE_KIND,
-        PULSE_OBSERVE_REVISION,
-        vec![flow_port("tick", TICK_VALUE_KIND, PortDirection::Input)],
-        vec![flow_port(
-            "observation",
-            PULSE_OBSERVATION_VALUE_KIND,
-            PortDirection::Output,
-        )],
-    )?;
+    startup.insert(KindSignature {
+        kind: PULSE_OBSERVE_KIND.into(),
+        startup_parameters: vec![
+            StartupParameterSignature {
+                name: "period-ms".into(),
+                value_type: "Count".into(),
+                default: Some("240".into()),
+            },
+            StartupParameterSignature {
+                name: "maximum-pulses".into(),
+                value_type: "Count".into(),
+                default: Some("64".into()),
+            },
+        ],
+    })?;
+    profile
+        .insert(pulse_observe_kind_definition())
+        .map_err(|error| error.to_string())?;
     insert_rhythm_kind(
         startup,
         profile,
@@ -132,6 +138,38 @@ pub fn install_rhythm_catalog(
             PortDirection::Output,
         )],
     )
+}
+
+/// Nominal pulse period and observation count are semantic, finite configuration.
+pub fn pulse_observe_kind_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(PULSE_OBSERVE_KIND),
+        kind_contract_revision: KindContractRevision::from(PULSE_OBSERVE_REVISION),
+        inputs: vec![flow_port("tick", TICK_VALUE_KIND, PortDirection::Input)],
+        outputs: vec![flow_port(
+            "observation",
+            PULSE_OBSERVATION_VALUE_KIND,
+            PortDirection::Output,
+        )],
+        configuration: vec![
+            ConfigurationField {
+                key: "period-ms".into(),
+                default_value: ConfigurationValue::U64(240),
+                validation: ConfigurationRule::U64Range {
+                    minimum: crate::MINIMUM_PERIOD_MS.into(),
+                    maximum: crate::MAXIMUM_PERIOD_MS.into(),
+                },
+            },
+            ConfigurationField {
+                key: "maximum-pulses".into(),
+                default_value: ConfigurationValue::U64(64),
+                validation: ConfigurationRule::U64Range {
+                    minimum: 1,
+                    maximum: crate::MAXIMUM_OBSERVED_PULSES.into(),
+                },
+            },
+        ],
+    }
 }
 
 fn insert_rhythm_kind(
