@@ -120,6 +120,8 @@ fn prepare_indicator(
 ) -> Result<InstalledOperation, String> {
     validate(placement, conduit_std_offers::button::indicator_offer())?;
     Ok(InstalledOperation::BoolPresentation(
-        crate::installed_std::bool_presentation::BoolPresentationOperation::new(),
+        crate::installed_std::bool_presentation::BoolPresentationOperation::new(u64::from(
+            BUTTON_TRANSITION_MAXIMUM_VALUES,
+        )),
     ))
 }
