@@ -146,6 +146,10 @@ fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
         completed,
         "only explicit input closure completes this specimen"
     );
+    assert!(
+        play.try_retire().is_ok(),
+        "completed drained execution retires"
+    );
 }
 
 #[test]
@@ -209,4 +213,61 @@ fn derived_emission_capacity_is_checked_before_operation_start() {
         StateOperation::new(state, PortId(0), PortId(0)),
         Err(conduit_kernel::state_delay::StateError::InvalidBounds)
     ));
+}
+
+#[test]
+fn retirement_refuses_input_wait_and_preserves_state_after_explicit_cancellation() {
+    let mut play = play();
+    idle(&mut play);
+    deliver(&mut play, 0, 0);
+    idle(&mut play);
+    let mut play = match play.try_retire() {
+        Ok(_) => panic!("input wait is not retirement"),
+        Err(play) => play,
+    };
+    play.admit_remote_input(RemoteEndpointId(0), CordId(0), 0, &[1])
+        .unwrap();
+    idle(&mut play);
+    deliver(&mut play, 1, 1);
+    idle(&mut play);
+    play.cancel().unwrap();
+    let retired = match play.try_retire() {
+        Ok(retired) => retired,
+        Err(_) => panic!("cancelled drained execution should retire"),
+    };
+    assert!(retired.cancelled);
+    assert_eq!(retired.values.used_items(), 0);
+    let [driver] = retired.drivers;
+    let state = driver.into_operation().into_state();
+    assert_eq!(state.generation(), 1);
+    assert_eq!(state.current(), &[1]);
+    let (moved, evidence) = match state.try_transfer::<2>(7, 2) {
+        Ok(result) => result,
+        Err(_) => panic!("retained State fits the larger storage"),
+    };
+    assert_eq!(moved.generation(), 1);
+    assert_eq!(moved.current(), &[1]);
+    assert_eq!(evidence.destination_slot, 7);
+}
+
+#[test]
+fn cancelling_a_pressured_update_retires_only_the_last_committed_state() {
+    let mut play = play();
+    idle(&mut play); // the initial output occupies the sole output slot
+    play.admit_remote_input(RemoteEndpointId(0), CordId(0), 0, &[1])
+        .unwrap();
+    idle(&mut play); // the next output cannot commit yet
+    play.cancel().unwrap();
+    let retired = match play.try_retire() {
+        Ok(retired) => retired,
+        Err(_) => panic!("cancelled execution should retire"),
+    };
+    let [driver] = retired.drivers;
+    let state = driver.into_operation().into_state();
+    assert_eq!(
+        state.current(),
+        &[0],
+        "a pressured candidate was never published"
+    );
+    assert_eq!(state.generation(), 0);
 }

@@ -14,9 +14,11 @@ use crate::{
 mod active_capacity;
 mod debug_control;
 mod derived_value;
+mod retirement;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
+pub use retirement::RetiredExecution;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeSpec<const PORTS: usize> {
@@ -164,6 +166,8 @@ struct PendingHostOperation {
 }
 
 pub trait StepOperation<const PORTS: usize> {
+    /// Finalize private state only after successful transactional I/O commit.
+    fn step_committed(&mut self) {}
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -405,6 +409,9 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
 }
 
 impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<O, PORTS> {
+    fn step_committed(&mut self) {
+        self.operation.step_committed();
+    }
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -1666,40 +1673,6 @@ where
             .count()
     }
 
-    pub fn cancel(&mut self) -> Result<(), SchedulerError> {
-        if self.cancelled {
-            return Ok(());
-        }
-        self.ensure_sign_capacity(2)?;
-        self.signs.record(
-            NodeId(0),
-            None,
-            None,
-            KernelEventKind::CancellationRequested,
-        )?;
-        for (node, driver) in self.drivers[..self.active_nodes].iter_mut().enumerate() {
-            if !self.completed[node] {
-                driver.cancel();
-            }
-        }
-        self.values.clear();
-        self.pending_host_operations.fill(None);
-        self.queue_slots.fill(None);
-        for cord in &mut self.cords[..self.active_cords] {
-            cord.head = 0;
-            cord.len = 0;
-            cord.queued_bytes = 0;
-            cord.producer_closed = true;
-            cord.offered_remote_sequence = None;
-            cord.remote_accepted = false;
-        }
-        self.ready.fill(false);
-        self.cancelled = true;
-        self.signs
-            .record(NodeId(0), None, None, KernelEventKind::RunCancelled)?;
-        Ok(())
-    }
-
     fn next_ready(&mut self) -> Option<usize> {
         for offset in 0..self.active_nodes {
             let node = (self.cursor + offset) % self.active_nodes;
@@ -1875,6 +1848,7 @@ where
                 }
                 return Err(error);
             }
+            self.drivers[node].step_committed();
         }
         match outcome {
             StepOutcome::Progress => {
