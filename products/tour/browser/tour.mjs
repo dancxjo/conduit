@@ -1,13 +1,13 @@
-import { initializeBrowserHost } from "./browser-host-membership.mjs";
-import { configureFlowStorage, renderFlow, renderFlowRefusal } from "./assets/flow.js";
-import { conceptualTourStage, createTourStage, openTourReadingState } from "./book-state.mjs";
-import { createTourNavigation, createTourRunnerActions, createTourWorkspace } from "./book-navigation.mjs";
-import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./book-runner-presentation.mjs";
-import { createProductMasthead } from "./product-masthead.mjs";
-import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "./application-syntax-presentation.mjs";
-import { createTourRouting, parseTourPages } from "./book-routing.mjs";
-import { createReviewedFormGallery, presentTourInventory, readReviewedGallery, reviewedFormStage } from "./book-inventory-presentation.mjs";
-import { openBrowserHumanInput } from "./browser-human-input.mjs";
+import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-membership.mjs";
+import { configureFlowStorage, renderFlow, renderFlowRefusal } from "../../patchbay/html/assets/flow.js";
+import { conceptualTourStage, createTourStage, openTourReadingState } from "./tour-state.mjs";
+import { createTourNavigation, createTourRunnerActions, createTourWorkspace } from "./tour-navigation.mjs";
+import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./tour-runner-presentation.mjs";
+import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
+import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
+import { createTourRouting, parseTourPages } from "./tour-routing.mjs";
+import { createReviewedFormGallery, presentTourInventory, readReviewedGallery, reviewedFormStage } from "./tour-inventory-presentation.mjs";
+import { openBrowserHumanInput } from "../../../targets/browser/host/assets/browser-human-input.mjs";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -32,7 +32,7 @@ let workspace;
 let gallery;
 let laboratorySelectionSequence = 0;
 const laboratory = document.createElement("div");
-laboratory.className = "book-workbench";
+laboratory.className = "tour-workbench";
 laboratory.dataset.applicationComponent = "tour-laboratory";
 
 export async function startApplication(application) {
@@ -404,11 +404,11 @@ function createCrecheCallToAction(label = "Birth a Body") {
 function createRunner(source, recursive = false, presentation = {}) {
   const sourceKey = presentation.sourceKey;
   const listingId = "listing";
-  const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
-  const fieldSlot = `book-runner-field-${runnerSlotSequence}`;
-  const statusSlot = `book-runner-status-${runnerSlotSequence}`;
-  const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
-  const runSlot = `book-run-evidence-${runnerSlotSequence}`;
+  const actionsSlot = `tour-runner-actions-${++runnerSlotSequence}`;
+  const fieldSlot = `tour-runner-field-${runnerSlotSequence}`;
+  const statusSlot = `tour-runner-status-${runnerSlotSequence}`;
+  const exactSlot = `tour-exact-evidence-${runnerSlotSequence}`;
+  const runSlot = `tour-run-evidence-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner";
   runner.dataset.sourceKey = sourceKey;
@@ -460,12 +460,12 @@ function createRunner(source, recursive = false, presentation = {}) {
 
 function createMultiHostRunner(source, showPlan, sourceKey) {
   const listingId = "listing";
-  const actionsSlot = `book-runner-actions-${++runnerSlotSequence}`;
-  const fieldSlot = `book-runner-field-${runnerSlotSequence}`;
-  const statusSlot = `book-runner-status-${runnerSlotSequence}`;
-  const exactSlot = `book-exact-evidence-${runnerSlotSequence}`;
-  const runSlot = `book-run-evidence-${runnerSlotSequence}`;
-  const planSlot = `book-plan-evidence-${runnerSlotSequence}`;
+  const actionsSlot = `tour-runner-actions-${++runnerSlotSequence}`;
+  const fieldSlot = `tour-runner-field-${runnerSlotSequence}`;
+  const statusSlot = `tour-runner-status-${runnerSlotSequence}`;
+  const exactSlot = `tour-exact-evidence-${runnerSlotSequence}`;
+  const runSlot = `tour-run-evidence-${runnerSlotSequence}`;
+  const planSlot = `tour-plan-evidence-${runnerSlotSequence}`;
   const runner = document.createElement("section");
   runner.className = "runner multi-host-runner";
   runner.dataset.sourceKey = sourceKey;
@@ -525,11 +525,11 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
 function compactPatchbayFrame() {
   return `<figure class="compact-patchbay" aria-label="Patchbay">
     <figcaption><span>Form · Patchbay</span><strong>Checking source…</strong></figcaption>
-    <div class="book-flow-root" aria-label="Real Patchbay canvas"></div>
+    <div class="tour-flow-root" aria-label="Real Patchbay canvas"></div>
     <ol class="compact-patchbay-text" aria-label="Ordered textual equivalent" hidden></ol>
     <section class="gear-back-expansion" hidden aria-label="Reviewed Form Back topology">
       <header><strong>Inside this Gear</strong><button type="button" class="close-gear-back">Return to Face</button></header>
-      <div class="book-flow-root gear-back-flow" aria-label="Reviewed Form Back Patchbay topology"></div>
+      <div class="tour-flow-root gear-back-flow" aria-label="Reviewed Form Back Patchbay topology"></div>
     </section>
   </figure>`;
 }
@@ -541,7 +541,7 @@ function refreshCompactPatchbay(runner, source, recursive) {
   const expected = ++patchbaySequence;
   figure.dataset.sequence = String(expected);
   const sourceBytes = encoder.encode(source);
-  const visual = figure.querySelector(".book-flow-root");
+  const visual = figure.querySelector(".tour-flow-root");
   const text = figure.querySelector(".compact-patchbay-text");
   text.replaceChildren();
   if (sourceBytes.length === 0 || sourceBytes.length > host.runtime.conduit_browser_form_input_capacity()) {
@@ -573,7 +573,7 @@ function refreshCompactPatchbay(runner, source, recursive) {
 function renderCompactPatchbayRefusal(figure, message) {
   figure.dataset.disposition = "refused";
   figure.querySelector("figcaption strong").textContent = "Source not checked";
-  const visual = figure.querySelector(".book-flow-root");
+  const visual = figure.querySelector(".tour-flow-root");
   renderFlowRefusal(visual, message);
 }
 
@@ -585,7 +585,7 @@ function renderCompactPatchbayProjection(figure, projection) {
   figure.dataset.checkedFormId = projection.checked_form_id;
   figure.dataset.expandedFormId = projection.realization_expanded_form_id;
   figure.querySelector("figcaption strong").textContent = invalid ? `${projection.form_name} · needs repair` : projection.form_name;
-  const visual = figure.querySelector(".book-flow-root");
+  const visual = figure.querySelector(".tour-flow-root");
   figure.querySelector(".compact-patchbay-diagnostic")?.remove();
   if (invalid) {
     const panel = document.createElement("section");
@@ -1136,7 +1136,7 @@ function readInventory(api) {
 function renderInventory(inventory) {
   const copy = appendCopy();
   const slot = document.createElement("div");
-  slot.dataset.applicationSlot = "book-inventory";
+  slot.dataset.applicationSlot = "tour-inventory";
   copy.append(slot);
   presentTourInventory(hostPresentation, inventory);
 }

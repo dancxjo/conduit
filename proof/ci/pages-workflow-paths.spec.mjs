@@ -22,8 +22,8 @@ test("the PR product controller owns applicability while promotion stays privile
 test("every browser product admits the complete shared presentation theme", () => {
   const themeBytes = readFileSync("targets/browser/host/assets/application-theme.css").byteLength;
   for (const path of [
-    "targets/browser/host/assets/book.application.template.json",
-    "targets/browser/host/assets/creche.application.template.json",
+    "products/tour/browser/tour.application.template.json",
+    "products/creche/browser/creche.application.template.json",
     "products/patchbay/html/assets/patchbay.application.template.json",
   ]) {
     const manifest = JSON.parse(readFileSync(path, "utf8"));

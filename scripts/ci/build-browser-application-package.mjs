@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 
-const [templatePath, destination, outputName = "book.application.json"] = process.argv.slice(2);
-if (!templatePath || !destination) throw new Error("usage: build-browser-application-package TEMPLATE DESTINATION [OUTPUT]");
+const [templatePath, destination, outputName] = process.argv.slice(2);
+if (!templatePath || !destination || !outputName) throw new Error("usage: build-browser-application-package TEMPLATE DESTINATION OUTPUT");
 if (!/^[a-z0-9][a-z0-9.-]*\.application\.json$/.test(outputName)) throw new Error("application package output name is invalid");
 
 const template = JSON.parse(await readFile(templatePath, "utf8"));

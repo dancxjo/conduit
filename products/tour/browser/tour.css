@@ -49,15 +49,15 @@ body { margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); backgr
 }
 .chapter-copy { width: 100%; max-width: 46rem; margin: 0 auto; }
 .chapter-copy:empty { display: none; }
-[data-application-slot="book-navigation"] { width: 100%; min-height: 4.2rem; max-width: 96rem; margin-right: auto; margin-left: auto; padding: 0 clamp(1rem, 2.5vw, 2rem); }
-body[data-tour-mode="gallery"] [data-application-slot="book-navigation"] { display: none; }
+[data-application-slot="tour-navigation"] { width: 100%; min-height: 4.2rem; max-width: 96rem; margin-right: auto; margin-left: auto; padding: 0 clamp(1rem, 2.5vw, 2rem); }
+body[data-tour-mode="gallery"] [data-application-slot="tour-navigation"] { display: none; }
 .tour-divider { position: relative; z-index: 3; min-height: 0; display: grid; place-items: center; align-content: center; gap: .65rem; overflow: hidden; color: var(--muted); background: var(--paper); }
 .tour-divider label { font-size: .66rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; writing-mode: vertical-rl; }
 .tour-divider input { width: 8rem; transform: rotate(-90deg); accent-color: var(--amber); }
 .tour-divider button { position: absolute; right: .15rem; bottom: .25rem; padding: .35rem; border: 1px solid var(--line); border-radius: .45rem; color: var(--muted); background: var(--panel); font-size: .58rem; writing-mode: vertical-rl; }
 .tour-view-switcher { display: none; }
 #laboratory-slot { min-width: 0; min-height: 0; overflow: hidden; }
-.book-workbench { width: 100%; height: 100%; min-width: 0; min-height: 0; margin: 0; overflow: hidden; }
+.tour-workbench { width: 100%; height: 100%; min-width: 0; min-height: 0; margin: 0; overflow: hidden; }
 .tour-stage-selector {
   width: 100%; margin: .55rem 0; padding: .7rem .85rem; border: 1px solid var(--line);
   border-radius: 9px; background: var(--panel); color: var(--ink); text-align: left; cursor: pointer;
@@ -130,21 +130,21 @@ textarea {
 .compact-patchbay figcaption { display: grid; gap: .15rem; margin-bottom: .8rem; text-align: left; }
 .compact-patchbay figcaption span { color: var(--amber); font-size: .65rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 .compact-patchbay figcaption strong { overflow-wrap: anywhere; font: 750 .9rem/1.2 Georgia, serif; }
-.book-flow-root { position: relative; width: 100%; height: 100%; min-height: 10rem; overflow: hidden; border: 1px solid var(--conduit-structure-secondary); border-radius: .55rem; background: var(--conduit-background); }
+.tour-flow-root { position: relative; width: 100%; height: 100%; min-height: 10rem; overflow: hidden; border: 1px solid var(--conduit-structure-secondary); border-radius: .55rem; background: var(--conduit-background); }
 .compact-patchbay-refusal { margin: 0; color: #ffb2a9; font-size: .72rem; }
 .compact-patchbay-diagnostic { margin: 0 0 .7rem; padding: .65rem .75rem; border: 1px solid #ff776d; border-radius: .45rem; color: #ffd2ce; background: #481f20; font-size: .72rem; }
 .compact-patchbay-diagnostic p { margin: .35rem 0 0; color: #fff0ed; }
 .gear-back-expansion { margin-top: .8rem; padding: .8rem; border: 1px solid var(--conduit-emphasis); border-radius: .55rem; background: var(--conduit-background); }
 .gear-back-expansion[hidden] { display: none; }
-.compact-patchbay[data-back-expanded="true"] > .book-flow-root { display: none; }
+.compact-patchbay[data-back-expanded="true"] > .tour-flow-root { display: none; }
 .compact-patchbay[data-back-expanded="true"] .gear-back-expansion { min-height: 10rem; margin-top: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: auto; }
 .gear-back-expansion > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
 .gear-back-expansion > header strong { color: var(--conduit-emphasis); }
 .gear-back-expansion > header button { padding: .4rem .7rem; color: var(--conduit-text-primary); background: var(--conduit-surface); }
 .gear-back-flow { height: 100%; min-height: 10rem; }
 .actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; display: flex; gap: .55rem; align-items: center; }
-[data-application-slot^="book-runner-actions-"] { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; }
-[data-application-slot^="book-runner-actions-"] [data-application-component="action-group"] { display: flex; gap: .55rem; align-items: center; }
+[data-application-slot^="tour-runner-actions-"] { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; }
+[data-application-slot^="tour-runner-actions-"] [data-application-component="action-group"] { display: flex; gap: .55rem; align-items: center; }
 button { border: 0; border-radius: 999px; padding: .7rem 1.15rem; font: inherit; font-weight: 700; cursor: pointer; }
 [data-application-key="run"] { background: var(--amber); color: var(--paper); }
 [data-application-key="run"]:not(:disabled):hover { background:var(--conduit-focus); }
@@ -175,11 +175,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .planned-line small { max-width: 5.5rem; color: var(--muted); }
 .plan-view-details { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--line); }
 .plan-view { margin-top: .8rem; }
-[data-application-slot^="book-plan-evidence-"] [data-application-key="plan-id"] { display: block; padding: .55rem; overflow-wrap: anywhere; border-radius: 6px; color: var(--green-dark); background: var(--paper); }
-[data-application-slot^="book-plan-evidence-"] [data-application-component="artifact"] code { display: block; overflow-wrap: anywhere; }
-[data-application-slot^="book-plan-evidence-"] [data-application-component="definition"] { margin-top: .5rem; }
-[data-application-slot^="book-plan-evidence-"] [data-application-key="cord"] { padding-left: .65rem; border-left: 3px solid var(--green); }
-[data-application-slot^="book-plan-evidence-"] [data-application-component="code-block"] { max-height: 22rem; overflow: auto; font-size: .68rem; }
+[data-application-slot^="tour-plan-evidence-"] [data-application-key="plan-id"] { display: block; padding: .55rem; overflow-wrap: anywhere; border-radius: 6px; color: var(--green-dark); background: var(--paper); }
+[data-application-slot^="tour-plan-evidence-"] [data-application-component="artifact"] code { display: block; overflow-wrap: anywhere; }
+[data-application-slot^="tour-plan-evidence-"] [data-application-component="definition"] { margin-top: .5rem; }
+[data-application-slot^="tour-plan-evidence-"] [data-application-key="cord"] { padding-left: .65rem; border-left: 3px solid var(--green); }
+[data-application-slot^="tour-plan-evidence-"] [data-application-component="code-block"] { max-height: 22rem; overflow: auto; font-size: .68rem; }
 details { margin-top: 1rem; text-align: left; color: var(--muted); font-size: .78rem; }
 .exact-evidence > summary { color: var(--green-dark); cursor: pointer; font-weight: 750; }
 .exact-evidence h3, .exact-evidence h4 { margin: 1rem 0 .5rem; color: var(--ink); font-size: .78rem; }
@@ -188,14 +188,14 @@ details dt { color: var(--ink); font-weight: 700; }
 .expansion { border-top: 1px solid var(--line); padding-top: .7rem; }
 .expansion p { margin: 0 0 .6rem; font-size: inherit; }
 .expansion ul { margin: .35rem 0 .8rem; padding-left: 1.15rem; }
-[data-application-slot="book-inventory"] { margin: 2.5rem 0 .5rem; }
-[data-application-slot="book-inventory"] [data-application-component="disclosure"] { padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-[data-application-slot="book-inventory"] [data-application-component="definition-table"] { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .45rem 1rem; margin-top: 1rem; }
-[data-application-slot="book-inventory"] [data-application-component="definition"] { display: grid; gap: .15rem; padding: .5rem .6rem; border-left: 3px solid var(--green); background: var(--paper); }
-[data-application-slot="book-inventory"] [data-application-key^="offer-unavailable-"] { border-left-color: var(--amber); background: color-mix(in srgb, var(--paper) 90%, var(--amber)); }
-[data-application-slot="book-inventory"] dt { color: var(--ink); font-weight: 700; }
-[data-application-slot="book-inventory"] dd { margin: 0; color: var(--muted); font-size: .72rem; }
-[data-application-slot="book-navigation"] [data-application-component="navigation"] {
+[data-application-slot="tour-inventory"] { margin: 2.5rem 0 .5rem; }
+[data-application-slot="tour-inventory"] [data-application-component="disclosure"] { padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+[data-application-slot="tour-inventory"] [data-application-component="definition-table"] { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .45rem 1rem; margin-top: 1rem; }
+[data-application-slot="tour-inventory"] [data-application-component="definition"] { display: grid; gap: .15rem; padding: .5rem .6rem; border-left: 3px solid var(--green); background: var(--paper); }
+[data-application-slot="tour-inventory"] [data-application-key^="offer-unavailable-"] { border-left-color: var(--amber); background: color-mix(in srgb, var(--paper) 90%, var(--amber)); }
+[data-application-slot="tour-inventory"] dt { color: var(--ink); font-weight: 700; }
+[data-application-slot="tour-inventory"] dd { margin: 0; color: var(--muted); font-size: .72rem; }
+[data-application-slot="tour-navigation"] [data-application-component="navigation"] {
   z-index: 2; display: flex; align-items: center; gap: .55rem;
   margin: 0; padding: .85rem 1rem; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0;
   background: var(--panel); box-shadow: 0 -10px 30px color-mix(in srgb,var(--ink) 8%,transparent);
@@ -246,10 +246,10 @@ details dt { color: var(--ink); font-weight: 700; }
 .physical-actions button { border: 1px solid var(--line); background: white; color: var(--ink); }
 .physical-status { min-height: 1.4rem; margin: 1rem 0 0; font-size: .88rem; }
 .physical-host-runner pre { max-height: 26rem; overflow: auto; padding: .75rem; border-radius: 8px; color: var(--conduit-text-primary); background: var(--conduit-background); font-size: .68rem; }
-[data-application-slot="book-navigation"] button { border: 1px solid var(--line); padding: .55rem .85rem; background: var(--paper); color: var(--ink); }
-[data-application-slot="book-navigation"] button:not(:disabled):hover { border-color: var(--amber); color: var(--amber); }
-[data-application-slot="book-navigation"] button[data-application-key="next"] { border-color: var(--amber); background: var(--amber); color: var(--paper); }
-[data-application-slot="book-navigation"] button[data-application-key="next"]:not(:disabled):hover { border-color: var(--conduit-focus); background: var(--conduit-focus); color: var(--paper); }
+[data-application-slot="tour-navigation"] button { border: 1px solid var(--line); padding: .55rem .85rem; background: var(--paper); color: var(--ink); }
+[data-application-slot="tour-navigation"] button:not(:disabled):hover { border-color: var(--amber); color: var(--amber); }
+[data-application-slot="tour-navigation"] button[data-application-key="next"] { border-color: var(--amber); background: var(--amber); color: var(--paper); }
+[data-application-slot="tour-navigation"] button[data-application-key="next"]:not(:disabled):hover { border-color: var(--conduit-focus); background: var(--conduit-focus); color: var(--paper); }
 .error { color: #a02828; }
 @media (max-width: 760px) {
   .tour-workspace { grid-template-rows: auto auto minmax(0, 1fr) auto; }
@@ -267,8 +267,8 @@ details dt { color: var(--ink); font-weight: 700; }
   .projected-hosts { grid-template-columns: 1fr; }
   .editor, [data-application-key="source-editor"], [data-application-key="source-field"], .result { min-height: 0; }
   .actions { flex-wrap: wrap; }
-  [data-application-slot^="book-runner-actions-"] [data-application-component="action-group"] { flex-wrap: wrap; }
-  [data-application-slot="book-navigation"] [data-application-component="navigation"] { flex-wrap: wrap; }
+  [data-application-slot^="tour-runner-actions-"] [data-application-component="action-group"] { flex-wrap: wrap; }
+  [data-application-slot="tour-navigation"] [data-application-component="navigation"] { flex-wrap: wrap; }
   [data-application-key="progress"] { width: 100%; }
   .physical-stages { grid-template-columns: 1fr; }
   .graduation-criteria { grid-template-columns: 1fr; }
