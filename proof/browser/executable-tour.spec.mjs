@@ -1317,7 +1317,9 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Admit Part and offers" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
-  evidence = JSON.parse(await runner.locator("details code").textContent());
+  const evidenceParts = await runner.locator("details code").allTextContents();
+  expect(evidenceParts.every((part) => Buffer.byteLength(part) <= 65_536)).toBe(true);
+  evidence = JSON.parse(evidenceParts.join(""));
   expect(evidence.realization).toMatchObject({
     terminal: "BrowserBundleLoaded",
     target_id: "browser/wasm32/page",
@@ -1330,6 +1332,8 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
     spore_id: evidence.binding.spore_id,
     image_id: evidence.binding.image_id,
   });
+  expect(Buffer.byteLength(JSON.stringify(evidence.observation))).toBeLessThanOrEqual(evidence.bounds.maximumOperationEvidenceBytes);
+  expect(Buffer.byteLength(JSON.stringify(evidence))).toBeLessThanOrEqual(evidence.bounds.maximumRetainedEvidenceBytes);
   expect(evidence.admission).toMatchObject({
     disposition: "admitted",
     body_id: birth.bodyId,
@@ -1579,7 +1583,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
   await birthStandaloneBody(page);
   const refusals = await page.evaluate(async () => {
     const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
-    const entry = (suffix = "one", factory = null) => {
+    const entry = (suffix = "one", factory = null, suppliedBounds = {}) => {
       const target = {
         id: `fixture/target-${suffix}`,
         label: `Fixture ${suffix}`,
@@ -1591,7 +1595,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         { id: "install-existing", resultKind: "installation", supported: false },
         { id: "attach-running", resultKind: "attachment", supported: false },
       ];
-      const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096 };
+      const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096, ...suppliedBounds };
       const adapter = {
         schema: "conduit.creche/physical-host-target-adapter@1",
         target,
@@ -1613,7 +1617,10 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         createAdapter: factory ?? (() => adapter),
       };
     };
-    const evidence = {};
+    const admittedBounds = { maximumOperationEvidenceBytes: 80 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 };
+    const catalog = createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("boundary", null, admittedBounds)] });
+    const accepted = catalog.createAdapter({ targetId: "fixture/target-boundary", host: globalThis.__conduitCrecheHost });
+    const evidence = { acceptedBounds: accepted.bounds };
     for (const [name, create] of Object.entries({
       stale: () => createPhysicalHostTargetCatalog({ generation: 2, minimumGeneration: 2, contributions: [entry()] }),
       duplicate: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry(), entry()] }),
@@ -1622,6 +1629,8 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         bounds: { maximumEntries: 1 },
         contributions: [entry("one"), entry("two")],
       }),
+      operationBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("operation", null, { ...admittedBounds, maximumOperationEvidenceBytes: 80 * 1024 + 1 })] }),
+      retainedBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("retained", null, { ...admittedBounds, maximumRetainedEvidenceBytes: 128 * 1024 + 1 })] }),
       incompatible: () => {
         const catalog = createPhysicalHostTargetCatalog({
           generation: 2,
@@ -1639,6 +1648,9 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
     }
     return evidence;
   });
+  expect(refusals.acceptedBounds).toMatchObject({ maximumOperationEvidenceBytes: 80 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 });
+  expect(refusals.operationBound).toMatchObject({ terminal: "IncompatibleContribution" });
+  expect(refusals.retainedBound).toMatchObject({ terminal: "IncompatibleContribution" });
   expect(refusals.stale).toMatchObject({ terminal: "StaleCatalogGeneration", catalog_generation: 2 });
   expect(refusals.duplicate).toMatchObject({ terminal: "DuplicateIdentity", target_id: "fixture/target-one" });
   expect(refusals.overflow).toMatchObject({ terminal: "CatalogBound", entries: 2, maximum_entries: 1 });
