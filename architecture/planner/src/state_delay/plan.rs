@@ -9,7 +9,9 @@ use conduit_form::CheckedForm;
 
 use super::{admit_state_graph, StateGraphError};
 
-/// Seal exact State meaning and its mandatory evidence reserve before lowering.
+/// Seal structurally checked State contracts and their evidence reserve.
+/// This does not establish that a selected semantic Kind implements those
+/// contracts or that initialization/migration is authorized by authored meaning.
 /// This does not grant an unsupported Host permission to ignore State: current
 /// lowering profiles explicitly refuse until they implement the sealed contract.
 pub fn seal_state_plan(

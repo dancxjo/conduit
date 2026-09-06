@@ -65,7 +65,8 @@ fresh Plan. The ordinary planner's `seal_state_plan` validates checked State
 graph admission and seals these contracts with their mandatory State evidence
 reserve, preserving the original Plan and checked Form identity.
 
-This is admission truth, not a claim of installed execution. Current lowering
+This is structural admission truth, not a claim that the authored Kind permits
+this initialization or migration, or that execution is installed. Current lowering
 profiles refuse `UnsupportedState` for a valid fragment carrying these contracts
 until numeric State storage and Host installation implement them. A host must
 not ignore a sealed State contract. Cross-Play typed migration and Boot authority
