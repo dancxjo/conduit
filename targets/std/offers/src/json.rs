@@ -8,6 +8,18 @@ pub const JSON_ENCODE_HOST_OPERATION: &str = "conduit.host/json-encode@1";
 pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
 pub const JSON_COLLECTION_STEP_STD_IMPLEMENTATION: &str = "std/kernel-json-collection-step@1";
 pub const JSON_COLLECTION_STEP_HOST_OPERATION: &str = "conduit.host/json-collection-step@1";
+pub const JSON_BOOLEAN_SUMMARY_STD_IMPLEMENTATION: &str = "std/kernel-json-boolean-summary@1";
+pub const JSON_BOOLEAN_SUMMARY_HOST_OPERATION: &str = "conduit.host/json-boolean-summary@1";
+
+pub fn json_boolean_summary_std_offer() -> CapabilityOffer {
+    json_offer(
+        conduit_semantic_catalog::json_boolean_summary_contract(),
+        conduit_web::JSON_BOOLEAN_SUMMARY_REVISION,
+        "std-json-boolean-summary-v1",
+        JSON_BOOLEAN_SUMMARY_STD_IMPLEMENTATION,
+        JSON_BOOLEAN_SUMMARY_HOST_OPERATION,
+    )
+}
 
 pub fn json_collection_step_std_offer() -> CapabilityOffer {
     json_offer(

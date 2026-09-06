@@ -24,6 +24,7 @@ mod http_host;
 mod input_semantic_operations;
 mod instrument_map_operation;
 mod json_operations;
+mod json_summary_operation;
 mod keyboard_input_host;
 mod keyboard_input_operation;
 mod layout_operations;
@@ -437,7 +438,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut http_output =
         Vec::with_capacity(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
-    let mut json_host = json_operations::JsonHost::prepare();
+    let mut json_host = json_operations::JsonHost::prepare(fragment);
     let mut sequence_normalization_host =
         sequence_normalization_operation::SequenceNormalizationHost::prepare();
     let mut timed_pattern_host = timed_pattern_operation::TimedPatternHost::prepare();
@@ -673,7 +674,8 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
             if json_operations::matches(contract.as_str()) {
-                let completion = json_host.execute(contract.as_str(), input);
+                let completion =
+                    json_host.execute(usize::from(request.node.0), contract.as_str(), input);
                 let (disposition, output, failure) = match completion {
                     Ok(encoded) => {
                         let value = scheduler
