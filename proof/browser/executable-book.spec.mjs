@@ -548,6 +548,17 @@ test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains t
   await expect(highlight.locator(".syntax-keyword").first()).toHaveText("form");
   await expect(highlight.locator(".syntax-identity").first()).not.toBeEmpty();
   await expect(highlight).toHaveCSS("color", "rgb(233, 241, 236)");
+  const editorGeometry = await runner.locator(".syntax-editor").evaluate((editor) => {
+    const textarea = editor.querySelector("textarea").getBoundingClientRect();
+    const backdrop = editor.querySelector(".syntax-highlight").getBoundingClientRect();
+    return {
+      left: Math.abs(textarea.left - backdrop.left),
+      top: Math.abs(textarea.top - backdrop.top),
+      width: Math.abs(textarea.width - backdrop.width),
+      height: Math.abs(textarea.height - backdrop.height),
+    };
+  });
+  expect(editorGeometry).toEqual({ left: 0, top: 0, width: 0, height: 0 });
 
   await listing.fill('form unfinished { value=text/literal("still typing');
   await expect(listing).toHaveAttribute("data-syntax-disposition", "accepted");
