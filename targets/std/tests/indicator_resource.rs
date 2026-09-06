@@ -17,9 +17,9 @@ impl HostedKeyboardAdapter for Keyboard {
     fn poll_next(&mut self) -> HostedKeyboardPoll {
         let phase = self.0;
         self.0 += 1;
-        if phase < 2 {
+        if phase < 8 {
             HostedKeyboardPoll::Event(
-                conduit_human::KeyEvent::decode(&[0x2c, phase as u8, 0]).unwrap(),
+                conduit_human::KeyEvent::decode(&[0x2c, (phase % 2) as u8, 0]).unwrap(),
             )
         } else {
             HostedKeyboardPoll::Cancelled
@@ -35,7 +35,7 @@ struct Provider {
     binding: IndicatorBinding,
     plan: PlanId,
     calls: usize,
-    states: [bool; 2],
+    states: [bool; 8],
     failure: Option<IndicatorFailure>,
     replace_after_first: bool,
 }
@@ -58,6 +58,12 @@ impl HostedIndicatorAdapter for Provider {
 }
 
 fn prepare() -> (StdHost, Plan, Provider) {
+    prepare_source(include_str!(
+        "../../../forms/button-across-room/main.conduit"
+    ))
+}
+
+fn prepare_source(source: &str) -> (StdHost, Plan, Provider) {
     let mut advertisement = StdHost::new().advertisement().clone();
     advertisement.capabilities = vec![
         conduit_std_offers::button::offer(),
@@ -87,7 +93,6 @@ fn prepare() -> (StdHost, Plan, Provider) {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .unwrap();
-    let source = include_str!("../../../forms/button-across-room/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let form = expand_canonical_form(&checked, "button_across_room", &profile).unwrap();
     let hosts = [host.advertisement().clone()];
@@ -135,7 +140,7 @@ fn prepare() -> (StdHost, Plan, Provider) {
         binding,
         plan: plan.plan_id.clone(),
         calls: 0,
-        states: [false; 2],
+        states: [false; 8],
         failure: None,
         replace_after_first: false,
     };
@@ -159,8 +164,40 @@ fn canonical_form_completes_only_through_exact_indicator_adapter() {
         )
         .unwrap();
     assert_eq!(provider.calls, 2);
-    assert_eq!(provider.states, [true, false]);
+    assert_eq!(&provider.states[..provider.calls], &[true, false]);
     assert!(!String::from_utf8(output).unwrap().contains("bool value="));
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(conduit_core::ObservationKind::PlanTerminal {
+            disposition: conduit_core::TerminalDisposition::Completed
+        })
+    ));
+}
+
+#[test]
+fn acquired_indicator_honors_all_eight_admitted_transitions() {
+    let source = include_str!("../../../forms/button-across-room/main.conduit")
+        .replace("input/button\n", "input/button(8)\n");
+    let (mut host, plan, mut provider) = prepare_source(&source);
+    let mut keyboard = Keyboard(0);
+    let report = host
+        .run_fragment_controlled_with_adapters_to(
+            plan.fragments[0].clone(),
+            &mut Vec::new(),
+            &mut Timer,
+            &RunControl::default(),
+            HostedRunAdapters {
+                keyboard: Some(&mut keyboard),
+                indicator: Some(&mut provider),
+            },
+        )
+        .unwrap();
+    assert_eq!(keyboard.0, 8);
+    assert_eq!(provider.calls, 8);
+    assert_eq!(
+        provider.states,
+        [true, false, true, false, true, false, true, false]
+    );
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),
         Some(conduit_core::ObservationKind::PlanTerminal {
