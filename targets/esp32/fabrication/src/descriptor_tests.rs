@@ -1,7 +1,7 @@
 use crate::descriptor::*;
 use conduit_host_fabrication::*;
 
-const HEADLESS: &str = include_str!("../../../../profiles/hosts/conduitos-headless.profile.json");
+const HEADLESS: &str = include_str!("../../../conduitos/profiles/conduitos-headless.profile.json");
 
 fn fixture() -> Esp32BoardDescriptor {
     Esp32BoardDescriptor {

@@ -420,7 +420,7 @@ fn checked_example() -> CheckedBodyDescription {
 
 fn parse_example() -> BodyDescription {
     parse_body_description_conduit(include_str!(
-        "../../../profiles/bodies/pete-r1.body.conduit"
+        "../../../bodies/pete/profiles/pete-r1.body.conduit"
     ))
     .unwrap()
 }
@@ -431,18 +431,16 @@ fn configurations_for(description: &BodyDescription) -> BTreeMap<String, HostCon
         .iter()
         .map(|host| {
             let source = match host.name.as_str() {
-                "forebrain" => include_str!(
-                    "../../../profiles/host-configurations/linux-computer.host.conduit"
-                ),
+                "forebrain" => {
+                    include_str!("../../../targets/std/profiles/linux-computer.host.conduit")
+                }
                 "brainstem" => {
-                    include_str!("../../../profiles/host-configurations/pico-w.host.conduit")
+                    include_str!("../../../targets/rp2040/profiles/pico-w.host.conduit")
                 }
                 "eyes" => {
-                    include_str!("../../../profiles/host-configurations/browser-page.host.conduit")
+                    include_str!("../../../targets/browser/profiles/browser-page.host.conduit")
                 }
-                _ => include_str!(
-                    "../../../profiles/host-configurations/linux-computer.host.conduit"
-                ),
+                _ => include_str!("../../../targets/std/profiles/linux-computer.host.conduit"),
             };
             (
                 host.configuration.clone(),

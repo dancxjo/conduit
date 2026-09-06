@@ -154,10 +154,9 @@ mod tests {
     use conduit_host_fabrication::{build_default_host_image, BuildInputs, HostProfile};
 
     fn native_manifest() -> BuildManifest {
-        let profile: HostProfile = serde_json::from_str(include_str!(
-            "../../../../profiles/hosts/conduitos-native.profile.json"
-        ))
-        .unwrap();
+        let profile: HostProfile =
+            serde_json::from_str(include_str!("../../profiles/conduitos-native.profile.json"))
+                .unwrap();
         build_default_host_image(
             profile,
             &conduit_workspace_fabrication::catalog(),

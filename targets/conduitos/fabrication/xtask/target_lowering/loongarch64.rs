@@ -62,7 +62,7 @@ mod tests {
 
     fn manifest() -> BuildManifest {
         let profile: HostProfile = serde_json::from_str(include_str!(
-            "../../../../../profiles/hosts/conduitos-loongarch64-headless.profile.json"
+            "../../../profiles/conduitos-loongarch64-headless.profile.json"
         ))
         .unwrap();
         build_default_host_image(

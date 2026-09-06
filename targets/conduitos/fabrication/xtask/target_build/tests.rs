@@ -20,7 +20,7 @@ fn resolved(source: &str) -> (BuildManifest, Vec<u8>) {
 #[test]
 fn checked_native_profile_is_the_authority_for_the_first_target_lowering() {
     let (manifest, bytes) = resolved(include_str!(
-        "../../../../../profiles/hosts/conduitos-native.profile.json"
+        "../../../profiles/conduitos-native.profile.json"
     ));
     let built = build_profile_image(
         &manifest,
@@ -39,7 +39,7 @@ fn checked_native_profile_is_the_authority_for_the_first_target_lowering() {
 #[test]
 fn checked_headless_profile_enters_the_same_authoritative_target_lowering() {
     let (manifest, bytes) = resolved(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     ));
     let built = build_profile_image(
         &manifest,
@@ -58,7 +58,7 @@ fn checked_headless_profile_enters_the_same_authoritative_target_lowering() {
 #[test]
 fn checked_aarch64_profile_routes_to_the_distinct_product_artifact() {
     let (manifest, bytes) = resolved(include_str!(
-        "../../../../../profiles/hosts/conduitos-aarch64-headless.profile.json"
+        "../../../profiles/conduitos-aarch64-headless.profile.json"
     ));
     let built = build_profile_image(
         &manifest,

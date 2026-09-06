@@ -1,7 +1,0 @@
-body std-three-host {
-  schema = 1
-  id = "body:std-three-host"
-  host = {name: "first", part: "part:first", configuration: "../host-configurations/linux-clock.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
-  host = {name: "second", part: "part:second", configuration: "../host-configurations/linux-serial.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
-  host = {name: "third", part: "part:third", configuration: "../host-configurations/linux-clock.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
-}

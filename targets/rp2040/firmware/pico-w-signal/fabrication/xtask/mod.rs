@@ -245,7 +245,7 @@ pub fn prepare_output(opts: &GlobalOpts, args: &PicoArgs) -> PicoResult<bool> {
     let subcommand = args.subcommand.as_ref().unwrap_or(&PicoSubcommand::Local);
     if output.dry_run() {
         output.emit_json(&PicoDryRunReport {
-            schema: "conduit.xtask/pico-dry-run@1",
+            schema: "conduit.tools/xtask/pico-dry-run@1",
             command: subcommand.command_name(),
             disposition: "planned-not-dispatched",
             effects_performed: false,

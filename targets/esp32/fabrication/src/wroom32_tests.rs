@@ -2,7 +2,7 @@ use crate::descriptor::*;
 use crate::wroom32::*;
 use conduit_host_fabrication::*;
 
-const HEADLESS: &str = include_str!("../../../../profiles/hosts/conduitos-headless.profile.json");
+const HEADLESS: &str = include_str!("../../../conduitos/profiles/conduitos-headless.profile.json");
 
 fn sample_profile(binding: String) -> HostProfile {
     let mut profile: HostProfile = serde_json::from_str(HEADLESS).unwrap();

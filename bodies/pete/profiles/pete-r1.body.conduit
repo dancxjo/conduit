@@ -1,0 +1,7 @@
+body pete-r1 {
+  schema = 1
+  id = "body:pete-r1"
+  host = {name: "forebrain", part: "part:forebrain", configuration: "../../../targets/std/profiles/linux-computer.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}, deployment: {destination: "target/body-deploy/pete-r1/forebrain"}}
+  host = {name: "brainstem", part: "part:brainstem", configuration: "../../../targets/rp2040/profiles/pico-w.host.conduit", spore: {join_mode: "prejoined", output: "uf2"}}
+  host = {name: "eyes", configuration: "../../../targets/browser/profiles/browser-page.host.conduit", spore: {join_mode: "self-joining", invitation: "invitation:pete-r1-eyes:single-use", output: "browser-bundle"}, deployment: {destination: "target/body-deploy/pete-r1/eyes"}}
+}

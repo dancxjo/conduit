@@ -1,6 +1,0 @@
-body std-line {
-  schema = 1
-  id = "body:std-line"
-  host = {name: "clock", part: "part:clock", configuration: "../host-configurations/linux-clock.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
-  host = {name: "serial", part: "part:serial", configuration: "../host-configurations/linux-serial.host.conduit", spore: {join_mode: "prejoined", output: "native-bundle"}}
-}

@@ -12,7 +12,7 @@ use super::{
 };
 
 const SCHEMA: &str = "conduit.conduitos.prepared-proof-image/v1";
-const PROFILE_PATH: &str = "profiles/hosts/conduitos-proof.profile.json";
+const PROFILE_PATH: &str = "targets/conduitos/proof/profiles/conduitos-proof.profile.json";
 const MAXIMUM_MANIFEST_BYTES: u64 = 4096;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]

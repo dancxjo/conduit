@@ -78,7 +78,7 @@ members = [
 
 	# Repository-development tooling.
 	"tools/xtask-dispatch",
-	"xtask",
+	"tools/xtask",
 ]
 exclude = [
 	"targets/esp32/firmware/c3-signal",
