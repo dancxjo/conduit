@@ -5,6 +5,9 @@ use alloc::vec::Vec;
 
 use crate::{GearId, KindId, SignStorageBudget};
 
+mod continuity;
+pub use continuity::RetainedStateProvenance;
+
 /// Exact semantic identity of one retained computational state occurrence.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct StateId(String);
@@ -41,7 +44,10 @@ pub struct PlannedStateBoundary {
     pub state_id: StateId,
     pub gear_id: GearId,
     pub value_kind: KindId,
+    /// Authored initialization stays distinct from retained execution state.
     pub initial_value: Vec<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retained: Option<RetainedStateProvenance>,
     pub maximum_value_bytes: u32,
     pub continuation: StateContinuation,
 }
@@ -62,6 +68,7 @@ pub enum StatePlanError {
     ZeroTransitionBound,
     DuplicateState,
     ResourceOverflow,
+    InvalidContinuity,
 }
 
 pub fn state_resource_budget(
@@ -79,6 +86,13 @@ pub fn state_resource_budget(
         }
         if state.maximum_value_bytes == 0 {
             return Err(StatePlanError::ZeroValueBound);
+        }
+        if state
+            .retained
+            .as_ref()
+            .is_some_and(|retained| !retained.valid_for(state))
+        {
+            return Err(StatePlanError::InvalidContinuity);
         }
         if state.initial_value.len() > state.maximum_value_bytes as usize {
             return Err(StatePlanError::ResourceOverflow);
@@ -141,6 +155,20 @@ pub(crate) fn push_canonical_state(bytes: &mut Vec<u8>, states: &[PlannedStateBo
                 crate::push_u64(bytes, count);
             }
             StateContinuation::ExternallyBounded => bytes.push(1),
+        }
+    }
+    let retained_count = states
+        .iter()
+        .filter(|state| state.retained.is_some())
+        .count();
+    if retained_count != 0 {
+        crate::push_string(bytes, "conduit/fragment-state-continuity@1");
+        crate::push_u64(bytes, retained_count as u64);
+        for (index, state) in states.iter().enumerate() {
+            if let Some(retained) = &state.retained {
+                crate::push_u64(bytes, index as u64);
+                retained.push_canonical(bytes);
+            }
         }
     }
 }
@@ -208,6 +236,7 @@ mod tests {
             gear_id: GearId::from(id),
             value_kind: KindId::from("number/u32@1"),
             initial_value: 0u32.to_le_bytes().to_vec(),
+            retained: None,
             maximum_value_bytes: bytes,
             continuation: StateContinuation::MaximumTransitions(3),
         }

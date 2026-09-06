@@ -66,3 +66,19 @@ fn smaller_selected_state_storage_refuses_before_installation() {
         .with_state_storage(1, 0)
         .is_err());
 }
+
+#[test]
+fn fresh_state_profile_refuses_retained_state_instead_of_resetting_it() {
+    use conduit_plan_lowering::lowering::{
+        lower_plan_fragment_for_profile, FIXED_KERNEL_STORAGE_PROFILE,
+    };
+    let plan = common::seal(common::retained_fragment());
+    assert!(conduit_core::verify_plan(&plan));
+    let profile = FIXED_KERNEL_STORAGE_PROFILE
+        .with_state_storage(1, 1)
+        .unwrap();
+    assert!(matches!(
+        lower_plan_fragment_for_profile(&plan.fragments[0], profile),
+        Err(LoweringError::UnsupportedState(_))
+    ));
+}

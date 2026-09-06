@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod continuity;
 pub mod plan;
 
 use alloc::collections::{BTreeMap, BTreeSet};

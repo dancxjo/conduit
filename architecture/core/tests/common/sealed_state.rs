@@ -7,6 +7,7 @@ pub fn fragment() -> PlanFragment {
         gear_id: GearId::from("cell"),
         value_kind: value_kind.clone(),
         initial_value: vec![7],
+        retained: None,
         maximum_value_bytes: 1,
         continuation: StateContinuation::ExternallyBounded,
     };
@@ -80,4 +81,28 @@ pub fn seal(fragment: PlanFragment) -> Plan {
         },
         vec![fragment],
     )
+}
+
+#[allow(dead_code)]
+pub fn retained_fragment() -> PlanFragment {
+    let mut destination = fragment();
+    let source = seal(fragment());
+    destination.states[0].retained = Some(RetainedStateProvenance {
+        source_form: FormIdentity {
+            source_document_id: source.source_document_id.clone(),
+            checked_form_id: source.checked_form_id.clone(),
+            expanded_form_id: source.expanded_form_id.clone(),
+        },
+        source_play: bind_active_play(
+            &source.plan_id,
+            &source.fragments[0].host_id,
+            &source.fragments[0].boot_id,
+            3,
+        ),
+        source_state: destination.states[0].state_id.clone(),
+        value_kind: destination.states[0].value_kind.clone(),
+        generation: 17,
+        current_value: vec![9],
+    });
+    destination
 }
