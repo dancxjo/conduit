@@ -32,6 +32,7 @@ pub enum StateError {
     ValueTooLarge,
     MultipleCandidates,
     TransitionLimitReached,
+    IdentityCapacityExhausted,
 }
 
 /// One admitted state cell. `BYTES` is the fixed-storage ceiling; hosted use
@@ -39,7 +40,7 @@ pub enum StateError {
 pub struct StateDelay<const BYTES: usize> {
     state: u16,
     maximum_bytes: usize,
-    maximum_transitions: u64,
+    maximum_transitions: Option<u64>,
     generation: u64,
     current_len: usize,
     candidate_len: Option<usize>,
@@ -54,7 +55,27 @@ impl<const BYTES: usize> StateDelay<BYTES> {
         maximum_transitions: u64,
         initial: &[u8],
     ) -> Result<Self, StateError> {
-        if maximum_bytes == 0 || maximum_bytes > BYTES || maximum_transitions == 0 {
+        Self::with_transition_budget(state, maximum_bytes, Some(maximum_transitions), initial)
+    }
+
+    /// Input-driven lifetime with no predeclared semantic transition count.
+    /// Storage and generation identity remain finite; generation exhaustion
+    /// refuses explicitly and does not reset or renew the state.
+    pub fn externally_continued(
+        state: u16,
+        maximum_bytes: usize,
+        initial: &[u8],
+    ) -> Result<Self, StateError> {
+        Self::with_transition_budget(state, maximum_bytes, None, initial)
+    }
+
+    fn with_transition_budget(
+        state: u16,
+        maximum_bytes: usize,
+        maximum_transitions: Option<u64>,
+        initial: &[u8],
+    ) -> Result<Self, StateError> {
+        if maximum_bytes == 0 || maximum_bytes > BYTES || maximum_transitions == Some(0) {
             return Err(StateError::InvalidBounds);
         }
         if initial.len() > maximum_bytes {
@@ -82,10 +103,14 @@ impl<const BYTES: usize> StateDelay<BYTES> {
     }
 
     pub fn initial_evidence(&self) -> StateEvidence {
-        self.evidence(StateTransition::Initialized, false)
+        self.evidence(StateTransition::Initialized, None)
     }
 
-    fn evidence(&self, transition: StateTransition, candidate: bool) -> StateEvidence {
+    fn evidence(
+        &self,
+        transition: StateTransition,
+        candidate: Option<StateValueIdentity>,
+    ) -> StateEvidence {
         StateEvidence {
             state: self.state,
             generation: self.generation,
@@ -93,10 +118,7 @@ impl<const BYTES: usize> StateDelay<BYTES> {
                 slot: 0,
                 generation: self.generation,
             },
-            candidate: candidate.then_some(StateValueIdentity {
-                slot: 1,
-                generation: self.generation.wrapping_add(1),
-            }),
+            candidate,
             transition,
         }
     }
@@ -108,18 +130,35 @@ impl<const BYTES: usize> StateDelay<BYTES> {
         if self.candidate_len.is_some() {
             return Err(StateError::MultipleCandidates);
         }
+        let candidate = StateValueIdentity {
+            slot: 1,
+            generation: self
+                .generation
+                .checked_add(1)
+                .ok_or(StateError::IdentityCapacityExhausted)?,
+        };
         self.candidate[..value.len()].copy_from_slice(value);
         self.candidate_len = Some(value.len());
-        Ok(self.evidence(StateTransition::CandidateAccepted, true))
+        Ok(self.evidence(StateTransition::CandidateAccepted, Some(candidate)))
     }
 
     /// The admitted transition point. Absence deterministically retains the
     /// current value. Failed or cancelled work must call `abort_step` instead.
     pub fn commit(&mut self) -> Result<StateEvidence, StateError> {
-        if self.generation >= self.maximum_transitions {
+        if self
+            .maximum_transitions
+            .is_some_and(|maximum| self.generation >= maximum)
+        {
             return Err(StateError::TransitionLimitReached);
         }
-        let had_candidate = self.candidate_len.is_some();
+        let next_generation = self
+            .generation
+            .checked_add(1)
+            .ok_or(StateError::IdentityCapacityExhausted)?;
+        let candidate = self.candidate_len.map(|_| StateValueIdentity {
+            slot: 1,
+            generation: next_generation,
+        });
         let transition = if let Some(len) = self.candidate_len.take() {
             self.current[..len].copy_from_slice(&self.candidate[..len]);
             self.current_len = len;
@@ -127,12 +166,19 @@ impl<const BYTES: usize> StateDelay<BYTES> {
         } else {
             StateTransition::HeldWithoutCandidate
         };
-        self.generation += 1;
-        Ok(self.evidence(transition, had_candidate))
+        self.generation = next_generation;
+        Ok(self.evidence(transition, candidate))
     }
 
     pub fn abort_step(&mut self, cancelled: bool) -> StateEvidence {
-        let had_candidate = self.candidate_len.is_some();
+        // offer_next only admits a candidate when its exact next identity fits.
+        let candidate = self
+            .candidate_len
+            .and_then(|_| self.generation.checked_add(1))
+            .map(|generation| StateValueIdentity {
+                slot: 1,
+                generation,
+            });
         self.candidate_len = None;
         self.evidence(
             if cancelled {
@@ -140,7 +186,7 @@ impl<const BYTES: usize> StateDelay<BYTES> {
             } else {
                 StateTransition::Failed
             },
-            had_candidate,
+            candidate,
         )
     }
 
@@ -152,7 +198,7 @@ impl<const BYTES: usize> StateDelay<BYTES> {
         self.current_len = initial.len();
         self.candidate_len = None;
         self.generation = 0;
-        Ok(self.evidence(StateTransition::Reset, false))
+        Ok(self.evidence(StateTransition::Reset, None))
     }
 }
 
@@ -236,3 +282,7 @@ mod tests {
         assert_eq!(state.current(), b"reset");
     }
 }
+
+#[cfg(test)]
+#[path = "state_delay/continuation_tests.rs"]
+mod continuation_tests;
