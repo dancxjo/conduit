@@ -236,8 +236,8 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     "targets/raspberry-pi/browser-deployment/creche-adapter.mjs",
     "targets/raspberry-pi/browser-deployment/image.mjs",
     "targets/raspberry-pi/fabrication-package/src/lib.rs",
-    "targets/raspberry-pi/fabrication/tools/xtask/armv6_rpi_b_plus_image.rs",
-    "targets/raspberry-pi/fabrication/tools/xtask/armv6_rpi_board.rs",
+    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_image.rs",
+    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_board.rs",
     "targets/std/browser-deployment/creche-adapter.mjs",
     "tools/xtask/src/commands/host_release.rs",
 ];
@@ -889,7 +889,7 @@ fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
             return;
         }
         if path.starts_with(&format!(
-            "targets/conduitos/fabrication/tools/xtask/{architecture}_"
+            "targets/conduitos/fabrication/xtask/{architecture}_"
         )) {
             impact.architectures.insert(architecture.to_owned());
             return;
