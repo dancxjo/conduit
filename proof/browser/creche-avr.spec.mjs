@@ -128,7 +128,7 @@ test("the exact Pro Micro release becomes a Body-bound downloadable spore", asyn
   });
   const downloaded = await downloadArtifact(page, download);
   expect(downloaded.filename).toMatch(/-pro-micro\.hex$/);
-  const { readAvrBodySpore } = await import("../../targets/avr/browser-deployment/image.mjs");
+  const { readAvrBodySpore } = await import("../../targets/avr/deployment/browser/image.mjs");
   const native = {
     startsWithRecord: new TextDecoder().decode(downloaded.bytes.subarray(0, 1)),
     containsLegacyEnvelope: new TextDecoder().decode(downloaded.bytes).includes("CNDSPOR1"),

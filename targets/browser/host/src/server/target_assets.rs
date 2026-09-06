@@ -1,27 +1,27 @@
 //! Target-owned browser mechanisms exposed by the bare browser Host proof page.
 
-const RP2040_INDEX: &[u8] = include_bytes!("../../../../rp2040/browser-deployment/index.mjs");
+const RP2040_INDEX: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/index.mjs");
 const RP2040_DEPLOYMENT: &[u8] =
-    include_bytes!("../../../../rp2040/browser-deployment/deployment.mjs");
-const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../../rp2040/browser-deployment/picoboot.mjs");
-const RP2040_UF2: &[u8] = include_bytes!("../../../../rp2040/browser-deployment/uf2.mjs");
-const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../../rp2040/browser-deployment/bootsel.mjs");
-const RP2040_SPAWN: &[u8] = include_bytes!("../../../../rp2040/browser-deployment/spawn.mjs");
+    include_bytes!("../../../../rp2040/deployment/browser/deployment.mjs");
+const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/picoboot.mjs");
+const RP2040_UF2: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/uf2.mjs");
+const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/bootsel.mjs");
+const RP2040_SPAWN: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/spawn.mjs");
 const RP2040_FABRICATION: &[u8] =
-    include_bytes!("../../../../rp2040/browser-deployment/fabrication.mjs");
+    include_bytes!("../../../../rp2040/deployment/browser/fabrication.mjs");
 const RP2040_PICO_LOCAL_MANIFEST: &[u8] =
     include_bytes!("../../assets/artifacts/pico-w-signal-pico-local.json");
 const RP2040_PICO_LOCAL_UF2: &[u8] =
     include_bytes!("../../assets/artifacts/pico-w-signal-pico-local.uf2");
-const ESP32_INDEX: &[u8] = include_bytes!("../../../../esp32/browser-deployment/index.mjs");
+const ESP32_INDEX: &[u8] = include_bytes!("../../../../esp32/deployment/browser/index.mjs");
 const ESP32_DEPLOYMENT: &[u8] =
-    include_bytes!("../../../../esp32/browser-deployment/deployment.mjs");
-const ESP32_IMAGE: &[u8] = include_bytes!("../../../../esp32/browser-deployment/image.mjs");
-const ESP32_MD5: &[u8] = include_bytes!("../../../../esp32/browser-deployment/md5.mjs");
-const ESP32_RESET: &[u8] = include_bytes!("../../../../esp32/browser-deployment/reset.mjs");
+    include_bytes!("../../../../esp32/deployment/browser/deployment.mjs");
+const ESP32_IMAGE: &[u8] = include_bytes!("../../../../esp32/deployment/browser/image.mjs");
+const ESP32_MD5: &[u8] = include_bytes!("../../../../esp32/deployment/browser/md5.mjs");
+const ESP32_RESET: &[u8] = include_bytes!("../../../../esp32/deployment/browser/reset.mjs");
 const ESP32_ROM_LOADER: &[u8] =
-    include_bytes!("../../../../esp32/browser-deployment/rom-loader.mjs");
-const ESP32_SLIP: &[u8] = include_bytes!("../../../../esp32/browser-deployment/slip.mjs");
+    include_bytes!("../../../../esp32/deployment/browser/rom-loader.mjs");
+const ESP32_SLIP: &[u8] = include_bytes!("../../../../esp32/deployment/browser/slip.mjs");
 
 pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static [u8])> {
     let javascript = "text/javascript; charset=utf-8";

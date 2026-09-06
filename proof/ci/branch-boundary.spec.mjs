@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { validateBoundary } from "../../scripts/ci/branch-boundary.mjs";
+import { validateBoundary } from "../../tools/ci/branch-boundary.mjs";
 
 test("feature candidates enter dev through focused admission", () => {
   assert.deepEqual(validateBoundary("candidate", {
@@ -36,7 +36,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const candidate = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integration = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   const promotion = readFileSync(".github/workflows/promotion.yml", "utf8");
-  const deploy = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
+  const deploy = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
   assert.match(candidate, /branches: \[dev\]/);
   assert.match(integration, /branches: \[dev\]/);
   assert.match(promotion, /branches: \[main\]/);

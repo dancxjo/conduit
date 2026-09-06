@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { hasRetainedArtifact, productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
+import { hasRetainedArtifact, productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../tools/ci/pages-product-run-selection.mjs";
 
 const head = "ef22d9e1b0f3d4cbc19fb35ac4e330f8dbf2b5dc";
 const merged = "7dccbe822271ef1ac8a0fd49e7cc37add40a943c";
@@ -13,13 +13,15 @@ test("admits promotion, candidate, and legacy product carrier producers only", (
   const promotion = { id: 5, path: ".github/workflows/promotion.yml" };
   const candidate = { id: 1, path: ".github/workflows/candidate.yml" };
   const legacy = { id: 2, path: ".github/workflows/executable-book-pages.yml" };
+  const current = { id: 6, path: ".github/workflows/tour-products.yml" };
   assert.deepEqual(productCarrierRuns([
     promotion,
     { id: 3, path: ".github/workflows/check.yml" },
     candidate,
     { id: 4 },
     legacy,
-  ]), [promotion, candidate, legacy]);
+    current,
+  ]), [promotion, candidate, legacy, current]);
   assert.deepEqual(productCarrierRuns(undefined), []);
 });
 

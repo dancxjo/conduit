@@ -1,10 +1,14 @@
 //! Cancellation dispatch for installed operation-owned pending work.
 use super::operation::InstalledOperation;
+use conduit_kernel::Operation;
 
 impl InstalledOperation {
     pub(super) fn cancel_installed(&mut self) {
         match self {
+            Self::TypedState(operation) => operation.cancel(),
             Self::KeyboardInput(operation) => operation.cancel(),
+            Self::ButtonInput(operation) => operation.cancel(),
+            Self::ButtonMapper(_) => {}
             Self::Tick(operation) => operation.cancel(),
             Self::PulseObserve(operation) => operation.cancel(),
             #[cfg(test)]
@@ -67,6 +71,9 @@ impl InstalledOperation {
             Self::HttpClient(operation) => operation.cancel(),
             Self::HttpServer(operation) => operation.cancel(),
             Self::Json(operation) => operation.cancel(),
+            Self::ImageText(operation) => operation.cancel(),
+            Self::ImageTextRecord(operation) => operation.cancel(),
+            Self::TypedRecordFrame(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
             Self::StructuredLiteral(_) => {}
             Self::StructuredPresentation(operation) => operation.cancel(),

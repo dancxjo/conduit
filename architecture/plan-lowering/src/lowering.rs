@@ -4,10 +4,9 @@
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
-    mandatory_sign_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
-    AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId, HostId, HostOperationContractId,
-    KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId, PortDescriptor, PortDirection,
-    PortId as PlanPortId, PresentationId, PresentationIdentity,
+    ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId,
+    HostId, HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
+    PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
     ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
 };
 use conduit_kernel::{
@@ -17,8 +16,13 @@ use conduit_kernel::{
     SignExpectationId, SignExpectationTarget,
 };
 
+mod admission;
 mod fusion;
+mod ports;
 mod profile;
+mod state;
+use ports::{find_port, lower_ports};
+pub use state::LoweredState;
 mod remote;
 mod shared_pool;
 use fusion::lower_fusions;
@@ -34,6 +38,8 @@ pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
+    UnsupportedState(conduit_core::StateId),
+    StateStorageExceeded,
     EmptyFragment,
     CapacityOverflow,
     ProfileCapacityExceeded {
@@ -526,6 +532,7 @@ impl KernelExecutionIdentityMap {
 pub struct LoweredPlanFragment {
     pub identity: KernelIdentityMap,
     pub nodes: Vec<LoweredNode>,
+    pub states: Vec<LoweredState>,
     pub node_specs: Vec<NodeSpec<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>>,
     pub cords: Vec<LoweredCord>,
     pub fusions: Vec<LoweredFusion>,
@@ -549,17 +556,7 @@ pub fn lower_plan_fragment_for_profile(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<LoweredPlanFragment, LoweringError> {
-    if !verify_plan_fragment(fragment) {
-        return Err(LoweringError::InvalidFragment);
-    }
-    if fragment.placements.is_empty() {
-        return Err(LoweringError::EmptyFragment);
-    }
-    if mandatory_sign_storage_requirement(&fragment.expected_sign)
-        != Some(fragment.sign_storage_budget)
-    {
-        return Err(LoweringError::SignBudgetInvalid);
-    }
+    admission::validate_fragment(fragment, profile)?;
     let mut placement_nodes = BTreeMap::new();
     let mut nodes = Vec::with_capacity(fragment.placements.len());
     let mut node_specs = Vec::with_capacity(fragment.placements.len());
@@ -841,6 +838,7 @@ pub fn lower_plan_fragment_for_profile(
 
     let shared_pools = lower_shared_pools(fragment, &placement_nodes)?;
     let fusions = lower_fusions(fragment, &placement_nodes, &cords)?;
+    let states = state::lower_states(fragment, &placement_nodes)?;
 
     Ok(LoweredPlanFragment {
         identity: KernelIdentityMap {
@@ -876,6 +874,7 @@ pub fn lower_plan_fragment_for_profile(
         },
         nodes,
         node_specs,
+        states,
         cords,
         fusions,
         remote_endpoints,
@@ -891,41 +890,6 @@ pub fn lower_plan_fragment_for_profile(
     })
 }
 
-fn lower_ports(
-    node: NodeId,
-    placement_id: &PlacementId,
-    ports: &[PortDescriptor],
-    expected_direction: PortDirection,
-) -> Result<Vec<LoweredPort>, LoweringError> {
-    let mut ids = BTreeSet::new();
-    ports
-        .iter()
-        .enumerate()
-        .map(|(index, descriptor)| {
-            if descriptor.direction != expected_direction {
-                return Err(LoweringError::PortDirectionMismatch {
-                    placement_id: placement_id.clone(),
-                    port_id: descriptor.port_id.clone(),
-                });
-            }
-            if !ids.insert(descriptor.port_id.clone()) {
-                return Err(LoweringError::DuplicatePort {
-                    placement_id: placement_id.clone(),
-                    port_id: descriptor.port_id.clone(),
-                });
-            }
-            Ok(LoweredPort {
-                node,
-                port: PortId(as_u16(index)?),
-                port_id: descriptor.port_id.clone(),
-                value_kind: descriptor.value_kind.clone(),
-                direction: descriptor.direction,
-                temporal: descriptor.temporal,
-            })
-        })
-        .collect()
-}
-
 fn fragment_id_for_host(
     fragment: &PlanFragment,
     host_id: &HostId,
@@ -936,13 +900,6 @@ fn fragment_id_for_host(
         .find(|commitment| &commitment.host_id == host_id)
         .map(|commitment| commitment.fragment_id.clone())
         .ok_or(LoweringError::InvalidFragment)
-}
-
-fn find_port(ports: &[LoweredPort], id: &PlanPortId) -> Option<PortId> {
-    ports
-        .iter()
-        .find(|port| &port.port_id == id)
-        .map(|port| port.port)
 }
 
 fn lower_routes(cords: &[LoweredCord]) -> Result<Vec<LoweredRoute>, LoweringError> {

@@ -19,7 +19,7 @@ pub fn execute_architecture_proof(
     if arch == ConduitosArch::X86_64 {
         execute_embedded_profile(
             arch,
-            include_str!("../../../../profiles/hosts/conduitos-native.profile.json"),
+            include_str!("../../profiles/conduitos-native.profile.json"),
             ArtifactRole::ArchitectureProofAppliance,
             opts,
         )
@@ -108,7 +108,7 @@ pub(super) fn execute_hotplug(
 ) -> Result<BuildRecord, ConduitosError> {
     execute_embedded_profile(
         arch,
-        include_str!("../../../../profiles/hosts/conduitos-hotplug-proof.profile.json"),
+        include_str!("../../proof/profiles/conduitos-hotplug-proof.profile.json"),
         ArtifactRole::ArchitectureProofAppliance,
         opts,
     )
@@ -120,7 +120,7 @@ pub(super) fn execute_proof(
 ) -> Result<BuildRecord, ConduitosError> {
     execute_embedded_profile(
         arch,
-        include_str!("../../../../profiles/hosts/conduitos-proof.profile.json"),
+        include_str!("../../proof/profiles/conduitos-proof.profile.json"),
         ArtifactRole::ArchitectureProofAppliance,
         opts,
     )
@@ -139,7 +139,7 @@ fn execute_embedded_profile(
 pub(super) fn proof_manifest(arch: ConduitosArch) -> Result<BuildManifest, ConduitosError> {
     resolve_embedded_profile(
         arch,
-        include_str!("../../../../profiles/hosts/conduitos-proof.profile.json"),
+        include_str!("../../proof/profiles/conduitos-proof.profile.json"),
     )
 }
 
@@ -239,7 +239,9 @@ fn execute_with_features(
         .env("CONDUITOS_IMAGE_ID", image_binding);
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
-        let script = paths.root.join("targets/conduitos/linker/ia32_product.ld");
+        let script = paths
+            .root
+            .join("targets/conduitos/firmware/linker/ia32_product.ld");
         command.env(
             "RUSTFLAGS",
             format!(
@@ -252,13 +254,13 @@ fn execute_with_features(
         let linker = riscv64_a0::rust_lld(&paths.root)?;
         let script = paths
             .root
-            .join("targets/conduitos/linker/riscv64_product.ld");
+            .join("targets/conduitos/firmware/linker/riscv64_product.ld");
         command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else if arch == ConduitosArch::Loongarch64 {
         let linker = loongarch64_a0::rust_lld(&paths.root)?;
         let script = paths
             .root
-            .join("targets/conduitos/linker/loongarch64_product.ld");
+            .join("targets/conduitos/firmware/linker/loongarch64_product.ld");
         command.env("RUSTFLAGS", format!("-C relocation-model=static -C panic=abort -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib", linker.display(), script.display()));
     } else {
         command.env("RUSTFLAGS", "-C relocation-model=static -C panic=abort");

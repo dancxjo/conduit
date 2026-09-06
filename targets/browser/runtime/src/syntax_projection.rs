@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn worst_case_book_input_fits_the_bounded_output_arena() {
+    fn worst_case_tour_input_fits_the_bounded_output_arena() {
         let source = "x ".repeat(INPUT_BYTES / 2);
         let encoded = serde_json::to_vec(&project(&source).unwrap()).unwrap();
         assert!(

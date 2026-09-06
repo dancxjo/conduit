@@ -58,13 +58,22 @@ impl StepOperation<PORTS> for Driver {
             Role::Boundary { values, count } => {
                 if io.input(PortId(0)).is_some() {
                     let Some(bytes) = input_bytes.input(PortId(0)) else {
-                        return StepOutcome::Fail(1);
+                        return StepOutcome::Fail(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidInput,
+                            detail: 1,
+                        });
                     };
                     let Ok(value) = KeyEvent::decode(bytes) else {
-                        return StepOutcome::Fail(2);
+                        return StepOutcome::Fail(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidInput,
+                            detail: 2,
+                        });
                     };
                     let Some(slot) = values.get_mut(*count) else {
-                        return StepOutcome::Fail(3);
+                        return StepOutcome::Fail(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::StorageExhausted,
+                            detail: 3,
+                        });
                     };
                     *slot = Some(value);
                     *count += 1;

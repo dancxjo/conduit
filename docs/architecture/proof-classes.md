@@ -6,7 +6,7 @@ Conduit proof records use schema version 1 and exactly the vocabulary emitted by
 cargo xtask --json proofs
 ```
 
-The checked contract lives in `xtask/src/proof.rs`. It distinguishes contract
+The checked contract lives in `tools/xtask/src/proof.rs`. It distinguishes contract
 compilation, deterministic unit proof, deterministic simulation, hosted
 integration, live browser execution, live transport, firmware build, local
 physical hardware, cross-host physical execution, and manual observation.

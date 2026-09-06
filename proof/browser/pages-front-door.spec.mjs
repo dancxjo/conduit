@@ -1,6 +1,7 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { stageLegacyTourRoutes } from "../../products/tour/tools/stage-legacy-routes.mjs";
+import { cp, mkdir, rm } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./book-test-server.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 
 const pagesRoot = "target/pages-front-door-proof";
 let entrance;
@@ -12,25 +13,7 @@ async function assemblePagesCarrier() {
   await cp("target/tour-product", `${pagesRoot}/tour`, { recursive: true });
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
-  const redirectHtml = (target) => `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=${target}">
-  <title>Redirecting to Tour</title>
-  <script>location.replace(${JSON.stringify(target)});</script>
-</head>
-<body>
-  <p>Redirecting to <a href="${target}">${target}</a>.</p>
-</body>
-</html>
-`;
-  await mkdir(`${pagesRoot}/book`, { recursive: true });
-  await writeFile(`${pagesRoot}/book/index.html`, redirectHtml("../tour/"));
-  for (const route of ["a-form-you-can-run", "faces-backs-and-implementation", "hosts-make-forms-real", "one-form-across-several-hosts", "the-body-one-computer-one-machine-or-many", "many-forms-one-body-wide-realization", "birth-spores-and-the-creche", "meet-one-gear", "same-face-different-implementation"]) {
-    await mkdir(`${pagesRoot}/book/${route}`, { recursive: true });
-    await writeFile(`${pagesRoot}/book/${route}/index.html`, redirectHtml(`../../tour/${route}/`));
-  }
+  await stageLegacyTourRoutes(pagesRoot);
 }
 
 test.beforeAll(async () => {
@@ -140,8 +123,8 @@ test("legacy /book routes redirect to canonical /tour routes", async ({ page }) 
   await page.goto(`${home}/book/`);
   await expect(page).toHaveURL(`${home}/tour/`);
   await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
-  await page.goto(`${home}/book/meet-one-gear/`);
-  await expect(page).toHaveURL(`${home}/tour/meet-one-gear/`);
+  await page.goto(`${home}/book/meet-one-gear/?from=legacy#source`);
+  await expect(page).toHaveURL(`${home}/tour/meet-one-gear/?from=legacy#source`);
   await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeVisible();
 });
 

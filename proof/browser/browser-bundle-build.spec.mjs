@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { buildBrowserBundleImage, verifyBrowserBundleImage } from "../../targets/browser/host/browser-deployment/browser-bundle.mjs";
+import { buildBrowserBundleImage, verifyBrowserBundleImage } from "../../targets/browser/deployment/browser/browser-bundle.mjs";
 
 const encoder = new TextEncoder();
 const ids = ["browser/dom-presentation@1", "browser/dom@1", "browser/indexeddb@1"];

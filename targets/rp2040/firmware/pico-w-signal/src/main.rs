@@ -238,14 +238,14 @@ static ALLOCATOR: NoAllocator = NoAllocator;
 
 // Vendored CYW43 firmware assets — checked at build time via xtask doctor.
 static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
-    "../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
+    "../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
 ));
 static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
-    "../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
+    "../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
 ));
 #[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
 static CYW43_BTFW: Aligned<A4, [u8; 6164]> = Aligned(*include_bytes!(
-    "../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_btfw.bin"
+    "../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_btfw.bin"
 ));
 #[cfg(any(
     feature = "wifi-bootstrap",
@@ -255,11 +255,11 @@ static CYW43_BTFW: Aligned<A4, [u8; 6164]> = Aligned(*include_bytes!(
     feature = "distributed-lenia"
 ))]
 static CYW43_CLM: &[u8; 984] = include_bytes!(
-    "../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_clm.bin"
+    "../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0_clm.bin"
 );
 // License is an identity input to the firmware build.
 const _CYW43_LICENSE: &[u8] = include_bytes!(
-    "../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/LICENSE-permissive-binary-license-1.0.txt"
+    "../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/LICENSE-permissive-binary-license-1.0.txt"
 );
 
 #[embassy_executor::main]

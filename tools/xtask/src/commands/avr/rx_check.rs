@@ -1,0 +1,477 @@
+use std::{
+    fs::{self, File, OpenOptions},
+    io::{ErrorKind, Read, Write},
+    os::unix::{fs::OpenOptionsExt, io::AsRawFd},
+    path::{Path, PathBuf},
+    process::Command,
+    thread,
+    time::{Duration, Instant},
+};
+
+use clap::Args;
+use serde::Serialize;
+
+use super::{
+    require_success, run_build_receive_only, upload_artifact, verify_device, write_receipt,
+    PhysicalGate, EXPECTED_BY_ID,
+};
+use crate::{cli::GlobalOpts, workspace::workspace_root};
+
+const REQUEST: &[u8; 8] = b"RXDIAG01";
+const RECEIPT_BYTES: usize = 28;
+const SAMPLE_COUNT: u16 = 2_048;
+const BOOTLOADER_WAIT: Duration = Duration::from_secs(300);
+const BOOTLOADER_VID: &str = "2341";
+const BOOTLOADER_PID: &str = "0036";
+
+#[derive(Args, Debug)]
+pub(super) struct RxCheckArgs {
+    #[arg(long)]
+    port: PathBuf,
+    #[arg(long)]
+    artifact_sha256: String,
+    #[arg(long)]
+    create_stopped: bool,
+    #[arg(long)]
+    attended: bool,
+    #[arg(long)]
+    wheels_clear: bool,
+    #[arg(long)]
+    d1_disconnected_or_high_impedance: bool,
+    #[arg(long)]
+    common_ground_verified: bool,
+    #[arg(long)]
+    rx_voltage_compatible: bool,
+    #[arg(long, default_value = "target/avr-promicro/rx-check-receipt.json")]
+    receipt: PathBuf,
+}
+
+#[derive(Debug, Serialize)]
+struct RxCheckReceipt {
+    schema: &'static str,
+    outcome: &'static str,
+    proof_class: &'static str,
+    source_sha: String,
+    source_digest_sha256: String,
+    build_id: String,
+    artifact_sha256: String,
+    port: String,
+    samples: u16,
+    high_samples: u16,
+    low_samples: u16,
+    transitions: u16,
+    duration_us: u32,
+    create_stopped: bool,
+    attended: bool,
+    wheels_clear: bool,
+    d1_disconnected_or_high_impedance: bool,
+    common_ground_verified: bool,
+    rx_voltage_compatible: bool,
+    create_uart: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct Evidence {
+    high: u16,
+    low: u16,
+    transitions: u16,
+    duration_us: u32,
+}
+
+pub(super) fn run(args: RxCheckArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    validate_request(&args)?;
+    if opts.dry_run {
+        if !opts.quiet {
+            println!(
+                "would rebuild and verify receive-only artifact {}, verify {}, flash it, reopen the exact CDC device once, and sample Create RX {SAMPLE_COUNT} times with D1 input and USART1 disabled",
+                args.artifact_sha256,
+                args.port.display()
+            );
+        }
+        return Ok(());
+    }
+
+    let built = run_build_receive_only(
+        Path::new("target/avr-promicro/receive-only-build-receipt.json"),
+        opts,
+    )?;
+    if built.artifact_sha256 != args.artifact_sha256 {
+        return Err(format!(
+            "AVR receive-only artifact digest mismatch: expected {}, built {}",
+            args.artifact_sha256, built.artifact_sha256
+        )
+        .into());
+    }
+    let upload_port = wait_for_bootloader_port(BOOTLOADER_WAIT)?;
+    let root = workspace_root()?;
+    upload_artifact(
+        &root,
+        &upload_port,
+        &built.path,
+        "guarded receive-only AVR flash",
+    )?;
+    wait_for_exact_device(&args.port, Duration::from_secs(15))?;
+    configure_serial(&args.port)?;
+    let mut device = open_nonblocking(&args.port)?;
+    write_bounded(&mut device, REQUEST, Duration::from_secs(2))?;
+    let mut response = [0; RECEIPT_BYTES];
+    read_bounded(&mut device, &mut response, Duration::from_secs(3))?;
+    let evidence = parse_receipt(&response)?;
+    let outcome = classify(evidence);
+    let record = RxCheckReceipt {
+        schema: "conduit.avr-promicro/create-rx-check@2",
+        outcome,
+        proof_class: "physical-gpio-receive-only",
+        source_sha: built.identity.source_sha,
+        source_digest_sha256: built.identity.source_digest_sha256,
+        build_id: built.identity.build_id,
+        artifact_sha256: built.artifact_sha256,
+        port: args.port.display().to_string(),
+        samples: SAMPLE_COUNT,
+        high_samples: evidence.high,
+        low_samples: evidence.low,
+        transitions: evidence.transitions,
+        duration_us: evidence.duration_us,
+        create_stopped: args.create_stopped,
+        attended: args.attended,
+        wheels_clear: args.wheels_clear,
+        d1_disconnected_or_high_impedance: args.d1_disconnected_or_high_impedance,
+        common_ground_verified: args.common_ground_verified,
+        rx_voltage_compatible: args.rx_voltage_compatible,
+        create_uart: "isolated-no-transmitter",
+    };
+    write_receipt(&root.join(args.receipt), &record, opts)?;
+    if outcome != "stable-high" {
+        return Err(format!(
+            "Create RX boundary was not stable high: high={} low={} transitions={}",
+            evidence.high, evidence.low, evidence.transitions
+        )
+        .into());
+    }
+    Ok(())
+}
+
+pub(super) fn wait_for_bootloader_port(
+    timeout: Duration,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        let matches = bootloader_ports()?;
+        match matches.as_slice() {
+            [path] => return Ok(path.clone()),
+            [] => thread::sleep(Duration::from_millis(50)),
+            _ => return Err("multiple 2341:0036 Caterina bootloaders are present; cannot choose an upload target".into()),
+        }
+    }
+    Err("timed out waiting for the exact 2341:0036 Caterina bootloader; double-tap RST to GND while this command is waiting".into())
+}
+
+fn bootloader_ports() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
+    let mut matches = Vec::new();
+    for entry in fs::read_dir("/dev")? {
+        let path = entry?.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if !name.strip_prefix("ttyACM").is_some_and(|index| {
+            !index.is_empty() && index.bytes().all(|byte| byte.is_ascii_digit())
+        }) {
+            continue;
+        }
+        let output = Command::new("udevadm")
+            .args(["info", "--query=property", "--name"])
+            .arg(&path)
+            .output()?;
+        if !output.status.success() {
+            continue;
+        }
+        let properties = String::from_utf8(output.stdout)?;
+        if has_usb_identity(&properties, BOOTLOADER_VID, BOOTLOADER_PID) {
+            matches.push(path);
+        }
+    }
+    Ok(matches)
+}
+
+fn has_usb_identity(properties: &str, vid: &str, pid: &str) -> bool {
+    properties
+        .lines()
+        .any(|line| line == format!("ID_VENDOR_ID={vid}"))
+        && properties
+            .lines()
+            .any(|line| line == format!("ID_MODEL_ID={pid}"))
+}
+
+fn classify(evidence: Evidence) -> &'static str {
+    if evidence.high == SAMPLE_COUNT && evidence.low == 0 && evidence.transitions == 0 {
+        "stable-high"
+    } else {
+        "not-stable-high"
+    }
+}
+
+fn validate_request(args: &RxCheckArgs) -> Result<(), Box<dyn std::error::Error>> {
+    PhysicalGate {
+        create_stopped: args.create_stopped,
+        attended: args.attended,
+        wheels_clear: args.wheels_clear,
+    }
+    .validate("receive-only Create RX check")?;
+    if !args.d1_disconnected_or_high_impedance
+        || !args.common_ground_verified
+        || !args.rx_voltage_compatible
+    {
+        return Err("AVR receive-only Create RX check requires --d1-disconnected-or-high-impedance --common-ground-verified --rx-voltage-compatible".into());
+    }
+    if args.port.file_name().and_then(|name| name.to_str()) != Some(EXPECTED_BY_ID)
+        || args.port.parent() != Some(Path::new("/dev/serial/by-id"))
+    {
+        return Err(format!(
+            "AVR receive-only Create RX check requires exact path /dev/serial/by-id/{EXPECTED_BY_ID}"
+        )
+        .into());
+    }
+    if args.artifact_sha256.len() != 64
+        || !args
+            .artifact_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("AVR receive-only Create RX check requires one exact SHA-256 digest".into());
+    }
+    Ok(())
+}
+
+fn parse_receipt(bytes: &[u8]) -> Result<Evidence, Box<dyn std::error::Error>> {
+    if bytes.len() != RECEIPT_BYTES
+        || &bytes[..8] != b"CNDRX001"
+        || u16_at(bytes, 8)? != 1
+        || usize::from(u16_at(bytes, 10)?) != bytes.len()
+        || u16_at(bytes, 12)? != SAMPLE_COUNT
+        || u16_at(bytes, 14)?.checked_add(u16_at(bytes, 16)?) != Some(SAMPLE_COUNT)
+        || bytes[24] != 0
+        || bytes[25] != 0
+        || u16_at(bytes, 26)? != 0
+    {
+        return Err("invalid receive-only diagnostic receipt".into());
+    }
+    Ok(Evidence {
+        high: u16_at(bytes, 14)?,
+        low: u16_at(bytes, 16)?,
+        transitions: u16_at(bytes, 18)?,
+        duration_us: u32_at(bytes, 20)?,
+    })
+}
+
+fn configure_serial(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let output = Command::new("stty")
+        .args(["-F"])
+        .arg(path)
+        .args(["raw", "-echo", "-hupcl", "115200"])
+        .output()?;
+    require_success(&output, "receive-only CDC configuration")
+}
+
+fn open_nonblocking(path: &Path) -> Result<File, Box<dyn std::error::Error>> {
+    Ok(OpenOptions::new()
+        .read(true)
+        .write(true)
+        .custom_flags(0o00000400)
+        .open(path)?)
+}
+
+fn write_bounded(
+    device: &mut File,
+    bytes: &[u8],
+    timeout: Duration,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    let mut offset = 0;
+    while offset < bytes.len() {
+        if !wait_ready(device, libc::POLLOUT, deadline)? {
+            return Err("timed out writing receive-only diagnostic request".into());
+        }
+        match device.write(&bytes[offset..]) {
+            Ok(0) => {}
+            Ok(written) => offset += written,
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(())
+}
+
+fn read_bounded(
+    device: &mut File,
+    bytes: &mut [u8],
+    timeout: Duration,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    let mut offset = 0;
+    while offset < bytes.len() {
+        if !wait_ready(device, libc::POLLIN, deadline)? {
+            return Err("timed out reading receive-only diagnostic receipt".into());
+        }
+        match device.read(&mut bytes[offset..]) {
+            Ok(0) => {}
+            Ok(read) => offset += read,
+            Err(error) if error.kind() == ErrorKind::WouldBlock => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn wait_ready(
+    device: &File,
+    events: libc::c_short,
+    deadline: Instant,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Ok(false);
+    }
+    let timeout_ms = remaining.as_millis().clamp(1, i32::MAX as u128) as i32;
+    let mut descriptor = libc::pollfd {
+        fd: device.as_raw_fd(),
+        events,
+        revents: 0,
+    };
+    // SAFETY: `descriptor` points to one initialized pollfd for this call and
+    // the borrowed File keeps its descriptor alive for the entire operation.
+    let result = unsafe { libc::poll(&mut descriptor, 1, timeout_ms) };
+    if result < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    if result == 0 {
+        return Ok(false);
+    }
+    if descriptor.revents & (libc::POLLERR | libc::POLLHUP | libc::POLLNVAL) != 0 {
+        return Err(format!(
+            "receive-only CDC readiness failed with revents=0x{:x}",
+            descriptor.revents
+        )
+        .into());
+    }
+    Ok(descriptor.revents & events != 0)
+}
+
+fn wait_for_exact_device(path: &Path, timeout: Duration) -> Result<(), Box<dyn std::error::Error>> {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        if path.exists() && verify_device(path).is_ok() {
+            return Ok(());
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    Err("receive-only image did not re-enumerate at the exact CDC identity".into())
+}
+
+fn u16_at(bytes: &[u8], offset: usize) -> Result<u16, Box<dyn std::error::Error>> {
+    Ok(u16::from_le_bytes(
+        bytes
+            .get(offset..offset + 2)
+            .ok_or("truncated receive-only receipt")?
+            .try_into()?,
+    ))
+}
+
+fn u32_at(bytes: &[u8], offset: usize) -> Result<u32, Box<dyn std::error::Error>> {
+    Ok(u32::from_le_bytes(
+        bytes
+            .get(offset..offset + 4)
+            .ok_or("truncated receive-only receipt")?
+            .try_into()?,
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::fd::FromRawFd;
+
+    #[test]
+    fn kernel_poll_deadline_times_out_and_observes_readiness() {
+        let mut descriptors = [0; 2];
+        // SAFETY: the initialized pair is checked for success and each owned
+        // descriptor is immediately transferred into exactly one File.
+        assert_eq!(
+            unsafe { libc::pipe2(descriptors.as_mut_ptr(), libc::O_NONBLOCK) },
+            0
+        );
+        let reader = unsafe { File::from_raw_fd(descriptors[0]) };
+        let mut writer = unsafe { File::from_raw_fd(descriptors[1]) };
+        assert!(!wait_ready(
+            &reader,
+            libc::POLLIN,
+            Instant::now() + Duration::from_millis(5)
+        )
+        .unwrap());
+        writer.write_all(&[1]).unwrap();
+        assert!(wait_ready(
+            &reader,
+            libc::POLLIN,
+            Instant::now() + Duration::from_millis(50)
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn caterina_discovery_requires_the_exact_usb_identity() {
+        let exact = "ID_VENDOR_ID=2341\nID_MODEL_ID=0036\n";
+        assert!(has_usb_identity(exact, BOOTLOADER_VID, BOOTLOADER_PID));
+        assert!(!has_usb_identity(
+            "ID_VENDOR_ID=1b4f\nID_MODEL_ID=9206\n",
+            BOOTLOADER_VID,
+            BOOTLOADER_PID
+        ));
+        assert!(!has_usb_identity(
+            "ID_VENDOR_ID=2341\nID_MODEL_ID=8036\n",
+            BOOTLOADER_VID,
+            BOOTLOADER_PID
+        ));
+    }
+
+    #[test]
+    fn exact_receipt_parses_and_isolation_or_accounting_drift_refuses() {
+        let mut bytes = [0; RECEIPT_BYTES];
+        bytes[..8].copy_from_slice(b"CNDRX001");
+        bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
+        bytes[10..12].copy_from_slice(&(RECEIPT_BYTES as u16).to_le_bytes());
+        bytes[12..14].copy_from_slice(&SAMPLE_COUNT.to_le_bytes());
+        bytes[14..16].copy_from_slice(&SAMPLE_COUNT.to_le_bytes());
+        bytes[20..24].copy_from_slice(&2_048_u32.to_le_bytes());
+        let stable = Evidence {
+            high: SAMPLE_COUNT,
+            low: 0,
+            transitions: 0,
+            duration_us: 2_048,
+        };
+        assert_eq!(parse_receipt(&bytes).unwrap(), stable);
+        assert_eq!(classify(stable), "stable-high");
+        assert_eq!(
+            classify(Evidence {
+                high: 0,
+                low: SAMPLE_COUNT,
+                transitions: 0,
+                duration_us: 2_048,
+            }),
+            "not-stable-high"
+        );
+        assert_eq!(
+            classify(Evidence {
+                high: SAMPLE_COUNT - 1,
+                low: 1,
+                transitions: 2,
+                duration_us: 2_048,
+            }),
+            "not-stable-high"
+        );
+
+        bytes[25] = 1;
+        assert!(parse_receipt(&bytes).is_err());
+        bytes[25] = 0;
+        bytes[16] = 1;
+        assert!(parse_receipt(&bytes).is_err());
+    }
+}

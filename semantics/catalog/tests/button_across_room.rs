@@ -56,3 +56,42 @@ fn canonical_form_is_only_the_semantic_button_to_indicator_chain() {
         );
     }
 }
+
+#[test]
+fn authored_button_transition_count_is_finite_and_defaults_to_one_press_release() {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    install_button_indicator_catalogs(&mut startup, &mut profile).unwrap();
+    for (argument, expected) in [
+        ("", 2),
+        ("(maximum-transitions = 1)", 1),
+        ("(maximum-transitions = 5)", 5),
+        ("(maximum-transitions = 8)", 8),
+    ] {
+        let source = format!(
+            "form bounded {{
+ button: input/button{argument}
+}}"
+        );
+        let parsed = parse_syntax_document(&source);
+        let checked = check_syntax_document(&parsed, &startup).unwrap();
+        let expanded = expand_canonical_form(&checked, "bounded", &profile).unwrap();
+        assert_eq!(
+            expanded.gears[0].configuration[0].value,
+            conduit_core::ConfigurationValue::U64(expected)
+        );
+    }
+    for count in [0, 9, u64::MAX] {
+        let source = format!(
+            "form bounded {{
+ button: input/button(maximum-transitions = {count})
+}}"
+        );
+        let parsed = parse_syntax_document(&source);
+        let checked = check_syntax_document(&parsed, &startup).unwrap();
+        assert!(
+            expand_canonical_form(&checked, "bounded", &profile).is_err(),
+            "out-of-bound count {count} must refuse before Play"
+        );
+    }
+}

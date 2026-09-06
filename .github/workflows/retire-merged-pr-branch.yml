@@ -26,7 +26,7 @@ jobs:
       - name: Retarget dependents before retiring the merged branch
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/ci/retire-merged-pr-branch.mjs | tee merged-branch-retirement.json
+        run: node tools/ci/retire-merged-pr-branch.mjs | tee merged-branch-retirement.json
       - name: Summarize exact branch retirement
         run: |
           printf '## Merged branch retirement\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"

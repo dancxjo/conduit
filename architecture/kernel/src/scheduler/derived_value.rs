@@ -12,6 +12,9 @@ pub struct CanonicalValue {
 }
 
 impl CanonicalValue {
+    /// Maximum canonical bytes carried by one derived emission.
+    pub const MAXIMUM_BYTES: usize = MAXIMUM_DERIVED_VALUE_BYTES;
+
     pub fn new(bytes: &[u8]) -> Result<Self, StorageError> {
         let len = u8::try_from(bytes.len()).map_err(|_| StorageError::ValueTooLarge)?;
         if bytes.len() > MAXIMUM_DERIVED_VALUE_BYTES {

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./book-test-server.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 import { selectBirthForm } from "./creche-test-actions.mjs";
 
 let entrance;

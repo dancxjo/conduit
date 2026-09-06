@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./book-test-server.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 
 const execute = promisify(execFile);
 const repository = new URL("../..", import.meta.url).pathname;
@@ -27,7 +27,7 @@ async function stageFixture() {
     await cp(join(fixtureSource, path), join(stagedFixture, path));
   }
   await execute("node", [
-    "scripts/ci/build-browser-application-package.mjs",
+    "targets/browser/tools/build-browser-application-package.mjs",
     join(fixtureSource, "fourth.application.template.json"),
     stagedFixture,
     "application.application.json",

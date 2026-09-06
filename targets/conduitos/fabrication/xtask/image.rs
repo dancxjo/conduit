@@ -198,11 +198,11 @@ fn stage_image(paths: &Paths, arch: ConduitosArch) -> Result<(), ConduitosError>
         .map_err(|error| ConduitosError::refusal("image-staging-failed", error.to_string()))?;
     copy(&paths.kernel, &boot.join("conduitos"))?;
     let config = match arch {
-        ConduitosArch::Aarch64 => "targets/conduitos/limine-aarch64-a1.conf",
-        ConduitosArch::Ia32 => "targets/conduitos/limine-ia32-a1.conf",
-        ConduitosArch::Riscv64 => "targets/conduitos/limine-riscv64-a1.conf",
-        ConduitosArch::Loongarch64 => "targets/conduitos/limine-loongarch64-a1.conf",
-        _ => "targets/conduitos/limine.conf",
+        ConduitosArch::Aarch64 => "targets/conduitos/firmware/boot/limine-aarch64-a1.conf",
+        ConduitosArch::Ia32 => "targets/conduitos/firmware/boot/limine-ia32-a1.conf",
+        ConduitosArch::Riscv64 => "targets/conduitos/firmware/boot/limine-riscv64-a1.conf",
+        ConduitosArch::Loongarch64 => "targets/conduitos/firmware/boot/limine-loongarch64-a1.conf",
+        _ => "targets/conduitos/firmware/boot/limine.conf",
     };
     copy(
         &paths.root.join(config),
