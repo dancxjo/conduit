@@ -7,8 +7,12 @@ mod gallery;
 mod host_abi;
 mod multihost;
 mod protocol;
+mod session_cancellation;
+mod session_effects;
 
-use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
+#[cfg(test)]
+use crate::installed_browser::{advertisement, catalogs};
+use crate::installed_browser::{backs, local_bases};
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
 };
@@ -24,8 +28,9 @@ use protocol::{
 use std::collections::BTreeMap;
 
 struct TourSession {
+    cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
     scheduler: engine::TourScheduler,
-    pending: engine::PendingHostEffect,
+    pending: Vec<engine::PendingHostEffect>,
     fragment: PlanFragment,
     active_play_id: conduit_core::ActivePlayId,
     latest_presentation: Option<PresentationIdentity>,
@@ -77,7 +82,14 @@ impl TourSession {
         play_sequence: u64,
         realization: MorseRealization,
     ) -> Result<(Self, TourHostEffect), String> {
-        Self::prepare_with_profile(host_id, boot_id, source, play_sequence, realization, false)
+        Self::prepare_with_profile(
+            host_id,
+            boot_id,
+            source,
+            play_sequence,
+            realization,
+            crate::installed_browser::PresentationProfile::Annotation,
+        )
     }
 
     fn prepare_with_profile(
@@ -86,23 +98,9 @@ impl TourSession {
         source: &str,
         play_sequence: u64,
         realization: MorseRealization,
-        quantity_presentation: bool,
+        presentation: crate::installed_browser::PresentationProfile,
     ) -> Result<(Self, TourHostEffect), String> {
-        let (mut startup, catalog) = if quantity_presentation {
-            crate::installed_browser::catalogs_with_quantity_presentation()?
-        } else {
-            catalogs()?
-        };
-        if quantity_presentation {
-            startup.insert_value_kind_alias(
-                "Scalar",
-                conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),
-            )?;
-            startup.insert_value_kind_alias(
-                "Quantity",
-                conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
-            )?;
-        }
+        let (startup, catalog) = crate::installed_browser::catalogs_for_presentation(presentation)?;
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
@@ -131,14 +129,11 @@ impl TourSession {
             )
             .map_err(|error| format!("expand recursive executable-tour Form: {error:?}"))?,
         };
-        let host = if quantity_presentation {
-            crate::installed_browser::advertisement_with_quantity_presentation(
-                host_id.into(),
-                boot_id.into(),
-            )
-        } else {
-            advertisement(host_id.into(), boot_id.into())
-        };
+        let host = crate::installed_browser::advertisement_for_presentation(
+            host_id.into(),
+            boot_id.into(),
+            presentation,
+        );
         let hosts = [host];
         let placements = default_expanded_placements(&form, &hosts)
             .map_err(|error| format!("place executable-tour Form: {error:?}"))?;
@@ -179,7 +174,10 @@ impl TourSession {
                 implementation_id: placement.implementation_id.as_str().into(),
             })
             .collect();
+        let mut pending_effects =
+            Vec::with_capacity(crate::installed_browser::BROWSER_PENDING_REQUESTS);
         let (scheduler, pending) = engine::prepare(fragment)?;
+        pending_effects.push(pending);
         let active = bind_active_play(
             &plan.plan_id,
             &fragment.host_id,
@@ -187,8 +185,9 @@ impl TourSession {
             play_sequence,
         );
         let mut session = Self {
+            cancellation: None,
             scheduler,
-            pending,
+            pending: pending_effects,
             fragment: fragment.clone(),
             active_play_id: active.active_play_id,
             latest_presentation: None,
@@ -201,7 +200,7 @@ impl TourSession {
             timer_completions: 0,
             manifestation_completions: 0,
         };
-        let effect = session.project_pending_effect()?;
+        let effect = session.project_pending_effect(0)?;
         Ok((session, effect))
     }
 
@@ -214,48 +213,13 @@ impl TourSession {
         effect.attach_source_interaction(source_interaction);
     }
 
-    fn advance(&mut self) -> Result<TourProgress, String> {
-        let completed_timer =
-            matches!(self.pending.effect, engine::BrowserHostEffect::Timer { .. });
-        engine::complete_host_effect(&mut self.scheduler, &self.pending)?;
-        if completed_timer {
-            self.timer_completions = self.timer_completions.saturating_add(1);
-        } else {
-            self.manifestation_completions = self.manifestation_completions.saturating_add(1);
-        }
-        match engine::drive(&mut self.scheduler, &self.fragment)? {
-            engine::DriveStatus::Effect(pending) => {
-                self.pending = pending;
-                Ok(TourProgress::Effect(Box::new(
-                    self.project_pending_effect()?,
-                )))
-            }
-            engine::DriveStatus::Complete => {
-                Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
-            }
-        }
-    }
-
-    fn advance_with_output(&mut self, output: &[u8]) -> Result<TourProgress, String> {
-        engine::complete_host_effect_with_output(&mut self.scheduler, &self.pending, output)?;
-        match engine::drive(&mut self.scheduler, &self.fragment)? {
-            engine::DriveStatus::Effect(pending) => {
-                self.pending = pending;
-                Ok(TourProgress::Effect(Box::new(
-                    self.project_pending_effect()?,
-                )))
-            }
-            engine::DriveStatus::Complete => {
-                Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
-            }
-        }
-    }
-
     #[cfg(test)]
     fn complete(mut self) -> Result<TourReceipt, String> {
         match self.advance()? {
             TourProgress::Receipt(receipt) => Ok(*receipt),
-            TourProgress::Effect(_) => {
+            TourProgress::Effect(_)
+            | TourProgress::Waiting { .. }
+            | TourProgress::Cancellation { .. } => {
                 Err("Tour Play requested another Host effect before completion".into())
             }
         }
@@ -276,13 +240,34 @@ impl TourSession {
         ))
     }
 
-    fn project_pending_effect(&mut self) -> Result<TourHostEffect, String> {
+    fn project_pending_effect(&mut self, index: usize) -> Result<TourHostEffect, String> {
+        let pending = self
+            .pending
+            .get(index)
+            .ok_or("pending browser effect is absent")?;
         let placement = self
             .fragment
             .placements
-            .get(usize::from(self.pending.request.node.0))
+            .get(usize::from(pending.request.node.0))
             .ok_or_else(|| "Host effect has no planned placement".to_string())?;
-        match &self.pending.effect {
+        match &pending.effect {
+            engine::BrowserHostEffect::Snapshot { .. } => {
+                let request = engine::resource_effect::describe(&self.scheduler, pending)?;
+                Ok(TourHostEffect::Snapshot(Box::new(
+                    protocol::SnapshotEffect {
+                        schema: "conduit.browser/resource-effect@1",
+                        effect_kind: request.effect_kind,
+                        active_play_id: self.active_play_id.as_str().into(),
+                        placement_id: placement.placement_id.as_str().into(),
+                        host_id: self.host_id.as_str().into(),
+                        boot_id: self.boot_id.as_str().into(),
+                        request_sequence: pending.request.request.0,
+                        key: request.key.into(),
+                        record: request.record.map(<[u8]>::to_vec),
+                        source_interaction: self.source_interaction.clone(),
+                    },
+                )))
+            }
             engine::BrowserHostEffect::Timer { duration_millis } => {
                 Ok(TourHostEffect::Timer(Box::new(TourTimerEffect {
                     schema: "conduit.tour/timer-effect@1",
@@ -291,7 +276,7 @@ impl TourSession {
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
-                    request_sequence: self.pending.request.request.0,
+                    request_sequence: pending.request.request.0,
                     duration_millis: *duration_millis,
                     source_interaction: self.source_interaction.clone(),
                 })))
@@ -304,12 +289,25 @@ impl TourSession {
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
-                    request_sequence: self.pending.request.request.0,
+                    request_sequence: pending.request.request.0,
                     maximum_output_bytes: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
                         as u32,
                     source_interaction: self.source_interaction.clone(),
                 })))
             }
+            engine::BrowserHostEffect::ClockObservation => Ok(TourHostEffect::ClockObservation(
+                Box::new(TourKeyEventEffect {
+                    schema: "conduit.browser/clock-observation-effect@1",
+                    effect_kind: "clock-observation",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: 8,
+                    source_interaction: self.source_interaction.clone(),
+                }),
+            )),
             engine::BrowserHostEffect::KeyEvent => {
                 Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
                     schema: "conduit.tour/key-event-effect@1",
@@ -318,7 +316,7 @@ impl TourSession {
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
-                    request_sequence: self.pending.request.request.0,
+                    request_sequence: pending.request.request.0,
                     maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
                     source_interaction: self.source_interaction.clone(),
                 })))
@@ -331,13 +329,13 @@ impl TourSession {
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
-                    request_sequence: self.pending.request.request.0,
+                    request_sequence: pending.request.request.0,
                     maximum_output_bytes: conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES,
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
-                let observation_sequence = self.pending.request.request.0;
+                let observation_sequence = pending.request.request.0;
                 let presentation = bind_presentation(
                     &self.active_play_id,
                     &placement.placement_id,
@@ -414,3 +412,9 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
 mod quantity_output_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod normalized_presentation_tests;
+
+#[cfg(test)]
+mod comparison_presentation_tests;

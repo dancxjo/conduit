@@ -49,11 +49,15 @@ Parallel work is encouraged only when ownership is clear.
 - Ordinary branches and pull requests target `dev`. Refresh stale work by rebasing or reapplying its smallest clean product delta onto current `dev`; do not build compatibility machinery merely to preserve stale candidate ancestry.
 - If `dev` is red, restoring it outranks admitting more work. The PR shepherd owns combined-tree fallout and should either repair it promptly or revert the smallest offending integration through a reviewable PR.
 
-## Local machine disk cleanup
+## Environment maintenance and disk cleanup
 
-Aggressive cleanup is a valid maintenance option only on Dan's user-owned local-network machines whose hostname is `victus.local` or ends in `.local`. It is never valid in cloud, CI, hosted runner, shared, or otherwise remotely managed environments, even when disk pressure is severe. Verify the hostname and environment before deleting anything; an unknown environment means stop and report the disk-pressure blocker.
+Agents must assess the actual environment, ownership, active processes, and storage pressure when deciding when and how to clean. A `.local` hostname suffix is not required and does not by itself establish ownership.
 
-On an eligible `.local` machine, recover space in this order:
+On Dan's machines `forebrain` and `victus` (including their fully qualified hostnames), agents are responsible for proactively maintaining usable disk space. Check headroom before substantial builds and recover space from verified disposable artifacts when needed; do not wait for disk exhaustion or ask again for routine cleanup permission. This responsibility does not authorize deleting uncommitted work, unique evidence, or personal data.
+
+In cloud, CI, hosted runner, and other managed environments, the agent's own environment-specific rules, permissions, and cleanup lifecycle govern. This repository imposes no blanket prohibition on cloud cleanup and grants no additional privilege there. Follow those environment rules for workspace and cache retention, shared resources, and disposal. If the environment or ownership is uncertain, investigate and limit cleanup to verified disposable artifacts within the agent's authority; report any remaining blocker.
+
+On user-owned machines, recover space in this order:
 
 1. Inventory filesystem usage and the largest directories before changing state. Check for active Cargo, compiler, browser-proof, VM, and other processes that may own candidate artifacts.
 2. Remove regenerable build outputs such as inactive Rust `target` directories and tool caches. Preserve outputs used by a running process. Do not delete source trees, repositories, credentials, downloads, virtual-machine images, or other user data merely because they are large.

@@ -259,6 +259,19 @@ impl Operation for PresentationOperation {
                 self.next = self.next.saturating_add(1);
                 OperationAction::Await
             }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && matches!(
+                        outcome.disposition,
+                        HostOperationDisposition::Failed | HostOperationDisposition::Denied
+                    )
+                    && outcome.output.is_none() =>
+            {
+                self.pending = None;
+                outcome
+                    .failure
+                    .map_or_else(|| fail(3), OperationAction::Fail)
+            }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
                 OperationAction::Complete
             }

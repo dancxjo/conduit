@@ -301,8 +301,7 @@ mod tests {
     fn checked_rich_configuration_uses_the_same_package_catalog() {
         let packages = FabricationPackageSet::compose(&[&BrowserFabricationPackage]).unwrap();
         let catalog = FabricationCatalog::canonical().with_packages(&packages);
-        let source =
-            include_str!("../../../../../profiles/host-configurations/browser-rich.host.conduit");
+        let source = include_str!("../../../profiles/browser-rich.host.conduit");
         let configuration =
             conduit_host_fabrication::parse_host_configuration_conduit(source).unwrap();
         let checked =

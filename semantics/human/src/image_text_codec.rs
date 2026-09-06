@@ -4,15 +4,16 @@ use alloc::vec::Vec;
 use conduit_core::{BoundedResourceRef, KindId, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES};
 
 use crate::{
-    ImageTextMetadata, ImageTextRecord, ImageTextRefusal, MAXIMUM_IMAGE_TEXT_CAPTION_BYTES,
-    MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES, MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES,
-    MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES,
+    ImageObservationReference, ImageTextMetadata, ImageTextRecord, ImageTextRefusal,
+    MAXIMUM_IMAGE_TEXT_CAPTION_BYTES, MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES,
+    MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES, MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES,
 };
 
 pub const IMAGE_TEXT_ENCODING_VERSION: u8 = 1;
 pub const MAXIMUM_IMAGE_TEXT_ENCODED_BYTES: usize = 1
     + 2
     + MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES
+    + 4
     + 2
     + MAXIMUM_IMAGE_TEXT_CAPTION_BYTES
     + 1
@@ -37,13 +38,14 @@ impl ImageTextRecord {
     ) -> Result<usize, ImageTextCodecRefusal> {
         self.validate(expected_image_profile)
             .map_err(ImageTextCodecRefusal::InvalidRecord)?;
-        let image = self
-            .image
-            .encode()
-            .map_err(|_| ImageTextCodecRefusal::InvalidRecord(ImageTextRefusal::InvalidImage))?;
+        let image =
+            self.image.content.encode().map_err(|_| {
+                ImageTextCodecRefusal::InvalidRecord(ImageTextRefusal::InvalidImage)
+            })?;
         let required = 1
             + 2
             + image.len()
+            + 4
             + 2
             + self.caption.len()
             + 1
@@ -63,6 +65,8 @@ impl ImageTextRecord {
         let mut writer = Writer::new(output);
         writer.u8(IMAGE_TEXT_ENCODING_VERSION);
         writer.bytes_u16(&image);
+        writer.bytes(&self.image.width.to_le_bytes());
+        writer.bytes(&self.image.height.to_le_bytes());
         writer.bytes_u16(self.caption.as_bytes());
         writer.u8(self.metadata.len() as u8);
         for entry in &self.metadata {
@@ -84,8 +88,10 @@ impl ImageTextRecord {
         if cursor.u8()? != IMAGE_TEXT_ENCODING_VERSION {
             return Err(ImageTextCodecRefusal::UnsupportedVersion);
         }
-        let image = BoundedResourceRef::decode(cursor.bytes_u16()?)
+        let content = BoundedResourceRef::decode(cursor.bytes_u16()?)
             .map_err(|_| ImageTextCodecRefusal::InvalidRecord(ImageTextRefusal::InvalidImage))?;
+        let width = cursor.u16()?;
+        let height = cursor.u16()?;
         let caption = cursor.text_u16()?.into();
         let count = usize::from(cursor.u8()?);
         if count > MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES {
@@ -106,7 +112,11 @@ impl ImageTextRecord {
             return Err(ImageTextCodecRefusal::Malformed);
         }
         let record = Self {
-            image,
+            image: ImageObservationReference {
+                content,
+                width,
+                height,
+            },
             caption,
             metadata,
             content_digest,
@@ -189,6 +199,11 @@ impl<'a> Cursor<'a> {
     fn bytes_u16(&mut self) -> Result<&'a [u8], ImageTextCodecRefusal> {
         let raw = self.bytes(2)?;
         self.bytes(usize::from(u16::from_le_bytes([raw[0], raw[1]])))
+    }
+
+    fn u16(&mut self) -> Result<u16, ImageTextCodecRefusal> {
+        let raw = self.bytes(2)?;
+        Ok(u16::from_le_bytes([raw[0], raw[1]]))
     }
 
     fn text_u8(&mut self) -> Result<&'a str, ImageTextCodecRefusal> {

@@ -21,11 +21,11 @@ fn manifest(source: &str) -> BuildManifest {
 #[test]
 fn resolved_profiles_lower_to_distinct_exact_product_inputs() {
     let native = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-native.profile.json"
+        "../../../profiles/conduitos-native.profile.json"
     )))
     .unwrap();
     let headless = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     )))
     .unwrap();
     assert_eq!(native.cargo_features, ["native-compositor"]);
@@ -42,7 +42,7 @@ fn resolved_profiles_lower_to_distinct_exact_product_inputs() {
 #[test]
 fn riscv64_product_profile_lowers_exactly_and_rejects_foreign_bindings() {
     let mut checked = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-riscv64-headless.profile.json"
+        "../../../profiles/conduitos-riscv64-headless.profile.json"
     ));
     let lowered = lower(&checked).unwrap();
     assert_eq!(lowered.cargo_features, ["riscv64-product"]);
@@ -65,7 +65,7 @@ fn riscv64_product_profile_lowers_exactly_and_rejects_foreign_bindings() {
 #[test]
 fn ia32_product_profile_selects_only_its_linear_runtime_closure() {
     let ia32 = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-ia32-headless.profile.json"
+        "../../../profiles/conduitos-ia32-headless.profile.json"
     )))
     .unwrap();
     assert_eq!(ia32.cargo_features, ["ia32-product"]);
@@ -86,7 +86,7 @@ fn ia32_product_profile_selects_only_its_linear_runtime_closure() {
 #[test]
 fn ia32_product_lowering_rejects_foreign_presenter_and_driver_bindings() {
     let ia32 = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-ia32-headless.profile.json"
+        "../../../profiles/conduitos-ia32-headless.profile.json"
     ));
 
     let mut foreign_presenter = ia32.clone();
@@ -105,7 +105,7 @@ fn ia32_product_lowering_rejects_foreign_presenter_and_driver_bindings() {
 #[test]
 fn http_profile_selects_exact_native_closure_and_headless_omits_it() {
     let http = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-http-client.profile.json"
+        "../../../profiles/conduitos-http-client.profile.json"
     ));
     let lowered = lower(&http).unwrap();
     assert_eq!(lowered.cargo_features, ["native-http-client"]);
@@ -127,7 +127,7 @@ fn http_profile_selects_exact_native_closure_and_headless_omits_it() {
     assert_eq!(http.bounds.heap_arena_bytes, 0);
 
     let headless = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     )))
     .unwrap();
     assert_eq!(
@@ -144,7 +144,7 @@ fn http_profile_selects_exact_native_closure_and_headless_omits_it() {
 #[test]
 fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
     let http = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-http-client.profile.json"
+        "../../../profiles/conduitos-http-client.profile.json"
     ));
     for missing in 0..8 {
         let mut incomplete = http.clone();
@@ -165,7 +165,7 @@ fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
     }
 
     let headless = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     ));
     let mut leaked = headless.clone();
     leaked.host_operations.push(http.host_operations[0].clone());
@@ -178,7 +178,7 @@ fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
 #[test]
 fn lowering_rejects_missing_and_leaked_graphical_closure() {
     let native = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-native.profile.json"
+        "../../../profiles/conduitos-native.profile.json"
     ));
     for remove in 0..5 {
         let mut incomplete = native.clone();
@@ -197,7 +197,7 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
     }
 
     let headless = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     ));
     for leak in 0..5 {
         let mut leaked = headless.clone();
@@ -225,7 +225,7 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
 #[test]
 fn unrelated_bounds_do_not_select_graphics_and_wrong_targets_fail_before_cargo() {
     let mut headless = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     ));
     let original = lower(&headless).unwrap();
     headless.bounds.queue_items += 1;
@@ -241,7 +241,7 @@ fn unrelated_bounds_do_not_select_graphics_and_wrong_targets_fail_before_cargo()
 #[test]
 fn duplicate_graphical_resource_ceiling_fails_before_codegen() {
     let mut native = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-native.profile.json"
+        "../../../profiles/conduitos-native.profile.json"
     ));
     native
         .resource_budgets
@@ -255,15 +255,15 @@ fn duplicate_graphical_resource_ceiling_fails_before_codegen() {
 #[test]
 fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
     let normal = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-native.profile.json"
+        "../../../profiles/conduitos-native.profile.json"
     )))
     .unwrap();
     let proof = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-proof.profile.json"
+        "../../../proof/profiles/conduitos-proof.profile.json"
     )))
     .unwrap();
     let hotplug = lower(&manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-hotplug-proof.profile.json"
+        "../../../proof/profiles/conduitos-hotplug-proof.profile.json"
     )))
     .unwrap();
     assert_eq!(normal.proof_instrumentation, 0);
@@ -292,7 +292,7 @@ fn proof_profiles_are_checked_distinct_and_normal_products_stay_clean() {
 #[test]
 fn proof_instrumentation_without_native_closure_refuses() {
     let mut headless = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-headless.profile.json"
     ));
     headless
         .profile_fragments
@@ -306,7 +306,7 @@ fn proof_instrumentation_without_native_closure_refuses() {
 #[test]
 fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
     let manifest = manifest(include_str!(
-        "../../../../../profiles/hosts/conduitos-aarch64-headless.profile.json"
+        "../../../profiles/conduitos-aarch64-headless.profile.json"
     ));
     let lowered = lower(&manifest).unwrap();
     assert_eq!(lowered.cargo_features, ["aarch64-product"]);
@@ -335,8 +335,7 @@ fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
 
 #[test]
 fn aarch64_virt_rejects_x86_leaks_and_incomplete_serial_closure() {
-    let source =
-        include_str!("../../../../../profiles/hosts/conduitos-aarch64-headless.profile.json");
+    let source = include_str!("../../../profiles/conduitos-aarch64-headless.profile.json");
     let exact = manifest(source);
 
     let mut x86_presenter = exact.clone();

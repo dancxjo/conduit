@@ -1,0 +1,10 @@
+{
+  "name": "conduit-browser-host-proof",
+  "private": true,
+  "scripts": {
+    "test:browser-host": "cd ../.. && playwright test --config proof/browser/playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

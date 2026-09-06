@@ -1,0 +1,31 @@
+{
+  "arch": "avr",
+  "atomic-cas": false,
+  "cpu": "atmega32u4",
+  "crt-objects-fallback": "false",
+  "data-layout": "e-P1-p:16:8-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n8-a:8",
+  "eh-frame-header": false,
+  "exe-suffix": ".elf",
+  "late-link-args": {
+    "gnu-cc": ["-lgcc"],
+    "gnu-lld-cc": ["-lgcc"]
+  },
+  "linker": "avr-gcc",
+  "linker-flavor": "gnu-cc",
+  "llvm-target": "avr-unknown-unknown",
+  "max-atomic-width": 16,
+  "metadata": {
+    "description": "Conduit SparkFun Pro Micro ATmega32U4",
+    "host_tools": false,
+    "std": false,
+    "tier": 3
+  },
+  "no-default-libraries": false,
+  "pre-link-args": {
+    "gnu-cc": ["-mmcu=atmega32u4", "-Wl,--as-needed"],
+    "gnu-lld-cc": ["-mmcu=atmega32u4", "-Wl,--as-needed"]
+  },
+  "relocation-model": "static",
+  "target-c-int-width": "16",
+  "target-pointer-width": "16"
+}

@@ -46,6 +46,9 @@ fn exact_stop_request_uses_scheduler_cancellation_and_returns_terminal_sign() {
         .unwrap();
 
     assert_eq!(timer.waits, 1);
+    let rendered = String::from_utf8(output.clone()).unwrap();
+    assert!(rendered.contains(" cancelled reason=OperatorRequested\n"));
+    assert!(!rendered.contains(" complete\n"));
     assert!(matches!(
         report
             .observations

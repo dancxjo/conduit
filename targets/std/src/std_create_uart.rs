@@ -67,7 +67,7 @@ impl StdCreateUartBase {
         if observation.base_id.is_empty() {
             return Err(StdCreateUartOpenError::MissingBaseIdentity);
         }
-        if observation.profile != UartProfile::CREATE_OI {
+        if !observation.profile.is_create_oi() {
             return Err(StdCreateUartOpenError::WrongProfile(observation.profile));
         }
         if observation.maximum_write_wait_ms == 0
