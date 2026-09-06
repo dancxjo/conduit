@@ -80,14 +80,13 @@ fn prepare_mapper(
     values: &mut HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &mapper_offer())?;
-    let off = [
-        values.store(&InfoBool::FALSE.encode()).map_err(debug)?,
-        values.store(&InfoBool::FALSE.encode()).map_err(debug)?,
-    ];
-    let on = [
-        values.store(&InfoBool::TRUE.encode()).map_err(debug)?,
-        values.store(&InfoBool::TRUE.encode()).map_err(debug)?,
-    ];
+    let admitted_states = |values: &mut HostedValueStore, level: InfoBool| {
+        (0..conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_VALUES)
+            .map(|_| values.store(&level.encode()).map_err(debug))
+            .collect::<Result<Vec<_>, _>>()
+    };
+    let off = admitted_states(values, InfoBool::FALSE)?;
+    let on = admitted_states(values, InfoBool::TRUE)?;
     Ok(BrowserOperation::installed(ButtonIndicatorOperation {
         off,
         on,
@@ -115,8 +114,8 @@ fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHo
 }
 
 struct ButtonIndicatorOperation {
-    off: [ValueRef; 2],
-    on: [ValueRef; 2],
+    off: Vec<ValueRef>,
+    on: Vec<ValueRef>,
     emitted: usize,
 }
 
@@ -182,8 +181,8 @@ mod tests {
     #[test]
     fn pressed_and_released_emit_pre_admitted_current_states() {
         let mut operation = ButtonIndicatorOperation {
-            off: [value(1), value(3)],
-            on: [value(2), value(4)],
+            off: vec![value(1), value(3)],
+            on: vec![value(2), value(4)],
             emitted: 0,
         };
         for (pressed, slot) in [(true, 2), (false, 3)] {

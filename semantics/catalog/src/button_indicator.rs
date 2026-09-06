@@ -9,13 +9,13 @@ use super::{input_button_transition_type, StandardKindContract, TerminalBehavior
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, InfoBool, PortDescriptor, PortDirection, PortTemporal,
-    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, InfoBool, PortDescriptor,
+    PortDirection, PortTemporal, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
 };
 
 pub const BUTTON_SOURCE_KIND: &str = "input/button";
-pub const BUTTON_SOURCE_REVISION: &str = "conduit.input/button@1";
+pub const BUTTON_SOURCE_REVISION: &str = "conduit.input/button@2";
 pub const BUTTON_INDICATOR_STATE_KIND: &str = "input/button-indicator-state";
 pub const BUTTON_INDICATOR_STATE_REVISION: &str = "conduit.input/button-indicator-state@1";
 pub const INDICATOR_STATE_PRESENTATION_KIND: &str = "presentation/indicator-state";
@@ -40,7 +40,14 @@ pub fn button_source_contract() -> StandardKindContract {
             .to_string(),
         inputs: Vec::new(),
         outputs: vec![button_port("transition", PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: vec![crate::StandardConfigurationField {
+            key: "maximum-transitions".into(),
+            default_value: ConfigurationValue::U64(2),
+            rule: crate::StandardConfigurationRule::U64Range {
+                minimum: 1,
+                maximum: u64::from(BUTTON_TRANSITION_MAXIMUM_VALUES),
+            },
+        }],
         limits: button_limits(),
         terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
@@ -196,7 +203,15 @@ pub fn install_button_indicator_catalogs(
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
-            startup_parameters: Vec::new(),
+            startup_parameters: contract
+                .configuration
+                .iter()
+                .map(|field| conduit_form::StartupParameterSignature {
+                    name: field.key.clone(),
+                    value_type: "Count".into(),
+                    default: Some("2".into()),
+                })
+                .collect(),
         })?;
         profile
             .insert(KindDefinition {
@@ -204,7 +219,18 @@ pub fn install_button_indicator_catalogs(
                 kind_contract_revision: KindContractRevision::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: Vec::new(),
+                configuration: contract
+                    .configuration
+                    .into_iter()
+                    .map(|field| conduit_form::ConfigurationField {
+                        key: field.key,
+                        default_value: field.default_value,
+                        validation: conduit_form::ConfigurationRule::U64Range {
+                            minimum: 1,
+                            maximum: u64::from(BUTTON_TRANSITION_MAXIMUM_VALUES),
+                        },
+                    })
+                    .collect(),
             })
             .map_err(|error| error.to_string())?;
     }
