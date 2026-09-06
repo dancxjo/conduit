@@ -40,4 +40,17 @@ pub(super) const TODO_STATE_STEPS: &[Step] = &[
             "--locked",
         ],
     ),
+    Step::new(
+        "todo-state.browser-kernel",
+        "Execute the same Todo Forms through the browser Host production kernel",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-browser-runtime",
+            "--lib",
+            "browser_todo",
+            "--locked",
+        ],
+    ),
 ];

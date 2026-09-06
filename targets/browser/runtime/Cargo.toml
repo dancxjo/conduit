@@ -45,5 +45,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 
+conduit-web = { path = "../../../semantics/web", features = ["form-catalog"] }
+
 [dev-dependencies]
 conduit-std-offers = { path = "../../std/offers" }
