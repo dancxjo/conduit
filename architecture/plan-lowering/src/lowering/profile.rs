@@ -12,6 +12,7 @@ pub const FIXED_KERNEL_STORAGE_PORTS_PER_NODE: usize = 16;
 pub struct KernelStorageProfile {
     maximum_ports_per_node: usize,
     state_storage: Option<(u16, u32)>,
+    owned_state_continuity: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -35,6 +36,7 @@ impl KernelStorageProfile {
         Ok(Self {
             maximum_ports_per_node,
             state_storage: None,
+            owned_state_continuity: false,
         })
     }
 
@@ -51,6 +53,17 @@ impl KernelStorageProfile {
         Ok(self)
     }
 
+    /// Selected only by Hosts that consume and validate owned retired cells
+    /// against every retained State obligation before starting execution.
+    pub const fn with_owned_state_continuity(mut self) -> Self {
+        self.owned_state_continuity = true;
+        self
+    }
+
+    pub const fn supports_owned_state_continuity(self) -> bool {
+        self.owned_state_continuity
+    }
+
     pub const fn state_storage(self) -> Option<(u16, u32)> {
         self.state_storage
     }
@@ -63,6 +76,7 @@ impl KernelStorageProfile {
 pub const FIXED_KERNEL_STORAGE_PROFILE: KernelStorageProfile = KernelStorageProfile {
     maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
     state_storage: None,
+    owned_state_continuity: false,
 };
 
 #[cfg(test)]

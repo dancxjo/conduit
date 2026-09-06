@@ -40,6 +40,11 @@ impl<const BYTES: usize> StateOperation<BYTES> {
         self.state
     }
 
+    /// Terminal State can leave an owned retired driver; quiescence is not terminal.
+    pub fn is_terminal(&self) -> bool {
+        self.terminal
+    }
+
     pub fn state(&self) -> &StateDelay<BYTES> {
         &self.state
     }

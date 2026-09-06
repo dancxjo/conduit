@@ -7,7 +7,11 @@ use conduit_kernel::{
     Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, ValueRef,
 };
 
+mod continuity;
+pub use continuity::{RetainedTypedState, StateContinuityFailure};
+
 pub struct TypedStateOperation {
+    binding: Option<continuity::StateExecutionBinding>,
     operation: StateOperation<64>,
     validator: PreparedStructuredValueValidator,
 }
@@ -22,6 +26,29 @@ impl TypedStateOperation {
         next: PortId,
         current: PortId,
     ) -> Result<Self, String> {
+        if state.retained.is_some() {
+            return Err("retained State requires owned continuity admission".into());
+        }
+        let validator = Self::prepare_validator(placement, state)?;
+        let cell = StateDelay::externally_continued(
+            slot,
+            state.maximum_value_bytes as usize,
+            &state.initial_value,
+        )
+        .map_err(|error| format!("State storage: {error:?}"))?;
+        let operation = StateOperation::new(cell, next, current)
+            .map_err(|error| format!("State operation: {error:?}"))?;
+        Ok(Self {
+            binding: None,
+            operation,
+            validator,
+        })
+    }
+
+    fn prepare_validator(
+        placement: &PlannedGear,
+        state: &PlannedStateBoundary,
+    ) -> Result<PreparedStructuredValueValidator, String> {
         conduit_semantic_catalog::state_value::validate_state_placement(placement, state)
             .map_err(|error| format!("State semantic admission: {error:?}"))?;
         if placement.execution_profile_id.as_str() != conduit_std_offers::STATE_VALUE_STD_PROFILE
@@ -46,18 +73,7 @@ impl TypedStateOperation {
         validator
             .validate(&state.initial_value)
             .map_err(|error| format!("State initial shape: {error:?}"))?;
-        let cell = StateDelay::externally_continued(
-            slot,
-            state.maximum_value_bytes as usize,
-            &state.initial_value,
-        )
-        .map_err(|error| format!("State storage: {error:?}"))?;
-        let operation = StateOperation::new(cell, next, current)
-            .map_err(|error| format!("State operation: {error:?}"))?;
-        Ok(Self {
-            operation,
-            validator,
-        })
+        Ok(validator)
     }
 
     pub fn current(&self) -> &[u8] {

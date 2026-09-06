@@ -8,6 +8,7 @@ pub(super) fn prepare_operations(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
     values: &mut HostedValueStore,
+    play: &conduit_core::ActivePlayIdentity,
 ) -> Result<[OperationDriver<InstalledOperation, PORTS>; MAX_NODES], String> {
     let mut operations = Vec::with_capacity(MAX_NODES);
     for node in &lowered.nodes {
@@ -17,13 +18,7 @@ pub(super) fn prepare_operations(
             .ok_or_else(|| "lowered node has no planned placement".to_string())?;
         if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
             operations.push(InstalledOperation::TypedState(Box::new(
-                crate::state_value::TypedStateOperation::prepare(
-                    placement,
-                    &state.contract,
-                    state.slot,
-                    state.next,
-                    state.current,
-                )?,
+                crate::state_value::TypedStateOperation::prepare_for_play(fragment, state, play)?,
             )));
         } else {
             let factory = factory(&placement.implementation_id).ok_or_else(|| {
