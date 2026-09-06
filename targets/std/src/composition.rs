@@ -31,6 +31,7 @@ pub struct StdHostComposition {
     pub external_websocket: bool,
     pub http: bool,
     pub json: bool,
+    pub json_collection: bool,
     pub alife: bool,
 }
 
@@ -53,6 +54,7 @@ impl StdHostComposition {
             external_websocket: false,
             http: true,
             json: true,
+            json_collection: false,
             alife: true,
         }
     }
@@ -76,6 +78,7 @@ impl StdHostComposition {
             external_websocket: false,
             http: false,
             json: false,
+            json_collection: false,
             alife: false,
         }
     }
@@ -147,6 +150,11 @@ impl StdHostComposition {
 
     pub const fn with_http(mut self) -> Self {
         self.http = true;
+        self
+    }
+
+    pub const fn with_json_collection(mut self) -> Self {
+        self.json_collection = true;
         self
     }
 
@@ -288,6 +296,9 @@ pub(super) fn build_advertisement(
             installed_std::http_client_offer(),
             installed_std::http_server_offer(),
         ]);
+    }
+    if composition.json_collection {
+        capabilities.push(conduit_std_offers::json_collection_step_std_offer());
     }
     if composition.json {
         capabilities.extend([

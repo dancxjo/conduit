@@ -13,6 +13,17 @@ pub const JSON_ENCODE_KIND: &str = "json/encode";
 pub const JSON_DECODE_KIND: &str = "json/decode";
 pub const JSON_ENCODE_REVISION: &str = "conduit.std/json-encode@1";
 pub const JSON_DECODE_REVISION: &str = "conduit.std/json-decode@1";
+pub const JSON_COLLECTION_STEP_KIND: &str = "json/collection-step";
+pub const JSON_COLLECTION_STEP_REVISION: &str = "conduit.json/collection-step@1";
+
+pub fn json_collection_step_semantics() -> PortableKindContract {
+    contract(
+        JSON_COLLECTION_STEP_KIND,
+        JSON_COLLECTION_STEP_REVISION,
+        crate::JSON_INFO_ID,
+        crate::JSON_INFO_ID,
+    )
+}
 
 pub fn json_encode_semantics() -> PortableKindContract {
     contract(
@@ -39,7 +50,11 @@ pub fn install_json_catalogs(
 ) -> Result<(), alloc::string::String> {
     use alloc::vec::Vec;
     use conduit_form::{KindDefinition, KindSignature};
-    for contract in [json_encode_semantics(), json_decode_semantics()] {
+    for contract in [
+        json_encode_semantics(),
+        json_decode_semantics(),
+        json_collection_step_semantics(),
+    ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),

@@ -6,6 +6,18 @@ pub const JSON_ENCODE_STD_IMPLEMENTATION: &str = "std/kernel-json-encode@1";
 pub const JSON_DECODE_STD_IMPLEMENTATION: &str = "std/kernel-json-decode@1";
 pub const JSON_ENCODE_HOST_OPERATION: &str = "conduit.host/json-encode@1";
 pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
+pub const JSON_COLLECTION_STEP_STD_IMPLEMENTATION: &str = "std/kernel-json-collection-step@1";
+pub const JSON_COLLECTION_STEP_HOST_OPERATION: &str = "conduit.host/json-collection-step@1";
+
+pub fn json_collection_step_std_offer() -> CapabilityOffer {
+    json_offer(
+        conduit_semantic_catalog::json_collection_step_contract(),
+        conduit_web::JSON_COLLECTION_STEP_REVISION,
+        "std-json-collection-step-v1",
+        JSON_COLLECTION_STEP_STD_IMPLEMENTATION,
+        JSON_COLLECTION_STEP_HOST_OPERATION,
+    )
+}
 
 pub fn json_encode_std_offer() -> CapabilityOffer {
     json_offer(
