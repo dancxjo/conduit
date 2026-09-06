@@ -72,6 +72,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
     await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
+    const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
     await expect(page.locator("#body-execution-status")).toContainText("Body Play running");
     await expect(page.locator("#body-execution-output")).toContainText("CALLING");
@@ -90,7 +91,28 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect(execution.receipt.active_play_id).toBe(terminal.body_planning.execution_claims[0].play.active_play_id);
     expect(execution.receipt.timer_completions).toBe(4);
     expect(execution.receipt.manifestation_completions).toBe(7);
+    await page.getByText("Inspect selected Body Plan", { exact: true }).click();
+    const inspection = page.locator("#body-plan-inspection");
+    await expect(inspection).toContainText(proposal.plan.plan_id);
+    await expect(inspection).toContainText("not current availability or physical proof");
+    await expect(inspection).not.toContainText("undefined");
+    for (const form of proposal.plan.forms) {
+      await inspection.getByText(`Form ${form.plan.checked_form_id}`, { exact: true }).click();
+      for (const fragment of form.plan.fragments) {
+        for (const placement of fragment.placements) {
+          const gear = inspection.locator(`[data-placement-id="${placement.placement_id}"]`);
+          await gear.locator("summary").click();
+          for (const identity of [placement.gear_id, placement.kind_id, placement.capability_id,
+            placement.host_id, placement.boot_id, placement.implementation_id, placement.artifact_id]) {
+            await expect(gear).toContainText(identity);
+          }
+          await expect(gear).toContainText(JSON.stringify(placement.resources));
+          await expect(gear).toContainText(JSON.stringify(placement.host_operations));
+        }
+      }
+    }
     const retained = await page.request.get(`${url}/api/body-evidence`).then(response => response.json());
+    expect((await snapshot()).body_planning).toEqual(terminal.body_planning);
     expect(retained.body_id).toBe(bodyId);
     expect(retained.records.slice(0, born.records.length)).toEqual(born.records);
     expect(retained.body.workset).toEqual(born.body.workset);
