@@ -99,7 +99,7 @@ pub(super) fn capture(
     reader: &mut super::qmp::Reader,
     directory: &std::path::Path,
     checkpoint: &str,
-) -> Result<serde_json::Value, ConduitosError> {
+) -> Result<(serde_json::Value, Option<ConduitosError>), ConduitosError> {
     use sha2::{Digest, Sha256};
     use std::{fs, io::Read};
     if checkpoint.is_empty()
@@ -137,12 +137,13 @@ pub(super) fn capture(
     })?;
     fs::write(&png, &encoded).map_err(io_error)?;
     fs::remove_file(ppm).map_err(io_error)?;
-    require_content(&frame)?;
-    Ok(
+    let health_refusal = require_content(&frame).err();
+    Ok((
         serde_json::json!({"checkpoint":checkpoint,"png":png.file_name().unwrap().to_string_lossy(),
         "width":frame.width(),"height":frame.height(),"pixel_format":"RGBA8","png_bytes":encoded.len(),
         "png_sha256":format!("{:x}",Sha256::digest(&encoded)),"pixel_sha256":format!("{:x}",Sha256::digest(frame.data()))}),
-    )
+        health_refusal,
+    ))
 }
 
 #[cfg(test)]

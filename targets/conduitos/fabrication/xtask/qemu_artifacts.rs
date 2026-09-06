@@ -60,7 +60,8 @@ impl Artifacts {
         })?;
         let record = super::journey_records::decode(text)?.pop();
         let boot = super::journey_records::boot(text)?;
-        let frame = qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
+        let (frame, health_refusal) =
+            qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
         let pixels = frame["pixel_sha256"]
             .as_str()
             .expect("capture digest")
@@ -68,9 +69,13 @@ impl Artifacts {
         let unchanged = expect_change && self.previous_pixels.as_ref() == Some(&pixels);
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
-            "guest_record":record,"guest_boot_record":boot,"frame":frame,"expected_change":expect_change,"unchanged":unchanged}));
+            "guest_record":record,"guest_boot_record":boot,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
+            "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
         self.previous_pixels = Some(pixels);
         self.write("running", None)?;
+        if let Some(error) = health_refusal {
+            return Err(error);
+        }
         if unchanged {
             return Err(ConduitosError::refusal(
                 "qemu-display-unchanged-frame",
@@ -122,6 +127,51 @@ fn io_error(error: std::io::Error) -> ConduitosError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn uniform_capture_retains_a_correlated_png_before_refusal() {
+        use std::io::{BufRead, BufReader, Write};
+        let directory =
+            std::env::temp_dir().join(format!("conduit-qemu-uniform-{}", std::process::id()));
+        let serial = directory.join("serial.log");
+        let mut artifacts =
+            Artifacts::new(directory.clone(), serial.clone(), json!({"fixture":true})).unwrap();
+        fs::write(&serial, "CONDUIT_BOOT_STAGE front-door-ready\n").unwrap();
+        let (mut client, mut server) = UnixStream::pair().unwrap();
+        let worker = std::thread::spawn(move || {
+            let mut input = String::new();
+            BufReader::new(server.try_clone().unwrap())
+                .read_line(&mut input)
+                .unwrap();
+            let command: Value = serde_json::from_str(&input).unwrap();
+            fs::write(
+                command["arguments"]["filename"].as_str().unwrap(),
+                b"P6\n2 1\n255\nxxxxxx",
+            )
+            .unwrap();
+            writeln!(server, "{}", json!({"return":{},"id":command["id"]})).unwrap();
+        });
+        let mut reader = super::super::qmp::Reader::new(client.try_clone().unwrap());
+        let failure = artifacts
+            .capture(&mut client, &mut reader, "uniform", false)
+            .unwrap_err();
+        worker.join().unwrap();
+        assert_eq!(failure.reason, "qemu-display-uniform-frame");
+        artifacts.finish(Some(&failure)).unwrap();
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(directory.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest["checkpoints"][0]["frame"]["png"], "uniform.png");
+        assert_eq!(
+            manifest["checkpoints"][0]["health_refusal"]["reason"],
+            failure.reason
+        );
+        assert!(directory.join("uniform.png").is_file());
+        assert!(!directory.join("uniform.ppm").exists());
+        for name in ["manifest.json", "serial.log", "uniform.png"] {
+            fs::remove_file(directory.join(name)).unwrap();
+        }
+        fs::remove_dir(directory).unwrap();
+    }
+
     #[test]
     fn failure_manifest_preserves_primary_and_capture_refusals() {
         let directory =

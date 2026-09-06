@@ -17,7 +17,7 @@ pub(super) struct Reader {
     trace_bytes: usize,
 }
 impl Reader {
-    fn new(stream: UnixStream) -> Self {
+    pub(super) fn new(stream: UnixStream) -> Self {
         Self {
             inner: BufReader::new(stream),
             transcript: None,
