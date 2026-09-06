@@ -3,8 +3,16 @@ use super::*;
 pub(crate) mod continuity;
 mod reporting;
 
+/// Explicit acquired adapter inputs for one ordinary Host execution.
+#[derive(Default)]
+pub struct HostedRunAdapters<'a> {
+    pub keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,
+    pub indicator: Option<&'a mut dyn hosted_indicator::HostedIndicatorAdapter>,
+}
+
 struct HostRunInputs<'a> {
     keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,
+    indicator: Option<&'a mut dyn hosted_indicator::HostedIndicatorAdapter>,
     retained: Option<&'a mut Vec<state_value::RetainedTypedState>>,
 }
 
@@ -36,13 +44,34 @@ impl StdHost {
         control: &RunControl,
         keyboard: Option<&mut dyn hosted_keyboard::HostedKeyboardAdapter>,
     ) -> Result<StdRunReport, String> {
+        self.run_fragment_controlled_with_adapters_to(
+            fragment,
+            output,
+            timer,
+            control,
+            HostedRunAdapters {
+                keyboard,
+                indicator: None,
+            },
+        )
+    }
+
+    pub fn run_fragment_controlled_with_adapters_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+        adapters: HostedRunAdapters<'_>,
+    ) -> Result<StdRunReport, String> {
         self.run_fragment_owned_with_keyboard_to(
             fragment,
             output,
             timer,
             control,
             HostRunInputs {
-                keyboard,
+                keyboard: adapters.keyboard,
+                indicator: adapters.indicator,
                 retained: None,
             },
         )
@@ -64,6 +93,7 @@ impl StdHost {
             control,
             HostRunInputs {
                 keyboard: None,
+                indicator: None,
                 retained: None,
             },
         )
@@ -77,7 +107,11 @@ impl StdHost {
         control: &RunControl,
         inputs: HostRunInputs<'_>,
     ) -> Result<state_value::RetainedStdRun, String> {
-        let HostRunInputs { keyboard, retained } = inputs;
+        let HostRunInputs {
+            keyboard,
+            indicator,
+            retained,
+        } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
         let installed_standard = installed_std::supports(&fragment);
@@ -121,7 +155,11 @@ impl StdHost {
                     &mut self.next_kernel_sign_sequence,
                     output,
                     timer,
-                    installed_std::RunLifecycle { control, retained },
+                    installed_std::RunLifecycle {
+                        control,
+                        retained,
+                        indicator,
+                    },
                 )
             } else {
                 if control.requested_stop().is_some() {

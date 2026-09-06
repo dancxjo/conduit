@@ -5,6 +5,43 @@ use conduit_core::{BaseImplementationId, BootId, HostId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_std_host::StdHost;
 
+#[test]
+fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
+    let (candidate, expanded) = form();
+    let on_a = planned_form(&candidate, &expanded, "host/a", "boot/a");
+    let body = Body::born_with_forms(
+        BodyWorkset::one(on_a.form.clone()).unwrap(),
+        1,
+        "sign/proposal-born".into(),
+    )
+    .unwrap();
+    let mut session =
+        BodyPlanningSession::prepare(&body, 1, "sign/proposal-wake".into(), vec![on_a]).unwrap();
+    let original_wake = session.wake().clone();
+    let original_plan = session.current_plan().clone();
+    assert_eq!(original_wake.lifecycle, WakeLifecycle::AwaitingPlan);
+    assert!(original_wake.plans.is_empty());
+    session
+        .mark_current_unsatisfied("sign/proposed-host-left".into())
+        .unwrap();
+    assert_eq!(session.wake(), &original_wake);
+    assert_eq!(session.current_plan(), &original_plan);
+    assert_eq!(
+        session.snapshot().unavailable_proposal_sign_id,
+        Some("sign/proposed-host-left".into())
+    );
+    let on_b = planned_form(&candidate, &expanded, "host/b", "boot/b");
+    session.replace_proposal(vec![on_b.clone()]).unwrap();
+    assert!(session.snapshot().unavailable_proposal_sign_id.is_none());
+    assert_eq!(session.wake(), &original_wake);
+    assert_eq!(session.plan(&original_plan.plan_id), Some(&original_plan));
+    let snapshot = session.snapshot();
+    assert!(session.replace_proposal(vec![on_b]).is_err());
+    assert_eq!(session.snapshot(), snapshot);
+    assert!(session.replace_proposal(Vec::new()).is_err());
+    assert_eq!(session.snapshot(), snapshot);
+}
+
 fn form() -> (FormCandidate, conduit_form::ExpandedCanonicalForm) {
     let candidate = FormCandidate::from_source(
         "Hello",

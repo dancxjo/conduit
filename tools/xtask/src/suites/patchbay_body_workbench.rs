@@ -2,6 +2,16 @@ use crate::{process::Step, proof::ProofClass};
 
 pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
     Step::typed(
+        "prove.patchbay-body-workbench.browser-runtime",
+        "Build the exact browser WASM used by the page Body execution proof",
+        "cargo",
+        &["build", "-p", "conduit-browser-runtime", "--target", "wasm32-unknown-unknown", "--release"],
+        None,
+        None,
+        Some(ProofClass::ContractCompile),
+        &["target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm"],
+    ),
+    Step::typed(
         "prove.patchbay-body-workbench.shared-model",
         "Prove bounded Body attachment, current frame, biography, and negative replacement contracts",
         "cargo",
@@ -18,7 +28,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
         &[
             "build", "-p", "patchbay-html", "--bin", "patchbay-html", "--bin",
             "patchbay-body-workbench-proof", "-p", "patchbay-native", "--bin",
-            "patchbay-native",
+            "patchbay-native", "-p", "conduit-std-host", "--bin", "browser-admission-probe",
         ],
         None,
         None,
@@ -27,6 +37,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
             "target/debug/patchbay-html",
             "target/debug/patchbay-native",
             "target/debug/patchbay-body-workbench-proof",
+            "target/debug/browser-admission-probe",
         ],
     ),
     Step::typed(
@@ -69,6 +80,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
             "proof/browser/patchbay-body-workbench.spec.mjs",
+            "proof/browser/patchbay-body-execution.spec.mjs",
             "proof/browser/patchbay-follow.spec.mjs",
         ],
         None,

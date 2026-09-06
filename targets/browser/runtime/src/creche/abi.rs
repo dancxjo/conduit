@@ -9,9 +9,9 @@ struct CrecheRefusal {
     message: String,
 }
 
-// A join carries one finite HostAdvertisement (bounded at 24 KiB by Body
-// admission) plus exact invitation and signature fields.
-pub(super) const INPUT_BYTES: usize = 32 * 1_024;
+// Admit the canonical Body advertisement plus bounded invitation/signature framing.
+pub(super) const INPUT_BYTES: usize =
+    conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 8 * 1_024;
 const OUTPUT_BYTES: usize = 32 * 1_024;
 const STATUS_READY: i32 = 0;
 pub(super) const ERROR_INPUT: i32 = -451;
@@ -27,7 +27,14 @@ const ERROR_INVENTORY: i32 = -459;
 const ERROR_REVIEW: i32 = -460;
 
 thread_local! {
+    // WASM callers may capture memory.buffer before asking for the input pointer.
+    // Preallocate there so pointer access cannot grow memory and detach that view.
+    #[cfg(target_arch = "wasm32")]
     static INPUT: RefCell<[u8; INPUT_BYTES]> = const { RefCell::new([0; INPUT_BYTES]) };
+    // Native static TLS consumes thread-stack headroom; allocate the same fixed
+    // capacity once on ABI entry, before admission, without a large stack array.
+    #[cfg(not(target_arch = "wasm32"))]
+    static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; INPUT_BYTES].into_boxed_slice());
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
     static SOURCE_INTERACTION: RefCell<Option<SourceInteractionEvidence>> = const { RefCell::new(None) };

@@ -37,6 +37,7 @@ impl StdHost {
             control,
             HostRunInputs {
                 keyboard: None,
+                indicator: None,
                 retained: Some(sources),
             },
         )
