@@ -36,6 +36,7 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
     &super::timing::NORMALIZE,
@@ -186,6 +187,9 @@ pub(crate) fn factory(
     if implementation_id.as_str() == super::test_timing_sink::KIND {
         return Some(&super::test_timing_sink::SINK);
     }
+    if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
+        return Some(&super::comparison_presentation::PRESENTATION);
+    }
     if implementation_id.as_str() == super::normalized_presentation::IMPLEMENTATION {
         return Some(&super::normalized_presentation::PRESENTATION);
     }
@@ -221,6 +225,7 @@ pub(crate) fn advertisement_for_presentation(
     });
     let mut presenter = match profile {
         super::PresentationProfile::Quantity => quantity_output::presentation_offer(),
+        super::PresentationProfile::PatternComparison => super::comparison_presentation::offer(),
         super::PresentationProfile::NormalizedDurations => super::normalized_presentation::offer(),
         super::PresentationProfile::Annotation => unreachable!(),
     };

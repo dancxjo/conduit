@@ -425,6 +425,7 @@ function createRunner(source, recursive = false, presentation = {}) {
           <option value="0">Annotations</option>
           <option value="1">Quantities</option>
           <option value="2">Relative durations</option>
+          <option value="3">Pattern comparison</option>
         </select>
       </label>`}
     </div>

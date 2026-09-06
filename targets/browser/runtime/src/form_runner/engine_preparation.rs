@@ -51,6 +51,7 @@ pub(super) fn prepare_scheduler(
     let mut mappings = [None; MAXIMUM_BROWSER_GEARS];
     let mut selectors = core::array::from_fn(|_| None);
     let mut attempts = core::array::from_fn(|_| None);
+    let mut comparisons = core::array::from_fn(|_| None);
     let mut timing = core::array::from_fn(|_| None);
     for node in &lowered.nodes {
         let placement = fragment
@@ -65,6 +66,8 @@ pub(super) fn prepare_scheduler(
             );
         }
         operations.push((installation.prepare)(placement, &mut values)?);
+        comparisons[usize::from(node.node.0)] =
+            crate::installed_browser::pattern_comparison::prepare_codec(placement)?;
         attempts[usize::from(node.node.0)] =
             crate::installed_browser::button_attempt::prepare_codec(placement)?;
         timing[usize::from(node.node.0)] =
@@ -162,5 +165,6 @@ pub(super) fn prepare_scheduler(
         selectors,
         timing,
         attempts,
+        comparisons,
     })
 }

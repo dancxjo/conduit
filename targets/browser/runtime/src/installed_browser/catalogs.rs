@@ -5,6 +5,7 @@ pub(crate) enum PresentationProfile {
     Annotation,
     Quantity,
     NormalizedDurations,
+    PatternComparison,
 }
 
 pub(crate) fn catalogs(
@@ -29,6 +30,10 @@ pub(crate) fn catalogs_for_presentation(
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
             quantity_output::install_catalogs(&mut startup, &mut profile)?;
         }
+        PresentationProfile::PatternComparison => {
+            conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
+            super::comparison_presentation::install_catalogs(&mut startup, &mut profile)?;
+        }
         PresentationProfile::NormalizedDurations => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
             super::normalized_presentation::install_catalogs(&mut startup, &mut profile)?;
@@ -45,6 +50,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pattern_comparison_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;

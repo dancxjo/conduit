@@ -68,3 +68,7 @@ mod catalogs;
 
 pub(crate) mod normalized_presentation;
 pub(crate) use catalogs::PresentationProfile;
+
+pub(crate) mod pattern_comparison;
+
+pub(crate) mod comparison_presentation;

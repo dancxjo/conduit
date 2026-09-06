@@ -1,3 +1,4 @@
+import { registerPatternComparisonTests } from "./browser-pattern-comparison.cases.mjs";
 import { expect, test } from "@playwright/test";
 import { openTourStep, startTour } from "./book-test-server.mjs";
 
@@ -228,3 +229,5 @@ test("relative-duration output uses the selected profile for Patchbay and live t
     await page.mouse.up();
   }
 });
+
+registerPatternComparisonTests(() => entrance);
