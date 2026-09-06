@@ -5,6 +5,9 @@ extern crate alloc;
 mod tick;
 pub use tick::*;
 
+mod pulse_observation;
+pub use pulse_observation::*;
+
 mod rhythm;
 pub use rhythm::*;
 

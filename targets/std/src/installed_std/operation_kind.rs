@@ -68,6 +68,9 @@ use conduit_kernel::{Failure, FailureCode, OperationAction};
 pub(super) enum InstalledOperation {
     KeyboardInput(KeyboardInputOperation),
     Tick(TickOperation),
+    PulseObserve(super::pulse_observation_operation::PulseObservationOperation),
+    #[cfg(test)]
+    TestPulseSink(super::pulse_observation_sink::Sink),
     TimeDebounce(DebounceOperation),
     TimeTimeout(TimeoutOperation),
     TimeDelay(DelayOperation),
