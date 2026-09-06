@@ -551,6 +551,10 @@ test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains t
   await expect(highlight.locator(".syntax-keyword").first()).toHaveText("form");
   await expect(highlight.locator(".syntax-identity").first()).not.toBeEmpty();
   await expect(highlight).toHaveCSS("color", "rgb(233, 241, 236)");
+  await expect(runner.locator(".syntax-editor")).toHaveCSS("background-color", "rgb(7, 16, 24)");
+  const outputProfile = runner.locator(".structured-output-profile");
+  await expect(outputProfile).toHaveCSS("appearance", "none");
+  await expect(outputProfile).not.toHaveCSS("background-image", "none");
   const editorGeometry = await runner.locator(".syntax-editor").evaluate((editor) => {
     const textarea = editor.querySelector("textarea").getBoundingClientRect();
     const backdrop = editor.querySelector(".syntax-highlight").getBoundingClientRect();

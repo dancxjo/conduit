@@ -35,13 +35,20 @@ h2 { font-size:1.05rem; margin:.2rem 0 .7rem; }
 h3 { font-size:.9rem; }
 .eyebrow { margin:0; color:var(--conduit-structure-primary); letter-spacing:.16em; font-size:.72rem; font-weight:700; }
 nav:not([data-application-key="product-navigation"]) { display:flex; gap:.4rem; flex-wrap:wrap; position:sticky; top:0; padding:.5rem 1rem; background:color-mix(in srgb,var(--conduit-background) 94%,transparent); z-index:3; border-bottom:1px solid var(--conduit-structure-secondary); }
-nav:not([data-application-key="product-navigation"]) a,button,summary { color:inherit; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.35rem; padding:.42rem .65rem; }
+nav:not([data-application-key="product-navigation"]) a,button,summary { color:inherit; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.45rem; padding:.48rem .72rem; }
+button { min-height:2.35rem; background:linear-gradient(180deg,color-mix(in srgb,var(--conduit-structure-primary) 9%,var(--conduit-surface)),var(--conduit-surface)); box-shadow:inset 0 1px #ffffff18,0 2px 0 color-mix(in srgb,var(--conduit-structure-secondary) 70%,#000); font-weight:700; letter-spacing:.01em; cursor:pointer; transition:border-color 140ms ease,color 140ms ease,box-shadow 140ms ease,transform 140ms ease; }
 nav:not([data-application-key="product-navigation"]) a { text-decoration:none; }
-nav:not([data-application-key="product-navigation"]) a:hover,summary:hover,button:not(:disabled):not([aria-pressed="true"]):not([aria-current="page"]):not([aria-expanded="true"]):hover { border-color:var(--conduit-emphasis); color:var(--conduit-emphasis); }
+nav:not([data-application-key="product-navigation"]) a:hover,summary:hover,button:not(:disabled):not([aria-pressed="true"]):not([aria-current="page"]):not([aria-expanded="true"]):hover { border-color:var(--conduit-emphasis); color:var(--conduit-emphasis); box-shadow:inset 0 1px #ffffff22,0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000),0 0 1rem color-mix(in srgb,var(--conduit-structure-primary) 14%,transparent); transform:translateY(-1px); }
+button:not(:disabled):active { box-shadow:inset 0 1px 4px #0008; transform:translateY(1px); }
+button:disabled { cursor:not-allowed; opacity:.48; box-shadow:none; }
+select { min-height:2.35rem; appearance:none; padding:.48rem 2.7rem .48rem .72rem; color:inherit; border:1px solid var(--conduit-structure-secondary); border-radius:.45rem; background-color:var(--conduit-surface); background-image:linear-gradient(45deg,transparent 50%,var(--conduit-emphasis) 50%),linear-gradient(135deg,var(--conduit-emphasis) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--conduit-structure-primary) 9%,var(--conduit-surface)),var(--conduit-surface)); background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat; box-shadow:inset 0 1px #ffffff18,0 2px 0 color-mix(in srgb,var(--conduit-structure-secondary) 70%,#000); font:inherit; font-weight:650; cursor:pointer; transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease; }
+select:not(:disabled):hover { border-color:var(--conduit-emphasis); box-shadow:inset 0 1px #ffffff22,0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000); transform:translateY(-1px); }
+select:disabled { cursor:not-allowed; opacity:.48; box-shadow:none; }
 .lens-controls { display:flex; gap:.25rem; }
 .place-controls nav,.lens-controls nav { position:static; inset:auto; display:flex; width:auto; max-width:none; margin:0; padding:0; gap:.25rem; border:0; background:transparent; }
 .lens-controls button[aria-current="page"] { color:var(--conduit-background); background:var(--conduit-emphasis); }
 nav:not([data-application-key="product-navigation"]) a:focus-visible,button:focus-visible,[role="button"]:focus-visible,summary:focus-visible { color:var(--conduit-background); background:var(--conduit-focus); outline:3px solid var(--conduit-focus); outline-offset:2px; }
+@media (prefers-reduced-motion:reduce) { button,select { transition:none; } }
 input:focus-visible,select:focus-visible,textarea:focus-visible { border-color:var(--conduit-focus); outline:3px solid var(--conduit-focus); outline-offset:2px; }
 main { padding:.75rem 1rem 2rem; }
 .parts-panel { background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.55rem; padding:.8rem; margin:0 0 .75rem; }
