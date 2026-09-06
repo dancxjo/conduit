@@ -122,7 +122,7 @@ function requireTourAbi(api) {
     "conduit_tour_multi_input_ptr", "conduit_tour_multi_input_capacity",
     "conduit_tour_multi_output_ptr", "conduit_tour_multi_output_len",
     "conduit_tour_multi_admit_source_interaction", "conduit_tour_multi_start_source",
-    "conduit_tour_multi_start_sink",
+    "conduit_tour_multi_start_sink", "conduit_tour_multi_complete_input",
     "conduit_tour_multi_ingest", "conduit_tour_multi_complete", "conduit_tour_multi_cancel",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-tour ABI is incomplete");
@@ -497,6 +497,8 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
         <article class="host-card host-b"><span>Host B · presentation</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
       </div>
       <h2>Planned result on Host B</h2>
+      <button type="button" class="input-button" hidden>Hold to control indicator</button>
+      <div class="indicator" aria-label="Indicator off"></div>
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
@@ -824,60 +826,93 @@ async function runMultiHostListing(runner, source) {
     const sourceBytes = encoder.encode(source);
     admitMultiSource(host.runtime, sourceBytes, current);
     admitMultiSource(peer.runtime, sourceBytes, current);
-    const sourceProgress = startMultiSource(host.runtime, host, peer, sourceBytes, current);
+    let sourceProgress = startMultiSource(host.runtime, host, peer, sourceBytes, current);
     const sinkProgress = startMultiSink(
       peer.runtime,
       peer,
       sourceProgress.plan_projection.raw_plan,
       current,
     );
-    if (sourceProgress.effect_kind !== "line" || sinkProgress.effect_kind !== "waiting") {
+    if (!["line", "input"].includes(sourceProgress.effect_kind) || sinkProgress.effect_kind !== "waiting") {
       throw new Error("two-Host runner did not start at the exact planned Line boundary");
     }
     const plan = sourceProgress.plan_projection;
     renderPlanProjection(runner, plan);
     const line = new BrowserMemoryLine(
-      plan.raw_plan.fragments[0].connections[0].selected_line.binding.limits.maximum_frame_bytes,
+      plan.raw_plan.fragments.flatMap((fragment) => fragment.connections)
+        .find((cord) => cord.selected_line)?.selected_line.binding.limits.maximum_frame_bytes,
       plan.cord.maximum_payload_bytes,
     );
     activeMemoryLine = line;
-    renderHostCard(runner, "a", host, "offered one typed value");
-    runner.playStatus.ordinary("Host A offered one value on the exact planned Cord…");
-    if (!await nextPaint(current)) return;
-    const presentation = line.transfer(sourceProgress.frame, peer.runtime);
-    if (presentation.effect_kind !== "manifestation") {
-      throw new Error("Host B did not request its planned presentation");
+    while (sourceProgress.effect_kind === "input" || sourceProgress.frame?.phase === "value") {
+      if (sourceProgress.effect_kind === "input") {
+        runner.querySelector(".input-button").hidden = false;
+        runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");
+        const event = await humanInput.nextButton();
+        if (current !== generation) return;
+        const api = host.runtime;
+        const encodedCode = api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence));
+        if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
+        const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        const play = encoder.encode(sourceProgress.input.active_play_id);
+        if (bytes.length > sourceProgress.input.maximum_output_bytes || play.length + bytes.length > api.conduit_tour_multi_input_capacity()) {
+          throw new Error("button transition exceeds its admitted completion bound");
+        }
+        const completion = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), play.length + bytes.length);
+        completion.set(play);
+        completion.set(bytes, play.length);
+        const code = api.conduit_tour_multi_complete_input(play.length, sourceProgress.input.request_sequence, bytes.length);
+        if (code < 0) throw new Error(`multi-Host input completion refused (${code})`);
+        sourceProgress = readMultiOutput(api);
+        continue;
+      }
+      renderHostCard(runner, "a", host, "offered one typed value");
+      runner.playStatus.ordinary("Host A offered one value on the exact planned Cord…");
+      if (!await nextPaint(current)) return;
+      const presentation = line.transfer(sourceProgress.frame, peer.runtime);
+      if (presentation.effect_kind !== "manifestation") {
+        throw new Error("Host B did not request its planned presentation");
+      }
+      const accepted = line.transfer(presentation.accepted_frame, host.runtime);
+      if (accepted.effect_kind !== "waiting") {
+        throw new Error("Host A did not retain exact remote acceptance");
+      }
+      renderHostCard(runner, "a", host, "accepted · awaiting delivery");
+      renderHostCard(runner, "b", peer, "presenting exact value");
+      runner.querySelector(".morse").textContent = presentation.manifestation.text;
+      if (presentation.manifestation.presentation_kind === "presentation/indicator-state") {
+        setIndicator(runner, presentation.manifestation.text === "true");
+      }
+      renderIdentities(runner, presentation.manifestation);
+      renderPlanProjection(runner, presentation.plan_projection);
+      runner.playStatus.ordinary("Host B observed the planned presentation; acknowledging delivery…");
+      if (!await nextPaint(current)) return;
+      const completion = peer.runtime.conduit_tour_multi_complete();
+      if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
+      const delivered = readMultiOutput(peer.runtime);
+      sourceProgress = line.transfer(delivered.frame, host.runtime);
     }
-    const accepted = line.transfer(presentation.accepted_frame, host.runtime);
-    if (accepted.effect_kind !== "waiting") {
-      throw new Error("Host A did not retain exact remote acceptance");
-    }
-    renderHostCard(runner, "a", host, "accepted · awaiting delivery");
-    renderHostCard(runner, "b", peer, "presenting exact value");
-    runner.querySelector(".morse").textContent = presentation.manifestation.text;
-    renderIdentities(runner, presentation.manifestation);
-    renderPlanProjection(runner, presentation.plan_projection);
-    runner.playStatus.ordinary("Host B observed the planned presentation; acknowledging delivery…");
-    if (!await nextPaint(current)) return;
-    const completion = peer.runtime.conduit_tour_multi_complete();
-    if (completion < 0) throw new Error(`Host B presentation completion refused (${completion})`);
-    const delivered = readMultiOutput(peer.runtime);
-    const close = line.transfer(delivered.frame, host.runtime);
-    const terminal = line.transfer(close.frame, peer.runtime);
+    if (sourceProgress.frame?.phase !== "close") throw new Error("source did not close its planned Cord");
+    const terminal = line.transfer(sourceProgress.frame, peer.runtime);
     const sourceReceipt = line.transfer(terminal.frame, host.runtime);
     if (terminal.receipt?.disposition !== "completed" || sourceReceipt.receipt?.disposition !== "completed") {
       throw new Error("two-Host Play did not retain reciprocal terminal receipts");
     }
     renderHostCard(runner, "a", host, "completed");
     renderHostCard(runner, "b", peer, "completed");
-    runner.playStatus.success("Completed — one immutable Plan, two independent Plays, one delivered cross-Host value.");
+    const count = sourceReceipt.receipt.transferred_values;
+    runner.playStatus.success(count === 1
+      ? "Completed — one immutable Plan, two independent Plays, one delivered cross-Host value."
+      : `Completed — one immutable Plan, two independent Plays, ${count} delivered cross-Host values.`);
     appendRunEvidence(runner, [
       ["Terminal source receipt", sourceReceipt.receipt.terminal_sign_id],
       ["Terminal sink receipt", terminal.receipt.terminal_sign_id],
     ]);
     finishRun(runner);
   } catch (error) {
+    if (current !== generation) return;
     cancelMultiSessions();
+    setIndicator(runner, false);
     runner.playStatus.failure(error instanceof Error ? error.message : String(error));
     finishRun(runner);
   }
@@ -982,6 +1017,7 @@ function nextPaint(expectedGeneration) {
 }
 
 function finishRun(runner) {
+  humanInput?.cancelPending();
   activeMemoryLine = null;
   running = false;
   activeRunner = null;
