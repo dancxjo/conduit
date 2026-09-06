@@ -84,7 +84,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "tools",
             "proof/ci",
         ],
-        implementation_inputs: &["proof/ci", "tools/ci", "xtask/src/commands/ci", "tools/xtask/tests/ci_workflow_contract.rs", "tools"],
+        implementation_inputs: &["proof/ci", "tools/ci", "tools/xtask/src/commands/ci", "tools/xtask/tests/ci_workflow_contract.rs", "tools"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-node-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -169,7 +169,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         implementation_inputs: &[
             "tools/xtask/src/commands/check.rs",
             "tools",
-            "xtask/src/suites",
+            "tools/xtask/src/suites",
             ".github/workflows/check.yml",
         ],
         consumed_artifacts: &[],

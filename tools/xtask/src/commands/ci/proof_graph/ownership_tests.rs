@@ -83,7 +83,7 @@ fn support_root_moves_invalidate_receipts_without_rejecting_the_new_owners() {
 #[test]
 fn deleting_an_implementation_invalidates_evidence_instead_of_inheriting_success() {
     let repo = repository_with_required_domains();
-    let path = "scripts/ci/stage-tour-product.sh";
+    let path = "products/tour/tools/stage-tour-product.sh";
     repo.write(path, "implementation");
     let before = repo.commit("implementation present");
     let proof = spec("browser.tour");
