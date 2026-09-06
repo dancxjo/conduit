@@ -21,7 +21,9 @@ use super::generate_text::{
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::input_semantic_operations::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
 use super::instrument_map_operation::FACTORY as INSTRUMENT_MAP_FACTORY;
-use super::json_operations::{JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY};
+use super::json_operations::{
+    JSON_COLLECTION_STEP_FACTORY, JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY,
+};
 use super::keyboard_input_operation::FACTORY as KEYBOARD_INPUT_FACTORY;
 #[cfg(test)]
 use super::layout_operations::TEST_LAYOUT_SINK_FACTORY;
@@ -199,6 +201,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
     &JSON_ENCODE_FACTORY,
+    &JSON_COLLECTION_STEP_FACTORY,
     &JSON_DECODE_FACTORY,
     &STRUCTURED_SELECTOR_FACTORY,
     &STRUCTURED_LITERAL_FACTORY,

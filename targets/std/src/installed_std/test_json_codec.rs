@@ -19,6 +19,27 @@ const SINK_IMPLEMENTATION: &str = "conduit-test/json-text-sink-kernel@1";
 const PROFILE: &str = "conduit-test/json-codec-kernel@1";
 const ARTIFACT: &str = "conduit-std-host/test-json-codec@1";
 
+thread_local! {
+    static SOURCE_TEXT: std::cell::RefCell<Option<Vec<u8>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Test-only alternate input, captured in kernel value storage before Play.
+pub(super) fn with_source_text<T>(input: &[u8], run: impl FnOnce() -> T) -> T {
+    assert!(input.len() <= conduit_web::JSON_MAXIMUM_ENCODED_BYTES);
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            SOURCE_TEXT.with(|text| *text.borrow_mut() = None);
+        }
+    }
+    SOURCE_TEXT.with(|text| {
+        assert!(text.borrow().is_none(), "nested JSON fixture input");
+        *text.borrow_mut() = Some(input.to_vec());
+    });
+    let _reset = Reset;
+    run()
+}
+
 pub(super) static TEST_JSON_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
@@ -201,7 +222,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, source_offer())?;
     Ok(OperationBudget {
         value_items: 1,
-        value_bytes: 32,
+        value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         host_requests: 0,
         sign_items: 16,
         maximum_value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
@@ -222,8 +243,11 @@ fn prepare_source(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     source_budget(placement)?;
-    let value = values
-        .store(b" {\"z\":1.2300,\"a\":\"ok\"} ")
+    let value = SOURCE_TEXT
+        .with(|text| {
+            let text = text.borrow();
+            values.store(text.as_deref().unwrap_or(b" {\"z\":1.2300,\"a\":\"ok\"} "))
+        })
         .map_err(|error| format!("store JSON fixture: {error:?}"))?;
     Ok(InstalledOperation::TestJsonSource(
         TestJsonSourceOperation {
