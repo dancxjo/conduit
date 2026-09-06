@@ -104,7 +104,6 @@ mod toggle_operation;
 mod vector_search_host;
 mod vector_search_operation;
 
-use self::catalog::factory;
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
@@ -131,7 +130,7 @@ use conduit_kernel::{
     PortId, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use std::io::Write;
 use std::time::Duration;
@@ -197,7 +196,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         mut vector_search,
         mut calendar,
     } = host;
-    let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
+    let lowered = preparation::lower_fragment(fragment)?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     if !supports(fragment)
@@ -225,9 +224,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let factory = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned implementation is not installed".to_string())?;
-        let budget = (factory.budget)(placement)?;
+        let budget = preparation::operation_budget(placement)?;
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;

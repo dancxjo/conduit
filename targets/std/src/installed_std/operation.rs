@@ -5,6 +5,7 @@ use conduit_kernel::{Operation, OperationAction, OperationInput, PortId, Request
 impl Operation for InstalledOperation {
     fn start(&mut self) -> OperationAction {
         match self {
+            Self::TypedState(operation) => operation.start(),
             Self::KeyboardInput(operation) => operation.start(),
             Self::Tick(operation) => operation.start(),
             Self::PulseObserve(operation) => operation.start(),
@@ -120,6 +121,7 @@ impl Operation for InstalledOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match (self, input) {
+            (Self::TypedState(operation), input) => operation.resume(input),
             (Self::KeyboardInput(_), _) => Self::fail(109),
             (Self::Tick(operation), input) => operation.resume(input),
             (Self::PulseObserve(operation), input) => operation.resume(input),
@@ -237,6 +239,7 @@ impl Operation for InstalledOperation {
 
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         match self {
+            Self::TypedState(operation) => operation.resume_value(port, value, canonical),
             Self::PulseObserve(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestPulseSink(operation) => operation.resume_value(port, canonical),
@@ -281,6 +284,7 @@ impl Operation for InstalledOperation {
 
     fn advance(&mut self) -> OperationAction {
         match self {
+            Self::TypedState(operation) => operation.advance(),
             Self::KeyboardInput(operation) => operation.advance(),
             Self::Tick(operation) => operation.advance(),
             Self::PulseObserve(operation) => operation.advance(),

@@ -66,6 +66,7 @@ use super::vector_search_operation::VectorSearchOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
 pub(super) enum InstalledOperation {
+    TypedState(crate::state_value::TypedStateOperation),
     KeyboardInput(KeyboardInputOperation),
     Tick(TickOperation),
     PulseObserve(super::pulse_observation_operation::PulseObservationOperation),
