@@ -23,7 +23,7 @@ fn architecture_rung_entrypoints_are_proof_owned() {
     );
 
     let manifest = fs::read_to_string(root.join("Cargo.toml")).expect("ConduitOS manifest");
-    assert_eq!(manifest.matches("path = \"proof-appliances/").count(), 17);
+    assert_eq!(manifest.matches("path = \"proof/appliances/").count(), 17);
     assert_eq!(manifest.matches("path = \"src/bin/").count(), 5);
     assert!(manifest.contains("path = \"src/bin/aarch64_orange_pi_5.rs\""));
     assert!(manifest.contains("path = \"src/bin/aarch64_product.rs\""));
@@ -31,7 +31,7 @@ fn architecture_rung_entrypoints_are_proof_owned() {
     assert!(manifest.contains("path = \"src/bin/riscv64_product.rs\""));
     assert!(manifest.contains("path = \"src/bin/loongarch64_product.rs\""));
 
-    let ordinary_linkers = fs::read_dir(root.join("linker"))
+    let ordinary_linkers = fs::read_dir(root.join("firmware/linker"))
         .expect("ordinary ConduitOS linker directory")
         .filter_map(Result::ok)
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
