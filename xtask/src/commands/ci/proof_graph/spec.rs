@@ -259,7 +259,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     },
     ProofSpec {
         id: "products.pages-carrier",
-        contract_version: 1,
+        contract_version: 2,
         kind: ProofKind::Browser,
         inputs: &[
             "Cargo.toml",
@@ -281,6 +281,14 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "targets/std",
         ],
         implementation_inputs: &[
+            "proof/browser/pages-front-door.spec.mjs",
+            "proof/browser/presentation-nucleus.spec.mjs",
+            "proof/browser/presentation-nucleus.test.html",
+            "proof/browser/fourth-product-conformance.spec.mjs",
+            "proof/browser/fourth-product",
+            "proof/browser/book-test-server.mjs",
+            "proof/browser/playwright.config.mjs",
+            "proof/browser/static-server.mjs",
             "scripts/ci/stage-pages-root.sh",
             "scripts/ci/stage-book-product.sh",
             "scripts/ci/stage-creche-product.sh",

@@ -9,6 +9,9 @@ use core::{
     ptr::{read_volatile, write_volatile},
 };
 
+#[path = "xhci_event.rs"]
+mod event;
+
 #[path = "xhci_pci.rs"]
 mod pci;
 
@@ -433,17 +436,12 @@ impl XhciReady {
 
     pub(super) fn next_event(&mut self) -> Result<Event, XhciError> {
         for _ in 0..POLL_STEPS {
-            let words =
-                unsafe { read_volatile(core::ptr::addr_of!(DMA.event_ring[self.event_dequeue])) };
-            if words[3] & 1 == self.event_cycle {
-                let event = Event {
-                    event_type: ((words[3] >> 10) & 0x3f) as u8,
-                    completion_code: (words[2] >> 24) as u8,
-                    slot: (words[3] >> 24) as u8,
-                    endpoint: ((words[3] >> 16) & 0x1f) as u8,
-                    residual: words[2] & 0x00ff_ffff,
-                    pointer: u64::from(words[0]) | (u64::from(words[1]) << 32),
-                };
+            let event = event::read_owned_event(self.event_cycle, |word| unsafe {
+                read_volatile(core::ptr::addr_of!(
+                    DMA.event_ring[self.event_dequeue][word]
+                ))
+            });
+            if let Some(event) = event {
                 self.event_dequeue += 1;
                 if self.event_dequeue == EVENT_TRBS {
                     self.event_dequeue = 0;

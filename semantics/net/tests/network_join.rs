@@ -12,6 +12,7 @@ use conduit_net::{
 
 fn resource() -> ResourceBinding {
     ResourceBinding {
+        content: None,
         pool_id: ResourcePoolId::from("resource/wifi-station-0"),
         class_id: ResourceClassId::from(WIFI_STATION_RESOURCE_CLASS),
         units: 1,
@@ -105,6 +106,7 @@ fn support_resource_authority_and_boot_fail_independently() {
             &capable,
             &selected,
             &ResourceBinding {
+                content: None,
                 pool_id: ResourcePoolId::from("resource/not-advertised"),
                 ..resource()
             },

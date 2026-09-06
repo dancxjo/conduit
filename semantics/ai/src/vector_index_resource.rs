@@ -173,6 +173,7 @@ impl VectorIndexContract {
     pub fn planning_offer(&self) -> Result<ResourceOffer, VectorIndexResourceRefusal> {
         self.validate()?;
         Ok(ResourceOffer {
+            content: None,
             pool_id: self.pool_id.clone(),
             class_id: self.class_id.clone(),
             capacity_units: self.bounds.maximum_query_work_units,
@@ -255,6 +256,7 @@ impl VectorIndexState {
             return Err(VectorIndexResourceRefusal::QueryConcurrencyExceeded);
         }
         let requirement = ResourceRequirement {
+            content: None,
             class_id: self.contract.class_id.clone(),
             units: admission.work_units,
             protected_role: None,

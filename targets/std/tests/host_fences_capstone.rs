@@ -73,6 +73,7 @@ fn observation(host: &HostAdvertisement, unreserved: u32) -> ResourceObservation
 
 fn binding(units: u32) -> ResourceBinding {
     ResourceBinding {
+        content: None,
         pool_id: "execution".into(),
         class_id: "host/execution".into(),
         units,

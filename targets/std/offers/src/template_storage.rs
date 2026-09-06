@@ -39,6 +39,7 @@ pub fn template_storage_std_offer() -> CapabilityOffer {
             maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         }],
         resource_requirements: vec![ResourceRequirement {
+            content: None,
             class_id: conduit_core::ResourceClassId::from(TEMPLATE_STORAGE_RESOURCE_CLASS),
             units: 1,
             protected_role: None,

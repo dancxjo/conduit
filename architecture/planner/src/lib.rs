@@ -46,8 +46,8 @@ use conduit_core::{
     BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId, ExpectedSign,
     ExpectedTerminal, FragmentId, GearId, HostAdvertisement, HostId, LineAvailability, LineId,
     LineOffer, PlacementId, Plan, PlanFragment, PlanId, PlannedConnection, PlannedGear,
-    ResourceBinding, ResourcePoolId, StartupDependency, TerminalPolicy,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    ResourcePoolId, StartupDependency, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
@@ -85,6 +85,7 @@ mod realization_families;
 mod recursive_recovery;
 mod replanning;
 mod requirements;
+mod resource_binding;
 mod startup;
 pub mod state_delay;
 #[cfg(test)]
@@ -93,7 +94,7 @@ mod style;
 mod survival_policy;
 
 use functional_compatibility::default_placements_unvalidated;
-use protected_resources::{bind_protected_resource, validate_protected_resource_grants};
+use protected_resources::validate_protected_resource_grants;
 
 pub use accelerator::{
     select_accelerator_candidate, AcceleratorCandidate, AcceleratorCandidateDisposition,
@@ -426,6 +427,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
     let mut remaining_compute_minimum =
         compute_admission::admit_minima(form, &host_index, placements)?;
     let mut consumed_protected_handles = BTreeSet::new();
+    let mut resource_writers = BTreeSet::new();
     let mut planned_gears = Vec::<PlannedGear>::new();
     let mut placement_lookup = BTreeMap::<GearId, PlacementId>::new();
 
@@ -458,86 +460,18 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             )));
         }
 
-        let mut resource_bindings = Vec::with_capacity(capability.resource_requirements.len());
-        for requirement in &capability.resource_requirements {
-            let mut matches = host
-                .resources
-                .iter()
-                .filter(|resource| resource.class_id == requirement.class_id);
-            let Some(resource) = matches.next() else {
-                return Err(PlannerError::UnavailableResource(format!(
-                    "host '{}' has no pool for class '{}'",
-                    host.host_id.as_str(),
-                    requirement.class_id.as_str()
-                )));
-            };
-            if matches.next().is_some() {
-                return Err(PlannerError::InvalidResourceContract(format!(
-                    "host '{}' has multiple pools for class '{}' in the first planning profile",
-                    host.host_id.as_str(),
-                    requirement.class_id.as_str()
-                )));
-            }
-            let used = resource_usage
-                .entry((host.host_id.clone(), resource.pool_id.clone()))
-                .or_insert(0);
-            let key = (host.host_id.clone(), resource.pool_id.clone());
-            let reserved_for_later = if requirement.compute.is_some() {
-                let remaining = remaining_compute_minimum
-                    .get_mut(&key)
-                    .expect("compute minimum was pre-admitted");
-                *remaining -= requirement.units;
-                *remaining
-            } else {
-                0
-            };
-            let available = resource
-                .capacity_units
-                .saturating_sub(*used)
-                .saturating_sub(reserved_for_later);
-            let compute = match &requirement.compute {
-                Some(_) => Some(
-                    conduit_core::compute_reservation(requirement, resource, available)
-                        .ok_or_else(|| {
-                            PlannerError::UnavailableResource(format!(
-                                "pool '{}' cannot satisfy the compute range, service, or topology contract",
-                                resource.pool_id.as_str()
-                            ))
-                        })?,
-                ),
-                None => None,
-            };
-            let selected_units = compute
-                .as_ref()
-                .map_or(requirement.units, |reservation| reservation.selected_lanes);
-            *used = used.checked_add(selected_units).ok_or_else(|| {
-                PlannerError::ResourceCapacityExceeded(resource.pool_id.as_str().to_string())
-            })?;
-            if *used > resource.capacity_units {
-                return Err(PlannerError::ResourceCapacityExceeded(format!(
-                    "pool '{}' requires {} units above capacity {}",
-                    resource.pool_id.as_str(),
-                    *used,
-                    resource.capacity_units
-                )));
-            }
-            let protected = bind_protected_resource(
-                requirement,
-                protected_resource_grants,
-                gear,
-                host,
-                capability,
-                &mut consumed_protected_handles,
-            )?;
-            resource_bindings.push(ResourceBinding {
-                pool_id: resource.pool_id.clone(),
-                class_id: resource.class_id.clone(),
-                units: selected_units,
-                protected,
-                compute,
-            });
-        }
-        resource_bindings.sort();
+        let resource_bindings = resource_binding::bind_resources(
+            host,
+            capability,
+            gear,
+            protected_resource_grants,
+            resource_binding::ResourcePlanningState {
+                writers: &mut resource_writers,
+                usage: &mut resource_usage,
+                compute_minimum: &mut remaining_compute_minimum,
+                protected_handles: &mut consumed_protected_handles,
+            },
+        )?;
 
         let mut authority_bindings = Vec::with_capacity(capability.authority_requirements.len());
         for requirement in &capability.authority_requirements {
