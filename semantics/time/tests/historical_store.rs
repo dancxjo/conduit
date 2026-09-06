@@ -64,7 +64,13 @@ fn deterministic_store_round_trips_the_complete_timeline_contract() {
     let restored = reload_historical_timeline(&store, "polaroid/history").unwrap();
     assert_eq!(restored.len(), 1);
     assert_eq!(restored.entry(0).unwrap().identity, "observation-a");
-    assert_eq!(store.allocated_capacities(0), Some((128, 48 * 1024)));
+    assert_eq!(
+        store.allocated_capacities(0),
+        Some((
+            MAXIMUM_HISTORICAL_STORE_KEY_BYTES,
+            MAXIMUM_HISTORICAL_TIMELINE_SNAPSHOT_BYTES,
+        ))
+    );
 }
 
 #[test]
