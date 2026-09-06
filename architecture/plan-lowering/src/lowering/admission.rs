@@ -9,6 +9,14 @@ pub(super) fn validate_fragment(
     if !verify_plan_fragment(fragment) {
         return Err(LoweringError::InvalidFragment);
     }
+    // Fresh initialization profiles must never silently reset retained State.
+    if let Some(state) = fragment
+        .states
+        .iter()
+        .find(|state| state.retained.is_some())
+    {
+        return Err(LoweringError::UnsupportedState(state.state_id.clone()));
+    }
     if let Some(state) = fragment.states.first() {
         let Some((instances, bytes)) = profile.state_storage() else {
             return Err(LoweringError::UnsupportedState(state.state_id.clone()));

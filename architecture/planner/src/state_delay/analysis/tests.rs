@@ -7,6 +7,7 @@ fn admitted(bytes: u32, continuation: StateContinuation) -> AdmittedStateGraph {
         gear_id: GearId::from("cell"),
         value_kind: KindId::from("fixture/bounded-bytes@1"),
         initial_value: vec![0],
+        retained: None,
         maximum_value_bytes: bytes,
         continuation,
     }];

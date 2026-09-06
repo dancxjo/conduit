@@ -303,6 +303,7 @@ impl TrainingSession {
             gear_id: "ai/train-step".into(),
             value_kind: "ai/training-state@1".into(),
             initial_value,
+            retained: None,
             maximum_value_bytes: maximum_state_bytes,
             continuation: StateContinuation::MaximumTransitions(self.resources.maximum_steps),
         })

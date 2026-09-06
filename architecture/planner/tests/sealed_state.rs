@@ -76,6 +76,7 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
         gear_id: GearId::from("retained/cell"),
         value_kind: conduit_core::KindId::from(SCALAR_INFO_ID),
         initial_value: vec![0; SCALAR_ENCODED_LEN],
+        retained: None,
         maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
         continuation: StateContinuation::ExternallyBounded,
     };

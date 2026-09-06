@@ -125,6 +125,7 @@ pub fn derive_state_boundary(
         gear_id: gear_id.clone(),
         value_kind: initial.profile().clone(),
         initial_value: initial.canonical_value().to_vec(),
+        retained: None,
         maximum_value_bytes,
         continuation: StateContinuation::ExternallyBounded,
     })
