@@ -132,31 +132,30 @@ fn rejects_each_required_invalid_class() {
 
 #[test]
 fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() {
-    let root =
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../profiles/host-configurations");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let fixtures = [
         (
-            "browser-page.host.conduit",
+            "targets/browser/profiles/browser-page.host.conduit",
             "sha256:d32fd79e5344a1d2d3156aa962458f794046eb15d88911942762a9c4acc91b1a",
             "sha256:6d37d4075664d2a1fc7d48f2b5b5fbe5ce3c2dc570ddb4aba619186239a9b200",
         ),
         (
-            "conduitos-aarch64-virt.host.conduit",
+            "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit",
             "sha256:9cc965dac8190afab6afc54b1d265ed39e5ac8255642a055c61f87c32f1e848c",
             "sha256:0fc73d339059080e43378f0634d46af42c218dac8abab6b76998e405fa1a8f06",
         ),
         (
-            "conduitos-x86_64-pc.host.conduit",
+            "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
             "sha256:9ba54ff0fb5cf22a4b2b031bf24580a244305fd1036110bd23bf05ab30b76738",
             "sha256:485b9a6a941e3961b7dbabd811da32fa6f833a21a9ea896315ee4598f2a257c3",
         ),
         (
-            "linux-computer.host.conduit",
+            "targets/std/profiles/linux-computer.host.conduit",
             "sha256:fae0becde708c48b6bb0f3adc795efbbdc39bb6d0e96f87a4762afd3beb20b26",
             "sha256:747201fefd484f9f2e8582436b29d32cdcebaca631632756291a66ceea73a4e4",
         ),
         (
-            "pico-w.host.conduit",
+            "targets/rp2040/profiles/pico-w.host.conduit",
             "sha256:c3067ec55f4936c284666a3ab9c6cd39ace1db6edfb2783c673d6bba4174cf22",
             "sha256:fc4acf3747304e9aa55e981d6799938f4ab42a0bbff42849507ddb20ec0c96fa",
         ),

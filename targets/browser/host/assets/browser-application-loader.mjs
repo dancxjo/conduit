@@ -81,7 +81,7 @@ function admitManifest(document, manifestUrl) {
   if (!Array.isArray(document.resources) || document.resources.length === 0 || document.resources.length > MAXIMUM_RESOURCES) {
     throw new Error("application package resource count is outside its admitted bound");
   }
-  const packageRoot = new URL("./", manifestUrl);
+  const packageRoot = new URL(".", manifestUrl);
   const seenRoles = new Set();
   const seenUrls = new Set();
   let totalMaximumBytes = 0;

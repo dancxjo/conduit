@@ -169,8 +169,8 @@ jobs:
             reason=trusted-registry
           elif ! git diff --quiet "$CONTROLLER_SHA" -- \
             .github/workflows/tour-products.yml \
-            xtask/src/commands/ci/impact/product_registry.rs \
-            xtask/src/commands/ci/proof_graph/spec.rs
+            tools/xtask/src/commands/ci/impact/product_registry.rs \
+            tools/xtask/src/commands/ci/proof_graph/spec.rs
           then
             required=true
             reason=proof-definition-bootstrap
@@ -531,15 +531,15 @@ jobs:
       matrix:
         include:
           - architecture: x86_64
-            profile: profiles/hosts/conduitos-native.profile.json
+            profile: targets/conduitos/profiles/conduitos-native.profile.json
           - architecture: aarch64
-            profile: profiles/hosts/conduitos-aarch64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-aarch64-headless.profile.json
           - architecture: ia32
-            profile: profiles/hosts/conduitos-ia32-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-ia32-headless.profile.json
           - architecture: riscv64
-            profile: profiles/hosts/conduitos-riscv64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-riscv64-headless.profile.json
           - architecture: loongarch64
-            profile: profiles/hosts/conduitos-loongarch64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-loongarch64-headless.profile.json
     name: conduitos-release-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7
@@ -560,7 +560,7 @@ jobs:
           key: >-
             conduitos-product-${{ matrix.architecture }}-${{
             hashFiles('Cargo.lock', '**/Cargo.toml', 'architecture/**', 'fabrication/**',
-            'runtime/**', 'semantics/**', 'targets/conduitos/**', 'xtask/**', matrix.profile) }}
+            'runtime/**', 'semantics/**', 'targets/conduitos/**', 'tools/xtask/**', matrix.profile) }}
       - name: Install the deterministic hybrid ISO tool
         if: steps.image-cache.outputs.cache-hit != 'true'
         run: |
@@ -904,7 +904,7 @@ jobs:
         env:
           CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
         run: |
-          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "products.pages-carrier"'; then
+          if ! git show "$CONTROLLER_SHA:tools/xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "products.pages-carrier"'; then
             echo 'supported=false' >> "$GITHUB_OUTPUT"
             echo 'Trusted controller predates the carrier proof receipt; bootstrap execution remains authoritative.' >> "$GITHUB_STEP_SUMMARY"
             exit 0

@@ -1,0 +1,42 @@
+pub mod audio;
+pub mod avr;
+pub mod bluetooth;
+pub mod body;
+pub mod body_coordination;
+mod body_membership_demo;
+pub mod browser;
+pub mod calendar_google;
+pub mod catalog;
+pub mod check;
+pub mod ci;
+#[path = "../../../../targets/conduitos/fabrication/xtask/mod.rs"]
+pub mod conduitos;
+pub mod demo;
+pub mod distributed_lenia;
+pub mod doctor;
+pub mod esp32_firmware;
+pub mod evidence;
+pub mod forms;
+pub mod host;
+mod host_configuration_prompt;
+pub mod light_switch;
+pub mod messaging_github;
+pub mod midi;
+pub mod ollama_embodiment;
+pub mod ollama_planning_advice;
+pub mod palette_icons;
+pub mod pete_std_create;
+pub mod pete_std_drive;
+pub mod pete_std_indicator;
+pub mod pete_std_observe;
+pub mod pete_std_speaker;
+#[cfg(test)]
+mod pete_std_test_support;
+#[path = "../../../../targets/rp2040/firmware/pico-w-signal/fabrication/xtask/mod.rs"]
+pub mod pico;
+pub mod proofs;
+pub mod prove;
+pub mod r1_recovery;
+pub mod toggle;
+pub mod tongues;
+pub mod unifont_subset;

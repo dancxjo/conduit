@@ -105,7 +105,7 @@ jobs:
         env:
           CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
         run: |
-          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "workspace.shared-compile"'; then
+          if ! git show "$CONTROLLER_SHA:tools/xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "workspace.shared-compile"'; then
             echo 'supported=false' >> "$GITHUB_OUTPUT"
             echo 'Trusted controller predates the shared-compile receipt; bootstrap execution remains authoritative.'
             exit 0

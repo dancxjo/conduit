@@ -1,0 +1,67 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dependencies]
+conduit-audio = { path = "../../semantics/audio" }
+conduit-host-avr-fabrication = { path = "../../targets/avr/fabrication" }
+conduit-host-esp32-fabrication = { path = "../../targets/esp32/fabrication" }
+conduit-signal-conformance = { path = "../../proof/conformance/signal" }
+conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
+conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization" }
+conduit-host-conduitos-fabrication = { path = "../../targets/conduitos/fabrication-package" }
+conduit-host-browser-fabrication = { path = "../../targets/browser/host/fabrication-package" }
+clap = { version = "4", features = ["derive"] }
+cliclack = "0.5.6"
+console = "0.16"
+flate2 = "1"
+libc = "0.2"
+resvg = { version = "0.45", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+toml = "0.8"
+conduit-body = { path = "../../architecture/body" }
+conduit-body-fabrication = { path = "../../fabrication/body" }
+conduit-browser-runtime = { path = "../../targets/browser/runtime" }
+conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
+conduit-ai = { path = "../../semantics/ai" }
+conduit-alife = { path = "../../semantics/alife" }
+conduit-core = { path = "../../architecture/core" }
+conduit-robotics = { path = "../../semantics/robotics" }
+conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
+conduit-form = { path = "../../architecture/form" }
+conduit-host-fabrication = { path = "../../fabrication/host" }
+conduit-embedded-build = { path = "../../fabrication/embedded-build" }
+conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduit-midi = { path = "../../mechanisms/protocols/midi" }
+conduit-semantic-catalog = { path = "../../semantics/catalog", features = ["body-coordination-plan"] }
+conduit-std-offers = { path = "../../targets/std/offers" }
+conduit-time = { path = "../../semantics/time" }
+conduit-text = { path = "../../semantics/text" }
+conduitos = { path = "../../targets/conduitos", features = ["hosted-tools"] }
+conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
+conduit-data = { path = "../../semantics/data" }
+conduit-language = { path = "../../semantics/language" }
+conduit-tongues = { path = "../../semantics/tongues" }
+conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
+conduit-pete = { path = "../../bodies/pete" }
+conduit-observatory = { path = "../../architecture/observatory" }
+conduit-signal = { path = "../../semantics/signal" }
+conduit-synth = { path = "../../mechanisms/implementations/synth" }
+conduit-planner = { path = "../../architecture/planner" }
+conduit-presentation = { path = "../../semantics/presentation", features = ["form-catalog"] }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
+conduit-std-host = { path = "../../targets/std", features = ["local-model-proof", "pete-create"] }
+conduit-wire = { path = "../../architecture/wire" }
+patchbay-model = { path = "../../products/patchbay/model" }
+
+[dev-dependencies]
+libc = "0.2"

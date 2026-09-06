@@ -34,16 +34,16 @@ serde_json = "1"
 
 [[test]]
 name = "hello"
-path = "../../tests/hello.rs"
+path = "tests/hello.rs"
 
 [[test]]
 name = "copy_task_face"
-path = "../../tests/copy_task_face.rs"
+path = "tests/copy_task_face.rs"
 
 [[test]]
 name = "structured_diagnostics"
-path = "../../tests/structured_diagnostics.rs"
+path = "tests/structured_diagnostics.rs"
 
 [[test]]
 name = "two_std_line"
-path = "../../tests/two_std_line.rs"
+path = "tests/two_std_line.rs"
