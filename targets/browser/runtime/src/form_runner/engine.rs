@@ -281,7 +281,7 @@ pub(super) fn drive(
         }
         let status = scheduler.step().map_err(|error| {
             if let conduit_kernel::scheduler::SchedulerError::OperationFailed(detail) = &error {
-                scheduler.failure_detail = Some(*detail);
+                scheduler.failure_detail = Some(detail.detail);
             }
             debug_error(error)
         })?;
