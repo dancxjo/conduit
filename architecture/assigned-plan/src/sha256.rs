@@ -82,12 +82,11 @@ fn round(index: usize) -> u32 {
 
 pub(crate) fn digest(input: &[u8]) -> [u8; 32] {
     let mut state = INITIAL;
-    let mut blocks = input.chunks_exact(64);
-    for block in &mut blocks {
-        compress(&mut state, block.try_into().unwrap());
+    let (blocks, remainder) = input.as_chunks::<64>();
+    for block in blocks {
+        compress(&mut state, block);
     }
 
-    let remainder = blocks.remainder();
     let mut final_block = [0_u8; 64];
     final_block[..remainder.len()].copy_from_slice(remainder);
     final_block[remainder.len()] = 0x80;
@@ -100,7 +99,7 @@ pub(crate) fn digest(input: &[u8]) -> [u8; 32] {
     compress(&mut state, &final_block);
 
     let mut output = [0_u8; 32];
-    for (word, bytes) in state.iter().zip(output.chunks_exact_mut(4)) {
+    for (word, bytes) in state.iter().zip(output.as_chunks_mut::<4>().0) {
         bytes.copy_from_slice(&word.to_be_bytes());
     }
     output
