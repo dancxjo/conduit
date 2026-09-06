@@ -62,9 +62,9 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-body-workbench.browser",
         "Prove hosted/external Body workbenches and exact Program-to-Body Follow in pinned Chromium",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
