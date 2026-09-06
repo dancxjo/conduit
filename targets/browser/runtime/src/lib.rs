@@ -45,6 +45,7 @@ mod installed_browser;
 pub mod membership;
 mod membership_abi;
 pub mod presentation_nucleus;
+pub mod resource_snapshot;
 #[cfg(any(
     feature = "form-runner",
     feature = "book-surface",

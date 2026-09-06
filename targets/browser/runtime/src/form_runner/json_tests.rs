@@ -129,3 +129,31 @@ fn browser_todo_refusals_preserve_kernel_failure_details() {
         "OperationFailed(Failure { code: InvalidInput, detail: 124 })"
     );
 }
+
+#[test]
+fn browser_todo_snapshot_record_restores_through_the_same_authored_form() {
+    use crate::resource_snapshot::{tests::placement, PreparedSnapshotRecord};
+    let snapshot = execute(
+        r#"{"collection":[],"command":{"op":"append","value":{"complete":false,"text":"Milk"}}}"#,
+        "todo/command-snapshot",
+    )
+    .unwrap();
+    let (write, reference) = placement("boot/one", true, snapshot.len());
+    let mut writer = PreparedSnapshotRecord::prepare(&write, &reference).unwrap();
+    let record = writer
+        .publication(&write.authority[0], snapshot.as_bytes())
+        .unwrap()
+        .to_vec();
+    let (read, _) = placement("boot/two", false, snapshot.len());
+    let reader = PreparedSnapshotRecord::prepare(&read, &reference).unwrap();
+    let restored = reader.restore(&read.authority[0], &record).unwrap();
+    assert_eq!(restored, snapshot.as_bytes());
+    assert_eq!(
+        execute(
+            std::str::from_utf8(restored).unwrap(),
+            "todo/restore-summary"
+        )
+        .unwrap(),
+        r#"{"false":1,"total":1,"true":0}"#
+    );
+}
