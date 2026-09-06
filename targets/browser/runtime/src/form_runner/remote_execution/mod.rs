@@ -1,7 +1,11 @@
 //! One exact admitted WebRTC fragment using the installed production kernel.
 //! This owns no transport, planner, membership authority, or Body coordinator.
-//! Currently test-scoped conformance scaffolding: no production ABI or live
-//! transport is attached, and passing these tests is not remote-browser proof.
+//! The ABI is an execution boundary, not transport or membership authority.
+mod abi;
+mod session;
+#[cfg(test)]
+pub(in crate::form_runner) use abi::conduit_browser_remote_start;
+pub(in crate::form_runner) use abi::is_active;
 mod preparation;
 #[cfg(test)]
 mod tests;

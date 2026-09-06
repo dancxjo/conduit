@@ -34,7 +34,7 @@ pub extern "C" fn conduit_browser_body_start(length: usize) -> i32 {
     if length == 0 || length > BODY_INPUT_BYTES {
         return ERROR_INPUT;
     }
-    if SESSION.with(|slot| slot.borrow().is_some()) {
+    if SESSION.with(|slot| slot.borrow().is_some()) || super::super::remote_execution::is_active() {
         let _ = write_output(&super::super::refusal(
             "browser session is already active; retire it explicitly before Body start".into(),
         ));
@@ -103,6 +103,11 @@ mod tests {
             )
         });
         assert_eq!(conduit_browser_body_start(bytes.len()), ERROR_PREPARE);
+        assert_eq!(
+            super::super::super::remote_execution::conduit_browser_remote_start(0),
+            -1
+        );
+        assert!(!super::super::super::remote_execution::is_active());
         SESSION.with(|slot| {
             assert_eq!(
                 slot.borrow().as_ref().unwrap().active_play_id,

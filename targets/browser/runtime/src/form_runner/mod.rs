@@ -8,7 +8,6 @@ mod gallery;
 mod host_abi;
 mod multihost;
 mod protocol;
-#[cfg(test)]
 mod remote_execution;
 mod session_cancellation;
 mod session_effects;

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../../../../forms/button-across-room/main.conduit");
 
-fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
+pub(super) fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked =
         conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(SOURCE), &startup)
@@ -119,7 +119,7 @@ fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     (plan, source, sink, binding)
 }
 
-fn observations(host: &HostAdvertisement) -> Vec<ResourceObservation> {
+pub(super) fn observations(host: &HostAdvertisement) -> Vec<ResourceObservation> {
     host.resources
         .iter()
         .enumerate()

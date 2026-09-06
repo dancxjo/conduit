@@ -24,6 +24,10 @@ thread_local! {
     static SOURCE_INTERACTION: RefCell<Option<crate::source_interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
 }
 
+pub(super) fn has_session() -> bool {
+    SESSION.with(|slot| slot.borrow().is_some())
+}
+
 #[no_mangle]
 pub extern "C" fn conduit_tour_multi_input_ptr() -> usize {
     INPUT.with(|input| input.borrow_mut().as_mut_ptr() as usize)
@@ -82,6 +86,9 @@ pub extern "C" fn conduit_tour_multi_start_source(
     play_sequence: u64,
 ) -> i32 {
     clear_output();
+    if crate::form_runner::remote_execution::is_active() {
+        return ERROR_PREPARE;
+    }
     let lengths = [
         source_host_length,
         source_boot_length,
@@ -173,6 +180,9 @@ pub extern "C" fn conduit_tour_multi_start_sink(
     play_sequence: u64,
 ) -> i32 {
     clear_output();
+    if crate::form_runner::remote_execution::is_active() {
+        return ERROR_PREPARE;
+    }
     let lengths = [sink_host_length, sink_boot_length, plan_length];
     if lengths.contains(&0) {
         return ERROR_INPUT;

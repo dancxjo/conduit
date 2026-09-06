@@ -2,10 +2,15 @@
 
 #[path = "abi_body.rs"]
 mod body;
+#[cfg(test)]
+pub(super) use body::conduit_browser_body_start;
 #[path = "abi_effects.rs"]
 mod effects;
 #[path = "abi_profiles.rs"]
 mod profiles;
+#[path = "abi_source.rs"]
+mod source;
+pub use source::conduit_tour_admit_source_interaction;
 
 use super::TourSession;
 use std::cell::RefCell;
@@ -28,6 +33,10 @@ thread_local! {
     static OUTPUT: RefCell<[u8; OUTPUT_BYTES]> = const { RefCell::new([0; OUTPUT_BYTES]) };
     static OUTPUT_LEN: RefCell<usize> = const { RefCell::new(0) };
     static SOURCE_INTERACTION: RefCell<Option<crate::source_interaction::SourceInteractionEvidence>> = const { RefCell::new(None) };
+}
+
+pub(super) fn has_local_session() -> bool {
+    SESSION.with(|slot| slot.borrow().is_some())
 }
 
 #[no_mangle]
@@ -179,39 +188,6 @@ fn project_patchbay(source_length: usize, sequence: u64, recursive: bool) -> i32
     })
 }
 
-/// Admits the exact editable source through the portable typed human-interaction
-/// flow before parsing. The retained evidence contains byte count and exact
-/// identities, never the submitted source text.
-#[no_mangle]
-pub extern "C" fn conduit_tour_admit_source_interaction(
-    source_length: usize,
-    sequence: u64,
-) -> i32 {
-    clear_output();
-    SOURCE_INTERACTION.with(|slot| *slot.borrow_mut() = None);
-    if source_length == 0 || source_length > INPUT_BYTES {
-        return ERROR_INPUT;
-    }
-    INPUT.with(|input| {
-        let mut input = input.borrow_mut();
-        let result = crate::source_interaction::admit_source(&input[..source_length], sequence);
-        input[..source_length].fill(0);
-        match result {
-            Ok(evidence) => {
-                if write_output(&evidence).is_err() {
-                    return ERROR_OUTPUT;
-                }
-                SOURCE_INTERACTION.with(|slot| *slot.borrow_mut() = Some(evidence));
-                STATUS_READY
-            }
-            Err(message) => {
-                let _ = write_output(&super::refusal(message));
-                ERROR_INTERACTION
-            }
-        }
-    })
-}
-
 /// Starts one exact Play from adjacent UTF-8 Host, Boot, and Form source bytes.
 /// Replacing an unfinished session explicitly cancels its kernel scheduler.
 #[no_mangle]
@@ -276,6 +252,12 @@ fn start(
     presentation: crate::installed_browser::PresentationProfile,
 ) -> i32 {
     clear_output();
+    if super::remote_execution::is_active() {
+        let _ = write_output(&super::refusal(
+            "remote Play must be retired before local start".into(),
+        ));
+        return ERROR_PREPARE;
+    }
     let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
     let Some(identity_length) = host_length.checked_add(boot_length) else {
         return ERROR_INPUT;

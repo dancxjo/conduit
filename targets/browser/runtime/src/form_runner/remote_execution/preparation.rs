@@ -66,6 +66,14 @@ pub(super) fn validate<'a>(
         crate::installed_browser::advertisement(host.host_id.clone(), host.boot_id.clone());
     let mut counts = std::collections::BTreeMap::new();
     for gear in &fragment.placements {
+        if gear.host_operations.iter().any(|operation| matches!(
+            operation.contract_id.as_str(),
+            crate::resource_snapshot::PUBLISH_OPERATION
+                | crate::resource_snapshot::READ_OPERATION
+                | crate::installed_browser::button_attempt::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION
+        )) {
+            return Err("remote ABI does not yet admit resource-specific or timed-cancellation effects".into());
+        }
         let offer = host
             .capabilities
             .iter()

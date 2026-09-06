@@ -219,7 +219,6 @@ pub(super) fn drive_with_placement<'a>(
 
 /// The same installed effects, with an external Cord allowed to await traffic.
 /// Waiting is not completion; the remote owner must inspect its exact endpoint.
-#[cfg(test)]
 pub(super) fn drive_remote(
     scheduler: &mut TourScheduler,
     fragment: &PlanFragment,
