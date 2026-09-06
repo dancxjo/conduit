@@ -43,6 +43,7 @@ fn complete_set_reserves_and_releases_each_original_plan_without_growing_live_le
     let (host, plans) = workload();
     let mut ledger = KernelResourceLedger::new(&host).unwrap();
     let empty = ledger.pools.clone();
+    let no_instances = ledger.instances.clone();
     let capacity = ledger.allocation_capacity();
     let reservations = ledger
         .prepare_and_reserve_partitions(
@@ -59,6 +60,7 @@ fn complete_set_reserves_and_releases_each_original_plan_without_growing_live_le
         ledger.release(reservation).unwrap();
     }
     assert_eq!(ledger.pools, empty);
+    assert_eq!(ledger.instances, no_instances);
     assert_eq!(ledger.allocation_capacity(), capacity);
 }
 
@@ -70,6 +72,7 @@ fn late_capacity_and_invalid_partition_leave_existing_reservations_unchanged() {
         .prepare_and_reserve(&host, &plans[0].fragments[0])
         .unwrap();
     let occupied = ledger.pools.clone();
+    let occupied_instances = ledger.instances.clone();
     let result = ledger.prepare_and_reserve_partitions(
         &host,
         &[
@@ -79,14 +82,54 @@ fn late_capacity_and_invalid_partition_leave_existing_reservations_unchanged() {
     );
     assert!(matches!(result, Err(reason) if reason.contains("above capacity")));
     assert_eq!(ledger.pools, occupied);
+    assert_eq!(ledger.instances, occupied_instances);
     let mut stale = plans[2].fragments[0].clone();
     stale.placements[0].boot_id = "lost-boot".into();
     assert!(ledger
         .prepare_and_reserve_partitions(&host, &[(&plans[1].fragments[0], false), (&stale, false)],)
         .is_err());
     assert_eq!(ledger.pools, occupied);
+    assert_eq!(ledger.instances, occupied_instances);
     ledger.release(existing).unwrap();
     assert!(ledger.pools.iter().all(|pool| pool.used_units == 0));
+}
+
+#[test]
+fn combined_capability_limit_refuses_even_when_each_form_and_all_pools_fit() {
+    let (mut host, plans) = workload();
+    let selected = plans[0].fragments[0].placements[0].capability_id.clone();
+    host.capabilities
+        .iter_mut()
+        .find(|offer| offer.capability_id == selected)
+        .unwrap()
+        .limits
+        .max_active_instances = 1;
+    let mut ledger = KernelResourceLedger::new(&host).unwrap();
+    let empty_pools = ledger.pools.clone();
+    let empty_instances = ledger.instances.clone();
+    let result = ledger.prepare_and_reserve_partitions(
+        &host,
+        &[
+            (&plans[0].fragments[0], false),
+            (&plans[1].fragments[0], false),
+        ],
+    );
+    assert!(matches!(result, Err(reason) if reason.contains("combined active-instance limit")));
+    assert_eq!(ledger.pools, empty_pools);
+    assert_eq!(ledger.instances, empty_instances);
+    let first = ledger
+        .prepare_and_reserve(&host, &plans[0].fragments[0])
+        .unwrap();
+    assert!(ledger
+        .prepare_and_reserve(&host, &plans[1].fragments[0])
+        .is_err());
+    ledger.release(first).unwrap();
+    let second = ledger
+        .prepare_and_reserve(&host, &plans[1].fragments[0])
+        .unwrap();
+    ledger.release(second).unwrap();
+    assert_eq!(ledger.instances, empty_instances);
+    assert_eq!(ledger.pools, empty_pools);
 }
 
 #[test]
