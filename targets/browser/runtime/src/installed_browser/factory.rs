@@ -179,6 +179,9 @@ pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
+        return Some(resource);
+    }
     #[cfg(test)]
     if let Some(fixture) = super::test_json::factory(implementation_id.as_str()) {
         return Some(fixture);
