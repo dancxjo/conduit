@@ -93,6 +93,11 @@ impl Artifacts {
         Ok(())
     }
 
+    pub(super) fn diagnostic_failure(&mut self, error: &ConduitosError) {
+        self.context["failure_capture_error"] =
+            json!({"reason":error.reason,"detail":error.detail});
+    }
+
     pub(super) fn finish(&self, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
         self.write(
             if failure.is_some() {
@@ -118,4 +123,38 @@ impl Artifacts {
 }
 fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("qemu-display-manifest-io", error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn failure_manifest_preserves_primary_and_capture_refusals() {
+        let directory =
+            std::env::temp_dir().join(format!("conduit-qemu-artifacts-{}", std::process::id()));
+        let mut artifacts = Artifacts::new(
+            directory.clone(),
+            directory.join("serial.log"),
+            json!({"image_sha256":"fixture"}),
+        )
+        .unwrap();
+        let primary = ConduitosError::refusal("fixture-guest-failed", "primary guest failure");
+        artifacts.diagnostic_failure(&ConduitosError::refusal(
+            "qemu-qmp-unavailable",
+            "capture unavailable",
+        ));
+        artifacts.finish(Some(&primary)).unwrap();
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(directory.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest["status"], "failed");
+        assert_eq!(manifest["failure"]["reason"], "fixture-guest-failed");
+        assert_eq!(
+            manifest["context"]["failure_capture_error"]["reason"],
+            "qemu-qmp-unavailable"
+        );
+        assert_eq!(manifest["proof_class"], "freestanding-emulator");
+        assert_eq!(manifest["checkpoints"], json!([]));
+        fs::remove_file(directory.join("manifest.json")).unwrap();
+        fs::remove_dir(directory).unwrap();
+    }
 }

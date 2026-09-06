@@ -119,226 +119,239 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
 
-    let interaction = (|| {
-        let (mut qmp, mut reader) = hid_qmp::connect(&monitor_socket, &mut child)?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_BOOT_STAGE front-door-ready",
-            "product-journey-front-door-timeout",
-        )?;
-        artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-        for (key, status) in [
-            ("ret", "form-opened"),
-            ("f3", "born-lulled"),
-            ("f4", "awake"),
-            ("f5", "planned"),
-        ] {
-            key_pair(&mut qmp, &mut reader, key, status)?;
-            wait_status(&serial_path, &mut child, status)?;
-            artifacts.capture(&mut qmp, &mut reader, status, true)?;
-        }
-        for label in [
-            "PROFILE ID",
-            "BUILD ID",
-            "IMAGE BINDING",
-            "HOST ID",
-            "BOOT ID",
-            "CURRENT OFFERS",
-            "FORM SUBJECT",
-            "SOURCE DOCUMENT ID",
-            "CHECKED FORM ID",
-            "EXPANDED FORM ID",
-            "BODY ID",
-            "WAKE ID",
-            "PLAN ID",
-        ] {
-            key_pair(&mut qmp, &mut reader, "f2", "planned-detail")?;
+    let result = (|| {
+        let interaction = (|| {
+            let (mut qmp, mut reader) = hid_qmp::connect(&monitor_socket, &mut child)?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                &format!("\"label\":\"{label}\""),
-                "product-journey-plan-inspection-timeout",
+                "CONDUIT_BOOT_STAGE front-door-ready",
+                "product-journey-front-door-timeout",
             )?;
+            artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
+            for (key, status) in [
+                ("ret", "form-opened"),
+                ("f3", "born-lulled"),
+                ("f4", "awake"),
+                ("f5", "planned"),
+            ] {
+                key_pair(&mut qmp, &mut reader, key, status)?;
+                wait_status(&serial_path, &mut child, status)?;
+                artifacts.capture(&mut qmp, &mut reader, status, true)?;
+            }
+            for label in [
+                "PROFILE ID",
+                "BUILD ID",
+                "IMAGE BINDING",
+                "HOST ID",
+                "BOOT ID",
+                "CURRENT OFFERS",
+                "FORM SUBJECT",
+                "SOURCE DOCUMENT ID",
+                "CHECKED FORM ID",
+                "EXPANDED FORM ID",
+                "BODY ID",
+                "WAKE ID",
+                "PLAN ID",
+            ] {
+                key_pair(&mut qmp, &mut reader, "f2", "planned-detail")?;
+                hid_qmp::wait_for_stage(
+                    &serial_path,
+                    &mut child,
+                    &format!("\"label\":\"{label}\""),
+                    "product-journey-plan-inspection-timeout",
+                )?;
+            }
+            key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
+            key_pair(&mut qmp, &mut reader, "f6", "playing")?;
+            wait_status(&serial_path, &mut child, "playing")?;
+            artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
+            key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;
+            wait_status(&serial_path, &mut child, "result-visible")?;
+            artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
+            key_pair(&mut qmp, &mut reader, "f7", "lull")?;
+            wait_status(&serial_path, &mut child, "lulled")?;
+            artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
+            thread::sleep(Duration::from_millis(250));
+            if child
+                .try_wait()
+                .map_err(|error| {
+                    ConduitosError::refusal("product-journey-qemu-wait-failed", error.to_string())
+                })?
+                .is_some()
+            {
+                return Err(ConduitosError::refusal(
+                    "product-journey-not-long-lived",
+                    "normal IMAGE exited after the ordinary product lifecycle",
+                ));
+            }
+            Ok(())
+        })();
+        interaction?;
+        child.kill().map_err(|error| {
+            ConduitosError::refusal("product-journey-qemu-stop-failed", error.to_string())
+        })?;
+        let _ = child.wait();
+        let serial = fs::read_to_string(&serial_path).map_err(|error| {
+            ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
+        })?;
+        let records = journey_records(&serial)?;
+        let by_status = records
+            .iter()
+            .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
+            .collect::<BTreeMap<_, _>>();
+        for status in [
+            "form-opened",
+            "born-lulled",
+            "awake",
+            "planned",
+            "playing",
+            "result-visible",
+            "lulled",
+        ] {
+            if !by_status.contains_key(status) {
+                return Err(ConduitosError::refusal(
+                    "product-journey-stage-missing",
+                    status,
+                ));
+            }
         }
-        key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
-        key_pair(&mut qmp, &mut reader, "f6", "playing")?;
-        wait_status(&serial_path, &mut child, "playing")?;
-        artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
-        key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;
-        wait_status(&serial_path, &mut child, "result-visible")?;
-        artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
-        key_pair(&mut qmp, &mut reader, "f7", "lull")?;
-        wait_status(&serial_path, &mut child, "lulled")?;
-        artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
-        thread::sleep(Duration::from_millis(250));
-        if child
-            .try_wait()
-            .map_err(|error| {
-                ConduitosError::refusal("product-journey-qemu-wait-failed", error.to_string())
-            })?
-            .is_some()
+        let opened = by_status["form-opened"];
+        if opened.get("body_id") != Some(&Value::Null)
+            || opened.get("wake_id") != Some(&Value::Null)
+            || opened.get("plan_id") != Some(&Value::Null)
+            || opened.get("active_play_id") != Some(&Value::Null)
         {
             return Err(ConduitosError::refusal(
-                "product-journey-not-long-lived",
-                "normal IMAGE exited after the ordinary product lifecycle",
+                "product-journey-open-had-effects",
+                "OPEN created lifecycle truth before explicit BIRTH",
             ));
+        }
+        let born = by_status["born-lulled"];
+        let planned = by_status["planned"];
+        let playing = by_status["playing"];
+        let result = by_status["result-visible"];
+        let lulled = by_status["lulled"];
+        let plan_id = text(planned, "plan_id")?;
+        let inspected_plan = serial.lines().any(|line| {
+            line.contains("CONDUIT_FRONT_DOOR_SIGN")
+                && line.contains("\"label\":\"PLAN ID\"")
+                && line.contains(&format!("\"value\":\"{plan_id}\""))
+        });
+        if planned.get("active_play_id") != Some(&Value::Null)
+            || planned
+                .get("gear_ids")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty)
+            || planned
+                .get("port_ids")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty)
+            || planned
+                .get("cord_ids")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty)
+            || playing.get("active_play_id") == Some(&Value::Null)
+            || playing.get("plan_id") == playing.get("active_play_id")
+            || result.get("result").and_then(Value::as_str) != Some("A")
+            || born.get("body_id") != lulled.get("body_id")
+            || !inspected_plan
+        {
+            return Err(ConduitosError::refusal(
+                "product-journey-causality-invalid",
+                "exact Plan/Play/result/LULL causality did not match the product contract",
+            ));
+        }
+        for identity in [
+            "profile_id",
+            "build_id",
+            "image_id",
+            "host_id",
+            "boot_id",
+            "source_document_id",
+            "checked_form_id",
+            "expanded_form_id",
+        ] {
+            let expected = opened.get(identity);
+            if expected.is_none()
+                || records
+                    .iter()
+                    .any(|record| record.get(identity) != expected)
+            {
+                return Err(ConduitosError::refusal(
+                    "product-journey-identity-drift",
+                    identity,
+                ));
+            }
+        }
+        if serial.contains("CONDUIT_KERNEL_SIGN") || serial.contains("body-patchbay-open") {
+            return Err(ConduitosError::refusal(
+                "product-journey-used-proof-entrance",
+                "normal product lifecycle emitted scripted proof entrance evidence",
+            ));
+        }
+        let proof = JourneyProof {
+            schema: "conduit.conduitos/product-journey-proof@1",
+            base_commit: git_head(&paths.root)?,
+            image_sha256: image.iso_sha256,
+            profile: super::demo::DEMO_PROFILE,
+            boot_id: text(opened, "boot_id")?,
+            source_document_id: text(opened, "source_document_id")?,
+            checked_form_id: text(opened, "checked_form_id")?,
+            expanded_form_id: text(opened, "expanded_form_id")?,
+            body_id: text(born, "body_id")?,
+            born_sign_id: text(born, "born_sign_id")?,
+            part_id: text(born, "part_id")?,
+            wake_id: text(by_status["awake"], "wake_id")?,
+            plan_id,
+            active_play_id: text(playing, "active_play_id")?,
+            gear_ids: strings(planned, "gear_ids")?,
+            port_ids: strings(planned, "port_ids")?,
+            cord_ids: strings(planned, "cord_ids")?,
+            presentation_id: text(result, "presentation_id")?,
+            manifestation_id: text(result, "manifestation_id")?,
+            presenter_implementation_id: text(result, "presenter_implementation_id")?,
+            input_sign_id: text(result, "input_sign_id")?,
+            result_sign_id: text(result, "result_sign_id")?,
+            result: text(result, "result")?,
+            open_effects: 0,
+            body_retained_after_lull: true,
+            remained_alive: true,
+            stopped_by_harness: true,
+        };
+        fs::write(
+            &proof_path,
+            serde_json::to_vec_pretty(&proof).map_err(|error| {
+                ConduitosError::refusal("product-journey-proof-invalid", error.to_string())
+            })?,
+        )
+        .map_err(|error| {
+            ConduitosError::refusal("product-journey-proof-unavailable", error.to_string())
+        })?;
+        if !opts.quiet && !opts.json {
+            println!("ConduitOS product journey proof: {}", proof_path.display());
         }
         Ok(())
     })();
-    if let Err(error) = &interaction {
-        if let Err(artifact_error) = artifacts.finish(Some(error)) {
-            eprintln!("failure artifact error: {artifact_error}; primary: {error}");
+    if result.is_err() {
+        let diagnostic =
+            hid_qmp::connect(&monitor_socket, &mut child).and_then(|(mut stream, mut reader)| {
+                artifacts.capture(&mut stream, &mut reader, "failure", false)
+            });
+        if let Err(error) = diagnostic {
+            artifacts.diagnostic_failure(&error);
         }
         let _ = child.kill();
         let _ = child.wait();
-        return interaction;
     }
-    child.kill().map_err(|error| {
-        ConduitosError::refusal("product-journey-qemu-stop-failed", error.to_string())
-    })?;
-    let _ = child.wait();
-    let serial = fs::read_to_string(&serial_path).map_err(|error| {
-        ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
-    })?;
-    let records = journey_records(&serial)?;
-    let by_status = records
-        .iter()
-        .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
-        .collect::<BTreeMap<_, _>>();
-    for status in [
-        "form-opened",
-        "born-lulled",
-        "awake",
-        "planned",
-        "playing",
-        "result-visible",
-        "lulled",
-    ] {
-        if !by_status.contains_key(status) {
-            return Err(ConduitosError::refusal(
-                "product-journey-stage-missing",
-                status,
-            ));
+    // Artifact errors never replace the original runtime/proof refusal.
+    if let Err(error) = artifacts.finish(result.as_ref().err()) {
+        if result.is_ok() {
+            return Err(error);
         }
+        eprintln!("failure artifact error: {error}");
     }
-    let opened = by_status["form-opened"];
-    if opened.get("body_id") != Some(&Value::Null)
-        || opened.get("wake_id") != Some(&Value::Null)
-        || opened.get("plan_id") != Some(&Value::Null)
-        || opened.get("active_play_id") != Some(&Value::Null)
-    {
-        return Err(ConduitosError::refusal(
-            "product-journey-open-had-effects",
-            "OPEN created lifecycle truth before explicit BIRTH",
-        ));
-    }
-    let born = by_status["born-lulled"];
-    let planned = by_status["planned"];
-    let playing = by_status["playing"];
-    let result = by_status["result-visible"];
-    let lulled = by_status["lulled"];
-    let plan_id = text(planned, "plan_id")?;
-    let inspected_plan = serial.lines().any(|line| {
-        line.contains("CONDUIT_FRONT_DOOR_SIGN")
-            && line.contains("\"label\":\"PLAN ID\"")
-            && line.contains(&format!("\"value\":\"{plan_id}\""))
-    });
-    if planned.get("active_play_id") != Some(&Value::Null)
-        || planned
-            .get("gear_ids")
-            .and_then(Value::as_array)
-            .is_none_or(Vec::is_empty)
-        || planned
-            .get("port_ids")
-            .and_then(Value::as_array)
-            .is_none_or(Vec::is_empty)
-        || planned
-            .get("cord_ids")
-            .and_then(Value::as_array)
-            .is_none_or(Vec::is_empty)
-        || playing.get("active_play_id") == Some(&Value::Null)
-        || playing.get("plan_id") == playing.get("active_play_id")
-        || result.get("result").and_then(Value::as_str) != Some("A")
-        || born.get("body_id") != lulled.get("body_id")
-        || !inspected_plan
-    {
-        return Err(ConduitosError::refusal(
-            "product-journey-causality-invalid",
-            "exact Plan/Play/result/LULL causality did not match the product contract",
-        ));
-    }
-    for identity in [
-        "profile_id",
-        "build_id",
-        "image_id",
-        "host_id",
-        "boot_id",
-        "source_document_id",
-        "checked_form_id",
-        "expanded_form_id",
-    ] {
-        let expected = opened.get(identity);
-        if expected.is_none()
-            || records
-                .iter()
-                .any(|record| record.get(identity) != expected)
-        {
-            return Err(ConduitosError::refusal(
-                "product-journey-identity-drift",
-                identity,
-            ));
-        }
-    }
-    if serial.contains("CONDUIT_KERNEL_SIGN") || serial.contains("body-patchbay-open") {
-        return Err(ConduitosError::refusal(
-            "product-journey-used-proof-entrance",
-            "normal product lifecycle emitted scripted proof entrance evidence",
-        ));
-    }
-    let proof = JourneyProof {
-        schema: "conduit.conduitos/product-journey-proof@1",
-        base_commit: git_head(&paths.root)?,
-        image_sha256: image.iso_sha256,
-        profile: super::demo::DEMO_PROFILE,
-        boot_id: text(opened, "boot_id")?,
-        source_document_id: text(opened, "source_document_id")?,
-        checked_form_id: text(opened, "checked_form_id")?,
-        expanded_form_id: text(opened, "expanded_form_id")?,
-        body_id: text(born, "body_id")?,
-        born_sign_id: text(born, "born_sign_id")?,
-        part_id: text(born, "part_id")?,
-        wake_id: text(by_status["awake"], "wake_id")?,
-        plan_id,
-        active_play_id: text(playing, "active_play_id")?,
-        gear_ids: strings(planned, "gear_ids")?,
-        port_ids: strings(planned, "port_ids")?,
-        cord_ids: strings(planned, "cord_ids")?,
-        presentation_id: text(result, "presentation_id")?,
-        manifestation_id: text(result, "manifestation_id")?,
-        presenter_implementation_id: text(result, "presenter_implementation_id")?,
-        input_sign_id: text(result, "input_sign_id")?,
-        result_sign_id: text(result, "result_sign_id")?,
-        result: text(result, "result")?,
-        open_effects: 0,
-        body_retained_after_lull: true,
-        remained_alive: true,
-        stopped_by_harness: true,
-    };
-    fs::write(
-        &proof_path,
-        serde_json::to_vec_pretty(&proof).map_err(|error| {
-            ConduitosError::refusal("product-journey-proof-invalid", error.to_string())
-        })?,
-    )
-    .map_err(|error| {
-        ConduitosError::refusal("product-journey-proof-unavailable", error.to_string())
-    })?;
-    if !opts.quiet && !opts.json {
-        println!("ConduitOS product journey proof: {}", proof_path.display());
-    }
-    artifacts.finish(None)?;
-    Ok(())
+    result
 }
 
 fn key_pair(
