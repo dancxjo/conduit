@@ -928,6 +928,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-planner",
  "conduit-presentation",

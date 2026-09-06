@@ -2,10 +2,6 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
-use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
-};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::COMPARE_PATTERN_STD_IMPLEMENTATION,
@@ -13,92 +9,7 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     prepare,
 };
 
-pub(super) struct PatternComparisonOperation {
-    pending: Option<RequestId>,
-    next_request: u32,
-    received: [bool; 2],
-    closed: [bool; 2],
-    emitted: bool,
-}
-
-impl PatternComparisonOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(port @ 0..=1),
-                value,
-            } if self.pending.is_none() && !self.received[usize::from(port)] => {
-                self.received[usize::from(port)] = true;
-                let request = RequestId(self.next_request);
-                self.next_request = match self.next_request.checked_add(1) {
-                    Some(next) => next,
-                    None => return fail(FailureCode::StorageExhausted, 253),
-                };
-                self.pending = Some(request);
-                let Ok(input) =
-                    BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
-                else {
-                    self.pending = None;
-                    return fail(FailureCode::InvalidInput, 254);
-                };
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(port),
-                    input,
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None)
-                        if self.received == [true, true] && !self.emitted =>
-                    {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 250),
-                }
-            }
-            OperationInput::Closed {
-                port: PortId(port @ 0..=1),
-            } if self.pending.is_none() && !self.closed[usize::from(port)] => {
-                self.closed[usize::from(port)] = true;
-                if self.closed == [true, true] && self.emitted {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 251),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.closed == [true, true] && self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+pub(super) use conduit_semantic_catalog::PatternComparisonOperation;
 
 pub(super) struct PatternComparisonHost(conduit_semantic_catalog::BoundedPatternComparisonCodec);
 
@@ -191,16 +102,6 @@ fn prepare(
 ) -> Result<InstalledOperation, String> {
     budget(placement)?;
     Ok(InstalledOperation::PatternComparison(
-        PatternComparisonOperation {
-            pending: None,
-            next_request: 0,
-            received: [false; 2],
-            closed: [false; 2],
-            emitted: false,
-        },
+        PatternComparisonOperation::new(MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32),
     ))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

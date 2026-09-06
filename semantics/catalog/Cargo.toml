@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-kernel = { path = "../../architecture/kernel", optional = true }
 conduit-alife = { path = "../alife" }
 conduit-audio = { path = "../audio" }
 conduit-core = { path = "../../architecture/core" }
@@ -22,6 +23,7 @@ serde = { version = "1", default-features = false, features = ["alloc", "derive"
 conduit-planner = { path = "../../architecture/planner" }
 
 [features]
+kernel-operation = ["dep:conduit-kernel"]
 default = ["form-catalog"]
 form-catalog = ["conduit-time/form-catalog", "conduit-web/form-catalog", "conduit-text/form-catalog"]
 text-lab-plan = ["form-catalog", "dep:conduit-planner"]
