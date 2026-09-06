@@ -159,7 +159,7 @@ pub(super) fn prepare_scheduler(
     )
     .map_err(debug_error)?;
     Ok(TourScheduler {
-        failure_detail: None,
+        failure: None,
         kernel,
         mappings,
         selectors,
