@@ -205,11 +205,18 @@ pub(super) fn drive(
     scheduler: &mut TourScheduler,
     fragment: &PlanFragment,
 ) -> Result<DriveStatus, String> {
+    drive_with_placement(scheduler, |node| {
+        fragment.placements.get(usize::from(node.0))
+    })
+}
+
+fn drive_with_placement<'a>(
+    scheduler: &mut TourScheduler,
+    placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
+) -> Result<DriveStatus, String> {
     loop {
         if let Some(request) = scheduler.next_host_request() {
-            let placement = fragment
-                .placements
-                .get(usize::from(request.node.0))
+            let placement = placement_for(request.node)
                 .ok_or_else(|| "browser request has no planned placement".to_string())?;
             let operation = placement
                 .host_operations
@@ -314,6 +321,10 @@ pub(super) fn drive(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "body_partition_tests.rs"]
+mod body_partition_tests;
 
 fn decode_timer_duration(
     operation: &conduit_core::HostOperationRequirement,
