@@ -107,6 +107,9 @@ use conduit_core::{ImplementationId, PlanFragment};
 const FACTORIES: &[&InstalledFactory] = &[
     &KEYBOARD_INPUT_FACTORY,
     &TICK_FACTORY,
+    &super::pulse_observation_operation::FACTORY,
+    #[cfg(test)]
+    &super::pulse_observation_sink::FACTORY,
     &EVERY_FACTORY,
     &TIME_DEBOUNCE_FACTORY,
     &TIME_TIMEOUT_FACTORY,

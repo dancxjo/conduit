@@ -7,6 +7,9 @@ impl Operation for InstalledOperation {
         match self {
             Self::KeyboardInput(operation) => operation.start(),
             Self::Tick(operation) => operation.start(),
+            Self::PulseObserve(operation) => operation.start(),
+            #[cfg(test)]
+            Self::TestPulseSink(operation) => operation.start(),
             Self::TimeDebounce(operation) => operation.start(),
             Self::TimeTimeout(operation) => operation.start(),
             Self::TimeDelay(operation) => operation.start(),
@@ -119,6 +122,9 @@ impl Operation for InstalledOperation {
         match (self, input) {
             (Self::KeyboardInput(_), _) => Self::fail(109),
             (Self::Tick(operation), input) => operation.resume(input),
+            (Self::PulseObserve(operation), input) => operation.resume(input),
+            #[cfg(test)]
+            (Self::TestPulseSink(operation), input) => operation.resume(input),
             (Self::TextLiteral(operation), input) => operation.resume(input),
             (Self::TimeDebounce(operation), input) => operation.resume(input),
             (Self::TimeTimeout(operation), input) => operation.resume(input),
@@ -233,6 +239,9 @@ impl Operation for InstalledOperation {
 
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         match self {
+            Self::PulseObserve(operation) => operation.resume_value(port, value, canonical),
+            #[cfg(test)]
+            Self::TestPulseSink(operation) => operation.resume_value(port, canonical),
             Self::LeniaStep(operation) => operation.resume_value(port, value, canonical),
             Self::LogicCompareScalar(operation) => operation.resume_value(port, value, canonical),
             Self::LogicNot(operation) => operation.resume_value(port, value, canonical),
@@ -276,6 +285,9 @@ impl Operation for InstalledOperation {
         match self {
             Self::KeyboardInput(operation) => operation.advance(),
             Self::Tick(operation) => operation.advance(),
+            Self::PulseObserve(operation) => operation.advance(),
+            #[cfg(test)]
+            Self::TestPulseSink(_) => OperationAction::Await,
             Self::TickPresentation(_) => OperationAction::Await,
             Self::BoolPresentation(_) => OperationAction::Await,
             Self::OrbiumSeed(operation) => operation.advance(),
@@ -388,113 +400,7 @@ impl Operation for InstalledOperation {
     }
 
     fn cancel(&mut self) {
-        match self {
-            Self::KeyboardInput(operation) => operation.cancel(),
-            Self::Tick(operation) => operation.cancel(),
-            Self::TickPresentation(operation) => operation.cancel(),
-            Self::BoolPresentation(operation) => operation.cancel(),
-            Self::OrbiumSeed(_) => {}
-            Self::LeniaStep(operation) => operation.cancel(),
-            Self::ScalarFieldPresentation(operation) => operation.cancel(),
-            Self::TimeDebounce(operation) => operation.cancel(),
-            Self::TimeTimeout(operation) => operation.cancel(),
-            Self::TimeDelay(operation) => operation.cancel(),
-            Self::TimeThrottle(operation) => operation.cancel(),
-            Self::Recurrence(_) => {}
-            Self::CalendarProposal(_) => {}
-            Self::CalendarProvider(operation) => operation.cancel(),
-            Self::TextLiteral(_) => {}
-            Self::TextUpper(operation) => operation.cancel(),
-            Self::TextJoin(operation) => operation.cancel(),
-            Self::TextPresentation(operation) => operation.cancel(),
-            Self::StateCount(_) => {}
-            Self::StateToggle(_) => {}
-            Self::CountPresentation(operation) => operation.cancel(),
-            Self::StateLatestScalar(operation) => operation.cancel(),
-            Self::FlowTeeScalar(operation) => operation.cancel(),
-            Self::StateSelectScalar(operation) => operation.cancel(),
-            Self::FlowGateScalar(operation) => operation.cancel(),
-            Self::KeyEventTee(operation) => operation.cancel(),
-            Self::InputKeymap(operation) | Self::InputChords(operation) => operation.cancel(),
-            Self::InstrumentMap(operation) => operation.cancel(),
-            Self::RhythmCompare(operation) => operation.cancel(),
-            Self::PatternComparison(operation) => operation.cancel(),
-            Self::SequenceNormalization(operation) => operation.cancel(),
-            Self::FinalNormalizedPattern(operation) => operation.cancel(),
-            Self::TimedPattern(operation) => operation.cancel(),
-            Self::TimedButtonAttempt(operation) => operation.cancel(),
-            Self::TemplateStorage(operation) => operation.cancel(),
-            Self::LogicCompareScalar(operation) => operation.cancel(),
-            Self::LogicNot(operation) => operation.cancel(),
-            Self::LogicSelectScalar(operation) => operation.cancel(),
-            Self::MathScalar(operation) => operation.cancel(),
-            Self::Layout(operation) => operation.cancel(),
-            Self::PresentationComposition(operation) => operation.cancel(),
-            Self::GraphicsPresentation(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestPresentationSink(_) => {}
-            #[cfg(test)]
-            Self::TestLayoutSink(_) => {}
-            Self::RoboticsSource(operation) => operation.cancel(),
-            Self::RoboticsDrive(operation) => operation.cancel(),
-            Self::MusicSynth(operation) => operation.cancel(),
-            Self::AudioRenderDemand(operation) => operation.cancel(),
-            Self::AudioPlay(operation) => operation.cancel(),
-            Self::MidiOutput(operation) => operation.cancel(),
-            Self::MidiInput(operation) => operation.cancel(),
-            Self::ExternalWebSocketListener(operation) => operation.cancel(),
-            Self::GenerateText(operation) => operation.cancel(),
-            Self::LocalModel(operation) => operation.cancel(),
-            Self::VectorSearch(operation) => operation.cancel(),
-            Self::HttpClient(operation) => operation.cancel(),
-            Self::HttpServer(operation) => operation.cancel(),
-            Self::JsonEncode(operation) | Self::JsonDecode(operation) => operation.cancel(),
-            Self::StructuredSelector(operation) => operation.cancel(),
-            Self::StructuredLiteral(_) => {}
-            Self::StructuredPresentation(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestTextSource(_) => {}
-            #[cfg(test)]
-            Self::TestMidiSource(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestRecurrenceSink(_) => {}
-            Self::TestPcmSource(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestJsonSource(_) => {}
-            #[cfg(test)]
-            Self::TestJsonSink(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestStructuredSource(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestStructuredSink(_) => {}
-            #[cfg(any(test, feature = "local-model-proof"))]
-            Self::TestLocalModelSource(_) | Self::TestLocalModelSink(_) => {}
-            #[cfg(test)]
-            Self::TestKeyEventSource(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestChordSink(_) => {}
-            #[cfg(test)]
-            Self::TestScalarSource(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestScalarLiteral(_) => {}
-            #[cfg(test)]
-            Self::TestScalarSink(_) => {}
-            #[cfg(test)]
-            Self::TestGateScript(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestLogicScript(_) => {}
-            #[cfg(test)]
-            Self::TestLogicSink(_) => {}
-            #[cfg(test)]
-            Self::TestSlowScalarSink(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestTimingSink(_) => {}
-            #[cfg(test)]
-            Self::TestTimingSource(operation) => operation.cancel(),
-            #[cfg(test)]
-            Self::TestObserver(operation) => operation.cancel(),
-            Self::Inactive => {}
-        }
+        self.cancel_installed();
     }
 
     fn retains_resumed_value(&self) -> bool {

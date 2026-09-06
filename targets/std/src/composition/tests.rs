@@ -194,3 +194,21 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
         .iter()
         .any(|offer| { offer == &conduit_std_offers::instrument_map_std_offer() }));
 }
+
+#[test]
+fn pulse_observation_is_an_explicit_effect_free_family() {
+    let selected = host(StdHostComposition::minimal().with_pulse_observation());
+    assert_eq!(
+        selected.advertisement().capabilities,
+        [conduit_std_offers::pulse_observe_offer()]
+    );
+    assert!(selected.advertisement().resources.is_empty());
+    assert!(!offered(
+        &host(StdHostComposition::reference()),
+        conduit_time::PULSE_OBSERVE_KIND
+    ));
+    assert!(!offered(
+        &host(StdHostComposition::minimal().with_time()),
+        conduit_time::PULSE_OBSERVE_KIND
+    ));
+}

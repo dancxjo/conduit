@@ -7,6 +7,7 @@ impl InstalledOperation {
         match self {
             Self::KeyboardInput(_) => 0,
             Self::Tick(operation) => operation.allocation_capacity(),
+            Self::PulseObserve(operation) => operation.allocation_capacity(),
             Self::TimeDebounce(operation) => operation.allocation_capacity(),
             Self::TimeTimeout(operation) => operation.allocation_capacity(),
             Self::TimeDelay(operation) => operation.allocation_capacity(),
