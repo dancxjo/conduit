@@ -13,6 +13,8 @@ use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
+use super::image_text_operation::ImageTextOperation;
+use super::image_text_record_operation::ImageTextRecordOperation;
 use super::input_semantic_operations::{InputSemanticOperation, KeyEventTeeOperation};
 use super::instrument_map_operation::InstrumentMapOperation;
 use super::json_operations::JsonOperation;
@@ -62,6 +64,7 @@ use super::timed_button_attempt_operation::TimedButtonAttemptOperation;
 use super::timed_pattern_operation::TimedPatternOperation;
 use super::timing_operations::{DebounceOperation, TimeoutOperation};
 use super::toggle_operation::StateToggleOperation;
+use super::typed_record_operation::TypedRecordFrameOperation;
 use super::vector_search_operation::VectorSearchOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
@@ -133,6 +136,9 @@ pub(super) enum InstalledOperation {
     HttpClient(HttpClientOperation),
     HttpServer(HttpServerOperation),
     Json(JsonOperation),
+    ImageText(ImageTextOperation),
+    ImageTextRecord(ImageTextRecordOperation),
+    TypedRecordFrame(TypedRecordFrameOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),

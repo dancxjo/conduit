@@ -1,6 +1,6 @@
 form ordered-record-send-queue (
     maximum-items: Count = 4
-    maximum-frame-bytes: Count = 4267
+    maximum-frame-bytes: Count = 4096
     frame: FramedTypedRecord...| > queued: FramedTypedRecord...|
 ) {
     queue: record/ordered-send-queue(maximum-items, maximum-frame-bytes)

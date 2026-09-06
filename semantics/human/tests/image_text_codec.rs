@@ -6,18 +6,22 @@ use conduit_human::*;
 
 fn record() -> (conduit_core::KindId, ImageTextRecord) {
     let profile = kind_id("media/image-rgba8@1");
-    let image = BoundedResourceRef {
-        identity: ResourceSemanticIdentity::from_digest([1; 32]),
-        content_profile: profile.clone(),
-        access_class: ResourceClassId::from("conduit.resource/image-content@1"),
-        extent: ResourceExtent {
-            bytes: 4_096,
-            items: Some(1),
+    let image = ImageObservationReference {
+        content: BoundedResourceRef {
+            identity: ResourceSemanticIdentity::from_digest([1; 32]),
+            content_profile: profile.clone(),
+            access_class: ResourceClassId::from("conduit.resource/image-content@1"),
+            extent: ResourceExtent {
+                bytes: 4_096,
+                items: Some(1),
+            },
+            lifetime: ResourceLifetime {
+                version: ResourceVersionIdentity::from_digest([2; 32]),
+                expires_at: None,
+            },
         },
-        lifetime: ResourceLifetime {
-            version: ResourceVersionIdentity::from_digest([2; 32]),
-            expires_at: None,
-        },
+        width: 640,
+        height: 480,
     };
     let record = compose_image_text(
         &profile,

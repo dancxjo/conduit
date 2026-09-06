@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 75
+maximum_forms = 78
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -116,6 +116,18 @@ title = "Image Text Composition"
 entry = "image-text-compose"
 deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "image_text_form", case = "image_text_composition_is_an_ordinary_browser_neutral_form" }
 browser_safe_not_applicable = "portable image-text composition has no reviewed browser Host execution oracle"
+[[forms]]
+slug = "image-text-delivery-record"
+title = "Image Text Delivery Record"
+entry = "image-text-delivery-record"
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "image_text_form", case = "delivery_record_is_an_ordinary_composition_over_shared_framing" }
+browser_safe_not_applicable = "portable image-text delivery recording has no reviewed browser Host execution oracle"
+[[forms]]
+slug = "image-text-inspection"
+title = "Image Text Inspection"
+entry = "image-text-inspection"
+deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "image_text_form", case = "reusable_and_composed_inspection_forms_use_generic_structured_presentation" }
+browser_safe_not_applicable = "portable structured inspection has no reviewed browser Host execution oracle"
 [[forms]]
 slug = "lenia-orbium"
 title = "Lenia Orbium"
@@ -261,6 +273,12 @@ slug = "tabular-query"
 title = "Tabular Query"
 entry = "tabular-query"
 deterministic = { package = "conduit-std-host", test = "tabular_forms", case = "deterministic_provider_preserves_types_null_and_end_of_results" }
+[[forms]]
+slug = "talking-polaroid-inspection"
+title = "Talking Polaroid Inspection"
+entry = "talking-polaroid-inspection"
+deterministic = { package = "conduit-std-host", test = "talking_polaroid_composition", case = "structural_inspection_is_sign_bound_and_does_not_claim_image_manifestation" }
+browser_safe_not_applicable = "portable Talking Polaroid inspection has no reviewed browser Host execution oracle"
 [[forms]]
 slug = "text-lab"
 title = "Text Lab"

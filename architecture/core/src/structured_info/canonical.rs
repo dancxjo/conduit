@@ -187,6 +187,55 @@ pub(super) fn decode_value<'a>(
     Ok((value, cursor.remaining))
 }
 
+pub(super) fn validate_value<'a>(
+    expected: &StructuredInfoType,
+    encoded: &'a [u8],
+) -> Result<&'a [u8], StructuredInfoRefusal> {
+    let mut cursor = Cursor::new(encoded);
+    validate_value_node(expected, &mut cursor)?;
+    Ok(cursor.remaining)
+}
+
+fn validate_value_node(
+    expected: &StructuredInfoType,
+    cursor: &mut Cursor<'_>,
+) -> Result<(), StructuredInfoRefusal> {
+    match (expected.shape(), cursor.byte()?) {
+        (super::StructuredInfoTypeShape::Leaf(_), 0) => {
+            cursor.bytes()?;
+        }
+        (super::StructuredInfoTypeShape::Collection { element, length }, 1) => {
+            if cursor.length()? != usize::from(length) {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            for _ in 0..length {
+                validate_value_node(element, cursor)?;
+            }
+        }
+        (super::StructuredInfoTypeShape::Record { fields, .. }, 2) => {
+            if cursor.length()? != fields.len() {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            for field in fields {
+                if cursor.text_ref()? != field.name() {
+                    return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+                }
+                validate_value_node(field.value_type(), cursor)?;
+            }
+        }
+        (super::StructuredInfoTypeShape::Variant { cases, .. }, 3) => {
+            let tag = cursor.text_ref()?;
+            let case = cases
+                .iter()
+                .find(|case| case.tag() == tag)
+                .ok_or(StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+            validate_value_node(case.payload_type(), cursor)?;
+        }
+        _ => return Err(StructuredInfoRefusal::MalformedCanonicalEncoding),
+    }
+    Ok(())
+}
+
 fn decode_value_node(
     expected: &StructuredInfoType,
     cursor: &mut Cursor<'_>,
@@ -279,8 +328,11 @@ impl<'a> Cursor<'a> {
     }
 
     pub(super) fn text(&mut self) -> Result<String, StructuredInfoRefusal> {
+        self.text_ref().map(String::from)
+    }
+
+    pub(super) fn text_ref(&mut self) -> Result<&'a str, StructuredInfoRefusal> {
         core::str::from_utf8(self.bytes()?)
-            .map(String::from)
             .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)
     }
 

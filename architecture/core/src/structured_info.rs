@@ -8,7 +8,9 @@ use alloc::vec::Vec;
 
 use crate::KindId;
 
+mod borrowed;
 mod canonical;
+pub use borrowed::*;
 mod inspection;
 mod profile;
 mod selection;
@@ -16,7 +18,7 @@ mod transport;
 mod validation;
 use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
-    type_extent, value_extent,
+    type_extent, validate_value, value_extent,
 };
 pub use inspection::*;
 pub use profile::*;
@@ -230,6 +232,18 @@ impl StructuredInfoType {
         let mut encoded = Vec::new();
         encode_type(self, &mut encoded);
         check_encoding_size(encoded)
+    }
+
+    /// Validates one canonical value node against this exact type without allocating.
+    pub fn validate_canonical_node(&self, encoded: &[u8]) -> Result<(), StructuredInfoRefusal> {
+        if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        if validate_value(self, encoded)?.is_empty() {
+            Ok(())
+        } else {
+            Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+        }
     }
 
     pub fn semantic_digest(&self) -> Result<[u8; 32], StructuredInfoRefusal> {

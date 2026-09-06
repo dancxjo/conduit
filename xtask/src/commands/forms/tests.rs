@@ -24,7 +24,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 59);
+    assert_eq!(checks.len(), 62);
     assert!(checks.iter().all(|result| result.status == "passed"));
     let measurement_window = checks
         .iter()
