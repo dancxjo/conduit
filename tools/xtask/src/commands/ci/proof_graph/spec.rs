@@ -79,7 +79,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             ".github/workflows/reconcile-candidate.yml",
             ".github/workflows/retire-merged-pr-branch.yml",
             ".github/workflows/retire-superseded-candidates.yml",
-            "scripts/ci",
+            "tools/ci", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools",
             "tools/xtask-dispatch",
             "tools/xtask/src/commands/ci",
         ],
@@ -217,12 +217,12 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --project chromium --workers 1 --retries 0",
+        command: "node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "browser.patchbay-debugger",
@@ -231,8 +231,8 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         inputs: &[
             "Cargo.toml",
             "Cargo.lock",
-            "package.json",
-            "package-lock.json",
+            "proof/browser/package.json",
+            "proof/browser/package-lock.json",
             "architecture/kernel/src/debug_observation.rs",
             "architecture/kernel/src/debug_observation",
             "architecture/kernel/src/scheduler.rs",
@@ -245,12 +245,12 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProductProof("products.patchbay-debugger"),
-        command: "cargo test --locked -p patchbay-model debugger_ && cargo test --locked -p conduit-kernel --test debug_observation && npx playwright test --config proof/browser/patchbay-debugger.config.mjs proof/browser/patchbay-debugger-watch.spec.mjs --project chromium --workers 1 --retries 0",
+        command: "cargo test --locked -p patchbay-model debugger_ && cargo test --locked -p conduit-kernel --test debug_observation && node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/patchbay-debugger.config.mjs proof/browser/patchbay-debugger-watch.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "products.pages-carrier",
@@ -259,8 +259,8 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         inputs: &[
             "Cargo.toml",
             "Cargo.lock",
-            "package.json",
-            "package-lock.json",
+            "proof/browser/package.json",
+            "proof/browser/package-lock.json",
             "fabrication",
             "products",
             "targets/std/profiles",
@@ -278,7 +278,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -362,13 +362,13 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         id: "conduitos.tools",
         contract_version: 1,
         kind: ProofKind::Machine,
-        inputs: &["scripts/ci/conduitos-tools.sh", "scripts/ci/conduitos-tools-packages.txt"],
+        inputs: &["targets/conduitos/tools/conduitos-tools.sh", "targets/conduitos/tools/conduitos-tools-packages.txt"],
         implementation_inputs: &[".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-conduitos-tools-v1",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::ConduitosRequired,
-        command: "scripts/ci/conduitos-tools.sh prepare target/conduitos/tool-bundle && scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle",
+        command: "targets/conduitos/tools/conduitos-tools.sh prepare target/conduitos/tool-bundle && targets/conduitos/tools/conduitos-tools.sh verify target/conduitos/tool-bundle",
     },
     conduitos_proof!("conduitos.x86.kernel", Selection::ConduitosX86("kernel"), "ubuntu-qemu-x86_64-batch-v1", "cargo xtask conduitos prove-many --proof kernel --locked"),
     conduitos_proof!("conduitos.x86.xhci", Selection::ConduitosX86("xhci"), "ubuntu-qemu-x86_64-batch-v1", "cargo xtask conduitos prove-many --proof xhci --locked"),

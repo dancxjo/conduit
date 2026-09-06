@@ -79,7 +79,7 @@ for route in birth first-host physical-host graduate; do
   cp products/creche/browser/creche.html "$destination/$route/index.html"
 done
 
-node scripts/ci/build-browser-application-package.mjs \
+node targets/browser/tools/build-browser-application-package.mjs \
   products/creche/browser/creche.application.template.json "$destination" creche.application.json
 
 file_count=$(find "$destination" -type f | wc -l)

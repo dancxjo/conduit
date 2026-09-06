@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { hasRetainedArtifact, productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../scripts/ci/pages-product-run-selection.mjs";
+import { hasRetainedArtifact, productCarrierRuns, resolveExactMainSource, resolveMergedPullSource, selectExactRun, selectExactSuccessfulRun } from "../../tools/ci/pages-product-run-selection.mjs";
 
 const head = "ef22d9e1b0f3d4cbc19fb35ac4e330f8dbf2b5dc";
 const merged = "7dccbe822271ef1ac8a0fd49e7cc37add40a943c";

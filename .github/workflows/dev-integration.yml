@@ -24,7 +24,7 @@ jobs:
         env:
           CONDUIT_EVENT_NAME: push
           CONDUIT_REF_NAME: ${{ github.ref_name }}
-        run: node scripts/ci/branch-boundary.mjs dev
+        run: node tools/ci/branch-boundary.mjs dev
 
   check:
     needs: boundary

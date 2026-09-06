@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { validateBoundary } from "../../scripts/ci/branch-boundary.mjs";
+import { validateBoundary } from "../../tools/ci/branch-boundary.mjs";
 
 test("feature candidates enter dev through focused admission", () => {
   assert.deepEqual(validateBoundary("candidate", {

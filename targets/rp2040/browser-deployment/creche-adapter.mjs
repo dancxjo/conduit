@@ -266,7 +266,7 @@ export function createRp2040CrecheTargetAdapter({ host }) {
         failure_chain: errorChain(error),
       } : null;
       const permissionHint = /access denied/i.test(error?.message ?? "")
-        ? " On Linux, run `sudo scripts/install-pico-headless-flash.sh` and reconnect the Pico in BOOTSEL mode."
+        ? " On Linux, run `sudo targets/rp2040/tools/install-pico-headless-flash.sh` and reconnect the Pico in BOOTSEL mode."
         : "";
       refuse(
         mode,

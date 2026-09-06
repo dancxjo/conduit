@@ -22,7 +22,7 @@ cp targets/browser/host/assets/text-lab-live-runtime.mjs "$destination/assets/"
 cp targets/browser/host/assets/websocket-line.mjs "$destination/assets/"
 cp "$runtime" "$destination/assets/conduit-browser-runtime.wasm"
 "$static_assets" "$destination/api/snapshot" "$destination/assets/theme.css"
-node scripts/ci/build-browser-application-package.mjs \
+node targets/browser/tools/build-browser-application-package.mjs \
   products/patchbay/html/assets/patchbay.application.template.json "$destination" patchbay.application.json
 
 test -f "$destination/index.html"

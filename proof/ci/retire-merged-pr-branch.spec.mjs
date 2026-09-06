@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { retireMergedPullBranch } from "../../scripts/ci/retire-merged-pr-branch.mjs";
+import { retireMergedPullBranch } from "../../tools/ci/retire-merged-pr-branch.mjs";
 
 const repository = "dancxjo/conduit";
 const parentHead = "a".repeat(40);

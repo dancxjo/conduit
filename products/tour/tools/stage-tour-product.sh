@@ -67,7 +67,7 @@ printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
     cp products/tour/browser/tour.html "$destination/$route/index.html"
 done
 
-node scripts/ci/build-browser-application-package.mjs \
+node targets/browser/tools/build-browser-application-package.mjs \
     products/tour/browser/tour.application.template.json "$destination" tour.application.json
 
 test "$(find "$destination" -type f | wc -l)" -eq 48

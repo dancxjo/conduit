@@ -27,7 +27,7 @@ async function stageFixture() {
     await cp(join(fixtureSource, path), join(stagedFixture, path));
   }
   await execute("node", [
-    "scripts/ci/build-browser-application-package.mjs",
+    "targets/browser/tools/build-browser-application-package.mjs",
     join(fixtureSource, "fourth.application.template.json"),
     stagedFixture,
     "application.application.json",

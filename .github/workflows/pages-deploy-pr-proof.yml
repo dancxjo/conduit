@@ -6,8 +6,8 @@ on:
     paths:
       - .github/workflows/tour-pages-deploy.yml
       - .github/workflows/pages-deploy-pr-proof.yml
-      - scripts/ci/pages-product-run-selection.mjs
-      - scripts/ci/resolve-pages-product-run.mjs
+      - tools/ci/pages-product-run-selection.mjs
+      - tools/ci/resolve-pages-product-run.mjs
       - proof/ci/pages-product-run-selection.spec.mjs
       - proof/ci/pages-workflow-paths.spec.mjs
 

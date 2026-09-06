@@ -28,7 +28,7 @@ jobs:
           CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
           CONDUIT_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
           CONDUIT_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: node scripts/ci/retire-superseded-candidates.mjs | tee retired-candidates.json
+        run: node tools/ci/retire-superseded-candidates.mjs | tee retired-candidates.json
       - name: Summarize exact cancellation decisions
         run: |
           printf '## Superseded candidate retirement\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"

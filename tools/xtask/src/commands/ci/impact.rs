@@ -41,7 +41,7 @@ const GLOBAL_PREFIXES: [&str; 5] = [
     ".github/",
     ".cargo/",
     "tools/xtask/",
-    "scripts/ci/",
+    "tools/ci/",
     "tools/xtask-dispatch/",
 ];
 const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
@@ -60,7 +60,7 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         implementation_inputs: &[
             ".github/workflows/retire-superseded-candidates.yml",
             "proof/ci/retire-superseded-candidates.spec.mjs",
-            "scripts/ci/retire-superseded-candidates.mjs",
+            "tools/ci/retire-superseded-candidates.mjs",
         ],
         required_inputs: &[],
         workspace_packages: &[],
@@ -70,7 +70,7 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         implementation_inputs: &[
             ".github/workflows/reconcile-candidate.yml",
             "proof/ci/reconcile-candidate-request.spec.mjs",
-            "scripts/ci/reconcile-candidate-request.mjs",
+            "tools/ci/reconcile-candidate-request.mjs",
         ],
         required_inputs: &[],
         workspace_packages: &[],
@@ -117,7 +117,7 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         implementation_inputs: &[
             ".github/workflows/retire-merged-pr-branch.yml",
             "proof/ci/retire-merged-pr-branch.spec.mjs",
-            "scripts/ci/retire-merged-pr-branch.mjs",
+            "tools/ci/retire-merged-pr-branch.mjs",
             "tools/xtask/src/commands/ci/impact.rs",
             "tools/xtask/src/commands/ci/impact/tests.rs",
             "tools/xtask/tests/ci_workflow_contract.rs",
@@ -127,7 +127,7 @@ const CONTROLLER_PROOFS: &[ControllerProofSpec] = &[
         required_inputs: &[
             ".github/workflows/retire-merged-pr-branch.yml",
             "proof/ci/retire-merged-pr-branch.spec.mjs",
-            "scripts/ci/retire-merged-pr-branch.mjs",
+            "tools/ci/retire-merged-pr-branch.mjs",
         ],
         workspace_packages: &["xtask"],
     },
@@ -191,8 +191,8 @@ const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
     ".github/workflows/pages-deploy-pr-proof.yml",
     "proof/ci/pages-product-run-selection.spec.mjs",
     "proof/ci/pages-workflow-paths.spec.mjs",
-    "scripts/ci/pages-product-run-selection.mjs",
-    "scripts/ci/resolve-pages-product-run.mjs",
+    "tools/ci/pages-product-run-selection.mjs",
+    "tools/ci/resolve-pages-product-run.mjs",
     "tools/xtask/src/commands/ci/impact.rs",
     "tools/xtask/src/commands/ci/impact/tests.rs",
 ];
@@ -231,7 +231,7 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     ".github/workflows/tour-products.yml",
     "fabrication/workspace/tests/family_contracts.rs",
     "proof/browser/executable-tour.spec.mjs",
-    "scripts/ci/stage-creche-product.sh",
+    "products/creche/tools/stage-creche-product.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
     "targets/raspberry-pi/browser-deployment/creche-adapter.mjs",
     "targets/raspberry-pi/browser-deployment/image.mjs",
@@ -258,7 +258,7 @@ fn is_tongues_analysis_path(path: &str) -> bool {
 
 fn is_creche_presentation_path(path: &str) -> bool {
     path == "proof/browser/executable-tour.spec.mjs"
-        || path == "scripts/ci/stage-creche-product.sh"
+        || path == "products/creche/tools/stage-creche-product.sh"
         || path == "targets/browser/host/src/server.rs"
         || path == "targets/browser/host/src/server/tests.rs"
         || path == "targets/browser/host/assets/application-presentation.mjs"
@@ -552,7 +552,7 @@ fn plan_for_paths(
         && [
             ".github/workflows/tour-products.yml",
             "proof/browser/executable-tour.spec.mjs",
-            "scripts/ci/stage-creche-product.sh",
+            "products/creche/tools/stage-creche-product.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
             "targets/raspberry-pi/fabrication-package/src/lib.rs",
         ]
@@ -572,7 +572,7 @@ fn plan_for_paths(
         .all(|path| PAGES_DEPLOY_RESOLVER_SLICE.contains(&path.as_str()))
         && substantive
             .iter()
-            .any(|path| path.as_str() == "scripts/ci/resolve-pages-product-run.mjs")
+            .any(|path| path.as_str() == "tools/ci/resolve-pages-product-run.mjs")
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/ci/pages-product-run-selection.spec.mjs");

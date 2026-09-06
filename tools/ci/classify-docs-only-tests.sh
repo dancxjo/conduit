@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-classifier="$repo_root/scripts/ci/classify-docs-only.sh"
+classifier="$repo_root/tools/ci/classify-docs-only.sh"
 fixture="$(mktemp -d)"
 trap 'rm -rf "$fixture"' EXIT
 

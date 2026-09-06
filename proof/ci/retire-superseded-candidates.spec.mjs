@@ -6,7 +6,7 @@ import {
   duplicateCurrentCandidateRuns,
   retireSupersededCandidates,
   supersededCandidateRuns,
-} from "../../scripts/ci/retire-superseded-candidates.mjs";
+} from "../../tools/ci/retire-superseded-candidates.mjs";
 
 const current = "b".repeat(40);
 const old = "a".repeat(40);

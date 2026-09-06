@@ -45,7 +45,7 @@ runs:
         CONDUIT_ARTIFACT_EXPECTED_DIGEST: ${{ inputs.expected-digest }}
         CONDUIT_ARTIFACT_ARCHIVE: ${{ steps.paths.outputs.archive }}
         CONDUIT_ARTIFACT_RESULT: ${{ steps.paths.outputs.result }}
-      run: node scripts/ci/download-exact-artifact.mjs
+      run: node tools/ci/download-exact-artifact.mjs
     - name: Extract verified artifact bytes
       shell: bash
       env:

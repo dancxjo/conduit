@@ -230,7 +230,7 @@ To run the physical std-to-Pico USB proof, build and flash the `usb-remote` firm
 On a desktop-free Linux host, install the narrow BOOTSEL mount helper once:
 
 ```bash
-sudo scripts/install-pico-headless-flash.sh
+sudo targets/rp2040/tools/install-pico-headless-flash.sh
 ```
 
 The installer permits members of `plugdev` to invoke only the fixed root-owned

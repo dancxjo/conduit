@@ -31,7 +31,9 @@ pub(super) fn local_playwright(root: &Path) -> PathBuf {
     } else {
         "playwright"
     };
-    root.join("node_modules").join(".bin").join(name)
+    root.join("proof/browser/node_modules")
+        .join(".bin")
+        .join(name)
 }
 
 pub(super) fn execute(
@@ -250,7 +252,7 @@ mod tests {
     #[test]
     fn local_tooling_is_exact_and_never_uses_npx() {
         let path = local_playwright(Path::new("/fixture"));
-        assert!(path.ends_with(Path::new("node_modules/.bin/playwright")));
+        assert!(path.ends_with(Path::new("proof/browser/node_modules/.bin/playwright")));
     }
 
     #[test]

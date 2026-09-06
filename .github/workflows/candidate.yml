@@ -24,7 +24,7 @@ jobs:
         env:
           CONDUIT_EVENT_NAME: pull_request
           CONDUIT_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: node scripts/ci/branch-boundary.mjs candidate
+        run: node tools/ci/branch-boundary.mjs candidate
 
   shared-compile:
     needs: boundary

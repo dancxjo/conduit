@@ -73,7 +73,7 @@ fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
         vec![
             ".github/workflows/retire-superseded-candidates.yml".to_owned(),
             "proof/ci/retire-superseded-candidates.spec.mjs".to_owned(),
-            "scripts/ci/retire-superseded-candidates.mjs".to_owned(),
+            "tools/ci/retire-superseded-candidates.mjs".to_owned(),
         ],
         &packages,
     )
@@ -89,7 +89,7 @@ fn candidate_retirement_controller_changes_run_only_their_exact_proof() {
     let mixed = plan_for_paths(
         &root,
         vec![
-            "scripts/ci/retire-superseded-candidates.mjs".to_owned(),
+            "tools/ci/retire-superseded-candidates.mjs".to_owned(),
             "unclassified-controller-neighbor.bin".to_owned(),
         ],
         &packages,
@@ -108,7 +108,7 @@ fn current_controller_reconciliation_changes_run_only_their_exact_proof() {
         vec![
             ".github/workflows/reconcile-candidate.yml".to_owned(),
             "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
-            "scripts/ci/reconcile-candidate-request.mjs".to_owned(),
+            "tools/ci/reconcile-candidate-request.mjs".to_owned(),
         ],
         &packages,
     )
@@ -265,8 +265,8 @@ fn merged_branch_retirement_is_controller_work_not_machine_fabrication() {
             ".github/workflows/retire-merged-pr-branch.yml".to_owned(),
             "proof/ci/reconcile-candidate-request.spec.mjs".to_owned(),
             "proof/ci/retire-merged-pr-branch.spec.mjs".to_owned(),
-            "scripts/ci/reconcile-candidate-request.mjs".to_owned(),
-            "scripts/ci/retire-merged-pr-branch.mjs".to_owned(),
+            "tools/ci/reconcile-candidate-request.mjs".to_owned(),
+            "tools/ci/retire-merged-pr-branch.mjs".to_owned(),
             "tools/xtask/src/commands/ci/impact.rs".to_owned(),
             "tools/xtask/src/commands/ci/impact/tests.rs".to_owned(),
             "tools/xtask/tests/ci_workflow_contract.rs".to_owned(),
@@ -590,7 +590,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let partial_pi_zero_creche = plan_for_paths(
         &root,
         vec![
-            "scripts/ci/stage-creche-product.sh".to_owned(),
+            "products/creche/tools/stage-creche-product.sh".to_owned(),
             "targets/raspberry-pi/fabrication-package/src/lib.rs".to_owned(),
         ],
         &packages,
@@ -608,11 +608,11 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
             "products/patchbay/html/assets/app.css".to_owned(),
             "products/patchbay/html/assets/app.js".to_owned(),
             "proof/browser/pages-front-door.spec.mjs".to_owned(),
-            "scripts/ci/render-product-masthead.mjs".to_owned(),
-            "scripts/ci/stage-tour-product.sh".to_owned(),
-            "scripts/ci/stage-creche-product.sh".to_owned(),
-            "scripts/ci/stage-pages-root.sh".to_owned(),
-            "scripts/ci/stage-patchbay-product.sh".to_owned(),
+            "targets/browser/tools/render-product-masthead.mjs".to_owned(),
+            "products/tour/tools/stage-tour-product.sh".to_owned(),
+            "products/creche/tools/stage-creche-product.sh".to_owned(),
+            "site/tools/stage-pages-root.sh".to_owned(),
+            "products/patchbay/tools/stage-patchbay-product.sh".to_owned(),
             "semantics/presentation/assets/product-masthead.mjs".to_owned(),
             "site/site.css".to_owned(),
             "targets/browser/host/assets/application-presentation.mjs".to_owned(),
@@ -634,7 +634,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "proof/browser/executable-tour.spec.mjs".to_owned(),
-            "scripts/ci/stage-creche-product.sh".to_owned(),
+            "products/creche/tools/stage-creche-product.sh".to_owned(),
             "products/creche/browser/creche-target-catalog.mjs".to_owned(),
             "products/creche/browser/creche.css".to_owned(),
             "products/creche/browser/creche.html".to_owned(),
@@ -1052,11 +1052,10 @@ fn exact_artifact_handoff_retries_transport_but_verifies_digest_once() {
     let action =
         fs::read_to_string(root.join(".github/actions/download-exact-artifact/action.yml"))
             .unwrap();
-    let transport =
-        fs::read_to_string(root.join("scripts/ci/download-exact-artifact.mjs")).unwrap();
+    let transport = fs::read_to_string(root.join("tools/ci/download-exact-artifact.mjs")).unwrap();
     let proof = fs::read_to_string(root.join("proof/ci/download-exact-artifact.spec.mjs")).unwrap();
     let workflow = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
-    assert!(action.contains("node scripts/ci/download-exact-artifact.mjs"));
+    assert!(action.contains("node tools/ci/download-exact-artifact.mjs"));
     assert!(action.contains("CONDUIT_ARTIFACT_RUN_ID"));
     assert!(action.contains("CONDUIT_ARTIFACT_EXPECTED_DIGEST"));
     assert!(!action.contains("actions/download-artifact"));
