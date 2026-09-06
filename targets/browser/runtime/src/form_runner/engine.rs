@@ -3,7 +3,7 @@
 #[path = "engine_attempt.rs"]
 mod attempt;
 #[path = "engine_preparation.rs"]
-mod preparation;
+pub(super) mod preparation;
 #[path = "resource_effect.rs"]
 pub(super) mod resource_effect;
 #[path = "engine_transforms.rs"]

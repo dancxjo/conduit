@@ -1,5 +1,7 @@
 //! Bounded WASM boundary for the single executable-tour Play.
 
+#[path = "abi_body.rs"]
+mod body;
 #[path = "abi_effects.rs"]
 mod effects;
 #[path = "abi_profiles.rs"]

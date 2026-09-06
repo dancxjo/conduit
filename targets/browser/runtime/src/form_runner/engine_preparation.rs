@@ -43,7 +43,7 @@ pub(super) fn prepare_scheduler(
 }
 
 /// Compose already-lowered exact partitions without synthesizing a Plan.
-pub(super) fn prepare_partition_scheduler(
+pub(in crate::form_runner) fn prepare_partition_scheduler(
     partitions: &[(&PlanFragment, &LoweredPlanFragment)],
 ) -> Result<TourScheduler, String> {
     if partitions.is_empty()

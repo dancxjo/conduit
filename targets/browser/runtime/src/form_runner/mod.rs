@@ -1,6 +1,7 @@
 //! Inline Forms executed by the ordinary finite browser Host installation.
 
 pub(crate) mod abi;
+mod body_start;
 mod compact_patchbay;
 mod engine;
 mod gallery;
@@ -28,11 +29,14 @@ use protocol::{
 use std::collections::BTreeMap;
 
 struct TourSession {
+    /// Logical resource reservations retained for the lifetime of a Body Play.
+    _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
     cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
     scheduler: engine::TourScheduler,
     pending: Vec<engine::PendingHostEffect>,
     fragments: Vec<PlanFragment>,
     active_play_id: conduit_core::ActivePlayId,
+    terminal_sign_sequence: u64,
     latest_presentation: Option<PresentationIdentity>,
     host_id: conduit_core::HostId,
     boot_id: conduit_core::BootId,
@@ -185,11 +189,13 @@ impl TourSession {
             play_sequence,
         );
         let mut session = Self {
+            _resource_admissions: None,
             cancellation: None,
             scheduler,
             pending: pending_effects,
             fragments: vec![fragment.clone()],
             active_play_id: active.active_play_id,
+            terminal_sign_sequence: 0,
             latest_presentation: None,
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
@@ -229,7 +235,12 @@ impl TourSession {
         self.scheduler
             .cancel()
             .map_err(|error| format!("{error:?}"))?;
-        let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
+        let sign = bind_sign(
+            &self.host_id,
+            &self.boot_id,
+            Some(&self.active_play_id),
+            self.terminal_sign_sequence,
+        );
         Ok(receipt(
             "cancelled",
             &self.active_play_id,
@@ -386,7 +397,12 @@ impl TourSession {
     }
 
     fn completed_receipt(&self) -> TourReceipt {
-        let sign = bind_sign(&self.host_id, &self.boot_id, Some(&self.active_play_id), 0);
+        let sign = bind_sign(
+            &self.host_id,
+            &self.boot_id,
+            Some(&self.active_play_id),
+            self.terminal_sign_sequence,
+        );
         receipt(
             "completed",
             &self.active_play_id,
