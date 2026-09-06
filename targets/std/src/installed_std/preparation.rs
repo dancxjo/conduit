@@ -42,7 +42,7 @@ pub(super) fn prepare_operations(
     Ok(drivers)
 }
 
-pub(super) fn lower_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, String> {
+pub(crate) fn lower_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, String> {
     let profile = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE
         .with_state_storage(
             MAX_NODES as u16,
