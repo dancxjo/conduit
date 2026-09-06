@@ -1,5 +1,7 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
+mod host_input_ownership;
+
 use crate::{
     debug_observation::{
         DebugBreakpoint, DebugControlRefusal, DebugEventKind, DebugObservationRefusal,
@@ -2303,47 +2305,13 @@ where
                 .ok_or(SchedulerError::InvalidPortAccess)?;
             *slot = Some(value);
         }
-        if let Some((_, _, input)) = host_request {
-            let value = input.value;
-            if available_host_value == Some(value) && !consumed_host_completion {
-                return Err(SchedulerError::InvalidHostOperationAccess);
-            }
-            if discards.iter().flatten().any(|discard| *discard == value)
-                || retained_values
-                    .iter()
-                    .flatten()
-                    .any(|retained| *retained == value)
-            {
-                return Err(SchedulerError::InvalidHostOperationAccess);
-            }
-            if !outputs.iter().flatten().any(|output| *output == value) {
-                let consumed_references = consumed
-                    .iter()
-                    .copied()
-                    .enumerate()
-                    .filter(|(port, is_consumed)| {
-                        *is_consumed
-                            && self.node_specs[node].input_cords[*port]
-                                .and_then(|cord| self.peek(usize::from(cord.0)).ok().flatten())
-                                == Some(value)
-                    })
-                    .count()
-                    + usize::from(consumed_host_value == Some(value));
-                let input_matches = self.node_specs[node]
-                    .input_cords
-                    .iter()
-                    .flatten()
-                    .filter(|cord| self.peek(usize::from(cord.0)).ok().flatten() == Some(value))
-                    .count();
-                if input_matches > consumed_references {
-                    return Err(SchedulerError::InvalidHostOperationAccess);
-                }
-                let current = usize::from(self.values.reference_count(value)?);
-                if current < consumed_references {
-                    return Err(SchedulerError::Storage(StorageError::StaleReference));
-                }
-            }
-        }
+        self.preflight_host_input(
+            node,
+            staged,
+            retained_values,
+            available_host_value,
+            consumed_host_value,
+        )?;
         for discard in discards.iter().copied().flatten() {
             self.values.get(discard)?;
             if retained_values
