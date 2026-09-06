@@ -5,6 +5,7 @@
 //! released is off.
 
 use super::{input_button_transition_type, StandardKindContract, TerminalBehavior};
+mod prepared;
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
@@ -13,6 +14,7 @@ use conduit_core::{
     PortDirection, PortTemporal, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
 };
+pub use prepared::PreparedButtonIndicatorMapper;
 
 pub const BUTTON_SOURCE_KIND: &str = "input/button";
 pub const BUTTON_SOURCE_REVISION: &str = "conduit.input/button@2";
@@ -27,6 +29,7 @@ pub const BUTTON_TRANSITION_MAXIMUM_VALUES: u16 = 8;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ButtonIndicatorRefusal {
     Malformed(StructuredInfoRefusal),
+    Selection(conduit_core::StructuredSelectorRefusal),
     WrongType,
     MissingPhase,
     UnknownPhase,
