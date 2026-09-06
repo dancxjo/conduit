@@ -1,5 +1,5 @@
 //! Ownership handoff after scheduler execution is terminal and drained.
-use super::{FixedScheduler, OperationDriver, SchedulerError, StepOperation};
+use super::{FixedScheduler, SchedulerError, StepOperation};
 use crate::{KernelEventKind, NodeId, SignSink, ValueStorage};
 
 /// Retains the original drivers, storage and evidence without cloning State.
@@ -12,13 +12,6 @@ pub struct RetiredExecution<D, S, E, const NODES: usize> {
     pub active_nodes: usize,
     pub decisions: u32,
     pub cancelled: bool,
-}
-
-impl<O, const PORTS: usize> OperationDriver<O, PORTS> {
-    /// Consumes an owned driver. Active schedulers expose only borrowed drivers.
-    pub fn into_operation(self) -> O {
-        self.operation
-    }
 }
 
 impl<
