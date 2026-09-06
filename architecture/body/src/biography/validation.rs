@@ -19,7 +19,8 @@ impl BodyBiographyEvidence {
         if let Some(graduation) = &self.graduation {
             validate_graduation(graduation)?;
         }
-        self.validate_records()
+        self.validate_records()?;
+        self.validate_wake_history()
     }
 
     pub(super) fn validate_records(&self) -> Result<(), BodyBiographyError> {
@@ -45,6 +46,8 @@ impl BodyBiographyEvidence {
         }
         for record in self.records.iter().skip(1) {
             match &record.kind {
+                BodyBiographyRecordKind::WakeEvent { .. }
+                | BodyBiographyRecordKind::LullRetained { .. } => {}
                 BodyBiographyRecordKind::PartAdmitted { change_id, part_id } => {
                     let event = membership_event(&self.membership, change_id)?;
                     if event.part_id != *part_id

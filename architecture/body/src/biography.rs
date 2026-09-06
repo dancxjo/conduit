@@ -10,8 +10,10 @@ use crate::{
 };
 
 mod validation;
+mod wake_history;
 
 pub const MAX_BODY_BIOGRAPHY_RECORDS: usize = 64;
+pub const MAX_BODY_BIOGRAPHY_WAKES: usize = 8;
 pub const MAX_BODY_FRIENDLY_NAME_BYTES: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,6 +34,13 @@ pub struct BodyGraduationEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyBiographyRecordKind {
+    WakeEvent {
+        wake_id: crate::WakeId,
+        event_index: u16,
+    },
+    LullRetained {
+        wake_id: crate::WakeId,
+    },
     Born {
         initial_workset: crate::BodyWorkset,
         workload_revision: u64,
@@ -88,6 +97,8 @@ pub struct BodyBiographyEvidence {
     pub membership: BodyMembership,
     pub graduation: Option<BodyGraduationEvidence>,
     pub records: Vec<BodyBiographyRecord>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub wakes: Vec<crate::Wake>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -123,6 +134,7 @@ impl BodyBiographyEvidence {
             friendly_name,
             membership,
             graduation: None,
+            wakes: Vec::new(),
             records: vec![BodyBiographyRecord {
                 sequence: body.birth_sequence,
                 sign_id,
@@ -224,6 +236,9 @@ impl BodyBiographyEvidence {
         self.can_append(events.len())?;
         if body.body_id != self.body_id {
             return Err(BodyBiographyError::WrongBody);
+        }
+        if !body.events.starts_with(&self.body.events) {
+            return Err(BodyBiographyError::InvalidEvidence);
         }
         let mut candidate = self.clone();
         candidate.body = body;
