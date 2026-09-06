@@ -253,7 +253,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
         ),
         (
             ".github/workflows/tour-products.yml",
-            ".github/workflows/tour-products.yml",
+            ".github/workflows/renamed-tour-products.yml",
         ),
     ];
     for (old, _) in migrations {
