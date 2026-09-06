@@ -11,31 +11,53 @@ pub(super) fn prepare_operations(
     play: &conduit_core::ActivePlayIdentity,
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
 ) -> Result<[OperationDriver<InstalledOperation, PORTS>; MAX_NODES], String> {
+    if lowered.identity.plan_id != fragment.plan_id
+        || lowered.identity.fragment_id != fragment.fragment_id
+        || play.plan_id != fragment.plan_id
+        || play.host_id != fragment.host_id
+        || play.boot_id != fragment.boot_id
+    {
+        return Err("operation preparation requires the exact partition Plan and Play".into());
+    }
+    let mut occupied = [false; MAX_NODES];
+    for node in &lowered.nodes {
+        let slot = occupied
+            .get_mut(usize::from(node.node.0))
+            .ok_or_else(|| "lowered node exceeds installed driver capacity".to_string())?;
+        if *slot {
+            return Err("duplicate lowered operation node".into());
+        }
+        *slot = true;
+    }
     validate_retained_inputs(
         fragment,
         lowered,
         play,
         retained.as_deref().map(Vec::as_slice).unwrap_or(&[]),
     )?;
-    let mut operations = Vec::with_capacity(MAX_NODES);
+    // Kernel IDs may be offset within a combined workload. Resolve authored
+    // placement identity inside this exact partition, never by the global ID.
+    let mut operations: Vec<_> = (0..MAX_NODES)
+        .map(|_| InstalledOperation::inactive())
+        .collect();
     for node in &lowered.nodes {
         let placement = fragment
             .placements
-            .get(usize::from(node.node.0))
+            .iter()
+            .find(|placement| placement.placement_id == node.placement_id)
             .ok_or_else(|| "lowered node has no planned placement".to_string())?;
         if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
             if state.contract.retained.is_some() {
-                operations.push(InstalledOperation::inactive());
                 continue;
             }
-            operations.push(InstalledOperation::TypedState(Box::new(
+            operations[usize::from(node.node.0)] = InstalledOperation::TypedState(Box::new(
                 crate::state_value::TypedStateOperation::prepare_for_play(fragment, state, play)?,
-            )));
+            ));
         } else {
             let factory = factory(&placement.implementation_id).ok_or_else(|| {
                 "planned implementation is not installed or lacks sealed State".to_string()
             })?;
-            operations.push((factory.prepare)(placement, values)?);
+            operations[usize::from(node.node.0)] = (factory.prepare)(placement, values)?;
         }
     }
     // Ordinary/fresh preparation finishes before any incoming cell is consumed.
@@ -63,9 +85,6 @@ pub(super) fn prepare_operations(
         };
         operations[usize::from(state.node.0)] = InstalledOperation::TypedState(Box::new(operation));
     }
-    while operations.len() < MAX_NODES {
-        operations.push(InstalledOperation::inactive());
-    }
     let drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES] = operations
         .into_iter()
         .map(|operation| {
@@ -77,6 +96,10 @@ pub(super) fn prepare_operations(
         .map_err(|_| "installed driver capacity changed".to_string())?;
     Ok(drivers)
 }
+
+#[cfg(test)]
+#[path = "preparation_tests.rs"]
+mod tests;
 
 pub(crate) fn lower_fragment_with_continuity(
     fragment: &PlanFragment,
