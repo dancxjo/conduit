@@ -234,6 +234,8 @@ jobs:
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
           proof/ci/classify-pr-stack.spec.mjs
+          proof/ci/browser-product-ownership.test.mjs
+          proof/ci/tour-compatibility.test.mjs
       - name: Verify the dependency-light typed CI planner contracts
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: cargo test --locked --package conduit-xtask-dispatch
