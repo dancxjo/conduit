@@ -63,3 +63,5 @@ pub(crate) mod test_json;
 
 #[cfg(test)]
 pub(crate) mod test_timing_sink;
+
+pub(crate) mod button_attempt;

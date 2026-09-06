@@ -110,7 +110,7 @@ function requireTourAbi(api) {
   const required = [
     "memory", "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
     "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
-    "conduit_browser_form_poll_effect", "conduit_browser_form_complete_effect", "conduit_browser_form_pending_capacity",
+    "conduit_browser_form_acknowledge_cancellation", "conduit_browser_form_poll_effect", "conduit_browser_form_complete_effect", "conduit_browser_form_pending_capacity",
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
@@ -1027,10 +1027,14 @@ async function runListing(runner, source, recursive) {
     const effects = new Map();
     let wake = null;
     const capacity = api.conduit_browser_form_pending_capacity();
-    const perform = async (progress) => {
-      if (progress.effect_kind === "timer") {
+    const perform = async (progress, signal) => {
+      if (progress.effect_kind === "clock-observation") {
+        const bytes = new Uint8Array(8);
+        new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(performance.now() * 1000)), true);
+        return bytes;
+      } else if (progress.effect_kind === "timer") {
         runner.playStatus.ordinary(`Waiting for planned tick · ${progress.duration_millis} ms`);
-        if (!await delay(progress.duration_millis, current)) return;
+        if (!await delay(progress.duration_millis, current, signal)) return;
       } else if (progress.effect_kind === "key-event") {
         runner.playStatus.ordinary("Waiting for one admitted keyboard transition…");
         const event = await humanInput.nextKeyboard();
@@ -1077,17 +1081,34 @@ async function runListing(runner, source, recursive) {
         const effect = progress;
         const key = JSON.stringify([effect.active_play_id, effect.placement_id,
           effect.request_sequence ?? effect.observation_sequence]);
+        if (effect.effect_kind === "cancel") {
+          const pending = effects.get(key);
+          if (!pending || pending.effect.effect_kind !== "timer") {
+            throw new Error("kernel cancellation does not name a pending timer");
+          }
+          pending.controller.abort();
+          effects.delete(key);
+          const play = encoder.encode(effect.active_play_id);
+          const placement = encoder.encode(effect.placement_id);
+          const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), play.length + placement.length);
+          input.set(play);
+          input.set(placement, play.length);
+          const result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
+          if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
+          progress = readOutput(api);
+          continue;
+        }
         if (effects.has(key) || effects.size >= capacity) {
           throw new Error("browser Host effect identity or capacity violation");
         }
-        const pending = { key, effect, ready: false };
+        const pending = { key, effect, ready: false, controller: new AbortController() };
         effects.set(key, pending);
         const settle = (result) => {
           Object.assign(pending, result, { ready: true });
           wake?.();
           wake = null;
         };
-        perform(effect).then(
+        perform(effect, pending.controller.signal).then(
           (output) => settle({ output }),
           (error) => settle({ error }),
         );
@@ -1244,16 +1265,22 @@ function appendRunEvidence(runner, entries) {
   runner.evidence.appendRun(entries);
 }
 
-function delay(milliseconds, expectedGeneration) {
+function delay(milliseconds, expectedGeneration, signal) {
   return new Promise((resolve) => {
+    const finish = (accepted) => {
+      clearTimeout(pending.timeout);
+      activeDelays.delete(pending);
+      signal?.removeEventListener("abort", abort);
+      resolve(accepted);
+    };
+    const abort = () => finish(false);
     const pending = {
-      resolve,
-      timeout: setTimeout(() => {
-        activeDelays.delete(pending);
-        resolve(expectedGeneration === generation);
-      }, milliseconds),
+      resolve: finish,
+      timeout: setTimeout(() => finish(expectedGeneration === generation), milliseconds),
     };
     activeDelays.add(pending);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
   });
 }
 

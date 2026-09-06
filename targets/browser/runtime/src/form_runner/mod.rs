@@ -7,6 +7,7 @@ mod gallery;
 mod host_abi;
 mod multihost;
 mod protocol;
+mod session_cancellation;
 mod session_effects;
 
 use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
@@ -25,6 +26,7 @@ use protocol::{
 use std::collections::BTreeMap;
 
 struct TourSession {
+    cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
     scheduler: engine::TourScheduler,
     pending: Vec<engine::PendingHostEffect>,
     fragment: PlanFragment,
@@ -191,6 +193,7 @@ impl TourSession {
             play_sequence,
         );
         let mut session = Self {
+            cancellation: None,
             scheduler,
             pending: pending_effects,
             fragment: fragment.clone(),
@@ -222,7 +225,9 @@ impl TourSession {
     fn complete(mut self) -> Result<TourReceipt, String> {
         match self.advance()? {
             TourProgress::Receipt(receipt) => Ok(*receipt),
-            TourProgress::Effect(_) | TourProgress::Waiting { .. } => {
+            TourProgress::Effect(_)
+            | TourProgress::Waiting { .. }
+            | TourProgress::Cancellation { .. } => {
                 Err("Tour Play requested another Host effect before completion".into())
             }
         }
@@ -281,6 +286,19 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 })))
             }
+            engine::BrowserHostEffect::ClockObservation => Ok(TourHostEffect::ClockObservation(
+                Box::new(TourKeyEventEffect {
+                    schema: "conduit.browser/clock-observation-effect@1",
+                    effect_kind: "clock-observation",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: 8,
+                    source_interaction: self.source_interaction.clone(),
+                }),
+            )),
             engine::BrowserHostEffect::KeyEvent => {
                 Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
                     schema: "conduit.tour/key-event-effect@1",

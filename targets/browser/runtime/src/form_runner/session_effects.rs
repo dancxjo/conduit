@@ -61,6 +61,9 @@ impl TourSession {
         self.poll_effect()
     }
     pub(super) fn poll_effect(&mut self) -> Result<TourProgress, String> {
+        if let Some(cancellation) = self.poll_cancellation()? {
+            return Ok(cancellation);
+        }
         match engine::drive(&mut self.scheduler, &self.fragment)? {
             engine::DriveStatus::Effect(effect) => {
                 if self.pending.len() == self.pending.capacity() {
@@ -71,12 +74,17 @@ impl TourSession {
                     self.project_pending_effect(self.pending.len() - 1)?,
                 )))
             }
-            engine::DriveStatus::Waiting { pending_effects } => Ok(TourProgress::Waiting {
-                schema: "conduit.browser/pending-effects@1",
-                disposition: "waiting",
-                active_play_id: self.active_play_id.as_str().into(),
-                pending_effects,
-            }),
+            engine::DriveStatus::Waiting { pending_effects } => {
+                if let Some(cancellation) = self.poll_cancellation()? {
+                    return Ok(cancellation);
+                }
+                Ok(TourProgress::Waiting {
+                    schema: "conduit.browser/pending-effects@1",
+                    disposition: "waiting",
+                    active_play_id: self.active_play_id.as_str().into(),
+                    pending_effects,
+                })
+            }
             engine::DriveStatus::Complete if self.pending.is_empty() => {
                 Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
             }
@@ -143,4 +151,92 @@ mod tests {
         assert_eq!(session.pending.capacity(), capacity);
         assert_eq!(session.cancel().unwrap().disposition, "cancelled");
     }
+}
+
+#[cfg(test)]
+#[test]
+fn pressed_attempt_observes_clock_before_requesting_its_deadline() {
+    let source = "form timed {\n button: input/button(maximum-transitions = 5)\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: time/ordered-event-intervals\n button.transition > attempt.transition\n attempt.events > derive.events\n}\n";
+    let (mut session, _) =
+        TourSession::prepare("browser/clock-test", "boot/clock-test", source, 1).unwrap();
+    let bytes = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let mut progress = session.advance_with_output(&bytes).unwrap();
+    for _ in 0..3 {
+        if matches!(&progress, TourProgress::Effect(effect) if matches!(**effect, super::TourHostEffect::ClockObservation(_)))
+        {
+            break;
+        }
+        progress = session.poll_effect().unwrap();
+    }
+    assert!(
+        matches!(progress, TourProgress::Effect(effect) if matches!(*effect, super::TourHostEffect::ClockObservation(_)))
+    );
+    let clock = session
+        .pending
+        .iter()
+        .find(|pending| matches!(pending.effect, engine::BrowserHostEffect::ClockObservation))
+        .unwrap();
+    assert!(engine::complete_host_effect(&mut session.scheduler, clock).is_err());
+    let play = session.active_play_id.as_str().to_owned();
+    let placement = session.fragment.placements[usize::from(clock.request.node.0)]
+        .placement_id
+        .as_str()
+        .to_owned();
+    let request = clock.request.request.0;
+    assert!(session
+        .complete_effect(&play, &placement, request, Some(&[0]))
+        .is_err());
+    let progress = session
+        .complete_effect(&play, &placement, request, Some(&100_u64.to_le_bytes()))
+        .unwrap();
+    assert!(
+        matches!(progress, TourProgress::Effect(effect) if matches!(*effect, super::TourHostEffect::Timer(_)))
+    );
+    let button = session
+        .pending
+        .iter()
+        .find(|pending| matches!(pending.effect, engine::BrowserHostEffect::ButtonTransition))
+        .unwrap();
+    let placement = session.fragment.placements[usize::from(button.request.node.0)]
+        .placement_id
+        .as_str()
+        .to_owned();
+    let request = button.request.request.0;
+    let released = conduit_semantic_catalog::button_transition_value("button/primary", false, 1)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let mut progress = session
+        .complete_effect(&play, &placement, request, Some(&released))
+        .unwrap();
+    for _ in 0..3 {
+        if matches!(progress, TourProgress::Cancellation { .. }) {
+            break;
+        }
+        progress = session.poll_effect().unwrap();
+    }
+    let TourProgress::Cancellation {
+        placement_id,
+        request_sequence,
+        ..
+    } = progress
+    else {
+        panic!("deadline must be cancelled before observing queued transition");
+    };
+    assert!(session
+        .acknowledge_cancellation("stale", &placement_id, request_sequence)
+        .is_err());
+    let progress = session
+        .acknowledge_cancellation(&play, &placement_id, request_sequence)
+        .unwrap();
+    assert!(
+        matches!(progress, TourProgress::Effect(effect) if matches!(*effect, super::TourHostEffect::ClockObservation(_)))
+    );
+    assert!(session
+        .acknowledge_cancellation(&play, &placement_id, request_sequence)
+        .is_err());
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }

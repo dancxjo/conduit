@@ -1,5 +1,7 @@
 //! Finite generic browser execution envelope for inline Forms.
 
+#[path = "engine_attempt.rs"]
+mod attempt;
 #[path = "engine_preparation.rs"]
 mod preparation;
 #[path = "engine_transforms.rs"]
@@ -48,6 +50,7 @@ pub(super) struct TourScheduler {
     selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
         MAXIMUM_BROWSER_GEARS],
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
+    attempts: [Option<conduit_semantic_catalog::BoundedButtonAttemptCodec>; MAXIMUM_BROWSER_GEARS],
     timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
 }
 
@@ -71,6 +74,7 @@ pub(super) struct PendingHostEffect {
 }
 
 pub(super) enum BrowserHostEffect {
+    ClockObservation,
     Timer { duration_millis: u64 },
     KeyEvent,
     PointerEvent,
@@ -117,6 +121,9 @@ pub(super) fn complete_host_effect(
     scheduler: &mut TourScheduler,
     pending: &PendingHostEffect,
 ) -> Result<(), String> {
+    if matches!(pending.effect, BrowserHostEffect::ClockObservation) {
+        return Err("clock observation requires an exact timestamp".into());
+    }
     scheduler
         .complete_host_operation(
             pending.request.node,
@@ -136,6 +143,9 @@ pub(super) fn complete_host_effect_with_output(
     output: &[u8],
 ) -> Result<(), String> {
     let maximum_output_bytes = match &pending.effect {
+        BrowserHostEffect::ClockObservation => {
+            return attempt::complete_clock(scheduler, pending, output)
+        }
         BrowserHostEffect::PointerEvent => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(output)
                 .map_err(|error| format!("decode pointer input: {error:?}"))?;
@@ -199,7 +209,13 @@ pub(super) fn drive(
                 .host_value(request.input.value)
                 .map_err(debug_error)?
                 .to_vec();
-            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT {
+            if operation.contract_id.as_str() == crate::installed_browser::button_attempt::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION {
+                return Ok(DriveStatus::Effect(PendingHostEffect { request, effect: BrowserHostEffect::ClockObservation }));
+            }
+            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT
+                || operation.contract_id.as_str()
+                    == conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+            {
                 let duration_millis = decode_timer_duration(operation, &input)?;
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
@@ -278,7 +294,14 @@ fn decode_timer_duration(
     operation: &conduit_core::HostOperationRequirement,
     input: &[u8],
 ) -> Result<u64, String> {
-    if operation.target_kind.is_some()
+    let expected_target = if operation.contract_id.as_str()
+        == conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+    {
+        Some(conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND.into())
+    } else {
+        None
+    };
+    if operation.target_kind != expected_target
         || operation.maximum_in_flight != 1
         || operation.maximum_input_bytes != conduit_time::TICK_ENCODED_LEN
         || operation.maximum_output_bytes != 0

@@ -36,6 +36,7 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
     &super::timing::NORMALIZE,
     &super::json::ENCODE,
@@ -205,6 +206,7 @@ fn catalogs_for_presentation(
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)?;
@@ -316,6 +318,7 @@ pub(crate) fn advertisement_for_machinery(
         ));
     }
     resources.push(resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1));
+    super::button_attempt::admit_clock_resource(&mut resources);
     if machinery.keyboard || machinery.pointer {
         resources.push(resource_offer(
             "browser/window-input",

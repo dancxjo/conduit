@@ -19,6 +19,29 @@ pub extern "C" fn conduit_browser_form_complete_effect(
     request_sequence: u32,
     output_length: usize,
 ) -> i32 {
+    complete_effect(
+        play_length,
+        placement_length,
+        request_sequence,
+        output_length,
+        false,
+    )
+}
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_acknowledge_cancellation(
+    play_length: usize,
+    placement_length: usize,
+    request_sequence: u32,
+) -> i32 {
+    complete_effect(play_length, placement_length, request_sequence, 0, true)
+}
+fn complete_effect(
+    play_length: usize,
+    placement_length: usize,
+    request_sequence: u32,
+    output_length: usize,
+    cancelled: bool,
+) -> i32 {
     let Some(total) = play_length
         .checked_add(placement_length)
         .and_then(|n| n.checked_add(output_length))
@@ -35,6 +58,9 @@ pub extern "C" fn conduit_browser_form_complete_effect(
             core::str::from_utf8(&input[play_length..play_length + placement_length]),
         ) {
             (Ok(play), Ok(placement)) => progress(|session| {
+                if cancelled {
+                    return session.acknowledge_cancellation(play, placement, request_sequence);
+                }
                 session.complete_effect(
                     play,
                     placement,

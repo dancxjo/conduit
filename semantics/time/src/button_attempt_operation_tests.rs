@@ -175,6 +175,37 @@ fn shared_operation_retains_transition_until_exact_deadline_cancellation() {
         disposition: HostOperationDisposition::Cancelled, output: None, failure: None,
     }, None), OperationAction::RequestHostOperation { request: RequestId(2), operation: HostOperationId(1), input } if input.value == next)
     );
+    assert!(matches!(
+        operation.resume_host_operation(
+            RequestId(2),
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+            None
+        ),
+        OperationAction::RequestHostOperation {
+            request: RequestId(3),
+            operation: HostOperationId(0),
+            ..
+        }
+    ));
+    assert_eq!(
+        operation.resume_host_operation(
+            RequestId(3),
+            HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+            None
+        ),
+        OperationAction::Fail(Failure {
+            code: FailureCode::HostOperationFailed,
+            detail: 4
+        })
+    );
 }
 
 #[test]
