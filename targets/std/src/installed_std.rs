@@ -41,6 +41,7 @@ mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
+mod preparation;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_operation;
@@ -103,7 +104,6 @@ mod toggle_operation;
 mod vector_search_host;
 mod vector_search_operation;
 
-use self::catalog::factory;
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
@@ -130,7 +130,7 @@ use conduit_kernel::{
     PortId, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use std::io::Write;
 use std::time::Duration;
@@ -196,7 +196,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         mut vector_search,
         mut calendar,
     } = host;
-    let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
+    let lowered = preparation::lower_fragment(fragment)?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     if !supports(fragment)
@@ -224,9 +224,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let factory = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned implementation is not installed".to_string())?;
-        let budget = (factory.budget)(placement)?;
+        let budget = preparation::operation_budget(placement)?;
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;
@@ -255,28 +253,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut values =
         HostedValueStore::new(value_items.max(1), maximum_value_bytes, value_bytes.max(1))
             .map_err(|error| format!("installed value store: {error:?}"))?;
-    let mut operations = Vec::with_capacity(MAX_NODES);
-    for node in &lowered.nodes {
-        let placement = fragment
-            .placements
-            .get(usize::from(node.node.0))
-            .ok_or_else(|| "lowered node has no planned placement".to_string())?;
-        let factory = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned implementation is not installed".to_string())?;
-        operations.push((factory.prepare)(placement, &mut values)?);
-    }
-    while operations.len() < MAX_NODES {
-        operations.push(InstalledOperation::inactive());
-    }
-    let drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES] = operations
-        .into_iter()
-        .map(|operation| {
-            OperationDriver::new(operation)
-                .map_err(|error| format!("prepare installed operation: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .try_into()
-        .map_err(|_| "installed driver capacity changed".to_string())?;
+    let drivers = preparation::prepare_operations(fragment, &lowered, &mut values)?;
     let driver_capacity_before = drivers
         .iter()
         .map(|driver| driver.operation().allocation_capacity())
