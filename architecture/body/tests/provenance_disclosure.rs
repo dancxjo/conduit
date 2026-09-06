@@ -46,12 +46,14 @@ fn observation() -> CandidateObservation {
             profile: HostProfileId::from("profile/friendly-browser"),
             resources: vec![
                 ResourceOffer {
+                    content: None,
                     pool_id: ResourcePoolId::from("pool/audio"),
                     class_id: ResourceClassId::from("resource/audio"),
                     capacity_units: 1,
                     compute: None,
                 },
                 ResourceOffer {
+                    content: None,
                     pool_id: ResourcePoolId::from("pool/private-camera"),
                     class_id: ResourceClassId::from("resource/camera"),
                     capacity_units: 1,

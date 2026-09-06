@@ -309,7 +309,10 @@ pub fn plan_expanded_canonical_with_shared_pools(
             let mut member_capacity = capability.limits.max_active_instances.min(needed);
             let mut resources = Vec::new();
             for resource in &capability.resource_requirements {
-                if resource.units == 0 || resource.protected_role.is_some() {
+                if resource.units == 0
+                    || resource.protected_role.is_some()
+                    || resource.content.is_some()
+                {
                     return Err(PlannerError::InvalidSharedPool(format!(
                         "dynamic member capability '{}' has an unsupported resource requirement",
                         capability.capability_id.as_str()
@@ -320,9 +323,9 @@ pub fn plan_expanded_canonical_with_shared_pools(
                     .iter()
                     .filter(|offer| offer.class_id == resource.class_id)
                     .collect::<Vec<_>>();
-                if matching.len() != 1 {
+                if matching.len() != 1 || matching[0].content.is_some() {
                     return Err(PlannerError::InvalidSharedPool(format!(
-                        "dynamic member capability '{}' requires one unambiguous resource pool",
+                        "dynamic member capability '{}' requires one unambiguous non-content resource pool",
                         capability.capability_id.as_str()
                     )));
                 }
@@ -333,6 +336,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
                     .unwrap_or(0);
                 member_capacity = member_capacity.min((available / resource.units) as u16);
                 resources.push(ResourceBinding {
+                    content: None,
                     pool_id: offer.pool_id.clone(),
                     class_id: offer.class_id.clone(),
                     units: resource.units,

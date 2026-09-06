@@ -74,6 +74,7 @@ fn item_with_available(
         .expect("fixture requirement fits");
     ResourceAdmissionItem {
         binding: ResourceBinding {
+            content: None,
             pool_id: host.resources[0].pool_id.clone(),
             class_id: host.resources[0].class_id.clone(),
             units: reservation.selected_lanes,

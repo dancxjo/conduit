@@ -59,6 +59,7 @@ pub enum PlannerError {
     CurrentResourceObservationUnavailable(String),
     InvalidHostOperationRequirement(String),
     InvalidResourceContract(String),
+    ResourceContentRefused(conduit_core::ResourceContentRefusal),
     UnavailableResource(String),
     ResourceCapacityExceeded(String),
     ResourceAllowanceUnsatisfied(String),
@@ -128,6 +129,9 @@ impl core::fmt::Display for PlannerError {
             }
             Self::InvalidHostOperationRequirement(value) => {
                 write!(f, "invalid host-operation requirement: {value}")
+            }
+            Self::ResourceContentRefused(refusal) => {
+                write!(f, "resource content refused: {refusal:?}")
             }
             Self::InvalidResourceContract(value) => {
                 write!(f, "invalid resource contract: {value}")

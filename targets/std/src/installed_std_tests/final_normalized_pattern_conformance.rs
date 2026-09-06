@@ -46,6 +46,7 @@ fn final_pattern_adapter_is_reused_for_calibration_revisions() {
         .any(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
     {
         advertisement.resources.push(ResourceOffer {
+            content: None,
             pool_id: ResourcePoolId::from("pool/calibration-fixture-clock"),
             class_id: ResourceClassId::from(conduit_core::TIMER_RESOURCE_CLASS),
             capacity_units: 1,

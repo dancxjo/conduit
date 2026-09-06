@@ -91,6 +91,7 @@ fn query_only_authority_is_distinct_from_every_mutation_authority() {
 
     let mutation_only = state.handle("authority/mutate").unwrap();
     let binding = ResourceBinding {
+        content: None,
         pool_id: state.contract.pool_id.clone(),
         class_id: state.contract.class_id.clone(),
         units: 2,
@@ -186,6 +187,7 @@ fn query_bounds_are_admitted_by_the_generic_resource_binding() {
         concurrent_queries: 2,
     };
     let binding = ResourceBinding {
+        content: None,
         pool_id: state.contract.pool_id.clone(),
         class_id: state.contract.class_id.clone(),
         units: 3,
@@ -255,6 +257,7 @@ fn provider_loss_invalidates_old_handles_without_erasing_membership() {
                 concurrent_queries: 1,
             },
             &ResourceBinding {
+                content: None,
                 pool_id: state.contract.pool_id.clone(),
                 class_id: state.contract.class_id.clone(),
                 units: 1,

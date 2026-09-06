@@ -99,6 +99,7 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
             .collect(),
         resource_requirements: sink
             .then(|| ResourceRequirement {
+                content: None,
                 class_id: ResourceClassId::from(CPU),
                 units: 1,
                 protected_role: None,
@@ -132,6 +133,7 @@ fn host(name: &str, boot: &str, generation: u64, kinds: &[&str]) -> HostAdvertis
         resources: kinds
             .contains(&SINK)
             .then(|| ResourceOffer {
+                content: None,
                 pool_id: ResourcePoolId::from(format!("{name}/cpu")),
                 class_id: ResourceClassId::from(CPU),
                 capacity_units: 2,

@@ -91,6 +91,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         ProveTarget::CalendarGoogle => crate::commands::calendar_google::run(&args, &root, opts),
         ProveTarget::DegradedProfiles => run_suite(PROVE_DEGRADED_PROFILES_STEPS, &root, opts),
+        ProveTarget::ResourceFrame => run_suite(crate::suites::resource_frame::STEPS, &root, opts),
         ProveTarget::Diversity => run_suite(PROVE_DIVERSITY_STEPS, &root, opts),
         ProveTarget::DistributedLenia => {
             crate::commands::distributed_lenia::run(&args, &root, opts)

@@ -143,13 +143,11 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
     let mut d2_session = arch::receive_first_boot_keyboard_report(controller, &d2, d2_ready)
         .map_err(|_| "d2-first-report-refused")?;
     arch::early_write(b"CONDUIT_BOOT_STAGE hotplug-d2-key-up\n");
-    d2_session
+    let (followup, count) = d2_session
         .receive_followup(controller, &d2)
         .map_err(|_| "d2-second-report-refused")?;
-    let [first, second] = d2_session.transitions() else {
-        return Err("d2-transition-count-invalid");
-    };
-    let events = [first, second].map(|transition| {
+    let pair = replacement_report_pair(d2_session.transitions(), &followup[..count])?;
+    let events = pair.map(|transition| {
         keyboard_bridge::portable_key_event(
             transition.usage(),
             transition.pressed(),
@@ -271,5 +269,50 @@ fn realization(
         report_buffers,
         transition_slots,
         operation_slots,
+    }
+}
+
+fn replacement_report_pair(
+    initial: &[arch::HidKeyTransition],
+    followup: &[arch::HidKeyTransition],
+) -> Result<[arch::HidKeyTransition; 2], &'static str> {
+    let ([first], [second]) = (initial, followup) else {
+        return Err("d2-transition-count-invalid");
+    };
+    if !first.pressed() || second.pressed() || first.usage() != second.usage() {
+        return Err("d2-transition-sequence-invalid");
+    }
+    Ok([*first, *second])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replacement_uses_initial_press_and_returned_release_without_retained_history() {
+        let down = arch::HidKeyTransition::new(7, true, 0);
+        let up = arch::HidKeyTransition::new(7, false, 0);
+        assert_eq!(replacement_report_pair(&[down], &[up]), Ok([down, up]));
+        for (initial, followup) in [
+            (&[][..], &[up][..]),
+            (&[down][..], &[][..]),
+            (&[down, up][..], &[up][..]),
+        ] {
+            assert_eq!(
+                replacement_report_pair(initial, followup),
+                Err("d2-transition-count-invalid")
+            );
+        }
+        for pair in [
+            [up, down],
+            [down, down],
+            [down, arch::HidKeyTransition::new(8, false, 0)],
+        ] {
+            assert_eq!(
+                replacement_report_pair(&pair[..1], &pair[1..]),
+                Err("d2-transition-sequence-invalid")
+            );
+        }
     }
 }

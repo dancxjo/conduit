@@ -317,6 +317,7 @@ fn heterogeneous_resources_query_as_candidates_through_one_portable_form() {
                 concurrent_queries: 1,
             },
             &ResourceBinding {
+                content: None,
                 pool_id: state.contract.pool_id.clone(),
                 class_id: state.contract.class_id.clone(),
                 units: work,
@@ -390,6 +391,7 @@ fn reembedding_requires_fresh_index_handle_offer_and_plan_truth() {
                 concurrent_queries: 1,
             },
             &ResourceBinding {
+                content: None,
                 pool_id: state.contract.pool_id.clone(),
                 class_id: state.contract.class_id.clone(),
                 units: 1,
@@ -422,6 +424,7 @@ fn reembedding_requires_fresh_index_handle_offer_and_plan_truth() {
                 concurrent_queries: 1,
             },
             &ResourceBinding {
+                content: None,
                 pool_id: state.contract.pool_id.clone(),
                 class_id: state.contract.class_id.clone(),
                 units: 12,

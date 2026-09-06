@@ -63,6 +63,7 @@ fn fixture(
 
 fn binding(units: u32) -> ResourceBinding {
     ResourceBinding {
+        content: None,
         pool_id: "execution".into(),
         class_id: "test/execution".into(),
         units,

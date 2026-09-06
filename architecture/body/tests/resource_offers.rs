@@ -121,6 +121,7 @@ fn topology_bearing_eight_lane_host_pool_can_allow_body_only_two() {
     );
     let reservation = compute_reservation(&requirement, &advertisement.resources[0], 8).unwrap();
     let binding = ResourceBinding {
+        content: None,
         pool_id: "execution".into(),
         class_id: "test/execution".into(),
         units: reservation.selected_lanes,
@@ -172,6 +173,7 @@ fn original_requirement_allowance_and_current_observation_all_constrain_binding(
         BodyResourceEnvelope::new(body_id, part_id, &advertisement, vec![allowance(3)]).unwrap();
     let requirement = resource_requirement("test/execution", 2);
     let binding = |units| ResourceBinding {
+        content: None,
         pool_id: "execution".into(),
         class_id: "test/execution".into(),
         units,
@@ -258,6 +260,7 @@ fn omitted_pool_and_stale_offer_generation_refuse_even_when_host_has_capacity() 
         BodyResourceEnvelope::new(body_id, part_id, &advertisement, vec![allowance(4)]).unwrap();
     let omitted_requirement = resource_requirement("test/memory", 1);
     let omitted_binding = ResourceBinding {
+        content: None,
         pool_id: "memory".into(),
         class_id: "test/memory".into(),
         units: 1,
@@ -279,6 +282,7 @@ fn omitted_pool_and_stale_offer_generation_refuse_even_when_host_has_capacity() 
 
     let requirement = resource_requirement("test/execution", 2);
     let binding = ResourceBinding {
+        content: None,
         pool_id: "execution".into(),
         class_id: "test/execution".into(),
         units: 2,

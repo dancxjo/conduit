@@ -178,6 +178,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
             .any(|resource| resource.class_id.as_str() == class)
         {
             advertisement.resources.push(ResourceOffer {
+                content: None,
                 pool_id: ResourcePoolId::from(pool),
                 class_id: ResourceClassId::from(class),
                 capacity_units: 1,

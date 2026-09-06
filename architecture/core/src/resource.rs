@@ -14,6 +14,8 @@ pub struct ResourceRequirement {
     pub protected_role: Option<ResourceBindingRoleId>,
     #[serde(default)]
     pub compute: Option<ComputeRequirement>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<crate::ResourceContentRequirement>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -23,6 +25,8 @@ pub struct ResourceOffer {
     pub capacity_units: u32,
     #[serde(default)]
     pub compute: Option<ComputePoolContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<crate::ResourceContentOffer>,
 }
 
 /// Body-neutral planning ceiling over one unchanged Host resource pool.
@@ -127,6 +131,8 @@ pub struct ResourceBinding {
     pub protected: Option<ProtectedResourceBinding>,
     #[serde(default)]
     pub compute: Option<ComputeReservation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<crate::ResourceContentOffer>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -250,7 +256,8 @@ pub fn resource_binding_satisfies(
     requirement: &ResourceRequirement,
     offer: &ResourceOffer,
 ) -> bool {
-    if binding.pool_id != offer.pool_id
+    if !crate::resource_content::content_binding_satisfies(binding, requirement, offer)
+        || binding.pool_id != offer.pool_id
         || binding.class_id != requirement.class_id
         || offer.class_id != requirement.class_id
         || binding.protected.as_ref().map(|value| &value.role_id)
@@ -343,6 +350,7 @@ pub struct ProtectedResourceBinding {
 
 pub fn resource_requirement(class_id: &str, units: u32) -> ResourceRequirement {
     ResourceRequirement {
+        content: None,
         class_id: ResourceClassId::from(class_id),
         units,
         protected_role: None,
@@ -356,6 +364,7 @@ pub fn protected_resource_requirement(
     units: u32,
 ) -> ResourceRequirement {
     ResourceRequirement {
+        content: None,
         class_id: ResourceClassId::from(class_id),
         units,
         protected_role: Some(ResourceBindingRoleId::from(role_id)),
@@ -365,6 +374,7 @@ pub fn protected_resource_requirement(
 
 pub fn resource_offer(pool_id: &str, class_id: &str, capacity_units: u32) -> ResourceOffer {
     ResourceOffer {
+        content: None,
         pool_id: ResourcePoolId::from(pool_id),
         class_id: ResourceClassId::from(class_id),
         capacity_units,
@@ -381,6 +391,7 @@ pub fn compute_resource_requirement(
     topology: Option<ComputeTopologyRequirement>,
 ) -> ResourceRequirement {
     ResourceRequirement {
+        content: None,
         class_id: ResourceClassId::from(class_id),
         units: minimum_lanes,
         protected_role: None,
@@ -401,6 +412,7 @@ pub fn compute_resource_offer(
     contract: ComputePoolContract,
 ) -> ResourceOffer {
     ResourceOffer {
+        content: None,
         pool_id: ResourcePoolId::from(pool_id),
         class_id: ResourceClassId::from(class_id),
         capacity_units,
