@@ -69,7 +69,7 @@
     { "role": "rp2040-spawn", "kind": "module", "path": "targets/rp2040/browser-deployment/spawn.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "rp2040-uf2", "kind": "module", "path": "targets/rp2040/browser-deployment/uf2.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "std-adapter", "kind": "module", "path": "targets/std/browser-deployment/creche-adapter.mjs", "maximum_bytes": 4096, "dependencies": [{"role":"creche-existing-computer","specifier":"../../../creche-existing-computer.mjs"}] },
-    { "role": "shared-presentation-style", "kind": "style", "path": "application-theme.css", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "shared-presentation-style", "kind": "style", "path": "application-theme.css", "maximum_bytes": 12288, "dependencies": [] },
     { "role": "creche-style", "kind": "style", "path": "creche.css", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "runtime", "kind": "wasm", "path": "runtime.wasm", "maximum_bytes": 8388608, "dependencies": [] }
   ]

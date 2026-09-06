@@ -25,7 +25,7 @@
       "role": "product-masthead",
       "kind": "module",
       "path": "product-masthead.mjs",
-      "maximum_bytes": 8192,
+      "maximum_bytes": 12288,
       "dependencies": []
     }
   ]
