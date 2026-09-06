@@ -87,6 +87,11 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   const running = await snapshot(page);
   const claim = running.body_planning.execution_claims[0];
   expect(running.body_planning.lifecycle).toBe("Playing");
+  const retained = JSON.parse(Buffer.from(running.body_workbench.encoded_evidence).toString("utf8"));
+  expect(retained.body.state.Awake.wake_id).toBe(running.body_planning.wake_id);
+  expect(retained.wakes).toHaveLength(1);
+  expect(retained.wakes[0].lifecycle).toBe("Playing");
+  expect(retained.wakes[0].plans[0].active_play_id).toBe(claim.play.active_play_id);
   expect(claim.phase).toBe("Started");
   expect(claim.play.plan_id).toBe(proposed.body_planning.current_plan_id);
   expect(claim.play.body_id).toBe(initial.body_workbench.body_id);
@@ -106,6 +111,8 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   const terminal = await snapshot(page);
   expect(terminal.body_planning.execution_claims).toHaveLength(1);
   expect(terminal.body_planning.execution_claims[0].phase.Terminal.disposition).toBe("completed");
+  const exported = await (await page.request.get(new URL("/api/body-evidence", page.url()).href)).json();
+  expect(exported).toEqual(retained);
   const evidence = JSON.parse(await page.locator("#body-execution-evidence").textContent());
   expect(evidence.play).toEqual(claim.play);
   expect(evidence.receipt.active_play_id).toBe(claim.play.active_play_id);

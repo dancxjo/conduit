@@ -78,7 +78,10 @@ impl PatchbayHtmlServer {
                 });
                 if selected {
                     planning
-                        .mark_current_unsatisfied(record.sign_id.clone())
+                        .mark_current_unsatisfied(SignId::from(format!(
+                            "patchbay-html/body-membership/{}/wake-unsatisfied",
+                            record.sequence
+                        )))
                         .map_err(|error| {
                             ServerError::Interaction(format!("Body Host loss: {error:?}"))
                         })?;
@@ -138,6 +141,12 @@ impl PatchbayHtmlServer {
             .body_host_planning_offer
             .clone()
             .filter(|evidence| super::body_host_offer_evidence::is_current(evidence, &candidate));
+        snapshot.body_planning = next_planning.as_ref().map(|planning| planning.snapshot());
+        let (session, mut snapshot) = if let Some(planning) = &next_planning {
+            super::body_execution::history::retain(&snapshot, &session, planning)?
+        } else {
+            (session, snapshot)
+        };
         snapshot.body_planning = next_planning.as_ref().map(|planning| planning.snapshot());
         let navigation = navigation_state(&snapshot)?;
         let encoded_snapshot = snapshot.encode()?;

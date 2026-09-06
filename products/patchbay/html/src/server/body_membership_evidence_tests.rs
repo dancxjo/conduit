@@ -311,3 +311,56 @@ fn reconciliation_compares_exact_wake_events_not_only_their_record_references() 
     candidate.validate().unwrap();
     assert!(reconciliation::merge_membership_extension(&local, &candidate).is_err());
 }
+
+#[test]
+fn selected_host_departure_retains_unsatisfied_wake_without_rewriting_the_plan() {
+    let mut server = crate::server::body_execution_proposal::tests::proposed_server();
+    let observer = server.body_workload.as_ref().unwrap().evidence().clone();
+    let forms = server
+        .body_planning
+        .as_ref()
+        .unwrap()
+        .current_plan()
+        .forms
+        .clone();
+    let planning = patchbay_model::BodyPlanningSession::start(
+        &observer.body,
+        1,
+        "sign/running-wake".into(),
+        forms,
+        "sign/plan".into(),
+        1,
+        "sign/play".into(),
+    )
+    .unwrap();
+    let plan = planning.current_plan().clone();
+    let sequence = observer.records.last().unwrap().sequence + 1;
+    server
+        .body_workload
+        .as_mut()
+        .unwrap()
+        .retain_wake(planning.body().clone(), planning.wake().clone(), sequence)
+        .unwrap();
+    server.body_planning = Some(planning);
+    let left = leave_extension(&observer);
+    server
+        .apply_body_membership_evidence(&serde_json::to_vec(&left).unwrap())
+        .unwrap();
+    let planning = server.body_planning.as_ref().unwrap();
+    assert_eq!(planning.current_plan(), &plan);
+    assert_eq!(
+        planning.wake().lifecycle,
+        conduit_body::WakeLifecycle::Unsatisfied
+    );
+    let retained = server.body_workload.as_ref().unwrap().evidence();
+    assert_eq!(retained.wakes, vec![planning.wake().clone()]);
+    assert_eq!(retained.membership, left.membership);
+    assert_eq!(&retained.body, planning.body());
+    retained.validate().unwrap();
+    let signs: std::collections::BTreeSet<_> = retained
+        .records
+        .iter()
+        .map(|record| &record.sign_id)
+        .collect();
+    assert_eq!(signs.len(), retained.records.len());
+}

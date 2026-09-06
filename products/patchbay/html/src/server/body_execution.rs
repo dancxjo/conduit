@@ -7,6 +7,7 @@ use serde::Deserialize;
 use std::net::TcpStream;
 
 pub(super) mod assets;
+pub(super) mod history;
 
 const MAX_EXECUTION_REQUEST_BYTES: usize = 64 * 1024;
 
@@ -81,7 +82,11 @@ impl PatchbayHtmlServer {
             } => planning.report_execution_terminal(&play, &disposition, &terminal_sign_id),
         };
         report.map_err(|error| ServerError::Interaction(format!("BodyExecution{error:?}")))?;
-        let mut snapshot = self.snapshot.clone();
+        let session = self
+            .body_workload
+            .as_ref()
+            .ok_or_else(|| ServerError::Interaction("BodyWorkloadAbsent".into()))?;
+        let (session, mut snapshot) = history::retain(&self.snapshot, session, &planning)?;
         snapshot.body_planning = Some(planning.snapshot());
         snapshot.interaction.revision = snapshot
             .interaction
@@ -92,7 +97,10 @@ impl PatchbayHtmlServer {
         snapshot.interaction.last_disposition =
             Some("Succeeded(BodyExecutionAccountingUpdated)".into());
         let encoded = snapshot.encode()?;
+        let navigation = super::navigation_state(&snapshot)?;
+        self.body_workload = Some(session);
         self.body_planning = Some(planning);
+        self.navigation = navigation;
         self.snapshot = snapshot;
         self.encoded_snapshot = encoded;
         Ok(self.encoded_snapshot.clone())

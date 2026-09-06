@@ -152,10 +152,14 @@ test("a second browser replans one Body and its departure is explicit", async ({
       admittedParts: snapshot.body_workbench.current.admitted_parts,
       currentHosts: snapshot.body_workbench.current.current_hosts.length,
     };
-  }).toEqual({ evidenceRevision: 2, admittedParts: 2, currentHosts: 2 });
+  }).toEqual({ evidenceRevision: 3, admittedParts: 2, currentHosts: 2 });
   const adoptedEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
-  expect(adoptedEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
-  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 2 has unsaved Body changes.");
+  const observerEvidence = await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence());
+  expect(adoptedEvidence.membership).toEqual(observerEvidence.membership);
+  expect(adoptedEvidence.records.slice(0, observerEvidence.records.length)).toEqual(observerEvidence.records);
+  expect(adoptedEvidence.wakes).toEqual([proposal.wake]);
+  expect(adoptedEvidence.body.state.Awake.wake_id).toBe(proposal.wake.wake_id);
+  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 3 has unsaved Body changes.");
   await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 2 current Hosts");
   expect(admittedIdentity.hostId).toMatch(/^browser\//);
   expect(admittedIdentity.bootId).toMatch(/^browser-boot\//);

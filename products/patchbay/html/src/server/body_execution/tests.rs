@@ -58,10 +58,23 @@ fn claim_report_and_terminal_update_one_exact_snapshot_atomically() {
         ))
         .unwrap();
     assert_eq!(server.body_planning.as_ref().unwrap().wake(), &wake);
+    let retained: conduit_body::BodyBiographyEvidence =
+        serde_json::from_slice(&server.current_body_evidence().unwrap()).unwrap();
+    retained.validate().unwrap();
+    assert_eq!(retained.wakes, vec![wake.clone()]);
+    assert_eq!(
+        &retained.body,
+        server.body_planning.as_ref().unwrap().body()
+    );
+    let history_before_terminal = server.current_body_evidence().unwrap();
     server.apply_body_execution(&request(json!({"kind": "Terminal", "play": claim.play, "disposition": "completed", "terminal_sign_id": sign(2)}))).unwrap();
     let snapshot = server.snapshot.body_planning.as_ref().unwrap();
     assert!(snapshot.execution_claims[0].started_reported);
     assert_eq!(snapshot.lifecycle, conduit_body::WakeLifecycle::Playing);
+    assert_eq!(
+        server.current_body_evidence().unwrap(),
+        history_before_terminal
+    );
     assert_eq!(
         serde_json::from_slice::<Value>(&server.encoded_snapshot).unwrap()["body_planning"],
         serde_json::to_value(snapshot).unwrap()
