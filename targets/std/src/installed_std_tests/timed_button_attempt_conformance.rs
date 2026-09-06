@@ -87,6 +87,7 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
             .any(|resource| resource.class_id.as_str() == class)
         {
             advertisement.resources.push(ResourceOffer {
+                content: None,
                 pool_id: ResourcePoolId::from(pool),
                 class_id: ResourceClassId::from(class),
                 capacity_units: 1,

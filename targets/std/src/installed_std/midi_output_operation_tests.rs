@@ -32,6 +32,7 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
         .output_realization_advertisement(host_id.clone())
         .unwrap();
     let resource = ResourceBinding {
+        content: None,
         pool_id: selection.resource_pool_id(),
         class_id: conduit_core::ResourceClassId::from(
             conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS,

@@ -39,6 +39,7 @@ fn reusable_named_template_storage_requires_a_slot_and_executes_without_play_all
         sink_offer,
     ]);
     advertisement.resources.push(ResourceOffer {
+        content: None,
         pool_id: ResourcePoolId::from("pool/template-storage"),
         class_id: ResourceClassId::from(conduit_std_offers::TEMPLATE_STORAGE_RESOURCE_CLASS),
         capacity_units: 1,

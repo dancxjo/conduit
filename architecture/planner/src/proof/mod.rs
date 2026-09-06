@@ -6,3 +6,5 @@
 
 pub mod heterogeneous;
 pub mod voyager;
+
+pub mod resource_frame;
