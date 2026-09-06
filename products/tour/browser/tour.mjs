@@ -1137,6 +1137,13 @@ async function runListing(runner, source, recursive) {
       if (!effects.size) throw new Error("Play awaits an absent platform effect");
       let completed = [...effects.values()].find((effect) => effect.ready);
       if (!completed) {
+        const pending = [...effects.values()].map(({ effect }) => effect);
+        const timer = pending.find((effect) => effect.effect_kind === "timer");
+        const button = pending.some((effect) => effect.effect_kind === "button-transition");
+        runner.playStatus.ordinary(timer
+          ? `Waiting for planned tick · ${timer.duration_millis} ms${button ? " and button transition" : ""}`
+          : button ? "Waiting for one admitted button transition…"
+            : `Waiting for ${pending.length} admitted Host effect(s)…`);
         await new Promise((resolve) => { wake = resolve; });
         if (current !== generation) return;
         completed = [...effects.values()].find((effect) => effect.ready);
