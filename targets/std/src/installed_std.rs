@@ -21,6 +21,7 @@ mod flow_state_operations;
 mod generate_text;
 mod http;
 mod http_host;
+mod indicator_host;
 mod input_semantic_operations;
 mod instrument_map_operation;
 mod json_operations;
@@ -178,9 +179,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
-    lifecycle: RunLifecycle<'_>,
+    lifecycle: RunLifecycle<'_, '_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
-    let RunLifecycle { control, retained } = lifecycle;
+    let RunLifecycle {
+        control,
+        retained,
+        indicator,
+    } = lifecycle;
     let InstalledRunHost {
         advertisement,
         playback,
@@ -529,6 +534,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .collect::<Result<Vec<_>, String>>()?;
     let mut midi_input_requests = vec![None; active_nodes];
     let mut keyboard_host = keyboard_input_host::KeyboardInputHost::new(keyboard);
+    let mut indicator_host = indicator_host::IndicatorHost::prepare(
+        indicator,
+        advertisement,
+        fragment,
+        &lowered.identity,
+        &active_play,
+    )?;
     let mut midi_output_sessions = fragment
         .placements
         .iter()
@@ -1572,6 +1584,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     &mut requests,
                 )?;
                 continue;
+            } else if contract.as_str() == conduit_std_offers::indicator_resource::OPERATION {
+                let outcome = indicator_host.present(request, input);
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete indicator operation: {error:?}"))?;
+                continue;
             } else if lowered_operation.target_kind.as_ref()
                 == Some(&graphics_presentation_target_kind)
             {
@@ -1606,10 +1625,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let count = count_operations::decode_count(input)?;
                 writeln!(_output, "count value={count}").map_err(|error| error.to_string())?;
             } else if lowered_operation.target_kind.as_ref() == Some(&bool_target_kind) {
-                let value = conduit_core::InfoBool::decode(input)
-                    .map_err(|error| format!("Boolean presentation input is invalid: {error:?}"))?;
-                writeln!(_output, "bool value={}", value.get())
-                    .map_err(|error| error.to_string())?;
+                bool_presentation::present_stdout(_output, input)?;
             } else {
                 #[cfg(test)]
                 {

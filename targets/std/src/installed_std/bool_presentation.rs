@@ -5,6 +5,12 @@ use conduit_kernel::{
     PortId, RequestId,
 };
 
+pub(super) fn present_stdout(output: &mut impl std::io::Write, input: &[u8]) -> Result<(), String> {
+    let value = conduit_core::InfoBool::decode(input)
+        .map_err(|error| format!("Boolean presentation input is invalid: {error:?}"))?;
+    writeln!(output, "bool value={}", value.get()).map_err(|error| error.to_string())
+}
+
 pub(super) static BOOL_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::BOOL_PRESENTATION_IMPLEMENTATION,
     budget,
@@ -45,6 +51,12 @@ impl BoolPresentationOperation {
                     operation: HostOperationId(0),
                     input,
                 }
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request) && outcome.failure.is_some() =>
+            {
+                self.pending = None;
+                OperationAction::Fail(outcome.failure.expect("checked failure"))
             }
             OperationInput::HostOperationCompleted { request, outcome }
                 if self.pending == Some(request)
