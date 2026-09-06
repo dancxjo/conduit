@@ -15,7 +15,9 @@ pub(super) fn validate_fragment(
         .iter()
         .find(|state| state.retained.is_some())
     {
-        return Err(LoweringError::UnsupportedState(state.state_id.clone()));
+        if !profile.supports_owned_state_continuity() {
+            return Err(LoweringError::UnsupportedState(state.state_id.clone()));
+        }
     }
     if let Some(state) = fragment.states.first() {
         let Some((instances, bytes)) = profile.state_storage() else {

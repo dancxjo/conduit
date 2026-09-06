@@ -253,7 +253,13 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut values =
         HostedValueStore::new(value_items.max(1), maximum_value_bytes, value_bytes.max(1))
             .map_err(|error| format!("installed value store: {error:?}"))?;
-    let drivers = preparation::prepare_operations(fragment, &lowered, &mut values)?;
+    let active_play = bind_active_play(
+        &fragment.plan_id,
+        &advertisement.host_id,
+        &advertisement.boot_id,
+        play_sequence,
+    );
+    let drivers = preparation::prepare_operations(fragment, &lowered, &mut values, &active_play)?;
     let driver_capacity_before = drivers
         .iter()
         .map(|driver| driver.operation().allocation_capacity())
@@ -348,12 +354,6 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     )
     .map_err(|error| format!("install std scheduler: {error:?}"))?;
 
-    let active_play = bind_active_play(
-        &fragment.plan_id,
-        &advertisement.host_id,
-        &advertisement.boot_id,
-        play_sequence,
-    );
     let presentation_capacity = fragment
         .placements
         .iter()
