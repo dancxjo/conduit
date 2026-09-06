@@ -15,6 +15,7 @@ mod firmware;
 #[cfg(test)]
 mod firmware_tests;
 mod flash;
+mod indicator_build;
 mod prove_appliance;
 mod prove_appliance_hil;
 mod prove_usb;
@@ -127,6 +128,10 @@ pub struct PicoArgs {
     /// Build, flash, or verify the Pete capstone physical Play image.
     #[arg(long = "pete-capstone", global = true)]
     pub pete_capstone: bool,
+
+    /// Build or flash the bounded, acquired indicator peripheral image.
+    #[arg(long, global = true)]
+    pub indicator_resource: bool,
 
     /// Re-download and re-verify the vendored CYW43 radio assets from the pinned commit.
     #[arg(long, global = true)]
@@ -294,6 +299,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         + usize::from(args.distributed_lenia)
         + usize::from(args.usb_midi_fixture)
         + usize::from(args.pete_capstone)
+        + usize::from(args.indicator_resource)
         > 1
     {
         return Err("select only one remote Pico firmware mode".into());
@@ -344,6 +350,7 @@ pub fn run_local(mut args: PicoArgs) -> PicoResult<()> {
         || args.distributed_lenia
         || args.usb_midi_fixture
         || args.pete_capstone
+        || args.indicator_resource
     {
         return Err("the complete `pico local` workflow requires the pico-local image; use `pico build --usb-remote`, `pico flash --usb-remote`, then `prove std-pico-usb` for the remote proof".into());
     }

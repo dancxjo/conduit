@@ -41,6 +41,21 @@ fn main() {
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let appliance_build_id = appliance_build_id();
     println!("cargo:rustc-env=CONDUIT_PICO_APPLIANCE_BUILD_ID={appliance_build_id}");
+    println!("cargo:rerun-if-env-changed=CONDUIT_PICO_INDICATOR_IDENTITY_SIDECAR");
+    if firmware_mode() == "indicator-resource" {
+        if let Some(path) = env::var_os("CONDUIT_PICO_INDICATOR_IDENTITY_SIDECAR") {
+            fs::write(path, serde_json::to_vec_pretty(&serde_json::json!({
+                "schema": "conduit.pico-indicator/image@1",
+                "firmware_mode": "indicator-resource",
+                "firmware_build_id": appliance_build_id,
+                "git_revision": git_revision(),
+                "tree_state": git_tree_state(),
+                "target": env::var("TARGET").unwrap(),
+                "profile": env::var("PROFILE").unwrap(),
+                "conduit_plan_claimed": false,
+            })).unwrap()).expect("indicator build identity must be writable");
+        }
+    }
     println!(
         "cargo:rustc-env=CONDUIT_PETE_CAPSTONE_BUILD_ID={}",
         pete_capstone_build_id()
