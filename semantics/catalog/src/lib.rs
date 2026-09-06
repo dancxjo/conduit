@@ -103,7 +103,13 @@ pub use time_every::*;
 mod timing;
 pub use timing::*;
 #[cfg(feature = "form-catalog")]
+mod button_attempt_codec;
+#[cfg(feature = "form-catalog")]
 mod timed_interval_codec;
+#[cfg(feature = "form-catalog")]
+pub use button_attempt_codec::{
+    BoundedButtonAttemptCodec, ButtonAttemptObservation, ButtonAttemptRefusal,
+};
 #[cfg(feature = "form-catalog")]
 pub use timed_interval_codec::BoundedIntervalCodec;
 #[cfg(feature = "form-catalog")]
