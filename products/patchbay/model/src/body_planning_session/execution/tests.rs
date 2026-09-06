@@ -258,3 +258,87 @@ fn exact_cancellation_can_retire_an_unreadable_start_envelope() {
         .is_err());
     assert!(session.has_outstanding_execution_claim());
 }
+
+#[test]
+fn lull_refuses_a_play_without_terminal_accounting_and_preserves_both_lifecycles() {
+    let mut session = proposal();
+    let claim = claim(&mut session);
+    let wake = started(&session, &claim);
+    session
+        .report_execution_started(&claim.play, &wake)
+        .unwrap();
+    // Model a lifecycle imported without the coordinator's terminal evidence.
+    // Absence of an outstanding claim must not be mistaken for completion.
+    session.execution_claims.clear();
+    let before = session.snapshot();
+    let body = session.body().clone();
+    assert_eq!(
+        session.lull("sign/lull".into(), "sign/retained".into()),
+        Err(BodyPlanningSessionError::ExecutionTerminationAbsent)
+    );
+    assert_eq!(session.snapshot(), before);
+    assert_eq!(session.body(), &body);
+    assert_eq!(session.wake(), &wake);
+}
+
+#[test]
+fn failed_body_retention_does_not_partially_lull_the_wake() {
+    let mut session = proposal();
+    let body = session.body().clone();
+    let wake = session.wake().clone();
+    let before = session.snapshot();
+    assert_eq!(
+        session.lull("sign/lull".into(), body.sign_ids[0].clone()),
+        Err(BodyPlanningSessionError::Lifecycle(
+            BodyLifecycleError::DuplicateSign
+        ))
+    );
+    assert_eq!(session.body(), &body);
+    assert_eq!(session.wake(), &wake);
+    assert_eq!(session.snapshot(), before);
+}
+
+#[test]
+fn next_wake_refuses_reused_identity_wrong_body_and_stale_workset_atomically() {
+    let mut session = proposal();
+    let prior_plan = session.current_plan().clone();
+    session
+        .lull("sign/lull".into(), "sign/retained".into())
+        .unwrap();
+    let body = session.body().clone();
+    let wake = session.wake().clone();
+    let before = session.snapshot();
+    assert_eq!(
+        session.prepare_next_wake(
+            &body,
+            wake.wake_sequence,
+            "sign/reused".into(),
+            prior_plan.forms.clone()
+        ),
+        Err(BodyPlanningSessionError::StaleCurrentPlan)
+    );
+    let other = Body::born_with_forms(body.workset.clone(), 99, "sign/other-body".into()).unwrap();
+    assert_eq!(
+        session.prepare_next_wake(
+            &other,
+            2,
+            "sign/other-wake".into(),
+            prior_plan.forms.clone()
+        ),
+        Err(BodyPlanningSessionError::StaleCurrentPlan)
+    );
+    let resident = body.workset.forms()[0].clone();
+    let changed = body.remove_form(&resident, "sign/removed".into()).unwrap();
+    assert!(session
+        .prepare_next_wake(
+            &changed,
+            2,
+            "sign/stale-workset".into(),
+            prior_plan.forms.clone()
+        )
+        .is_err());
+    assert_eq!(session.snapshot(), before);
+    assert_eq!(session.body(), &body);
+    assert_eq!(session.wake(), &wake);
+    assert_eq!(session.current_plan(), &prior_plan);
+}
