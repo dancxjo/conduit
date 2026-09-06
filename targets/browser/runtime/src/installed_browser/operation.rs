@@ -186,6 +186,28 @@ impl Operation for UnaryOperation {
                     value: output.value,
                 }
             }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.output.is_none() =>
+            {
+                self.pending = None;
+                outcome
+                    .failure
+                    .map_or_else(|| fail(2), OperationAction::Fail)
+            }
+            OperationInput::HostOperationCompleted { request, outcome }
+                if self.pending == Some(request)
+                    && outcome.disposition == HostOperationDisposition::Cancelled
+                    && outcome.output.is_none()
+                    && outcome.failure.is_none() =>
+            {
+                self.pending = None;
+                OperationAction::Fail(Failure {
+                    code: FailureCode::Cancelled,
+                    detail: 0,
+                })
+            }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
                 OperationAction::Complete
             }
@@ -450,3 +472,7 @@ fn fail(detail: u16) -> OperationAction {
         detail,
     })
 }
+
+#[cfg(test)]
+#[path = "unary_outcome_tests.rs"]
+mod unary_outcome_tests;

@@ -50,6 +50,10 @@ pub(crate) fn inventory() -> InventoryDocument {
 
 fn family(kind: &str) -> &'static str {
     match kind {
+        conduit_web::JSON_ENCODE_KIND
+        | conduit_web::JSON_DECODE_KIND
+        | conduit_web::JSON_COLLECTION_STEP_KIND
+        | conduit_web::JSON_BOOLEAN_SUMMARY_KIND => "json",
         conduit_text::TEXT_LITERAL_KIND
         | conduit_text::TEXT_UPPER_KIND
         | conduit_text::TEXT_JOIN_KIND => "text",

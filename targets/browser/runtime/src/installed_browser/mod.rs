@@ -5,6 +5,7 @@ mod delay;
 mod factory;
 mod input;
 mod inventory;
+pub(crate) mod json;
 mod layout;
 mod limits;
 mod linguistics;
@@ -55,3 +56,6 @@ pub(crate) use quantity_output::{
     WRAP_OPERATION as QUANTITY_WRAP_OPERATION,
 };
 pub(crate) use state_time::BROWSER_TIMER_MAXIMUM_MILLIS;
+
+#[cfg(test)]
+pub(crate) mod test_json;
