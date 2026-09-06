@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { startStaticProduct } from "./tour-test-server.mjs";
 import { selectBirthForm } from "./creche-test-actions.mjs";
 
@@ -79,6 +80,47 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
     play_created: false,
     resources_acquired: false,
     authority_acquired: false,
+  });
+});
+
+test("Crèche births canonical button, clock, and unrelated Forms without source edits", async ({ page }) => {
+  const bundled = await page.request.get(new URL("forms/initial-body.conduit", entrance.url).href);
+  expect(bundled.ok()).toBe(true);
+  const inventory = await bundled.json();
+  for (const slug of ["button-across-room", "clock", "desk-telegraph"]) {
+    const canonical = readFileSync(new URL(`../../forms/${slug}/main.conduit`, import.meta.url), "utf8");
+    expect(inventory.forms.find((form) => form.slug === slug)?.source).toBe(canonical);
+  }
+  await page.goto(entrance.url);
+  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  const birth = page.locator(".body-birth-runner");
+  for (const title of ["Button Across Room", "Clock-demo", "Desk Telegraph"]) {
+    await selectBirthForm(birth, title);
+  }
+  await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText(
+    "3 of 5 reviewed Forms selected; maximum 16.",
+  );
+  const source = birth.getByLabel("Selected Conduit Form source");
+  await expect(source).toHaveValue(/form button_across_room/);
+  await expect(source).toHaveValue(/form clock-demo/);
+  await expect(source).toHaveValue(/form desk_telegraph/);
+  await birth.getByRole("button", { name: "Review workload" }).click();
+  await expect(birth.getByRole("button", { name: "Birth Body" })).toBeEnabled();
+  await birth.getByRole("button", { name: "Birth Body" }).click();
+  const receipt = await page.evaluate(() => {
+    const api = globalThis.__conduitCrecheHost.runtime;
+    const code = api.conduit_creche_current();
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
+    return { code, value: JSON.parse(new TextDecoder().decode(bytes)) };
+  });
+  expect(receipt.code).toBe(0);
+  expect(receipt.value.initial_forms.map((form) => form.name).sort()).toEqual(
+    ["button_across_room", "clock-demo", "desk_telegraph"].sort(),
+  );
+  expect(receipt.value.workload_revision).toBe(0);
+  expect(receipt.value.initial_review).toMatchObject({
+    selected_form_count: 3, body_plan_created: false, play_created: false,
+    resources_acquired: false, authority_acquired: false,
   });
 });
 
