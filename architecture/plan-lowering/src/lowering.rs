@@ -4,10 +4,9 @@
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
-    mandatory_sign_storage_requirement, verify_plan_fragment, ActivePlayId, ActivePlayIdentity,
-    AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId, HostId, HostOperationContractId,
-    KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId, PortDescriptor, PortDirection,
-    PortId as PlanPortId, PresentationId, PresentationIdentity,
+    ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId,
+    HostId, HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
+    PortDescriptor, PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
     ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
 };
 use conduit_kernel::{
@@ -17,6 +16,7 @@ use conduit_kernel::{
     SignExpectationId, SignExpectationTarget,
 };
 
+mod admission;
 mod fusion;
 mod profile;
 mod remote;
@@ -34,6 +34,7 @@ pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
+    UnsupportedState(conduit_core::StateId),
     EmptyFragment,
     CapacityOverflow,
     ProfileCapacityExceeded {
@@ -549,17 +550,7 @@ pub fn lower_plan_fragment_for_profile(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<LoweredPlanFragment, LoweringError> {
-    if !verify_plan_fragment(fragment) {
-        return Err(LoweringError::InvalidFragment);
-    }
-    if fragment.placements.is_empty() {
-        return Err(LoweringError::EmptyFragment);
-    }
-    if mandatory_sign_storage_requirement(&fragment.expected_sign)
-        != Some(fragment.sign_storage_budget)
-    {
-        return Err(LoweringError::SignBudgetInvalid);
-    }
+    admission::validate_fragment(fragment)?;
     let mut placement_nodes = BTreeMap::new();
     let mut nodes = Vec::with_capacity(fragment.placements.len());
     let mut node_specs = Vec::with_capacity(fragment.placements.len());
