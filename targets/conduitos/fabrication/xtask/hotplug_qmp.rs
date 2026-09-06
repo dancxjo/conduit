@@ -1,6 +1,6 @@
 //! Exact QMP choreography for the bounded K7 detach/reattach proof.
 
-use std::{io::Write, path::Path, process::Child};
+use std::{path::Path, process::Child};
 
 use super::{hid_qmp, ConduitosError};
 
@@ -68,7 +68,5 @@ fn command(
     command: &[u8],
     action: &'static str,
 ) -> Result<(), ConduitosError> {
-    qmp.write_all(command)
-        .map_err(|error| ConduitosError::refusal("qemu-hotplug-failed", error.to_string()))?;
-    hid_qmp::require_return(reader, action)
+    super::qmp::request(qmp, reader, command, action)
 }

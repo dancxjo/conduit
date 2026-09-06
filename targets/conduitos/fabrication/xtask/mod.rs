@@ -52,6 +52,7 @@ mod product_readiness_matrix;
 mod profile;
 mod prove;
 mod prove_many;
+mod qmp;
 mod report;
 mod rescue_proof;
 mod riscv64_a0;
