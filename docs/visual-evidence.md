@@ -101,6 +101,25 @@ previous raster as runtime truth.
 
 ## ConduitOS console evidence
 
+## Accepted ConduitOS visual journey
+
+These stable links are published only after the frozen promotion boots the exact
+Crèche-produced spore and the main-only Pages carrier accepts its complete,
+correlated 1280 by 800 RGBA8 visual journey.
+
+[![Current accepted ConduitOS front door](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready.png)](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready/)
+
+[![Current accepted ConduitOS opened Form](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened.png)](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened/)
+
+[![Current accepted ConduitOS visible result](https://dancxjo.github.io/conduit/current/conduitos/x86_64/result-visible.png)](https://dancxjo.github.io/conduit/current/conduitos/x86_64/result-visible/)
+
+[![Current accepted ConduitOS lulled result](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled.png)](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled/)
+
+Each image links to a provenance page containing the exact accepted commit and
+the manifest correlation context. The gallery also retains all eight named
+checkpoints under the commit-addressed journey index. Emulator pixels remain
+documentary evidence and never imply physical hardware acceptance.
+
 `cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
 validated its boot Sign, kernel Sign, Observatory snapshot, exact semantic
