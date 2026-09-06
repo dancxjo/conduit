@@ -433,10 +433,25 @@ test("browser Host refuses changed resource bytes before launch", async ({ page 
 });
 
 test("browser Host refuses a changed aggregate package identity before launch", async ({ page }) => {
-  await mutatePackage(page, (manifest) => { manifest.package_digest = `sha256:${"0".repeat(64)}`; });
+  const resourceUrls = new Set();
+  const requestedResources = [];
+  await page.route("**/*", async (route) => {
+    if (resourceUrls.has(route.request().url())) {
+      requestedResources.push(route.request().url());
+      await route.abort();
+    } else {
+      await route.fallback();
+    }
+  });
+  await mutatePackage(page, (manifest) => {
+    for (const resource of manifest.resources) resourceUrls.add(new URL(resource.path, entrance.url).href);
+    manifest.package_digest = `sha256:${"0".repeat(64)}`;
+  });
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser application refused");
   await expect(page.locator("#chapter")).toHaveText("application package identity changed");
+  expect(requestedResources).toEqual([]);
+  expect(await page.evaluate(() => globalThis.__conduitTourHost)).toBeUndefined();
 });
 
 test("selected durable storage keeps scopes, lifecycle, and refusal states exact", async ({ page }) => {
