@@ -151,6 +151,31 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   expect(errors).toEqual([]);
 });
 
+test("reopening Awake biography does not claim restored execution accounting", async ({ page }) => {
+  await prepareBody(page);
+  await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play running");
+  await page.getByRole("button", { name: "Cancel Body Play", exact: true }).click();
+  await expect(page.locator("#body-execution-status")).toContainText("Body Play cancelled");
+  const prior = await snapshot(page);
+  const encoded = Buffer.from(prior.body_workbench.encoded_evidence);
+  const archived = JSON.parse(encoded.toString("utf8"));
+  expect(archived.body.state.Awake).toBeDefined();
+  const saved = join(temporary, "reopen.json");
+  await writeFile(saved, encoded);
+  processes.at(-1).kill();
+  await open(page, ["--body-evidence", saved, "--external-reader", ...forms]);
+  const reopened = await snapshot(page);
+  expect(reopened.body_workbench.body_id).toBe(prior.body_workbench.body_id);
+  expect(Buffer.from(reopened.body_workbench.encoded_evidence)).toEqual(encoded);
+  expect(reopened.body_planning ?? null).toBeNull();
+  await expect(page.locator("#body-execution-status")).toBeVisible();
+  await expect(page.locator("#body-execution-status")).toContainText("no restored execution claim or terminal receipt");
+  await expect(page.locator("#body-execution-status")).toContainText("No automatic restart is authorized");
+  await expect(page.getByRole("button", { name: "Start proposed Body Play", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Cancel Body Play", exact: true })).toBeDisabled();
+});
+
 test("cancelling the actual Body Play retains exact terminal evidence", async ({ page }) => {
   await prepareBody(page);
   await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();

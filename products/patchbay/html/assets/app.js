@@ -13,7 +13,7 @@ const membershipStorageSchema = "conduit.patchbay/browser-membership@1";
 const membershipStorageKey = "body-membership";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", reviewedFormQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, truthTransition:null, savedEvidenceBody:null, savedEvidenceRevision:null, bodyInvitation:null, retainedMembershipCredential:null, bodyMembershipInterrupted:false, bodyMembershipReturningFreshBoot:false, bodyMembershipEvidenceAdoption:Promise.resolve(), requestedCapabilityEvidence:null };
 const apiUrl=path=>new URL(`api/${path}`,document.baseURI).href;
-const bodyExecution = createBodyExecutionControl({ root: document.querySelector("#body-membership-invitation"), apiUrl, renderSnapshot: snapshot => render(requireSnapshot(snapshot)) });
+const bodyExecution = createBodyExecutionControl({ root: document.querySelector("#body-execution-control"), apiUrl, renderSnapshot: snapshot => render(requireSnapshot(snapshot)) });
 function joinBrowserBody(options) {
   let executionHost = null;
   return joinMembership({ ...options, configureHost: host => { executionHost = host; }, onState: current => {

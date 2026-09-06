@@ -14,7 +14,8 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   stop.type = "button";stop.textContent = "Cancel Body Play";stop.disabled = true;
   const status = document.createElement("p");
   status.id = "body-execution-status";status.setAttribute("role", "status");
-  status.textContent = "No Body Play started. Plan the active Forms first.";
+  const idleStatus = "No Body Play started in this coordinator session. Retained history is separate; plan the active Forms first.";
+  status.textContent = idleStatus;
   const input = document.createElement("div");
   input.id = "body-execution-input";input.tabIndex = 0;
   input.setAttribute("role", "group");input.setAttribute("aria-label", "Body Play input");
@@ -126,7 +127,15 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
       return new Set(value.capability_ids);
     },
     configureHost(current) { host = current;update(); },
-    render(snapshot) { planning = snapshot.body_planning;update(); },
+    render(snapshot) {
+      planning = snapshot.body_planning;
+      if (!planning && !busy) {
+        status.textContent = snapshot.body_workbench?.current?.lifecycle?.Awake
+          ? "Retained Body is Awake. This coordinator has no restored execution claim or terminal receipt; inspect and reconcile the prior Play before resuming. No automatic restart is authorized."
+          : idleStatus;
+      }
+      update();
+    },
     unavailable() { host = null;cancel();update(); },
   });
 }
