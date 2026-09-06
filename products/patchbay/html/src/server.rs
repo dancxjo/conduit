@@ -6,6 +6,7 @@ use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+mod body_execution;
 mod body_execution_proposal;
 pub(crate) mod body_host_offer_evidence;
 pub(crate) mod body_host_planning_offer;

@@ -15,6 +15,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::FormCandidate;
 
+mod execution;
+pub use execution::{BodyExecutionClaim, BodyExecutionClaimError, BodyExecutionPhase};
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyPlanningRequirements {
     pub kind_ids: Vec<KindId>,
@@ -30,6 +33,8 @@ pub struct BodyPlanningTransition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyPlanningSessionSnapshot {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub execution_claims: Vec<BodyExecutionClaim>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unavailable_proposal_sign_id: Option<SignId>,
     pub body_id: BodyId,
@@ -191,6 +196,7 @@ fn expand_workset(
 
 #[derive(Debug, Clone)]
 pub struct BodyPlanningSession {
+    execution_claims: Vec<BodyExecutionClaim>,
     unavailable_proposal_sign_id: Option<SignId>,
     body: Body,
     wake: Wake,
@@ -210,6 +216,7 @@ impl BodyPlanningSession {
             .map_err(BodyPlanningSessionError::Lifecycle)?;
         let plan = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
         Ok(Self {
+            execution_claims: Vec::new(),
             body,
             wake,
             plans: vec![plan],
@@ -223,7 +230,10 @@ impl BodyPlanningSession {
         &mut self,
         forms: Vec<BodyFormPlan>,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
-        if self.wake.lifecycle != WakeLifecycle::AwaitingPlan || !self.wake.plans.is_empty() {
+        if self.has_outstanding_execution_claim()
+            || self.wake.lifecycle != WakeLifecycle::AwaitingPlan
+            || !self.wake.plans.is_empty()
+        {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
         if self.plans.len() >= conduit_body::MAX_WAKE_PLANS {
@@ -262,6 +272,7 @@ impl BodyPlanningSession {
             .body_play_started(&plan, &play, play_started_sign_id)
             .map_err(BodyPlanningSessionError::Lifecycle)?;
         Ok(Self {
+            execution_claims: Vec::new(),
             body,
             wake,
             plans: vec![plan],
@@ -274,6 +285,9 @@ impl BodyPlanningSession {
         forms: Vec<BodyFormPlan>,
         transition: BodyPlanningTransition,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        if self.has_outstanding_execution_claim() {
+            return Err(BodyPlanningSessionError::StaleCurrentPlan);
+        }
         let mut wake = self.wake.clone();
         if wake.lifecycle == WakeLifecycle::Playing {
             let sign = transition
@@ -345,6 +359,7 @@ impl BodyPlanningSession {
         current_hosts.sort();
         current_hosts.dedup();
         BodyPlanningSessionSnapshot {
+            execution_claims: self.execution_claims.clone(),
             unavailable_proposal_sign_id: self.unavailable_proposal_sign_id.clone(),
             body_id: self.body.body_id.clone(),
             wake_id: self.wake.wake_id.clone(),

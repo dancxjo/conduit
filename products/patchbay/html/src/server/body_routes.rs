@@ -10,6 +10,7 @@ impl PatchbayHtmlServer {
         body: &[u8],
     ) -> Option<Result<(), ServerError>> {
         Some(match request_line {
+            "POST /api/body-execution HTTP/1.1" => self.deliver_body_execution(stream, body),
             "POST /api/body-workload HTTP/1.1" => self.deliver_body_workload(stream, body),
             "POST /api/body-membership-evidence HTTP/1.1" => {
                 self.deliver_body_membership_evidence(stream, body)

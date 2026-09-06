@@ -3,7 +3,7 @@ use conduit_core::BaseImplementationId;
 use patchbay_model::BodyPlanningSession;
 use std::io::Read;
 
-fn proposed_server() -> PatchbayHtmlServer {
+pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
     let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
     let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot)
         .unwrap()

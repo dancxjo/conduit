@@ -105,4 +105,4 @@ impl PatchbayHtmlServer {
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;
