@@ -69,6 +69,9 @@ impl TypedStateOperation {
 }
 
 impl Operation for TypedStateOperation {
+    fn step_committed(&mut self) {
+        self.operation.step_committed();
+    }
     fn start(&mut self) -> OperationAction {
         self.operation.start()
     }

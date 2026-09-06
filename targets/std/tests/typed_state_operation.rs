@@ -51,6 +51,12 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         operation.resume_value(PortId(0), reference, &next),
         OperationAction::EmitCanonical { .. }
     ));
+    assert_eq!(
+        operation.generation(),
+        0,
+        "proposing output does not publish State"
+    );
+    operation.step_committed();
     assert_eq!(operation.current(), next);
     assert_eq!(operation.generation(), 1);
     assert!(matches!(operation.advance(), OperationAction::Await));

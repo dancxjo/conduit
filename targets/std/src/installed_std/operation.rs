@@ -3,6 +3,11 @@ pub(super) use super::operation_kind::InstalledOperation;
 use conduit_kernel::{Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef};
 
 impl Operation for InstalledOperation {
+    fn step_committed(&mut self) {
+        if let Self::TypedState(operation) = self {
+            operation.step_committed();
+        }
+    }
     fn start(&mut self) -> OperationAction {
         match self {
             Self::TypedState(operation) => operation.start(),

@@ -13,12 +13,19 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &next, &mut startup, &mut profile).unwrap();
-    // This fixture supplies one external value and closes. The State Kind and
+    // This fixture supplies two external values and closes. The State Kind and
     // installed adapter are production paths; this is not physical input proof.
-    let source = installed_std::test_structured_selector::offer(&ty, PortDirection::Output);
-    let entry = installed_std::test_structured_selector::configuration(&next)
+    let mut source = installed_std::test_structured_selector::offer(&ty, PortDirection::Output);
+    source.startup_parameters[0].name = "values".into();
+    source.host_operations = vec![wait_host_operation_requirement()];
+    source.resource_requirements = vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)];
+    let mut entry = installed_std::test_structured_selector::configuration(&next)
         .pop()
         .unwrap();
+    entry.key = "values".into();
+    if let ConfigurationValue::Text(encoded) = &mut entry.value {
+        *encoded = format!("{encoded},{encoded}");
+    }
     let ConfigurationValue::Text(default) = &entry.value else {
         panic!("fixture uses text configuration")
     };
@@ -26,7 +33,7 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
         .insert(KindSignature {
             kind: source.kind_id.as_str().into(),
             startup_parameters: vec![StartupParameterSignature {
-                name: "value".into(),
+                name: "values".into(),
                 value_type: "Text".into(),
                 default: Some(format!("\"{default}\"")),
             }],
@@ -55,7 +62,7 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
         };
         text
     };
-    let expected = format!("{},{}", encode(&initial), encode(&next));
+    let expected = format!("{},{},{}", encode(&initial), encode(&next), encode(&next));
     let mut sink = installed_std::test_structured_selector::offer(&ty, PortDirection::Input);
     sink.inputs[0].temporal = PortTemporal::Current;
     sink.startup_parameters[0].name = "values".into();
@@ -107,7 +114,9 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
         conduit_planner::state_delay::plan::seal_state_plan(&form, &ordinary, vec![state]).unwrap();
     let run = |fragment: &PlanFragment| {
         let mut output = Vec::with_capacity(2048);
-        let mut timer = RecordingTimer { waits: Vec::new() };
+        let mut timer = RecordingTimer {
+            waits: Vec::with_capacity(2),
+        };
         installed_std::run_fragment(
             installed_std::InstalledRunHost {
                 advertisement: &advertisement,
