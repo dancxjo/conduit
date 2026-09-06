@@ -233,6 +233,9 @@ impl TourSession {
             engine::DriveStatus::Complete => {
                 Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
             }
+            engine::DriveStatus::Waiting { pending_effects } => Err(format!(
+                "browser session awaits {pending_effects} correlated effects"
+            )),
         }
     }
 
@@ -248,6 +251,9 @@ impl TourSession {
             engine::DriveStatus::Complete => {
                 Ok(TourProgress::Receipt(Box::new(self.completed_receipt())))
             }
+            engine::DriveStatus::Waiting { pending_effects } => Err(format!(
+                "browser session awaits {pending_effects} correlated effects"
+            )),
         }
     }
 

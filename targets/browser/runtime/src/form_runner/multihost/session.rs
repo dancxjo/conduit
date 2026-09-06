@@ -229,6 +229,9 @@ impl Session {
             DriveStatus::Complete => {
                 return Err("multi-Host sink completed before presentation".into())
             }
+            DriveStatus::Waiting { .. } => {
+                return Err("multi-Host sink awaits a pending effect".into())
+            }
         };
         if !matches!(pending.effect, BrowserHostEffect::Manifestation(_)) {
             return Err("multi-Host sink requested a non-presentation Host effect".into());

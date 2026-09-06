@@ -81,6 +81,7 @@ pub(super) enum BrowserHostEffect {
 pub(super) enum DriveStatus {
     Effect(PendingHostEffect),
     Complete,
+    Waiting { pending_effects: usize },
 }
 
 pub(super) fn prepare(
@@ -94,6 +95,9 @@ pub(super) fn prepare(
         DriveStatus::Effect(pending) => pending,
         DriveStatus::Complete => {
             return Err("Tour Play completed without a planned Host effect".into())
+        }
+        DriveStatus::Waiting { .. } => {
+            return Err("initial browser effect is already pending".into())
         }
     };
     Ok((scheduler, pending))
@@ -154,7 +158,7 @@ pub(super) fn complete_host_effect_with_output(
         _ => return Err("browser Host effect does not accept completion output".into()),
     };
     let value = scheduler.store_host_value(output).map_err(debug_error)?;
-    scheduler
+    let result = scheduler
         .complete_host_operation(
             pending.request.node,
             pending.request.request,
@@ -167,7 +171,11 @@ pub(super) fn complete_host_effect_with_output(
                 failure: None,
             },
         )
-        .map_err(debug_error)
+        .map_err(debug_error);
+    if result.is_err() {
+        scheduler.discard_host_value(value).map_err(debug_error)?;
+    }
+    result
 }
 
 pub(super) fn drive(
@@ -255,6 +263,11 @@ pub(super) fn drive(
         match scheduler.step().map_err(debug_error)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Complete => return Ok(DriveStatus::Complete),
+            SchedulerStatus::Idle if scheduler.pending_host_operation_count() > 0 => {
+                return Ok(DriveStatus::Waiting {
+                    pending_effects: scheduler.pending_host_operation_count(),
+                });
+            }
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
             SchedulerStatus::Cancelled => return Err("Tour Play was cancelled".into()),
         }
@@ -291,3 +304,7 @@ mod json_tests;
 #[cfg(test)]
 #[path = "timing_kernel_tests.rs"]
 mod timing_kernel_tests;
+
+#[cfg(test)]
+#[path = "concurrent_effect_tests.rs"]
+mod concurrent_effect_tests;
