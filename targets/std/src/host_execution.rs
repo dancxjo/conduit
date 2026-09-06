@@ -1,7 +1,7 @@
 //! Ordinary Host reservation, execution and owned State result handling.
 use super::*;
-mod reporting;
 pub(crate) mod continuity;
+mod reporting;
 
 struct HostRunInputs<'a> {
     keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,
