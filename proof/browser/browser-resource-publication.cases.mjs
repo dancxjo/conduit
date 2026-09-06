@@ -60,3 +60,53 @@ test("byte publication is atomic, immutable across reopen, and independent of ca
   expect(result.oversize).toBe("ValueBound");
   expect(result.absent).toBeNull();
 });
+
+test("Resource effects preserve exact pending scope and restore opaque bytes through IndexedDB", async ({ page }) => {
+  await page.goto("/proof/browser/signal-dom-host.test.html");
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import("/targets/browser/host/assets/browser-application-storage.mjs");
+    const { executeResourceStorageEffect, MAXIMUM_RESOURCE_RECORD_BYTES } = await import("/targets/browser/host/assets/browser-resource-storage.mjs");
+    const open = () => openBrowserApplicationStorage("proof/resource-effects", 1, `sha256:${"b".repeat(64)}`, { implementationRegistry: ["browser/indexeddb@1"] });
+    const scope = { host_id: "host/one", boot_id: "boot/one", active_play_id: "play/write", placement_id: "placement/write", request_sequence: 0 };
+    const key = `resource/${"1".repeat(64)}`;
+    const effect = { ...scope, schema: "conduit.browser/resource-effect@1", effect_kind: "resource-publish", key, record: [67, 68, 82, 83] };
+    let storage = await open();
+    const published = await executeResourceStorageEffect(storage, effect, scope);
+    let duplicate;
+    try { await executeResourceStorageEffect(storage, effect, scope); } catch (error) { duplicate = error.code; }
+    storage.close();
+    storage = await open();
+    const current = { ...scope, boot_id: "boot/two", active_play_id: "play/read", placement_id: "placement/read" };
+    const read = { ...effect, ...current, effect_kind: "resource-read", record: null };
+    const restored = await executeResourceStorageEffect(storage, read, current);
+    const refused = [];
+    for (const changed of [
+      { ...read, boot_id: "boot/one" }, { ...read, host_id: "foreign" },
+      { ...read, request_sequence: 1 }, { ...read, active_play_id: "old-play" },
+    ]) {
+      try { await executeResourceStorageEffect(storage, changed, current); refused.push("unexpected-success"); }
+      catch (error) { refused.push(error.code); }
+    }
+    let missing;
+    try { await executeResourceStorageEffect(storage, { ...read, key: `resource/${"2".repeat(64)}` }, current); }
+    catch (error) { missing = error.code; }
+    let oversize;
+    try { await executeResourceStorageEffect(storage, { ...effect, record: Array(MAXIMUM_RESOURCE_RECORD_BYTES + 1).fill(0) }, scope); }
+    catch (error) { oversize = error.code; }
+    const invalid = [];
+    for (const [provider, request, pending] of [
+      [{}, read, current],
+      [{}, effect, scope],
+      [storage, { ...effect, record: Array(4) }, scope],
+      [storage, { ...read, record: [] }, current],
+    ]) {
+      try { await executeResourceStorageEffect(provider, request, pending); invalid.push("unexpected-success"); }
+      catch (error) { invalid.push(error.code); }
+    }
+    await storage.clearApplication(); storage.close();
+    return { published, restored: Array.from(restored.record), duplicate, refused, missing, oversize, invalid };
+  });
+  expect(result).toEqual({ published: { status: "completed", record: null }, restored: [67, 68, 82, 83],
+    duplicate: "PublishedImmutable", refused: Array(4).fill("StaleResourceEffect"), missing: "ResourceMissing", oversize: "ResourceRecordBound",
+    invalid: ["ImplementationNotSelected", "ImplementationNotSelected", "ResourceRecordBound", "InvalidResourceEffect"] });
+});
