@@ -10,7 +10,8 @@ fn value(slot: u16) -> ValueRef {
 fn source() -> ButtonOperation {
     ButtonOperation {
         empty: value(0),
-        transitions: vec![[value(1), value(2)], [value(3), value(4)]],
+        transitions: vec![value(2), value(3)],
+        empty_released: false,
         emitted: 0,
         next: 0,
         pending: None,

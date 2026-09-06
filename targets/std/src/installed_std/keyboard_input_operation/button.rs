@@ -1,4 +1,5 @@
 //! Finite Space-key to semantic button implementation using the existing input operation.
+pub(in crate::installed_std) mod indicator;
 #[cfg(test)]
 mod tests;
 use super::super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
@@ -18,7 +19,8 @@ pub(crate) static FACTORY: InstalledFactory = InstalledFactory {
 
 pub(crate) struct ButtonOperation {
     empty: ValueRef,
-    transitions: Vec<[ValueRef; 2]>,
+    transitions: Vec<ValueRef>,
+    empty_released: bool,
     emitted: usize,
     next: u32,
     pending: Option<RequestId>,
@@ -27,6 +29,13 @@ pub(crate) struct ButtonOperation {
 }
 
 impl ButtonOperation {
+    pub(crate) fn take_released_value(&mut self) -> Option<ValueRef> {
+        if self.terminal && !self.empty_released {
+            self.empty_released = true;
+            return Some(self.empty);
+        }
+        None
+    }
     pub(crate) fn start(&mut self) -> OperationAction {
         self.request()
     }
@@ -90,7 +99,7 @@ impl ButtonOperation {
                     return fail(FailureCode::InvalidInput, 5);
                 }
                 self.held = pressed;
-                let value = self.transitions[self.emitted][usize::from(pressed)];
+                let value = self.transitions[self.emitted];
                 self.emitted += 1;
                 OperationAction::Emit {
                     port: PortId(0),
@@ -99,7 +108,7 @@ impl ButtonOperation {
             }
             HostOperationDisposition::Cancelled if outcome.output.is_none() => {
                 self.terminal = true;
-                OperationAction::Complete
+                fail(FailureCode::Cancelled, 0)
             }
             _ => fail(FailureCode::InvalidLifecycle, 6),
         }
@@ -167,21 +176,21 @@ fn prepare(
     let maximum = validate(placement)?;
     let mut transitions = Vec::with_capacity(maximum);
     for sequence in 0..maximum {
-        let mut store = |pressed| {
-            let bytes = conduit_semantic_catalog::button_transition_value(
-                "button/primary",
-                pressed,
-                sequence as u64,
-            )
-            .and_then(|value| value.canonical_bytes())
-            .map_err(|error| format!("{error:?}"))?;
-            values.store(&bytes).map_err(|error| format!("{error:?}"))
-        };
-        transitions.push([store(false)?, store(true)?]);
+        // Initial released state plus duplicate/unmatched rejection makes the
+        // accepted sequence alternate exactly. No unused alternative is stored.
+        let bytes = conduit_semantic_catalog::button_transition_value(
+            "button/primary",
+            sequence % 2 == 0,
+            sequence as u64,
+        )
+        .and_then(|value| value.canonical_bytes())
+        .map_err(|error| format!("{error:?}"))?;
+        transitions.push(values.store(&bytes).map_err(|error| format!("{error:?}"))?);
     }
     let empty = values.store(&[]).map_err(|error| format!("{error:?}"))?;
     Ok(InstalledOperation::ButtonInput(ButtonOperation {
         empty,
+        empty_released: false,
         transitions,
         emitted: 0,
         next: 0,

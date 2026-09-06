@@ -8,6 +8,7 @@ impl InstalledOperation {
             Self::TypedState(operation) => operation.cancel(),
             Self::KeyboardInput(operation) => operation.cancel(),
             Self::ButtonInput(operation) => operation.cancel(),
+            Self::ButtonMapper(_) => {}
             Self::Tick(operation) => operation.cancel(),
             Self::PulseObserve(operation) => operation.cancel(),
             #[cfg(test)]
