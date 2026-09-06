@@ -185,7 +185,10 @@ test("a released timed attempt reaches its rearmed deadline and retires cleanly"
     await expect(status).toContainText("Waiting for planned tick");
     await page.mouse.up();
     // Preserve the kernel detail across the actual browser completion boundary.
-    await expect(status).toContainText("OperationFailed(4)", { timeout: 3000 });
+    await expect(status).toContainText(
+      "OperationFailed(Failure { code: HostOperationFailed, detail: 4 })",
+      { timeout: 3000 },
+    );
     await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
     await runner.locator("textarea").fill(FORM);
     await runner.getByRole("button", { name: "Run", exact: true }).click();
