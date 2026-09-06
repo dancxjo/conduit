@@ -25,6 +25,7 @@ pub(crate) struct BodyKernel {
 pub(crate) struct BodyKernelResult {
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
+    pub cleanup_failure: Option<String>,
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostOperationRequest>,
     pub events: Vec<KernelEvent>,
@@ -160,6 +161,8 @@ impl BodyKernel {
                     self.scheduler
                         .cancel()
                         .map_err(|error| format!("Body cancel: {error:?}"))?;
+                    keys.cancel();
+                    deadlines.clear();
                     cancelling = true;
                 }
                 while let Some(cancellation) = self.scheduler.next_host_cancellation() {
@@ -258,11 +261,17 @@ impl BodyKernel {
                 }
             }
         })();
+        let mut cleanup_failure = None;
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),
             Err(error) => {
                 keys.cancel();
                 deadlines.clear();
+                cleanup_failure = self
+                    .scheduler
+                    .cancel()
+                    .err()
+                    .map(|error| format!("Body failure cleanup: {error:?}"));
                 (
                     TerminalDisposition::Failed {
                         reason: FailureReason::RequiredBranchFailed,
@@ -274,6 +283,7 @@ impl BodyKernel {
         BodyKernelResult {
             terminal,
             failure,
+            cleanup_failure,
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),

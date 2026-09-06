@@ -1,4 +1,6 @@
 //! Canonical workload composition through installed operations, not UI or HIL proof.
+#[path = "body_run_cancellation_tests.rs"]
+mod cancellation;
 use super::*;
 use crate::installed_std::{kernel_preparation::KernelTables, simple_presentation_host};
 use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, ResidentForm};
@@ -397,6 +399,11 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
         conduit_core::TerminalDisposition::Failed { .. }
     ));
     assert!(failed.failure.is_some());
+    assert!(failed.cleanup_failure.is_none());
+    assert!(failed
+        .kernel_events
+        .iter()
+        .any(|event| event.kind == conduit_kernel::KernelEventKind::RunCancelled));
     output.clear();
     let mut keys = Keys([[0x2c, 0, 0], [0x2c, 1, 0]].into());
     let report = host
