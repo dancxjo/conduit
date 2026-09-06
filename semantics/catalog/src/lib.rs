@@ -481,3 +481,8 @@ mod supported_nucleus_tests {
 mod pattern_comparison_operation;
 #[cfg(feature = "kernel-operation")]
 pub use pattern_comparison_operation::PatternComparisonOperation;
+
+#[cfg(feature = "kernel-operation")]
+mod template_storage_operation;
+#[cfg(feature = "kernel-operation")]
+pub use template_storage_operation::TemplateStorageOperation;
