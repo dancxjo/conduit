@@ -18,6 +18,7 @@ depends on semantic, application, target, or proof packages.
 | `execution_fusion.rs` | universal architecture | Exact optional fusion of ordinary planned placements without a second executor. |
 | `face.rs` | universal architecture | Checked generic capability Face and typed Port surface. |
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
+| `plan_fingerprint.rs` | universal architecture | Canonical fragment and Plan commitment encoding; preserves immutable realization identity. |
 | `plan_realization.rs` | universal architecture | Exact reusable Back identity retained in an expanded Form and Plan. |
 | `port.rs` | universal architecture | Typed Port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-Host admission before one exact Plan starts. |
