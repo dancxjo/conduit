@@ -1,6 +1,7 @@
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
+pub(crate) mod body_kernel;
 mod bool_presentation;
 mod calendar_proposal_codec;
 pub(super) mod calendar_proposal_encoding;

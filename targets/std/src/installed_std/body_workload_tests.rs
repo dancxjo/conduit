@@ -305,3 +305,173 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         ledger.release(reservation).unwrap();
     }
 }
+
+#[test]
+fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
+    use crate::body_execution::BodyRunRequest;
+    use crate::hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll};
+    struct Keys(std::collections::VecDeque<[u8; 3]>);
+    impl HostedKeyboardAdapter for Keys {
+        fn poll_next(&mut self) -> HostedKeyboardPoll {
+            self.0
+                .pop_front()
+                .map_or(HostedKeyboardPoll::Cancelled, |bytes| {
+                    HostedKeyboardPoll::Event(conduit_human::KeyEvent::decode(&bytes).unwrap())
+                })
+        }
+    }
+    struct Clock;
+    impl crate::TimerAdapter for Clock {
+        fn wait(&mut self, _: std::time::Duration) {}
+    }
+    let (advertisement, plans) = workload();
+    let mut host = crate::StdHost::from_advertisement(advertisement).unwrap();
+    let first = &plans[0];
+    let mut body = Body::born(
+        first.source_document_id.clone(),
+        first.checked_form_id.clone(),
+        1,
+        SignId::from("sign/production-body"),
+    )
+    .unwrap();
+    for (index, part) in plans.iter().enumerate().skip(1) {
+        body = body
+            .admit_form(
+                ResidentForm::new(
+                    part.source_document_id.clone(),
+                    part.checked_form_id.clone(),
+                ),
+                SignId::from(format!("sign/production-admit-{index}")),
+            )
+            .unwrap();
+    }
+    let wake = body
+        .wake(1, SignId::from("sign/production-wake"))
+        .unwrap()
+        .1;
+    let plan = BodyPlan::seal(
+        &wake,
+        plans
+            .into_iter()
+            .map(|plan| BodyFormPlan {
+                form: ResidentForm::new(
+                    plan.source_document_id.clone(),
+                    plan.checked_form_id.clone(),
+                ),
+                plan,
+            })
+            .collect(),
+    )
+    .unwrap();
+    let original = plan.clone();
+    let control = crate::RunControl::default();
+    let mut output = Vec::with_capacity(2048);
+    assert!(host
+        .run_body_plan_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: None
+            },
+            &mut output,
+            &mut Clock
+        )
+        .is_err());
+    assert!(output.is_empty());
+    let mut bad_keys = Keys([[0x2c, 1, 0]].into());
+    let failed = host
+        .run_body_plan_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: Some(&mut bad_keys),
+            },
+            &mut output,
+            &mut Clock,
+        )
+        .unwrap();
+    assert!(matches!(
+        failed.terminal,
+        conduit_core::TerminalDisposition::Failed { .. }
+    ));
+    assert!(failed.failure.is_some());
+    output.clear();
+    let mut keys = Keys([[0x2c, 0, 0], [0x2c, 1, 0]].into());
+    let report = host
+        .run_body_plan_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: Some(&mut keys),
+            },
+            &mut output,
+            &mut Clock,
+        )
+        .unwrap();
+    assert_eq!(
+        report.terminal,
+        conduit_core::TerminalDisposition::Completed
+    );
+    assert!(report.failure.is_none());
+    assert!(report.play.validate_for(&plan));
+    assert_ne!(report.play.active_play_id, failed.play.active_play_id);
+    assert_eq!(
+        report.terminal_sign.active_play_id,
+        Some(report.play.active_play_id.clone())
+    );
+    assert_eq!(report.partitions.len(), 3);
+    for request in &report.requests {
+        assert_eq!(
+            report
+                .partitions
+                .iter()
+                .filter(|partition| partition.placement_for_node(request.node).is_some())
+                .count(),
+            1
+        );
+    }
+    let output = String::from_utf8(output).unwrap();
+    assert!(output.contains("CALLING\n"));
+    assert_eq!(
+        output
+            .lines()
+            .filter(|line| line.starts_with("bool value="))
+            .collect::<Vec<_>>(),
+        ["bool value=true", "bool value=false"]
+    );
+    assert_eq!(
+        output
+            .lines()
+            .filter(|line| line.starts_with("tick sequence="))
+            .count(),
+        4
+    );
+    let stop = crate::RunControl::default();
+    stop.request_stop(crate::RunControlRequestId::new("stop-before-body-effects").unwrap())
+        .unwrap();
+    let mut untouched = Keys([[0x2c, 0, 0], [0x2c, 1, 0]].into());
+    let mut cancelled_output = Vec::new();
+    let cancelled = host
+        .run_body_plan_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &stop,
+                keyboard: Some(&mut untouched),
+            },
+            &mut cancelled_output,
+            &mut Clock,
+        )
+        .unwrap();
+    assert!(matches!(
+        cancelled.terminal,
+        conduit_core::TerminalDisposition::Cancelled { .. }
+    ));
+    assert!(cancelled.failure.is_none());
+    assert!(cancelled_output.is_empty());
+    assert_eq!(untouched.0.len(), 2);
+    assert_eq!(plan, original);
+}

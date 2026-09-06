@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_coordination;
+pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
 mod composition;
