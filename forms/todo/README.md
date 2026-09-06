@@ -36,3 +36,10 @@ through their Faces. Its snapshot reports `false` (remaining), `true` (completed
 and `total` counts. Missing or non-Boolean completion fields refuse with distinct
 details `123` and `124`; an empty collection reports three zero counts. The same
 operation counts an arbitrary configured Boolean field outside Todo.
+
+`todo/restore` decodes stored snapshot bytes through the ordinary JSON operation.
+`todo/restore-summary` consumes it as a Gear and derives counts through the same
+summary Form. The deterministic proof supplies the actual preceding edit output
+to this restore Face and refuses corrupt JSON or invalid completion fields.
+This proves the semantic restore path only; durable storage and fresh-Boot
+Resource admission remain separate, unproved work.
