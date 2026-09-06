@@ -240,7 +240,6 @@ jobs:
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
           proof/ci/classify-pr-stack.spec.mjs
-          proof/ci/branch-boundary.spec.mjs
           proof/ci/browser-product-ownership.test.mjs
           proof/ci/tour-compatibility.test.mjs
       - name: Verify the dependency-light typed CI planner contracts
@@ -255,7 +254,7 @@ jobs:
           if test -f "$RUNNER_TEMP/conduit-ci-controller/$proof"; then
             proof="$RUNNER_TEMP/conduit-ci-controller/$proof"
           fi
-          node --test "$proof"
+          node --test "$proof" proof/ci/branch-boundary.spec.mjs
       - name: Fingerprint immutable candidate proof inputs
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
