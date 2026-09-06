@@ -49,6 +49,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
     .split("      - name:")[0];
   assert.match(classification, /CONDUIT_FULL_SUITE: \$\{\{ inputs.full_suite \}\}/);
   assert.match(check, /docs_only: \$\{\{ steps.slice.outputs.docs_only \|\| steps.changes.outputs.docs_only \}\}/);
+  const fingerprint = check.split("      - name: Fingerprint immutable candidate proof inputs\n")[1]
+    .split("      - name:")[0];
+  assert.match(fingerprint, /CONDUIT_FULL_SUITE: \$\{\{ inputs.full_suite \}\}/);
+  assert.match(fingerprint, /if test "\$CONDUIT_FULL_SUITE" != true && grep/);
   assert.match(deploy, /startsWith\(github\.event\.pull_request\.head\.ref, 'promote\/'\)/);
   const closedTrigger = deploy.split("  pull_request_target:\n")[1].split("  workflow_dispatch:")[0];
   assert.match(closedTrigger, /types: \[closed\]/);

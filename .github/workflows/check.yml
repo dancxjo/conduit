@@ -258,6 +258,7 @@ jobs:
       - name: Fingerprint immutable candidate proof inputs
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
+          CONDUIT_FULL_SUITE: ${{ inputs.full_suite }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
           controller=(cargo xtask)
@@ -265,7 +266,7 @@ jobs:
             controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
           fi
           applicability=()
-          if grep -Fq '"--impact-plan"' "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs" 2>/dev/null; then
+          if test "$CONDUIT_FULL_SUITE" != true && grep -Fq '"--impact-plan"' "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs" 2>/dev/null; then
             applicability=(--impact-plan target/ci-plans/ci-impact-plan.json)
           fi
           "${controller[@]}" ci candidate "$HEAD_SHA" --locked "${applicability[@]}" \
