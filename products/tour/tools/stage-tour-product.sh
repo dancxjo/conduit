@@ -71,5 +71,7 @@ done
 node targets/browser/tools/build-browser-application-package.mjs \
     products/tour/browser/tour.application.template.json "$destination" tour.application.json
 
-test "$(find "$destination" -type f | wc -l)" -eq 48
+# Includes the shared admitted Host-effect dispatcher used by Tour and Body.
+test -f "$destination/browser-form-effects.mjs"
+test "$(find "$destination" -type f | wc -l)" -eq 49
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
