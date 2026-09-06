@@ -26,6 +26,13 @@ the command contributes to the request bounds.
 
 This is an executable state-transition slice, not the finished application.
 Snapshot encoding is not persistence. Admitted Resource write/restore,
-application-specific task validation and limits, summary, semantic browser
+application-specific task validation and limits, semantic browser
 presentation, causal browser interaction, Patchbay inspection, and a manual
 application entrance remain open.
+
+`todo/summary` configures the reusable `json/boolean-summary` operation with
+field `complete`. `todo/command-summary` composes an edit, summary, and encoding
+through their Faces. Its snapshot reports `false` (remaining), `true` (completed),
+and `total` counts. Missing or non-Boolean completion fields refuse with distinct
+details `123` and `124`; an empty collection reports three zero counts. The same
+operation counts an arbitrary configured Boolean field outside Todo.
