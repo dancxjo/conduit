@@ -88,6 +88,7 @@ mod requirements;
 mod resource_binding;
 mod startup;
 pub mod state_delay;
+pub mod wcet;
 #[cfg(test)]
 use startup::startup_order;
 mod style;
@@ -217,6 +218,10 @@ pub use survival_policy::{
     SurvivalPlanningMode, SurvivalPlanningPolicy, SurvivalPolicyRefusal, SurvivalTradeoff,
     WorkloadResourceRequest, MAXIMUM_SCARCE_RESOURCE_REQUESTS, MAXIMUM_SURVIVAL_CANDIDATES,
     MAXIMUM_SURVIVAL_POLICY_ID_BYTES, MAXIMUM_SURVIVAL_TRADEOFFS,
+};
+pub use wcet::{
+    admit_deadline_region, validate_replan, DeadlineAdmission, DeadlineRegion, TimingDependency,
+    TimingFacts, WcetRefusal,
 };
 
 pub fn default_placements(

@@ -3,6 +3,7 @@
 //! Its JSON carries the portable Presentation and exact Manifestation result;
 //! DOM/SVG objects and HTTP mechanics remain renderer-local transport facts.
 
+pub mod application_resources;
 mod body_workbench;
 mod body_workbench_fixture;
 mod body_workbench_inventory;

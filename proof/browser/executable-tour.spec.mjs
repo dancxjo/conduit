@@ -136,7 +136,7 @@ registerButtonMultiHostTests(openStep);
 
 test("every Tour page and Crèche step has a direct, history-aware route", async ({ page }) => {
   const tourPages = [
-    ["a-form-you-can-run", "A Form you can run"],
+    ["one-program-many-computers", "One Program, Many Computers"],
     ["faces-backs-and-implementation", "Faces, Backs, and implementation"],
     ["hosts-make-forms-real", "Hosts make Forms real"],
     ["one-form-across-several-hosts", "One Form across several Hosts"],
@@ -192,7 +192,7 @@ test("Tour route mutation crosses the finite Browser Host operation boundary", a
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page).toHaveURL(/\/tour\/faces-backs-and-implementation\/$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/tour\/a-form-you-can-run\/$/);
+  await expect(page).toHaveURL(/\/tour\/one-program-many-computers\/$/);
 });
 
 test("the Tour navigation remains legible and interactive in both theme modes", async ({ page }) => {
@@ -331,7 +331,7 @@ test("Tour owns the desktop viewport while the lesson reader scrolls independent
 
   await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
   await page.getByRole("button", { name: "Previous" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeFocused();
   expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
 });
 
@@ -341,7 +341,7 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
   await page.getByRole("button", { name: "Next" }).click();
   await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
   await page.goBack();
-  await expect(page).toHaveURL(/\/tour\/a-form-you-can-run\/$/);
+  await expect(page).toHaveURL(/\/tour\/one-program-many-computers\/$/);
   expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
   await page.goForward();
   await expect(page).toHaveURL(/\/tour\/faces-backs-and-implementation\/$/);
@@ -638,7 +638,7 @@ test("Tour Patchbay keeps branching explicit and opens one reviewed Back beneath
 test("the staged Tour and Crèche each boot with only their own product tree", async ({ page }) => {
   const tour = await startStaticProduct("target/tour-product");
   try {
-    await page.goto(`${tour.url}a-form-you-can-run/`);
+    await page.goto(`${tour.url}one-program-many-computers/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".tour-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
@@ -966,14 +966,14 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   });
 
   await page.getByRole("button", { name: "Guided Tour" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeVisible();
 });
 
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page).toHaveTitle(/Tour$/);
   await expect(page.locator("#chapter")).toContainText("one logical computer");
   await expect(page.locator("#chapter")).toContainText("one or many physical or virtual computers");
@@ -1317,7 +1317,9 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await runner.getByRole("button", { name: "Admit Part and offers" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
-  evidence = JSON.parse(await runner.locator("details code").textContent());
+  const evidenceParts = await runner.locator("details code").allTextContents();
+  expect(evidenceParts.every((part) => Buffer.byteLength(part) <= 65_536)).toBe(true);
+  evidence = JSON.parse(evidenceParts.join(""));
   expect(evidence.realization).toMatchObject({
     terminal: "BrowserBundleLoaded",
     target_id: "browser/wasm32/page",
@@ -1330,6 +1332,8 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
     spore_id: evidence.binding.spore_id,
     image_id: evidence.binding.image_id,
   });
+  expect(Buffer.byteLength(JSON.stringify(evidence.observation))).toBeLessThanOrEqual(evidence.bounds.maximumOperationEvidenceBytes);
+  expect(Buffer.byteLength(JSON.stringify(evidence))).toBeLessThanOrEqual(evidence.bounds.maximumRetainedEvidenceBytes);
   expect(evidence.admission).toMatchObject({
     disposition: "admitted",
     body_id: birth.bodyId,
@@ -1579,7 +1583,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
   await birthStandaloneBody(page);
   const refusals = await page.evaluate(async () => {
     const { createPhysicalHostTargetCatalog } = await import("/creche/creche-target-catalog.mjs");
-    const entry = (suffix = "one", factory = null) => {
+    const entry = (suffix = "one", factory = null, suppliedBounds = {}) => {
       const target = {
         id: `fixture/target-${suffix}`,
         label: `Fixture ${suffix}`,
@@ -1591,7 +1595,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         { id: "install-existing", resultKind: "installation", supported: false },
         { id: "attach-running", resultKind: "attachment", supported: false },
       ];
-      const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096 };
+      const bounds = { maximumOperations: 5, maximumOperationEvidenceBytes: 1024, maximumRetainedEvidenceBytes: 4096, ...suppliedBounds };
       const adapter = {
         schema: "conduit.creche/physical-host-target-adapter@1",
         target,
@@ -1613,7 +1617,10 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         createAdapter: factory ?? (() => adapter),
       };
     };
-    const evidence = {};
+    const admittedBounds = { maximumOperationEvidenceBytes: 80 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 };
+    const catalog = createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("boundary", null, admittedBounds)] });
+    const accepted = catalog.createAdapter({ targetId: "fixture/target-boundary", host: globalThis.__conduitCrecheHost });
+    const evidence = { acceptedBounds: accepted.bounds };
     for (const [name, create] of Object.entries({
       stale: () => createPhysicalHostTargetCatalog({ generation: 2, minimumGeneration: 2, contributions: [entry()] }),
       duplicate: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry(), entry()] }),
@@ -1622,6 +1629,8 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         bounds: { maximumEntries: 1 },
         contributions: [entry("one"), entry("two")],
       }),
+      operationBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("operation", null, { ...admittedBounds, maximumOperationEvidenceBytes: 80 * 1024 + 1 })] }),
+      retainedBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("retained", null, { ...admittedBounds, maximumRetainedEvidenceBytes: 128 * 1024 + 1 })] }),
       incompatible: () => {
         const catalog = createPhysicalHostTargetCatalog({
           generation: 2,
@@ -1639,6 +1648,9 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
     }
     return evidence;
   });
+  expect(refusals.acceptedBounds).toMatchObject({ maximumOperationEvidenceBytes: 80 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 });
+  expect(refusals.operationBound).toMatchObject({ terminal: "IncompatibleContribution" });
+  expect(refusals.retainedBound).toMatchObject({ terminal: "IncompatibleContribution" });
   expect(refusals.stale).toMatchObject({ terminal: "StaleCatalogGeneration", catalog_generation: 2 });
   expect(refusals.duplicate).toMatchObject({ terminal: "DuplicateIdentity", target_id: "fixture/target-one" });
   expect(refusals.overflow).toMatchObject({ terminal: "CatalogBound", entries: 2, maximum_entries: 1 });
@@ -1774,7 +1786,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {
   const chapterChecks = [
-    { title: "A Form you can run", anchor: "Patchbay projects checked Form truth" },
+    { title: "One Program, Many Computers", anchor: "Patchbay projects checked Form truth" },
     { title: "Faces, Backs, and implementation", anchor: "open the reviewed Back" },
     { title: "Hosts make Forms real", anchor: "smallest case of a later Body-wide model" },
     { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
@@ -1808,7 +1820,7 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
-  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();

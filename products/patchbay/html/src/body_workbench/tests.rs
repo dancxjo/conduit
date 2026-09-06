@@ -24,10 +24,7 @@ fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
             ),
             SignId::from("patchbay/recorder-admitted"),
         )
-        .unwrap()
-        .wake(1, SignId::from("patchbay/woke"))
-        .unwrap()
-        .0;
+        .unwrap();
     assert_eq!(basis.body_id.as_ref(), Some(&body.body_id));
     evidence
         .append_body_workload_events(
@@ -35,10 +32,12 @@ fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
             &[(SignId::from("patchbay/recorder-admitted"), 2)],
         )
         .unwrap();
+    let (body, wake) = body.wake(1, SignId::from("patchbay/woke")).unwrap();
+    evidence.append_wake(body.clone(), wake, 3).unwrap();
     evidence
         .graduate(BodyGraduationEvidence {
             body_id: body.body_id,
-            sequence: 3,
+            sequence: 4,
             sign_id: SignId::from("sign/roseau/graduated"),
             choice: BodyGraduationChoice::ExternalReader,
             patchbay_plan_id: None,
@@ -64,7 +63,7 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
     assert_eq!(workbench.current["friendly_name"], "Roseau");
     assert_eq!(workbench.current["workload_revision"], 1);
     assert_eq!(workbench.current["evidence_revision"], 7);
-    assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 3);
+    assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 4);
     let mut stale = workbench.clone();
     stale.body_id.push_str("-stale");
     assert!(validate_body_workbench(&stale, &snapshot.presentation).is_err());

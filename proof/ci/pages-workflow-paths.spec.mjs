@@ -96,6 +96,13 @@ test("product jobs build the immutable PR head and deployments queue", () => {
     deployWorkflow,
     /github\.event\.pull_request\.merged == true && github\.event\.pull_request\.base\.ref == 'main'/,
   );
+  assert.match(deployWorkflow, /carrier_name: \$\{\{ steps\.resolve\.outputs\.carrier_name \}\}/);
+  assert.match(deployWorkflow, /name: \$\{\{ needs\.resolve\.outputs\.carrier_name \}\}/);
+
+  const promotionWorkflow = readFileSync(".github/workflows/promotion.yml", "utf8");
+  assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n    needs: \[products, conduitos-spore-acceptance\]/);
+  assert.match(promotionWorkflow, /stage-conduitos-pages-evidence\.mjs/);
+  assert.match(promotionWorkflow, /name: conduit-pages-carrier-with-conduitos/);
 });
 
 test("standalone locks fail before ESP32 fabrication fans out", () => {

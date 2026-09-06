@@ -23,6 +23,7 @@ h1,h2,h3 { color:var(--amber); }
 .select-field { min-width:0; }
 .birth-presentation textarea { min-height:11rem; resize:vertical; font-family:ui-monospace, monospace; }
 .birth-presentation [data-application-syntax="conduit"] { --conduit-syntax-padding:.65rem; }
+.birth-presentation [data-application-syntax="conduit"] .syntax-highlight { padding:var(--conduit-syntax-padding); }
 .birth-presentation [data-application-key="form-source"] summary { margin:.25rem 0 .65rem; cursor:pointer; }
 .form-source { width:100%; min-width:0; margin:0; position:relative; clear:both; }
 .form-source summary { margin:.25rem 0 .65rem; cursor:pointer; }
