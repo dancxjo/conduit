@@ -288,6 +288,11 @@ pub(super) fn decode_manifestation(
                 .map_err(|error| format!("decode indicator state manifestation: {error:?}"))?;
             Ok((0, Vec::new(), Some(value.get().to_string())))
         }
+        conduit_semantic_catalog::TICK_PRESENTATION_KIND => {
+            let sequence = conduit_time::decode_tick(&manifestation.canonical_value)
+                .map_err(|error| format!("decode tick manifestation: {error:?}"))?;
+            Ok((0, Vec::new(), Some(sequence.to_string())))
+        }
         conduit_semantic_catalog::COUNT_PRESENTATION_KIND => {
             let encoded: [u8; conduit_semantic_catalog::COUNT_ENCODED_LEN as usize] = manifestation
                 .canonical_value

@@ -23,6 +23,7 @@ mod quantity_output;
 pub(crate) mod resource;
 mod state_time;
 mod text;
+mod tick_presentation;
 pub(crate) mod timing;
 mod values;
 

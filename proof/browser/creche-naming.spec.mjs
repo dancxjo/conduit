@@ -22,7 +22,7 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
   await birth.getByRole("checkbox", { name: "Memory Lantern" }).check();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).toBeChecked();
-  await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText("1 of 3 reviewed Forms selected; maximum 16.");
+  await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText("1 of 5 reviewed Forms selected; maximum 16.");
   await expect(name).toHaveAttribute("aria-describedby", /description/);
   await expect(birth.getByLabel("Conduit Form source")).toHaveAttribute("aria-describedby", /description/);
   const source = birth.getByLabel("Conduit Form source");

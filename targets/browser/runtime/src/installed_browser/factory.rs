@@ -81,6 +81,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &state_time::COUNT_PRESENTATION,
     &presentation::INDICATOR,
     &presentation::BOOL,
+    &super::tick_presentation::INSTALLATION,
     &presentation::PATCHBAY,
     &layout::VIEWPORT,
     &input::KEYBOARD,

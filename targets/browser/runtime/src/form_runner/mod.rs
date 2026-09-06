@@ -409,6 +409,8 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
 }
 
 #[cfg(test)]
+mod clock_tests;
+#[cfg(test)]
 mod quantity_output_tests;
 #[cfg(test)]
 mod tests;

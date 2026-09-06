@@ -23,7 +23,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   for (const [index, title] of ["Morse Network", "Memory Lantern", "Desk Telegraph"].entries()) {
     await selectBirthForm(birth, title);
     await expect(birth.locator('[data-application-key="initial-forms-help"]')).toContainText(
-      `${index + 1} of 3 reviewed Forms selected`,
+      `${index + 1} of 5 reviewed Forms selected`,
     );
   }
   const selectedSource = birth.getByLabel("Selected Conduit Form source");
@@ -32,7 +32,7 @@ test("Crèche composes, persists, reviews, and births three exact initial Forms"
   await expect(selectedSource).toHaveValue(/form desk_telegraph/);
   await expect(selectedSource).not.toHaveValue(/conduit\.creche\/reviewed-form-bundle/);
   await expect(birth.locator('[data-application-key="initial-forms-help"]')).toHaveText(
-    "3 of 3 reviewed Forms selected; maximum 16.",
+    "3 of 5 reviewed Forms selected; maximum 16.",
   );
   await birth.getByRole("button", { name: "Review workload" }).click();
   await expect(birth.getByRole("button", { name: "Birth Body" })).toBeEnabled();

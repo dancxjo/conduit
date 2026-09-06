@@ -12,4 +12,6 @@ mod spore;
 mod spore_target;
 
 #[cfg(test)]
+mod button_workset_tests;
+#[cfg(test)]
 mod tests;
