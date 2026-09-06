@@ -163,3 +163,35 @@ test("button input progresses alongside a pending timer and the Play can be canc
   await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 });
+
+test("a released timed attempt reaches its rearmed deadline and retires cleanly", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  const status = runner.locator('[data-application-key="play-status"]');
+  await runner.locator("textarea").fill(`form timed {
+    button: input/button(maximum-transitions = 5)
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
+    derive: time/ordered-event-intervals
+    button.transition > attempt.transition
+    attempt.events > derive.events
+  }`);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.hover();
+  try {
+    await page.mouse.down();
+    await expect(status).toContainText("Waiting for planned tick");
+    await page.mouse.up();
+    // Native conformance establishes timeout detail 4. This browser boundary
+    // currently reports a completion refusal; it must never claim success.
+    await expect(status).toContainText("effect completion refused", { timeout: 3000 });
+    await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+    await runner.locator("textarea").fill(FORM);
+    await runner.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
+    await expect(status).toContainText("Completed");
+  } finally {
+    await page.mouse.up();
+  }
+});
