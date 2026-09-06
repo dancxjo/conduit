@@ -1,4 +1,4 @@
-import { browserHostOperationLimits, createBrowserHostOperations } from "./browser-host-operations.mjs";
+import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
 
 const MAXIMUM_LOCATION_SEQUENCE = 0xffff_ffff;
 

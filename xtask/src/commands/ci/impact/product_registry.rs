@@ -37,6 +37,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/browser-boot-profile.spec.mjs",
             "proof/browser/browser-form-runner.spec.mjs",
             "proof/browser/pages-front-door.spec.mjs",
+            "proof/ci/browser-product-ownership.test.mjs",
             "proof/browser/presentation-nucleus.spec.mjs",
             "proof/browser/presentation-nucleus.test.html",
             "proof/browser/fourth-product-conformance.spec.mjs",
@@ -48,10 +49,13 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
         input_prefixes: &[
             "proof/browser/fourth-product/",
             "products/tour/",
+            "products/creche/",
             "products/patchbay/",
             "semantics/presentation/assets/",
             "site/",
-            "scripts/ci/stage-book-product",
+            "products/tour/browser/",
+            "products/creche/browser/",
+            "scripts/ci/stage-tour-product",
             "scripts/ci/stage-creche-product",
             "scripts/ci/stage-pages-root",
             "scripts/ci/stage-patchbay-product",
@@ -135,7 +139,9 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         ],
         input_prefixes: &[
             "site/",
-            "scripts/ci/stage-book-product",
+            "products/tour/browser/",
+            "products/creche/browser/",
+            "scripts/ci/stage-tour-product",
             "scripts/ci/stage-creche-product",
             "scripts/ci/stage-pages-root",
             "scripts/ci/stage-patchbay-product",
@@ -172,6 +178,22 @@ mod tests {
                 proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"),
                 "{path}"
             );
+        }
+    }
+}
+
+#[cfg(test)]
+mod product_source_tests {
+    use super::*;
+
+    #[test]
+    fn product_owned_browser_source_requires_carrier_and_browser_proof() {
+        for path in [
+            "products/tour/browser/tour.mjs",
+            "products/creche/browser/creche-lifecycle.mjs",
+        ] {
+            assert!(proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"));
+            assert!(!browser_presentation_proofs_for_path(path).is_empty());
         }
     }
 }

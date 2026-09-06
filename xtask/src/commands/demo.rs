@@ -34,7 +34,7 @@ pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
         &Step::new(
             "demo.tour.package",
             "Stage the exact admitted Tour application",
-            "scripts/ci/stage-book-product.sh",
+            "scripts/ci/stage-tour-product.sh",
             &[
                 "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
                 "target/tour-product",
