@@ -37,9 +37,16 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/browser-boot-profile.spec.mjs",
             "proof/browser/browser-form-runner.spec.mjs",
             "proof/browser/pages-front-door.spec.mjs",
+            "proof/browser/presentation-nucleus.spec.mjs",
+            "proof/browser/presentation-nucleus.test.html",
+            "proof/browser/fourth-product-conformance.spec.mjs",
+            "proof/browser/book-test-server.mjs",
+            "proof/browser/playwright.config.mjs",
+            "proof/browser/static-server.mjs",
             "proof/browser/creche-browser-configuration.spec.mjs",
         ],
         input_prefixes: &[
+            "proof/browser/fourth-product/",
             "products/tour/",
             "products/patchbay/",
             "semantics/presentation/assets/",
@@ -142,4 +149,29 @@ pub(super) fn browser_presentation_proofs_for_path(
         .iter()
         .filter(|spec| spec.owns(path))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shared_presentation_contract_and_fixture_changes_select_the_product_carrier() {
+        for path in [
+            "proof/browser/presentation-nucleus.spec.mjs",
+            "proof/browser/presentation-nucleus.test.html",
+            "proof/browser/fourth-product-conformance.spec.mjs",
+            "proof/browser/book-test-server.mjs",
+            "proof/browser/playwright.config.mjs",
+            "proof/browser/static-server.mjs",
+            "proof/browser/fourth-product/application.mjs",
+            "proof/browser/fourth-product/state.mjs",
+            "proof/browser/fourth-product/fourth.application.template.json",
+        ] {
+            assert!(
+                proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"),
+                "{path}"
+            );
+        }
+    }
 }

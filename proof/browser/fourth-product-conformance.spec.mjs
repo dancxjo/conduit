@@ -1,6 +1,5 @@
-import { spawn } from "node:child_process";
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
@@ -12,6 +11,7 @@ const repository = new URL("../..", import.meta.url).pathname;
 const fixtureSource = join(repository, "proof/browser/fourth-product");
 const sharedAssets = join(repository, "targets/browser/host/assets");
 const tourProduct = process.env.CONDUIT_TOUR_PRODUCT_ROOT ?? "target/tour-product";
+const patchbayProduct = process.env.CONDUIT_PATCHBAY_PRODUCT_ROOT ?? "target/patchbay-product";
 const crecheProduct = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
 let stagedFixture;
 
@@ -34,33 +34,6 @@ async function stageFixture() {
   ], { cwd: repository });
 }
 
-function awaitUrl(child, pattern, label) {
-  let output = "";
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`${label} was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(pattern);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => {
-      clearTimeout(timeout);
-      reject(new Error(`${label} exited (${code})\n${output}`));
-    });
-  });
-}
-
-async function startPatchbay() {
-  const child = spawn("target/debug/patchbay-html", ["--documentary-fixture"], {
-    cwd: repository,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const url = await awaitUrl(child, /PATCHBAY_HTML_URL=(http:\/\/127\.0\.0\.1:\d+\/?)/, "Patchbay HTML");
-  return { child, url };
-}
-
 async function expectSharedComponents(page, names) {
   for (const name of names) {
     await expect(page.locator(`[data-application-component="${name}"]:visible`).first(), name).toBeVisible();
@@ -74,7 +47,7 @@ test("one semantic ProductMasthead composition replaces product-private global c
   const productSurfaces = [
     ["Tour", "targets/browser/host/assets/book.html", "targets/browser/host/assets/book.css", "targets/browser/host/assets/book.mjs"],
     ["Crèche", "targets/browser/host/assets/creche.html", "targets/browser/host/assets/creche.css", "targets/browser/host/assets/creche.mjs"],
-    ["Patchbay", "apps/patchbay/html/assets/index.html", "apps/patchbay/html/assets/app.css", "apps/patchbay/html/assets/app.js"],
+    ["Patchbay", "products/patchbay/html/assets/index.html", "products/patchbay/html/assets/app.css", "products/patchbay/html/assets/app.js"],
   ];
   for (const [name, htmlPath, cssPath, modulePath] of productSurfaces) {
     const [html, css, module] = await Promise.all([
@@ -128,7 +101,7 @@ test("fourth application is admitted without product HTML, CSS, DOM, or browser 
 
     const productNavigation = page.getByRole("navigation", { name: "Conduit products" });
     await expect(productNavigation.getByRole("link")).toHaveCount(5);
-    await expect(productNavigation.getByRole("link", { name: "Tour" })).toHaveAttribute("href", /\/conduit\/tour$/);
+    await expect(productNavigation.getByRole("link", { name: "Tour" })).toHaveAttribute("href", "/conduit/tour/");
 
     const navigation = page.getByRole("navigation", { name: "Field Notes destinations" });
     await navigation.getByRole("button", { name: "Overview" }).focus();
@@ -187,7 +160,7 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
   const products = [
     ["Tour", "tour", () => startStaticProduct(tourProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
     ["Crèche", "creche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "disclosure"]],
-    ["Patchbay", "patchbay", startPatchbay, ["navigation", "artifact", "disclosure"]],
+    ["Patchbay", "patchbay", () => startStaticProduct(patchbayProduct, "/conduit/patchbay/"), ["navigation", "definition-table", "disclosure"]],
     ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
   ];
   const expectedLabels = ["conduit", "Tour", "Crèche", "Patchbay", "Source"];
@@ -196,6 +169,7 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
     const entrance = await start();
     try {
       await page.goto(entrance.url);
+      if (name === "Patchbay") await page.getByRole("button", { name: "Exact truth", exact: true }).click();
       try { await expectSharedComponents(page, components); }
       catch (error) { throw new Error(`${name}: ${error.message}`); }
       const masthead = page.locator('[data-application-key="product-masthead"]');
@@ -206,6 +180,11 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
       expect(await links.evaluateAll((elements) => elements.map((element) => element.dataset.applicationKey)), `${name} admitted destinations`).toEqual(expectedDestinations);
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(current === null ? 0 : 1);
       if (current !== null) await expect(navigation.locator(`[data-application-key="${current}"]`)).toHaveAttribute("aria-current", "page");
+      expect(await links.evaluateAll((elements) => elements.every((element) => element.tagName === "A" && element.onclick === null)), `${name} native links`).toBe(true);
+      await page.setViewportSize({ width: 375, height: 800 });
+      for (const key of expectedDestinations) await expect(navigation.locator(`[data-application-key="${key}"]`)).toBeVisible();
+      expect(await masthead.evaluate((element) => element.scrollWidth <= element.clientWidth), `${name} bounded narrow masthead`).toBe(true);
+      await page.setViewportSize({ width: 1280, height: 720 });
       expect(await page.locator("[data-application-component]").count(), name).toBeGreaterThan(0);
     } finally { entrance.child.kill(); }
   }

@@ -69,6 +69,14 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
     { tag: "A", target: "", onclick: null },
     { tag: "A", target: "", onclick: null },
   ]);
+  const [newTab] = await Promise.all([
+    page.context().waitForEvent("page"),
+    productNavigation.getByRole("link", { name: "Tour" }).click({ button: "middle" }),
+  ]);
+  try {
+    await expect(newTab).toHaveURL(`${tour}a-form-you-can-run/`);
+    await expect(newTab.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  } finally { await newTab.close(); }
   await productNavigation.getByRole("link", { name: "Tour" }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(tour);
