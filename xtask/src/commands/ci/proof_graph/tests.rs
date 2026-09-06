@@ -232,6 +232,77 @@ fn registry_refuses_a_missing_required_input_root() {
 }
 
 #[test]
+fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
+    let repo = Repository::new();
+    for proof in PROOFS {
+        for path in proof.inputs.iter().chain(proof.implementation_inputs) {
+            if Path::new(path).extension().is_some() {
+                repo.write(path, "required input");
+            } else {
+                repo.write(&format!("{path}/fixture"), "required domain");
+            }
+        }
+    }
+    let migrations = [
+        (
+            "scripts/ci/stage-book-product.sh",
+            "scripts/ci/stage-tour-product.sh",
+        ),
+        (
+            "proof/browser/executable-book.spec.mjs",
+            "proof/browser/tour.spec.mjs",
+        ),
+        (
+            ".github/workflows/executable-book-pages.yml",
+            ".github/workflows/tour-products.yml",
+        ),
+    ];
+    for (old, _) in migrations {
+        repo.write(old, "unchanged proof bytes");
+    }
+    let before = repo.commit("old product paths");
+    validate_registry_paths(&repo.root, &before).unwrap();
+    let ids = [
+        "browser.tour",
+        "browser.patchbay-debugger",
+        "products.pages-carrier",
+    ];
+    for (old, new) in migrations {
+        let previous = git_text(&repo.root, &["rev-parse", "HEAD"]).unwrap();
+        fs::rename(repo.root.join(old), repo.root.join(new)).unwrap();
+        let renamed = repo.commit("rename product proof implementation");
+        validate_registry_paths(&repo.root, &renamed).unwrap();
+        for id in ids {
+            assert_ne!(
+                fingerprint(&repo.root, &previous, spec(id)).unwrap(),
+                fingerprint(&repo.root, &renamed, spec(id)).unwrap(),
+                "{id} must invalidate evidence after {old} moves"
+            );
+        }
+    }
+    let previous = git_text(&repo.root, &["rev-parse", "HEAD"]).unwrap();
+    repo.write("scripts/ci/stage-tour-product.sh", "changed proof bytes");
+    let changed = repo.commit("change renamed implementation");
+    for id in ids {
+        assert_ne!(
+            fingerprint(&repo.root, &previous, spec(id)).unwrap(),
+            fingerprint(&repo.root, &changed, spec(id)).unwrap()
+        );
+    }
+    repo.write("products/creche/browser/creche.mjs", "moved product source");
+    let moved = repo.commit("move Creche into its product owner");
+    assert_ne!(
+        fingerprint(&repo.root, &changed, spec("browser.tour")).unwrap(),
+        fingerprint(&repo.root, &moved, spec("browser.tour")).unwrap()
+    );
+    fs::remove_dir_all(repo.root.join("proof/browser")).unwrap();
+    let missing = repo.commit("remove required browser proof domain");
+    assert!(validate_registry_paths(&repo.root, &missing)
+        .unwrap_err()
+        .contains("required implementation path proof/browser is absent"));
+}
+
+#[test]
 fn x86_proofs_keep_distinct_keys_in_one_batch_environment() {
     let x86: Vec<_> = PROOFS
         .iter()
