@@ -25,6 +25,8 @@ mod input_semantics;
 pub use input_semantics::*;
 mod http;
 pub use http::*;
+mod resource_snapshot;
+pub use resource_snapshot::*;
 mod json;
 pub use json::*;
 mod structured_selector;
@@ -90,6 +92,8 @@ mod presentation_execution;
 pub use presentation_execution::*;
 mod browser_human_io;
 pub use browser_human_io::*;
+mod human_media_catalog;
+pub use human_media_catalog::*;
 #[cfg(feature = "body-coordination-plan")]
 mod body_coordination_plan;
 #[cfg(feature = "body-coordination-plan")]
@@ -102,6 +106,20 @@ mod time_every;
 pub use time_every::*;
 mod timing;
 pub use timing::*;
+#[cfg(feature = "form-catalog")]
+mod button_attempt_codec;
+#[cfg(feature = "form-catalog")]
+mod timed_interval_codec;
+#[cfg(feature = "form-catalog")]
+pub use button_attempt_codec::{
+    BoundedButtonAttemptCodec, ButtonAttemptObservation, ButtonAttemptRefusal,
+};
+#[cfg(feature = "form-catalog")]
+pub use timed_interval_codec::BoundedIntervalCodec;
+#[cfg(feature = "form-catalog")]
+mod sequence_normalization_codec;
+#[cfg(feature = "form-catalog")]
+pub use sequence_normalization_codec::BoundedNormalizationCodec;
 #[cfg(feature = "form-catalog")]
 mod timed_pattern;
 #[cfg(feature = "form-catalog")]
@@ -118,6 +136,10 @@ pub use sequence_normalization::*;
 mod final_normalized_pattern;
 #[cfg(feature = "form-catalog")]
 pub use final_normalized_pattern::*;
+#[cfg(feature = "form-catalog")]
+mod pattern_comparison_codec;
+#[cfg(feature = "form-catalog")]
+pub use pattern_comparison_codec::{BoundedPatternComparisonCodec, PatternComparisonInput};
 #[cfg(feature = "form-catalog")]
 mod pattern_comparison;
 #[cfg(feature = "form-catalog")]
@@ -458,3 +480,25 @@ mod supported_nucleus_tests {
         }
     }
 }
+
+#[cfg(feature = "kernel-operation")]
+mod pattern_comparison_operation;
+#[cfg(feature = "kernel-operation")]
+pub use pattern_comparison_operation::PatternComparisonOperation;
+
+#[cfg(feature = "kernel-operation")]
+mod template_storage_operation;
+#[cfg(feature = "kernel-operation")]
+pub use template_storage_operation::TemplateStorageOperation;
+#[cfg(feature = "form-catalog")]
+mod template_store;
+#[cfg(feature = "form-catalog")]
+pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
+#[cfg(feature = "kernel-operation")]
+mod final_pattern_operation;
+#[cfg(feature = "kernel-operation")]
+pub use final_pattern_operation::FinalNormalizedPatternOperation;
+#[cfg(feature = "kernel-operation")]
+mod structured_selector_operation;
+#[cfg(feature = "kernel-operation")]
+pub use structured_selector_operation::StructuredSelectorOperation;

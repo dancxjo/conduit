@@ -14,9 +14,17 @@ pub(super) static BOOL_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory
 pub(super) struct BoolPresentationOperation {
     pending: Option<RequestId>,
     next: u32,
+    maximum: u64,
 }
 
 impl BoolPresentationOperation {
+    pub(super) fn new(maximum: u64) -> Self {
+        Self {
+            pending: None,
+            next: 0,
+            maximum,
+        }
+    }
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
     }
@@ -26,9 +34,7 @@ impl BoolPresentationOperation {
             OperationInput::Value {
                 port: PortId(0),
                 value,
-            } if self.pending.is_none()
-                && u64::from(self.next) < conduit_semantic_catalog::MAX_TOGGLE_VALUES =>
-            {
+            } if self.pending.is_none() && u64::from(self.next) < self.maximum => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
                 let Ok(input) = BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) else {
@@ -105,6 +111,7 @@ fn prepare(
         BoolPresentationOperation {
             pending: None,
             next: 0,
+            maximum: conduit_semantic_catalog::MAX_TOGGLE_VALUES,
         },
     ))
 }

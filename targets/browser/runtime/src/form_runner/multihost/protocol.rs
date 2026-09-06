@@ -77,6 +77,12 @@ pub(super) struct CordProjection {
 #[derive(Debug, Serialize)]
 #[serde(tag = "effect_kind")]
 pub(super) enum Output {
+    #[serde(rename = "input")]
+    Input {
+        schema: &'static str,
+        input: Box<super::super::protocol::TourButtonTransitionEffect>,
+        plan_projection: Box<PlanProjection>,
+    },
     #[serde(rename = "line")]
     Line {
         schema: &'static str,

@@ -7,12 +7,15 @@ export function attachConduitSyntaxEditor(textarea, runtime) {
   const container = textarea.closest('[data-application-component="form-field"]');
   if (!container) throw new TypeError("Conduit syntax editor requires a presentation form field");
   container.dataset.applicationSyntax = "conduit";
+  const editor = document.createElement("div");
+  editor.className = "syntax-editor";
   const backdrop = document.createElement("pre");
   backdrop.className = "syntax-highlight";
   backdrop.setAttribute("aria-hidden", "true");
   const code = document.createElement("code");
   backdrop.append(code);
-  container.insertBefore(backdrop, textarea);
+  container.insertBefore(editor, textarea);
+  editor.append(backdrop, textarea);
 
   const render = () => renderSyntax(textarea.value, code, textarea, runtime);
   const synchronizeScroll = () => {

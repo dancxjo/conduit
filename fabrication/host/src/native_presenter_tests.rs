@@ -2,9 +2,9 @@ use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
 const CONDUITOS_NATIVE: &str =
-    include_str!("../../../profiles/hosts/conduitos-native.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-native.profile.json");
 const CONDUITOS_HEADLESS: &str =
-    include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-headless.profile.json");
 
 #[test]
 fn native_presenter_offer_requires_exact_image_and_live_compositor_stack() {

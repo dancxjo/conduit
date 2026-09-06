@@ -1,5 +1,7 @@
 //! Portable human-media contracts.
 
+#[cfg(feature = "form-catalog")]
+use crate::human_media_catalog::install_camera_catalogs;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, BoundedResourceRef, KindContractRevision, KindId, PortDescriptor,
@@ -8,39 +10,66 @@ use conduit_core::{
     RESOURCE_REFERENCE_INFO_ID,
 };
 
-pub const CAMERA_ACQUIRE_KIND: &str = "media/acquire-camera@1";
-pub const MICROPHONE_ACQUIRE_KIND: &str = "media/acquire-microphone@1";
-pub const CAMERA_REQUEST_KIND: &str = "media/camera-constraints@1";
-pub const MICROPHONE_REQUEST_KIND: &str = "media/microphone-constraints@1";
-pub const MEDIA_ACQUISITION_RESULT_KIND: &str = "media/acquisition-result@1";
-pub const CAMERA_FRAME_KIND: &str = "media/camera-frame@1";
-pub const MICROPHONE_FRAME_KIND: &str = "media/microphone-frame@1";
-pub const CAMERA_SOURCE_KIND: &str = "media/camera";
-pub const CAMERA_FRAME_SINK_KIND: &str = "media/frame-sink";
-pub const CAMERA_RESOURCE_CLASS: &str = "conduit.resource/acquired-camera@1";
-pub const MICROPHONE_RESOURCE_CLASS: &str = "conduit.resource/acquired-microphone@1";
-pub const MEDIA_ACQUIRE_OPERATION: &str = "conduit.host/acquire-human-media@1";
-pub const MEDIA_USE_OPERATION: &str = "conduit.host/use-human-media@1";
-pub const MEDIA_REQUEST_AUTHORITY: &str = "conduit.authority/request-human-media@1";
-pub const MEDIA_USE_AUTHORITY: &str = "conduit.authority/use-human-media@1";
-pub const MAXIMUM_MEDIA_REQUEST_BYTES: u32 = 256;
-pub const MAXIMUM_MEDIA_RESULT_BYTES: u32 = 1024;
-pub const MAXIMUM_MEDIA_QUEUE_ITEMS: u16 = 4;
-pub const MAXIMUM_MEDIA_QUEUE_BYTES: u32 = 4 * MAXIMUM_MEDIA_RESULT_BYTES;
-pub const MAXIMUM_MEDIA_VALUE_BYTES: u32 = 64 * 1024;
 pub const IMAGE_TEXT_COMPOSE_KIND: &str = "media/compose-image-text";
 pub const IMAGE_TEXT_COMPOSE_REVISION: &str = "conduit.human/image-text-compose@1";
+pub const IMAGE_TEXT_TYPED_RECORD_KIND: &str = "media/image-text-to-typed-record";
+pub const IMAGE_TEXT_TYPED_RECORD_REVISION: &str = "conduit.human/image-text-typed-record@1";
 pub const IMAGE_REFERENCE_TYPE: &str = "ImageObservationReference";
 pub const IMAGE_TEXT_RECORD_TYPE: &str = "ImageTextRecord";
+
+#[cfg(feature = "form-catalog")]
+pub fn install_image_text_inspection_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_form::{KindDefinition, KindSignature};
+
+    let contract =
+        crate::structured_presentation_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(KindDefinition {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: vec![],
+        })
+        .map_err(|error| error.to_string())
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ImageTextValueRefusal {
     InvalidRecord(conduit_human::ImageTextRefusal),
+    TypedRecord(conduit_net::TypedRecordFrameRefusal),
     Malformed,
 }
 
 pub fn image_observation_reference_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(RESOURCE_REFERENCE_INFO_ID)).expect("resource reference type")
+    StructuredInfoType::record(
+        kind_id("human/image-observation-reference@1"),
+        vec![
+            StructuredFieldType::new(
+                "content",
+                StructuredInfoType::leaf(kind_id(RESOURCE_REFERENCE_INFO_ID)).unwrap(),
+            )
+            .unwrap(),
+            StructuredFieldType::new(
+                "height",
+                StructuredInfoType::leaf(kind_id("value/count@1")).unwrap(),
+            )
+            .unwrap(),
+            StructuredFieldType::new(
+                "width",
+                StructuredInfoType::leaf(kind_id("value/count@1")).unwrap(),
+            )
+            .unwrap(),
+        ],
+    )
+    .expect("image observation reference type")
 }
 
 pub fn image_text_record_type() -> StructuredInfoType {
@@ -129,16 +158,7 @@ pub fn image_text_record_value(
                 "content_digest",
                 leaf_value("value/bytes@1", record.content_digest.to_vec())?,
             ),
-            field_value(
-                "image",
-                leaf_value(
-                    RESOURCE_REFERENCE_INFO_ID,
-                    record
-                        .image
-                        .encode()
-                        .map_err(|_| ImageTextValueRefusal::Malformed)?,
-                )?,
-            ),
+            field_value("image", image_observation_value(&record.image)?),
             field_value("metadata", metadata),
         ],
     )
@@ -153,8 +173,7 @@ pub fn image_text_record_from_value(
         return Err(ImageTextValueRefusal::Malformed);
     }
     let fields = record_fields(value)?;
-    let image = BoundedResourceRef::decode(leaf_bytes(field(fields, "image")?)?)
-        .map_err(|_| ImageTextValueRefusal::Malformed)?;
+    let image = image_observation_from_value(field(fields, "image")?)?;
     let caption = text_from(field(fields, "caption")?)?;
     let digest: [u8; 32] = leaf_bytes(field(fields, "content_digest")?)?
         .try_into()
@@ -192,6 +211,14 @@ pub fn image_text_record_from_value(
     Ok(record)
 }
 
+pub fn image_text_typed_record_value(
+    record: &conduit_human::ImageTextRecord,
+    expected_image_profile: &KindId,
+) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
+    let value = image_text_record_value(record, expected_image_profile)?;
+    conduit_net::typed_record_value(&value).map_err(ImageTextValueRefusal::TypedRecord)
+}
+
 fn metadata_type() -> StructuredInfoType {
     let collection = metadata_collection_type();
     let StructuredInfoTypeShape::Collection { element, .. } = collection.shape() else {
@@ -206,6 +233,46 @@ fn metadata_type() -> StructuredInfoType {
         .unwrap()
         .payload_type()
         .clone()
+}
+
+pub fn image_observation_value(
+    image: &conduit_human::ImageObservationReference,
+) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
+    StructuredInfoValue::record(
+        image_observation_reference_type(),
+        vec![
+            field_value(
+                "content",
+                leaf_value(
+                    RESOURCE_REFERENCE_INFO_ID,
+                    image
+                        .content
+                        .encode()
+                        .map_err(|_| ImageTextValueRefusal::Malformed)?,
+                )?,
+            ),
+            field_value("height", count_value(image.height)?),
+            field_value("width", count_value(image.width)?),
+        ],
+    )
+    .map_err(|_| ImageTextValueRefusal::Malformed)
+}
+
+pub fn image_observation_from_value(
+    value: &StructuredInfoValue,
+) -> Result<conduit_human::ImageObservationReference, ImageTextValueRefusal> {
+    if value.value_type() != &image_observation_reference_type() {
+        return Err(ImageTextValueRefusal::Malformed);
+    }
+    let fields = record_fields(value)?;
+    Ok(conduit_human::ImageObservationReference {
+        content: BoundedResourceRef::decode(leaf_bytes(field(fields, "content")?)?)
+            .map_err(|_| ImageTextValueRefusal::Malformed)?,
+        height: u16::try_from(count_from(field(fields, "height")?)?)
+            .map_err(|_| ImageTextValueRefusal::Malformed)?,
+        width: u16::try_from(count_from(field(fields, "width")?)?)
+            .map_err(|_| ImageTextValueRefusal::Malformed)?,
+    })
 }
 
 fn metadata_slot_type() -> StructuredInfoType {
@@ -236,6 +303,8 @@ pub fn install_human_media_catalogs(
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{KindDefinition, KindSignature};
 
+    install_camera_catalogs(startup, profile)?;
+
     startup
         .insert_structured_type(IMAGE_REFERENCE_TYPE, image_observation_reference_type())
         .map_err(|error| error.to_string())?;
@@ -244,28 +313,6 @@ pub fn install_human_media_catalogs(
         .map_err(|error| error.to_string())?;
 
     for (kind, revision, inputs, outputs) in [
-        (
-            CAMERA_SOURCE_KIND,
-            "conduit.std/camera-source@1",
-            vec![],
-            vec![PortDescriptor {
-                port_id: port_id("frame"),
-                value_kind: kind_id(CAMERA_FRAME_KIND),
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Flow { closes: true },
-            }],
-        ),
-        (
-            CAMERA_FRAME_SINK_KIND,
-            "conduit.std/camera-frame-sink@1",
-            vec![PortDescriptor {
-                port_id: port_id("frame"),
-                value_kind: kind_id(CAMERA_FRAME_KIND),
-                direction: PortDirection::Input,
-                temporal: PortTemporal::Flow { closes: true },
-            }],
-            vec![],
-        ),
         (
             IMAGE_TEXT_COMPOSE_KIND,
             IMAGE_TEXT_COMPOSE_REVISION,
@@ -285,6 +332,20 @@ pub fn install_human_media_catalogs(
             vec![structured_port(
                 "record",
                 &image_text_record_type(),
+                PortDirection::Output,
+            )],
+        ),
+        (
+            IMAGE_TEXT_TYPED_RECORD_KIND,
+            IMAGE_TEXT_TYPED_RECORD_REVISION,
+            vec![structured_port(
+                "record",
+                &image_text_record_type(),
+                PortDirection::Input,
+            )],
+            vec![structured_port(
+                "typed",
+                &conduit_net::typed_record_type(),
                 PortDirection::Output,
             )],
         ),
@@ -331,6 +392,10 @@ fn leaf_value(
     .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
+fn count_value(value: u16) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
+    leaf_value("value/count@1", u64::from(value).to_le_bytes().to_vec())
+}
+
 fn field_value(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {
     StructuredFieldValue::new(name, value).expect("reviewed image-text field name is finite")
 }
@@ -362,50 +427,13 @@ fn leaf_bytes(value: &StructuredInfoValue) -> Result<&[u8], ImageTextValueRefusa
     }
 }
 
-fn text_from(value: &StructuredInfoValue) -> Result<String, ImageTextValueRefusal> {
-    String::from_utf8(leaf_bytes(value)?.to_vec()).map_err(|_| ImageTextValueRefusal::Malformed)
+fn count_from(value: &StructuredInfoValue) -> Result<u64, ImageTextValueRefusal> {
+    leaf_bytes(value)?
+        .try_into()
+        .map(u64::from_le_bytes)
+        .map_err(|_| ImageTextValueRefusal::Malformed)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[cfg(feature = "form-catalog")]
-    #[test]
-    fn camera_summary_form_is_browser_neutral_and_has_one_exact_typed_cord() {
-        let source = include_str!("../../../forms/camera-summary/main.conduit");
-        let lower = source.to_ascii_lowercase();
-        for forbidden in [
-            "browser",
-            "dom",
-            "canvas",
-            "device",
-            "permission",
-            "transport",
-            "socket",
-            "address",
-            "url",
-            "host",
-        ] {
-            assert!(!lower.contains(forbidden), "Form contains {forbidden}");
-        }
-        let mut startup = conduit_form::StartupCatalog::new();
-        let mut profile = conduit_form::ProfileCatalog::new();
-        install_human_media_catalogs(&mut startup, &mut profile).unwrap();
-        let checked = conduit_form::check_syntax_document(
-            &conduit_form::parse_syntax_document(source),
-            &startup,
-        )
-        .unwrap();
-        let expanded =
-            conduit_form::expand_canonical_form(&checked, "camera-summary", &profile).unwrap();
-        assert_eq!(expanded.gears.len(), 2);
-        assert_eq!(expanded.connections.len(), 1);
-        assert_eq!(
-            expanded.connections[0].value_kind.as_str(),
-            CAMERA_FRAME_KIND
-        );
-        assert_eq!(expanded.connections[0].source_port_id.as_str(), "frame");
-        assert_eq!(expanded.connections[0].sink_port_id.as_str(), "frame");
-    }
+fn text_from(value: &StructuredInfoValue) -> Result<String, ImageTextValueRefusal> {
+    String::from_utf8(leaf_bytes(value)?.to_vec()).map_err(|_| ImageTextValueRefusal::Malformed)
 }

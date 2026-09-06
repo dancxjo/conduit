@@ -275,7 +275,12 @@ fn accepted_completion_wins_before_cancellation() {
     scheduler.step().unwrap();
     assert_eq!(
         scheduler.step(),
-        Err(super::super::SchedulerError::OperationFailed(856))
+        Err(super::super::SchedulerError::OperationFailed(
+            crate::Failure {
+                code: crate::FailureCode::InvalidInput,
+                detail: 856
+            }
+        ))
     );
     assert!(scheduler.next_host_cancellation().is_none());
 }

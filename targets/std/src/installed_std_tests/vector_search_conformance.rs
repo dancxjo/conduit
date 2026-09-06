@@ -194,6 +194,10 @@ fn host(adapter: Box<dyn HostedVectorSearchAdapter>, suffix: &str) -> StdHost {
         installed_std::test_local_model_io::source_offer(conduit_ai::SIMILARITY_QUERY_VALUE_KIND),
         installed_std::test_local_model_io::sink_offer(conduit_ai::SIMILARITY_HITS_VALUE_KIND),
     ]);
+    // Install the fixture's complete offer set before constructing its ledger,
+    // just as production constructors do for their installed capabilities.
+    host.kernel_resources =
+        crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
     host
 }
 

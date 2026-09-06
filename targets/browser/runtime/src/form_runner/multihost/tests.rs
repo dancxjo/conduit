@@ -132,18 +132,21 @@ fn oversized_line_value_refuses_before_remote_admission() {
 }
 
 #[test]
-fn form_cannot_name_a_third_gear_in_the_two_host_lesson() {
+fn ordinary_transform_can_run_after_the_remote_cord() {
     let source = r#"form too-large {
         message: text/literal("hello")
         upper: text/upper
         show: presentation/text
         message > upper > show
     }"#;
-    let error = super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source)
-        .err()
-        .expect("the bounded lesson must refuse a third Gear");
+    let plan = super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source).unwrap();
+    assert_eq!(plan.plan.fragments.len(), 2);
     assert_eq!(
-        error,
-        "two-browser lesson requires exactly two Gears and one Cord"
+        plan.plan
+            .fragments
+            .iter()
+            .map(|fragment| fragment.placements.len())
+            .sum::<usize>(),
+        3
     );
 }

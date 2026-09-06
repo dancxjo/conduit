@@ -153,6 +153,9 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
         } else {
             "math/map-quantity:inexact"
         };
+        let rendered = String::from_utf8(output).unwrap();
+        assert!(rendered.contains(" failed reason="));
+        assert!(!rendered.contains(" complete\n"));
         let failure = report.observations.iter().find(|sign| matches!(
             &sign.kind, ObservationKind::Failure { message: Some(message), .. } if message == expected
         )).expect("exact mapping failure is retained in a Sign");

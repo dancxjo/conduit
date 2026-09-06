@@ -16,7 +16,8 @@ impl PatchbayApplication {
             composition = composition.with_files();
         }
         let model = hosted_adapter::fresh_model(composition, |advertisement| {
-            portable_keyboard::append_offer(advertisement)
+            portable_keyboard::append_offer(advertisement)?;
+            portable_keyboard::append_button_offers(advertisement)
         })?;
         emit_report("startup", &model.startup_snapshot())?;
         let mut topology =

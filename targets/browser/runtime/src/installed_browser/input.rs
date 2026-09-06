@@ -94,14 +94,14 @@ fn prepare_button(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &button_offer())?;
-    let request = [
-        values
-            .store(&[0])
-            .map_err(|error| format!("store first button request: {error:?}"))?,
-        values
-            .store(&[0])
-            .map_err(|error| format!("store second button request: {error:?}"))?,
-    ];
+    let count = button_transition_count(placement)?;
+    let request = (0..count)
+        .map(|_| {
+            values
+                .store(&[0])
+                .map_err(|error| format!("store button request: {error:?}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(BrowserOperation::installed(ButtonOperation {
         request,
         pending: false,
@@ -109,8 +109,23 @@ fn prepare_button(
     }))
 }
 
+fn button_transition_count(placement: &PlannedGear) -> Result<usize, String> {
+    match placement.configuration.as_slice() {
+        [field] if field.key == "maximum-transitions" => match field.value {
+            conduit_core::ConfigurationValue::U64(value)
+                if (1..=u64::from(conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_VALUES))
+                    .contains(&value) =>
+            {
+                Ok(value as usize)
+            }
+            _ => Err("button transition count is outside the admitted 1..8 range".into()),
+        },
+        _ => Err("button input requires exactly one maximum-transitions configuration".into()),
+    }
+}
+
 struct ButtonOperation {
-    request: [ValueRef; 2],
+    request: Vec<ValueRef>,
     pending: bool,
     delivered: u32,
 }
@@ -155,7 +170,7 @@ impl Operation for ButtonOperation {
 
     fn advance(&mut self) -> OperationAction {
         self.delivered += 1;
-        if self.delivered == 2 {
+        if self.delivered as usize == self.request.len() {
             OperationAction::Complete
         } else {
             self.request()
@@ -227,6 +242,46 @@ fn fail() -> OperationAction {
 mod tests {
     use super::*;
     use conduit_kernel::{HostOperationOutcome, ValueRef};
+
+    #[test]
+    fn button_emits_each_admitted_transition_and_closes_at_the_exact_bound() {
+        for count in [1, 2, 5, 8] {
+            let mut operation = ButtonOperation {
+                request: (0..count)
+                    .map(|slot| ValueRef {
+                        slot,
+                        generation: 1,
+                        byte_len: 1,
+                    })
+                    .collect(),
+                pending: false,
+                delivered: 0,
+            };
+            let mut action = operation.start();
+            for index in 0..count {
+                assert!(matches!(action, OperationAction::RequestHostOperation {
+                    request: RequestId(id), ..
+                } if id == index as u32));
+                let value = operation.request[index as usize];
+                assert_eq!(
+                    operation.resume(OperationInput::HostOperationCompleted {
+                        request: RequestId(index as u32),
+                        outcome: HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output: Some(BoundedValueRef::new(value, 1).unwrap()),
+                            failure: None,
+                        },
+                    }),
+                    OperationAction::Emit {
+                        port: PortId(0),
+                        value
+                    }
+                );
+                action = operation.advance();
+            }
+            assert_eq!(action, OperationAction::Complete);
+        }
+    }
 
     #[test]
     fn keyboard_requests_one_bounded_event_and_emits_exact_completion() {

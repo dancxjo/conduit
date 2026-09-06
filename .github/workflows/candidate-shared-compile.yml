@@ -57,8 +57,13 @@ jobs:
           CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           CONDUIT_STACK_ROLE_OUT: target/ci-plans/pr-stack-role.json
         run: |
+          mapfile -t classifiers < <(git -C "$RUNNER_TEMP/conduit-ci-controller" ls-files -- '*/classify-pr-stack.mjs')
+          if test "${#classifiers[@]}" -ne 1; then
+            echo 'Expected one tracked stack classifier in the trusted controller.' >&2
+            exit 1
+          fi
           mkdir -p target/ci-plans
-          node "$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+          node "$RUNNER_TEMP/conduit-ci-controller/${classifiers[0]}"
       - name: Preserve the intermediate slice without expensive work
         if: steps.stack.outputs.role == 'intermediate'
         run: git diff --check '${{ inputs.base_sha }}' '${{ inputs.candidate_sha }}'
@@ -105,7 +110,7 @@ jobs:
         env:
           CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
         run: |
-          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "workspace.shared-compile"'; then
+          if ! git show "$CONTROLLER_SHA:tools/xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "workspace.shared-compile"'; then
             echo 'supported=false' >> "$GITHUB_OUTPUT"
             echo 'Trusted controller predates the shared-compile receipt; bootstrap execution remains authoritative.'
             exit 0

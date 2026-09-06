@@ -29,6 +29,18 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   const syntax = birth.locator('[data-application-syntax="conduit"] .syntax-highlight');
   await expect(source).toHaveAttribute("data-syntax-disposition", "accepted");
   await expect(syntax.locator(".syntax-keyword").first()).toHaveText("form");
+  const editorGeometry = await birth.locator(".syntax-editor").evaluate((editor) => {
+    const textarea = editor.querySelector("textarea").getBoundingClientRect();
+    const backdrop = editor.querySelector(".syntax-highlight").getBoundingClientRect();
+    return {
+      left: Math.abs(textarea.left - backdrop.left),
+      top: Math.abs(textarea.top - backdrop.top),
+      width: Math.abs(textarea.width - backdrop.width),
+      height: Math.abs(textarea.height - backdrop.height),
+    };
+  });
+  expect(editorGeometry).toEqual({ left: 0, top: 0, width: 0, height: 0 });
+  await expect(source).toHaveCSS("padding", await syntax.evaluate((element) => getComputedStyle(element).padding));
   await source.evaluate((element) => element.setSelectionRange(0, 4));
   const selectedStyle = await source.evaluate((element) => {
     const style = getComputedStyle(element, "::selection");

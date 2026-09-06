@@ -299,8 +299,8 @@ mod tests {
     #[test]
     fn canonical_host_sources_round_trip_without_changing_meaning_or_identity() {
         let sources = [
-            include_str!("../../../profiles/host-configurations/linux-computer.host.conduit"),
-            include_str!("../../../profiles/host-configurations/pico-w.host.conduit"),
+            include_str!("../../../targets/std/profiles/linux-computer.host.conduit"),
+            include_str!("../../../targets/rp2040/profiles/pico-w.host.conduit"),
         ];
         let catalog = crate::test_packages::test_catalog();
         for conduit in sources {
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn need_declarations_lower_to_finite_existing_resource_budgets() {
         let source = include_str!(
-            "../../../profiles/host-configurations/linux-computer.host.conduit"
+            "../../../targets/std/profiles/linux-computer.host.conduit"
         )
         .replace(
             "  limits =",
@@ -346,12 +346,11 @@ mod tests {
 
     #[test]
     fn exact_optional_fabrication_descriptor_round_trips_in_target_meaning() {
-        let source =
-            include_str!("../../../profiles/host-configurations/linux-computer.host.conduit")
-                .replace(
-                    "os: \"linux\"}",
-                    "os: \"linux\", fabrication_descriptor: \"descriptor:sha256:exact\"}",
-                );
+        let source = include_str!("../../../targets/std/profiles/linux-computer.host.conduit")
+            .replace(
+                "os: \"linux\"}",
+                "os: \"linux\", fabrication_descriptor: \"descriptor:sha256:exact\"}",
+            );
         let configuration = parse_host_configuration_conduit(&source).unwrap();
         assert_eq!(
             configuration.target.fabrication_descriptor.as_deref(),
@@ -364,8 +363,7 @@ mod tests {
 
     #[test]
     fn canonical_inputs_retain_host_validation_truth() {
-        let canonical =
-            include_str!("../../../profiles/host-configurations/linux-computer.host.conduit");
+        let canonical = include_str!("../../../targets/std/profiles/linux-computer.host.conduit");
         let cases = [
             ("x86_64", "mystery", "UnknownTarget"),
             ("clock/monotonic", "unknown/base", "UnknownBase"),

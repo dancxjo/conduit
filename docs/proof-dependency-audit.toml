@@ -111,14 +111,14 @@ classification = "firmware-build-fixture"
 resolution = "Separate reusable Pico offers from fixed build-time Signal topology."
 
 [[edges]]
-manifest = "xtask/Cargo.toml"
+manifest = "tools/xtask/Cargo.toml"
 dependency = "conduit-r1-network-conformance"
 kind = "dependencies"
 classification = "repository-proof-entrance"
 resolution = "Retain: cargo xtask is the admitted repository proof entrance."
 
 [[edges]]
-manifest = "xtask/Cargo.toml"
+manifest = "tools/xtask/Cargo.toml"
 dependency = "conduit-signal-conformance"
 kind = "dependencies"
 classification = "repository-proof-entrance"

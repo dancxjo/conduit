@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn checked_body_drives_current_hosts_and_bounded_lines_without_fixture_identity() {
-        let path = Path::new("../../profiles/bodies/std-line.body.conduit");
+        let path = Path::new("../../proof/fixtures/bodies/std-line.body.conduit");
         let checked = load(path).unwrap();
         let product = prepare(path).unwrap();
         assert_eq!(checked.hosts().len(), 2);
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn structurally_different_body_refuses_the_exact_missing_runtime_class() {
-        let error = prepare(Path::new("../../profiles/bodies/pete-r1.body.conduit"))
+        let error = prepare(Path::new("../../bodies/pete/profiles/pete-r1.body.conduit"))
             .err()
             .expect("the installed product has no Pico runtime handle");
         assert!(error.contains("brainstem"), "{error}");
@@ -174,7 +174,7 @@ mod tests {
     #[test]
     fn three_host_body_builds_current_runtime_and_line_truth_without_roles() {
         let product = prepare(Path::new(
-            "../../profiles/bodies/std-three-host.body.conduit",
+            "../../proof/fixtures/bodies/std-three-host.body.conduit",
         ))
         .expect("three installed std Hosts are an ordinary finite product context");
         assert_eq!(product.context.advertisements().len(), 3);

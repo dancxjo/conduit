@@ -2,7 +2,6 @@
 
 use std::{
     fs,
-    io::{BufRead, BufReader, Write},
     os::unix::net::UnixStream,
     path::Path,
     process::Child,
@@ -10,7 +9,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::ConduitosError;
+pub(super) use super::qmp::connect;
+use super::{qmp, ConduitosError};
 
 #[derive(Clone, Copy)]
 pub(super) enum RescueNearMiss {
@@ -50,7 +50,7 @@ pub(super) fn inject(
 
 fn inject_keyboard_text(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     serial_path: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
@@ -253,43 +253,9 @@ pub(super) fn inject_near_miss(
     )
 }
 
-pub(super) fn connect(
-    socket: &Path,
-    child: &mut Child,
-) -> Result<(UnixStream, BufReader<UnixStream>), ConduitosError> {
-    let deadline = Instant::now() + Duration::from_secs(2);
-    let mut qmp = loop {
-        match UnixStream::connect(socket) {
-            Ok(stream) => break stream,
-            Err(_) if Instant::now() < deadline => thread::sleep(Duration::from_millis(10)),
-            Err(error) => return stop(child, "qemu-qmp-unavailable", error.to_string()),
-        }
-    };
-    qmp.set_read_timeout(Some(Duration::from_secs(2)))
-        .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?;
-    let mut reader = BufReader::new(
-        qmp.try_clone()
-            .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?,
-    );
-    let mut response = String::new();
-    reader
-        .read_line(&mut response)
-        .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?;
-    if !response.contains("\"QMP\"") {
-        return Err(ConduitosError::refusal(
-            "qemu-qmp-failed",
-            format!("missing QMP greeting: {response}"),
-        ));
-    }
-    qmp.write_all(b"{\"execute\":\"qmp_capabilities\"}\r\n")
-        .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?;
-    require_return(&mut reader, "capability negotiation")?;
-    Ok((qmp, reader))
-}
-
 fn send_key(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     down: bool,
 ) -> Result<(), ConduitosError> {
     let command = if down {
@@ -299,24 +265,27 @@ fn send_key(
         b"{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"key\",\"data\":{\"down\":false,\"key\":{\"type\":\"qcode\",\"data\":\"a\"}}}]}}\r\n"
             .as_slice()
     };
-    qmp.write_all(command)
-        .map_err(|error| ConduitosError::refusal("qemu-key-injection-failed", error.to_string()))?;
-    require_return(reader, if down { "key-down" } else { "key-up" })
+    qmp::request(
+        qmp,
+        reader,
+        command,
+        if down { "key-down" } else { "key-up" },
+    )
 }
 
 fn send_rescue_keys(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     down: bool,
 ) -> Result<(), ConduitosError> {
     let state = if down { "true" } else { "false" };
     let command = format!(
         "{{\"execute\":\"input-send-event\",\"arguments\":{{\"events\":[{{\"type\":\"key\",\"data\":{{\"down\":{state},\"key\":{{\"type\":\"qcode\",\"data\":\"ctrl\"}}}}}},{{\"type\":\"key\",\"data\":{{\"down\":{state},\"key\":{{\"type\":\"qcode\",\"data\":\"alt\"}}}}}},{{\"type\":\"key\",\"data\":{{\"down\":{state},\"key\":{{\"type\":\"qcode\",\"data\":\"delete\"}}}}}}]}}}}\r\n"
     );
-    qmp.write_all(command.as_bytes())
-        .map_err(|error| ConduitosError::refusal("qemu-key-injection-failed", error.to_string()))?;
-    require_return(
+    qmp::request(
+        qmp,
         reader,
+        command.as_bytes(),
         if down {
             "rescue-key-down"
         } else {
@@ -327,27 +296,23 @@ fn send_rescue_keys(
 
 fn send_rescue_modifiers(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
 ) -> Result<(), ConduitosError> {
     let command = b"{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"key\",\"data\":{\"down\":true,\"key\":{\"type\":\"qcode\",\"data\":\"ctrl\"}}},{\"type\":\"key\",\"data\":{\"down\":true,\"key\":{\"type\":\"qcode\",\"data\":\"alt\"}}}]}}\r\n";
-    qmp.write_all(command)
-        .map_err(|error| ConduitosError::refusal("qemu-key-injection-failed", error.to_string()))?;
-    require_return(reader, "rescue-modifiers-down")
+    qmp::request(qmp, reader, command.as_ref(), "rescue-modifiers-down")
 }
 
 fn send_rescue_delete(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
 ) -> Result<(), ConduitosError> {
     let command = b"{\"execute\":\"input-send-event\",\"arguments\":{\"events\":[{\"type\":\"key\",\"data\":{\"down\":true,\"key\":{\"type\":\"qcode\",\"data\":\"delete\"}}}]}}\r\n";
-    qmp.write_all(command)
-        .map_err(|error| ConduitosError::refusal("qemu-key-injection-failed", error.to_string()))?;
-    require_return(reader, "rescue-delete-down")
+    qmp::request(qmp, reader, command.as_ref(), "rescue-delete-down")
 }
 
 pub(super) fn send_named_keys(
     qmp: &mut UnixStream,
-    reader: &mut BufReader<UnixStream>,
+    reader: &mut super::qmp::Reader,
     keys: &[&str],
     down: bool,
     action: &'static str,
@@ -363,9 +328,7 @@ pub(super) fn send_named_keys(
     }
     let command =
         format!("{{\"execute\":\"input-send-event\",\"arguments\":{{\"events\":[{events}]}}}}\r\n");
-    qmp.write_all(command.as_bytes())
-        .map_err(|error| ConduitosError::refusal("qemu-key-injection-failed", error.to_string()))?;
-    require_return(reader, action)
+    qmp::request(qmp, reader, command.as_ref(), action)
 }
 
 pub(super) fn wait_for_stage(
@@ -409,31 +372,6 @@ fn wait_for_stage_count(
         }
         thread::sleep(Duration::from_millis(1));
     }
-}
-
-pub(super) fn require_return(
-    reader: &mut BufReader<UnixStream>,
-    action: &'static str,
-) -> Result<(), ConduitosError> {
-    for _ in 0..8 {
-        let mut response = String::new();
-        reader
-            .read_line(&mut response)
-            .map_err(|error| ConduitosError::refusal("qemu-qmp-failed", error.to_string()))?;
-        if response.contains("\"return\"") {
-            return Ok(());
-        }
-        if response.contains("\"error\"") || response.is_empty() {
-            return Err(ConduitosError::refusal(
-                "qemu-key-injection-failed",
-                format!("QMP {action} response: {response}"),
-            ));
-        }
-    }
-    Err(ConduitosError::refusal(
-        "qemu-key-injection-failed",
-        format!("QMP {action} produced no bounded response"),
-    ))
 }
 
 pub(super) fn stop<T>(

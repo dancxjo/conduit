@@ -35,8 +35,8 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
         (SINK_KIND, &comparison, &sink_offer),
     ]);
     let source = format!(
-        "form compare-pattern (\n    > candidate: NormalizedDurationSequence\n    > template: NormalizedDurationSequence\n    comparison: PatternComparison >\n) {{\n    compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 60000)\n    candidate > compare.candidate\n    template > compare.template\n    compare.comparison > comparison\n}}\nform gesture-cadence-proof {{\n    candidate: {CANDIDATE_KIND}(value = \"{}\")\n    template: {TEMPLATE_KIND}(value = \"{}\")\n    compare: compare-pattern\n    result: {SINK_KIND}(value = \"{}\")\n    candidate.output > compare.candidate\n    template.output > compare.template\n    compare.comparison > result.input\n}}\n",
-        conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC,
+        "{}\nform gesture-cadence-proof {{\n    candidate: {CANDIDATE_KIND}(value = \"{}\")\n    template: {TEMPLATE_KIND}(value = \"{}\")\n    compare: compare-pattern(tolerance-millionths = 60000)\n    result: {SINK_KIND}(value = \"{}\")\n    candidate.output > compare.candidate\n    template.output > compare.template\n    compare.comparison > result.input\n}}\n",
+        include_str!("../../../../forms/secret-knock/main.conduit"),
         hex(&candidate.canonical_bytes().unwrap()),
         hex(&template.canonical_bytes().unwrap()),
         hex(&comparison.canonical_bytes().unwrap()),
@@ -44,6 +44,25 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let canonical = check_syntax_document(
+        &parse_syntax_document(include_str!("../../../../forms/secret-knock/main.conduit")),
+        &startup,
+    )
+    .unwrap();
+    assert_eq!(
+        canonical
+            .forms
+            .iter()
+            .find(|form| form.name == "compare-pattern")
+            .unwrap()
+            .checked_form_id,
+        checked
+            .forms
+            .iter()
+            .find(|form| form.name == "compare-pattern")
+            .unwrap()
+            .checked_form_id
+    );
     let expanded = expand_canonical_form(&checked, "gesture-cadence-proof", &profile).unwrap();
     assert!(expanded.gears.iter().any(|gear| {
         gear.kind_id.as_str() == conduit_semantic_catalog::COMPARE_PATTERN_KIND
@@ -114,10 +133,7 @@ fn catalogs<const N: usize>(
 ) -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)
-        .unwrap();
-    conduit_semantic_catalog::install_pattern_comparison_catalogs(&mut startup, &mut profile)
-        .unwrap();
+    super::timing_form_catalogs::install_catalogs(&mut startup, &mut profile);
     for (kind, value, offer) in fixtures {
         startup
             .insert(KindSignature {

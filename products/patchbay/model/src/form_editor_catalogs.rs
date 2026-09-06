@@ -29,6 +29,8 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)

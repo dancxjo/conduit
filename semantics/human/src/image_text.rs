@@ -1,7 +1,9 @@
 //! Portable finite composition of one semantic image reference and text.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{semantic_digest, BoundedResourceRef, KindId};
+use conduit_core::{semantic_digest, KindId};
+
+use crate::{ImageObservationReference, ImageObservationRefusal};
 
 pub const MAXIMUM_IMAGE_TEXT_CAPTION_BYTES: usize = 512;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES: usize = 8;
@@ -16,7 +18,7 @@ pub struct ImageTextMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageTextRecord {
-    pub image: BoundedResourceRef,
+    pub image: ImageObservationReference,
     pub caption: String,
     pub metadata: Vec<ImageTextMetadata>,
     pub content_digest: [u8; 32],
@@ -26,6 +28,8 @@ pub struct ImageTextRecord {
 pub enum ImageTextRefusal {
     InvalidImage,
     WrongImageProfile,
+    InvalidImageDimensions,
+    ImageTooLarge,
     EmptyCaption,
     CaptionTooLarge,
     TooManyMetadataEntries,
@@ -38,16 +42,18 @@ pub enum ImageTextRefusal {
 
 pub fn compose_image_text(
     expected_image_profile: &KindId,
-    image: BoundedResourceRef,
+    image: ImageObservationReference,
     caption: String,
     metadata: Vec<ImageTextMetadata>,
 ) -> Result<ImageTextRecord, ImageTextRefusal> {
     image
-        .validate()
-        .map_err(|_| ImageTextRefusal::InvalidImage)?;
-    if &image.content_profile != expected_image_profile {
-        return Err(ImageTextRefusal::WrongImageProfile);
-    }
+        .validate(expected_image_profile)
+        .map_err(|refusal| match refusal {
+            ImageObservationRefusal::InvalidResource => ImageTextRefusal::InvalidImage,
+            ImageObservationRefusal::WrongProfile => ImageTextRefusal::WrongImageProfile,
+            ImageObservationRefusal::InvalidDimensions => ImageTextRefusal::InvalidImageDimensions,
+            ImageObservationRefusal::ContentTooLarge => ImageTextRefusal::ImageTooLarge,
+        })?;
     if caption.is_empty() {
         return Err(ImageTextRefusal::EmptyCaption);
     }
@@ -95,10 +101,17 @@ impl ImageTextRecord {
     }
 }
 
-fn digest(image: &BoundedResourceRef, caption: &str, metadata: &[ImageTextMetadata]) -> [u8; 32] {
+fn digest(
+    image: &ImageObservationReference,
+    caption: &str,
+    metadata: &[ImageTextMetadata],
+) -> [u8; 32] {
     let mut bytes = image
+        .content
         .encode()
         .expect("the validated image reference remains encodable");
+    bytes.extend_from_slice(&image.width.to_le_bytes());
+    bytes.extend_from_slice(&image.height.to_le_bytes());
     bytes.extend_from_slice(&(caption.len() as u64).to_le_bytes());
     bytes.extend_from_slice(caption.as_bytes());
     bytes.extend_from_slice(&(metadata.len() as u64).to_le_bytes());

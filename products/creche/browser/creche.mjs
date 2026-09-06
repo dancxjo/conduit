@@ -6,14 +6,14 @@ import { createGraduationRunner, exportBodyEvidence, renderBiography } from "./c
 import { createCrecheRouting } from "./creche-routing.mjs";
 import { openFormSelection, persistedFormSelection, readReviewedFormInventory } from "./creche-form-selection.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
-import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/avr/browser-deployment/creche-adapter.mjs";
-import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/rp2040/browser-deployment/creche-adapter.mjs";
-import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/esp32/browser-deployment/creche-adapter.mjs";
-import { STD_EXISTING_COMPUTER_CONTRIBUTIONS } from "../../../targets/std/browser-deployment/creche-adapter.mjs";
-import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/host/browser-deployment/creche-adapter.mjs";
-import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/orange-pi/browser-deployment/creche-adapter.mjs";
-import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/raspberry-pi/browser-deployment/creche-adapter.mjs";
-import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/conduitos/browser-deployment/creche-adapter.mjs";
+import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/avr/deployment/browser/creche-adapter.mjs";
+import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/rp2040/deployment/browser/creche-adapter.mjs";
+import { ESP32_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/esp32/deployment/browser/creche-adapter.mjs";
+import { STD_EXISTING_COMPUTER_CONTRIBUTIONS } from "../../../targets/std/deployment/browser/creche-adapter.mjs";
+import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
+import { ORANGE_PI_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/orange-pi/deployment/browser/creche-adapter.mjs";
+import { RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/raspberry-pi/deployment/browser/creche-adapter.mjs";
+import { CONDUITOS_CRECHE_TARGET_CONTRIBUTIONS } from "../../../targets/conduitos/deployment/browser/creche-adapter.mjs";
 
 const steps = [
   { name: "Birth", slug: "birth" },

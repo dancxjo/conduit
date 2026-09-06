@@ -14,6 +14,7 @@ mod calendar_provider_conformance;
 mod final_normalized_pattern_conformance;
 mod gate_conformance;
 mod graphics_conformance;
+mod image_text_conformance;
 mod input_semantics_conformance;
 mod instrument_conformance;
 mod json_conformance;
@@ -38,6 +39,7 @@ mod template_storage_conformance;
 mod timed_button_attempt_conformance;
 mod timed_pattern_conformance;
 mod timing_conformance;
+mod typed_state_conformance;
 mod vector_search_conformance;
 
 struct RecordingTimer {

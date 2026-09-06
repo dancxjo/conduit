@@ -117,7 +117,7 @@ jobs:
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -o pipefail
-          node scripts/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
+          node tools/ci/reconcile-candidate-request.mjs resolve | tee reconciliation-request.json
       - name: Retrieve candidate proof receipts from their aggregate run locations
         if: steps.locate.outputs.published != 'true'
         shell: bash
@@ -165,7 +165,7 @@ jobs:
             ci reconcile "$BASE_SHA" "$CANDIDATE_SHA" "${receipts[@]}" "${applicability[@]}" --locked \
             --json-out "$CONDUIT_EXACT_PROOF_PLAN" --summary-out exact-proof-summary.md
           cat exact-proof-summary.md >> "$GITHUB_STEP_SUMMARY"
-          node scripts/ci/reconcile-candidate-request.mjs classify | tee exact-lane-disposition.json
+          node tools/ci/reconcile-candidate-request.mjs classify | tee exact-lane-disposition.json
       - name: Publish the immutable integration commit for proof jobs
         if: steps.locate.outputs.published != 'true'
         env:
@@ -210,7 +210,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    uses: ./.github/workflows/executable-book-pages.yml
+    uses: ./.github/workflows/tour-products.yml
     with:
       base_sha: ${{ needs.resolve.outputs.base_sha }}
       candidate_sha: ${{ needs.resolve.outputs.integration_sha }}
@@ -254,7 +254,7 @@ jobs:
           CONDUIT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -o pipefail
-          node scripts/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
+          node tools/ci/reconcile-candidate-request.mjs publish | tee reconciliation-result.json
       - name: Report a causal shared-compilation block
         if: needs.resolve.result == 'success' && needs.shared-compile.result == 'failure'
         env:
