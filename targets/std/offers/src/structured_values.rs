@@ -1,5 +1,8 @@
 //! Exact generic structured-value offers owned by the hosted std Host.
 
+mod state;
+pub use state::*;
+
 use conduit_core::{
     kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
     CapabilityOffer, ExecutionProfileId, ImplementationId, ImplementationOffer,
