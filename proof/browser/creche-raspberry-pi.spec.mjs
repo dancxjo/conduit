@@ -269,8 +269,8 @@ test("Pi model, architecture, boot partition, image, writer, and unsupported-mod
     };
   }, {
     releaseManifest: release,
-    imageUrl: new URL("targets/raspberry-pi/deployment/browser/image.mjs", entrance.url).href,
-    adapterUrl: new URL("targets/raspberry-pi/deployment/browser/creche-adapter.mjs", entrance.url).href,
+    imageUrl: new URL("targets/raspberry-pi/browser-deployment/image.mjs", entrance.url).href,
+    adapterUrl: new URL("targets/raspberry-pi/browser-deployment/creche-adapter.mjs", entrance.url).href,
   });
   expect(terminals).toEqual({
     wrongModel: "WrongModel",
