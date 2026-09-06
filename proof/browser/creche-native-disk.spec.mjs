@@ -4,7 +4,7 @@ import {
   bindBodyProvisionedMedia,
   NATIVE_MEDIA_PROVISION_BYTES,
   readBodyProvisionedMedia,
-} from "../../targets/browser/host/assets/creche-native-disk.mjs";
+} from "../../products/creche/browser/creche-native-disk.mjs";
 
 test("two Bodies produce distinct native disk images with recoverable provisioning", async () => {
   const image = new Uint8Array(2048);

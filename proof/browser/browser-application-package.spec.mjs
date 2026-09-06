@@ -70,7 +70,7 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   expect(membershipClient.schema).toBe("conduit.browser/body-membership-client@1");
   expect(membershipClient.advertisement.host_id).toBe(membershipClient.hostId);
   expect(membershipClient.advertisement.boot_id).toBe(membershipClient.bootId);
-  expect(admission.paths).toContain("book-runner-presentation.mjs");
+  expect(admission.paths).toContain("tour-runner-presentation.mjs");
   expect(admission.paths).toContain("application-syntax-presentation.mjs");
   expect(admission.paths).toContain("assets/flow.css");
   for (const [index, path] of admission.paths.entries()) {
@@ -78,12 +78,12 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
     expect(requests.filter((request) => request === pathname), path).toHaveLength(1);
   }
   await expect(page.locator('script[data-application-resource="react"]')).toHaveAttribute("src", /^blob:/);
-  await expect(page.locator('style[data-application-resource="book-style"]')).toHaveCount(1);
+  await expect(page.locator('style[data-application-resource="tour-style"]')).toHaveCount(1);
   await expect(page.locator('style[data-application-resource="patchbay-flow-style"]')).toHaveCount(1);
   const separatedStyles = await page.evaluate(() => {
     const application = globalThis.__conduitBrowserApplication;
     const decode = (role) => new TextDecoder().decode(application.bytes(role));
-    return { book: decode("book-style"), flow: decode("patchbay-flow-style") };
+    return { book: decode("tour-style"), flow: decode("patchbay-flow-style") };
   });
   expect(separatedStyles.book).not.toContain(".flow-faceplate header");
   expect(separatedStyles.book).not.toContain(".react-flow__edge-path");
@@ -348,7 +348,7 @@ test("Crèche refuses changed admitted code before application manifestation", a
 test("Tour navigation is one finite Host-manifested view with stale and pressure refusal", async ({ page }) => {
   await page.goto(entrance.url);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  const navigation = page.locator('[data-application-slot="book-navigation"]');
+  const navigation = page.locator('[data-application-slot="tour-navigation"]');
   await expect(navigation.locator('[data-application-component="navigation"]')).toHaveCount(1);
   await expect(navigation.locator('[data-application-key="progress"]')).toHaveText("Page 1 of 7");
   await expect(navigation.getByRole("button", { name: "Previous" })).toBeDisabled();
@@ -360,15 +360,15 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
   });
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
   await page.evaluate(() => globalThis.__staleTourNavigationButton.click());
-  expect(await page.evaluate(() => globalThis.__conduitBrowserApplication.presentation.lastRefusal("book-navigation"))).toBe("stale-revision");
+  expect(await page.evaluate(() => globalThis.__conduitBrowserApplication.presentation.lastRefusal("tour-navigation"))).toBe("stale-revision");
   await expect(page.getByRole("heading", { name: "Faces, Backs, and implementation" })).toBeVisible();
 
   const presentationEvidence = await page.evaluate(() => {
     const presentation = globalThis.__conduitBrowserApplication.presentation;
-    const before = document.querySelector('[data-application-slot="book-navigation"]').innerHTML;
+    const before = document.querySelector('[data-application-slot="tour-navigation"]').innerHTML;
     let malformedRefusal;
     try {
-      presentation.present("book-navigation", {
+      presentation.present("tour-navigation", {
         revision: 999,
         actions: [],
         nodes: Array.from({ length: 41 }, (_, index) => ({
@@ -380,8 +380,8 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
         })),
       });
     } catch (error) { malformedRefusal = error.code; }
-    const unchangedAfterRefusal = document.querySelector('[data-application-slot="book-navigation"]').innerHTML === before;
-    presentation.present("book-navigation", {
+    const unchangedAfterRefusal = document.querySelector('[data-application-slot="tour-navigation"]').innerHTML === before;
+    presentation.present("tour-navigation", {
       revision: 1_000,
       actions: [{ id: "proof.activate", event: "activate" }],
       nodes: [
@@ -392,11 +392,11 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
     const button = document.querySelector('[data-application-key="proof-button"]');
     button.click();
     button.click();
-    const event = presentation.nextEvent("book-navigation");
+    const event = presentation.nextEvent("tour-navigation");
     return {
       malformedRefusal,
       unchangedAfterRefusal,
-      pressureRefusal: presentation.lastRefusal("book-navigation"),
+      pressureRefusal: presentation.lastRefusal("tour-navigation"),
       event: { action: event.action, revision: event.revision, encodedBytes: event.encoded.length },
     };
   });
@@ -411,7 +411,7 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
 test("browser Host refuses malformed and escaping application packages before launch", async ({ page }) => {
   for (const [mutate, refusal] of [
     [(manifest) => { manifest.schema = "wrong"; }, "browser application package schema is unsupported"],
-    [(manifest) => { manifest.resources[0].path = "https://example.com/book.mjs"; }, "application resource path escapes the application package"],
+    [(manifest) => { manifest.resources[0].path = "https://example.com/tour.mjs"; }, "application resource path escapes the application package"],
     [(manifest) => { manifest.resources.push(...Array.from({ length: 40 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
   ]) {
     await mutatePackage(page, mutate);
@@ -422,7 +422,7 @@ test("browser Host refuses malformed and escaping application packages before la
 });
 
 test("browser Host refuses changed resource bytes before launch", async ({ page }) => {
-  await page.route("**/book.mjs", async (route) => {
+  await page.route("**/tour.mjs", async (route) => {
     const response = await route.fetch();
     await route.fulfill({ response, body: `${await response.text()}\n// changed after packaging` });
   }, { times: 1 });
