@@ -116,6 +116,26 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "CONDUIT_BOOT_STAGE front-door-ready",
             "product-journey-front-door-timeout",
         )?;
+        let capture = super::qmp_display::capture(
+            &mut qmp,
+            &mut reader,
+            &paths.target.join("journey-frames"),
+            "front-door-ready",
+        )?;
+        let checkpoint = serde_json::json!({
+            "schema":"conduit.conduitos/visual-checkpoint@1",
+            "source_commit":git_head(&paths.root)?,
+            "image_sha256":image.iso_sha256,
+            "serial_checkpoint":"CONDUIT_BOOT_STAGE front-door-ready",
+            "serial_bytes":fs::metadata(&serial_path).map(|metadata| metadata.len()).unwrap_or(0),
+            "frame":capture,
+            "proof_class":"freestanding-emulator"
+        });
+        fs::write(
+            paths.target.join("journey-frames/front-door-ready.json"),
+            checkpoint.to_string(),
+        )
+        .map_err(|error| ConduitosError::refusal("qemu-display-manifest-io", error.to_string()))?;
         for (key, status) in [
             ("ret", "form-opened"),
             ("f3", "born-lulled"),

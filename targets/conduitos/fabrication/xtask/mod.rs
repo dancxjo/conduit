@@ -53,6 +53,7 @@ mod profile;
 mod prove;
 mod prove_many;
 mod qmp;
+mod qmp_display;
 mod report;
 mod rescue_proof;
 mod riscv64_a0;
