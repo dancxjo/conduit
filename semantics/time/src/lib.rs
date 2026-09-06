@@ -63,3 +63,8 @@ pub use conduit_core::{
 mod catalog;
 #[cfg(feature = "form-catalog")]
 pub use catalog::*;
+
+#[cfg(feature = "kernel-operation")]
+mod button_attempt_operation;
+#[cfg(feature = "kernel-operation")]
+pub use button_attempt_operation::TimedButtonAttemptOperation;
