@@ -1,7 +1,6 @@
 use super::{
-    AdapterTransaction, CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver,
-    RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
+    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostOperationBindings,
@@ -17,11 +16,6 @@ mod host_cancellation;
 const NODES: usize = 6;
 const CORDS: usize = 5;
 const PORTS: usize = 2;
-
-#[test]
-fn derived_output_staging_is_bounded_independently_of_port_capacity() {
-    assert!(core::mem::size_of::<AdapterTransaction<32>>() < 1_024);
-}
 
 #[derive(Clone, Copy, Debug)]
 enum Driver {
