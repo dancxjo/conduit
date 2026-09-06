@@ -188,7 +188,10 @@ fn a_larger_transition_allowance_executes_the_same_input_without_hiding_exhausti
                 assert_eq!(
                     play.step(),
                     Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
-                        2
+                        conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::StorageExhausted,
+                            detail: 2
+                        }
                     ))
                 );
                 assert_eq!(play.drivers()[0].operation().state().generation(), 1);

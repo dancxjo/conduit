@@ -1641,7 +1641,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         }
         let status = match scheduler.step() {
             Ok(status) => status,
-            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(detail))
+            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(failure))
                 if math_host.accept_failure(
                     scheduler
                         .signs()
@@ -1649,7 +1649,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .filter(|event| event.kind == conduit_kernel::KernelEventKind::Decision)
                         .last()
                         .map(|event| event.node),
-                    detail,
+                    failure.detail,
                 ) =>
             {
                 scheduler

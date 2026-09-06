@@ -49,7 +49,10 @@ impl StepOperation<PORTS> for Driver {
                 fail,
             } => {
                 if *fail {
-                    return StepOutcome::Fail(0x4b44);
+                    return StepOutcome::Fail(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::HostOperationFailed,
+                        detail: 0x4b44,
+                    });
                 }
                 let Some(value) = values.get(*next).copied().flatten() else {
                     return StepOutcome::Complete;
@@ -210,6 +213,12 @@ fn cancellation_and_host_input_failure_remain_distinct() {
     assert!(cancelled.drivers().iter().all(|driver| driver.cancelled));
 
     let mut failed = scheduler(true, true);
-    assert_eq!(failed.step(), Err(SchedulerError::OperationFailed(0x4b44)));
+    assert_eq!(
+        failed.step(),
+        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostOperationFailed,
+            detail: 0x4b44
+        }))
+    );
     assert!(!failed.drivers()[0].cancelled);
 }

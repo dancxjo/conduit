@@ -435,7 +435,10 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     assert_eq!(
         lost.run(32),
         Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
-            1
+            conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostOperationFailed,
+                detail: 1
+            }
         ))
     );
 
@@ -468,7 +471,10 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     assert_eq!(
         pressured.run(32),
         Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
-            2
+            conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::StorageExhausted,
+                detail: 2
+            }
         ))
     );
 }

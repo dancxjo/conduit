@@ -224,5 +224,8 @@ fn provider_loss_with_an_active_note_fails_the_semantic_run() {
         )
         .expect_err("provider loss must terminate the semantic run");
 
-    assert!(error.contains("OperationFailed(103)"), "{error}");
+    assert!(
+        error.contains("OperationFailed(Failure { code: HostOperationFailed, detail: 103 })"),
+        "{error}"
+    );
 }

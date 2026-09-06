@@ -423,7 +423,13 @@ mod tests {
             match kernel.step() {
                 Ok(SchedulerStatus::Progress { .. }) => {}
                 outcome => {
-                    assert_eq!(outcome, Err(SchedulerError::OperationFailed(23)));
+                    assert_eq!(
+                        outcome,
+                        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: 23
+                        }))
+                    );
                     break;
                 }
             }

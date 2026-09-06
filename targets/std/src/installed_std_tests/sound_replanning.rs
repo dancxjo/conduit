@@ -108,7 +108,10 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
             &mut RecordingTimer { waits: Vec::new() },
         )
         .expect_err("active provider loss remains terminal and machine-readable");
-    assert!(loss.contains("OperationFailed(75)"), "{loss}");
+    assert!(
+        loss.contains("OperationFailed(Failure { code: HostOperationFailed, detail: 75 })"),
+        "{loss}"
+    );
     let interrupted = musical_state.provider_lost().unwrap();
     assert_eq!(interrupted.active_notes_interrupted, 2);
     assert!(interrupted.sustain_was_down);
@@ -297,5 +300,8 @@ fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
             &mut RecordingTimer { waits: Vec::new() },
         )
         .expect_err("provider disappearance during drain remains device loss");
-    assert!(error.contains("OperationFailed(75)"), "{error}");
+    assert!(
+        error.contains("OperationFailed(Failure { code: HostOperationFailed, detail: 75 })"),
+        "{error}"
+    );
 }

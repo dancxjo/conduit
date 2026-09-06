@@ -205,7 +205,7 @@ fn invalid_remote_timing_preserves_kernel_failure_and_does_not_run_normalization
         .close_remote_input(remote.endpoint, remote.cord)
         .unwrap();
     assert!(
-        matches!(drive(&mut scheduler, &fragment), Err(error) if error == "OperationFailed(1)")
+        matches!(drive(&mut scheduler, &fragment), Err(error) if error == "OperationFailed(Failure { code: InvalidInput, detail: 1 })")
     );
     assert_eq!(
         scheduler

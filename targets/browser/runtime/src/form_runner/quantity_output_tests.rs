@@ -117,7 +117,10 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
     // explicit converter, not to JS acquisition or a selector's field meaning.
     conduit_core::StructuredInfoValue::from_canonical_bytes(&canonical).unwrap();
     let error = session.advance_with_output(&canonical).unwrap_err();
-    assert!(error.contains("OperationFailed(12)"), "{error}");
+    assert!(
+        error.contains("OperationFailed(Failure { code: InvalidInput, detail: 12 })"),
+        "{error}"
+    );
 }
 
 #[test]

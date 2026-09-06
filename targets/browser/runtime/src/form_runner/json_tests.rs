@@ -118,14 +118,14 @@ fn browser_todo_refusals_preserve_kernel_failure_details() {
             "todo/command-snapshot"
         )
         .unwrap_err(),
-        "OperationFailed(105)"
+        "OperationFailed(Failure { code: InvalidInput, detail: 105 })"
     );
     assert_eq!(
         execute(r#"[{"text":"missing"}]"#, "todo/restore-summary").unwrap_err(),
-        "OperationFailed(123)"
+        "OperationFailed(Failure { code: InvalidInput, detail: 123 })"
     );
     assert_eq!(
         execute(r#"[{"complete":0}]"#, "todo/restore-summary").unwrap_err(),
-        "OperationFailed(124)"
+        "OperationFailed(Failure { code: InvalidInput, detail: 124 })"
     );
 }

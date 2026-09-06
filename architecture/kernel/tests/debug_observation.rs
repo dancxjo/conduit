@@ -51,7 +51,10 @@ impl StepOperation<PORTS> for Driver {
                 StepOutcome::Complete
             }
             Self::Sink { .. } => StepOutcome::Await,
-            Self::Fault => StepOutcome::Fail(17),
+            Self::Fault => StepOutcome::Fail(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::InvalidInput,
+                detail: 17,
+            }),
         }
     }
 
@@ -391,7 +394,13 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
         observed,
     )
     .unwrap();
-    assert_eq!(scheduler.step(), Err(SchedulerError::OperationFailed(17)));
+    assert_eq!(
+        scheduler.step(),
+        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::InvalidInput,
+            detail: 17
+        }))
+    );
     let observations = scheduler.signs().observations().unwrap();
     assert_eq!(observations.latest().unwrap().kind, DebugEventKind::Fault);
     assert_eq!(observations.latest().unwrap().fault_code, Some(17));
@@ -449,7 +458,10 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
     .unwrap();
     assert_eq!(
         without_observer.step(),
-        Err(SchedulerError::OperationFailed(17))
+        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::InvalidInput,
+            detail: 17
+        }))
     );
     assert!(without_observer.signs().observations().is_none());
 }
