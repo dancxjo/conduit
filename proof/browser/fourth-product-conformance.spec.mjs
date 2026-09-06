@@ -43,6 +43,31 @@ async function expectSharedComponents(page, names) {
 test.beforeAll(stageFixture);
 test.afterAll(async () => { if (stagedFixture) await rm(stagedFixture, { recursive: true, force: true }); });
 
+test("hosted applications cover unstyled content until admitted presentation is ready", async ({ page }) => {
+  const entrance = await startStaticProduct(stagedFixture);
+  let releaseTheme;
+  const themeReleased = new Promise((resolve) => { releaseTheme = resolve; });
+  await page.route("**/application-theme.css", async (route) => {
+    await themeReleased;
+    await route.continue();
+  });
+  try {
+    await page.goto(entrance.url, { waitUntil: "commit" });
+    const suspense = page.locator("#conduit-suspense");
+    await expect(suspense).toBeVisible();
+    await expect(suspense).toHaveAttribute("aria-busy", "true");
+    await expect(suspense).toHaveCSS("position", "fixed");
+    await expect(suspense).toHaveCSS("background-color", "rgb(5, 7, 11)");
+    releaseTheme();
+    await expect(page.getByRole("heading", { name: "Field Notes" })).toBeVisible();
+    await expect(suspense).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("data-conduit-load-state", "ready");
+  } finally {
+    releaseTheme();
+    entrance.child.kill();
+  }
+});
+
 test("one semantic ProductMasthead composition replaces product-private global chrome", async () => {
   const productSurfaces = [
     ["Tour", "products/tour/browser/tour.html", "products/tour/browser/tour.css", "products/tour/browser/tour.mjs"],
@@ -59,6 +84,8 @@ test("one semantic ProductMasthead composition replaces product-private global c
     expect(html, `${name} private global chrome`).not.toMatch(/class="(?:topbar|site-header|global-nav|wordmark)"/);
     expect(css, `${name} private global chrome CSS`).not.toMatch(/\.(?:topbar|site-header|global-nav|wordmark)\b/);
     expect(module, `${name} shared composition consumer`).toContain("createProductMasthead");
+    expect(html, `${name} bootstrap suspense`).toContain('id="conduit-suspense"');
+    expect(html, `${name} inline bootstrap style`).toContain("data-conduit-bootstrap");
   }
   const pages = await readFile(join(repository, "site/index.html"), "utf8");
   expect(pages).toContain("<!-- conduit-product-masthead -->");

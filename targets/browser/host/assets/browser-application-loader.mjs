@@ -274,13 +274,32 @@ export async function loadBrowserApplication(manifestReference) {
     admitProfileGatedBrowserBoot,
   });
   await module.startApplication(context);
+  settleApplicationSuspense("ready");
   globalThis.__conduitBrowserApplication = context;
   return context;
+}
+
+function settleApplicationSuspense(state, detail = "") {
+  document.documentElement.dataset.conduitLoadState = state;
+  const suspense = document.querySelector("#conduit-suspense");
+  if (!suspense) return;
+  suspense.setAttribute("aria-busy", "false");
+  if (state === "refused") {
+    const title = suspense.querySelector("strong");
+    const message = suspense.querySelector("span");
+    if (title) title.textContent = "Application refused";
+    if (message) message.textContent = detail;
+    return;
+  }
+  const remove = () => suspense.remove();
+  suspense.addEventListener("transitionend", remove, { once: true });
+  globalThis.setTimeout(remove, 300);
 }
 
 const manifest = document.querySelector('meta[name="conduit-application-package"]')?.content.trim();
 if (!manifest) throw new Error("browser application package is not declared");
 loadBrowserApplication(manifest).catch((error) => {
+  settleApplicationSuspense("refused", error instanceof Error ? error.message : String(error));
   let status = document.querySelector("#host-state");
   if (!status) {
     const masthead = document.querySelector('[data-application-slot="product-masthead"]');
@@ -291,7 +310,11 @@ loadBrowserApplication(manifest).catch((error) => {
       masthead.replaceChildren(status);
     }
   }
-  const target = document.querySelector("#chapter") ?? document.body;
+  const target = document.querySelector("#chapter")
+    ?? document.querySelector('[data-application-slot="application"]')
+    ?? document.querySelector("#workspace")
+    ?? document.querySelector("#patchbay-root")
+    ?? document.body;
   if (status) status.textContent = "Browser application refused";
   target.replaceChildren(document.createTextNode(error instanceof Error ? error.message : String(error)));
   target.classList.add("error");
