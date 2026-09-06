@@ -14,6 +14,7 @@ pub extern "C" fn conduit_browser_form_start_with_presentation(
         0 => PresentationProfile::Annotation,
         1 => PresentationProfile::Quantity,
         2 => PresentationProfile::NormalizedDurations,
+        3 => PresentationProfile::PatternComparison,
         _ => return ERROR_INPUT,
     };
     start(
@@ -38,6 +39,7 @@ pub extern "C" fn conduit_browser_form_project_with_presentation(
         0 => PresentationProfile::Annotation,
         1 => PresentationProfile::Quantity,
         2 => PresentationProfile::NormalizedDurations,
+        3 => PresentationProfile::PatternComparison,
         _ => return ERROR_INPUT,
     };
     clear_output();

@@ -52,6 +52,8 @@ pub(super) struct TourScheduler {
         MAXIMUM_BROWSER_GEARS],
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
     attempts: [Option<conduit_semantic_catalog::BoundedButtonAttemptCodec>; MAXIMUM_BROWSER_GEARS],
+    comparisons:
+        [Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>; MAXIMUM_BROWSER_GEARS],
     timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
 }
 

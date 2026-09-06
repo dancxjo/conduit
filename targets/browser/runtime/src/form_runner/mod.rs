@@ -398,3 +398,6 @@ mod tests;
 
 #[cfg(test)]
 mod normalized_presentation_tests;
+
+#[cfg(test)]
+mod comparison_presentation_tests;

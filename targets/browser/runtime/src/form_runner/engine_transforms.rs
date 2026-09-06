@@ -11,6 +11,46 @@ pub(super) fn complete_transform(
     operation: &HostOperationRequirement,
     request: HostOperationRequest,
 ) -> Result<bool, String> {
+    if let Some(port) =
+        crate::installed_browser::pattern_comparison::input_port(operation.contract_id.as_str())
+    {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.comparisons[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("comparison codec was not prepared before Play")?
+            .execute(port, input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: bytes
+                    .map(|bytes| {
+                        let value = scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?;
+                        BoundedValueRef::new(value, operation.maximum_output_bytes)
+                            .map_err(debug_error)
+                    })
+                    .transpose()?,
+                failure: None,
+            },
+            Err(refusal) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(crate::installed_browser::pattern_comparison::failure(
+                    refusal,
+                )),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if crate::installed_browser::timing::OPERATIONS.contains(&operation.contract_id.as_str()) {
         let input = scheduler
             .kernel
