@@ -64,15 +64,7 @@ impl Artifacts {
         let text = std::str::from_utf8(&serial).map_err(|error| {
             ConduitosError::refusal("qemu-display-serial-invalid", error.to_string())
         })?;
-        let record = text
-            .lines()
-            .rev()
-            .find_map(|line| line.strip_prefix("CONDUIT_PRODUCT_JOURNEY "))
-            .map(serde_json::from_str::<Value>)
-            .transpose()
-            .map_err(|error| {
-                ConduitosError::refusal("qemu-display-correlation-invalid", error.to_string())
-            })?;
+        let record = super::journey_records::decode(text)?.pop();
         let frame = qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
         let pixels = frame["pixel_sha256"]
             .as_str()
@@ -91,6 +83,13 @@ impl Artifacts {
             ));
         }
         Ok(())
+    }
+
+    pub(super) fn registers(&mut self, result: Result<Value, ConduitosError>) {
+        self.context["register_diagnostic"] = match result {
+            Ok(value) => json!({"result":value}),
+            Err(error) => json!({"reason":error.reason,"detail":error.detail}),
+        };
     }
 
     pub(super) fn diagnostic_failure(&mut self, error: &ConduitosError) {

@@ -56,6 +56,15 @@ pub(super) fn request(
     command: &[u8],
     id: &str,
 ) -> Result<(), ConduitosError> {
+    request_value(stream, reader, command, id).map(|_| ())
+}
+
+pub(super) fn request_value(
+    stream: &mut UnixStream,
+    reader: &mut BufReader<UnixStream>,
+    command: &[u8],
+    id: &str,
+) -> Result<serde_json::Value, ConduitosError> {
     let mut command: serde_json::Value = serde_json::from_slice(command)
         .map_err(|error| ConduitosError::refusal("qemu-qmp-invalid-command", error.to_string()))?;
     let object = command
@@ -94,7 +103,7 @@ pub(super) fn request(
             ));
         }
         if response.get("return").is_some() {
-            return Ok(());
+            return Ok(response["return"].clone());
         }
         return Err(ConduitosError::refusal(
             "qemu-qmp-malformed-response",

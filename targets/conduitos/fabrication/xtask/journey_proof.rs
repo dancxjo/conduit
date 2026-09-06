@@ -15,7 +15,7 @@ use crate::cli::GlobalOpts;
 
 use super::{hid_qmp, image, profile::Paths, report::git_head, ConduitosArch, ConduitosError};
 
-const PREFIX: &str = "CONDUIT_PRODUCT_JOURNEY ";
+use super::journey_records::decode as journey_records;
 
 #[derive(Serialize)]
 struct JourneyProof {
@@ -336,6 +336,9 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if result.is_err() {
         let diagnostic =
             hid_qmp::connect(&monitor_socket, &mut child).and_then(|(mut stream, mut reader)| {
+                artifacts.registers(super::qmp::request_value(&mut stream, &mut reader,
+                    br#"{"execute":"human-monitor-command","arguments":{"command-line":"info registers"}}"#,
+                    "failure-registers"));
                 artifacts.capture(&mut stream, &mut reader, "failure", false)
             });
         if let Err(error) = diagnostic {
@@ -369,24 +372,26 @@ fn wait_status(
     child: &mut std::process::Child,
     status: &str,
 ) -> Result<(), ConduitosError> {
-    hid_qmp::wait_for_stage(
-        serial,
-        child,
-        &format!("\"status\":\"{status}\""),
-        "product-journey-stage-timeout",
-    )
-}
-
-fn journey_records(serial: &str) -> Result<Vec<Value>, ConduitosError> {
-    serial
-        .lines()
-        .filter_map(|line| line.strip_prefix(PREFIX))
-        .map(|json| {
-            serde_json::from_str(json).map_err(|error| {
-                ConduitosError::refusal("product-journey-sign-invalid", error.to_string())
-            })
-        })
-        .collect()
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let text = fs::read_to_string(serial).map_err(|error| {
+            ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
+        })?;
+        if journey_records(&text)?
+            .iter()
+            .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
+        {
+            return Ok(());
+        }
+        if std::time::Instant::now() >= deadline {
+            return hid_qmp::stop(
+                child,
+                "product-journey-stage-timeout",
+                format!("no complete guest record for {status}"),
+            );
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
 }
 
 fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {

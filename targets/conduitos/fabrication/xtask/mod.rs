@@ -29,6 +29,7 @@ mod ia32_a2;
 mod ia32_product_boot;
 mod image;
 mod journey_proof;
+mod journey_records;
 mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;
