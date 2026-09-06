@@ -17,6 +17,12 @@ pub(super) struct BoolPresentationOperation {
 }
 
 impl BoolPresentationOperation {
+    pub(super) fn new() -> Self {
+        Self {
+            pending: None,
+            next: 0,
+        }
+    }
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
     }

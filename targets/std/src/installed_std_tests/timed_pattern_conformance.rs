@@ -25,13 +25,40 @@ fn reusable_ordered_event_intervals_plan_and_execute_through_one_kernel_play() {
     let interval_offer = conduit_std_offers::ordered_event_intervals_std_offer();
     let (startup, profile) = catalogs(&events, &intervals, &source_offer, &sink_offer);
     let source = format!(
-        "form derive-intervals (\n    > events: TimedEventSequence\n    intervals: IntervalSequence >\n) {{\n    derive: time/ordered-event-intervals\n    events > derive.events\n    derive.intervals > intervals\n}}\nform proof {{\n    events: {SOURCE_KIND}(value = \"{}\")\n    derive: derive-intervals\n    intervals: {SINK_KIND}(value = \"{}\")\n    events.output > derive.events\n    derive.intervals > intervals.input\n}}\n",
+        "{}\nform proof {{\n    events: {SOURCE_KIND}(value = \"{}\")\n    derive: derive-intervals\n    intervals: {SINK_KIND}(value = \"{}\")\n    events.output > derive.events\n    derive.intervals > intervals.input\n}}\n",
+        include_str!("../../../../forms/secret-knock/main.conduit"),
         hex(&events.canonical_bytes().unwrap()),
         hex(&intervals.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let canonical = check_syntax_document(
+        &parse_syntax_document(include_str!("../../../../forms/secret-knock/main.conduit")),
+        &startup,
+    )
+    .unwrap();
+    let canonical_id = &canonical
+        .forms
+        .iter()
+        .find(|form| form.name == "derive-intervals")
+        .unwrap()
+        .checked_form_id;
+    let consumed_id = &checked
+        .forms
+        .iter()
+        .find(|form| form.name == "derive-intervals")
+        .unwrap()
+        .checked_form_id;
+    assert_eq!(canonical_id, consumed_id);
+    assert!(checked
+        .forms
+        .iter()
+        .find(|form| form.name == "proof")
+        .unwrap()
+        .gears
+        .iter()
+        .any(|gear| gear.kind == "derive-intervals"));
     let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
     assert!(expanded.gears.iter().any(
         |gear| gear.kind_id.as_str() == conduit_semantic_catalog::ORDERED_EVENT_INTERVALS_KIND
@@ -99,7 +126,7 @@ fn catalogs(
 ) -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile).unwrap();
+    super::timing_form_catalogs::install_catalogs(&mut startup, &mut profile);
     for (kind, value, offer) in [
         (SOURCE_KIND, events, source_offer),
         (SINK_KIND, intervals, sink_offer),

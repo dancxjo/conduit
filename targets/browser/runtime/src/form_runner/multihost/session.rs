@@ -1,5 +1,8 @@
 //! One role of the exact two-browser-Host executable-tour Play.
 
+#[path = "session_source.rs"]
+mod source;
+
 use super::plan::PreparedPlan;
 use super::protocol::{self, LineFrame, MultiHostReceipt, Output, PlanProjection};
 use crate::form_runner::engine::{self, BrowserHostEffect, DriveStatus, PendingHostEffect};
@@ -22,10 +25,10 @@ pub(super) enum Role {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Stage {
+    Input,
     Offered,
     Accepted,
     Presenting,
-    WaitingClose,
     Closing,
     Complete,
     Cancelled,
@@ -43,6 +46,8 @@ pub(super) struct Session {
     source_interaction: SourceInteractionEvidence,
     pending: Option<PendingHostEffect>,
     latest_presentation: Option<PresentationIdentity>,
+    sequence: u64,
+    transferred_values: u32,
 }
 
 impl Session {
@@ -117,6 +122,8 @@ impl Session {
             source_interaction,
             pending: None,
             latest_presentation: None,
+            sequence: 0,
+            transferred_values: 0,
         };
         let output = match role {
             Role::Source => session.source_offer()?,
@@ -134,7 +141,7 @@ impl Session {
             (Role::Sink, Stage::Accepted, "value") => self.sink_admit_value(frame),
             (Role::Source, Stage::Offered, "accepted") => self.source_accept(frame),
             (Role::Source, Stage::Accepted, "delivered") => self.source_delivered(frame),
-            (Role::Sink, Stage::WaitingClose, "close") => self.sink_close(frame),
+            (Role::Sink, Stage::Accepted, "close") => self.sink_close(frame),
             (Role::Source, Stage::Closing, "terminal") => self.source_terminal(frame),
             _ => Err("multi-Host Line frame arrived in the wrong exact lifecycle phase".into()),
         }
@@ -149,13 +156,22 @@ impl Session {
             .take()
             .ok_or_else(|| "multi-Host sink has no pending presentation".to_string())?;
         engine::complete_host_effect(&mut self.scheduler, &pending)?;
-        self.stage = Stage::WaitingClose;
-        Ok(Output::Line {
+        self.stage = Stage::Accepted;
+        let output = Output::Line {
             schema: "conduit.tour/browser-memory-line-effect@1",
-            frame: Box::new(self.frame("delivered", 0, Vec::new())),
+            frame: Box::new(self.frame("delivered", self.sequence, Vec::new())),
             plan_projection: None,
             receipt: None,
-        })
+        };
+        self.sequence = self
+            .sequence
+            .checked_add(1)
+            .ok_or("Line sequence exhausted")?;
+        self.transferred_values = self
+            .transferred_values
+            .checked_add(1)
+            .ok_or("Line count exhausted")?;
+        Ok(output)
     }
 
     pub(super) fn cancel(&mut self) -> Result<Output, String> {
@@ -171,45 +187,6 @@ impl Session {
         })
     }
 
-    fn source_offer(&mut self) -> Result<Output, String> {
-        let (endpoint, cord) = {
-            let remote = self.remote();
-            (remote.endpoint, remote.cord)
-        };
-        loop {
-            if let Some(offer) = self
-                .scheduler
-                .remote_egress_offer(endpoint, cord)
-                .map_err(debug_error)?
-            {
-                if offer.sequence != 0 {
-                    return Err("two-browser lesson emitted more than one value".into());
-                }
-                let payload = self
-                    .scheduler
-                    .host_value(offer.value)
-                    .map_err(debug_error)?
-                    .to_vec();
-                return Ok(Output::Line {
-                    schema: "conduit.tour/browser-memory-line-effect@1",
-                    frame: Box::new(self.frame("value", offer.sequence, payload)),
-                    plan_projection: Some(Box::new(self.projection.clone())),
-                    receipt: None,
-                });
-            }
-            match self.scheduler.step().map_err(debug_error)? {
-                SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Idle => {
-                    return Err("multi-Host source became idle before offering its value".into())
-                }
-                SchedulerStatus::Complete => {
-                    return Err("multi-Host source completed before offering its value".into())
-                }
-                SchedulerStatus::Cancelled => return Err("multi-Host source was cancelled".into()),
-            }
-        }
-    }
-
     fn sink_admit_value(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "value", true)?;
         let remote = self.remote();
@@ -220,14 +197,17 @@ impl Session {
             .map_err(debug_error)?;
         if !matches!(
             admission,
-            RemoteIngressOutcome::Accepted { sequence: 0, .. }
+            RemoteIngressOutcome::Accepted { sequence, .. } if sequence == self.sequence
         ) {
-            return Err("one-slot browser-memory Line refused its first admitted value".into());
+            return Err("one-slot browser-memory Line refused its next admitted value".into());
         }
         let pending = match engine::drive(&mut self.scheduler, &self.fragment)? {
             DriveStatus::Effect(pending) => pending,
             DriveStatus::Complete => {
                 return Err("multi-Host sink completed before presentation".into())
+            }
+            DriveStatus::Waiting { .. } => {
+                return Err("multi-Host sink awaits a pending effect".into())
             }
         };
         if !matches!(pending.effect, BrowserHostEffect::Manifestation(_)) {
@@ -239,7 +219,7 @@ impl Session {
         Ok(Output::Manifestation {
             schema: "conduit.tour/multi-host-manifestation@1",
             manifestation: Box::new(manifestation),
-            accepted_frame: Box::new(self.frame("accepted", 0, Vec::new())),
+            accepted_frame: Box::new(self.frame("accepted", self.sequence, Vec::new())),
             plan_projection: Box::new(self.projection.clone()),
         })
     }
@@ -249,7 +229,7 @@ impl Session {
         let remote = self.remote();
         let (endpoint, cord) = (remote.endpoint, remote.cord);
         self.scheduler
-            .remote_egress_accept(endpoint, cord, 0)
+            .remote_egress_accept(endpoint, cord, self.sequence)
             .map_err(debug_error)?;
         self.stage = Stage::Accepted;
         Ok(Output::Waiting {
@@ -266,23 +246,17 @@ impl Session {
             (remote.endpoint, remote.cord)
         };
         self.scheduler
-            .remote_egress_delivered(endpoint, cord, 0)
+            .remote_egress_delivered(endpoint, cord, self.sequence)
             .map_err(debug_error)?;
-        self.drive_to_complete()?;
-        if !self
-            .scheduler
-            .remote_egress_terminal(endpoint, cord)
-            .map_err(debug_error)?
-        {
-            return Err("multi-Host source egress is not terminal".into());
-        }
-        self.stage = Stage::Closing;
-        Ok(Output::Line {
-            schema: "conduit.tour/browser-memory-line-effect@1",
-            frame: Box::new(self.frame("close", 1, Vec::new())),
-            plan_projection: None,
-            receipt: None,
-        })
+        self.sequence = self
+            .sequence
+            .checked_add(1)
+            .ok_or("Line sequence exhausted")?;
+        self.transferred_values = self
+            .transferred_values
+            .checked_add(1)
+            .ok_or("Line count exhausted")?;
+        self.source_offer()
     }
 
     fn sink_close(&mut self, frame: LineFrame) -> Result<Output, String> {
@@ -296,7 +270,7 @@ impl Session {
         self.stage = Stage::Complete;
         Ok(Output::Line {
             schema: "conduit.tour/browser-memory-line-effect@1",
-            frame: Box::new(self.frame("terminal", 1, Vec::new())),
+            frame: Box::new(self.frame("terminal", self.sequence, Vec::new())),
             plan_projection: None,
             receipt: Some(Box::new(self.receipt("completed"))),
         })
@@ -389,7 +363,9 @@ impl Session {
     ) -> Result<(), String> {
         let expected = self.frame(phase, frame.sequence, frame.payload.clone());
         if frame != &expected
-            || frame.sequence > 1
+            || frame.sequence != self.sequence
+            || frame.payload.len()
+                > self.remote().line.binding.limits.maximum_payload_bytes as usize
             || (!allow_payload && !frame.payload.is_empty())
             || (allow_payload && frame.payload.is_empty())
         {
@@ -445,7 +421,7 @@ impl Session {
             host_id: self.fragment.host_id.as_str().into(),
             boot_id: self.fragment.boot_id.as_str().into(),
             terminal_sign_id: sign.sign_id.as_str().into(),
-            transferred_values: u32::from(disposition == "completed"),
+            transferred_values: self.transferred_values,
         }
     }
 

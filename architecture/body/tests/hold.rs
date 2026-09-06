@@ -72,6 +72,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         }],
         execution_regions: vec![],
         execution_fusions: vec![],
+        states: Vec::new(),
         connections: vec![],
         shared_pools: vec![],
         startup_dependencies: vec![],

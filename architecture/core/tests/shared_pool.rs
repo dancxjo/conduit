@@ -118,6 +118,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
             .collect(),
         execution_regions: vec![],
         execution_fusions: vec![],
+        states: Vec::new(),
         connections: vec![],
         shared_pools: vec![pool],
         startup_dependencies: vec![],

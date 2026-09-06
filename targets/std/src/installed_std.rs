@@ -21,6 +21,8 @@ mod flow_state_operations;
 mod generate_text;
 mod http;
 mod http_host;
+mod image_text_operation;
+mod image_text_record_operation;
 mod input_semantic_operations;
 mod instrument_map_operation;
 mod json_operations;
@@ -41,6 +43,14 @@ mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
+mod preparation;
+pub(super) use preparation::{
+    lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
+};
+mod retained_run;
+#[cfg(test)]
+pub(super) use retained_run::run_fragment;
+pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_operation;
@@ -100,10 +110,10 @@ mod timed_pattern_operation;
 mod timing_configuration;
 mod timing_operations;
 mod toggle_operation;
+mod typed_record_operation;
 mod vector_search_host;
 mod vector_search_operation;
 
-use self::catalog::factory;
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
@@ -119,7 +129,7 @@ use super::{
 use conduit_core::present_host_operation_requirement;
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_operation_requirement, CancellationReason,
-    HostAdvertisement, Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
@@ -130,7 +140,7 @@ use conduit_kernel::{
     PortId, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use std::io::Write;
 use std::time::Duration;
@@ -164,28 +174,16 @@ pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
 pub(super) use contract::every_offer;
 pub(super) use contract::tick_offer;
 
-pub(super) struct InstalledRunHost<'a, 'keyboard, 'model> {
-    pub advertisement: &'a HostAdvertisement,
-    pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,
-    pub midi_input: Option<&'a crate::hosted_midi::HostedRawMidiSelection>,
-    pub midi_output: Option<&'a crate::hosted_midi::MidiOutputSelection>,
-    pub keyboard: Option<&'keyboard mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
-    pub local_model:
-        Option<&'model mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static)>,
-    pub vector_search:
-        Option<&'model mut (dyn crate::hosted_vector_search::HostedVectorSearchAdapter + 'static)>,
-    pub calendar: Option<&'model mut (dyn crate::hosted_calendar::HostedCalendarAdapter + 'static)>,
-}
-
-pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
+pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     host: InstalledRunHost<'_, '_, '_>,
     fragment: &PlanFragment,
     play_sequence: u64,
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
-    control: &RunControl,
-) -> Result<StdRunReport, String> {
+    lifecycle: RunLifecycle<'_>,
+) -> Result<crate::state_value::RetainedStdRun, String> {
+    let RunLifecycle { control, retained } = lifecycle;
     let InstalledRunHost {
         advertisement,
         playback,
@@ -196,7 +194,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         mut vector_search,
         mut calendar,
     } = host;
-    let lowered = lower_plan_fragment(fragment).map_err(|error| format!("lowering: {error:?}"))?;
+    let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     if !supports(fragment)
@@ -224,9 +222,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let factory = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned implementation is not installed".to_string())?;
-        let budget = (factory.budget)(placement)?;
+        let budget = preparation::operation_budget(placement)?;
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;
@@ -255,28 +251,14 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     let mut values =
         HostedValueStore::new(value_items.max(1), maximum_value_bytes, value_bytes.max(1))
             .map_err(|error| format!("installed value store: {error:?}"))?;
-    let mut operations = Vec::with_capacity(MAX_NODES);
-    for node in &lowered.nodes {
-        let placement = fragment
-            .placements
-            .get(usize::from(node.node.0))
-            .ok_or_else(|| "lowered node has no planned placement".to_string())?;
-        let factory = factory(&placement.implementation_id)
-            .ok_or_else(|| "planned implementation is not installed".to_string())?;
-        operations.push((factory.prepare)(placement, &mut values)?);
-    }
-    while operations.len() < MAX_NODES {
-        operations.push(InstalledOperation::inactive());
-    }
-    let drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES] = operations
-        .into_iter()
-        .map(|operation| {
-            OperationDriver::new(operation)
-                .map_err(|error| format!("prepare installed operation: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .try_into()
-        .map_err(|_| "installed driver capacity changed".to_string())?;
+    let active_play = bind_active_play(
+        &fragment.plan_id,
+        &advertisement.host_id,
+        &advertisement.boot_id,
+        play_sequence,
+    );
+    let drivers =
+        preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
     let driver_capacity_before = drivers
         .iter()
         .map(|driver| driver.operation().allocation_capacity())
@@ -371,12 +353,6 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
     )
     .map_err(|error| format!("install std scheduler: {error:?}"))?;
 
-    let active_play = bind_active_play(
-        &fragment.plan_id,
-        &advertisement.host_id,
-        &advertisement.boot_id,
-        play_sequence,
-    );
     let presentation_capacity = fragment
         .placements
         .iter()
@@ -460,6 +436,9 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
+    let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
+    let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
+    let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
             fragment,
@@ -673,6 +652,137 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
+            if contract.as_str() == conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION {
+                let completion = typed_record_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "typed-record frame request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store framed typed record: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound framed typed record: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: refusal as u16,
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete typed-record frame: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION {
+                let encoded = image_text_record_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "image-text record request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match encoded {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store typed image-text record: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound typed image-text record: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(_) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: 1,
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete image-text record operation: {error:?}"))?;
+                continue;
+            }
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION
+                    | conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION
+            ) {
+                let completion = image_text_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "image-text request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let output = encoded
+                            .map(|encoded| scheduler.store_host_value(encoded))
+                            .transpose()
+                            .map_err(|error| format!("store image-text output: {error:?}"))?
+                            .map(|value| {
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                            })
+                            .transpose()
+                            .map_err(|error| format!("bound image-text output: {error:?}"))?;
+                        (HostOperationDisposition::Completed, output, None)
+                    }
+                    Err(_) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: 1,
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete image-text operation: {error:?}"))?;
+                continue;
+            }
             if json_operations::matches(contract.as_str()) {
                 let completion =
                     json_host.execute(usize::from(request.node.0), contract.as_str(), input);
@@ -1668,7 +1778,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         }
         let status = match scheduler.step() {
             Ok(status) => status,
-            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(detail))
+            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(failure))
                 if math_host.accept_failure(
                     scheduler
                         .signs()
@@ -1676,7 +1786,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         .filter(|event| event.kind == conduit_kernel::KernelEventKind::Decision)
                         .last()
                         .map(|event| event.node),
-                    detail,
+                    failure.detail,
                 ) =>
             {
                 scheduler
@@ -1939,7 +2049,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
         .flatten()
         .map(crate::hosted_midi::MidiOutputSession::report)
         .collect();
-    Ok(StdRunReport {
+    let report = StdRunReport {
         observations,
         receipts: Vec::new(),
         control_receipts,
@@ -1958,5 +2068,6 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
             #[cfg(test)]
             post_play_start_allocations,
         }),
-    })
+    };
+    retained_run::finish(report, scheduler, fragment.states.len())
 }

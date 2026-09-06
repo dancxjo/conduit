@@ -4,19 +4,23 @@ use conduit_core::{
 };
 use conduit_human::*;
 
-fn image(profile: &str, seed: u8) -> BoundedResourceRef {
-    BoundedResourceRef {
-        identity: ResourceSemanticIdentity::from_digest([seed; 32]),
-        content_profile: kind_id(profile),
-        access_class: ResourceClassId::from("conduit.resource/image-content@1"),
-        extent: ResourceExtent {
-            bytes: 4_096,
-            items: Some(1),
+fn image(profile: &str, seed: u8) -> ImageObservationReference {
+    ImageObservationReference {
+        content: BoundedResourceRef {
+            identity: ResourceSemanticIdentity::from_digest([seed; 32]),
+            content_profile: kind_id(profile),
+            access_class: ResourceClassId::from("conduit.resource/image-content@1"),
+            extent: ResourceExtent {
+                bytes: 4_096,
+                items: Some(1),
+            },
+            lifetime: ResourceLifetime {
+                version: ResourceVersionIdentity::from_digest([seed + 1; 32]),
+                expires_at: None,
+            },
         },
-        lifetime: ResourceLifetime {
-            version: ResourceVersionIdentity::from_digest([seed + 1; 32]),
-            expires_at: None,
-        },
+        width: 640,
+        height: 480,
     }
 }
 
@@ -45,7 +49,10 @@ fn same_composition_accepts_exact_images_from_distinct_realizations() {
     .unwrap();
     imported.validate(&profile).unwrap();
     captured.validate(&profile).unwrap();
-    assert_ne!(imported.image.identity, captured.image.identity);
+    assert_ne!(
+        imported.image.content.identity,
+        captured.image.content.identity
+    );
     assert_ne!(imported.content_digest, captured.content_digest);
 }
 
@@ -73,6 +80,18 @@ fn image_type_caption_and_metadata_bounds_refuse_distinctly() {
             vec![],
         ),
         Err(ImageTextRefusal::CaptionTooLarge)
+    );
+    let mut invalid_dimensions = image(profile.as_str(), 1);
+    invalid_dimensions.width = 0;
+    assert_eq!(
+        compose_image_text(&profile, invalid_dimensions, "caption".into(), vec![]),
+        Err(ImageTextRefusal::InvalidImageDimensions)
+    );
+    let mut oversized_image = image(profile.as_str(), 1);
+    oversized_image.content.extent.bytes = MAXIMUM_IMAGE_OBSERVATION_BYTES + 1;
+    assert_eq!(
+        compose_image_text(&profile, oversized_image, "caption".into(), vec![]),
+        Err(ImageTextRefusal::ImageTooLarge)
     );
     let duplicate = vec![
         ImageTextMetadata {

@@ -3,9 +3,17 @@ pub(super) use super::operation_kind::InstalledOperation;
 use conduit_kernel::{Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef};
 
 impl Operation for InstalledOperation {
+    fn step_committed(&mut self) {
+        if let Self::TypedState(operation) = self {
+            operation.step_committed();
+        }
+    }
     fn start(&mut self) -> OperationAction {
         match self {
+            Self::TypedState(operation) => operation.start(),
             Self::KeyboardInput(operation) => operation.start(),
+            Self::ButtonInput(operation) => operation.start(),
+            Self::ButtonMapper(_) => OperationAction::Await,
             Self::Tick(operation) => operation.start(),
             Self::PulseObserve(operation) => operation.start(),
             #[cfg(test)]
@@ -68,6 +76,9 @@ impl Operation for InstalledOperation {
             Self::HttpClient(operation) => operation.start(),
             Self::HttpServer(operation) => operation.start(),
             Self::Json(operation) => operation.start(),
+            Self::ImageText(operation) => operation.start(),
+            Self::ImageTextRecord(operation) => operation.start(),
+            Self::TypedRecordFrame(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
             Self::StructuredPresentation(operation) => operation.start(),
@@ -120,7 +131,10 @@ impl Operation for InstalledOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match (self, input) {
+            (Self::TypedState(operation), input) => operation.resume(input),
             (Self::KeyboardInput(_), _) => Self::fail(109),
+            (Self::ButtonInput(_), _) => Self::fail(109),
+            (Self::ButtonMapper(operation), input) => operation.resume(input),
             (Self::Tick(operation), input) => operation.resume(input),
             (Self::PulseObserve(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -185,6 +199,9 @@ impl Operation for InstalledOperation {
             (Self::HttpClient(operation), input) => operation.resume(input),
             (Self::HttpServer(operation), input) => operation.resume(input),
             (Self::Json(operation), input) => operation.resume(input),
+            (Self::ImageText(operation), input) => operation.resume(input),
+            (Self::ImageTextRecord(operation), input) => operation.resume(input),
+            (Self::TypedRecordFrame(operation), input) => operation.resume(input),
             (Self::StructuredSelector(operation), input) => operation.resume(input),
             (Self::StructuredLiteral(_), _) => Self::fail(153),
             (Self::StructuredPresentation(operation), input) => operation.resume(input),
@@ -237,6 +254,8 @@ impl Operation for InstalledOperation {
 
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         match self {
+            Self::TypedState(operation) => operation.resume_value(port, value, canonical),
+            Self::ButtonMapper(operation) => operation.resume_value(port, canonical),
             Self::PulseObserve(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestPulseSink(operation) => operation.resume_value(port, canonical),
@@ -269,6 +288,9 @@ impl Operation for InstalledOperation {
             Self::KeyboardInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
+            Self::ButtonInput(operation) => {
+                operation.resume_host_operation(request, outcome, canonical)
+            }
             Self::MidiInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
@@ -281,7 +303,10 @@ impl Operation for InstalledOperation {
 
     fn advance(&mut self) -> OperationAction {
         match self {
+            Self::TypedState(operation) => operation.advance(),
             Self::KeyboardInput(operation) => operation.advance(),
+            Self::ButtonInput(operation) => operation.advance(),
+            Self::ButtonMapper(_) => OperationAction::Await,
             Self::Tick(operation) => operation.advance(),
             Self::PulseObserve(operation) => operation.advance(),
             #[cfg(test)]
@@ -347,6 +372,9 @@ impl Operation for InstalledOperation {
             Self::VectorSearch(operation) => operation.advance(),
             Self::HttpClient(operation) => operation.advance(),
             Self::HttpServer(operation) => operation.advance(),
+            Self::ImageText(_) => OperationAction::Await,
+            Self::ImageTextRecord(_) => OperationAction::Await,
+            Self::TypedRecordFrame(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;
@@ -417,6 +445,7 @@ impl Operation for InstalledOperation {
 
     fn take_released_value(&mut self) -> Option<ValueRef> {
         match self {
+            Self::ButtonInput(operation) => operation.take_released_value(),
             Self::StateLatestScalar(operation) => operation.take_released_value(),
             Self::RhythmCompare(operation) => operation.take_released_value(),
             Self::LogicCompareScalar(operation) => operation.take_released_value(),

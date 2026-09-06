@@ -1,5 +1,6 @@
+import { registerPatternComparisonTests } from "./browser-pattern-comparison.cases.mjs";
 import { expect, test } from "@playwright/test";
-import { openTourStep, startTour } from "./book-test-server.mjs";
+import { openTourStep, startTour } from "./tour-test-server.mjs";
 
 const FORM = `form text-chain {
     source: text/literal("hello")
@@ -103,3 +104,130 @@ test("a normal browser Form session refuses an unsupported semantic Kind before 
   expect(refusal.output).toMatchObject({ disposition: "refused-before-play", category: "missing-implementation-or-placement" });
   expect(refusal.output.message).toContain("layout/inset");
 });
+
+test("an authored five-transition button stream handles three ordinary browser presses", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(String(error)));
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.locator("textarea").fill(`form three-presses {
+    button: input/button(maximum-transitions = 5)
+    state: input/button-indicator-state
+    indicator: presentation/indicator-state
+    button > state > indicator
+  }`);
+  await runner.getByRole("button", { name: "Run" }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  const bounds = await control.boundingBox();
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  try {
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("5 planned manifestations");
+    await expect(runner.locator('[role="img"]')).toHaveAttribute("aria-label", "Indicator on");
+    expect(failures).toEqual([]);
+  } finally {
+    await page.mouse.up();
+  }
+});
+
+test("button input progresses alongside a pending timer and the Play can be cancelled", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.locator("textarea").fill(`form concurrent {
+    button: input/button(maximum-transitions = 1)
+    state: input/button-indicator-state
+    indicator: presentation/indicator-state
+    clock: time/every(freq = 10000ms)
+    count: state/count(start = 0)
+    show: presentation/count(maximum-values = 5)
+    button > state > indicator
+    clock.tick > count.bump
+    count.value > show.value
+  }`);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.hover();
+  await page.mouse.down();
+  await expect(runner.getByRole("img", { name: "Indicator on", exact: true })).toBeVisible({ timeout: 3000 });
+  await page.mouse.up();
+  await runner.getByRole("button", { name: "Stop", exact: true }).click();
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("cancelled");
+  await expect(runner.getByRole("img", { name: "Indicator off", exact: true })).toBeVisible();
+  await runner.locator("textarea").fill(FORM);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+});
+
+test("a released timed attempt reaches its rearmed deadline and retires cleanly", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  const status = runner.locator('[data-application-key="play-status"]');
+  await runner.locator("textarea").fill(`form timed {
+    button: input/button(maximum-transitions = 5)
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
+    derive: time/ordered-event-intervals
+    button.transition > attempt.transition
+    attempt.events > derive.events
+  }`);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.hover();
+  try {
+    await page.mouse.down();
+    await expect(status).toContainText("Waiting for planned tick");
+    await page.mouse.up();
+    // Preserve the kernel detail across the actual browser completion boundary.
+    await expect(status).toContainText("OperationFailed(4)", { timeout: 3000 });
+    await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
+    await runner.locator("textarea").fill(FORM);
+    await runner.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
+    await expect(status).toContainText("Completed");
+  } finally {
+    await page.mouse.up();
+  }
+});
+
+test("relative-duration output uses the selected profile for Patchbay and live timing", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.getByLabel("Structured output").selectOption("2");
+  await runner.locator("textarea").fill(`form timing-output {
+    button: input/button(maximum-transitions = 5)
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
+    derive: time/ordered-event-intervals
+    normalize: sequence/normalize-relative-duration
+    show: presentation/structured-info
+    button.transition > attempt.transition
+    attempt.events > derive.events
+    derive.intervals > normalize.intervals
+    normalize.normalized > show.input
+  }`);
+  await expect(runner.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.hover();
+  try {
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+    await expect(runner.locator(".morse")).toContainText("1000000");
+    await expect(runner.locator(".morse")).toContainText("values:");
+  } finally {
+    await page.mouse.up();
+  }
+});
+
+registerPatternComparisonTests(() => entrance);

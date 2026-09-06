@@ -1,5 +1,7 @@
 //! Exact generic entrances for one checked structured Info profile.
 
+pub mod state_value;
+
 #[cfg(feature = "form-catalog")]
 use alloc::format;
 #[cfg(feature = "form-catalog")]
