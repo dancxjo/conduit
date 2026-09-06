@@ -15,6 +15,9 @@ export function registerButtonMultiHostTests(openStep) {
     await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     await page.mouse.down();
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator on");
+    // Release away from controls whose layout changes when the Play retires,
+    // so the synthetic click cannot select a different laboratory specimen.
+    await page.mouse.move(0, 0);
     await page.mouse.up();
     await expect(status).toContainText("2 delivered cross-Host values");
     await expect(runner.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
