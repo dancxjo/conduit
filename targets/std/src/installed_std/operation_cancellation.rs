@@ -7,6 +7,7 @@ impl InstalledOperation {
         match self {
             Self::TypedState(operation) => operation.cancel(),
             Self::KeyboardInput(operation) => operation.cancel(),
+            Self::ButtonInput(operation) => operation.cancel(),
             Self::Tick(operation) => operation.cancel(),
             Self::PulseObserve(operation) => operation.cancel(),
             #[cfg(test)]

@@ -68,6 +68,7 @@ use conduit_kernel::{Failure, FailureCode, OperationAction};
 pub(super) enum InstalledOperation {
     TypedState(Box<crate::state_value::TypedStateOperation>),
     KeyboardInput(KeyboardInputOperation),
+    ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
     Tick(TickOperation),
     PulseObserve(super::pulse_observation_operation::PulseObservationOperation),
     #[cfg(test)]

@@ -12,6 +12,7 @@ impl Operation for InstalledOperation {
         match self {
             Self::TypedState(operation) => operation.start(),
             Self::KeyboardInput(operation) => operation.start(),
+            Self::ButtonInput(operation) => operation.start(),
             Self::Tick(operation) => operation.start(),
             Self::PulseObserve(operation) => operation.start(),
             #[cfg(test)]
@@ -128,6 +129,7 @@ impl Operation for InstalledOperation {
         match (self, input) {
             (Self::TypedState(operation), input) => operation.resume(input),
             (Self::KeyboardInput(_), _) => Self::fail(109),
+            (Self::ButtonInput(_), _) => Self::fail(109),
             (Self::Tick(operation), input) => operation.resume(input),
             (Self::PulseObserve(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -277,6 +279,9 @@ impl Operation for InstalledOperation {
             Self::KeyboardInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
+            Self::ButtonInput(operation) => {
+                operation.resume_host_operation(request, outcome, canonical)
+            }
             Self::MidiInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
@@ -291,6 +296,7 @@ impl Operation for InstalledOperation {
         match self {
             Self::TypedState(operation) => operation.advance(),
             Self::KeyboardInput(operation) => operation.advance(),
+            Self::ButtonInput(operation) => operation.advance(),
             Self::Tick(operation) => operation.advance(),
             Self::PulseObserve(operation) => operation.advance(),
             #[cfg(test)]

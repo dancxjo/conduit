@@ -109,6 +109,7 @@ use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
     &KEYBOARD_INPUT_FACTORY,
+    &super::keyboard_input_operation::button::FACTORY,
     &TICK_FACTORY,
     &super::pulse_observation_operation::FACTORY,
     #[cfg(test)]
