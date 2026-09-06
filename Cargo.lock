@@ -4576,6 +4576,7 @@ dependencies = [
  "conduit-host-conduitos-fabrication",
  "conduit-host-esp32-fabrication",
  "conduit-host-fabrication",
+ "conduit-human",
  "conduit-kernel",
  "conduit-language",
  "conduit-midi",

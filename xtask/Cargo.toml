@@ -36,6 +36,7 @@ conduit-core = { path = "../architecture/core" }
 conduit-robotics = { path = "../semantics/robotics" }
 conduit-create-oi = { path = "../mechanisms/devices/create-oi" }
 conduit-form = { path = "../architecture/form" }
+conduit-human = { path = "../semantics/human" }
 conduit-host-fabrication = { path = "../fabrication/host" }
 conduit-workspace-fabrication = { path = "../fabrication/workspace" }
 conduit-kernel = { path = "../architecture/kernel", features = ["alloc"] }
