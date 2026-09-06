@@ -2,30 +2,49 @@ use conduit_core::{
     GearId, PlannedStateBoundary, StateContinuation, StateId, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_planner::state_delay::{plan::seal_state_plan, StateGraphError};
-use conduit_planner::{default_placements, plan};
+use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 mod common;
 
 #[test]
 fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
     let mut profile = conduit_semantic_catalog::standard_profile_catalog();
-    let mut startup = profile.startup_catalog().unwrap();
-    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile).unwrap();
+    let mut source = conduit_semantic_catalog::scalar_literal_contract();
+    source.kind_id = conduit_core::kind_id("fixture/scalar-flow");
+    source.plain_name = "Planning-only scalar flow".into();
+    source.summary = "Typed source fixture for structural Plan admission".into();
+    source.example = "source: fixture/scalar-flow".into();
+    source.configuration.clear();
+    source.limits = conduit_semantic_catalog::state_latest_scalar_contract().limits;
+    source.outputs[0].temporal = conduit_core::PortTemporal::Flow { closes: true };
+    source.terminal_behavior =
+        conduit_semantic_catalog::TerminalBehavior::HostInputEndsOrFailsSource;
+    profile
+        .insert(conduit_form::KindDefinition {
+            kind_id: source.kind_id.clone(),
+            kind_contract_revision: conduit_core::KindContractRevision::from(
+                "fixture/scalar-flow@1",
+            ),
+            inputs: source.inputs.clone(),
+            outputs: source.outputs.clone(),
+            configuration: vec![],
+        })
+        .unwrap();
+    let startup = profile.startup_catalog().unwrap();
     let form = conduit_form::parse_with_startup(
-        "form retained {\n source: scalar/literal(value = 7)\n cell: state/latest\n source.value > cell.in\n}\n",
+        "form retained {\n source: fixture/scalar-flow\n cell: state/latest\n source.value > cell.in\n}\n",
         &startup,
         &profile,
     ).unwrap();
     let mut host = common::standard_planning_fixture("host", "boot");
-    // Scalar literals are a portable contract, but not an installed nucleus
-    // source. Supply an honestly named planning-only fixture realization.
+    // This source is a planning-only fixture, not an installed runtime claim.
     host.capabilities
         .push(conduit_semantic_catalog::realization_offer(
-            conduit_semantic_catalog::scalar_literal_contract(),
-            conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
+            source,
+            "fixture/scalar-flow@1",
             conduit_semantic_catalog::RealizationOfferIdentity {
-                capability: "fixture/scalar-literal",
-                execution_profile: "fixture/scalar-literal@1",
-                implementation: "fixture/scalar-literal@1",
+                capability: "fixture/scalar-flow",
+                execution_profile: "fixture/scalar-flow@1",
+                implementation: "fixture/scalar-flow@1",
                 artifact: "fixture/planning-only@1",
             },
             vec![],
@@ -34,7 +53,24 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
         ));
     let hosts = [host];
     let placements = default_placements(&form, &hosts).unwrap();
-    let ordinary = plan(&form, &hosts, &placements, &[]).unwrap();
+    let ordinary = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[conduit_core::BaseImplementationId::from(
+            conduit_core::LOCAL_BASE_IMPLEMENTATION_ID,
+        )],
+        PlanningOptions {
+            connection_bases: &std::collections::BTreeMap::new(),
+            line_candidates: &std::collections::BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: SCALAR_ENCODED_LEN as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .unwrap();
     let state = PlannedStateBoundary {
         state_id: StateId::from("retained-state"),
         gear_id: GearId::from("retained/cell"),
