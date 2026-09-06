@@ -797,7 +797,7 @@ jobs:
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
-            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-body-execution.spec.mjs
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs
     name: browser-proof-${{ matrix.shard }}
