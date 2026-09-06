@@ -1,4 +1,4 @@
-import { browserHostOperationLimits, createBrowserHostOperations } from "./browser-host-operations.mjs";
+import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
 
 const MAXIMUM_LOCATION_SEQUENCE = 0xffff_ffff;
 const MAXIMUM_TOUR_PAGES = 16;
@@ -76,7 +76,7 @@ export function createTourRouting({ host, applicationId, render, onFailure }) {
     const outcome = await operations.moveLocation({
       contract: browserHostOperationLimits.contract,
       kind: "location",
-      operationId: `book/location-${sequence}`,
+      operationId: `tour/location-${sequence}`,
       hostId: host.hostId,
       bootId: host.bootId,
       applicationId,
