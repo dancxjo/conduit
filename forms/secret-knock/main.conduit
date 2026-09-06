@@ -4,7 +4,8 @@ form secret-knock (
     > transitions: InputButtonTransition...|
     > template_commands: NamedPatternTemplateCommand...|
 ) {
-    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)
+    # Three presses include two intervening releases; finish on the third press.
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
     intervals: time/ordered-event-intervals
     normalize: normalize-durations
     storage: storage/named-pattern-templates(maximum-commands = 2)
