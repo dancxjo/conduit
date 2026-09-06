@@ -163,8 +163,7 @@ fn candidate_workflows_pin_head_identity_and_do_not_cross_cancel() {
         source.contains("ref: ${{ github.event.pull_request.head.sha }}"),
         "{workflow}"
     );
-    let products =
-        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml")).unwrap();
     assert!(products.contains("ref: ${{ env.CONDUIT_CANDIDATE_SHA }}"));
     assert!(!root
         .join(".github/workflows/patchbay-debugger-pr-proof.yml")
@@ -176,7 +175,7 @@ fn proof_key_changes_only_for_relevant_git_or_contract_inputs() {
     let repo = Repository::new();
     repo.write("targets/browser/host/app.js", "one");
     repo.write("targets/esp32/readme.txt", "one");
-    repo.write("proof/browser/executable-book.spec.mjs", "proof one");
+    repo.write("proof/browser/executable-tour.spec.mjs", "proof one");
     let first = repo.commit("base");
     let first_tree = resolve_tree(&repo.root, &first).unwrap();
     let browser = spec("browser.tour");
@@ -198,7 +197,7 @@ fn proof_key_changes_only_for_relevant_git_or_contract_inputs() {
         fingerprint(&repo.root, &relevant_tree, browser).unwrap()
     );
 
-    repo.write("proof/browser/executable-book.spec.mjs", "proof two");
+    repo.write("proof/browser/executable-tour.spec.mjs", "proof two");
     let implementation = repo.commit("proof implementation");
     let implementation_tree = resolve_tree(&repo.root, &implementation).unwrap();
     assert_ne!(
@@ -249,12 +248,12 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
             "scripts/ci/stage-tour-product.sh",
         ),
         (
-            "proof/browser/executable-book.spec.mjs",
+            "proof/browser/executable-tour.spec.mjs",
             "proof/browser/tour.spec.mjs",
         ),
         (
-            ".github/workflows/executable-book-pages.yml",
             ".github/workflows/tour-products.yml",
+            ".github/workflows/renamed-tour-products.yml",
         ),
     ];
     for (old, _) in migrations {
@@ -335,7 +334,7 @@ fn unrelated_merge_inherits_browser_evidence_while_candidate_remains_immutable()
     let repo = Repository::new();
     repo.write("targets/browser/host/app.js", "browser");
     repo.write("targets/esp32/firmware/main.rs", "esp");
-    repo.write("proof/browser/executable-book.spec.mjs", "proof");
+    repo.write("proof/browser/executable-tour.spec.mjs", "proof");
     let m0 = repo.commit("m0");
     repo.checkout("candidate-b", Some(&m0));
     repo.write("site/index.html", "candidate presentation");
@@ -365,7 +364,7 @@ fn related_merge_invalidates_only_its_proof_domain() {
     let repo = Repository::new();
     repo.write("targets/browser/host/app.js", "browser");
     repo.write("targets/esp32/firmware/main.rs", "esp");
-    repo.write("proof/browser/executable-book.spec.mjs", "proof");
+    repo.write("proof/browser/executable-tour.spec.mjs", "proof");
     let m0 = repo.commit("m0");
     repo.checkout("candidate-b", Some(&m0));
     repo.write("site/index.html", "candidate");
@@ -433,7 +432,7 @@ fn structural_conflict_precedes_all_proof_execution() {
 fn receipts_fail_closed_and_can_be_reused_across_candidate_heads() {
     let repo = Repository::new();
     repo.write("targets/browser/host/app.js", "same");
-    repo.write("proof/browser/executable-book.spec.mjs", "proof");
+    repo.write("proof/browser/executable-tour.spec.mjs", "proof");
     let b1 = repo.commit("b1");
     let tree = resolve_tree(&repo.root, &b1).unwrap();
     let proof = spec("browser.tour");

@@ -26,8 +26,8 @@ fn manifestation(effect: TourHostEffect) -> TourEffect {
 #[test]
 fn chapter_one_runs_inside_the_generic_browser_envelope() {
     let (session, effect) = TourSession::prepare(
-        "browser/book-test",
-        "browser-boot/book-test",
+        "browser/tour-test",
+        "browser-boot/tour-test",
         HELLO_LIGHT,
         1,
     )
@@ -35,7 +35,7 @@ fn chapter_one_runs_inside_the_generic_browser_envelope() {
     let effect = manifestation(effect);
     assert_eq!(effect.unit_millis, 120);
     assert_eq!(effect.segments.len(), 17);
-    assert_eq!(effect.host_id, "browser/book-test");
+    assert_eq!(effect.host_id, "browser/tour-test");
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
 
@@ -109,7 +109,7 @@ fn four_gear_text_form_runs_without_a_topology_special_case() {
 }
 "#;
     let (session, effect) =
-        TourSession::prepare("browser/book-test", "browser-boot/book-test", source, 2).unwrap();
+        TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 2).unwrap();
     let effect = manifestation(effect);
     assert_eq!(effect.text.as_deref(), Some("SAY: HELLO"));
     assert_eq!(session.complete().unwrap().disposition, "completed");
@@ -126,7 +126,7 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
 }
 "#;
     let (session, effect) =
-        TourSession::prepare("browser/book-test", "browser-boot/book-test", source, 4).unwrap();
+        TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 4).unwrap();
     let effect = manifestation(effect);
     assert!(effect
         .text
@@ -149,7 +149,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 }
 "#;
     let (math_session, math_effect) =
-        TourSession::prepare("browser/book-test", "browser-boot/book-test", math, 5).unwrap();
+        TourSession::prepare("browser/tour-test", "browser-boot/tour-test", math, 5).unwrap();
     let math_effect = manifestation(math_effect);
     assert_eq!(math_effect.text.as_deref(), Some("3.000000"));
     assert_eq!(math_session.complete().unwrap().disposition, "completed");
@@ -162,14 +162,14 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 }
 "#;
     let (logic_session, logic_effect) =
-        TourSession::prepare("browser/book-test", "browser-boot/book-test", logic, 6).unwrap();
+        TourSession::prepare("browser/tour-test", "browser-boot/tour-test", logic, 6).unwrap();
     let logic_effect = manifestation(logic_effect);
     assert_eq!(logic_effect.text.as_deref(), Some("false"));
     assert_eq!(logic_session.complete().unwrap().disposition, "completed");
 }
 
 #[test]
-fn typed_fanout_reconverges_without_book_topology_code() {
+fn typed_fanout_reconverges_without_tour_topology_code() {
     let source = r#"form fanout-lab {
     source: scalar/literal(0.5)
     scaled: math/scale(2.0)
@@ -183,7 +183,7 @@ fn typed_fanout_reconverges_without_book_topology_code() {
 }
 "#;
     let (session, effect) =
-        TourSession::prepare("browser/book-test", "browser-boot/book-test", source, 7).unwrap();
+        TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 7).unwrap();
     let effect = manifestation(effect);
     assert_eq!(effect.text.as_deref(), Some("true"));
     assert_eq!(effect.expanded_gears.len(), 5);
@@ -235,8 +235,8 @@ fn finite_browser_timer_drives_current_count_through_one_kernel_play() {
 
     let too_long = source.replace("100ms", "10001ms");
     let refusal = TourSession::prepare(
-        "browser/book-state-time",
-        "browser-boot/book-state-time",
+        "browser/tour-state-time",
+        "browser-boot/tour-state-time",
         &too_long,
         20,
     )
@@ -248,8 +248,8 @@ fn finite_browser_timer_drives_current_count_through_one_kernel_play() {
 
 fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
     let (mut session, mut effect) = TourSession::prepare(
-        "browser/book-state-time",
-        "browser-boot/book-state-time",
+        "browser/tour-state-time",
+        "browser-boot/tour-state-time",
         source,
         19,
     )
@@ -302,8 +302,8 @@ fn pending_browser_timer_cancels_without_becoming_a_completed_tick() {
 }
 "#;
     let (session, initial) = TourSession::prepare(
-        "browser/book-state-time-cancel",
-        "browser-boot/book-state-time-cancel",
+        "browser/tour-state-time-cancel",
+        "browser-boot/tour-state-time-cancel",
         source,
         21,
     )
@@ -318,16 +318,16 @@ fn pending_browser_timer_cancels_without_becoming_a_completed_tick() {
 #[test]
 fn unchanged_morse_caller_substitutes_direct_and_nested_recursive_realizations() {
     let (direct_session, direct) = TourSession::prepare(
-        "browser/book-test",
-        "browser-boot/book-test",
+        "browser/tour-test",
+        "browser-boot/tour-test",
         HELLO_LIGHT,
         10,
     )
     .unwrap();
     let direct = manifestation(direct);
     let (recursive_session, recursive) = TourSession::prepare_recursive(
-        "browser/book-test",
-        "browser-boot/book-test",
+        "browser/tour-test",
+        "browser-boot/tour-test",
         HELLO_LIGHT,
         11,
     )
@@ -376,7 +376,7 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
     source > result
 }
 "#;
-    let message = TourSession::prepare("browser/book-test", "browser-boot/book-test", source, 3)
+    let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 3)
         .err()
         .expect("uninstalled semantic Kind refuses");
     let refusal = refusal(message);
@@ -413,7 +413,7 @@ fn exact_type_mismatch_refuses_before_play_as_source_contract_error() {
     source > invert > result
 }
 "#;
-    let message = TourSession::prepare("browser/book-test", "browser-boot/book-test", source, 12)
+    let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 12)
         .err()
         .expect("mismatched exact ports refuse");
     assert_eq!(refusal(message).category, "type-or-source");
@@ -430,7 +430,7 @@ fn browser_gear_bound_refuses_before_play() {
         source.push_str(&format!(" > step{index}"));
     }
     source.push_str(" > result\n}\n");
-    let message = TourSession::prepare("browser/book-test", "browser-boot/book-test", &source, 13)
+    let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 13)
         .err()
         .expect("seventeen Gears exceed the exact sixteen-Gear profile");
     let refusal = refusal(message);
@@ -450,7 +450,7 @@ fn browser_cord_bound_refuses_before_play() {
         ));
     }
     source.push_str("}\n");
-    let message = TourSession::prepare("browser/book-test", "browser-boot/book-test", &source, 14)
+    let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 14)
         .err()
         .expect("twenty-six Cords exceed the exact twenty-four-Cord profile");
     assert_eq!(refusal(message).category, "browser-bound");
@@ -462,7 +462,7 @@ fn semantic_value_bound_refuses_before_play() {
     let source = format!(
         "form too-much-text {{\n source: text/literal(\"{oversized}\")\n result: presentation/text\n source > result\n}}\n"
     );
-    let message = TourSession::prepare("browser/book-test", "browser-boot/book-test", &source, 15)
+    let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 15)
         .err()
         .expect("text beyond its exact semantic value bound refuses");
     assert!(message.contains("CND-FRM-040"));
@@ -480,16 +480,16 @@ fn missing_resource_and_authority_are_distinct_pre_play_refusals() {
     let expanded = conduit_form::expand_canonical_form(&checked, "hello-light", &catalog).unwrap();
 
     let mut without_resource = advertisement(
-        conduit_core::HostId::from("browser/book-test"),
-        conduit_core::BootId::from("browser-boot/book-test"),
+        conduit_core::HostId::from("browser/tour-test"),
+        conduit_core::BootId::from("browser-boot/tour-test"),
     );
     without_resource.resources.clear();
     let resource_error = planning_error(&expanded, &without_resource);
     assert_eq!(refusal(resource_error).category, "resource");
 
     let mut without_authority = advertisement(
-        conduit_core::HostId::from("browser/book-test"),
-        conduit_core::BootId::from("browser-boot/book-test"),
+        conduit_core::HostId::from("browser/tour-test"),
+        conduit_core::BootId::from("browser-boot/tour-test"),
     );
     let indicator = without_authority
         .capabilities

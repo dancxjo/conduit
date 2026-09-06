@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { openTourStep } from "./book-test-server.mjs";
+import { openTourStep } from "./tour-test-server.mjs";
 
 // Exact reusable declarations; the storage-dependent namesake remains unproved.
 const canonical = readFileSync(new URL("../../forms/secret-knock/main.conduit", import.meta.url), "utf8");

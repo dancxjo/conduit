@@ -1,4 +1,4 @@
-name: book-and-creche-products
+name: tour-and-creche-products
 
 on:
   workflow_call:
@@ -53,7 +53,7 @@ env:
   CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}
   CONDUIT_SHARED_COMPILE_PACKAGES: ${{ inputs.shared_compile_packages || '[]' }}
 concurrency:
-  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+  group: tour-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -168,7 +168,7 @@ jobs:
             required=true
             reason=trusted-registry
           elif ! git diff --quiet "$CONTROLLER_SHA" -- \
-            .github/workflows/executable-book-pages.yml \
+            .github/workflows/tour-products.yml \
             xtask/src/commands/ci/impact/product_registry.rs \
             xtask/src/commands/ci/proof_graph/spec.rs
           then
@@ -198,7 +198,7 @@ jobs:
           mkdir -p target/browser-product-runtimes
           cargo build --locked -p conduit-browser-host
           cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features tour-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
@@ -281,7 +281,7 @@ jobs:
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
+          proof/browser/executable-tour.spec.mjs
           --project chromium
           --workers 1
           --retries 0
@@ -292,7 +292,7 @@ jobs:
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
+          proof/browser/executable-tour.spec.mjs
           --project chromium
           --workers 1
           --retries 0
@@ -787,7 +787,7 @@ jobs:
       matrix:
         include:
           - shard: tour
-            specs: proof/browser/executable-book.spec.mjs
+            specs: proof/browser/executable-tour.spec.mjs
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
@@ -828,7 +828,7 @@ jobs:
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
+          proof/browser/executable-tour.spec.mjs
           --project chromium
           --workers 1
           --retries 0
@@ -868,33 +868,7 @@ jobs:
           cp -a target/tour-product/. target/pages-site/tour/
           cp -a target/creche-product/. target/pages-site/creche/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
-          cat > target/pages-site/book/index.html <<'HTML'
-          <!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta http-equiv="refresh" content="0; url=../tour/">
-            <title>Redirecting to Tour</title>
-            <script>location.replace("../tour/");</script>
-          </head>
-          <body><p>Redirecting to <a href="../tour/">../tour/</a>.</p></body>
-          </html>
-          HTML
-          for route in a-form-you-can-run faces-backs-and-implementation hosts-make-forms-real one-form-across-several-hosts the-body-one-computer-one-machine-or-many many-forms-one-body-wide-realization birth-spores-and-the-creche meet-one-gear same-face-different-implementation; do
-            mkdir -p "target/pages-site/book/$route"
-            cat > "target/pages-site/book/$route/index.html" <<HTML
-          <!doctype html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta http-equiv="refresh" content="0; url=../../tour/$route/">
-            <title>Redirecting to Tour</title>
-            <script>location.replace("../../tour/$route/");</script>
-          </head>
-          <body><p>Redirecting to <a href="../../tour/$route/">../../tour/$route/</a>.</p></body>
-          </html>
-          HTML
-          done
+          node products/tour/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
           test -f target/pages-site/book/index.html

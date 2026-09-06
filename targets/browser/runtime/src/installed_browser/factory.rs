@@ -11,7 +11,7 @@ use conduit_core::{
 };
 use conduit_planner::BROWSER_PLANNER_PROFILE;
 
-pub(crate) const BOOK_LOCAL_BASE: &str = "conduit.base/local@1";
+pub(crate) const TOUR_LOCAL_BASE: &str = "conduit.base/local@1";
 pub(crate) struct BrowserManifestation {
     pub kind_id: &'static str,
     pub canonical_value: Vec<u8>,
@@ -318,7 +318,7 @@ pub(crate) fn advertisement_for_machinery(
 }
 
 pub(crate) fn local_bases() -> [BaseImplementationId; 1] {
-    [BaseImplementationId::from(BOOK_LOCAL_BASE)]
+    [BaseImplementationId::from(TOUR_LOCAL_BASE)]
 }
 
 pub(super) fn validate_placement(
