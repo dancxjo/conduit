@@ -124,7 +124,7 @@ async function runDeployment(page, overrides = {}) {
   await page.waitForFunction(() => globalThis.__conduitBrowserHost?.devices);
   return page.evaluate(async (overrides) => {
     const { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT, sha256ContentId, sha256Bytes } = await import(
-      "/targets/esp32/deployment/browser/index.mjs"
+      "/targets/esp32/browser-deployment/index.mjs"
     );
     const targetId = overrides.targetId ?? "esp32/riscv32imc/usb-dcf8355d-esp32-c3";
     const payload = new Uint8Array(1500);
@@ -222,7 +222,7 @@ test("exact ESP32 IMAGE deploys through one finite Web Serial Base without runti
 test("two Bodies produce distinct native ESP32 images with recoverable provisioning", async ({ page }) => {
   await page.goto(await startEntrance());
   const result = await page.evaluate(async () => {
-    const { bindEsp32BodySpore, readEsp32BodySpore } = await import("/targets/esp32/deployment/browser/index.mjs");
+    const { bindEsp32BodySpore, readEsp32BodySpore } = await import("/targets/esp32/browser-deployment/index.mjs");
     const targetId = "esp32/riscv32imc/usb-dcf8355d-esp32-c3";
     const generic = new Uint8Array(2048);
     generic[0] = 0xe9;

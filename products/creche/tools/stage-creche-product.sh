@@ -7,7 +7,7 @@ release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEAS
 
 test -f "$runtime"
 test ! -e "$destination"
-mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr/deployment/browser" "$destination/targets/rp2040/deployment/browser" "$destination/targets/esp32/deployment/browser" "$destination/targets/std/deployment/browser" "$destination/targets/browser/browser-deployment" "$destination/targets/orange-pi/deployment/browser" "$destination/targets/raspberry-pi/deployment/browser" "$destination/targets/conduitos/deployment/browser"
+mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/orange-pi/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
 
 cp products/creche/browser/creche.html "$destination/index.html"
 cp products/creche/browser/creche.css "$destination/creche.css"
@@ -65,14 +65,14 @@ for artifact in conduitos-x86_64-pc-release.json conduitos-x86_64-pc.iso conduit
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
-cp targets/avr/deployment/browser/*.mjs "$destination/targets/avr/deployment/browser/"
-cp targets/rp2040/deployment/browser/*.mjs "$destination/targets/rp2040/deployment/browser/"
-cp targets/esp32/deployment/browser/*.mjs "$destination/targets/esp32/deployment/browser/"
-cp targets/std/deployment/browser/*.mjs "$destination/targets/std/deployment/browser/"
+cp targets/avr/deployment/browser/*.mjs "$destination/targets/avr/browser-deployment/"
+cp targets/rp2040/deployment/browser/*.mjs "$destination/targets/rp2040/browser-deployment/"
+cp targets/esp32/deployment/browser/*.mjs "$destination/targets/esp32/browser-deployment/"
+cp targets/std/deployment/browser/*.mjs "$destination/targets/std/browser-deployment/"
 cp targets/browser/deployment/browser/*.mjs "$destination/targets/browser/browser-deployment/"
-cp targets/orange-pi/deployment/browser/*.mjs "$destination/targets/orange-pi/deployment/browser/"
-cp targets/raspberry-pi/deployment/browser/*.mjs "$destination/targets/raspberry-pi/deployment/browser/"
-cp targets/conduitos/deployment/browser/*.mjs "$destination/targets/conduitos/deployment/browser/"
+cp targets/orange-pi/deployment/browser/*.mjs "$destination/targets/orange-pi/browser-deployment/"
+cp targets/raspberry-pi/deployment/browser/*.mjs "$destination/targets/raspberry-pi/browser-deployment/"
+cp targets/conduitos/deployment/browser/*.mjs "$destination/targets/conduitos/browser-deployment/"
 
 for route in birth first-host physical-host graduate; do
   mkdir "$destination/$route"

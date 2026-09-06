@@ -216,7 +216,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
   await page.goto(`${await startEntrance()}creche/`);
   const result = await page.evaluate(async () => {
     const { createRp2040BrowserFabricationAdapter } = await import(
-      "/targets/rp2040/deployment/browser/index.mjs"
+      "/targets/rp2040/browser-deployment/index.mjs"
     );
     const adapter = createRp2040BrowserFabricationAdapter();
     const selection = {
@@ -279,7 +279,7 @@ test("one reviewed IMAGE yields distinct directly plantable Body-bound UF2 spore
       bindRp2040BodySpore,
       createRp2040BrowserFabricationAdapter,
       readRp2040BodySpore,
-    } = await import("/targets/rp2040/deployment/browser/index.mjs");
+    } = await import("/targets/rp2040/browser-deployment/index.mjs");
     const image = await createRp2040BrowserFabricationAdapter().fabricate({
       strategy: "packaged-exact",
       selection: {
@@ -341,7 +341,7 @@ test("browser serial observes a distinct fresh Boot and invitation-bound Pico jo
   await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { PHYSICAL_SPAWN_STREAM_BOUNDS, requestRp2040SpawnJoin } = await import(
-      "/targets/rp2040/deployment/browser/index.mjs"
+      "/targets/rp2040/browser-deployment/index.mjs"
     );
     const nonce = Array(32).fill(7);
     const base = await globalThis.__conduitBrowserHost.devices.acquireSerial({
@@ -413,7 +413,7 @@ test("expired invitation and join-to-advertisement mismatch refuse before admiss
   await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { requestRp2040SpawnJoin } = await import(
-      "/targets/rp2040/deployment/browser/index.mjs"
+      "/targets/rp2040/browser-deployment/index.mjs"
     );
     const prepared = (expiry) => ({
       spore_id: "spore:one", image_id: "image:one", invitation_id: "invitation:one",
@@ -471,7 +471,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
   await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } = await import(
-      "/targets/rp2040/deployment/browser/index.mjs"
+      "/targets/rp2040/browser-deployment/index.mjs"
     );
     const blockCount = 2;
     const uf2 = new Uint8Array(blockCount * 512);
@@ -579,7 +579,7 @@ test("running accepted firmware acknowledges a build-bound BOOTSEL reboot throug
   await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { requestRunningFirmwareBootsel } = await import(
-      "/targets/rp2040/deployment/browser/index.mjs"
+      "/targets/rp2040/browser-deployment/index.mjs"
     );
     const base = await __conduitBrowserHost.devices.acquireSerial();
     const receipt = await requestRunningFirmwareBootsel({
@@ -612,7 +612,7 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
   await waitForBrowserHost(page);
   const result = await page.evaluate(async () => {
     const { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } = await import(
-      "/targets/rp2040/deployment/browser/index.mjs"
+      "/targets/rp2040/browser-deployment/index.mjs"
     );
     const makeUf2 = (family) => {
       const bytes = new Uint8Array(512);

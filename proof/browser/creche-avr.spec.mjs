@@ -164,8 +164,8 @@ test("the Pro Micro contract keeps board, bootloader, reset, port, and flash ref
   const { manifest } = await installReviewedRelease(page);
   await birthBody(page);
   const terminals = await page.evaluate(async ({ releaseManifest }) => {
-    const module = await import("/creche/targets/avr/deployment/browser/image.mjs");
-    const adapter = await import("/creche/targets/avr/deployment/browser/creche-adapter.mjs");
+    const module = await import("/creche/targets/avr/browser-deployment/image.mjs");
+    const adapter = await import("/creche/targets/avr/browser-deployment/creche-adapter.mjs");
     const capture = (work) => {
       try {
         work();

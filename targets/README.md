@@ -25,3 +25,5 @@ RP2040 `network-realization/` remains an independently packaged board-specific n
 ConduitOS `proof/appliances/<architecture>/` owns each bring-up appliance together with its appliance linker scripts. Product linker and boot configuration live under `firmware/`; the target build script names those exact resources. Repository-wide conformance remains under `proof/` at repository root.
 
 BrowserBundle, native bundles, UF2, ESP images, ConduitOS disk images, and SBC images keep distinct artifact, machine, architecture, toolchain, and deployment identities. Moving a path proves no new firmware execution or physical/HIL behavior. Public workflows remain `conduit ...`; repository development and hardware proof remain `cargo xtask ...`.
+
+Published browser resource URLs retain their existing `targets/<family>/browser-deployment/` package paths. Staging reads source from `deployment/browser/` into those declared resources. Package identities and relative imports are distinct from repository source ownership; the path migration does not change these published resource contracts.
