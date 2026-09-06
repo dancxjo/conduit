@@ -60,7 +60,7 @@ jobs:
   classify:
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ inputs.full_suite && 'false' || steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
+      docs_only: ${{ steps.slice.outputs.docs_only || steps.changes.outputs.docs_only }}
       reason: ${{ steps.slice.outputs.reason || steps.changes.outputs.reason }}
       base_sha: ${{ steps.slice.outputs.base_sha || steps.changes.outputs.base_sha }}
       head_sha: ${{ steps.slice.outputs.head_sha || steps.changes.outputs.head_sha }}
@@ -154,6 +154,7 @@ jobs:
         id: changes
         if: steps.stack.outputs.role != 'intermediate'
         env:
+          CONDUIT_FULL_SUITE: ${{ inputs.full_suite }}
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: tools/ci/classify-docs-only.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
@@ -253,10 +254,11 @@ jobs:
           if test -f "$RUNNER_TEMP/conduit-ci-controller/$proof"; then
             proof="$RUNNER_TEMP/conduit-ci-controller/$proof"
           fi
-          node --test "$proof"
+          node --test "$proof" proof/ci/branch-boundary.spec.mjs
       - name: Fingerprint immutable candidate proof inputs
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only != 'true' && (github.event_name == 'pull_request' || inputs.candidate_sha != '')
         env:
+          CONDUIT_FULL_SUITE: ${{ inputs.full_suite }}
           HEAD_SHA: ${{ steps.changes.outputs.head_sha }}
         run: |
           controller=(cargo xtask)
@@ -264,7 +266,7 @@ jobs:
             controller=("$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch")
           fi
           applicability=()
-          if grep -Fq '"--impact-plan"' "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs" 2>/dev/null; then
+          if test "$CONDUIT_FULL_SUITE" != true && grep -Fq '"--impact-plan"' "$RUNNER_TEMP/conduit-ci-controller/tools/xtask-dispatch/src/ci_dispatch.rs" 2>/dev/null; then
             applicability=(--impact-plan target/ci-plans/ci-impact-plan.json)
           fi
           "${controller[@]}" ci candidate "$HEAD_SHA" --locked "${applicability[@]}" \
