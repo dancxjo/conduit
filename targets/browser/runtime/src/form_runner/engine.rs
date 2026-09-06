@@ -356,5 +356,6 @@ mod timing_kernel_tests;
 #[cfg(test)]
 #[path = "concurrent_effect_tests.rs"]
 mod concurrent_effect_tests;
+#[cfg(test)]
 #[path = "resource_effect_tests.rs"]
 mod resource_effect_tests;
