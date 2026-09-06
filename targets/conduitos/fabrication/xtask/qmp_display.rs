@@ -132,12 +132,12 @@ pub(super) fn capture(
         .read_to_end(&mut bytes)
         .map_err(io_error)?;
     let frame = decode(&bytes)?;
-    require_content(&frame)?;
     let encoded = frame.encode_png().map_err(|error| {
         ConduitosError::refusal("qemu-display-encode-failed", error.to_string())
     })?;
     fs::write(&png, &encoded).map_err(io_error)?;
     fs::remove_file(ppm).map_err(io_error)?;
+    require_content(&frame)?;
     Ok(
         serde_json::json!({"checkpoint":checkpoint,"png":png.file_name().unwrap().to_string_lossy(),
         "width":frame.width(),"height":frame.height(),"pixel_format":"RGBA8","png_bytes":encoded.len(),

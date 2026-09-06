@@ -52,6 +52,7 @@ mod product_readiness_matrix;
 mod profile;
 mod prove;
 mod prove_many;
+mod qemu_artifacts;
 mod qmp;
 mod qmp_display;
 mod report;

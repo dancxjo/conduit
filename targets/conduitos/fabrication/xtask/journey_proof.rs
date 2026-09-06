@@ -67,7 +67,8 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         monitor_socket.to_string_lossy()
     );
     let serial = format!("file:{}", serial_path.to_string_lossy());
-    let mut child = Command::new("qemu-system-x86_64")
+    let mut command = Command::new("qemu-system-x86_64");
+    command
         .args([
             "-M",
             "q35",
@@ -104,7 +105,17 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .current_dir(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::piped())
+        .stderr(
+            fs::File::create(paths.target.join("journey-qemu-stderr.log"))
+                .map_err(|error| ConduitosError::refusal("qemu-stderr-io", error.to_string()))?,
+        );
+    let mut artifacts = super::qemu_artifacts::Artifacts::new(
+        paths.target.join("journey-frames"),
+        serial_path.clone(),
+        serde_json::json!({"source_commit":git_head(&paths.root)?,"image_sha256":image.iso_sha256,
+            "qemu_argv":command.get_args().map(|value|value.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
+    )?;
+    let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
 
@@ -116,26 +127,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "CONDUIT_BOOT_STAGE front-door-ready",
             "product-journey-front-door-timeout",
         )?;
-        let capture = super::qmp_display::capture(
-            &mut qmp,
-            &mut reader,
-            &paths.target.join("journey-frames"),
-            "front-door-ready",
-        )?;
-        let checkpoint = serde_json::json!({
-            "schema":"conduit.conduitos/visual-checkpoint@1",
-            "source_commit":git_head(&paths.root)?,
-            "image_sha256":image.iso_sha256,
-            "serial_checkpoint":"CONDUIT_BOOT_STAGE front-door-ready",
-            "serial_bytes":fs::metadata(&serial_path).map(|metadata| metadata.len()).unwrap_or(0),
-            "frame":capture,
-            "proof_class":"freestanding-emulator"
-        });
-        fs::write(
-            paths.target.join("journey-frames/front-door-ready.json"),
-            checkpoint.to_string(),
-        )
-        .map_err(|error| ConduitosError::refusal("qemu-display-manifest-io", error.to_string()))?;
+        artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
         for (key, status) in [
             ("ret", "form-opened"),
             ("f3", "born-lulled"),
@@ -144,6 +136,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ] {
             key_pair(&mut qmp, &mut reader, key, status)?;
             wait_status(&serial_path, &mut child, status)?;
+            artifacts.capture(&mut qmp, &mut reader, status, true)?;
         }
         for label in [
             "PROFILE ID",
@@ -171,10 +164,13 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
         key_pair(&mut qmp, &mut reader, "f6", "playing")?;
         wait_status(&serial_path, &mut child, "playing")?;
+        artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
         key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;
         wait_status(&serial_path, &mut child, "result-visible")?;
+        artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
         key_pair(&mut qmp, &mut reader, "f7", "lull")?;
         wait_status(&serial_path, &mut child, "lulled")?;
+        artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
         thread::sleep(Duration::from_millis(250));
         if child
             .try_wait()
@@ -190,7 +186,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         }
         Ok(())
     })();
-    if interaction.is_err() {
+    if let Err(error) = &interaction {
+        if let Err(artifact_error) = artifacts.finish(Some(error)) {
+            eprintln!("failure artifact error: {artifact_error}; primary: {error}");
+        }
         let _ = child.kill();
         let _ = child.wait();
         return interaction;
@@ -338,6 +337,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if !opts.quiet && !opts.json {
         println!("ConduitOS product journey proof: {}", proof_path.display());
     }
+    artifacts.finish(None)?;
     Ok(())
 }
 
