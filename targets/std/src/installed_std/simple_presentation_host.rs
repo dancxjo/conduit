@@ -30,9 +30,7 @@ pub(super) fn present<W: Write>(
             writeln!(output, "count value={count}").map_err(|error| error.to_string())?;
         }
         Some(conduit_std_offers::BOOL_PRESENTATION_TARGET) => {
-            let value = conduit_core::InfoBool::decode(input)
-                .map_err(|error| format!("Boolean presentation input is invalid: {error:?}"))?;
-            writeln!(output, "bool value={}", value.get()).map_err(|error| error.to_string())?;
+            super::bool_presentation::present_stdout(output, input)?;
         }
         _ => return Ok(false),
     }
