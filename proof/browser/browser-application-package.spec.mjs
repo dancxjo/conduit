@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
-import { openTourStep, startTour, startStaticProduct } from "./book-test-server.mjs";
+import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 
 let entrance;
 

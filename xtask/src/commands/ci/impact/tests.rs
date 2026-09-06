@@ -633,7 +633,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let creche_presentation = plan_for_paths(
         &root,
         vec![
-            "proof/browser/executable-book.spec.mjs".to_owned(),
+            "proof/browser/tour.spec.mjs".to_owned(),
             "scripts/ci/stage-creche-product.sh".to_owned(),
             "targets/browser/host/assets/creche-target-catalog.mjs".to_owned(),
             "targets/browser/host/assets/creche.css".to_owned(),
@@ -692,7 +692,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     .unwrap();
     assert!(check_and_product.pages_products_required);
 
-    let path = ".github/workflows/executable-book-pages.yml";
+    let path = ".github/workflows/tour-products.yml";
     let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
     assert!(!focused_workflow.full_fallback, "{path}");
     assert!(!focused_workflow.esp32_required, "{path}");
@@ -1009,8 +1009,7 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
 #[test]
 fn product_preflight_uses_the_trusted_controller_for_behind_candidates() {
     let root = crate::workspace::workspace_root().unwrap();
-    let workflow =
-        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml")).unwrap();
     assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
     assert!(workflow.contains(
         "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci standalone-locks --locked"

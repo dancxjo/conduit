@@ -86,7 +86,7 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
 #[test]
 fn required_product_gate_uses_the_lightweight_automation_lane() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let required_gate = workflow
         .split("\n  products-proof:\n")
@@ -137,7 +137,7 @@ fn classifier_artifacts_are_scoped_and_planning_has_no_workspace_cache() {
 #[test]
 fn product_planner_has_no_workspace_cache() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let planner = workflow
         .split("\n  plan:\n")
@@ -229,8 +229,8 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
     );
 
     let check = fs::read_to_string(workflows.join("check.yml")).expect("read check workflow");
-    let products = fs::read_to_string(workflows.join("executable-book-pages.yml"))
-        .expect("read product workflow");
+    let products =
+        fs::read_to_string(workflows.join("tour-products.yml")).expect("read product workflow");
     for workflow in [&check, &products] {
         let setup = workflow
             .find("dtolnay/rust-toolchain@1.98.1")
@@ -264,7 +264,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let check =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
-    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
 
     assert!(!check.contains("needs.classify.result != 'success'"));
@@ -295,7 +295,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
 #[test]
 fn product_stage_joins_exact_required_results_after_optional_skips() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let stage = workflow
         .split("\n  products-stage:\n")
@@ -321,7 +321,7 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 #[test]
 fn browser_release_installs_its_exact_wasm_target() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let browser_release = workflow
         .split("\n  browser-release:\n")
@@ -359,7 +359,7 @@ fn legacy_merged_branch_retirement_is_manual_only_and_keeps_its_safe_order() {
 #[test]
 fn product_descendants_use_explicit_direct_result_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let browser = workflow
         .split("\n  browser-proof:\n")
@@ -404,7 +404,7 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
 fn tour_proof_has_one_authoritative_candidate_workflow() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     assert!(!root.join(".github/workflows/book-pr-proof.yml").exists());
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let proof = workflow
         .split("\n  tour-patchbay-proof:\n")
@@ -425,7 +425,7 @@ fn tour_proof_has_one_authoritative_candidate_workflow() {
 #[test]
 fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     let proof = workflow
         .split("\n  tour-patchbay-proof:\n")
@@ -465,7 +465,7 @@ fn patchbay_debugger_has_one_authoritative_candidate_proof_node() {
 #[test]
 fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-deploy.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-deploy.yml"))
         .expect("read Pages deployment workflow");
 
     assert!(workflow.contains("refs/pull/$PR_NUMBER/head"));
@@ -473,7 +473,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     assert!(workflow.contains("reconcile-product \\"));
     assert!(workflow.contains("products.pages-carrier \"$SOURCE_HEAD\" \"$MERGE_COMMIT\""));
     assert!(workflow.contains("needs.resolve.outputs.disposition == 'execute'"));
-    assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
+    assert!(workflow.contains("uses: ./.github/workflows/tour-products.yml"));
     assert!(workflow.contains("  pull-requests: read\n"));
     assert!(workflow.contains("main_sha:\n"));
     assert!(workflow.contains("steps.resolve.outputs.direct_main == 'true'"));
@@ -491,7 +491,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
         "needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree"
     ));
 
-    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
     assert!(products.contains(
         "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
@@ -606,7 +606,7 @@ fn legacy_candidate_reconciliation_is_manual_only_and_least_privilege() {
     assert!(workflow.contains("resolve:\n    if:"));
     assert!(workflow.contains("runs-on: ubuntu-slim\n    timeout-minutes: 5"));
     assert!(workflow.contains("uses: ./.github/workflows/check.yml"));
-    assert!(workflow.contains("uses: ./.github/workflows/executable-book-pages.yml"));
+    assert!(workflow.contains("uses: ./.github/workflows/tour-products.yml"));
     assert!(workflow.contains("shared_compile_result: ${{ needs.shared-compile.result }}"));
     assert!(
         workflow.contains("shared_compile_packages: ${{ needs.shared-compile.outputs.packages }}")
@@ -653,8 +653,7 @@ fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
         fs::read_to_string(root.join(".github/workflows/candidate-shared-compile.yml"))
             .expect("read shared compile workflow");
     let check = fs::read_to_string(root.join(".github/workflows/check.yml")).unwrap();
-    let products =
-        fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml")).unwrap();
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml")).unwrap();
 
     assert_eq!(
         controller
@@ -721,7 +720,7 @@ fn candidate_shared_compile_is_one_causal_prerequisite_for_both_proof_worlds() {
 #[test]
 fn new_product_proofs_are_attested_by_the_trusted_controller_against_candidate_bytes() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
 
     assert!(workflow.contains("name: Materialize the trusted attestation controller"));
@@ -833,7 +832,7 @@ fn reconciliation_passes_exact_novel_proofs_into_internal_check_selection() {
         .expect("read reconciliation workflow");
     let check =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
-    let products = fs::read_to_string(root.join(".github/workflows/executable-book-pages.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
 
     assert!(reconciliation

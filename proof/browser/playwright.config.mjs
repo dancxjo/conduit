@@ -38,7 +38,7 @@ export default defineConfig({
     "browser-pointer.spec.mjs",
     "browser-human-input.spec.mjs",
     "browser-host-entrance.spec.mjs",
-    "executable-book.spec.mjs",
+    "tour.spec.mjs",
     "browser-application-package.spec.mjs",
     "browser-bundle-build.spec.mjs",
     "browser-boot-profile.spec.mjs",

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth, selectBirthForm } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
-import { openTourStep, startTour, startStaticProduct } from "./book-test-server.mjs";
+import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 
 let entrance;

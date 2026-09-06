@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./book-test-server.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 
 const execute = promisify(execFile);
 const repository = new URL("../..", import.meta.url).pathname;

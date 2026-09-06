@@ -22,8 +22,8 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
     ProductProofSpec {
         id: "products.pages-carrier",
         exact_inputs: &[
-            ".github/workflows/executable-book-pages.yml",
-            ".github/workflows/executable-book-deploy.yml",
+            ".github/workflows/tour-products.yml",
+            ".github/workflows/tour-deploy.yml",
             "Cargo.lock",
             "package.json",
             "package-lock.json",
@@ -31,7 +31,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "scripts/ci/render-product-masthead.mjs",
             "scripts/ci/seal-pages-carrier.mjs",
             "scripts/ci/verify-pages-carrier.mjs",
-            "proof/browser/executable-book.spec.mjs",
+            "proof/browser/tour.spec.mjs",
             "proof/browser/browser-application-package.spec.mjs",
             "proof/browser/browser-bundle-build.spec.mjs",
             "proof/browser/browser-boot-profile.spec.mjs",
@@ -66,7 +66,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
     ProductProofSpec {
         id: "products.patchbay-debugger",
         exact_inputs: &[
-            ".github/workflows/executable-book-pages.yml",
+            ".github/workflows/tour-products.yml",
             "Cargo.lock",
             "package.json",
             "package-lock.json",

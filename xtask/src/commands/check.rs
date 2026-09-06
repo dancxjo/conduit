@@ -99,7 +99,7 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
             "wasm32-unknown-unknown",
             "--release",
             "--features",
-            "book-surface",
+            "tour-surface",
             "--locked",
         ],
     ),
@@ -146,7 +146,7 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
         "quantity-mapping.inventory-bound",
         "Preserve bounded browser inventory navigation as installed offers grow",
         "node",
-        &["--test", "proof/browser/book-inventory-pagination.test.mjs"],
+        &["--test", "proof/browser/tour-inventory-pagination.test.mjs"],
     ),
     Step::new(
         "quantity-mapping.chromium",

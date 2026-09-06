@@ -214,11 +214,11 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "site",
         ],
         implementation_inputs: &[
-            "proof/browser/executable-book.spec.mjs",
+            "proof/browser/tour.spec.mjs",
             "proof/browser/browser-application-package.spec.mjs",
             "proof/browser/playwright.config.mjs",
             "scripts/ci/stage-book-product.sh",
-            ".github/workflows/executable-book-pages.yml",
+            ".github/workflows/tour-products.yml",
         ],
         // Runtime-byte promotion is a later artifact node; this proof currently
         // fingerprints the runtime sources and fabrication contract directly.
@@ -226,7 +226,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-book.spec.mjs --project chromium --workers 1 --retries 0",
+        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/tour.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "browser.patchbay-debugger",
@@ -249,7 +249,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         implementation_inputs: &[
             "proof/browser/patchbay-debugger-watch.spec.mjs",
             "proof/browser/patchbay-debugger.config.mjs",
-            ".github/workflows/executable-book-pages.yml",
+            ".github/workflows/tour-products.yml",
         ],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
@@ -287,13 +287,13 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "scripts/ci/stage-patchbay-product.sh",
             "scripts/ci/seal-pages-carrier.mjs",
             "scripts/ci/verify-pages-carrier.mjs",
-            ".github/workflows/executable-book-pages.yml",
+            ".github/workflows/tour-products.yml",
         ],
         consumed_artifacts: &[],
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "workflow:book-and-creche-products/pages-carrier",
+        command: "workflow:tour-and-creche-products/pages-carrier",
     },
     ProofSpec {
         id: "repository.standalone-locks",

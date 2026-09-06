@@ -1,6 +1,6 @@
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./book-test-server.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 
 const pagesRoot = "target/pages-front-door-proof";
 let entrance;

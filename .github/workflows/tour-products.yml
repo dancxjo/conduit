@@ -1,4 +1,4 @@
-name: book-and-creche-products
+name: tour-and-creche-products
 
 on:
   workflow_call:
@@ -53,7 +53,7 @@ env:
   CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}
   CONDUIT_SHARED_COMPILE_PACKAGES: ${{ inputs.shared_compile_packages || '[]' }}
 concurrency:
-  group: book-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+  group: tour-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -168,7 +168,7 @@ jobs:
             required=true
             reason=trusted-registry
           elif ! git diff --quiet "$CONTROLLER_SHA" -- \
-            .github/workflows/executable-book-pages.yml \
+            .github/workflows/tour-products.yml \
             xtask/src/commands/ci/impact/product_registry.rs \
             xtask/src/commands/ci/proof_graph/spec.rs
           then
@@ -198,7 +198,7 @@ jobs:
           mkdir -p target/browser-product-runtimes
           cargo build --locked -p conduit-browser-host
           cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features book-surface
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features tour-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
           cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
@@ -280,7 +280,7 @@ jobs:
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
+          proof/browser/tour.spec.mjs
           --project chromium
           --workers 1
           --retries 0
@@ -291,7 +291,7 @@ jobs:
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
+          proof/browser/tour.spec.mjs
           --project chromium
           --workers 1
           --retries 0
@@ -786,7 +786,7 @@ jobs:
       matrix:
         include:
           - shard: tour
-            specs: proof/browser/executable-book.spec.mjs
+            specs: proof/browser/tour.spec.mjs
           - shard: browser-host
             specs: proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
           - shard: creche-machines
@@ -827,7 +827,7 @@ jobs:
         run: >-
           npx playwright test
           --config proof/browser/playwright.config.mjs
-          proof/browser/executable-book.spec.mjs
+          proof/browser/tour.spec.mjs
           --project chromium
           --workers 1
           --retries 0

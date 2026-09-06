@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openTourStep, startTour } from "./book-test-server.mjs";
+import { openTourStep, startTour } from "./tour-test-server.mjs";
 
 const FORM = `form text-chain {
     source: text/literal("hello")

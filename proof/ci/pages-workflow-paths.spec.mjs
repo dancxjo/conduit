@@ -3,10 +3,10 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("the PR product controller owns applicability while promotion stays privileged", () => {
-  const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
   assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
-  assert.match(candidateWorkflow, /uses: \.\/\.github\/workflows\/executable-book-pages\.yml/);
+  assert.match(candidateWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
   assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
   assert.match(productWorkflow, /jobs:\n  plan:/);
@@ -14,7 +14,7 @@ test("the PR product controller owns applicability while promotion stays privile
   assert.match(productWorkflow, /git worktree add --detach "\$RUNNER_TEMP\/conduit-ci-controller"/);
   assert.match(productWorkflow, /pages_products_required/);
 
-  const deploy = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
+  const deploy = readFileSync(".github/workflows/tour-deploy.yml", "utf8");
   assert.match(deploy, /pull_request_target:\n    types: \[closed\]\n    branches: \[main\]/);
   assert.doesNotMatch(deploy, /^    paths(?:-ignore)?:/m);
 });
@@ -34,7 +34,7 @@ test("every browser product admits the complete shared presentation theme", () =
 });
 
 test("product jobs build the immutable PR head and deployments queue", () => {
-  const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
   const checkoutCount = [...productWorkflow.matchAll(/uses: actions\/checkout@v7/g)].length;
   const exactHeadCount = [...productWorkflow.matchAll(
     /ref: \$\{\{ env\.CONDUIT_CANDIDATE_SHA \}\}/g,
@@ -87,10 +87,10 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
   assert.match(productWorkflow, /test "\$RECEIPTS_RESULT" = success/);
 
-  const deployWorkflow = readFileSync(".github/workflows/executable-book-deploy.yml", "utf8");
+  const deployWorkflow = readFileSync(".github/workflows/tour-deploy.yml", "utf8");
   assert.match(
     deployWorkflow,
-    /concurrency:\n  group: book-and-creche-pages\n  cancel-in-progress: false/,
+    /concurrency:\n  group: tour-and-creche-pages\n  cancel-in-progress: false/,
   );
   assert.match(
     deployWorkflow,
@@ -100,7 +100,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
 
 test("standalone locks fail before ESP32 fabrication fans out", () => {
   const checkWorkflow = readFileSync(".github/workflows/check.yml", "utf8");
-  const productWorkflow = readFileSync(".github/workflows/executable-book-pages.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
 
   assert.match(
     checkWorkflow,
