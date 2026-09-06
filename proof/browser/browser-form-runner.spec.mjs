@@ -103,3 +103,33 @@ test("a normal browser Form session refuses an unsupported semantic Kind before 
   expect(refusal.output).toMatchObject({ disposition: "refused-before-play", category: "missing-implementation-or-placement" });
   expect(refusal.output.message).toContain("layout/inset");
 });
+
+test("an authored five-transition button stream handles three ordinary browser presses", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", (error) => failures.push(String(error)));
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.locator("textarea").fill(`form three-presses {
+    button: input/button(maximum-transitions = 5)
+    state: input/button-indicator-state
+    indicator: presentation/indicator-state
+    button > state > indicator
+  }`);
+  await runner.getByRole("button", { name: "Run" }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  const bounds = await control.boundingBox();
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  try {
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("5 planned manifestations");
+    await expect(runner.locator('[role="img"]')).toHaveAttribute("aria-label", "Indicator on");
+    expect(failures).toEqual([]);
+  } finally {
+    await page.mouse.up();
+  }
+});
