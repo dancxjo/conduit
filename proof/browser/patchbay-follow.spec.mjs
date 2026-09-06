@@ -48,3 +48,41 @@ test("exact Gear realization FOLLOW crosses Program and Body then returns",async
     server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");
   }
 });
+
+test("a delayed navigation response cannot replace a newer cursor",async({page})=>{
+  const server=startServer();
+  let release;
+  const held=new Promise(resolve=>{release=resolve;});
+  let observed;
+  const responseCaptured=new Promise(resolve=>{observed=resolve;});
+  try {
+    const url=await server.url;
+    await page.goto(url);
+    await page.route("**/api/navigation",async route=>{
+      const operation=route.request().postDataJSON().operation;
+      const response=await route.fetch();
+      if(operation.kind==="focus"){
+        observed();
+        await held;
+      }
+      await route.fulfill({response});
+    });
+    await page.locator("#toggle-palette").click();
+    await page.locator('#subjects [data-application-component="choice-option-label"]')
+      .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]').click();
+    await responseCaptured;
+    await page.getByRole("button",{name:"Plan",exact:true}).click();
+    await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");
+    const delayed=page.waitForResponse(response=>response.url().endsWith("/api/navigation")&&response.request().postDataJSON().operation.kind==="focus");
+    release();
+    await (await delayed).finished();
+    // Wait for the page's response callback, not another action or a retry.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    expect(await page.locator("#lens-label").textContent()).toBe("PROGRAM · PLAN");
+    const current=await(await fetch(`${url}/api/snapshot`)).json();
+    expect(current.navigation.cursor.aspect).toBe("Plan");
+  } finally {
+    release();
+    server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");
+  }
+});
