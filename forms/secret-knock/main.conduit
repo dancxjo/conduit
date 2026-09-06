@@ -6,7 +6,7 @@ form secret-knock (
 ) {
     # Three presses include two intervening releases; finish on the third press.
     attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
-    intervals: time/ordered-event-intervals
+    intervals: derive-intervals
     normalize: normalize-durations
     storage: storage/named-pattern-templates(maximum-commands = 2)
     final_template: sequence/final-normalized-pattern(maximum-values = 1)
@@ -31,4 +31,14 @@ form normalize-durations (
     normalize: sequence/normalize-relative-duration
     intervals > normalize.intervals
     normalize.normalized > normalized
+}
+
+# Reusable ordered-event interval derivation through its typed Face.
+form derive-intervals (
+    > events: TimedEventSequence
+    intervals: IntervalSequence >
+) {
+    derive: time/ordered-event-intervals
+    events > derive.events
+    derive.intervals > intervals
 }

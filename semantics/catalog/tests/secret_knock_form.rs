@@ -55,6 +55,16 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_forms() {
     assert!(namesake.gears.iter().any(|gear| {
         gear.name.as_deref() == Some("normalize") && gear.kind == "normalize-durations"
     }));
+    assert!(namesake.gears.iter().any(|gear| {
+        gear.name.as_deref() == Some("intervals") && gear.kind == "derive-intervals"
+    }));
+    let intervals = expand_canonical_form_for_authoring(&checked, "derive-intervals", &profile)
+        .expect("canonical interval derivation expands independently");
+    assert_eq!(intervals.expanded.gears.len(), 1);
+    assert_eq!(
+        intervals.expanded.gears[0].kind_id.as_str(),
+        conduit_semantic_catalog::ORDERED_EVENT_INTERVALS_KIND
+    );
     let reusable = expand_canonical_form_for_authoring(&checked, "normalize-durations", &profile)
         .expect("the canonical normalization Face expands independently");
     assert_eq!(reusable.expanded.gears.len(), 1);
