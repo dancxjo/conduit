@@ -23,6 +23,7 @@ if (requestedMain && requestedNumber !== undefined) {
 let source;
 let runId = "";
 let carrierPresent = false;
+let carrierName = "conduit-pages-carrier";
 let directMain = false;
 if (requestedMain) {
   const reference = await api(`/repos/${repository}/git/ref/heads/main`);
@@ -62,12 +63,18 @@ if (requestedMain) {
   if (!run) throw new Error(`exact-head Pages product run did not complete successfully for pull request #${requestedNumber} within the bounded wait`);
   runId = String(run.id);
   const artifacts = await api(`/repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`);
-  carrierPresent = hasRetainedArtifact(artifacts.artifacts, "conduit-pages-carrier");
+  if (hasRetainedArtifact(artifacts.artifacts, "conduit-pages-carrier-with-conduitos")) {
+    carrierName = "conduit-pages-carrier-with-conduitos";
+    carrierPresent = true;
+  } else {
+    carrierPresent = hasRetainedArtifact(artifacts.artifacts, carrierName);
+  }
 }
 
 await appendFile(output, [
   `run_id=${runId}`,
   `carrier_present=${carrierPresent}`,
+  `carrier_name=${carrierName}`,
   `merge_commit=${source.mergeCommit}`,
   `source_head=${source.sourceHead}`,
   `source_tree=${source.sourceTree}`,
