@@ -12,6 +12,8 @@ impl Operation for InstalledOperation {
         match self {
             Self::TypedState(operation) => operation.start(),
             Self::KeyboardInput(operation) => operation.start(),
+            Self::ButtonInput(operation) => operation.start(),
+            Self::ButtonMapper(_) => OperationAction::Await,
             Self::Tick(operation) => operation.start(),
             Self::PulseObserve(operation) => operation.start(),
             #[cfg(test)]
@@ -128,6 +130,8 @@ impl Operation for InstalledOperation {
         match (self, input) {
             (Self::TypedState(operation), input) => operation.resume(input),
             (Self::KeyboardInput(_), _) => Self::fail(109),
+            (Self::ButtonInput(_), _) => Self::fail(109),
+            (Self::ButtonMapper(operation), input) => operation.resume(input),
             (Self::Tick(operation), input) => operation.resume(input),
             (Self::PulseObserve(operation), input) => operation.resume(input),
             #[cfg(test)]
@@ -245,6 +249,7 @@ impl Operation for InstalledOperation {
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         match self {
             Self::TypedState(operation) => operation.resume_value(port, value, canonical),
+            Self::ButtonMapper(operation) => operation.resume_value(port, canonical),
             Self::PulseObserve(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestPulseSink(operation) => operation.resume_value(port, canonical),
@@ -277,6 +282,9 @@ impl Operation for InstalledOperation {
             Self::KeyboardInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
+            Self::ButtonInput(operation) => {
+                operation.resume_host_operation(request, outcome, canonical)
+            }
             Self::MidiInput(operation) => {
                 operation.resume_host_operation(request, outcome, canonical)
             }
@@ -291,6 +299,8 @@ impl Operation for InstalledOperation {
         match self {
             Self::TypedState(operation) => operation.advance(),
             Self::KeyboardInput(operation) => operation.advance(),
+            Self::ButtonInput(operation) => operation.advance(),
+            Self::ButtonMapper(_) => OperationAction::Await,
             Self::Tick(operation) => operation.advance(),
             Self::PulseObserve(operation) => operation.advance(),
             #[cfg(test)]
@@ -426,6 +436,7 @@ impl Operation for InstalledOperation {
 
     fn take_released_value(&mut self) -> Option<ValueRef> {
         match self {
+            Self::ButtonInput(operation) => operation.take_released_value(),
             Self::StateLatestScalar(operation) => operation.take_released_value(),
             Self::RhythmCompare(operation) => operation.take_released_value(),
             Self::LogicCompareScalar(operation) => operation.take_released_value(),
