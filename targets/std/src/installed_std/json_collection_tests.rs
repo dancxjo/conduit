@@ -31,15 +31,24 @@ pub(super) fn execute_entry(
             })
             .unwrap();
     }
-    let source = format!("{TODO}\nform todo-fixture {{\n source: conduit-test/json-text-source\n decode: json/decode\n application: {entry}\n sink: conduit-test/json-text-sink\n source.value > decode.value\n decode.value > application.request\n application.snapshot > sink.value\n}}\n");
+    let restoring = entry == "todo/restore-summary";
+    let wiring = if restoring {
+        "source.value > application.snapshot\n application.result > sink.value"
+    } else {
+        "decode: json/decode\n source.value > decode.value\n decode.value > application.request\n application.snapshot > sink.value"
+    };
+    let source = format!("{TODO}\nform todo-fixture {{\n source: conduit-test/json-text-source\n application: {entry}\n sink: conduit-test/json-text-sink\n {wiring}\n}}\n");
     let parsed = parse_syntax_document(&source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "todo-fixture", &profile).unwrap();
-    assert!(expanded
-        .provenance
-        .iter()
-        .any(|row| row.source_form == "todo/state-step" && row.form_path.len() == 3));
+    assert!(expanded.provenance.iter().any(|row| row.source_form
+        == if restoring {
+            "todo/restore"
+        } else {
+            "todo/state-step"
+        }
+        && row.form_path.len() == 3));
     assert!(expanded
         .provenance
         .iter()
