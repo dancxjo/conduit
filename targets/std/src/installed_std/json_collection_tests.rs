@@ -9,6 +9,13 @@ use conduit_form::{
 const TODO: &str = include_str!("../../../../forms/todo/main.conduit");
 
 fn execute(request: &str) -> (String, Result<crate::StdRunReport, String>) {
+    execute_entry(request, "todo/command-snapshot")
+}
+
+pub(super) fn execute_entry(
+    request: &str,
+    entry: &str,
+) -> (String, Result<crate::StdRunReport, String>) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_web::install_json_catalogs(&mut startup, &mut profile).unwrap();
@@ -24,7 +31,7 @@ fn execute(request: &str) -> (String, Result<crate::StdRunReport, String>) {
             })
             .unwrap();
     }
-    let source = format!("{TODO}\nform todo-fixture {{\n source: conduit-test/json-text-source\n decode: json/decode\n application: todo/command-snapshot\n sink: conduit-test/json-text-sink\n source.value > decode.value\n decode.value > application.request\n application.snapshot > sink.value\n}}\n");
+    let source = format!("{TODO}\nform todo-fixture {{\n source: conduit-test/json-text-source\n decode: json/decode\n application: {entry}\n sink: conduit-test/json-text-sink\n source.value > decode.value\n decode.value > application.request\n application.snapshot > sink.value\n}}\n");
     let parsed = parse_syntax_document(&source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();

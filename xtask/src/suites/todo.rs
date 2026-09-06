@@ -15,6 +15,19 @@ pub(super) const TODO_STATE_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "todo-state.summary",
+        "Prove bounded Boolean-field counts and exact malformed-record refusals",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-web",
+            "--test",
+            "json_boolean_summary",
+            "--locked",
+        ],
+    ),
+    Step::new(
         "todo-state.kernel",
         "Execute add, toggle and remove through composed Todo Forms and the production kernel",
         "cargo",

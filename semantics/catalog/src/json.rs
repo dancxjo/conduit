@@ -28,6 +28,22 @@ pub fn json_collection_step_contract() -> StandardKindContract {
     )
 }
 
+pub fn json_boolean_summary_contract() -> StandardKindContract {
+    let mut value = contract(
+        conduit_web::json_boolean_summary_semantics(),
+        "Boolean collection summary",
+        "Count true, false and total records for an exact Boolean field.",
+    );
+    value.configuration.push(super::StandardConfigurationField {
+        key: "field".into(),
+        default_value: conduit_core::ConfigurationValue::Text("enabled".into()),
+        rule: super::StandardConfigurationRule::TextBytes {
+            maximum: conduit_web::JSON_MAXIMUM_KEY_BYTES as u32,
+        },
+    });
+    value
+}
+
 fn contract(
     contract: conduit_web::PortableKindContract,
     name: &str,

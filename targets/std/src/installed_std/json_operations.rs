@@ -10,21 +10,54 @@ use std::vec::Vec;
 #[cfg(test)]
 #[path = "json_collection_tests.rs"]
 mod collection_tests;
+#[cfg(test)]
+#[path = "json_summary_tests.rs"]
+mod summary_tests;
 
 pub(super) struct JsonHost {
     output: Vec<u8>,
+    summary_fields: Vec<Option<String>>,
 }
 
 impl JsonHost {
-    pub(super) fn prepare() -> Self {
+    pub(super) fn prepare(fragment: &conduit_core::PlanFragment) -> Self {
         Self {
             output: Vec::with_capacity(conduit_web::JSON_MAXIMUM_ENCODED_BYTES),
+            summary_fields: fragment
+                .placements
+                .iter()
+                .map(|placement| {
+                    if placement.kind_id.as_str() == conduit_web::JSON_BOOLEAN_SUMMARY_KIND {
+                        super::json_summary_operation::field_configuration(placement)
+                            .ok()
+                            .map(str::to_owned)
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
         }
     }
 
-    pub(super) fn execute<'a>(&'a mut self, contract: &str, input: &[u8]) -> Result<&'a [u8], u16> {
+    pub(super) fn execute<'a>(
+        &'a mut self,
+        node: usize,
+        contract: &str,
+        input: &[u8],
+    ) -> Result<&'a [u8], u16> {
         let encoded = if contract == conduit_std_offers::JSON_COLLECTION_STEP_HOST_OPERATION {
             conduit_web::json_collection_step_bytes(input).map_err(collection_failure_detail)?
+        } else if contract == conduit_std_offers::JSON_BOOLEAN_SUMMARY_HOST_OPERATION {
+            let field = self
+                .summary_fields
+                .get(node)
+                .and_then(Option::as_deref)
+                .ok_or(120_u16)?;
+            let value = JsonValue::decode_info(input).map_err(|error| error as u16)?;
+            conduit_web::json_boolean_summary(&value, field)
+                .map_err(|error| error.detail())?
+                .encode_info()
+                .map_err(|error| error as u16)?
         } else {
             transform(contract, input).map_err(|error| error as u16)?
         };
@@ -51,6 +84,13 @@ pub(super) struct JsonOperation {
 }
 
 impl JsonOperation {
+    pub(super) fn new() -> Self {
+        Self {
+            pending: None,
+            next: 0,
+        }
+    }
+
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
     }
@@ -125,7 +165,7 @@ pub(super) fn transform(contract: &str, input: &[u8]) -> Result<Vec<u8>, JsonRef
     }
 }
 
-fn budget(
+pub(super) fn budget(
     placement: &PlannedGear,
     offer: conduit_core::CapabilityOffer,
 ) -> Result<OperationBudget, String> {
@@ -198,6 +238,7 @@ pub(super) fn matches(contract: &str) -> bool {
         conduit_std_offers::JSON_ENCODE_HOST_OPERATION
             | conduit_std_offers::JSON_DECODE_HOST_OPERATION
             | conduit_std_offers::JSON_COLLECTION_STEP_HOST_OPERATION
+            | conduit_std_offers::JSON_BOOLEAN_SUMMARY_HOST_OPERATION
     )
 }
 

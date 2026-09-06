@@ -16,5 +16,7 @@ mod json;
 pub use json::*;
 mod json_collection;
 pub use json_collection::*;
+mod json_boolean_summary;
+pub use json_boolean_summary::*;
 mod json_value;
 pub use json_value::*;

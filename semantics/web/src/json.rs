@@ -69,7 +69,7 @@ pub fn install_json_catalogs(
             })
             .map_err(|error| error.to_string())?;
     }
-    Ok(())
+    crate::install_json_boolean_summary_catalog(startup, profile)
 }
 
 fn contract(kind: &str, revision: &str, input: &str, output: &str) -> PortableKindContract {
