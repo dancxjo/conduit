@@ -86,6 +86,7 @@ fn distinct_plans_execute_in_one_browser_kernel_without_relabeling() {
     assert_eq!(outputs, [b"FIRST".to_vec(), b"SECOND".to_vec()]);
     assert_ne!(nodes[0], nodes[1]);
     assert_eq!(fragments, original);
+    exercise_session_projection(&fragments, &parts);
     for (fragment, part) in &parts {
         assert_eq!(part.identity.plan_id, fragment.plan_id);
         assert_eq!(part.identity.fragment_id, fragment.fragment_id);
@@ -100,4 +101,98 @@ fn distinct_plans_execute_in_one_browser_kernel_without_relabeling() {
         (&fragments[1], &second)
     ])
     .is_err());
+}
+
+// Internal session plumbing fixture, not a Body admission/start proof.
+fn exercise_session_projection(
+    fragments: &[PlanFragment],
+    parts: &[(&PlanFragment, &LoweredPlanFragment)],
+) {
+    use super::super::{TourHostEffect, TourProgress, TourSession};
+    let source = "form first {\n source: text/literal(\"FIRST\")\n result: presentation/text\n source > result\n}\n";
+    let (mut session, _) = TourSession::prepare("body-browser", "body-boot", source, 1).unwrap();
+    session.scheduler = preparation::prepare_partition_scheduler(parts).unwrap();
+    session.pending.clear();
+    session.fragments = fragments.to_vec();
+    session.expanded_gears = fragments
+        .iter()
+        .map(|fragment| {
+            fragment
+                .placements
+                .iter()
+                .map(|gear| super::super::TourGearEvidence {
+                    gear_id: gear.gear_id.as_str().into(),
+                    kind_id: gear.kind_id.as_str().into(),
+                    implementation_id: gear.implementation_id.as_str().into(),
+                })
+                .collect()
+        })
+        .collect();
+    session.realization_backs.push(Vec::new());
+    let mut effects = Vec::new();
+    for _ in 0..fragments.len() {
+        let TourProgress::Effect(effect) = session.poll_effect().unwrap() else {
+            panic!("expected effect")
+        };
+        let TourHostEffect::Manifestation(effect) = *effect else {
+            panic!("expected manifestation")
+        };
+        effects.push(effect);
+    }
+    assert_eq!(session.pending.len(), 2);
+    assert_ne!(effects[0].placement_id, effects[1].placement_id);
+    for (effect, fragment) in effects.iter().zip(fragments) {
+        assert_eq!(effect.plan_id, fragment.plan_id.as_str());
+        assert_eq!(effect.checked_form_id, fragment.checked_form_id.as_str());
+        assert_eq!(effect.fragment_id, fragment.fragment_id.as_str());
+        assert_eq!(
+            effect
+                .expanded_gears
+                .iter()
+                .map(|gear| gear.gear_id.as_str())
+                .collect::<Vec<_>>(),
+            fragment
+                .placements
+                .iter()
+                .map(|gear| gear.gear_id.as_str())
+                .collect::<Vec<_>>()
+        );
+    }
+    let play = session.active_play_id.as_str().to_string();
+    assert!(session
+        .complete_effect(
+            "stale",
+            &effects[1].placement_id,
+            effects[1].observation_sequence,
+            None
+        )
+        .is_err());
+    assert_eq!(session.pending.len(), 2);
+    let progress = session
+        .complete_effect(
+            &play,
+            &effects[1].placement_id,
+            effects[1].observation_sequence,
+            None,
+        )
+        .unwrap();
+    assert!(matches!(progress, TourProgress::Waiting { .. }));
+    assert_eq!(session.pending.len(), 1);
+    assert!(session
+        .complete_effect(
+            &play,
+            &effects[1].placement_id,
+            effects[1].observation_sequence,
+            None
+        )
+        .is_err());
+    let progress = session
+        .complete_effect(
+            &play,
+            &effects[0].placement_id,
+            effects[0].observation_sequence,
+            None,
+        )
+        .unwrap();
+    assert!(matches!(progress, TourProgress::Receipt(_)));
 }

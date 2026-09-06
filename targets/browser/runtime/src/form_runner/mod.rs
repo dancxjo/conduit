@@ -31,14 +31,14 @@ struct TourSession {
     cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
     scheduler: engine::TourScheduler,
     pending: Vec<engine::PendingHostEffect>,
-    fragment: PlanFragment,
+    fragments: Vec<PlanFragment>,
     active_play_id: conduit_core::ActivePlayId,
     latest_presentation: Option<PresentationIdentity>,
     host_id: conduit_core::HostId,
     boot_id: conduit_core::BootId,
     realization: MorseRealization,
-    expanded_gears: Vec<TourGearEvidence>,
-    realization_backs: Vec<TourBackEvidence>,
+    expanded_gears: Vec<Vec<TourGearEvidence>>,
+    realization_backs: Vec<Vec<TourBackEvidence>>,
     source_interaction: Option<crate::source_interaction::SourceInteractionEvidence>,
     timer_completions: u32,
     manifestation_completions: u32,
@@ -188,14 +188,14 @@ impl TourSession {
             cancellation: None,
             scheduler,
             pending: pending_effects,
-            fragment: fragment.clone(),
+            fragments: vec![fragment.clone()],
             active_play_id: active.active_play_id,
             latest_presentation: None,
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
             realization,
-            expanded_gears,
-            realization_backs,
+            expanded_gears: vec![expanded_gears],
+            realization_backs: vec![realization_backs],
             source_interaction: None,
             timer_completions: 0,
             manifestation_completions: 0,
@@ -245,11 +245,9 @@ impl TourSession {
             .pending
             .get(index)
             .ok_or("pending browser effect is absent")?;
-        let placement = self
-            .fragment
-            .placements
-            .get(usize::from(pending.request.node.0))
-            .ok_or_else(|| "Host effect has no planned placement".to_string())?;
+        let (fragment, placement) =
+            placement_in_fragments(&self.fragments, pending.request.node)
+                .ok_or_else(|| "Host effect has no planned placement".to_string())?;
         match &pending.effect {
             engine::BrowserHostEffect::Snapshot { .. } => {
                 let request = engine::resource_effect::describe(&self.scheduler, pending)?;
@@ -335,6 +333,14 @@ impl TourSession {
                 }),
             )),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
+                let partition = self
+                    .fragments
+                    .iter()
+                    .position(|candidate| {
+                        candidate.plan_id == fragment.plan_id
+                            && candidate.fragment_id == fragment.fragment_id
+                    })
+                    .ok_or("manifestation partition is absent")?;
                 let observation_sequence = pending.request.request.0;
                 let presentation = bind_presentation(
                     &self.active_play_id,
@@ -345,11 +351,11 @@ impl TourSession {
                 let effect = TourEffect {
                     schema: "conduit.tour/manifestation-effect@3",
                     effect_kind: "manifestation",
-                    source_document_id: self.fragment.source_document_id.as_str().into(),
-                    checked_form_id: self.fragment.checked_form_id.as_str().into(),
-                    expanded_form_id: self.fragment.expanded_form_id.as_str().into(),
-                    plan_id: self.fragment.plan_id.as_str().into(),
-                    fragment_id: self.fragment.fragment_id.as_str().into(),
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_form_id: fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: fragment.expanded_form_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
                     active_play_id: self.active_play_id.as_str().into(),
                     presentation_id: presentation.presentation_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
@@ -358,8 +364,16 @@ impl TourSession {
                     presentation_kind: manifestation.kind_id.into(),
                     observation_sequence,
                     realization: self.realization.as_str(),
-                    expanded_gears: self.expanded_gears.clone(),
-                    realization_backs: self.realization_backs.clone(),
+                    expanded_gears: self
+                        .expanded_gears
+                        .get(partition)
+                        .ok_or("partition Gear evidence is absent")?
+                        .clone(),
+                    realization_backs: self
+                        .realization_backs
+                        .get(partition)
+                        .ok_or("partition Back evidence is absent")?
+                        .clone(),
                     unit_millis,
                     segments,
                     text,
@@ -406,6 +420,21 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
     plan.fragments
         .first()
         .ok_or_else(|| "executable-tour Plan has no fragment".into())
+}
+
+/// Numeric nodes follow the contiguous partition order established before Play.
+fn placement_in_fragments(
+    fragments: &[PlanFragment],
+    node: conduit_kernel::NodeId,
+) -> Option<(&PlanFragment, &conduit_core::PlannedGear)> {
+    let mut index = usize::from(node.0);
+    for fragment in fragments {
+        if let Some(placement) = fragment.placements.get(index) {
+            return Some((fragment, placement));
+        }
+        index = index.checked_sub(fragment.placements.len())?;
+    }
+    None
 }
 
 #[cfg(test)]

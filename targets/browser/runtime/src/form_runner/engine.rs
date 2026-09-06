@@ -210,7 +210,7 @@ pub(super) fn drive(
     })
 }
 
-fn drive_with_placement<'a>(
+pub(super) fn drive_with_placement<'a>(
     scheduler: &mut TourScheduler,
     placement_for: impl Fn(NodeId) -> Option<&'a conduit_core::PlannedGear>,
 ) -> Result<DriveStatus, String> {
