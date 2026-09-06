@@ -48,6 +48,21 @@ fn unowned_slot_never_exposes_previous_lap_payload() {
 }
 
 #[test]
+fn owned_slot_reads_control_before_payload_words() {
+    let words = published(1);
+    let mut indices = [usize::MAX; 4];
+    let mut cursor = 0;
+    let event = read_owned_event(1, |index| {
+        indices[cursor] = index;
+        cursor += 1;
+        words[index]
+    })
+    .unwrap();
+    assert_eq!(indices, [3, 0, 1, 2]);
+    assert_eq!(event.pointer, 0x1234_5678_9000);
+}
+
+#[test]
 fn owned_refusals_reach_the_existing_completion_validator_unchanged() {
     let mut words = published(1);
     words[2] = (6 << 24) | 3;
