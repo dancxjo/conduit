@@ -131,8 +131,17 @@ fn validate(placement: &PlannedGear) -> Result<usize, String> {
         || placement.host_operations != offer.host_operations
         || placement.limits != offer.limits
         || !placement.authority.is_empty()
-        || placement.resources.len() != 1
-        || !placement.resources.iter().all(|r| {
+        || placement
+            .resources
+            .iter()
+            .filter(|r| r.class_id.as_str() == conduit_core::INPUT_RESOURCE_CLASS)
+            .count()
+            != 1
+        || placement
+            .resources
+            .iter()
+            .any(|r| r.protected.is_some() || r.compute.is_some())
+        || !placement.resources.iter().any(|r| {
             r.class_id.as_str() == conduit_core::INPUT_RESOURCE_CLASS
                 && r.units == 1
                 && r.protected.is_none()
