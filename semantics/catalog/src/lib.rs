@@ -103,6 +103,14 @@ pub use time_every::*;
 mod timing;
 pub use timing::*;
 #[cfg(feature = "form-catalog")]
+mod timed_interval_codec;
+#[cfg(feature = "form-catalog")]
+pub use timed_interval_codec::BoundedIntervalCodec;
+#[cfg(feature = "form-catalog")]
+mod sequence_normalization_codec;
+#[cfg(feature = "form-catalog")]
+pub use sequence_normalization_codec::BoundedNormalizationCodec;
+#[cfg(feature = "form-catalog")]
 mod timed_pattern;
 #[cfg(feature = "form-catalog")]
 pub use timed_pattern::*;
