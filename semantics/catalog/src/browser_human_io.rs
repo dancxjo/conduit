@@ -1,5 +1,6 @@
 //! Portable human-media contracts.
 
+#[cfg(feature = "form-catalog")]
 use crate::human_media_catalog::install_camera_catalogs;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 use conduit_core::{
