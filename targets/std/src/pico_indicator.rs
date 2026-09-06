@@ -76,7 +76,7 @@ impl PicoIndicator {
         // Exclusive TTY acquisition plus cooperative locking. This does not
         // revoke descriptors already held by another process or confine root.
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0
-            || unsafe { libc::ioctl(file.as_raw_fd(), libc::TIOCEXCL) } != 0
+            || unsafe { libc::ioctl(file.as_raw_fd(), libc::TIOCEXCL as _) } != 0
         {
             return Err(IndicatorFailure::Lost);
         }
