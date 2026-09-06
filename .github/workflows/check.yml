@@ -119,15 +119,13 @@ jobs:
           CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
           CONDUIT_STACK_ROLE_OUT: target/ci-plans/pr-stack-role.json
         run: |
-          classifier="$RUNNER_TEMP/conduit-ci-controller/tools/ci/classify-pr-stack.mjs"
-          if test -f "$classifier"; then
-            mkdir -p target/ci-plans
-            node "$classifier"
-          else
-            echo 'role=independent' >> "$GITHUB_OUTPUT"
-            echo 'reason=trusted-controller-has-no-stack-classifier' >> "$GITHUB_OUTPUT"
-            echo 'Trusted controller predates stack classification; proving conservatively.' >> "$GITHUB_STEP_SUMMARY"
+          mapfile -t classifiers < <(git -C "$RUNNER_TEMP/conduit-ci-controller" ls-files -- '*/classify-pr-stack.mjs')
+          if test "${#classifiers[@]}" -ne 1; then
+            echo 'Expected one tracked stack classifier in the trusted controller.' >&2
+            exit 1
           fi
+          mkdir -p target/ci-plans
+          node "$RUNNER_TEMP/conduit-ci-controller/${classifiers[0]}"
       - name: Retain cheap exact slice evidence for an intermediate PR
         id: slice
         if: steps.stack.outputs.role == 'intermediate'
@@ -235,6 +233,7 @@ jobs:
           node --test
           proof/ci/retire-superseded-candidates.spec.mjs
           proof/ci/reconcile-candidate-request.spec.mjs
+          proof/ci/classify-pr-stack.spec.mjs
       - name: Verify the dependency-light typed CI planner contracts
         if: steps.stack.outputs.role != 'intermediate' && (steps.execution.outputs.ci_controller_required == 'true' || (inputs.execute_proofs == '' && steps.impact.outputs.ci_controller_required == 'true'))
         run: cargo test --locked --package conduit-xtask-dispatch
