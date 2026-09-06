@@ -30,7 +30,7 @@ fn pointer_quantity_chain_uses_selectors_mapping_and_correlated_presentation() {
             &source,
             position_x as u64,
             MorseRealization::Direct,
-            true,
+            crate::installed_browser::PresentationProfile::Quantity,
         )
         .unwrap();
         let TourHostEffect::PointerEvent(input) = effect else {
@@ -85,7 +85,7 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
         &pointer_quantity_source(),
         1,
         MorseRealization::Direct,
-        true,
+        crate::installed_browser::PresentationProfile::Quantity,
     )
     .unwrap();
     let mut canonical = conduit_semantic_catalog::normalized_pointer_value(
@@ -155,7 +155,7 @@ form zz-quantity-output {{
                 &source,
                 index as u64,
                 MorseRealization::Direct,
-                true,
+                crate::installed_browser::PresentationProfile::Quantity,
             )
             .unwrap();
             let TourHostEffect::Manifestation(effect) = effect else {

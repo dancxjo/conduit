@@ -222,6 +222,16 @@ pub(super) fn decode_manifestation(
                 &manifestation.canonical_value,
             )
             .map_err(|error| format!("decode structured manifestation: {error:?}"))?;
+            if value.value_type() == &conduit_semantic_catalog::normalized_duration_sequence_type()
+            {
+                return Ok((
+                    0,
+                    Vec::new(),
+                    Some(crate::installed_browser::normalized_presentation::text(
+                        &manifestation.canonical_value,
+                    )?),
+                ));
+            }
             if value.value_type() == &conduit_semantic_catalog::wrapped_quantity_type() {
                 let quantity =
                     crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;

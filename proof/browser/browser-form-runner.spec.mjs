@@ -194,3 +194,37 @@ test("a released timed attempt reaches its rearmed deadline and retires cleanly"
     await page.mouse.up();
   }
 });
+
+test("relative-duration output uses the selected profile for Patchbay and live timing", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.getByLabel("Structured output").selectOption("2");
+  await runner.locator("textarea").fill(`form timing-output {
+    button: input/button(maximum-transitions = 5)
+    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
+    derive: time/ordered-event-intervals
+    normalize: sequence/normalize-relative-duration
+    show: presentation/structured-info
+    button.transition > attempt.transition
+    attempt.events > derive.events
+    derive.intervals > normalize.intervals
+    normalize.normalized > show.input
+  }`);
+  await expect(runner.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.hover();
+  try {
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.mouse.down();
+    await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+    await expect(runner.locator(".morse")).toContainText("1000000");
+    await expect(runner.locator(".morse")).toContainText("values:");
+  } finally {
+    await page.mouse.up();
+  }
+});

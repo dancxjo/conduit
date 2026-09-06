@@ -10,7 +10,9 @@ mod protocol;
 mod session_cancellation;
 mod session_effects;
 
-use crate::installed_browser::{advertisement, backs, catalogs, local_bases};
+#[cfg(test)]
+use crate::installed_browser::{advertisement, catalogs};
+use crate::installed_browser::{backs, local_bases};
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
 };
@@ -80,7 +82,14 @@ impl TourSession {
         play_sequence: u64,
         realization: MorseRealization,
     ) -> Result<(Self, TourHostEffect), String> {
-        Self::prepare_with_profile(host_id, boot_id, source, play_sequence, realization, false)
+        Self::prepare_with_profile(
+            host_id,
+            boot_id,
+            source,
+            play_sequence,
+            realization,
+            crate::installed_browser::PresentationProfile::Annotation,
+        )
     }
 
     fn prepare_with_profile(
@@ -89,23 +98,9 @@ impl TourSession {
         source: &str,
         play_sequence: u64,
         realization: MorseRealization,
-        quantity_presentation: bool,
+        presentation: crate::installed_browser::PresentationProfile,
     ) -> Result<(Self, TourHostEffect), String> {
-        let (mut startup, catalog) = if quantity_presentation {
-            crate::installed_browser::catalogs_with_quantity_presentation()?
-        } else {
-            catalogs()?
-        };
-        if quantity_presentation {
-            startup.insert_value_kind_alias(
-                "Scalar",
-                conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),
-            )?;
-            startup.insert_value_kind_alias(
-                "Quantity",
-                conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID),
-            )?;
-        }
+        let (startup, catalog) = crate::installed_browser::catalogs_for_presentation(presentation)?;
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
@@ -134,14 +129,11 @@ impl TourSession {
             )
             .map_err(|error| format!("expand recursive executable-tour Form: {error:?}"))?,
         };
-        let host = if quantity_presentation {
-            crate::installed_browser::advertisement_with_quantity_presentation(
-                host_id.into(),
-                boot_id.into(),
-            )
-        } else {
-            advertisement(host_id.into(), boot_id.into())
-        };
+        let host = crate::installed_browser::advertisement_for_presentation(
+            host_id.into(),
+            boot_id.into(),
+            presentation,
+        );
         let hosts = [host];
         let placements = default_expanded_placements(&form, &hosts)
             .map_err(|error| format!("place executable-tour Form: {error:?}"))?;
@@ -403,3 +395,6 @@ fn exact_fragment(plan: &Plan) -> Result<&PlanFragment, String> {
 mod quantity_output_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod normalized_presentation_tests;

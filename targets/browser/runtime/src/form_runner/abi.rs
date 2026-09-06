@@ -2,6 +2,8 @@
 
 #[path = "abi_effects.rs"]
 mod effects;
+#[path = "abi_profiles.rs"]
+mod profiles;
 
 use super::TourSession;
 use std::cell::RefCell;
@@ -223,7 +225,7 @@ pub extern "C" fn conduit_tour_start(
         source_length,
         play_sequence,
         false,
-        false,
+        crate::installed_browser::PresentationProfile::Annotation,
     )
 }
 
@@ -241,7 +243,7 @@ pub extern "C" fn conduit_tour_start_recursive(
         source_length,
         play_sequence,
         true,
-        false,
+        crate::installed_browser::PresentationProfile::Annotation,
     )
 }
 
@@ -259,7 +261,7 @@ pub extern "C" fn conduit_tour_start_quantity(
         source_length,
         play_sequence,
         false,
-        true,
+        crate::installed_browser::PresentationProfile::Quantity,
     )
 }
 
@@ -269,7 +271,7 @@ fn start(
     source_length: usize,
     play_sequence: u64,
     recursive: bool,
-    quantity_presentation: bool,
+    presentation: crate::installed_browser::PresentationProfile,
 ) -> i32 {
     clear_output();
     let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
@@ -316,20 +318,21 @@ fn start(
                 .map_err(|_| ERROR_OUTPUT)?;
                 return Err(ERROR_INTERACTION);
             }
-            let prepared = if quantity_presentation {
-                TourSession::prepare_with_profile(
-                    host,
-                    boot,
-                    source,
-                    play_sequence,
-                    super::MorseRealization::Direct,
-                    true,
-                )
-            } else if recursive {
-                TourSession::prepare_recursive(host, boot, source, play_sequence)
-            } else {
-                TourSession::prepare(host, boot, source, play_sequence)
-            };
+            let prepared =
+                if presentation != crate::installed_browser::PresentationProfile::Annotation {
+                    TourSession::prepare_with_profile(
+                        host,
+                        boot,
+                        source,
+                        play_sequence,
+                        super::MorseRealization::Direct,
+                        presentation,
+                    )
+                } else if recursive {
+                    TourSession::prepare_recursive(host, boot, source, play_sequence)
+                } else {
+                    TourSession::prepare(host, boot, source, play_sequence)
+                };
             let (mut session, mut effect) = match prepared {
                 Ok(prepared) => prepared,
                 Err(message) => {

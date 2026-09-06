@@ -111,6 +111,7 @@ function requireTourAbi(api) {
     "memory", "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
     "conduit_browser_form_output_ptr", "conduit_browser_form_output_len", "conduit_browser_form_start",
     "conduit_browser_form_acknowledge_cancellation", "conduit_browser_form_poll_effect", "conduit_browser_form_complete_effect", "conduit_browser_form_pending_capacity",
+    "conduit_browser_form_start_with_presentation", "conduit_browser_form_project_with_presentation",
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
@@ -419,6 +420,13 @@ function createRunner(source, recursive = false, presentation = {}) {
     <div class="editor">
       <div data-application-slot="${fieldSlot}"></div>
       <div data-application-slot="${actionsSlot}"></div>
+      ${recursive ? "" : `<label>Structured output
+        <select class="structured-output-profile">
+          <option value="0">Annotations</option>
+          <option value="1">Quantities</option>
+          <option value="2">Relative durations</option>
+        </select>
+      </label>`}
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>
@@ -441,6 +449,10 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
+  runner.querySelector(".structured-output-profile")?.addEventListener("change", () => {
+    if (running && activeRunner === runner) stopListing(runner);
+    refreshCompactPatchbay(runner, textarea.value, recursive);
+  });
   runner.actionControls = createTourRunnerActions(
     runnerPresentation, actionsSlot, presentation.runLabel ?? "Run",
     () => runListing(runner, textarea.value, recursive), () => stopListing(runner),
@@ -556,8 +568,9 @@ function refreshCompactPatchbay(runner, source, recursive) {
   ).set(sourceBytes);
   const project = recursive
     ? host.runtime.conduit_tour_project_patchbay_recursive
-    : host.runtime.conduit_tour_project_patchbay;
-  const code = project(sourceBytes.length, BigInt(expected));
+    : host.runtime.conduit_browser_form_project_with_presentation;
+  const profile = Number(runner.querySelector(".structured-output-profile")?.value ?? 0);
+  const code = project(sourceBytes.length, BigInt(expected), profile);
   const output = host.runtime.conduit_browser_form_output_len() > 0 ? readOutput(host.runtime) : null;
   if (code < 0) {
     renderCompactPatchbayRefusal(figure, output?.message ?? `Projection refused (${code}).`);
@@ -1008,8 +1021,9 @@ async function runListing(runner, source, recursive) {
   input.set(hostBytes);
   input.set(bootBytes, hostBytes.length);
   input.set(sourceBytes, hostBytes.length + bootBytes.length);
-  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start;
-  const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current));
+  const start = recursive ? api.conduit_browser_form_start_recursive : api.conduit_browser_form_start_with_presentation;
+  const profile = Number(runner.querySelector(".structured-output-profile")?.value ?? 0);
+  const code = start(hostBytes.length, bootBytes.length, sourceBytes.length, BigInt(current), profile);
   if (code < 0) {
     const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
     runner.playStatus.failure(refusal?.message

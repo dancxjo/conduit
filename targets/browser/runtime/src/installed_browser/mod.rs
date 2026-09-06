@@ -32,9 +32,7 @@ pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, membership_advertisement,
     selected_human_machinery, BrowserManifestation,
 };
-pub(crate) use factory::{
-    advertisement_with_quantity_presentation, catalogs_with_quantity_presentation,
-};
+pub(crate) use factory::{advertisement_for_presentation, catalogs_for_presentation};
 pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
 pub(crate) use limits::{
@@ -67,3 +65,6 @@ pub(crate) mod test_timing_sink;
 pub(crate) mod button_attempt;
 
 mod catalogs;
+
+pub(crate) mod normalized_presentation;
+pub(crate) use catalogs::PresentationProfile;

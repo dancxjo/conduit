@@ -173,7 +173,7 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     .selected_fabrication_ids()
 }
 
-pub(crate) use super::catalogs::{backs, catalogs, catalogs_with_quantity_presentation};
+pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
 
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
@@ -185,6 +185,9 @@ pub(crate) fn factory(
     #[cfg(test)]
     if implementation_id.as_str() == super::test_timing_sink::KIND {
         return Some(&super::test_timing_sink::SINK);
+    }
+    if implementation_id.as_str() == super::normalized_presentation::IMPLEMENTATION {
+        return Some(&super::normalized_presentation::PRESENTATION);
     }
     if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
         return Some(&quantity_output::PRESENTATION);
@@ -204,15 +207,23 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
     )
 }
 
-pub(crate) fn advertisement_with_quantity_presentation(
+pub(crate) fn advertisement_for_presentation(
     host_id: HostId,
     boot_id: BootId,
+    profile: super::PresentationProfile,
 ) -> HostAdvertisement {
     let mut host = advertisement(host_id, boot_id);
+    if profile == super::PresentationProfile::Annotation {
+        return host;
+    }
     host.capabilities.retain(|offer| {
         offer.kind_id.as_str() != conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
     });
-    let mut presenter = quantity_output::presentation_offer();
+    let mut presenter = match profile {
+        super::PresentationProfile::Quantity => quantity_output::presentation_offer(),
+        super::PresentationProfile::NormalizedDurations => super::normalized_presentation::offer(),
+        super::PresentationProfile::Annotation => unreachable!(),
+    };
     presenter.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     host.capabilities.push(presenter);
     host.capabilities
