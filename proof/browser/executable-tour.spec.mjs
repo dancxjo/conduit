@@ -721,7 +721,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     expect(evidence.binding.image_id).toMatch(/^image:sha256:[0-9a-f]{64}$/);
     const downloadedSpore = await downloadArtifact(page, spore);
     expect(downloadedSpore.filename).toMatch(/-c3\.bin$/);
-    const { readEsp32BodySpore } = await import("../../targets/esp32/browser-deployment/index.mjs");
+    const { readEsp32BodySpore } = await import("../../targets/esp32/deployment/browser/index.mjs");
     const artifact = {
       magic: new TextDecoder().decode(downloadedSpore.bytes.subarray(0, 8)),
       bytes: downloadedSpore.bytes.byteLength,
@@ -1099,7 +1099,7 @@ test("two Bodies seal distinct spores against the same verified packaged Pico IM
     await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(/-pico-w\.uf2$/);
-    const { readRp2040BodySpore } = await import("../../targets/rp2040/browser-deployment/index.mjs");
+    const { readRp2040BodySpore } = await import("../../targets/rp2040/deployment/browser/index.mjs");
     const artifact = {
       filename: downloaded.filename,
       bytes: downloaded.bytes.byteLength,
@@ -1501,7 +1501,7 @@ test("the target-neutral Crèche consumes exact C3, then S3, then WROOM adapters
     evidence = JSON.parse(await runner.locator("details code").textContent());
     const downloaded = await downloadArtifact(page, runner.locator('[data-application-key="download-spore"]'));
     expect(downloaded.filename).toMatch(new RegExp(`-${profile.releaseName}\\.bin$`));
-    const { readEsp32BodySpore } = await import("../../targets/esp32/browser-deployment/index.mjs");
+    const { readEsp32BodySpore } = await import("../../targets/esp32/deployment/browser/index.mjs");
     const artifact = {
       magic: new TextDecoder().decode(downloaded.bytes.subarray(0, 8)),
       bytes: downloaded.bytes.byteLength,

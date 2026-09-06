@@ -45,7 +45,7 @@ pub const CYW43_ASSETS: &[(&str, &str)] = &[
 
 pub const CYW43_COMMIT: &str = "6a823b96b3d270b6da1cc667f8acea749e588dab";
 pub const CYW43_ASSET_DIR: &str =
-    "targets/rp2040/firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab";
+    "targets/rp2040/firmware/assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab";
 
 pub fn run_doctor(dry_run: bool) -> PicoResult<()> {
     println!("==> pico doctor: checking prerequisites");

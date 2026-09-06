@@ -2,7 +2,7 @@ import { createBrowserDeviceBase } from "../../../device-base.mjs";
 import {
   PHYSICAL_SPAWN_STREAM_BOUNDS,
   requestPhysicalSpawnJoin,
-} from "../../rp2040/browser-deployment/spawn.mjs";
+} from "../../../rp2040/deployment/browser/spawn.mjs";
 import { createEsp32BrowserDeploymentAdapter, ESP32_BROWSER_DEPLOYMENT } from "./deployment.mjs";
 import { bindEsp32BodySpore, parseEsp32Image } from "./image.mjs";
 import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
