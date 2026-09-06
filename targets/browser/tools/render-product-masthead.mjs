@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { browserDestinationHref } from "../../targets/browser/host/assets/application-presentation.mjs";
-import { productMastheadDescription } from "../../semantics/presentation/assets/product-masthead.mjs";
+import { browserDestinationHref } from "../host/assets/application-presentation.mjs";
+import { productMastheadDescription } from "../../../semantics/presentation/assets/product-masthead.mjs";
 
 const [input, output, current, status = ""] = process.argv.slice(2);
 if (!input || !output) throw new TypeError("usage: render-product-masthead.mjs INPUT OUTPUT CURRENT [STATUS]");

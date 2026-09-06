@@ -343,8 +343,8 @@ fn legacy_merged_branch_retirement_is_manual_only_and_keeps_its_safe_order() {
     assert!(workflow.contains("contents: write"));
     assert!(workflow.contains("ref: refs/heads/${{ github.event.repository.default_branch }}"));
     assert!(workflow.contains("persist-credentials: false"));
-    assert!(workflow.contains("node scripts/ci/retire-merged-pr-branch.mjs"));
-    let controller = fs::read_to_string(root.join("scripts/ci/retire-merged-pr-branch.mjs"))
+    assert!(workflow.contains("node tools/ci/retire-merged-pr-branch.mjs"));
+    let controller = fs::read_to_string(root.join("tools/ci/retire-merged-pr-branch.mjs"))
         .expect("read merged branch retirement controller");
     let retarget = controller.find("/pulls/${dependent.number}").unwrap();
     let dispatch = controller

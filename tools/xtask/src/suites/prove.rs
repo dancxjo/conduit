@@ -705,7 +705,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         "prove.browser-host.playwright",
         "Run browser host test suite",
         "npm",
-        &["run", "test:browser-host"],
+        &["--prefix", "proof/browser", "run", "test:browser-host"],
         None,
         Some("playwright"),
         Some(ProofClass::LiveBrowser),

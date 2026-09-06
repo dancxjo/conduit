@@ -53,7 +53,7 @@ jobs:
         id: resolve
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/ci/resolve-pages-product-run.mjs
+        run: node tools/ci/resolve-pages-product-run.mjs
       - name: Check out the exact merged commit
         uses: actions/checkout@v7
         with:
@@ -141,7 +141,7 @@ jobs:
       - name: Admit the exact carrier selected by reconciliation
         env:
           EXPECTED_TREE: ${{ needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree }}
-        run: node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$EXPECTED_TREE"
+        run: node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$EXPECTED_TREE"
       - name: Upload the already-proven Pages carrier
         uses: actions/upload-pages-artifact@v5
         with:

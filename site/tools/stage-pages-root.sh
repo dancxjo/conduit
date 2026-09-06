@@ -5,7 +5,7 @@ destination=${1:?usage: stage-pages-root.sh DESTINATION}
 
 test ! -e "$destination"
 mkdir -p "$destination"
-node scripts/ci/render-product-masthead.mjs site/index.html "$destination/index.html" home "The Body is the computer."
+node targets/browser/tools/render-product-masthead.mjs site/index.html "$destination/index.html" home "The Body is the computer."
 cp site/site.css "$destination/site.css"
 cp targets/browser/host/assets/application-theme.css "$destination/application-theme.css"
 

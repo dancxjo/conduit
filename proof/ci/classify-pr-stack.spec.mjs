@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { classifyPullStack, resolvePullStack } from "../../scripts/ci/classify-pr-stack.mjs";
+import { classifyPullStack, resolvePullStack } from "../../tools/ci/classify-pr-stack.mjs";
 
 const repository = "dancxjo/conduit";
 const sha = (character) => character.repeat(40);
@@ -109,7 +109,7 @@ test("candidate workflows retain only cheap gates for an intermediate stack slic
   const products = readFileSync(".github/workflows/tour-products.yml", "utf8");
   for (const workflow of [check, products]) {
     assert.match(workflow, /Classify this immutable candidate within its open PR stack/);
-    assert.match(workflow, /\$RUNNER_TEMP\/conduit-ci-controller\/scripts\/ci\/classify-pr-stack\.mjs/);
+    assert.match(workflow, /\$RUNNER_TEMP\/conduit-ci-controller\/tools\/ci\/classify-pr-stack\.mjs/);
     assert.match(workflow, /steps\.stack\.outputs\.role == 'intermediate'/);
     assert.match(workflow, /steps\.stack\.outputs\.role != 'intermediate'/);
   }

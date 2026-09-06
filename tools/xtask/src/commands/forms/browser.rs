@@ -285,7 +285,7 @@ mod tests {
                 &item,
                 "forms/fixture/main.conduit",
                 None,
-                &Preparation::Ready(PathBuf::from("node_modules/.bin/playwright")),
+                &Preparation::Ready(PathBuf::from("proof/browser/node_modules/.bin/playwright")),
                 &opts,
             )
             .status,
@@ -298,7 +298,7 @@ mod tests {
                 &item,
                 "forms/fixture/main.conduit",
                 None,
-                &Preparation::Ready(PathBuf::from("node_modules/.bin/playwright")),
+                &Preparation::Ready(PathBuf::from("proof/browser/node_modules/.bin/playwright")),
                 &opts,
             )
             .status,
@@ -314,7 +314,7 @@ mod tests {
                 &item,
                 "forms/fixture/main.conduit",
                 None,
-                &Preparation::Ready(PathBuf::from("node_modules/.bin/playwright")),
+                &Preparation::Ready(PathBuf::from("proof/browser/node_modules/.bin/playwright")),
                 &opts,
             )
             .status,

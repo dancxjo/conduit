@@ -119,7 +119,7 @@ jobs:
           CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
           CONDUIT_STACK_ROLE_OUT: target/ci-plans/pr-stack-role.json
         run: |
-          classifier="$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+          classifier="$RUNNER_TEMP/conduit-ci-controller/tools/ci/classify-pr-stack.mjs"
           if test -f "$classifier"; then
             mkdir -p target/ci-plans
             node "$classifier"
@@ -158,7 +158,7 @@ jobs:
         env:
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-        run: scripts/ci/classify-docs-only.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+        run: tools/ci/classify-docs-only.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
       - name: Validate documentation diff
         if: steps.stack.outputs.role != 'intermediate' && steps.changes.outputs.docs_only == 'true'
         env:
@@ -389,14 +389,14 @@ jobs:
             'image_version=deliberately-wrong' \
             "os_release=$os_release" \
             > "$bundle/identity.env"
-          cp scripts/ci/conduitos-tools-packages.txt "$bundle/packages.txt"
+          cp targets/conduitos/tools/conduitos-tools-packages.txt "$bundle/packages.txt"
           (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
-          if scripts/ci/conduitos-tools.sh verify "$bundle" 2>refusal.log; then
+          if targets/conduitos/tools/conduitos-tools.sh verify "$bundle" 2>refusal.log; then
             echo 'mismatched bundle identity was accepted' >&2
             exit 1
           fi
           grep -Fx 'conduitos-tool-bundle-refused: runner image version mismatch' refusal.log
-          test "$(scripts/ci/conduitos-tools.sh cache-status "$bundle")" = rejected
+          test "$(targets/conduitos/tools/conduitos-tools.sh cache-status "$bundle")" = rejected
           test ! -e "$bundle"
           test -e "${bundle}.rejected"
       - name: Capture the exact runner cache identity
@@ -410,13 +410,13 @@ jobs:
         uses: actions/cache@v6
         with:
           path: target/conduitos/tool-bundle
-          key: conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-${{ hashFiles('scripts/ci/conduitos-tools-packages.txt') }}
+          key: conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-${{ hashFiles('targets/conduitos/tools/conduitos-tools-packages.txt') }}
           restore-keys: |
             conduitos-tools-v1-${{ steps.runner-image.outputs.key }}-
       - name: Verify any restored ConduitOS tool bundle
         id: restored-bundle
         run: |
-          state=$(scripts/ci/conduitos-tools.sh cache-status target/conduitos/tool-bundle)
+          state=$(targets/conduitos/tools/conduitos-tools.sh cache-status target/conduitos/tool-bundle)
           echo "state=$state" >> "$GITHUB_OUTPUT"
           if test "$state" = present; then
             echo 'present=true' >> "$GITHUB_OUTPUT"
@@ -425,9 +425,9 @@ jobs:
           fi
       - name: Prepare one exact ConduitOS tool bundle
         if: steps.restored-bundle.outputs.present != 'true'
-        run: scripts/ci/conduitos-tools.sh prepare target/conduitos/tool-bundle
+        run: targets/conduitos/tools/conduitos-tools.sh prepare target/conduitos/tool-bundle
       - name: Verify the restored or prepared tool bundle
-        run: scripts/ci/conduitos-tools.sh verify target/conduitos/tool-bundle
+        run: targets/conduitos/tools/conduitos-tools.sh verify target/conduitos/tool-bundle
       - name: Distribute the exact ConduitOS tool bundle
         id: upload
         uses: actions/upload-artifact@v7
@@ -700,14 +700,14 @@ jobs:
             "os_release=$(. /etc/os-release; printf '%s/%s' "$ID" "$VERSION_ID")" \
             "dpkg_status_sha256=$(sha256sum /var/lib/dpkg/status | cut -d' ' -f1)" \
             > "$bundle/identity.env"
-          cp scripts/ci/browser-tools-packages.txt "$bundle/packages.txt"
+          cp targets/browser/tools/browser-tools-packages.txt "$bundle/packages.txt"
           (cd "$bundle" && sha256sum debs/example.deb > SHA256SUMS)
-          if scripts/ci/browser-tools.sh verify "$bundle" 2>refusal.log; then
+          if targets/browser/tools/browser-tools.sh verify "$bundle" 2>refusal.log; then
             echo 'mismatched browser-tool bundle was accepted' >&2
             exit 1
           fi
           grep -Fx 'browser-tool-bundle-refused: container identity mismatch' refusal.log
-          test "$(scripts/ci/browser-tools.sh cache-status "$bundle")" = rejected
+          test "$(targets/browser/tools/browser-tools.sh cache-status "$bundle")" = rejected
           test ! -e "$bundle"
           test -e "${bundle}.rejected"
       - name: Capture the exact container package baseline
@@ -718,13 +718,13 @@ jobs:
         uses: actions/cache@v6
         with:
           path: target/browser-tools/tool-bundle
-          key: browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-${{ hashFiles('scripts/ci/browser-tools.sh', 'scripts/ci/browser-tools-packages.txt') }}
+          key: browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-${{ hashFiles('targets/browser/tools/browser-tools.sh', 'targets/browser/tools/browser-tools-packages.txt') }}
           restore-keys: |
             browser-tools-v1-playwright-1.62.0-noble-${{ steps.container-image.outputs.key }}-
       - name: Verify any restored browser-tool bundle
         id: restored-bundle
         run: |
-          state=$(scripts/ci/browser-tools.sh cache-status target/browser-tools/tool-bundle)
+          state=$(targets/browser/tools/browser-tools.sh cache-status target/browser-tools/tool-bundle)
           echo "state=$state" >> "$GITHUB_OUTPUT"
           if test "$state" = present; then
             echo 'present=true' >> "$GITHUB_OUTPUT"
@@ -733,9 +733,9 @@ jobs:
           fi
       - name: Prepare one exact browser-tool bundle
         if: steps.restored-bundle.outputs.present != 'true'
-        run: scripts/ci/browser-tools.sh prepare target/browser-tools/tool-bundle
+        run: targets/browser/tools/browser-tools.sh prepare target/browser-tools/tool-bundle
       - name: Verify the restored or prepared browser-tool bundle
-        run: scripts/ci/browser-tools.sh verify target/browser-tools/tool-bundle
+        run: targets/browser/tools/browser-tools.sh verify target/browser-tools/tool-bundle
       - name: Distribute the exact browser-tool bundle
         id: upload
         uses: actions/upload-artifact@v7
@@ -780,7 +780,7 @@ jobs:
           path: target/browser-tools/tool-bundle
           expected-digest: ${{ needs.browser-tools.outputs.artifact_digest }}
       - name: Install the exact browser-tool bundle without mirror access
-        run: scripts/ci/browser-tools.sh install target/browser-tools/tool-bundle
+        run: targets/browser/tools/browser-tools.sh install target/browser-tools/tool-bundle
       - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
@@ -788,7 +788,7 @@ jobs:
         with:
           cache-on-failure: false
       - name: Install browser test dependencies
-        run: npm ci --ignore-scripts --prefer-offline
+        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
       - name: Run browser host proof suite
         id: browser-proof
         continue-on-error: true
@@ -865,7 +865,7 @@ jobs:
           path: target/conduitos/tool-bundle
           expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
-        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
+        run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: BUILD one exact immutable x86 proof image
         run: cargo xtask conduitos prepare-proof-image --locked
       - name: Distribute the exact prepared proof image
@@ -914,7 +914,7 @@ jobs:
           path: target/conduitos/tool-bundle
           expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
-        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
+        run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Preserve the prepared-image BUILD gate
         if: (github.event_name != 'pull_request' && inputs.candidate_sha == '') || contains(needs.classify.outputs.conduitos_x86_matrix, '"xhci"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"usb"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"hid"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"keyboard"') || contains(needs.classify.outputs.conduitos_x86_matrix, '"rescue"')
         env:
@@ -1052,7 +1052,7 @@ jobs:
           path: target/conduitos/tool-bundle
           expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
-        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
+        run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
         run: |
           if test '${{ matrix.architecture }}' = ia32; then
@@ -1097,7 +1097,7 @@ jobs:
           path: target/conduitos/tool-bundle
           expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
-        run: scripts/ci/conduitos-tools.sh install target/conduitos/tool-bundle
+        run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Build the checked AArch64 product PROFILE and prove two fresh boots
         run: |
           cargo xtask host build targets/conduitos/profiles/conduitos-aarch64-headless.profile.json \

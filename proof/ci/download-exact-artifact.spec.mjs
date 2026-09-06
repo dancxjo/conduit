@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   classifyHttpFailure,
   downloadExactArtifact,
-} from "../../scripts/ci/download-exact-artifact.mjs";
+} from "../../tools/ci/download-exact-artifact.mjs";
 
 function response(status, value, headers = {}) {
   return {

@@ -103,7 +103,7 @@ jobs:
           CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
           CONDUIT_STACK_ROLE_OUT: target/product-plan/pr-stack-role.json
         run: |
-          classifier="$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+          classifier="$RUNNER_TEMP/conduit-ci-controller/tools/ci/classify-pr-stack.mjs"
           if test -f "$classifier"; then
             mkdir -p target/product-plan
             node "$classifier"
@@ -258,7 +258,7 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - name: Install the pinned browser proof dependency
-        run: npm ci --ignore-scripts --prefer-offline
+        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
       - name: Download the exact browser product runtimes
         uses: actions/download-artifact@v8
         with:
@@ -269,7 +269,7 @@ jobs:
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
           chmod 755 target/debug/conduit-browser-host
-          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
       - name: Prove exact live-debugger projection
         run: >-
           node --test
@@ -279,7 +279,7 @@ jobs:
       - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
         if: needs.plan.outputs.tour_required == 'true'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-tour.spec.mjs
           --project chromium
@@ -290,7 +290,7 @@ jobs:
       - name: Complete the exact Tour proposition without entering the carrier pipeline
         if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-tour.spec.mjs
           --project chromium
@@ -321,7 +321,7 @@ jobs:
       - name: Prove the focused Patchbay debugger interactions
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/patchbay-debugger.config.mjs
           proof/browser/patchbay-debugger-watch.spec.mjs
           --project chromium
@@ -755,10 +755,10 @@ jobs:
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/tour-product target/creche-product target/patchbay-product
-          scripts/ci/stage-pages-root.sh target/pages-root
-          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
-          scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
-          scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+          site/tools/stage-pages-root.sh target/pages-root
+          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
+          products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Retain the exact staged products once for parallel consumers
         uses: actions/upload-artifact@v7
         with:
@@ -804,7 +804,7 @@ jobs:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Install the pinned browser proof dependency
-        run: npm ci --ignore-scripts --prefer-offline
+        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
       - name: Receive the exact staged products
         uses: actions/download-artifact@v8
         with:
@@ -817,7 +817,7 @@ jobs:
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           $BROWSER_PROOF_SPECS
           --project chromium
@@ -826,7 +826,7 @@ jobs:
       - name: Prove the remaining Tour surface in pinned Chromium
         if: matrix.shard == 'tour'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-tour.spec.mjs
           --project chromium
@@ -879,8 +879,8 @@ jobs:
           test -f target/pages-site/patchbay/api/snapshot
           source_commit=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
           source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
-          node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
-          node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
+          node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
       - name: Retain the immutable Pages carrier for post-merge promotion
         uses: actions/upload-artifact@v7
         with:

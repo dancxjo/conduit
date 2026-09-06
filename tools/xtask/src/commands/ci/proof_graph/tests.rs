@@ -245,7 +245,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     let migrations = [
         (
             "scripts/ci/stage-book-product.sh",
-            "scripts/ci/stage-tour-product.sh",
+            "products/tour/tools/stage-tour-product.sh",
         ),
         (
             "proof/browser/executable-tour.spec.mjs",
@@ -268,6 +268,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     ];
     for (old, new) in migrations {
         let previous = git_text(&repo.root, &["rev-parse", "HEAD"]).unwrap();
+        fs::create_dir_all(repo.root.join(new).parent().unwrap()).unwrap();
         fs::rename(repo.root.join(old), repo.root.join(new)).unwrap();
         let renamed = repo.commit("rename product proof implementation");
         validate_registry_paths(&repo.root, &renamed).unwrap();
@@ -280,7 +281,10 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
         }
     }
     let previous = git_text(&repo.root, &["rev-parse", "HEAD"]).unwrap();
-    repo.write("scripts/ci/stage-tour-product.sh", "changed proof bytes");
+    repo.write(
+        "products/tour/tools/stage-tour-product.sh",
+        "changed proof bytes",
+    );
     let changed = repo.commit("change renamed implementation");
     for id in ids {
         assert_ne!(
