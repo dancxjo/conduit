@@ -181,14 +181,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-data"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-form",
-]
-
-[[package]]
 name = "conduit-bluetooth"
 version = "0.1.0"
 dependencies = [
@@ -213,6 +205,14 @@ dependencies = [
  "libm",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-data"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
 ]
 
 [[package]]
@@ -314,6 +314,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-net"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "serde",
+]
+
+[[package]]
 name = "conduit-plan-lowering"
 version = "0.1.0"
 dependencies = [
@@ -359,6 +368,7 @@ dependencies = [
  "conduit-form",
  "conduit-human",
  "conduit-midi",
+ "conduit-net",
  "conduit-presentation",
  "conduit-robotics",
  "conduit-text",
@@ -399,8 +409,10 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-form",
  "conduit-human",
  "conduit-midi",
+ "conduit-net",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
