@@ -57,7 +57,10 @@ pub fn state_value_contract(
 #[cfg(feature = "form-catalog")]
 mod catalog;
 #[cfg(feature = "form-catalog")]
-pub use catalog::{derive_state_boundary, install_state_value_kind, StateValueAdmissionError};
+pub use catalog::{
+    derive_state_boundary, install_state_value_kind, validate_state_placement,
+    StateValueAdmissionError,
+};
 
 #[cfg(all(test, feature = "form-catalog"))]
 mod tests;

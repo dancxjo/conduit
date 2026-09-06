@@ -129,3 +129,49 @@ pub fn derive_state_boundary(
         continuation: StateContinuation::ExternallyBounded,
     })
 }
+
+/// Validate fresh State initialization against its exact planned semantic Face.
+/// Host installation must additionally validate implementation and Boot identity.
+/// Migration uses a separate admitted continuity contract, never this fresh path.
+pub fn validate_state_placement(
+    placement: &conduit_core::PlannedGear,
+    state: &PlannedStateBoundary,
+) -> Result<(), StateValueAdmissionError> {
+    if placement.kind_id.as_str() != STATE_VALUE_KIND
+        || placement.kind_contract_revision.as_str() != STATE_VALUE_REVISION
+        || placement.gear_id != state.gear_id
+        || state.state_id.as_str() != state.gear_id.as_str()
+        || state.continuation != StateContinuation::ExternallyBounded
+    {
+        return Err(StateValueAdmissionError::WrongContract);
+    }
+    let [entry] = placement.configuration.as_slice() else {
+        return Err(StateValueAdmissionError::InvalidInitialization);
+    };
+    let ConfigurationValue::Structured(initial) = &entry.value else {
+        return Err(StateValueAdmissionError::InvalidInitialization);
+    };
+    let value = StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
+        .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
+    let contract = state_value_contract("", value.value_type())
+        .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
+    if entry.key != "initial"
+        || initial.profile() != &state.value_kind
+        || initial.profile() != &contract.outputs[0].value_kind
+        || initial.canonical_value() != state.initial_value
+        || placement.inputs != contract.inputs
+        || placement.outputs != contract.outputs
+    {
+        return Err(StateValueAdmissionError::InvalidInitialization);
+    }
+    if state.maximum_value_bytes == 0
+        || state.maximum_value_bytes > placement.limits.max_queue_bytes
+        || state.maximum_value_bytes as usize > MAXIMUM_STRUCTURED_CANONICAL_BYTES
+    {
+        return Err(StateValueAdmissionError::InvalidCapacity);
+    }
+    if state.initial_value.len() > state.maximum_value_bytes as usize {
+        return Err(StateValueAdmissionError::InitialValueExceedsCapacity);
+    }
+    Ok(())
+}
