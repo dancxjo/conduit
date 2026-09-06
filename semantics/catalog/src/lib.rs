@@ -476,3 +476,8 @@ mod supported_nucleus_tests {
         }
     }
 }
+
+#[cfg(feature = "kernel-operation")]
+mod pattern_comparison_operation;
+#[cfg(feature = "kernel-operation")]
+pub use pattern_comparison_operation::PatternComparisonOperation;
