@@ -14,9 +14,11 @@ use crate::{
 mod active_capacity;
 mod debug_control;
 mod derived_value;
+mod retirement;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
+pub use retirement::RetiredExecution;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeSpec<const PORTS: usize> {
@@ -1664,40 +1666,6 @@ where
             .iter()
             .filter(|pending| pending.is_some())
             .count()
-    }
-
-    pub fn cancel(&mut self) -> Result<(), SchedulerError> {
-        if self.cancelled {
-            return Ok(());
-        }
-        self.ensure_sign_capacity(2)?;
-        self.signs.record(
-            NodeId(0),
-            None,
-            None,
-            KernelEventKind::CancellationRequested,
-        )?;
-        for (node, driver) in self.drivers[..self.active_nodes].iter_mut().enumerate() {
-            if !self.completed[node] {
-                driver.cancel();
-            }
-        }
-        self.values.clear();
-        self.pending_host_operations.fill(None);
-        self.queue_slots.fill(None);
-        for cord in &mut self.cords[..self.active_cords] {
-            cord.head = 0;
-            cord.len = 0;
-            cord.queued_bytes = 0;
-            cord.producer_closed = true;
-            cord.offered_remote_sequence = None;
-            cord.remote_accepted = false;
-        }
-        self.ready.fill(false);
-        self.cancelled = true;
-        self.signs
-            .record(NodeId(0), None, None, KernelEventKind::RunCancelled)?;
-        Ok(())
     }
 
     fn next_ready(&mut self) -> Option<usize> {

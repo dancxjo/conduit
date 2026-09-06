@@ -34,6 +34,12 @@ impl<const BYTES: usize> StateOperation<BYTES> {
         })
     }
 
+    /// Move retained ownership after the containing driver has been retired.
+    /// No generation, continuation allowance or committed byte is reset.
+    pub fn into_state(self) -> StateDelay<BYTES> {
+        self.state
+    }
+
     pub fn state(&self) -> &StateDelay<BYTES> {
         &self.state
     }
