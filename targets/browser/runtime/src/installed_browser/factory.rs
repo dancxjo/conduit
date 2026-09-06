@@ -188,6 +188,7 @@ fn catalogs_for_presentation(
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
     if quantity {
         conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
@@ -230,6 +231,9 @@ pub(crate) fn backs(
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
+        return Some(resource);
+    }
     #[cfg(test)]
     if let Some(fixture) = super::test_json::factory(implementation_id.as_str()) {
         return Some(fixture);

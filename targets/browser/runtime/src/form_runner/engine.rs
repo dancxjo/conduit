@@ -2,6 +2,8 @@
 
 #[path = "engine_preparation.rs"]
 mod preparation;
+#[path = "resource_effect.rs"]
+pub(super) mod resource_effect;
 use preparation::{prepare_scheduler, validate_envelope};
 
 #[cfg(test)]
@@ -43,6 +45,7 @@ type BrowserKernel = FixedScheduler<
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
     kernel: BrowserKernel,
+    snapshots: [Option<Box<resource_effect::SnapshotState>>; MAXIMUM_BROWSER_GEARS],
     selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
         MAXIMUM_BROWSER_GEARS],
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
@@ -69,6 +72,7 @@ pub(super) struct PendingHostEffect {
 
 pub(super) enum BrowserHostEffect {
     Timer { duration_millis: u64 },
+    Snapshot { publish: bool },
     KeyEvent,
     PointerEvent,
     ButtonTransition,
@@ -110,6 +114,9 @@ pub(super) fn complete_host_effect(
     scheduler: &mut TourScheduler,
     pending: &PendingHostEffect,
 ) -> Result<(), String> {
+    if matches!(pending.effect, BrowserHostEffect::Snapshot { .. }) {
+        return resource_effect::complete(scheduler, pending, Ok(None));
+    }
     scheduler
         .complete_host_operation(
             pending.request.node,
@@ -128,6 +135,9 @@ pub(super) fn complete_host_effect_with_output(
     pending: &PendingHostEffect,
     output: &[u8],
 ) -> Result<(), String> {
+    if matches!(pending.effect, BrowserHostEffect::Snapshot { .. }) {
+        return resource_effect::complete(scheduler, pending, Ok(Some(output)));
+    }
     let maximum_output_bytes = match &pending.effect {
         BrowserHostEffect::PointerEvent => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(output)
@@ -181,6 +191,12 @@ pub(super) fn drive(
                 .host_operations
                 .get(usize::from(request.operation.0))
                 .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+            if resource_effect::matches(operation.contract_id.as_str()) {
+                if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {
+                    return Ok(DriveStatus::Effect(pending));
+                }
+                continue;
+            }
             if crate::installed_browser::json::OPERATIONS.contains(&operation.contract_id.as_str())
             {
                 let result = crate::installed_browser::json::execute(
@@ -435,3 +451,7 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 #[path = "json_tests.rs"]
 mod json_tests;
+
+#[cfg(test)]
+#[path = "resource_effect_tests.rs"]
+mod resource_effect_tests;

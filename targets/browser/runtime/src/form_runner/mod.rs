@@ -220,7 +220,10 @@ impl TourSession {
         engine::complete_host_effect(&mut self.scheduler, &self.pending)?;
         if completed_timer {
             self.timer_completions = self.timer_completions.saturating_add(1);
-        } else {
+        } else if matches!(
+            self.pending.effect,
+            engine::BrowserHostEffect::Manifestation(_)
+        ) {
             self.manifestation_completions = self.manifestation_completions.saturating_add(1);
         }
         match engine::drive(&mut self.scheduler, &self.fragment)? {
@@ -283,6 +286,23 @@ impl TourSession {
             .get(usize::from(self.pending.request.node.0))
             .ok_or_else(|| "Host effect has no planned placement".to_string())?;
         match &self.pending.effect {
+            engine::BrowserHostEffect::Snapshot { .. } => {
+                let request = engine::resource_effect::describe(&self.scheduler, &self.pending)?;
+                Ok(TourHostEffect::Snapshot(Box::new(
+                    protocol::SnapshotEffect {
+                        schema: "conduit.browser/resource-effect@1",
+                        effect_kind: request.effect_kind,
+                        active_play_id: self.active_play_id.as_str().into(),
+                        placement_id: placement.placement_id.as_str().into(),
+                        host_id: self.host_id.as_str().into(),
+                        boot_id: self.boot_id.as_str().into(),
+                        request_sequence: self.pending.request.request.0,
+                        key: request.key.into(),
+                        record: request.record.map(<[u8]>::to_vec),
+                        source_interaction: self.source_interaction.clone(),
+                    },
+                )))
+            }
             engine::BrowserHostEffect::Timer { duration_millis } => {
                 Ok(TourHostEffect::Timer(Box::new(TourTimerEffect {
                     schema: "conduit.tour/timer-effect@1",

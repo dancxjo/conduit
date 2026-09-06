@@ -38,6 +38,7 @@ pub struct PreparedSnapshotRecord {
     prefix: Vec<u8>,
     extent: usize,
     buffer: [u8; MAXIMUM_RECORD_BYTES],
+    buffer_len: usize,
 }
 
 impl PreparedSnapshotRecord {
@@ -157,7 +158,12 @@ impl PreparedSnapshotRecord {
             prefix,
             extent: reference.extent.bytes as usize,
             buffer: [0; MAXIMUM_RECORD_BYTES],
+            buffer_len: 0,
         })
+    }
+
+    pub fn candidate_record(&self) -> Option<&[u8]> {
+        (self.buffer_len != 0).then_some(&self.buffer[..self.buffer_len])
     }
 
     pub fn storage_key(&self) -> &str {
@@ -181,7 +187,8 @@ impl PreparedSnapshotRecord {
             content,
         ));
         self.buffer[content_start..content_start + content.len()].copy_from_slice(content);
-        Ok(&self.buffer[..content_start + content.len()])
+        self.buffer_len = content_start + content.len();
+        Ok(&self.buffer[..self.buffer_len])
     }
 
     pub fn restore<'a>(

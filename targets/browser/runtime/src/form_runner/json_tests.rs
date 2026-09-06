@@ -5,7 +5,7 @@ use conduit_form::{KindDefinition, KindSignature};
 use std::collections::BTreeMap;
 const TODO: &str = include_str!("../../../../../forms/todo/main.conduit");
 
-fn execute(input: &str, entry: &str) -> Result<String, String> {
+pub(super) fn execute(input: &str, entry: &str) -> Result<String, String> {
     let (mut startup, mut profile) = crate::installed_browser::catalogs().unwrap();
     let mut host =
         crate::installed_browser::advertisement("todo-browser".into(), "todo-boot".into());

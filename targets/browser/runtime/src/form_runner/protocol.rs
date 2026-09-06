@@ -81,6 +81,7 @@ pub(super) struct TourButtonTransitionEffect {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(super) enum TourHostEffect {
+    Snapshot(Box<SnapshotEffect>),
     Manifestation(Box<TourEffect>),
     Timer(Box<TourTimerEffect>),
     KeyEvent(Box<TourKeyEventEffect>),
@@ -94,6 +95,7 @@ impl TourHostEffect {
         source_interaction: SourceInteractionEvidence,
     ) {
         match self {
+            Self::Snapshot(effect) => effect.source_interaction = Some(source_interaction),
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Timer(effect) => effect.source_interaction = Some(source_interaction),
             Self::KeyEvent(effect) => effect.source_interaction = Some(source_interaction),
@@ -292,4 +294,19 @@ pub(super) fn receipt(
         timer_completions,
         manifestation_completions,
     }
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct SnapshotEffect {
+    pub schema: &'static str,
+    pub effect_kind: &'static str,
+    pub active_play_id: String,
+    pub placement_id: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub request_sequence: u32,
+    pub key: String,
+    pub record: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_interaction: Option<SourceInteractionEvidence>,
 }

@@ -12,6 +12,7 @@ const HELLO_LIGHT: &str = r#"form hello-light {
 fn manifestation(effect: TourHostEffect) -> TourEffect {
     match effect {
         TourHostEffect::Manifestation(effect) => *effect,
+        TourHostEffect::Snapshot(_) => panic!("manifestation fixture requested Resource storage"),
         TourHostEffect::Timer(_) => panic!("the fixture must manifest before requesting a timer"),
         TourHostEffect::KeyEvent(_) => panic!("the fixture must manifest before requesting input"),
         TourHostEffect::PointerEvent(_) => panic!("fixture unexpectedly requested pointer input"),
@@ -264,6 +265,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 "timer:{}:{}",
                 timer.duration_millis, timer.request_sequence
             )),
+            TourHostEffect::Snapshot(_) => panic!("timer fixture requested Resource storage"),
             TourHostEffect::KeyEvent(_) => panic!("timer fixture requested keyboard input"),
             TourHostEffect::PointerEvent(_) => panic!("timer fixture requested pointer input"),
             TourHostEffect::ButtonTransition(_) => {
