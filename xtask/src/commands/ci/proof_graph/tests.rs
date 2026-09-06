@@ -299,7 +299,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     let missing = repo.commit("remove required browser proof domain");
     assert!(validate_registry_paths(&repo.root, &missing)
         .unwrap_err()
-        .contains("required implementation path proof/browser is absent"));
+        .contains("required input path proof/browser is absent"));
 }
 
 #[test]
@@ -489,3 +489,6 @@ fn pr_lifecycle_namespaces_do_not_collide() {
     assert_ne!(key(10, "abc"), key(11, "abc"));
     assert_ne!(key(10, "abc"), key(10, "def"));
 }
+
+#[path = "ownership_tests.rs"]
+mod ownership;

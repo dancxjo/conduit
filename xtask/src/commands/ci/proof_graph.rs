@@ -297,22 +297,20 @@ fn merge_tree(root: &Path, base: &str, head: &str) -> Result<MergeTree, String> 
 
 fn validate_registry_paths(root: &Path, tree: &str) -> Result<(), String> {
     for spec in PROOFS {
-        for (class, paths) in [
-            ("input", spec.inputs),
-            ("implementation", spec.implementation_inputs),
-        ] {
-            for path in paths {
-                let object = format!("{tree}:{path}");
-                let output = git_command(root)
-                    .args(["cat-file", "-e", &object])
-                    .output()
-                    .map_err(|error| format!("run git cat-file: {error}"))?;
-                if !output.status.success() {
-                    return Err(format!(
-                        "proof {} required {class} path {path} is absent from tree {tree}",
-                        spec.id
-                    ));
-                }
+        // Required source domains establish applicability. Implementation paths
+        // are fingerprint selectors: deleting or moving one invalidates its
+        // receipt, then the actual proof command must establish new evidence.
+        for path in spec.inputs {
+            let object = format!("{tree}:{path}");
+            let output = git_command(root)
+                .args(["cat-file", "-e", &object])
+                .output()
+                .map_err(|error| format!("run git cat-file: {error}"))?;
+            if !output.status.success() {
+                return Err(format!(
+                    "proof {} required input path {path} is absent from tree {tree}",
+                    spec.id
+                ));
             }
         }
     }
