@@ -211,12 +211,13 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "targets/browser",
             "products/patchbay/html",
             "products/tour",
+            "products/creche",
             "site",
         ],
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
@@ -244,7 +245,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
@@ -277,7 +278,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,

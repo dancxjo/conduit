@@ -289,6 +289,12 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
             fingerprint(&repo.root, &changed, spec(id)).unwrap()
         );
     }
+    repo.write("products/creche/browser/creche.mjs", "moved product source");
+    let moved = repo.commit("move Creche into its product owner");
+    assert_ne!(
+        fingerprint(&repo.root, &changed, spec("browser.tour")).unwrap(),
+        fingerprint(&repo.root, &moved, spec("browser.tour")).unwrap()
+    );
     fs::remove_dir_all(repo.root.join("proof/browser")).unwrap();
     let missing = repo.commit("remove required browser proof domain");
     assert!(validate_registry_paths(&repo.root, &missing)
