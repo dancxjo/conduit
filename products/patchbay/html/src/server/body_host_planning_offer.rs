@@ -113,26 +113,15 @@ impl PatchbayHtmlServer {
         };
         let next_planning = if let Some(current) = &self.body_planning {
             let mut next = current.clone();
-            next.replan(
-                forms,
-                patchbay_model::BodyPlanningTransition {
-                    unsatisfied_sign_id: Some(sign("prior-unsatisfied")),
-                    plan_ready_sign_id: sign("replacement-ready"),
-                    play_sequence: sequence,
-                    play_started_sign_id: sign("replacement-playing"),
-                },
-            )
-            .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
+            next.replace_proposal(forms)
+                .map_err(|error| ServerError::Interaction(format!("Body replan: {error:?}")))?;
             next
         } else {
-            patchbay_model::BodyPlanningSession::start(
+            patchbay_model::BodyPlanningSession::prepare(
                 &biography.body,
                 sequence,
                 sign("wake"),
                 forms,
-                sign("initial-ready"),
-                sequence,
-                sign("initial-playing"),
             )
             .map_err(|error| ServerError::Interaction(format!("Body initial plan: {error:?}")))?
         };
@@ -359,6 +348,17 @@ mod tests {
         assert_eq!(admitted.body_host_planning_offer.as_ref(), Some(&planning));
         assert_eq!(admitted.body_workbench.as_ref().unwrap().body_id, body_id);
         assert!(admitted.body_planning.is_some());
+        assert_eq!(
+            admitted.body_planning.as_ref().unwrap().lifecycle,
+            conduit_body::WakeLifecycle::AwaitingPlan
+        );
+        assert!(server
+            .body_planning
+            .as_ref()
+            .unwrap()
+            .wake()
+            .plans
+            .is_empty());
         assert_eq!(
             admitted.body_planning.as_ref().unwrap().body_id.as_str(),
             body_id

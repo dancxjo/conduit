@@ -30,6 +30,8 @@ pub struct BodyPlanningTransition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyPlanningSessionSnapshot {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unavailable_proposal_sign_id: Option<SignId>,
     pub body_id: BodyId,
     pub wake_id: WakeId,
     pub lifecycle: WakeLifecycle,
@@ -189,12 +191,55 @@ fn expand_workset(
 
 #[derive(Debug, Clone)]
 pub struct BodyPlanningSession {
+    unavailable_proposal_sign_id: Option<SignId>,
     body: Body,
     wake: Wake,
     plans: Vec<BodyPlan>,
 }
 
 impl BodyPlanningSession {
+    /// Plan the current workset without claiming Host admission or Play start.
+    pub fn prepare(
+        body: &Body,
+        wake_sequence: u64,
+        wake_sign_id: SignId,
+        forms: Vec<BodyFormPlan>,
+    ) -> Result<Self, BodyPlanningSessionError> {
+        let (body, wake) = body
+            .wake(wake_sequence, wake_sign_id)
+            .map_err(BodyPlanningSessionError::Lifecycle)?;
+        let plan = BodyPlan::seal(&wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        Ok(Self {
+            body,
+            wake,
+            plans: vec![plan],
+            unavailable_proposal_sign_id: None,
+        })
+    }
+
+    /// Refresh an unstarted proposal. Retiring a running Play needs a separate
+    /// attributable lifecycle event; offer availability alone cannot do it.
+    pub fn replace_proposal(
+        &mut self,
+        forms: Vec<BodyFormPlan>,
+    ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        if self.wake.lifecycle != WakeLifecycle::AwaitingPlan || !self.wake.plans.is_empty() {
+            return Err(BodyPlanningSessionError::StaleCurrentPlan);
+        }
+        if self.plans.len() >= conduit_body::MAX_WAKE_PLANS {
+            return Err(BodyPlanningSessionError::Lifecycle(
+                BodyLifecycleError::PlanCapacityExhausted,
+            ));
+        }
+        let plan = BodyPlan::seal(&self.wake, forms).map_err(BodyPlanningSessionError::Plan)?;
+        if plan.plan_id == self.current_plan().plan_id {
+            return Err(BodyPlanningSessionError::StaleCurrentPlan);
+        }
+        self.plans.push(plan);
+        self.unavailable_proposal_sign_id = None;
+        Ok(self.current_plan())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn start(
         body: &Body,
@@ -220,6 +265,7 @@ impl BodyPlanningSession {
             body,
             wake,
             plans: vec![plan],
+            unavailable_proposal_sign_id: None,
         })
     }
 
@@ -257,6 +303,10 @@ impl BodyPlanningSession {
         &mut self,
         sign_id: SignId,
     ) -> Result<&BodyPlan, BodyPlanningSessionError> {
+        if self.wake.lifecycle == WakeLifecycle::AwaitingPlan {
+            self.unavailable_proposal_sign_id = Some(sign_id);
+            return Ok(self.current_plan());
+        }
         let plan_id = self.current_plan().plan_id.clone();
         self.wake = self
             .wake
@@ -295,6 +345,7 @@ impl BodyPlanningSession {
         current_hosts.sort();
         current_hosts.dedup();
         BodyPlanningSessionSnapshot {
+            unavailable_proposal_sign_id: self.unavailable_proposal_sign_id.clone(),
             body_id: self.body.body_id.clone(),
             wake_id: self.wake.wake_id.clone(),
             lifecycle: self.wake.lifecycle,

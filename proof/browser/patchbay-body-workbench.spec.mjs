@@ -105,7 +105,8 @@ test("a second browser replans one Body and its departure is explicit", async ({
   const planningInput = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
   expect(planningInput.body_host_planning_offer.stage).toBe("Planning");
   expect(planningInput.body_planning.body_id).toBe(bodyId);
-  expect(planningInput.body_planning.lifecycle).toBe("Playing");
+  // Offer admission/planning is not evidence that the browser started a Play.
+  expect(planningInput.body_planning.lifecycle).toBe("AwaitingPlan");
   expect(planningInput.body_planning.current_hosts).toEqual([{ host_id: admittedIdentity.hostId, boot_id: admittedIdentity.bootId }]);
   expect(planningInput.body_planning.historical_plan_ids).toEqual([planningInput.body_planning.current_plan_id]);
   expect(planningInput.interaction.last_disposition).toBe("Succeeded(PlanningInputAdmitted;BodyReplanned)");
@@ -223,9 +224,10 @@ test("a second browser replans one Body and its departure is explicit", async ({
   await secondPage.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(async () => {
     const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
-    return snapshot.body_planning?.lifecycle;
-  }).toBe("Unsatisfied");
+    return Boolean(snapshot.body_planning?.unavailable_proposal_sign_id);
+  }).toBe(true);
   const afterSecondLeave = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+  expect(afterSecondLeave.body_planning.lifecycle).toBe("AwaitingPlan");
   expect(afterSecondLeave.body_planning.body_id).toBe(bodyId);
   expect(afterSecondLeave.body_planning.current_plan_id).toBe(replacementSnapshot.body_planning.current_plan_id);
   expect(afterSecondLeave.body_planning.historical_plan_ids).toHaveLength(2);

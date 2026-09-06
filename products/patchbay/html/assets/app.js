@@ -326,7 +326,7 @@ function renderBodyWorkbench(workbench){
   renderBodyEvidenceStatus(workbench);
   document.querySelector('[data-workbench-destination="program"]').hidden=!state.snapshot.navigation.navigation.places.some(place=>place.place==="Program");
   document.querySelector("#body-workbench-title").textContent=current.friendly_name;
-  document.querySelector("#body-workbench-status").textContent=`Durable biography · ${current.status_line}${planning?` · runtime ${planning.lifecycle}`:""}`;
+  document.querySelector("#body-workbench-status").textContent=`Durable biography · ${current.status_line}${planning?` · runtime ${planning.lifecycle}`:""}${planning?.unavailable_proposal_sign_id?" · proposed placement unavailable":""}`;
   document.querySelector("#body-workbench-placement").textContent=current.placement_line;
   const action=document.querySelector("#body-workbench-action");action.textContent=runtimeAwake?"Runtime awake":current.salient_action;action.dataset.semanticAction=current.salient_action.toLowerCase();action.disabled=runtimeAwake;action.title=runtimeAwake?"Lull the runtime Wake before changing the durable workload.":"";
   presentDefinitions("body-workbench-facts",[["Active Forms",current.active_forms.length],["Workload revision",current.workload_revision],["Lifecycle",typeof current.lifecycle==="string"?current.lifecycle:Object.keys(current.lifecycle)[0]],["Durable Parts",current.admitted_parts],["Current Hosts",current.current_hosts.length],["Physical Hosts","Not evidenced"]]);
