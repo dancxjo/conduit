@@ -43,7 +43,6 @@ Candidate evidence retains the identity assigned at offer through commit or
 abort. A finite transition-budget realization continues to report its distinct
 budget refusal. General checked-Form execution and cross-Play continuity remain
 separately owned by #2688 and #2691.
-
 The kernel `StateOperation` adapter exposes this cell through exact next/current
 ports in the existing `OperationDriver` and fixed scheduler. Its profile admits
 at most the existing canonical-emission byte envelope; larger cells refuse
