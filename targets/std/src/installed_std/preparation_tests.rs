@@ -88,24 +88,13 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
     let mut drivers =
         core::array::from_fn(|_| OperationDriver::new(InstalledOperation::inactive()).unwrap());
     for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
-        let play = conduit_core::bind_active_play(
-            &fragment.plan_id,
-            &fragment.host_id,
-            &fragment.boot_id,
-            1,
-        );
-        for (slot, driver) in prepare_operations(fragment, partition, &mut values, &play, None)
-            .unwrap()
-            .into_iter()
-            .enumerate()
-        {
-            if partition
-                .nodes
-                .iter()
-                .any(|node| usize::from(node.node.0) == slot)
-            {
-                drivers[slot] = driver;
-            }
+        assert!(partition.states.is_empty());
+        for node in &partition.nodes {
+            // Initialization of ordinary operations does not create independent
+            // per-Form Plays or forge a constituent ActivePlayIdentity.
+            let operation =
+                prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap();
+            drivers[usize::from(node.node.0)] = OperationDriver::new(operation).unwrap();
         }
     }
     let partitions: Vec<_> = lowered.partitions.iter().collect();

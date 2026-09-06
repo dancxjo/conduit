@@ -48,11 +48,6 @@ pub(super) fn prepare_operations(
         .map(|_| InstalledOperation::inactive())
         .collect();
     for node in &lowered.nodes {
-        let placement = fragment
-            .placements
-            .iter()
-            .find(|placement| placement.placement_id == node.placement_id)
-            .ok_or_else(|| "lowered node has no planned placement".to_string())?;
         if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
             if state.contract.retained.is_some() {
                 continue;
@@ -61,10 +56,8 @@ pub(super) fn prepare_operations(
                 crate::state_value::TypedStateOperation::prepare_for_play(fragment, state, play)?,
             ));
         } else {
-            let factory = factory(&placement.implementation_id).ok_or_else(|| {
-                "planned implementation is not installed or lacks sealed State".to_string()
-            })?;
-            operations[usize::from(node.node.0)] = (factory.prepare)(placement, values)?;
+            operations[usize::from(node.node.0)] =
+                prepare_ordinary_operation(fragment, &node.placement_id, values)?;
         }
     }
     // Ordinary/fresh preparation finishes before any incoming cell is consumed.
@@ -102,6 +95,25 @@ pub(super) fn prepare_operations(
         .try_into()
         .map_err(|_| "installed driver capacity changed".to_string())?;
     Ok(drivers)
+}
+
+/// Initialize an ordinary installed operation before any Play starts. This is
+/// not admission or execution authority. State initialization stays on the
+/// separately validated Play-bound path above, with its exact continuity owner.
+pub(super) fn prepare_ordinary_operation(
+    fragment: &PlanFragment,
+    placement_id: &conduit_core::PlacementId,
+    values: &mut HostedValueStore,
+) -> Result<InstalledOperation, String> {
+    let placement = fragment
+        .placements
+        .iter()
+        .find(|placement| &placement.placement_id == placement_id)
+        .ok_or_else(|| "lowered node has no planned placement".to_string())?;
+    let factory = factory(&placement.implementation_id).ok_or_else(|| {
+        "planned implementation is not installed or lacks sealed State".to_string()
+    })?;
+    (factory.prepare)(placement, values)
 }
 
 #[cfg(test)]
