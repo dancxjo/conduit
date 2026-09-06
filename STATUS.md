@@ -2421,3 +2421,56 @@ proven carrier against the merged tree. BUILD and download remain distinct
 from installation, launch, Host/Boot truth, join, membership, and Play; this
 acceptance adds no signing, notarization, installer, package-manager,
 automatic-launch, Windows arm64, Intel macOS, or runtime-equivalence claim.
+
+
+## Accepted Tour identity and repository ownership (#2294, #2275)
+
+Stable promotion [#2771](https://github.com/dancxjo/conduit/pull/2771) admitted
+frozen development commit `9eb7d8e1c3669e9146e890c454029732a84e5689` through
+immutable promotion head `a097e2c0328c00e9222067b6fd504af1fcd9e545`.
+The exhaustive [promotion run 34038540549](https://github.com/dancxjo/conduit/actions/runs/34038540549)
+passed on that head. Merged `main` commit
+`41af600ae9267fd630088c5af25f347b449e008c` has the same exact tree,
+`2a2fb59618a947eaa37ae98588f838a82cbfd761`. The jobs ran on the frozen
+promotion head; merged-main acceptance is established by that exact tree
+identity, not by claiming a second execution on the merge wrapper.
+[Development integration 34038500474](https://github.com/dancxjo/conduit/actions/runs/34038500474)
+also passed on the selected development commit.
+
+The accepted current product is Tour: `products/tour`, application identity
+`conduit.application/tour`, and the public `/conduit/tour/` route. The finite
+legacy `/book` redirect map preserves query and fragment. Saved drafts retain
+`conduit.application/book-reading-state@1` as their deliberate compatibility
+identity; bounded legacy reading-state documents migrate to the Tour schema,
+and malformed or over-capacity state refuses without being rewritten.
+Historical Book evidence elsewhere in this file remains historical truth.
+
+The [repository layout guide](docs/repository-layout.md) defines the accepted
+ownership map. Products are Conduit, Tour, Crèche, and Patchbay; Pete is
+Body-owned; canonical Forms use the reviewed `forms/inventory.toml` rather
+than filesystem discovery as authority. Crèche selects ordinary Forms into
+workload revision 0. Product browser assets and package descriptors are
+product-owned; generic browser admission and effects remain target-owned.
+Root support files now belong to target, Body, product, proof, documentation,
+or repository-tool owners. Target layout follows responsibility names while
+preserving package identities and declared browser resource URLs. The tracked
+repository taxonomy guard refuses retired roots, misplaced browser product
+assets, and noncanonical Form paths while ignoring untracked local artifacts.
+
+The exhaustive gate passed workspace formatting, lint and tests, target
+build/proof jobs, product staging, and four pinned-Chromium browser shards:
+Pages 4 tests, browser Host 47, Tour 47, and Crèche machines 22, with one worker
+and zero retries. These cover direct/deep/history-aware Tour routes, package
+admission and exact refusals, legacy routes and drafts, peer navigation,
+independent product trees, fourth-product conformance, canonical workload
+selection, and target adapter packaging after relocation. Package aggregate
+identity refuses before resource fetching; individual resource bytes remain
+checked before launch. The Pages carrier was built from this proven snapshot.
+
+This acceptance does not create a future Book or house implementation, a
+second Form inventory, a Seed replacement ontology, a product scheduler, or a
+uniform target artifact format. It adds no physical/HIL or installation claim.
+Failed promotions #2767 and #2769 remain failed evidence; their corrected
+proof and admission paths are accepted only through the successful snapshot
+above. Forms-as-gears #2291 and the embodied-house slice #2293 retain their
+separate implementation and proof obligations.

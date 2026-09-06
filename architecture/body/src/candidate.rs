@@ -10,7 +10,10 @@ use crate::{BodyId, BodyLifecycleError, CandidateId, DiscoveryProofId};
 pub const MAX_CANDIDATES: usize = 16;
 pub const MAX_CANDIDATE_HISTORY: usize = 64;
 pub const MAX_INGRESS_REFUSALS: usize = 16;
-pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 24_576;
+// The installed browser profile has 65 offers and encodes to about 67 KiB
+// including its admission envelope. Keep a finite bound that admits that real
+// catalog, instead of silently hiding installed capabilities at membership.
+pub const MAX_CANDIDATE_ADVERTISEMENT_BYTES: u32 = 72 * 1024;
 pub const MAX_CANDIDATE_TOTAL_BYTES: u32 = 4 * MAX_CANDIDATE_ADVERTISEMENT_BYTES;
 pub const MAX_CANDIDATE_LABEL_BYTES: usize = 128;
 pub const MAX_CANDIDATE_RESOURCES: usize = 32;

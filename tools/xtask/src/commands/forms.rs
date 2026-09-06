@@ -245,6 +245,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
     #[derive(Serialize)]
     struct BundledForm<'a> {
         slug: &'a str,
+        entry: &'a str,
         source: String,
     }
     #[derive(Serialize)]
@@ -259,6 +260,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
             fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))?;
         forms.push(BundledForm {
             slug: &form.slug,
+            entry: &form.entry,
             source,
         });
     }

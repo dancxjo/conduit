@@ -9,6 +9,9 @@ use conduit_core::{
 
 const CLASS: &str = "conduit.resource/compute/shared-lane@1";
 
+#[path = "resource_admission/batch.rs"]
+mod batch;
+
 fn host() -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: 1,
