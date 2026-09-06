@@ -298,7 +298,10 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.json_collection {
-        capabilities.push(conduit_std_offers::json_collection_step_std_offer());
+        capabilities.extend([
+            conduit_std_offers::json_collection_step_std_offer(),
+            conduit_std_offers::json_boolean_summary_std_offer(),
+        ]);
     }
     if composition.json {
         capabilities.extend([

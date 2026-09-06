@@ -94,7 +94,7 @@ fn acyclic_order(
         .map(|node| (node, 0usize))
         .collect::<BTreeMap<_, _>>();
     for edge in connections {
-        if !state_gears.contains(&edge.sink_gear_id) && edge.source_gear_id != edge.sink_gear_id {
+        if !state_gears.contains(&edge.sink_gear_id) {
             *indegree.get_mut(&edge.sink_gear_id)? += 1;
         }
     }
@@ -107,11 +107,10 @@ fn acyclic_order(
     while let Some(node) = ready.iter().next().cloned() {
         ready.remove(&node);
         order.push(node.clone());
-        for edge in connections.iter().filter(|edge| {
-            edge.source_gear_id == node
-                && !state_gears.contains(&edge.sink_gear_id)
-                && edge.source_gear_id != edge.sink_gear_id
-        }) {
+        for edge in connections
+            .iter()
+            .filter(|edge| edge.source_gear_id == node && !state_gears.contains(&edge.sink_gear_id))
+        {
             let count = indegree.get_mut(&edge.sink_gear_id)?;
             *count -= 1;
             if *count == 0 {
@@ -144,6 +143,30 @@ mod tests {
         let edges = vec![edge("state", "step"), edge("step", "state")];
         assert!(acyclic_order(&nodes, &edges, &BTreeSet::new()).is_none());
         assert!(acyclic_order(&nodes, &edges, &BTreeSet::from([GearId::from("state")])).is_some());
+    }
+
+    #[test]
+    fn ordinary_self_cycle_is_not_a_state_boundary() {
+        let nodes = vec![GearId::from("step")];
+        let edges = vec![edge("step", "step")];
+        assert!(acyclic_order(&nodes, &edges, &BTreeSet::new()).is_none());
+    }
+
+    #[test]
+    fn admitted_state_self_feedback_crosses_the_delay_boundary() {
+        let nodes = vec![GearId::from("state")];
+        let edges = vec![edge("state", "state")];
+        assert_eq!(
+            acyclic_order(&nodes, &edges, &BTreeSet::from([GearId::from("state")])),
+            Some(nodes)
+        );
+    }
+
+    #[test]
+    fn unrelated_state_does_not_hide_an_ordinary_self_cycle() {
+        let nodes = vec![GearId::from("state"), GearId::from("step")];
+        let edges = vec![edge("state", "step"), edge("step", "step")];
+        assert!(acyclic_order(&nodes, &edges, &BTreeSet::from([GearId::from("state")])).is_none());
     }
 
     #[test]

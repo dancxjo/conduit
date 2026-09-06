@@ -126,6 +126,30 @@ None implies the next.
 
 A discovered device is not automatically a host. A host on the network is not automatically a member. A member is not automatically authorized. A resource being free is not permission to affect it.
 
+### Least authority and finite embodiment
+
+An implementation must not possess materially more effect authority than the
+exact admitted realization it executes. General-purpose computation and
+continuous lifetime grant no filesystem, network, device, subprocess,
+credential, or other effect authority. Every concrete Play remains finitely
+admitted, including its memory, queues, operations, Resources, and mandatory
+work. Resource containment is distinct from proving that every future step
+will fit or that a computation will terminate.
+
+A grant identity describes authority; a serializable identity does not itself
+constitute unforgeable possession. The trusted enforcement boundary must
+validate exact current authority independently of a planner's proposed Plan.
+Replacement Boot truth requires fresh admission. Signs describe decisions and
+effects; they neither grant permission nor prevent an unauthorized effect.
+
+This is a durable requirement, not a claim of existing hostile-code isolation.
+A cooperative std process, an isolated implementation with restricted imports,
+a native ConduitOS boundary, and a remote authenticated peer have different
+attacker assumptions and proof obligations. State the actual mechanism and
+trust class; never collapse them into a generic security flag. The
+[confinement contract](architecture/implementation-confinement.md) records
+these boundaries and current evidence under #2685.
+
 ### Execution and presentation
 
 The DOM, stdout, LEDs, dashboards, and future Workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or Sign.
@@ -214,6 +238,25 @@ Automatic retry is a semantic promise and therefore must be planned. A base may 
 Portable std, browser, Pico, future Android, and ConduitOS profiles use the same execution protocol and scheduler semantics.
 
 Temporary compatibility façades may help migrate old tests or composite fixtures. They must be named as compatibility surfaces, excluded from production paths, and prevented from becoming a permanent second engine.
+
+## General-purpose finite computation
+
+Conduit targets general-purpose computation under explicit finite bounds.
+Every checked executable Form has exact finite semantic/resource capacities
+after specialization. Reusable algorithms may parameterize those capacities;
+a different semantic bound may produce a different checked identity. Large
+finite state spaces remain finite but may be impractical to enumerate.
+
+General typed State, branching/selection, explicit recurrence and bounded
+structured memory provide computational generality through ordinary typed
+composition. Continuous externally driven lifetime requires no special mode
+and does not imply unbounded retained State or instantaneous resources.
+Strict Turing completeness and semantically infinite memory are not current
+requirements. They require a new concrete architectural justification before
+introduction, rather than an opt-out flag added for convenience. The
+[finite computation contract](architecture/decidable-default-universal-extension.md)
+records the revised #2682 direction and its analysis, lifecycle, timing,
+continuity and confinement obligations.
 
 ## Form and composition direction
 

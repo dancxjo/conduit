@@ -586,6 +586,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-web",
  "conduit-wire",
  "ed25519-dalek",
  "serde",

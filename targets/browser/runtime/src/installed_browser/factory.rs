@@ -36,6 +36,10 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::json::ENCODE,
+    &super::json::DECODE,
+    &super::json::COLLECTION,
+    &super::json::SUMMARY,
     &text::LITERAL,
     &text::UPPER,
     &text::JOIN,
@@ -183,6 +187,7 @@ fn catalogs_for_presentation(
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
+    conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
     if quantity {
         conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
@@ -225,6 +230,10 @@ pub(crate) fn backs(
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    #[cfg(test)]
+    if let Some(fixture) = super::test_json::factory(implementation_id.as_str()) {
+        return Some(fixture);
+    }
     if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
         return Some(&quantity_output::PRESENTATION);
     }
