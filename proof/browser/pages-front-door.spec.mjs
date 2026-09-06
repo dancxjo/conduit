@@ -57,8 +57,8 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
     productNavigation.getByRole("link", { name: "Tour" }).click({ button: "middle" }),
   ]);
   try {
-    await expect(newTab).toHaveURL(`${tour}a-form-you-can-run/`);
-    await expect(newTab.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+    await expect(newTab).toHaveURL(`${tour}one-program-many-computers/`);
+    await expect(newTab.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   } finally { await newTab.close(); }
   await productNavigation.getByRole("link", { name: "Tour" }).focus();
   await page.keyboard.press("Enter");
@@ -78,7 +78,7 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
   await page.goto(tour);
   await expect(page).toHaveURL(tour);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Conduit home" })).toHaveAttribute("href", "/conduit");
   await expect(page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Tour" })).toHaveAttribute("aria-current", "page");
   await page.getByRole("navigation", { name: "Conduit products" }).getByRole("link", { name: "Patchbay" }).click();
@@ -107,7 +107,7 @@ test("Conduit home, Tour, Crèche, and Patchbay are stable sibling endpoints", a
 test("published Tour chapter permalinks remain deployable", async ({ page }) => {
   const home = entrance.url.replace(/\/$/, "");
   const permalinks = [
-    ["meet-one-gear", "A Form you can run"],
+    ["meet-one-gear", "One Program, Many Computers"],
     ["same-face-different-implementation", "Faces, Backs, and implementation"],
   ];
 
@@ -122,10 +122,10 @@ test("legacy /book routes redirect to canonical /tour routes", async ({ page }) 
   const home = entrance.url.replace(/\/$/, "");
   await page.goto(`${home}/book/`);
   await expect(page).toHaveURL(`${home}/tour/`);
-  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await page.goto(`${home}/book/meet-one-gear/?from=legacy#source`);
   await expect(page).toHaveURL(`${home}/tour/meet-one-gear/?from=legacy#source`);
-  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeVisible();
 });
 
 test("the shared shell follows dark and light preferences without changing application behavior", async ({ page }) => {
