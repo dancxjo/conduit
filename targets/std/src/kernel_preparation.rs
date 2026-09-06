@@ -3,11 +3,12 @@
 //! Migrated profiles use this boundary instead of instantiating the legacy
 //! runtime merely to validate a plan and hold its resource pools.
 
-use crate::installed_std::lower_fragment;
+use crate::installed_std::state_storage_profile;
 use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
     ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
 };
+use conduit_plan_lowering::lowering::lower_plan_fragment_for_profile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PoolUsage {
@@ -59,7 +60,7 @@ impl KernelResourceLedger {
         advertisement: &HostAdvertisement,
         fragment: &PlanFragment,
     ) -> Result<KernelResourceReservation, String> {
-        let lowered = lower_fragment(fragment)
+        let lowered = lower_plan_fragment_for_profile(fragment, state_storage_profile())
             .map_err(|error| format!("kernel preparation lowering: {error:?}"))?;
         validate_exact_profile(advertisement, fragment)?;
 

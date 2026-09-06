@@ -43,14 +43,18 @@ pub(super) fn prepare_operations(
 }
 
 pub(crate) fn lower_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, String> {
-    let profile = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE
+    let profile = state_storage_profile();
+    conduit_plan_lowering::lowering::lower_plan_fragment_for_profile(fragment, profile)
+        .map_err(|error| format!("lowering: {error:?}"))
+}
+
+pub(crate) fn state_storage_profile() -> conduit_plan_lowering::lowering::KernelStorageProfile {
+    conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE
         .with_state_storage(
             MAX_NODES as u16,
             conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES,
         )
-        .map_err(|error| format!("State storage profile: {error:?}"))?;
-    conduit_plan_lowering::lowering::lower_plan_fragment_for_profile(fragment, profile)
-        .map_err(|error| format!("lowering: {error:?}"))
+        .expect("the installed State storage profile has fixed positive capacities")
 }
 
 pub(super) fn operation_budget(

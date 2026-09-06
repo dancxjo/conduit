@@ -42,7 +42,7 @@ mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod preparation;
-pub(super) use preparation::lower_fragment;
+pub(super) use preparation::state_storage_profile;
 mod retained_run;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
