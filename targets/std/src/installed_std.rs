@@ -35,12 +35,16 @@ mod midi_input_operation;
 mod midi_output_operation;
 mod model_host;
 mod operation;
+mod operation_cancellation;
 mod operation_capacity;
 mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod presentation_composition;
 mod presentation_construction_host;
+mod pulse_observation_operation;
+#[cfg(test)]
+mod pulse_observation_sink;
 mod quantity_mapping;
 mod recurrence_codec;
 mod recurrence_encoding;

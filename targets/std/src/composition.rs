@@ -17,6 +17,8 @@ mod signal;
 pub struct StdHostComposition {
     pub signal: bool,
     pub time: bool,
+    /// Ordered nominal pulse observation; selected independently of the broad reference image.
+    pub pulse_observation: bool,
     pub text: bool,
     pub input: bool,
     pub state: bool,
@@ -38,6 +40,7 @@ impl StdHostComposition {
         Self {
             signal: true,
             time: true,
+            pulse_observation: false,
             text: true,
             input: true,
             state: true,
@@ -60,6 +63,7 @@ impl StdHostComposition {
         Self {
             signal: false,
             time: false,
+            pulse_observation: false,
             text: false,
             input: false,
             state: false,
@@ -83,6 +87,11 @@ impl StdHostComposition {
 
     pub const fn with_time(mut self) -> Self {
         self.time = true;
+        self
+    }
+
+    pub const fn with_pulse_observation(mut self) -> Self {
+        self.pulse_observation = true;
         self
     }
 
@@ -185,6 +194,9 @@ pub(super) fn build_advertisement(
             conduit_std_offers::tick_presentation_offer(),
             conduit_std_offers::bool_presentation_offer(),
         ]);
+    }
+    if composition.pulse_observation {
+        capabilities.push(conduit_std_offers::pulse_observe_offer());
     }
     if composition.text {
         capabilities.extend([
