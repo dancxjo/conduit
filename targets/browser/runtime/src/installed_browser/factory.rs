@@ -36,6 +36,8 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::timing::INTERVALS,
+    &super::timing::NORMALIZE,
     &super::json::ENCODE,
     &super::json::DECODE,
     &super::json::COLLECTION,
@@ -204,6 +206,8 @@ fn catalogs_for_presentation(
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;

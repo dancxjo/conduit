@@ -46,6 +46,7 @@ pub(super) struct TourScheduler {
     selectors: [Option<crate::installed_browser::pointer_selector::PreparedSelector>;
         MAXIMUM_BROWSER_GEARS],
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; MAXIMUM_BROWSER_GEARS],
+    timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -181,6 +182,44 @@ pub(super) fn drive(
                 .host_operations
                 .get(usize::from(request.operation.0))
                 .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+            if crate::installed_browser::timing::OPERATIONS
+                .contains(&operation.contract_id.as_str())
+            {
+                let input = scheduler
+                    .kernel
+                    .host_value(request.input.value)
+                    .map_err(debug_error)?;
+                let result = scheduler.timing[usize::from(request.node.0)]
+                    .as_mut()
+                    .ok_or("timing codec was not prepared before Play")?
+                    .execute(operation.contract_id.as_str(), input);
+                let outcome = match result {
+                    Ok(bytes) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: Some(
+                            BoundedValueRef::new(
+                                scheduler
+                                    .kernel
+                                    .store_host_value(bytes)
+                                    .map_err(debug_error)?,
+                                operation.maximum_output_bytes,
+                            )
+                            .map_err(debug_error)?,
+                        ),
+                        failure: None,
+                    },
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                scheduler
+                    .kernel
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(debug_error)?;
+                continue;
+            }
             if crate::installed_browser::json::OPERATIONS.contains(&operation.contract_id.as_str())
             {
                 let result = crate::installed_browser::json::execute(

@@ -22,6 +22,7 @@ mod quantity;
 mod quantity_output;
 mod state_time;
 mod text;
+pub(crate) mod timing;
 mod values;
 
 #[cfg(test)]

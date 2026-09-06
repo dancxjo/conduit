@@ -50,6 +50,7 @@ pub(super) fn prepare_scheduler(
     let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
     let mut mappings = [None; MAXIMUM_BROWSER_GEARS];
     let mut selectors = core::array::from_fn(|_| None);
+    let mut timing = core::array::from_fn(|_| None);
     for node in &lowered.nodes {
         let placement = fragment
             .placements
@@ -63,6 +64,8 @@ pub(super) fn prepare_scheduler(
             );
         }
         operations.push((installation.prepare)(placement, &mut values)?);
+        timing[usize::from(node.node.0)] =
+            crate::installed_browser::timing::PreparedTiming::for_placement(placement)?;
         if placement.host_operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == crate::installed_browser::pointer_selector::HOST_OPERATION
@@ -153,5 +156,6 @@ pub(super) fn prepare_scheduler(
         kernel,
         mappings,
         selectors,
+        timing,
     })
 }

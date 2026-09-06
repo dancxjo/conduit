@@ -77,7 +77,10 @@ fn family(kind: &str) -> &'static str {
         | conduit_semantic_catalog::LOGIC_SELECT_KIND => "logic",
         conduit_semantic_catalog::SCALAR_LITERAL_KIND
         | conduit_semantic_catalog::BOOL_LITERAL_KIND => "typed-values",
-        conduit_time::TIME_EVERY_KIND | conduit_semantic_catalog::TIME_DELAY_KIND => "time",
+        conduit_time::TIME_EVERY_KIND
+        | conduit_semantic_catalog::TIME_DELAY_KIND
+        | conduit_semantic_catalog::ORDERED_EVENT_INTERVALS_KIND
+        | conduit_semantic_catalog::NORMALIZE_SEQUENCE_KIND => "time",
         conduit_semantic_catalog::KEYBOARD_KIND => "interaction",
         conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => "layout",
         conduit_semantic_catalog::STATE_COUNT_KIND => "state",
