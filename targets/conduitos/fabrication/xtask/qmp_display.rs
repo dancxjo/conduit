@@ -101,7 +101,7 @@ pub(super) fn capture(
     checkpoint: &str,
 ) -> Result<(serde_json::Value, Option<ConduitosError>), ConduitosError> {
     use sha2::{Digest, Sha256};
-    use std::{fs, io::Read};
+    use std::fs;
     if checkpoint.is_empty()
         || checkpoint.len() > 64
         || !checkpoint
@@ -125,13 +125,10 @@ pub(super) fn capture(
     }
     let command = serde_json::json!({"execute":"screendump","arguments":{"filename":ppm}});
     super::qmp::request(stream, reader, command.to_string().as_bytes(), checkpoint)?;
-    let mut bytes = Vec::new();
-    fs::File::open(&ppm)
-        .map_err(io_error)?
-        .take((MAXIMUM_FRAME_BYTES + 1) as u64)
-        .read_to_end(&mut bytes)
-        .map_err(io_error)?;
-    let frame = decode(&bytes)?;
+    let frame = read_complete_frame(
+        &ppm,
+        std::time::Instant::now() + std::time::Duration::from_secs(2),
+    )?;
     let encoded = frame.encode_png().map_err(|error| {
         ConduitosError::refusal("qemu-display-encode-failed", error.to_string())
     })?;
@@ -140,15 +137,87 @@ pub(super) fn capture(
     let health_refusal = require_content(&frame).err();
     Ok((
         serde_json::json!({"checkpoint":checkpoint,"png":png.file_name().unwrap().to_string_lossy(),
-        "width":frame.width(),"height":frame.height(),"pixel_format":"RGBA8","png_bytes":encoded.len(),
+        "width":frame.width(),"height":frame.height(),
+        "non_background_pixels":frame.data().chunks_exact(4).filter(|pixel|*pixel != &frame.data()[..4]).count(),
+        "pixel_format":"RGBA8","png_bytes":encoded.len(),
         "png_sha256":format!("{:x}",Sha256::digest(&encoded)),"pixel_sha256":format!("{:x}",Sha256::digest(frame.data()))}),
         health_refusal,
     ))
 }
 
+fn read_complete_frame(
+    path: &std::path::Path,
+    deadline: std::time::Instant,
+) -> Result<Pixmap, ConduitosError> {
+    use std::{
+        fs,
+        io::Read,
+        time::{Duration, Instant},
+    };
+    loop {
+        let result = (|| {
+            let mut bytes = Vec::new();
+            fs::File::open(path)
+                .map_err(|error| {
+                    ConduitosError::refusal(
+                        if error.kind() == std::io::ErrorKind::NotFound {
+                            "qemu-display-unavailable"
+                        } else {
+                            "qemu-display-artifact-io"
+                        },
+                        error.to_string(),
+                    )
+                })?
+                .take((MAXIMUM_FRAME_BYTES + 1) as u64)
+                .read_to_end(&mut bytes)
+                .map_err(|error| {
+                    ConduitosError::refusal("qemu-display-artifact-io", error.to_string())
+                })?;
+            decode(&bytes)
+        })();
+        match result {
+            Ok(frame) => return Ok(frame),
+            Err(error)
+                if Instant::now() < deadline
+                    && matches!(
+                        error.reason,
+                        "qemu-display-unavailable" | "qemu-display-malformed-ppm"
+                    ) =>
+            {
+                // File publication can lag the acknowledged command. This polls bytes,
+                // never reissues screendump or performs another guest action.
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unavailable_file_and_malformed_file_remain_distinct_at_deadline() {
+        let path =
+            std::env::temp_dir().join(format!("conduit-ppm-deadline-{}", std::process::id()));
+        assert_eq!(
+            read_complete_frame(&path, std::time::Instant::now())
+                .err()
+                .unwrap()
+                .reason,
+            "qemu-display-unavailable"
+        );
+        std::fs::write(&path, b"P6\n1 1\n255\nxx").unwrap();
+        assert_eq!(
+            read_complete_frame(&path, std::time::Instant::now())
+                .err()
+                .unwrap()
+                .reason,
+            "qemu-display-malformed-ppm"
+        );
+        std::fs::remove_file(path).unwrap();
+    }
+
     #[test]
     fn binary_pixels_survive_png_without_whitespace_loss() {
         let input = b"P6\n# QEMU\n2 1\n255\n\n\r\t\0\x80\xff";

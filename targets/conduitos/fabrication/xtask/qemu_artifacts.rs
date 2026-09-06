@@ -15,9 +15,11 @@ impl Artifacts {
     pub(super) fn new(
         directory: PathBuf,
         serial: PathBuf,
-        context: Value,
+        mut context: Value,
     ) -> Result<Self, ConduitosError> {
         fs::create_dir_all(&directory).map_err(io_error)?;
+        context["visual_contract"] = json!({"mode":"invariant", "width":1280, "height":800,
+            "minimum_non_background_pixels":64,"dynamic_identity_pixels":"allowed", "display":"std-vga"});
         let result = Self {
             directory,
             serial,
@@ -62,6 +64,21 @@ impl Artifacts {
         let boot = super::journey_records::boot(text)?;
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
+        let health_refusal = health_refusal.or_else(|| {
+            if frame["width"] != 1280 || frame["height"] != 800 {
+                Some(ConduitosError::refusal(
+                    "qemu-display-dimensions",
+                    "ordinary journey expects 1280x800",
+                ))
+            } else if frame["non_background_pixels"].as_u64().unwrap_or(0) < 64 {
+                Some(ConduitosError::refusal(
+                    "qemu-display-content-region",
+                    "fewer than 64 non-background pixels",
+                ))
+            } else {
+                None
+            }
+        });
         let pixels = frame["pixel_sha256"]
             .as_str()
             .expect("capture digest")
