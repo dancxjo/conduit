@@ -201,7 +201,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     },
     ProofSpec {
         id: "browser.tour",
-        contract_version: 2,
+        contract_version: 3,
         kind: ProofKind::Browser,
         inputs: &[
             "Cargo.toml",
@@ -213,15 +213,10 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "products/tour",
             "site",
         ],
-        implementation_inputs: &[
-            "proof/browser/executable-book.spec.mjs",
-            "proof/browser/browser-application-package.spec.mjs",
-            "proof/browser/playwright.config.mjs",
-            "scripts/ci/stage-book-product.sh",
-            ".github/workflows/executable-book-pages.yml",
-        ],
-        // Runtime-byte promotion is a later artifact node; this proof currently
-        // fingerprints the runtime sources and fabrication contract directly.
+        // Fingerprint complete owning domains so a trusted controller can
+        // validate a candidate that renames proof, staging, or workflow files.
+        // Paths and bytes remain hashed; renames invalidate prior receipts.
+        implementation_inputs: &["proof/browser", "scripts/ci", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
@@ -230,7 +225,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     },
     ProofSpec {
         id: "browser.patchbay-debugger",
-        contract_version: 1,
+        contract_version: 2,
         kind: ProofKind::Browser,
         inputs: &[
             "Cargo.toml",
@@ -246,11 +241,10 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "products/patchbay/model",
             "semantics/tongues",
         ],
-        implementation_inputs: &[
-            "proof/browser/patchbay-debugger-watch.spec.mjs",
-            "proof/browser/patchbay-debugger.config.mjs",
-            ".github/workflows/executable-book-pages.yml",
-        ],
+        // Fingerprint complete owning domains so a trusted controller can
+        // validate a candidate that renames proof, staging, or workflow files.
+        // Paths and bytes remain hashed; renames invalidate prior receipts.
+        implementation_inputs: &["proof/browser", "scripts/ci", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
@@ -259,7 +253,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     },
     ProofSpec {
         id: "products.pages-carrier",
-        contract_version: 2,
+        contract_version: 3,
         kind: ProofKind::Browser,
         inputs: &[
             "Cargo.toml",
@@ -280,23 +274,10 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "targets/raspberry-pi",
             "targets/std",
         ],
-        implementation_inputs: &[
-            "proof/browser/pages-front-door.spec.mjs",
-            "proof/browser/presentation-nucleus.spec.mjs",
-            "proof/browser/presentation-nucleus.test.html",
-            "proof/browser/fourth-product-conformance.spec.mjs",
-            "proof/browser/fourth-product",
-            "proof/browser/book-test-server.mjs",
-            "proof/browser/playwright.config.mjs",
-            "proof/browser/static-server.mjs",
-            "scripts/ci/stage-pages-root.sh",
-            "scripts/ci/stage-book-product.sh",
-            "scripts/ci/stage-creche-product.sh",
-            "scripts/ci/stage-patchbay-product.sh",
-            "scripts/ci/seal-pages-carrier.mjs",
-            "scripts/ci/verify-pages-carrier.mjs",
-            ".github/workflows/executable-book-pages.yml",
-        ],
+        // Fingerprint complete owning domains so a trusted controller can
+        // validate a candidate that renames proof, staging, or workflow files.
+        // Paths and bytes remain hashed; renames invalidate prior receipts.
+        implementation_inputs: &["proof/browser", "scripts/ci", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,
