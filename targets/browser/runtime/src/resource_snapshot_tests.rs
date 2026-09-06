@@ -184,3 +184,27 @@ fn snapshot_generation_key_cannot_be_changed_by_claiming_a_different_extent() {
         Err(SnapshotRefusal::ContentExtent)
     );
 }
+
+#[test]
+fn snapshot_maximum_record_is_bounded_and_rejects_an_unrelated_authority_contract() {
+    let (mut write, reference) = placement("boot/one", true, MAXIMUM_SNAPSHOT_BYTES);
+    write.authority[0].contract_id = "authority/unrelated@1".into();
+    assert!(matches!(
+        PreparedSnapshotRecord::prepare(&write, &reference),
+        Err(SnapshotRefusal::AuthorityDenied)
+    ));
+    write.authority[0].contract_id = AUTHORITY_CONTRACT.into();
+    let mut writer = PreparedSnapshotRecord::prepare(&write, &reference).unwrap();
+    let content = [42; MAXIMUM_SNAPSHOT_BYTES];
+    let record = writer
+        .publication(&write.authority[0], &content)
+        .unwrap()
+        .to_vec();
+    assert!(record.len() <= MAXIMUM_RECORD_BYTES);
+    let (read, _) = placement("boot/two", false, MAXIMUM_SNAPSHOT_BYTES);
+    let reader = PreparedSnapshotRecord::prepare(&read, &reference).unwrap();
+    assert_eq!(
+        reader.restore(&read.authority[0], &record).unwrap(),
+        &content
+    );
+}

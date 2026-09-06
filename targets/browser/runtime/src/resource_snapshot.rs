@@ -8,6 +8,7 @@ use conduit_core::{
     ResourceContentRefusal, ResourceRetention, ResourceSharing,
 };
 
+pub const AUTHORITY_CONTRACT: &str = "authority/resource-snapshot@1";
 pub const PUBLISH_OPERATION: &str = "conduit.host/resource-snapshot-publish@1";
 pub const READ_OPERATION: &str = "conduit.host/resource-snapshot-read@1";
 pub const MAXIMUM_SNAPSHOT_BYTES: usize = 4096;
@@ -111,7 +112,7 @@ impl PreparedSnapshotRecord {
             return Err(SnapshotRefusal::AuthorityDenied);
         };
         if authority.grant_id.as_str().is_empty()
-            || authority.contract_id.as_str().is_empty()
+            || authority.contract_id.as_str() != AUTHORITY_CONTRACT
             || authority.host_operation_contract_id != host_operation.contract_id
             || authority.subject_kind != placement.kind_id
             || authority.capability_id != placement.capability_id
