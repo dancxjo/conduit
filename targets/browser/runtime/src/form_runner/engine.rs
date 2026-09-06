@@ -181,6 +181,38 @@ pub(super) fn drive(
                 .host_operations
                 .get(usize::from(request.operation.0))
                 .ok_or_else(|| "browser request has no planned Host operation".to_string())?;
+            if crate::installed_browser::json::OPERATIONS.contains(&operation.contract_id.as_str())
+            {
+                let result = crate::installed_browser::json::execute(
+                    placement,
+                    operation.contract_id.as_str(),
+                    scheduler
+                        .host_value(request.input.value)
+                        .map_err(debug_error)?,
+                );
+                let outcome = match result {
+                    Ok(bytes) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Completed,
+                        output: Some(
+                            BoundedValueRef::new(
+                                scheduler.store_host_value(&bytes).map_err(debug_error)?,
+                                operation.maximum_output_bytes,
+                            )
+                            .map_err(debug_error)?,
+                        ),
+                        failure: None,
+                    },
+                    Err(failure) => HostOperationOutcome {
+                        disposition: HostOperationDisposition::Failed,
+                        output: None,
+                        failure: Some(failure),
+                    },
+                };
+                scheduler
+                    .complete_host_operation(request.node, request.request, outcome)
+                    .map_err(debug_error)?;
+                continue;
+            }
             if operation.contract_id.as_str()
                 == crate::installed_browser::pointer_selector::HOST_OPERATION
             {
@@ -399,3 +431,7 @@ fn decode_timer_duration(
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
 }
+
+#[cfg(test)]
+#[path = "json_tests.rs"]
+mod json_tests;

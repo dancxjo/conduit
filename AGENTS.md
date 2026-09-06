@@ -153,6 +153,7 @@ Reviewers should ask:
 - Are hidden allocations, retries, ambient authority, or invented connectivity present?
 - Does the PR remain inside its stop line?
 - Is a dormant idea being promoted without its prerequisites?
+- Can an implementation exercise ambient authority beyond its exact admitted realization? Reject such paths; distinguish cooperative authority checks from proven hostile-code confinement. A serialized grant identity, planner decision, or Sign is not an enforcement mechanism.
 
 A request for changes should identify the smallest architectural or proof gap. Avoid style churn when the contract is already clear.
 
