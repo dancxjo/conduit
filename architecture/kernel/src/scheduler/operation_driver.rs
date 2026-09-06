@@ -6,6 +6,11 @@ use crate::{
     OperationInput, PortId, RequestId, ValueRef,
 };
 
+const PROTOCOL_FAILURE: crate::Failure = crate::Failure {
+    code: crate::FailureCode::InvalidLifecycle,
+    detail: u16::MAX,
+};
+
 #[derive(Clone, Copy)]
 enum AdapterEvent {
     None,
@@ -39,7 +44,7 @@ impl AdapterEvent {
 enum AdapterTerminal {
     Continue,
     Complete,
-    Fail(u16),
+    Fail(crate::Failure),
 }
 
 #[derive(Clone, Copy)]
@@ -156,7 +161,7 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
                     return Ok(transaction);
                 }
                 OperationAction::Fail(failure) => {
-                    transaction.terminal = AdapterTerminal::Fail(failure.detail);
+                    transaction.terminal = AdapterTerminal::Fail(failure);
                     return Ok(transaction);
                 }
             }
@@ -226,7 +231,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome {
         if self.protocol_failed {
-            return StepOutcome::Fail(u16::MAX);
+            return StepOutcome::Fail(PROTOCOL_FAILURE);
         }
         if self.pending.is_none() {
             let Some(event) = self.next_event(io) else {
@@ -236,7 +241,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 AdapterEvent::Value { port, value } => {
                     let Some(canonical) = input_bytes.input(port) else {
                         self.protocol_failed = true;
-                        return StepOutcome::Fail(u16::MAX);
+                        return StepOutcome::Fail(PROTOCOL_FAILURE);
                     };
                     self.operation.resume_value(port, value, canonical)
                 }
@@ -245,7 +250,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                     .resume_host_operation(request, outcome, input_bytes.host_output()),
                 _ => {
                     let Some(input) = event.operation_input() else {
-                        return StepOutcome::Fail(u16::MAX);
+                        return StepOutcome::Fail(PROTOCOL_FAILURE);
                     };
                     self.operation.resume(input)
                 }
@@ -256,17 +261,17 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                         && self.operation.retains_resumed_value();
                     if self.collect_released_values(&mut transaction).is_err() {
                         self.protocol_failed = true;
-                        return StepOutcome::Fail(u16::MAX);
+                        return StepOutcome::Fail(PROTOCOL_FAILURE);
                     }
                     if self.collect_host_cancellation(&mut transaction).is_err() {
                         self.protocol_failed = true;
-                        return StepOutcome::Fail(u16::MAX);
+                        return StepOutcome::Fail(PROTOCOL_FAILURE);
                     }
                     self.pending = Some(transaction);
                 }
                 Err(_) => {
                     self.protocol_failed = true;
-                    return StepOutcome::Fail(u16::MAX);
+                    return StepOutcome::Fail(PROTOCOL_FAILURE);
                 }
             }
         }
@@ -286,7 +291,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
             AdapterEvent::None => {}
             AdapterEvent::Value { port, value } => {
                 if io.input(port) != Some(value) {
-                    return StepOutcome::Fail(u16::MAX);
+                    return StepOutcome::Fail(PROTOCOL_FAILURE);
                 }
                 let consumed = if transaction.retain_resumed_value {
                     io.take_input(port)
@@ -294,7 +299,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                     io.consume(port)
                 };
                 if consumed.is_err() {
-                    return StepOutcome::Fail(u16::MAX);
+                    return StepOutcome::Fail(PROTOCOL_FAILURE);
                 }
                 self.input_cursor = (usize::from(port.0) + 1) % PORTS;
             }
@@ -302,18 +307,18 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 self.delivered_closed[usize::from(port.0)] = true;
                 self.input_cursor = (usize::from(port.0) + 1) % PORTS;
                 if io.consume_closed(port).is_err() {
-                    return StepOutcome::Fail(u16::MAX);
+                    return StepOutcome::Fail(PROTOCOL_FAILURE);
                 }
             }
             AdapterEvent::HostCompleted { request, .. } => {
                 if io.consume_host_completion().map(|completion| completion.0) != Ok(request) {
-                    return StepOutcome::Fail(u16::MAX);
+                    return StepOutcome::Fail(PROTOCOL_FAILURE);
                 }
             }
         }
         for value in transaction.released_values.into_iter().flatten() {
             if io.discard(value).is_err() {
-                return StepOutcome::Fail(u16::MAX);
+                return StepOutcome::Fail(PROTOCOL_FAILURE);
             }
         }
         for (port, output) in transaction.outputs.iter().copied().enumerate() {
@@ -322,13 +327,13 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                     .send(PortId(u16::try_from(port).unwrap_or(u16::MAX)), value)
                     .is_err()
                 {
-                    return StepOutcome::Fail(u16::MAX);
+                    return StepOutcome::Fail(PROTOCOL_FAILURE);
                 }
             }
         }
         if let Some((port, value)) = transaction.canonical_output {
             if io.send_canonical(port, value).is_err() {
-                return StepOutcome::Fail(u16::MAX);
+                return StepOutcome::Fail(PROTOCOL_FAILURE);
             }
         }
         if let Some((request, operation, input)) = transaction.host_request {
@@ -336,12 +341,12 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 .request_host_operation(request, operation, input)
                 .is_err()
             {
-                return StepOutcome::Fail(u16::MAX);
+                return StepOutcome::Fail(PROTOCOL_FAILURE);
             }
         }
         if let Some(request) = transaction.host_cancellation {
             if io.cancel_host_operation(request).is_err() {
-                return StepOutcome::Fail(u16::MAX);
+                return StepOutcome::Fail(PROTOCOL_FAILURE);
             }
         }
         self.pending = None;

@@ -140,7 +140,7 @@ pub enum StepOutcome {
     Await,
     Yield,
     Complete,
-    Fail(u16),
+    Fail(crate::Failure),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -469,7 +469,7 @@ pub enum SchedulerError {
     StepWorkExceeded,
     FalseProgress,
     DecisionLimitExceeded,
-    OperationFailed(u16),
+    OperationFailed(crate::Failure),
     OperationProtocolViolation,
     HostOperationCapacityExceeded,
     HostOperationRequestDuplicate,
@@ -1440,7 +1440,7 @@ where
                     kind: DebugEventKind::Fault,
                     type_identity: None,
                     value: None,
-                    fault_code: Some(code),
+                    fault_code: Some(code.detail),
                 });
                 return Err(SchedulerError::OperationFailed(code));
             }

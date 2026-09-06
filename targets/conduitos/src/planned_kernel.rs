@@ -442,6 +442,12 @@ mod tests {
             kernel.step(),
             Ok(SchedulerStatus::Progress { .. })
         ));
-        assert_eq!(kernel.step(), Err(SchedulerError::OperationFailed(11)));
+        assert_eq!(
+            kernel.step(),
+            Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostOperationFailed,
+                detail: 11
+            }))
+        );
     }
 }
