@@ -25,12 +25,12 @@ test("all inventory offers remain reachable inside the unchanged 40-node bound",
       priorRevision = current.view.revision;
       seen.push(...current.view.nodes.filter((node) => node.component === "definition").map((node) => node.text));
       const next = current.view.nodes.find((node) => node.key === "inventory-next");
-      if (next.action !== null) current.handlers.onEvent({ action: "book.inventory.next" });
+      if (next.action !== null) current.handlers.onEvent({ action: "tour.inventory.next" });
     }
     assert.deepEqual(seen, entries.map((entry) => entry.kind_id));
     assert.equal(current.view.nodes.find((node) => node.key === "inventory-next").action, null);
     if (count > 32) {
-      current.handlers.onEvent({ action: "book.inventory.previous" });
+      current.handlers.onEvent({ action: "tour.inventory.previous" });
       assert.ok(current.view.revision > priorRevision);
     }
   }

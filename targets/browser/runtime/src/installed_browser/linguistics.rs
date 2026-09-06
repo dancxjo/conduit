@@ -161,7 +161,7 @@ fn prepare_tokenize(
     values: &mut HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &tokenize_offer())?;
-    let value = conduit_language::tokenize_four("book/gear-lab", configuration_text(placement)?)
+    let value = conduit_language::tokenize_four("tour/gear-lab", configuration_text(placement)?)
         .map_err(|error| format!("tokenize four: {error:?}"))?;
     let canonical = value
         .canonical_bytes()

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth, selectBirthForm } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
-import { openTourStep, startTour, startStaticProduct } from "./book-test-server.mjs";
+import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 import { registerButtonMultiHostTests } from "./button-multihost.cases.mjs";
 
@@ -636,9 +636,9 @@ test("Tour Patchbay keeps branching explicit and opens one reviewed Back beneath
 });
 
 test("the staged Tour and Crèche each boot with only their own product tree", async ({ page }) => {
-  const book = await startStaticProduct("target/tour-product");
+  const tour = await startStaticProduct("target/tour-product");
   try {
-    await page.goto(`${book.url}a-form-you-can-run/`);
+    await page.goto(`${tour.url}a-form-you-can-run/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".tour-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
@@ -646,9 +646,9 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     await expect.poll(() => page.evaluate(() => globalThis.__conduitBrowserApplication?.manifest.applicationId)).toBe("conduit.application/tour");
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitTourHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_creche_"))).toBe(false);
-    expect((await page.request.get(`${book.url}creche.mjs`)).status()).toBe(404);
+    expect((await page.request.get(`${tour.url}creche.mjs`)).status()).toBe(404);
   } finally {
-    book.child.kill();
+    tour.child.kill();
   }
 
   const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
@@ -1801,7 +1801,7 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await page.getByRole("button", { name: "Load edit-one-gear in the laboratory" }).click();
   let runner = page.locator(".runner");
   await expect(runner.locator('[data-application-component="action-group"]')).toHaveCount(1);
-  await expect(runner.getByRole("button", { name: "Run" })).toHaveAttribute("data-application-action", "book.run");
+  await expect(runner.getByRole("button", { name: "Run" })).toHaveAttribute("data-application-action", "tour.run");
   await expect(runner.getByRole("button", { name: "Stop" })).toBeDisabled();
   await expect(runner.locator(".run, .stop")).toHaveCount(0);
   await runner.getByRole("button", { name: "Run" }).click();

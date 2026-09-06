@@ -19,7 +19,7 @@ test("retires only another head of the same pull lifecycle", () => {
     { id: 1, event: "pull_request", name: "check", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
     { id: 2, event: "pull_request", name: "check", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
     { id: 3, event: "pull_request", name: "check", status: "in_progress", head_sha: old, pull_requests: [{ number: 8 }] },
-    { id: 4, event: "pull_request_target", name: "book-and-creche-pages", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
+    { id: 4, event: "pull_request_target", name: "tour-and-creche-pages", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
     { id: 5, event: "pull_request", name: "unknown", status: "in_progress", head_sha: old, pull_requests: [{ number: 7 }] },
     { id: 6, event: "pull_request", name: "check", status: "completed", head_sha: old, pull_requests: [{ number: 7 }] },
   ];
@@ -42,7 +42,7 @@ test("a cumulative tip retires active expensive runs for exact ancestor candidat
   ];
   const runs = [
     { id: 1, event: "pull_request", name: "check", status: "in_progress", head_sha: members[0].head_sha, pull_requests: [{ number: 5 }] },
-    { id: 2, event: "pull_request", name: "book-and-creche-products", status: "queued", head_sha: members[1].head_sha, pull_requests: [] },
+    { id: 2, event: "pull_request", name: "tour-and-creche-products", status: "queued", head_sha: members[1].head_sha, pull_requests: [] },
     { id: 3, event: "pull_request", name: "check", status: "queued", head_sha: current, pull_requests: [{ number: 7 }] },
     { id: 4, event: "pull_request", name: "check", status: "completed", head_sha: members[0].head_sha, pull_requests: [{ number: 5 }] },
     { id: 5, event: "pull_request", name: "check", status: "queued", head_sha: members[0].head_sha, pull_requests: [{ number: 99 }] },

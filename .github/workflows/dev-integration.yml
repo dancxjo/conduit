@@ -36,7 +36,7 @@ jobs:
 
   products:
     needs: boundary
-    uses: ./.github/workflows/executable-book-pages.yml
+    uses: ./.github/workflows/tour-products.yml
     with:
       base_sha: ${{ github.event.before }}
       candidate_sha: ${{ github.sha }}

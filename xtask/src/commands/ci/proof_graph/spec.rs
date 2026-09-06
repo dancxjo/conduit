@@ -222,7 +222,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-book.spec.mjs --project chromium --workers 1 --retries 0",
+        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "browser.patchbay-debugger",
@@ -283,7 +283,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "workflow:book-and-creche-products/pages-carrier",
+        command: "workflow:tour-and-creche-products/pages-carrier",
     },
     ProofSpec {
         id: "repository.standalone-locks",
