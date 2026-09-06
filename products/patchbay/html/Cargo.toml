@@ -19,3 +19,7 @@ patchbay-hosted = { path = "../hosted" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tungstenite = "0.30.0"
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
