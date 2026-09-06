@@ -23,7 +23,7 @@
     { "role": "patchbay-faceplate", "kind": "module", "path": "assets/flow-faceplate.js", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "patchbay-portable-navigation", "kind": "module", "path": "assets/portable-navigation.js", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "runtime", "kind": "wasm", "path": "runtime.wasm", "maximum_bytes": 8388608, "dependencies": [] },
-    { "role": "shared-presentation-style", "kind": "style", "path": "application-theme.css", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "shared-presentation-style", "kind": "style", "path": "application-theme.css", "maximum_bytes": 12288, "dependencies": [] },
     { "role": "tour-style", "kind": "style", "path": "tour.css", "maximum_bytes": 32768, "dependencies": [] },
     { "role": "patchbay-style", "kind": "style", "path": "assets/react-flow.css", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "patchbay-flow-style", "kind": "style", "path": "assets/flow.css", "maximum_bytes": 8192, "dependencies": [] },

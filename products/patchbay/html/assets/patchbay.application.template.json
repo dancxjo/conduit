@@ -29,7 +29,7 @@
     { "role": "text-lab-runtime", "kind": "module", "path": "assets/text-lab-live-runtime.mjs", "source": "targets/browser/host/assets/text-lab-live-runtime.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "runtime", "kind": "wasm", "path": "assets/conduit-browser-runtime.wasm", "source": "supplied:runtime", "maximum_bytes": 5242880, "dependencies": [] },
     { "role": "theme-style", "kind": "style", "path": "assets/theme.css", "source": "generated:theme", "maximum_bytes": 2048, "dependencies": [] },
-    { "role": "shared-presentation-style", "kind": "style", "path": "assets/application-theme.css", "source": "targets/browser/host/assets/application-theme.css", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "shared-presentation-style", "kind": "style", "path": "assets/application-theme.css", "source": "targets/browser/host/assets/application-theme.css", "maximum_bytes": 12288, "dependencies": [] },
     { "role": "application-style", "kind": "style", "path": "assets/app.css", "source": "products/patchbay/html/assets/app.css", "maximum_bytes": 32768, "dependencies": [] },
     { "role": "react-flow-style", "kind": "style", "path": "assets/react-flow.css", "source": "products/patchbay/html/assets/react-flow.css", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "flow-style", "kind": "style", "path": "assets/flow.css", "source": "products/patchbay/html/assets/flow.css", "maximum_bytes": 8192, "dependencies": [] },

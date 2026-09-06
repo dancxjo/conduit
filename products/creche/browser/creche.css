@@ -3,9 +3,10 @@
 * { box-sizing: border-box; }
 body { margin:0; background:var(--paper); color:var(--ink); }
 button, input, select, textarea { font:inherit; }
-button { min-height:2.5rem; padding:.55rem .85rem; border:1px solid var(--green); border-radius:.55rem; background:var(--field); color:var(--green-dark); cursor:pointer; }
-button:not(:disabled):not([aria-current="step"]):hover { border-color:var(--amber); color:var(--amber); }
-button:disabled { cursor:not-allowed; opacity:.5; }
+button { min-height:2.5rem; padding:.55rem .9rem; border:1px solid var(--green); border-radius:.55rem; background:linear-gradient(180deg,color-mix(in srgb,var(--green) 10%,var(--field)),var(--field)); color:var(--green-dark); box-shadow:inset 0 1px #ffffff18,0 2px 0 color-mix(in srgb,var(--green) 45%,#000); font-weight:720; letter-spacing:.01em; cursor:pointer; transition:border-color 140ms ease,color 140ms ease,box-shadow 140ms ease,transform 140ms ease; }
+button:not(:disabled):not([aria-current="step"]):hover { border-color:var(--amber); color:var(--amber); box-shadow:inset 0 1px #ffffff22,0 3px 0 color-mix(in srgb,var(--amber) 45%,#000),0 0 1rem color-mix(in srgb,var(--green) 14%,transparent); transform:translateY(-1px); }
+button:not(:disabled):active { box-shadow:inset 0 1px 4px #0007; transform:translateY(1px); }
+button:disabled { cursor:not-allowed; opacity:.5; box-shadow:none; }
 main { width:min(70rem, calc(100% - 2rem)); margin:2rem auto 5rem; }
 .introduction { max-width:48rem; }
 .eyebrow { color:var(--green-dark); font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
@@ -36,7 +37,9 @@ h1,h2,h3 { color:var(--amber); }
 .physical-selection select, .physical-selection output { display:block; width:100%; min-height:2.6rem; padding:.65rem; border:1px solid var(--line); border-radius:.45rem; background:var(--field); color:var(--ink); }
 .physical-selection output { overflow-wrap:anywhere; }
 .physical-selection .select-field { display:block; }
-select { appearance:none; padding-right:2.5rem; background-image:linear-gradient(45deg,transparent 50%,var(--amber) 50%),linear-gradient(135deg,var(--amber) 50%,transparent 50%); background-position:right .95rem center,right .6rem center; background-size:.4rem .4rem; background-repeat:no-repeat; }
+select { min-height:2.5rem; appearance:none; padding-right:2.7rem; border-color:var(--green); border-radius:.55rem; background-color:var(--field); background-image:linear-gradient(45deg,transparent 50%,var(--amber) 50%),linear-gradient(135deg,var(--amber) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--green) 10%,var(--field)),var(--field)); background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat; box-shadow:inset 0 1px #ffffff18,0 2px 0 color-mix(in srgb,var(--green) 45%,#000); font-weight:650; cursor:pointer; transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease; }
+select:not(:disabled):hover { border-color:var(--amber); box-shadow:inset 0 1px #ffffff22,0 3px 0 color-mix(in srgb,var(--amber) 45%,#000); transform:translateY(-1px); }
+select:disabled { cursor:not-allowed; opacity:.48; box-shadow:none; }
 .target-option-note { margin:1.85rem 0 0; color:var(--muted); }
 .body-chain { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:.8rem; align-items:center; }
 .body-chain article { display:grid; gap:.3rem; padding:.7rem; border:1px solid var(--line); border-radius:.6rem; background:var(--field); }
@@ -51,4 +54,5 @@ pre { max-height:20rem; overflow:auto; padding:.8rem; background:#1f2824; color:
 .body-biography [data-application-key="biography-records"] { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.6rem 1rem; padding:.7rem; border:1px solid var(--line); background:var(--field); }
 .error { color:var(--failure); }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+@media (prefers-reduced-motion:reduce) { button,select { transition:none; } }
 @media (max-width:650px) { .body-chain { grid-template-columns:1fr; } .body-chain > b { transform:rotate(90deg); justify-self:center; } }
