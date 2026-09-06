@@ -236,6 +236,7 @@ deterministic = { package = "conduit-semantic-catalog", test = "scheduling_forms
 slug = "secret-knock"
 title = "Secret Knock"
 entry = "secret-knock"
+reusable_entries = [{ entry = "normalize-durations", title = "Relative Duration Normalization", composition = { parent = "secret-knock", occurrences = ["normalize"] } }]
 deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "secret_knock_form", case = "canonical_secret_knock_is_a_host_free_composition_of_reusable_forms" }
 [[forms]]
 slug = "signal-demo"
