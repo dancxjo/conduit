@@ -71,9 +71,9 @@ impl<const BYTES: usize> StateOperation<BYTES> {
     fn state_refusal(&mut self, error: StateError) -> OperationAction {
         // Stable profile details retain exhaustion causes through OperationFailed.
         let (code, detail) = match error {
-            StateError::ValueTooLarge => (FailureCode::StorageExhausted, 1),
-            StateError::TransitionLimitReached => (FailureCode::StorageExhausted, 2),
-            StateError::IdentityCapacityExhausted => (FailureCode::StorageExhausted, 3),
+            StateError::ValueTooLarge => (FailureCode::StateCapacityExhausted, 1),
+            StateError::TransitionLimitReached => (FailureCode::WorkBudgetExhausted, 2),
+            StateError::IdentityCapacityExhausted => (FailureCode::IdentityCapacityExhausted, 3),
             StateError::InvalidBounds => (FailureCode::InvalidInput, 5),
             StateError::MultipleCandidates => (FailureCode::InvalidLifecycle, 6),
         };
@@ -140,3 +140,6 @@ impl<const BYTES: usize> Operation for StateOperation<BYTES> {
         self.terminal = true;
     }
 }
+
+#[cfg(test)]
+mod tests;
