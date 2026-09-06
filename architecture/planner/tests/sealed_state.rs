@@ -7,9 +7,12 @@ mod common;
 
 #[test]
 fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
-    let form = conduit_form::parse(
+    let profile = conduit_semantic_catalog::standard_profile_catalog();
+    let startup = profile.startup_catalog().unwrap();
+    let form = conduit_form::parse_with_startup(
         "form retained {\n source: scalar/literal(value = 7)\n cell: state/latest\n source.value > cell.in\n}\n",
-        &conduit_semantic_catalog::standard_profile_catalog(),
+        &startup,
+        &profile,
     ).unwrap();
     let host = common::standard_planning_fixture("host", "boot");
     let hosts = [host];
