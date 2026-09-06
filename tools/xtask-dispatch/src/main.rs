@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 #[cfg(feature = "host-release")]
-#[path = "../../../xtask/src/commands/host_release.rs"]
+#[path = "../../xtask/src/commands/host_release.rs"]
 mod host_release;
 
 mod proof {
@@ -78,13 +78,13 @@ mod process {
     }
 }
 
-#[path = "../../../xtask/src/suites/check.rs"]
+#[path = "../../xtask/src/suites/check.rs"]
 pub mod suite_check;
-#[path = "../../../xtask/src/suites/network_capability.rs"]
+#[path = "../../xtask/src/suites/network_capability.rs"]
 pub mod suite_network_capability;
-#[path = "../../../xtask/src/suites/pico_compositions.rs"]
+#[path = "../../xtask/src/suites/pico_compositions.rs"]
 pub mod suite_pico_compositions;
-#[path = "../../../xtask/src/suites/workspace_shards.rs"]
+#[path = "../../xtask/src/suites/workspace_shards.rs"]
 pub mod suite_workspace_shards;
 
 mod suites {
@@ -94,23 +94,23 @@ mod suites {
     pub use crate::suite_workspace_shards as workspace_shards;
 }
 
-#[path = "../../../xtask/src/commands/ci/impact.rs"]
+#[path = "../../xtask/src/commands/ci/impact.rs"]
 mod impact;
-#[path = "../../../xtask/src/commands/ci/integration.rs"]
+#[path = "../../xtask/src/commands/ci/integration.rs"]
 mod integration;
-#[path = "../../../xtask/src/commands/ci/monitor.rs"]
+#[path = "../../xtask/src/commands/ci/monitor.rs"]
 mod monitor;
-#[path = "../../../xtask/src/commands/ci/product_reconciliation.rs"]
+#[path = "../../xtask/src/commands/ci/product_reconciliation.rs"]
 mod product_reconciliation;
-#[path = "../../../xtask/src/commands/ci/promotion_snapshot.rs"]
+#[path = "../../xtask/src/commands/ci/promotion_snapshot.rs"]
 mod promotion_snapshot;
-#[path = "../../../xtask/src/commands/ci/proof_graph.rs"]
+#[path = "../../xtask/src/commands/ci/proof_graph.rs"]
 mod proof_graph;
-#[path = "../../../xtask/src/commands/ci/rust_toolchain.rs"]
+#[path = "../../xtask/src/commands/ci/rust_toolchain.rs"]
 mod rust_toolchain;
-#[path = "../../../xtask/src/commands/ci/standalone_locks.rs"]
+#[path = "../../xtask/src/commands/ci/standalone_locks.rs"]
 mod standalone_locks;
-#[path = "../../../xtask/src/workspace.rs"]
+#[path = "../../xtask/src/workspace.rs"]
 mod workspace;
 
 mod ci_dispatch;

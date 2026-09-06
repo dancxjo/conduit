@@ -103,15 +103,13 @@ jobs:
           CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
           CONDUIT_STACK_ROLE_OUT: target/product-plan/pr-stack-role.json
         run: |
-          classifier="$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
-          if test -f "$classifier"; then
-            mkdir -p target/product-plan
-            node "$classifier"
-          else
-            echo 'role=independent' >> "$GITHUB_OUTPUT"
-            echo 'reason=trusted-controller-has-no-stack-classifier' >> "$GITHUB_OUTPUT"
-            echo 'Trusted controller predates stack classification; proving conservatively.' >> "$GITHUB_STEP_SUMMARY"
+          mapfile -t classifiers < <(git -C "$RUNNER_TEMP/conduit-ci-controller" ls-files -- '*/classify-pr-stack.mjs')
+          if test "${#classifiers[@]}" -ne 1; then
+            echo 'Expected one tracked stack classifier in the trusted controller.' >&2
+            exit 1
           fi
+          mkdir -p target/ci-plans
+          node "$RUNNER_TEMP/conduit-ci-controller/${classifiers[0]}"
       - name: Retain cheap product slice evidence for an intermediate PR
         id: slice
         if: steps.stack.outputs.role == 'intermediate'
@@ -169,8 +167,8 @@ jobs:
             reason=trusted-registry
           elif ! git diff --quiet "$CONTROLLER_SHA" -- \
             .github/workflows/tour-products.yml \
-            xtask/src/commands/ci/impact/product_registry.rs \
-            xtask/src/commands/ci/proof_graph/spec.rs
+            tools/xtask/src/commands/ci/impact/product_registry.rs \
+            tools/xtask/src/commands/ci/proof_graph/spec.rs
           then
             required=true
             reason=proof-definition-bootstrap
@@ -258,7 +256,7 @@ jobs:
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
       - name: Install the pinned browser proof dependency
-        run: npm ci --ignore-scripts --prefer-offline
+        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
       - name: Download the exact browser product runtimes
         uses: actions/download-artifact@v8
         with:
@@ -269,7 +267,7 @@ jobs:
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
           chmod 755 target/debug/conduit-browser-host
-          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
       - name: Prove exact live-debugger projection
         run: >-
           node --test
@@ -279,7 +277,7 @@ jobs:
       - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
         if: needs.plan.outputs.tour_required == 'true'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-tour.spec.mjs
           --project chromium
@@ -290,7 +288,7 @@ jobs:
       - name: Complete the exact Tour proposition without entering the carrier pipeline
         if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-tour.spec.mjs
           --project chromium
@@ -321,7 +319,7 @@ jobs:
       - name: Prove the focused Patchbay debugger interactions
         if: needs.plan.outputs.patchbay_debugger_required == 'true'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/patchbay-debugger.config.mjs
           proof/browser/patchbay-debugger-watch.spec.mjs
           --project chromium
@@ -531,15 +529,15 @@ jobs:
       matrix:
         include:
           - architecture: x86_64
-            profile: profiles/hosts/conduitos-native.profile.json
+            profile: targets/conduitos/profiles/conduitos-native.profile.json
           - architecture: aarch64
-            profile: profiles/hosts/conduitos-aarch64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-aarch64-headless.profile.json
           - architecture: ia32
-            profile: profiles/hosts/conduitos-ia32-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-ia32-headless.profile.json
           - architecture: riscv64
-            profile: profiles/hosts/conduitos-riscv64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-riscv64-headless.profile.json
           - architecture: loongarch64
-            profile: profiles/hosts/conduitos-loongarch64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-loongarch64-headless.profile.json
     name: conduitos-release-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7
@@ -560,7 +558,7 @@ jobs:
           key: >-
             conduitos-product-${{ matrix.architecture }}-${{
             hashFiles('Cargo.lock', '**/Cargo.toml', 'architecture/**', 'fabrication/**',
-            'runtime/**', 'semantics/**', 'targets/conduitos/**', 'xtask/**', matrix.profile) }}
+            'runtime/**', 'semantics/**', 'targets/conduitos/**', 'tools/xtask/**', matrix.profile) }}
       - name: Install the deterministic hybrid ISO tool
         if: steps.image-cache.outputs.cache-hit != 'true'
         run: |
@@ -755,10 +753,10 @@ jobs:
           cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
           cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/tour-product target/creche-product target/patchbay-product
-          scripts/ci/stage-pages-root.sh target/pages-root
-          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
-          scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
-          scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+          site/tools/stage-pages-root.sh target/pages-root
+          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
+          products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
       - name: Retain the exact staged products once for parallel consumers
         uses: actions/upload-artifact@v7
         with:
@@ -804,7 +802,7 @@ jobs:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - name: Install the pinned browser proof dependency
-        run: npm ci --ignore-scripts --prefer-offline
+        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
       - name: Receive the exact staged products
         uses: actions/download-artifact@v8
         with:
@@ -817,7 +815,7 @@ jobs:
         env:
           BROWSER_PROOF_SPECS: ${{ matrix.specs }}
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           $BROWSER_PROOF_SPECS
           --project chromium
@@ -826,7 +824,7 @@ jobs:
       - name: Prove the remaining Tour surface in pinned Chromium
         if: matrix.shard == 'tour'
         run: >-
-          npx playwright test
+          node proof/browser/node_modules/@playwright/test/cli.js test
           --config proof/browser/playwright.config.mjs
           proof/browser/executable-tour.spec.mjs
           --project chromium
@@ -879,8 +877,8 @@ jobs:
           test -f target/pages-site/patchbay/api/snapshot
           source_commit=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
           source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
-          node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
-          node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
+          node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
       - name: Retain the immutable Pages carrier for post-merge promotion
         uses: actions/upload-artifact@v7
         with:
@@ -904,7 +902,7 @@ jobs:
         env:
           CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
         run: |
-          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "products.pages-carrier"'; then
+          if ! git show "$CONTROLLER_SHA:tools/xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "products.pages-carrier"'; then
             echo 'supported=false' >> "$GITHUB_OUTPUT"
             echo 'Trusted controller predates the carrier proof receipt; bootstrap execution remains authoritative.' >> "$GITHUB_STEP_SUMMARY"
             exit 0

@@ -1,14 +1,15 @@
 use crate::test_packages::{test_build_host_image, test_catalog};
 use crate::*;
 
-const STD_COMPUTER: &str = include_str!("../../../profiles/hosts/std-computer.profile.json");
+const STD_COMPUTER: &str = include_str!("../../../targets/std/profiles/std-computer.profile.json");
 const CONDUITOS_NATIVE: &str =
-    include_str!("../../../profiles/hosts/conduitos-native.profile.json");
-const BROWSER_PAGE: &str = include_str!("../../../profiles/hosts/browser-page.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-native.profile.json");
+const BROWSER_PAGE: &str =
+    include_str!("../../../targets/browser/profiles/browser-page.profile.json");
 const CONDUITOS_HEADLESS: &str =
-    include_str!("../../../profiles/hosts/conduitos-headless.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-headless.profile.json");
 const CONDUITOS_AARCH64_HEADLESS: &str =
-    include_str!("../../../profiles/hosts/conduitos-aarch64-headless.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-aarch64-headless.profile.json");
 
 fn parse(source: &str) -> HostProfile {
     serde_json::from_str(source).unwrap()

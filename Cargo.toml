@@ -79,7 +79,7 @@ members = [
 
 	# Repository-development tooling.
 	"tools/xtask-dispatch",
-	"xtask",
+	"tools/xtask",
 ]
 exclude = [
 	"targets/avr/firmware/promicro-host",

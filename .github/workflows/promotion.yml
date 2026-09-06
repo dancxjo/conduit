@@ -29,7 +29,7 @@ jobs:
           CONDUIT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           CONDUIT_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           CONDUIT_REPOSITORY: ${{ github.repository }}
-        run: node scripts/ci/branch-boundary.mjs promotion
+        run: node tools/ci/branch-boundary.mjs promotion
       - name: Verify exact source snapshot and merge ancestry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

@@ -30,13 +30,13 @@ fn build_configuration(source: &str) -> conduit_host_fabrication::HostImage {
 #[test]
 fn native_and_browser_are_not_flash_shaped() {
     let clock_host = build_configuration(include_str!(
-        "../../../profiles/host-configurations/linux-clock.host.conduit"
+        "../../../targets/std/profiles/linux-clock.host.conduit"
     ));
     let serial_host = build_configuration(include_str!(
-        "../../../profiles/host-configurations/linux-serial.host.conduit"
+        "../../../targets/std/profiles/linux-serial.host.conduit"
     ));
     let browser = build_configuration(include_str!(
-        "../../../profiles/host-configurations/browser-page.host.conduit"
+        "../../../targets/browser/profiles/browser-page.host.conduit"
     ));
 
     assert_eq!(clock_host.manifest.output, SporeOutputKind::NativeBundle);
