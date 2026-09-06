@@ -18,7 +18,7 @@ const BUTTON_SOURCE: &str = "conduit-test/secret-knock-button";
 const COMMAND_SOURCE: &str = "conduit-test/secret-knock-template-commands";
 
 struct KnockTimer {
-    micros: [u64; 4],
+    micros: [u64; 5],
     next_micros: usize,
     now_ms: u64,
 }
@@ -52,7 +52,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         conduit_semantic_catalog::button_transition_value("button/primary", true, 1).unwrap(),
         conduit_semantic_catalog::button_transition_value("button/primary", false, 2).unwrap(),
         conduit_semantic_catalog::button_transition_value("button/primary", true, 3).unwrap(),
-        conduit_semantic_catalog::button_transition_value("button/primary", true, 4).unwrap(),
+        conduit_semantic_catalog::button_transition_value("button/primary", false, 4).unwrap(),
+        conduit_semantic_catalog::button_transition_value("button/primary", true, 5).unwrap(),
     ];
     let template = conduit_semantic_catalog::normalized_value(&[333_333, 1_000_000]).unwrap();
     let commands = [
@@ -66,7 +67,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         1,
     )
     .unwrap();
-    let button_offer = sequence_source_offer(&transitions[0], BUTTON_SOURCE, 4);
+    let button_offer = sequence_source_offer(&transitions[0], BUTTON_SOURCE, 5);
     let command_offer = sequence_source_offer(&commands[0], COMMAND_SOURCE, 2);
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -298,7 +299,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
 
     let mut output = Vec::with_capacity(4_096);
     let mut timer = KnockTimer {
-        micros: [100, 120, 250, 700],
+        micros: [100, 120, 250, 300, 700],
         next_micros: 0,
         now_ms: 0,
     };
