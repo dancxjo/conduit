@@ -1,7 +1,7 @@
 # Decidable by default, universal by explicit extension
 
-**Status:** durable architecture direction; executable proof is tracked separately.  
-**Related:** #2682, #2685, #2686, #2687, #2688, #2689, #2690, #2691
+**Status:** durable architecture direction; executable proof is tracked separately.
+**Related:** [#2682](https://github.com/dancxjo/conduit/issues/2682), [#2685](https://github.com/dancxjo/conduit/issues/2685), [#2686](https://github.com/dancxjo/conduit/issues/2686), [#2687](https://github.com/dancxjo/conduit/issues/2687), [#2688](https://github.com/dancxjo/conduit/issues/2688), [#2689](https://github.com/dancxjo/conduit/issues/2689), [#2690](https://github.com/dancxjo/conduit/issues/2690), [#2691](https://github.com/dancxjo/conduit/issues/2691)
 
 Conduit should not make every Form pay the theoretical cost of computational universality.
 
