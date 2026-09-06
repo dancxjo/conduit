@@ -9,9 +9,9 @@ struct CrecheRefusal {
     message: String,
 }
 
-// This entrance admits join envelopes up to 32 KiB, including advertisement,
-// invitation, and signature. Body admission may support larger profiles.
-pub(super) const INPUT_BYTES: usize = 32 * 1_024;
+// Admit the canonical Body advertisement plus bounded invitation/signature framing.
+pub(super) const INPUT_BYTES: usize =
+    conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize + 8 * 1_024;
 const OUTPUT_BYTES: usize = 32 * 1_024;
 const STATUS_READY: i32 = 0;
 pub(super) const ERROR_INPUT: i32 = -451;

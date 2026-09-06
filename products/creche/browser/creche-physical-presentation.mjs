@@ -13,13 +13,26 @@ export function presentPhysicalStatus(state, message, error = false) {
 }
 
 export function presentPhysicalEvidence(state, evidence, disposition) {
+  const encoder = new TextEncoder();
+  const pretty = JSON.stringify(evidence, null, 2);
+  const formatted = encoder.encode(pretty);
+  const bytes = formatted.length <= 65_536 ? formatted : encoder.encode(JSON.stringify(evidence));
+  const chunkBytes = bytes.length <= 65_536 ? 65_536 : 60 * 1024;
+  const values = [];
+  for (let start = 0; start < bytes.length;) {
+    let end = Math.min(start + chunkBytes, bytes.length);
+    // Keep UTF-8 code points intact while respecting each native control bound.
+    while (end < bytes.length && (bytes[end] & 0xc0) === 0x80) end -= 1;
+    values.push(new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(start, end)));
+    start = end;
+  }
   state.presentation.present("physical-evidence", {
     revision: ++state.presentationRevision,
     actions: [],
     nodes: [
       { parent: null, component: disposition, action: null, key: "physical-evidence", text: "Physical Host workflow evidence" },
       { parent: 0, component: "disclosure", action: null, key: "physical-evidence-raw", text: "Exact physical-Host evidence" },
-      { parent: 1, component: "code-block", action: null, key: "physical-evidence-json", text: "json", value: JSON.stringify(evidence, null, 2), valueCapacity: 65_536 },
+      ...values.map((value, index) => ({ parent: 1, component: "code-block", action: null, key: `physical-evidence-json-${index}`, text: "json", value, valueCapacity: 65_536 })),
     ],
   });
 }
