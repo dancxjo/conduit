@@ -135,6 +135,9 @@ mod physical {
             ),
         ]);
         advertisement.resources.sort();
+        let device = provider.device_association();
+        conduit_core::validate_device_associations(&advertisement, std::slice::from_ref(&device))
+            .map_err(|error| format!("acquired Device provenance refused: {error:?}"))?;
         let plan = plan(&advertisement)?;
         let mut host = StdHost::from_advertisement(advertisement)?;
         let mut input = ScriptedInput { next: 0 };
@@ -175,6 +178,7 @@ mod physical {
             "firmware_build_id": args.firmware_build_id,
             "firmware_digest": provider.firmware_digest(), "device_boot": provider.device_boot(),
             "acquired_pool": provider.binding().pool_id,
+            "device_association": device,
             "acknowledgments": acknowledgments, "observations": report.observations,
             "human_observed_led": false, "physical_input_claimed": false,
             "conduit_line_claimed": false,

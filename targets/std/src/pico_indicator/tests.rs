@@ -118,8 +118,39 @@ fn bad_acknowledgments_poison_provider_without_retry() {
             );
         }
         assert!(provider.receipts().is_empty());
+        assert!(matches!(
+            provider.device_association().disposition,
+            conduit_core::DeviceTruthDisposition::HistoricalLost { .. }
+        ));
         task.join().unwrap();
     }
+}
+
+#[test]
+fn optional_device_provenance_is_boot_local_and_does_not_create_capabilities() {
+    let (provider, task) = provider(None, 0);
+    let device = provider.device_association();
+    let mut host = crate::StdHost::new().advertisement().clone();
+    host.host_id = provider.binding.host_id.clone();
+    host.boot_id = provider.binding.boot_id.clone();
+    host.offer_generation = provider.binding.offer_generation;
+    host.capabilities = vec![conduit_std_offers::indicator_resource::offer()];
+    conduit_core::validate_device_associations(&host, std::slice::from_ref(&device)).unwrap();
+    assert_eq!(
+        device.identity_evidence.strength,
+        conduit_core::DeviceIdentityStrength::BootLocalResource
+    );
+    assert!(!device
+        .identity_evidence
+        .facts
+        .iter()
+        .any(|fact| fact.name == "physical-serial"));
+    host.offer_generation.0 += 1;
+    assert_eq!(
+        conduit_core::validate_device_associations(&host, &[device]),
+        Err(conduit_core::DeviceAssociationRefusal::WrongCurrentGeneration)
+    );
+    task.join().unwrap();
 }
 
 #[test]

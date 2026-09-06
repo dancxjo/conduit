@@ -16,6 +16,7 @@ use conduit_core::HostAdvertisement;
 
 const BYTES: usize = 96;
 type Frame = [u8; BYTES];
+mod provenance;
 
 struct Port(File);
 
