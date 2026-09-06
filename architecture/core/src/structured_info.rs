@@ -13,6 +13,7 @@ mod inspection;
 mod profile;
 mod selection;
 mod transport;
+mod validation;
 use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
     type_extent, value_extent,
@@ -21,6 +22,7 @@ pub use inspection::*;
 pub use profile::*;
 pub use selection::*;
 pub use transport::*;
+pub use validation::PreparedStructuredValueValidator;
 
 pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 8;
 pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;
