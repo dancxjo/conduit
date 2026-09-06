@@ -1,16 +1,13 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { openTourStep, startTour } from "./book-test-server.mjs";
+import { openTourStep } from "./book-test-server.mjs";
 
 // Exact reusable declarations; the storage-dependent namesake remains unproved.
 const canonical = readFileSync(new URL("../../forms/secret-knock/main.conduit", import.meta.url), "utf8");
 const reusable = canonical.slice(canonical.indexOf("form normalize-durations ("));
-let entrance;
-test.beforeEach(async () => { entrance = await startTour(); });
-test.afterEach(() => entrance?.child.kill());
-
+export function registerPatternComparisonTests(getEntrance) {
 test("live timing reaches canonical nested comparison and typed output", async ({ page }) => {
-  await openTourStep(page, entrance, 0);
+  await openTourStep(page, getEntrance(), 0);
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.getByLabel("Structured output").selectOption("3");
   await runner.locator("textarea").fill(`${reusable}
@@ -46,3 +43,4 @@ form zz-live-comparison {
     await page.mouse.up();
   }
 });
+}
