@@ -126,6 +126,9 @@ textarea {
   padding: 3rem 1.25rem 5.5rem;
   font: 500 .91rem/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
 }
+select { min-height:2.5rem; appearance:none; padding:.62rem 2.7rem .62rem 1rem; border:1px solid color-mix(in srgb,var(--green) 70%,var(--line)); border-radius:.6rem; color:var(--ink); background-color:var(--panel); background-image:linear-gradient(45deg,transparent 50%,var(--amber) 50%),linear-gradient(135deg,var(--amber) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--green) 10%,var(--panel)),var(--paper)); background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat; box-shadow:inset 0 1px #ffffff20,0 2px 0 color-mix(in srgb,var(--line) 72%,#000); font:inherit; font-weight:650; cursor:pointer; transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease; }
+select:not(:disabled):hover { border-color:var(--amber); box-shadow:inset 0 1px #ffffff28,0 3px 0 color-mix(in srgb,var(--amber) 42%,#000); transform:translateY(-1px); }
+select:disabled { cursor:not-allowed; opacity:.48; box-shadow:none; }
 .compact-patchbay { grid-area: patchbay; min-width: 0; min-height: 0; margin: 0; padding: .9rem; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: auto; border-bottom: 1px solid var(--conduit-structure-secondary); color: var(--conduit-text-primary); background: var(--conduit-surface); }
 .compact-patchbay figcaption { display: grid; gap: .15rem; margin-bottom: .8rem; text-align: left; }
 .compact-patchbay figcaption span { color: var(--amber); font-size: .65rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
@@ -145,13 +148,15 @@ textarea {
 .actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; display: flex; gap: .55rem; align-items: center; }
 [data-application-slot^="tour-runner-actions-"] { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; }
 [data-application-slot^="tour-runner-actions-"] [data-application-component="action-group"] { display: flex; gap: .55rem; align-items: center; }
-button { border: 0; border-radius: 999px; padding: .7rem 1.15rem; font: inherit; font-weight: 700; cursor: pointer; }
+button { min-height:2.5rem; border:1px solid color-mix(in srgb,var(--green) 70%,var(--line)); border-radius:999px; padding:.62rem 1.15rem; color:var(--ink); background:linear-gradient(180deg,color-mix(in srgb,var(--green) 10%,var(--panel)),var(--paper)); box-shadow:inset 0 1px #ffffff20,0 2px 0 color-mix(in srgb,var(--line) 72%,#000); font:inherit; font-weight:720; letter-spacing:.01em; cursor:pointer; transition:border-color 140ms ease,color 140ms ease,box-shadow 140ms ease,filter 140ms ease,transform 140ms ease; }
 [data-application-key="run"] { background: var(--amber); color: var(--paper); }
 [data-application-key="run"]:not(:disabled):hover { background:var(--conduit-focus); }
 [data-application-key="stop"] { background: #31443a; color: white; }
-button:not(:disabled):hover { filter:brightness(1.08); }
-button:disabled { cursor: default; opacity: .45; }
+button:not(:disabled):hover { border-color:var(--amber); box-shadow:inset 0 1px #ffffff28,0 3px 0 color-mix(in srgb,var(--amber) 42%,#000),0 0 1rem color-mix(in srgb,var(--green) 14%,transparent); filter:brightness(1.08); transform:translateY(-1px); }
+button:not(:disabled):active { box-shadow:inset 0 1px 4px #0008; transform:translateY(1px); }
+button:disabled { cursor:default; opacity:.45; box-shadow:none; }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:3px solid var(--conduit-focus); outline-offset:2px; }
+@media (prefers-reduced-motion:reduce) { button,select { transition:none; } }
 .result { grid-area: result; min-width: 0; min-height: 0; padding: clamp(1rem, 1.5vw, 1.5rem); display: flex; flex-direction: column; justify-content: center; overflow: auto; text-align: center; }
 .indicator {
   width: 7.5rem; aspect-ratio: 1; margin: 0 auto 1.35rem; border-radius: 50%;

@@ -75,6 +75,27 @@ impl PatchbayBodyWorkloadSession {
         &self.entrance
     }
 
+    /// Publish an exact lifecycle extension without dropping workload or
+    /// membership evidence. A failed append or encoded-size check is atomic.
+    pub fn retain_wake(
+        &mut self,
+        body: conduit_body::Body,
+        wake: conduit_body::Wake,
+        first_sequence: u64,
+    ) -> Result<(), PatchbayBodyWorkloadError> {
+        let mut next = self.evidence.clone();
+        next.append_wake(body, wake, first_sequence)
+            .map_err(PatchbayBodyWorkloadError::Biography)?;
+        let encoded =
+            serde_json::to_vec(&next).map_err(|_| PatchbayBodyWorkloadError::EvidenceEncoding)?;
+        if encoded.len() > MAX_PATCHBAY_BODY_EVIDENCE_BYTES {
+            return Err(PatchbayBodyWorkloadError::EvidenceTooLarge);
+        }
+        self.evidence = next;
+        self.encoded = encoded;
+        Ok(())
+    }
+
     pub fn admit_form(
         &mut self,
         expected_workload_revision: u64,

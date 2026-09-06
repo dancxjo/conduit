@@ -115,6 +115,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,
     &super::keyboard_input_operation::button::indicator::INDICATOR,
+    &super::keyboard_input_operation::button::indicator::RESOURCE_INDICATOR,
     &TICK_FACTORY,
     &super::pulse_observation_operation::FACTORY,
     #[cfg(test)]

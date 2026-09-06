@@ -1,5 +1,6 @@
 mod aarch64_a0;
 mod aarch64_a1;
+mod acceptance;
 mod active_rescue_proof;
 mod architecture_matrix;
 #[path = "../../../raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_a0.rs"]
@@ -92,6 +93,8 @@ pub struct ConduitosArgs {
 
 #[derive(Subcommand, Debug)]
 enum ConduitosCommand {
+    /// Boot one exact Crèche-exported ConduitOS spore through the product journey.
+    Acceptance(AcceptanceArgs),
     /// Verify and report the pinned Limine architecture/backend matrix.
     ArchitectureMatrix,
     /// Report exact earned Product Spine cells independently of A0-A4.
@@ -140,6 +143,13 @@ enum ConduitosCommand {
     RescueProof(PreparedProofArgs),
     /// Prove one exact native OPL2 musical realization on QEMU AdLib.
     Opl2Proof,
+}
+
+#[derive(Args, Debug, Clone)]
+struct AcceptanceArgs {
+    /// Exact Body-provisioned ConduitOS ISO exported by the Crèche.
+    #[arg(long)]
+    spore: PathBuf,
 }
 
 #[derive(Args, Debug, Clone, Copy)]
@@ -364,6 +374,7 @@ impl std::error::Error for ConduitosError {}
 
 pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     match args.command {
+        ConduitosCommand::Acceptance(args) => acceptance::execute(&args.spore, opts),
         ConduitosCommand::ArchitectureMatrix => architecture_matrix::execute(opts),
         ConduitosCommand::ProductReadinessMatrix => product_readiness_matrix::execute(opts),
         ConduitosCommand::Build(target) => {

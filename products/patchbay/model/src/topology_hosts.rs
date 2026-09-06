@@ -4,6 +4,19 @@ use conduit_observatory::ObservatoryReport;
 
 use crate::topology::TopologyViewError;
 
+pub(crate) fn current_device_for_placement<'a>(
+    report: &'a ObservatoryReport,
+    placement: &conduit_observatory::PlacementRow,
+) -> Option<&'a conduit_core::DeviceAssociation> {
+    current_device_for_capability(
+        report,
+        &placement.host_id,
+        &placement.boot_id,
+        &placement.capability_id,
+    )
+    .filter(|device| device.offer_generation == placement.offer_generation)
+}
+
 pub fn current_device_for_capability<'a>(
     report: &'a ObservatoryReport,
     host_id: &conduit_core::HostId,

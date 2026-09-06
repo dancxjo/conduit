@@ -253,16 +253,18 @@ impl BrowserAdmissionListener {
     pub fn accept(&self) -> Result<BrowserAdmissionSocket, BrowserAdmissionSocketError> {
         Ok(BrowserAdmissionSocket {
             line: self.inner.accept()?,
-            input: [0; MAX_BROWSER_ADMISSION_FRAME_BYTES],
-            output: [0; MAX_BROWSER_ADMISSION_FRAME_BYTES],
+            input: vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES].into_boxed_slice(),
+            output: vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES].into_boxed_slice(),
         })
     }
 }
 
 pub struct BrowserAdmissionSocket {
     line: NativeWebSocketLine,
-    input: [u8; MAX_BROWSER_ADMISSION_FRAME_BYTES],
-    output: [u8; MAX_BROWSER_ADMISSION_FRAME_BYTES],
+    // Fixed at admission, never resized during receive/send. Moving a socket
+    // through coordinator state must not copy its frame arenas on the stack.
+    input: Box<[u8]>,
+    output: Box<[u8]>,
 }
 
 impl BrowserAdmissionSocket {

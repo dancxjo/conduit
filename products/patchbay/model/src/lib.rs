@@ -116,9 +116,10 @@ pub use body_biography_entrance::{
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
 };
 pub use body_planning_session::{
-    body_planning_requirements, plan_body_workset_on_host, BodyPlanningHost,
-    BodyPlanningRequirements, BodyPlanningSession, BodyPlanningSessionError,
-    BodyPlanningSessionSnapshot, BodyPlanningTransition,
+    body_planning_requirements, plan_body_workset_on_host, BodyExecutionClaim,
+    BodyExecutionClaimError, BodyExecutionPhase, BodyPlanningHost, BodyPlanningRequirements,
+    BodyPlanningSession, BodyPlanningSessionError, BodyPlanningSessionSnapshot,
+    BodyPlanningTransition,
 };
 pub use body_workload_session::{
     BodyWorkloadChange, BodyWorkloadChangeKind, PatchbayBodyWorkloadError,

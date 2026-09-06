@@ -135,6 +135,39 @@ fn classifier_artifacts_are_scoped_and_planning_has_no_workspace_cache() {
 }
 
 #[test]
+fn full_promotion_suite_builds_and_publishes_classifier_artifacts_for_docs_only_deltas() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let classify = workflow
+        .split("\n  classify:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  conduitos-limine:\n").next())
+        .expect("locate classifier job");
+
+    for step in [
+        "Build the dependency-light trusted CI controller",
+        "Plan exact CI impact",
+        "Fingerprint immutable candidate proof inputs",
+        "Retain the trusted attestation controller once for proof jobs",
+        "Retain the trusted candidate proof and applicability plans",
+    ] {
+        let condition = classify
+            .split(&format!("- name: {step}\n"))
+            .nth(1)
+            .and_then(|tail| {
+                tail.lines()
+                    .find(|line| line.trim_start().starts_with("if:"))
+            })
+            .unwrap_or_else(|| panic!("locate condition for `{step}`"));
+        assert!(
+            condition.contains("inputs.full_suite || steps.changes.outputs.docs_only != 'true'"),
+            "full promotion suite may skip `{step}` for a docs-only delta: {condition}"
+        );
+    }
+}
+
+#[test]
 fn product_planner_has_no_workspace_cache() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))

@@ -12,6 +12,7 @@ extern crate alloc;
 mod admission;
 mod biography;
 mod candidate;
+mod continuity;
 mod events;
 mod hold;
 mod identity;
@@ -33,6 +34,7 @@ mod workset;
 pub use admission::*;
 pub use biography::*;
 pub use candidate::*;
+pub use continuity::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]

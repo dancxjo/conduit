@@ -9,9 +9,10 @@ use conduit_core::PlanFragment;
 #[cfg(test)]
 use std::io::Write;
 
-pub(crate) struct RunLifecycle<'a> {
+pub(crate) struct RunLifecycle<'a, 'indicator> {
     pub control: &'a super::RunControl,
     pub retained: Option<&'a mut Vec<crate::state_value::RetainedTypedState>>,
+    pub indicator: Option<&'indicator mut dyn crate::hosted_indicator::HostedIndicatorAdapter>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -47,6 +48,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
         RunLifecycle {
             control,
             retained: None,
+            indicator: None,
         },
     )
     .map(|run| run.report)

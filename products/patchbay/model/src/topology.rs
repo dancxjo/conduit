@@ -220,6 +220,23 @@ fn render_plans_and_plays(
                 placement.resources
             ),
         )?;
+        if let Some(device) = super::topology_hosts::current_device_for_placement(report, placement)
+        {
+            push_line(lines, format!(
+                "      SELECTED DEVICE {} generation={} identity={:?} provider={} resources={:?} (current association; not proof of a physical effect)",
+                device.device_id.as_str(), placement.offer_generation.0,
+                device.identity_evidence.strength, device.identity_evidence.provider.as_str(),
+                device.resources
+            ))?;
+        } else {
+            push_line(
+                lines,
+                format!(
+                    "      SELECTED DEVICE not identified at sealed offer generation {}",
+                    placement.offer_generation.0
+                ),
+            )?;
+        }
     }
     for connection in &report.connections {
         push_line(
@@ -390,6 +407,7 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
         .saturating_add(report.bases.len())
         .saturating_add(report.plans.len())
         .saturating_add(report.fragments.len())
+        .saturating_add(report.placements.len())
         .saturating_add(report.placements.len())
         .saturating_add(report.connections.len())
         .saturating_add(report.plays.len())

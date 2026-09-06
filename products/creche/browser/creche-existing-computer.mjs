@@ -12,7 +12,8 @@ const MODES = Object.freeze([
 ]);
 const BOUNDS = Object.freeze({
   maximumOperations: 12,
-  maximumOperationEvidenceBytes: 32 * 1024,
+  // Canonical Body advertisements admit 72 KiB; retain finite envelope space.
+  maximumOperationEvidenceBytes: 80 * 1024,
   maximumRetainedEvidenceBytes: 128 * 1024,
 });
 

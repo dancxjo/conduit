@@ -19,6 +19,7 @@ usb-midi-fixture = ["dep:embassy-futures"]
 pete-capstone = ["dep:conduit-wire", "dep:embassy-futures"]
 session-control = ["dep:conduit-wire", "dep:embassy-futures"]
 light-switch = ["session-control"]
+indicator-resource = ["light-switch"]
 
 [dependencies]
 cortex-m = "0.7.7"

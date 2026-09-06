@@ -13,8 +13,17 @@
   </script>
   <title>Conduit Crèche</title>
   <meta name="conduit-application-package" content="./creche.application.json">
+  <style data-conduit-bootstrap>
+    html { background:#05070b; } body { margin:0; }
+    #conduit-suspense { position:fixed; inset:0; z-index:2147483647; display:grid; place-items:center; padding:2rem; color:#93d2f7; background:#05070b; font:16px/1.5 system-ui,sans-serif; text-align:center; transition:opacity 220ms ease,visibility 220ms step-end; }
+    #conduit-suspense>div { width:min(24rem,100%); } #conduit-suspense .conduit-pulse { width:4rem; height:4rem; margin:0 auto 1.35rem; border:1px solid #0dd8f6; border-radius:50%; background:radial-gradient(circle,#e9a325 0 9%,transparent 10% 100%); box-shadow:0 0 0 0 #0dd8f655; animation:conduit-pulse 1.15s ease-out infinite; }
+    #conduit-suspense strong { display:block; color:#e9a325; font:700 .78rem/1.2 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; } #conduit-suspense span { display:block; margin-top:.55rem; color:#578ec9; }
+    html[data-conduit-load-state="ready"] #conduit-suspense { visibility:hidden; opacity:0; pointer-events:none; } html[data-conduit-load-state="refused"] #conduit-suspense .conduit-pulse { animation:none; border-color:#ff7272; box-shadow:none; } html[data-conduit-load-state="refused"] #conduit-suspense strong { color:#ff7272; }
+    @keyframes conduit-pulse { 70%,100% { box-shadow:0 0 0 1.5rem #0dd8f600; transform:scale(.94); } } @media (prefers-reduced-motion:reduce) { #conduit-suspense,#conduit-suspense .conduit-pulse { animation:none; transition:none; } }
+  </style>
 </head>
 <body>
+  <div id="conduit-suspense" role="status" aria-live="polite" aria-busy="true"><div><div class="conduit-pulse" aria-hidden="true"></div><strong>Conduit Crèche</strong><span>Preparing the nursery…</span></div></div>
   <div data-application-slot="product-masthead"></div>
   <main>
     <header class="introduction"><p class="eyebrow">Independent Body birth and provisioning</p><h1>Birth a Body</h1><p>The Crèche is temporary help for creating a durable computer. Its controls are not lifecycle truth.</p></header>

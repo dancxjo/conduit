@@ -89,7 +89,9 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
       provision_bytes: 4096,
     },
   });
-  const downloaded = await downloadArtifact(page, handoff);
+  const downloaded = await downloadArtifact(page, handoff, {
+    retainAt: process.env.CONDUIT_CRECHE_SPORE_OUTPUT,
+  });
   expect(downloaded.filename).toMatch(/-conduitos-native\.iso$/);
   const { readBodyProvisionedMedia } = await import("../../products/creche/browser/creche-native-disk.mjs");
   const nativeIso = {

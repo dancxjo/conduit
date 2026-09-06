@@ -61,8 +61,93 @@ jobs:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       full_suite: true
 
+  conduitos-spore-acceptance:
+    needs: [check, products]
+    if: always() && !cancelled() && needs.check.result == 'success' && needs.products.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          shared-key: conduitos-spore-acceptance
+      - name: Receive the exact Crèche-exported ConduitOS spore
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-creche-conduitos-spore-${{ github.event.pull_request.head.sha }}
+          path: target/conduitos/x86_64
+      - name: Receive the exact ConduitOS tool bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-tools-${{ github.event.pull_request.head.sha }}
+          path: target/conduitos/tool-bundle
+      - name: Install the pinned ConduitOS tools without mirror access
+        run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
+      - name: Boot the exact Crèche artifact through the ordinary product journey
+        run: >-
+          cargo xtask conduitos acceptance --locked
+          --spore target/conduitos/x86_64/creche-export.iso
+      - name: Retain exact visual and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
+          path: |
+            target/conduitos/x86_64/creche-spore-acceptance.json
+            target/conduitos/x86_64/journey-proof.json
+            target/conduitos/x86_64/journey-frames
+            target/conduitos/x86_64/journey-serial.log
+            target/conduitos/x86_64/journey-qmp.log
+            target/conduitos/x86_64/journey-qemu-stderr.log
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
+
+  pages-carrier-with-conduitos:
+    needs: [products, conduitos-spore-acceptance]
+    if: always() && !cancelled() && needs.products.result == 'success' && needs.conduitos-spore-acceptance.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Receive the already-proven Pages carrier
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-pages-carrier
+          path: target/pages-carrier-base
+      - name: Receive the accepted ConduitOS visual journey
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
+          path: target/conduitos-acceptance
+      - name: Append only validated promotion evidence and reseal the carrier
+        run: |
+          source_commit=$(git rev-parse HEAD)
+          source_tree=$(git rev-parse 'HEAD^{tree}')
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier-base "$source_tree"
+          rm -rf target/pages-site target/pages-carrier-with-conduitos
+          cp -a target/pages-carrier-base/site target/pages-site
+          node tools/ci/stage-conduitos-pages-evidence.mjs \
+            target/conduitos-acceptance/journey-frames target/pages-site "$source_commit"
+          node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier-with-conduitos "$source_commit" "$source_tree"
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier-with-conduitos "$source_tree"
+      - name: Retain the promotion-only Pages carrier with ConduitOS frames
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-pages-carrier-with-conduitos
+          path: target/pages-carrier-with-conduitos
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+
   promotion:
-    needs: [boundary, check, products]
+    needs: [boundary, check, products, conduitos-spore-acceptance, pages-carrier-with-conduitos]
     if: always() && !cancelled()
     runs-on: ubuntu-slim
     steps:
@@ -71,7 +156,11 @@ jobs:
           BOUNDARY_RESULT: ${{ needs.boundary.result }}
           CHECK_RESULT: ${{ needs.check.result }}
           PRODUCTS_RESULT: ${{ needs.products.result }}
+          CONDUITOS_SPORE_RESULT: ${{ needs.conduitos-spore-acceptance.result }}
+          CONDUITOS_PAGES_RESULT: ${{ needs.pages-carrier-with-conduitos.result }}
         run: |
           test "$BOUNDARY_RESULT" = success
           test "$CHECK_RESULT" = success
           test "$PRODUCTS_RESULT" = success
+          test "$CONDUITOS_SPORE_RESULT" = success
+          test "$CONDUITOS_PAGES_RESULT" = success

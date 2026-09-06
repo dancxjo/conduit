@@ -168,6 +168,7 @@ Read **[STATUS.md](STATUS.md)** before making a capability claim. It is intentio
 - **[Crèche](https://dancxjo.github.io/conduit/creche)**: birth and provision a Body.
 - **[Try Conduit](docs/try-conduit.md)**: repository-oriented runnable guide.
 - **[Conduit canon](docs/conduit-canon.md)**: durable architecture and design distinctions.
+- **[Repository layout](docs/repository-layout.md)**: architectural owners and where contributions belong.
 - **[STATUS.md](STATUS.md)**: exact current proof and capability boundary.
 - **[Patchbay](products/patchbay/README.md)**: visual application and projection over Form, Body, Plan, Play, Host, and evidence truth.
 

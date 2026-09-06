@@ -169,7 +169,7 @@ form zz-quantity-output {{
                 effect.presentation_kind,
                 conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
             );
-            assert_eq!(effect.plan_id, session.fragment.plan_id.as_str());
+            assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
             assert_eq!(effect.active_play_id, session.active_play_id.as_str());
             assert!(!effect.presentation_id.is_empty());
             assert!(effect

@@ -40,6 +40,15 @@ test("inherited promotion requires retained nonempty carrier bytes", () => {
   assert.equal(hasRetainedArtifact(undefined, "conduit-pages-carrier"), false);
 });
 
+test("recognizes the promotion-only ConduitOS carrier without weakening artifact checks", () => {
+  assert.equal(hasRetainedArtifact([
+    { name: "conduit-pages-carrier-with-conduitos", expired: false, size_in_bytes: 42 },
+  ], "conduit-pages-carrier-with-conduitos"), true);
+  assert.equal(hasRetainedArtifact([
+    { name: "conduit-pages-carrier-with-conduitos", expired: true, size_in_bytes: 42 },
+  ], "conduit-pages-carrier-with-conduitos"), false);
+});
+
 test("selects the successful exact-head run when GitHub omits PR associations", () => {
   const admitted = { id: 33662354458, status: "completed", conclusion: "success", head_sha: head, pull_requests: [] };
   assert.equal(selectExactSuccessfulRun([

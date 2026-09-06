@@ -100,12 +100,32 @@ test("a second browser replans one Body and its departure is explicit", async ({
   expect(requestedEvidence.capabilities.length).toBeGreaterThan(0);
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
   await expect(page.locator("#body-capability-evidence-status")).toContainText("display only");
-  await page.getByRole("button", { name: "Run active Forms on this Host", exact: true }).click();
+  await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
   await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
   const planningInput = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
   expect(planningInput.body_host_planning_offer.stage).toBe("Planning");
   expect(planningInput.body_planning.body_id).toBe(bodyId);
-  expect(planningInput.body_planning.lifecycle).toBe("Playing");
+  // Offer admission/planning is not evidence that the browser started a Play.
+  expect(planningInput.body_planning.lifecycle).toBe("AwaitingPlan");
+  const proposalResponse = await page.request.get(new URL("/api/body-execution-proposal", patchbayUrl).href);
+  expect(proposalResponse.status()).toBe(200);
+  const proposal = await proposalResponse.json();
+  expect(proposal.schema).toBe("conduit.patchbay/body-execution-proposal@1");
+  expect(proposal.wake.wake_id).toBe(planningInput.body_planning.wake_id);
+  expect(proposal.wake.lifecycle).toBe("AwaitingPlan");
+  expect(proposal.wake.plans).toEqual([]);
+  expect(proposal.plan.plan_id).toBe(planningInput.body_planning.current_plan_id);
+  expect(proposal.plan.body_id).toBe(bodyId);
+  expect(proposal.plan.workset).toEqual(proposal.wake.workset);
+  expect(proposal.plan.forms.length).toBeGreaterThan(0);
+  for (const form of proposal.plan.forms) {
+    for (const fragment of form.plan.fragments) {
+      expect(fragment.host_id).toBe(admittedIdentity.hostId);
+      expect(fragment.boot_id).toBe(admittedIdentity.bootId);
+    }
+  }
+  expect(proposal.observations).toBeUndefined();
+  expect(proposal.play).toBeUndefined();
   expect(planningInput.body_planning.current_hosts).toEqual([{ host_id: admittedIdentity.hostId, boot_id: admittedIdentity.bootId }]);
   expect(planningInput.body_planning.historical_plan_ids).toEqual([planningInput.body_planning.current_plan_id]);
   expect(planningInput.interaction.last_disposition).toBe("Succeeded(PlanningInputAdmitted;BodyReplanned)");
@@ -132,10 +152,14 @@ test("a second browser replans one Body and its departure is explicit", async ({
       admittedParts: snapshot.body_workbench.current.admitted_parts,
       currentHosts: snapshot.body_workbench.current.current_hosts.length,
     };
-  }).toEqual({ evidenceRevision: 2, admittedParts: 2, currentHosts: 2 });
+  }).toEqual({ evidenceRevision: 3, admittedParts: 2, currentHosts: 2 });
   const adoptedEvidence = await page.request.get(new URL("/api/body-evidence", patchbayUrl).href).then(response => response.json());
-  expect(adoptedEvidence).toEqual(await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence()));
-  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 2 has unsaved Body changes.");
+  const observerEvidence = await page.evaluate(() => globalThis.__patchbayMembership.biographyEvidence());
+  expect(adoptedEvidence.membership).toEqual(observerEvidence.membership);
+  expect(adoptedEvidence.records.slice(0, observerEvidence.records.length)).toEqual(observerEvidence.records);
+  expect(adoptedEvidence.wakes).toEqual([proposal.wake]);
+  expect(adoptedEvidence.body.state.Awake.wake_id).toBe(proposal.wake.wake_id);
+  await expect(page.locator("#body-evidence-status")).toHaveText("Evidence revision 3 has unsaved Body changes.");
   await expect(page.locator("#body-workbench-status")).toContainText("2 Parts · 2 current Hosts");
   expect(admittedIdentity.hostId).toMatch(/^browser\//);
   expect(admittedIdentity.bootId).toMatch(/^browser-boot\//);
@@ -210,7 +234,7 @@ test("a second browser replans one Body and its departure is explicit", async ({
   expect(secondIdentity.hostId).not.toBe(admittedIdentity.hostId);
   await secondPage.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
   await expect.poll(() => secondPage.evaluate(() => globalThis.__patchbayMembership.offerEvidence()?.stage)).toBe("Planning");
-  await secondPage.getByRole("button", { name: "Run active Forms on this Host", exact: true }).click();
+  await secondPage.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
   await expect.poll(async () => {
     const snapshot = await secondPage.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
     return snapshot.body_planning?.historical_plan_ids?.length === 2 ? snapshot.body_planning : null;
@@ -223,9 +247,13 @@ test("a second browser replans one Body and its departure is explicit", async ({
   await secondPage.getByRole("button", { name: "Disconnect this browser Host", exact: true }).click();
   await expect.poll(async () => {
     const snapshot = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
-    return snapshot.body_planning?.lifecycle;
-  }).toBe("Unsatisfied");
+    return Boolean(snapshot.body_planning?.unavailable_proposal_sign_id);
+  }).toBe(true);
   const afterSecondLeave = await page.request.get(new URL("/api/snapshot", patchbayUrl).href).then(response => response.json());
+  const unavailableProposal = await page.request.get(new URL("/api/body-execution-proposal", patchbayUrl).href);
+  expect(unavailableProposal.status()).toBe(409);
+  expect(await unavailableProposal.text()).toBe("BodyProposalUnavailable");
+  expect(afterSecondLeave.body_planning.lifecycle).toBe("AwaitingPlan");
   expect(afterSecondLeave.body_planning.body_id).toBe(bodyId);
   expect(afterSecondLeave.body_planning.current_plan_id).toBe(replacementSnapshot.body_planning.current_plan_id);
   expect(afterSecondLeave.body_planning.historical_plan_ids).toHaveLength(2);

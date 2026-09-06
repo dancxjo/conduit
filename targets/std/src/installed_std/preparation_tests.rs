@@ -88,24 +88,13 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
     let mut drivers =
         core::array::from_fn(|_| OperationDriver::new(InstalledOperation::inactive()).unwrap());
     for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
-        let play = conduit_core::bind_active_play(
-            &fragment.plan_id,
-            &fragment.host_id,
-            &fragment.boot_id,
-            1,
-        );
-        for (slot, driver) in prepare_operations(fragment, partition, &mut values, &play, None)
-            .unwrap()
-            .into_iter()
-            .enumerate()
-        {
-            if partition
-                .nodes
-                .iter()
-                .any(|node| usize::from(node.node.0) == slot)
-            {
-                drivers[slot] = driver;
-            }
+        assert!(partition.states.is_empty());
+        for node in &partition.nodes {
+            // Initialization of ordinary operations does not create independent
+            // per-Form Plays or forge a constituent ActivePlayIdentity.
+            let operation =
+                prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap();
+            drivers[usize::from(node.node.0)] = OperationDriver::new(operation).unwrap();
         }
     }
     let partitions: Vec<_> = lowered.partitions.iter().collect();
@@ -122,6 +111,7 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
         )
         .unwrap();
     let mut ticks = [Vec::with_capacity(4), Vec::with_capacity(4)];
+    let mut output = Vec::with_capacity(256);
     let mut waits = [0; 2];
     let mut completed = false;
     // Deterministic Host-operation completions, not wall-clock or OS proof.
@@ -157,6 +147,12 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
                     conduit_time::decode_tick(kernel.host_value(request.input.value).unwrap())
                         .unwrap(),
                 );
+                assert!(crate::installed_std::simple_presentation_host::present(
+                    operation.target_kind.as_ref(),
+                    kernel.host_value(request.input.value).unwrap(),
+                    &mut output,
+                )
+                .unwrap());
             }
             kernel
                 .complete_host_operation(
@@ -181,6 +177,11 @@ fn two_real_clock_partitions_complete_through_the_shared_kernel_installation() {
     );
     assert_eq!(ticks, [vec![0, 1, 2, 3], vec![0, 1, 2, 3]]);
     assert_eq!(waits, [4, 4]);
+    let output = String::from_utf8(output).unwrap();
+    for sequence in 0..4 {
+        let expected = format!("tick sequence={sequence}");
+        assert_eq!(output.lines().filter(|line| *line == expected).count(), 2);
+    }
     assert_eq!(plans, snapshot);
     let result = KernelTables::prepare(&[partitions[0], partitions[0]]);
     assert!(matches!(result, Err(reason) if reason.contains("disjoint")));
@@ -195,6 +196,18 @@ fn wrong_partition_and_out_of_range_nodes_refuse_before_value_preparation() {
         conduit_core::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
     let result = prepare_operations(&plans[1].fragments[0], &lowered, &mut values, &play, None);
+    assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
+    // A Body-wide Play or any unrelated Play cannot be relabeled as this
+    // constituent Plan merely by copying its Plan/Host/Boot fields.
+    let mut relabeled = play.clone();
+    relabeled.active_play_id = conduit_core::bind_active_play(
+        &plans[1].plan_id,
+        &fragment.host_id,
+        &fragment.boot_id,
+        play.play_sequence,
+    )
+    .active_play_id;
+    let result = prepare_operations(fragment, &lowered, &mut values, &relabeled, None);
     assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
     lowered.nodes[0].node.0 = MAX_NODES as u16;
     let result = prepare_operations(fragment, &lowered, &mut values, &play, None);

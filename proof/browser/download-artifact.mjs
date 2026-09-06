@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
-export async function downloadArtifact(page, control) {
+export async function downloadArtifact(page, control, { retainAt } = {}) {
   await page.evaluate(() => Object.defineProperty(globalThis, "showSaveFilePicker", {
     configurable: true,
     value: undefined,
@@ -10,9 +10,16 @@ export async function downloadArtifact(page, control) {
   const download = await pending;
   const path = await download.path();
   if (!path) throw new Error("browser artifact handoff produced no downloadable file");
+  const bytes = new Uint8Array(await readFile(path));
+  if (retainAt !== undefined) {
+    if (typeof retainAt !== "string" || retainAt.length < 1 || retainAt.length > 4096) {
+      throw new TypeError("browser artifact retention requires one bounded explicit path");
+    }
+    await writeFile(retainAt, bytes, { flag: "wx" });
+  }
   return Object.freeze({
     filename: download.suggestedFilename(),
-    bytes: new Uint8Array(await readFile(path)),
+    bytes,
   });
 }
 

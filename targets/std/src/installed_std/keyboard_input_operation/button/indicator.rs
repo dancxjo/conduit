@@ -14,6 +14,21 @@ pub(in crate::installed_std) static INDICATOR: InstalledFactory = InstalledFacto
     budget: indicator_budget,
     prepare: prepare_indicator,
 };
+pub(in crate::installed_std) static RESOURCE_INDICATOR: InstalledFactory = InstalledFactory {
+    implementation_id: conduit_std_offers::indicator_resource::IMPLEMENTATION,
+    budget: indicator_budget,
+    prepare: prepare_indicator,
+};
+
+fn indicator_offer(placement: &PlannedGear) -> CapabilityOffer {
+    if placement.implementation_id.as_str()
+        == conduit_std_offers::indicator_resource::IMPLEMENTATION
+    {
+        conduit_std_offers::indicator_resource::offer()
+    } else {
+        conduit_std_offers::button::indicator_offer()
+    }
+}
 
 pub(in crate::installed_std) struct Mapper {
     mapper: PreparedButtonIndicatorMapper,
@@ -104,7 +119,7 @@ fn prepare_mapper(
 }
 
 fn indicator_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
-    validate(placement, conduit_std_offers::button::indicator_offer())?;
+    validate(placement, indicator_offer(placement))?;
     Ok(OperationBudget {
         value_items: 0,
         value_bytes: 0,
@@ -118,7 +133,7 @@ fn prepare_indicator(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
 ) -> Result<InstalledOperation, String> {
-    validate(placement, conduit_std_offers::button::indicator_offer())?;
+    validate(placement, indicator_offer(placement))?;
     Ok(InstalledOperation::BoolPresentation(
         crate::installed_std::bool_presentation::BoolPresentationOperation::new(u64::from(
             BUTTON_TRANSITION_MAXIMUM_VALUES,

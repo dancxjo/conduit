@@ -98,8 +98,10 @@ mod distributed_lenia;
 mod kernel;
 #[cfg(feature = "distributed-lenia")]
 mod lenia_image;
-#[cfg(feature = "light-switch")]
+#[cfg(all(feature = "light-switch", not(feature = "indicator-resource")))]
 mod light_switch;
+#[cfg(feature = "indicator-resource")]
+mod indicator_resource;
 #[cfg(feature = "wifi-bootstrap")]
 mod network_image;
 #[cfg(feature = "wifi-bootstrap")]
@@ -309,7 +311,10 @@ async fn main(spawner: Spawner) {
             &CYW43_NVRAM,
         )
         .await;
+        #[cfg(not(feature = "indicator-resource"))]
         light_switch::run(session_line, &mut cdc, &mut control).await;
+        #[cfg(feature = "indicator-resource")]
+        indicator_resource::run(session_line, &mut control).await;
     }
 
     #[cfg(feature = "pico-local")]

@@ -149,6 +149,9 @@ pub struct AssetEntry {
 }
 
 pub fn run_build(args: &PicoArgs) -> PicoResult<()> {
+    if args.indicator_resource {
+        return super::indicator_build::run(args);
+    }
     println!("==> pico build: verifying required assets");
     let root = repo_root();
     if !args.usb_midi_fixture {

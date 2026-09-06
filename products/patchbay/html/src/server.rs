@@ -6,9 +6,12 @@ use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+mod body_execution;
+mod body_execution_proposal;
 pub(crate) mod body_host_offer_evidence;
 pub(crate) mod body_host_planning_offer;
 mod body_membership_evidence;
+mod body_routes;
 mod body_workload;
 mod browser_membership;
 mod debug_control;
@@ -35,38 +38,6 @@ const APPLICATION_LOADER: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/browser-application-loader.mjs");
 const APPLICATION_STORAGE: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/browser-application-storage.mjs");
-const SCRIPT: &[u8] = include_bytes!("../assets/app.js");
-const FLOW_SCRIPT: &[u8] = include_bytes!("../assets/flow.js");
-const FLOW_SCENE_SCRIPT: &[u8] = include_bytes!("../assets/flow-scene.js");
-const FLOW_LAYOUT_SCRIPT: &[u8] = include_bytes!("../assets/flow-layout.js");
-const FLOW_FACEPLATE_SCRIPT: &[u8] = include_bytes!("../assets/flow-faceplate.js");
-const SHARED_PRESENTATION_SCRIPT: &[u8] = include_bytes!("../assets/shared-presentation.js");
-const PORTABLE_NAVIGATION_SCRIPT: &[u8] = include_bytes!("../assets/portable-navigation.js");
-const MEMBERSHIP_SCRIPT: &[u8] = include_bytes!("../assets/browser-membership.js");
-const HOST_IDENTITY_SCRIPT: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/browser-host-identity.mjs");
-const APPLICATION_PRESENTATION_SCRIPT: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/application-presentation.mjs");
-const PRODUCT_MASTHEAD_SCRIPT: &[u8] =
-    include_bytes!("../../../../semantics/presentation/assets/product-masthead.mjs");
-const APPLICATION_THEME_SCRIPT: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/application-theme.mjs");
-const APPLICATION_THEME_STYLE: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/application-theme.css");
-const TEXT_LAB_RUNTIME_SCRIPT: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/text-lab-live-runtime.mjs");
-const WEBSOCKET_LINE_SCRIPT: &[u8] =
-    include_bytes!("../../../../targets/browser/host/assets/websocket-line.mjs");
-const BODY_WEBRTC_SESSIONS_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-sessions.mjs");
-const BODY_WEBRTC_SESSION_SCRIPT: &[u8] = include_bytes!("../assets/body-webrtc-session.mjs");
-const WEBRTC_LINE_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-datachannel-line.mjs");
-const WEBRTC_RUNTIME_SCRIPT: &[u8] = include_bytes!("../assets/webrtc-session-runtime.mjs");
-const STYLE: &[u8] = include_bytes!("../assets/app.css");
-const FLOW_STYLE: &[u8] = include_bytes!("../assets/flow.css");
-const REACT: &[u8] = include_bytes!("../assets/react.min.js");
-const REACT_DOM: &[u8] = include_bytes!("../assets/react-dom.min.js");
-const REACT_FLOW: &[u8] = include_bytes!("../assets/react-flow.min.js");
-const REACT_FLOW_STYLE: &[u8] = include_bytes!("../assets/react-flow.css");
 const MAX_BROWSER_WASM_BYTES: usize = 5 * 1024 * 1024;
 const EMPTY_BROWSER_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
@@ -154,38 +125,12 @@ pub struct PatchbayHtmlServer {
 
 impl PatchbayHtmlServer {
     fn application_resource(&self, path: &str) -> Option<&[u8]> {
-        match path {
-            "assets/app.js" => Some(SCRIPT),
-            "assets/browser-membership.js" => Some(MEMBERSHIP_SCRIPT),
-            "assets/browser-host-identity.mjs" => Some(HOST_IDENTITY_SCRIPT),
-            "assets/body-webrtc-sessions.mjs" => Some(BODY_WEBRTC_SESSIONS_SCRIPT),
-            "assets/body-webrtc-session.mjs" => Some(BODY_WEBRTC_SESSION_SCRIPT),
-            "assets/webrtc-datachannel-line.mjs" => Some(WEBRTC_LINE_SCRIPT),
-            "assets/webrtc-session-runtime.mjs" => Some(WEBRTC_RUNTIME_SCRIPT),
-            "assets/application-presentation.mjs" => Some(APPLICATION_PRESENTATION_SCRIPT),
-            "assets/product-masthead.mjs" => Some(PRODUCT_MASTHEAD_SCRIPT),
-            "assets/application-theme.mjs" => Some(APPLICATION_THEME_SCRIPT),
-            "assets/application-theme.css" => Some(APPLICATION_THEME_STYLE),
-            "assets/flow.js" => Some(FLOW_SCRIPT),
-            "assets/flow-scene.js" => Some(FLOW_SCENE_SCRIPT),
-            "assets/flow-layout.js" => Some(FLOW_LAYOUT_SCRIPT),
-            "assets/flow-faceplate.js" => Some(FLOW_FACEPLATE_SCRIPT),
-            "assets/shared-presentation.js" => Some(SHARED_PRESENTATION_SCRIPT),
-            "assets/portable-navigation.js" => Some(PORTABLE_NAVIGATION_SCRIPT),
-            "assets/websocket-line.mjs" => Some(WEBSOCKET_LINE_SCRIPT),
-            "assets/text-lab-live-runtime.mjs" => Some(TEXT_LAB_RUNTIME_SCRIPT),
-            "assets/conduit-browser-runtime.wasm" => {
-                Some(self.browser_wasm.as_deref().unwrap_or(EMPTY_BROWSER_WASM))
-            }
-            "assets/theme.css" => Some(&self.theme_css),
-            "assets/app.css" => Some(STYLE),
-            "assets/react-flow.css" => Some(REACT_FLOW_STYLE),
-            "assets/flow.css" => Some(FLOW_STYLE),
-            "assets/react.min.js" => Some(REACT),
-            "assets/react-dom.min.js" => Some(REACT_DOM),
-            "assets/react-flow.min.js" => Some(REACT_FLOW),
-            _ => None,
-        }
+        crate::application_resources::resource(
+            path,
+            self.browser_wasm.as_deref().unwrap_or(EMPTY_BROWSER_WASM),
+            &self.theme_css,
+        )
+        .map(|(_, bytes)| bytes)
     }
 
     fn application_manifest(&self) -> Result<Vec<u8>, ServerError> {
@@ -380,23 +325,8 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
-        if first == "POST /api/body-workload HTTP/1.1" {
-            return self.deliver_body_workload(&mut stream, &request.body);
-        }
-        if first == "POST /api/body-membership-evidence HTTP/1.1" {
-            return self.deliver_body_membership_evidence(&mut stream, &request.body);
-        }
-        if first == "POST /api/body-host-offer-evidence HTTP/1.1" {
-            return self.deliver_body_host_offer_evidence(&mut stream, &request.body);
-        }
-        if first == "POST /api/body-host-planning-offer HTTP/1.1" {
-            return self.deliver_body_host_planning_offer(&mut stream, &request.body);
-        }
-        if first == "GET /api/body-planning-requirements HTTP/1.1" {
-            return self.deliver_body_planning_requirements(&mut stream);
-        }
-        if first == "GET /api/body-evidence HTTP/1.1" {
-            return self.deliver_body_evidence(&mut stream);
+        if let Some(result) = self.deliver_body_route(first, &mut stream, &request.body) {
+            return result;
         }
         if first == "POST /api/front-door-transition HTTP/1.1" {
             let body = self.apply_front_door_transition(&request.body)?;
@@ -526,9 +456,20 @@ impl PatchbayHtmlServer {
                 &manifest,
             );
         }
+        if let Some(path) = first
+            .strip_prefix("GET /")
+            .and_then(|line| line.strip_suffix(" HTTP/1.1"))
+        {
+            if let Some((media_type, bytes)) = crate::application_resources::resource(
+                path,
+                self.browser_wasm.as_deref().unwrap_or(EMPTY_BROWSER_WASM),
+                &self.theme_css,
+            ) {
+                return write_response(&mut stream, "200 OK", media_type, bytes);
+            }
+        }
         let (status, content_type, body): (&str, &str, &[u8]) = match first {
             "GET / HTTP/1.1" => ("200 OK", "text/html; charset=utf-8", INDEX),
-            "GET /assets/app.js HTTP/1.1" => ("200 OK", "text/javascript; charset=utf-8", SCRIPT),
             "GET /assets/browser-application-loader.mjs HTTP/1.1" => (
                 "200 OK",
                 "text/javascript; charset=utf-8",
@@ -539,107 +480,6 @@ impl PatchbayHtmlServer {
                 "text/javascript; charset=utf-8",
                 APPLICATION_STORAGE,
             ),
-            "GET /assets/flow.js HTTP/1.1" => {
-                ("200 OK", "text/javascript; charset=utf-8", FLOW_SCRIPT)
-            }
-            "GET /assets/flow-scene.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                FLOW_SCENE_SCRIPT,
-            ),
-            "GET /assets/flow-layout.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                FLOW_LAYOUT_SCRIPT,
-            ),
-            "GET /assets/flow-faceplate.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                FLOW_FACEPLATE_SCRIPT,
-            ),
-            "GET /assets/shared-presentation.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                SHARED_PRESENTATION_SCRIPT,
-            ),
-            "GET /assets/portable-navigation.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                PORTABLE_NAVIGATION_SCRIPT,
-            ),
-            "GET /assets/react.min.js HTTP/1.1" => {
-                ("200 OK", "text/javascript; charset=utf-8", REACT)
-            }
-            "GET /assets/react-dom.min.js HTTP/1.1" => {
-                ("200 OK", "text/javascript; charset=utf-8", REACT_DOM)
-            }
-            "GET /assets/react-flow.min.js HTTP/1.1" => {
-                ("200 OK", "text/javascript; charset=utf-8", REACT_FLOW)
-            }
-            "GET /assets/browser-membership.js HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                MEMBERSHIP_SCRIPT,
-            ),
-            "GET /assets/browser-host-identity.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                HOST_IDENTITY_SCRIPT,
-            ),
-            "GET /assets/application-presentation.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                APPLICATION_PRESENTATION_SCRIPT,
-            ),
-            "GET /assets/product-masthead.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                PRODUCT_MASTHEAD_SCRIPT,
-            ),
-            "GET /assets/application-theme.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                APPLICATION_THEME_SCRIPT,
-            ),
-            "GET /assets/application-theme.css HTTP/1.1" => {
-                ("200 OK", "text/css; charset=utf-8", APPLICATION_THEME_STYLE)
-            }
-            "GET /assets/text-lab-live-runtime.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                TEXT_LAB_RUNTIME_SCRIPT,
-            ),
-            "GET /assets/websocket-line.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                WEBSOCKET_LINE_SCRIPT,
-            ),
-            "GET /assets/body-webrtc-sessions.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                BODY_WEBRTC_SESSIONS_SCRIPT,
-            ),
-            "GET /assets/body-webrtc-session.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                BODY_WEBRTC_SESSION_SCRIPT,
-            ),
-            "GET /assets/webrtc-datachannel-line.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                WEBRTC_LINE_SCRIPT,
-            ),
-            "GET /assets/webrtc-session-runtime.mjs HTTP/1.1" => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                WEBRTC_RUNTIME_SCRIPT,
-            ),
-            "GET /assets/conduit-browser-runtime.wasm HTTP/1.1" => self
-                .browser_wasm
-                .as_deref()
-                .map_or(("200 OK", "application/wasm", EMPTY_BROWSER_WASM), |body| {
-                    ("200 OK", "application/wasm", body)
-                }),
             "GET /api/body-admission HTTP/1.1" => self.body_admission.as_deref().map_or(
                 (
                     "404 Not Found",
@@ -647,16 +487,6 @@ impl PatchbayHtmlServer {
                     b"browser membership unavailable".as_slice(),
                 ),
                 |body| ("200 OK", "application/json; charset=utf-8", body),
-            ),
-            "GET /assets/app.css HTTP/1.1" => ("200 OK", "text/css; charset=utf-8", STYLE),
-            "GET /assets/flow.css HTTP/1.1" => ("200 OK", "text/css; charset=utf-8", FLOW_STYLE),
-            "GET /assets/react-flow.css HTTP/1.1" => {
-                ("200 OK", "text/css; charset=utf-8", REACT_FLOW_STYLE)
-            }
-            "GET /assets/theme.css HTTP/1.1" => (
-                "200 OK",
-                "text/css; charset=utf-8",
-                self.theme_css.as_slice(),
             ),
             "GET /api/snapshot HTTP/1.1" => (
                 "200 OK",

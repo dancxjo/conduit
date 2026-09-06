@@ -303,6 +303,7 @@ pub struct PlacementRow {
     pub placement_id: PlacementId,
     pub host_id: HostId,
     pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,

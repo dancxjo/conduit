@@ -324,6 +324,8 @@ pub enum DemoCommand {
     Toggle,
     /// Run the attached C3-button/Pico synchronized physical light switch.
     LightSwitch(LightSwitchDemoArgs),
+    /// Run the canonical button Form with scripted input and an acquired Pico LED.
+    ButtonIndicator(crate::commands::button_indicator::ButtonIndicatorArgs),
     /// Run the Conduit-driven project homepage interactively.
     Site,
     /// Run the pinned Tongues text-to-speech starter through an ordinary Conduit Play.
