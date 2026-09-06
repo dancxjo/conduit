@@ -231,7 +231,9 @@ fn generate_body_advertisement(out: &Path, mode: &str) {
 }
 
 fn appliance_build_id() -> String {
-    let artifact = if firmware_mode() == "appliance-hil-client" {
+    let artifact = if firmware_mode() == "indicator-resource" {
+        "pico/indicator-resource-firmware@1"
+    } else if firmware_mode() == "appliance-hil-client" {
         APPLIANCE_HIL_CLIENT_ARTIFACT
     } else if firmware_mode() == "distributed-lenia" {
         DISTRIBUTED_LENIA_ARTIFACT
