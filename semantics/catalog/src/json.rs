@@ -20,6 +20,14 @@ pub fn json_decode_contract() -> StandardKindContract {
     )
 }
 
+pub fn json_collection_step_contract() -> StandardKindContract {
+    contract(
+        conduit_web::json_collection_step_semantics(),
+        "Bounded collection transition",
+        "Apply one explicit edit to a bounded JSON array, preserving order and refusing invalid commands.",
+    )
+}
+
 fn contract(
     contract: conduit_web::PortableKindContract,
     name: &str,

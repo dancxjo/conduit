@@ -672,11 +672,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if matches!(
-                contract.as_str(),
-                conduit_std_offers::JSON_ENCODE_HOST_OPERATION
-                    | conduit_std_offers::JSON_DECODE_HOST_OPERATION
-            ) {
+            if json_operations::matches(contract.as_str()) {
                 let completion = json_host.execute(contract.as_str(), input);
                 let (disposition, output, failure) = match completion {
                     Ok(encoded) => {
@@ -700,7 +696,7 @@ pub(super) fn run_fragment<W: Write, T: TimerAdapter>(
                         None,
                         Some(conduit_kernel::Failure {
                             code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: refusal as u16,
+                            detail: refusal,
                         }),
                     ),
                 };
