@@ -35,11 +35,11 @@ conduit-host-fabrication = { path = "../../../fabrication/host" }
 conduit-host-avr-fabrication = { path = "../../avr/fabrication" }
 conduit-host-rp2040 = { path = "../../rp2040/fabrication" }
 conduit-host-esp32-fabrication = { path = "../../esp32/fabrication" }
-conduit-host-hosted = { path = "../../std/fabrication-package" }
-conduit-host-orange-pi = { path = "../../orange-pi/fabrication-package" }
-conduit-host-browser-fabrication = { path = "../host/fabrication-package" }
-conduit-host-raspberry-pi = { path = "../../raspberry-pi/fabrication-package" }
-conduit-host-conduitos-fabrication = { path = "../../conduitos/fabrication-package" }
+conduit-host-hosted = { path = "../../std/fabrication" }
+conduit-host-orange-pi = { path = "../../orange-pi/fabrication" }
+conduit-host-browser-fabrication = { path = "../fabrication" }
+conduit-host-raspberry-pi = { path = "../../raspberry-pi/fabrication" }
+conduit-host-conduitos-fabrication = { path = "../../conduitos/fabrication" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

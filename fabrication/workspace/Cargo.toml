@@ -7,11 +7,11 @@ publish = false
 [dependencies]
 conduit-host-fabrication = { path = "../host" }
 conduit-host-avr-fabrication = { path = "../../targets/avr/fabrication" }
-conduit-host-browser-fabrication = { path = "../../targets/browser/host/fabrication-package" }
-conduit-host-conduitos-fabrication = { path = "../../targets/conduitos/fabrication-package" }
+conduit-host-browser-fabrication = { path = "../../targets/browser/fabrication" }
+conduit-host-conduitos-fabrication = { path = "../../targets/conduitos/fabrication" }
 conduit-host-esp32-fabrication = { path = "../../targets/esp32/fabrication" }
-conduit-host-hosted = { path = "../../targets/std/fabrication-package" }
-conduit-host-orange-pi = { path = "../../targets/orange-pi/fabrication-package" }
+conduit-host-hosted = { path = "../../targets/std/fabrication" }
+conduit-host-orange-pi = { path = "../../targets/orange-pi/fabrication" }
 conduit-linear-framebuffer-fabrication = { path = "../../mechanisms/implementations/linear-framebuffer-fabrication" }
 conduit-host-rp2040 = { path = "../../targets/rp2040/fabrication" }
-conduit-host-raspberry-pi = { path = "../../targets/raspberry-pi/fabrication-package" }
+conduit-host-raspberry-pi = { path = "../../targets/raspberry-pi/fabrication" }

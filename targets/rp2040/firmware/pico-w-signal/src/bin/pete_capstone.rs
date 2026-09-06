@@ -89,13 +89,13 @@ bind_interrupts!(struct Irqs {
 });
 
 static CYW43_FW: Aligned<A4, [u8; 231077]> = Aligned(*include_bytes!(
-    "../../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
+    "../../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
 ));
 static CYW43_NVRAM: Aligned<A4, [u8; 742]> = Aligned(*include_bytes!(
-    "../../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
+    "../../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/nvram_rp2040.bin"
 ));
 const _CYW43_LICENSE: &[u8] = include_bytes!(
-    "../../../../firmware-assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/LICENSE-permissive-binary-license-1.0.txt"
+    "../../../assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/LICENSE-permissive-binary-license-1.0.txt"
 );
 
 static DEVICE: StaticCell<[u8; 256]> = StaticCell::new();
