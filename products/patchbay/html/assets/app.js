@@ -204,11 +204,16 @@ function renderBodyEvidenceStatus(workbench){
   status.textContent=state.savedEvidenceRevision===workbench.evidence_revision?`Evidence revision ${workbench.evidence_revision} matches the saved biography.`:`Evidence revision ${workbench.evidence_revision} has unsaved Body changes.`;
 }
 function hasUnsavedBodyEvidence(){const workbench=state.snapshot?.body_workbench;return Boolean(workbench&&state.savedEvidenceBody===workbench.body_id&&state.savedEvidenceRevision!==workbench.evidence_revision);}
+let pendingNavigation=0;
+function fenceNavigationControls(pending){for(const root of document.querySelectorAll("#structured-navigator,#subjects,#place-controls,#aspect-controls,#flow-root")){root.inert=pending;root.setAttribute("aria-busy",String(pending));}}
 async function dispatchNavigation(operation){
   const navigation=state.snapshot.navigation;if(!navigation)throw new Error("portable navigation is unavailable");
+  pendingNavigation+=1;fenceNavigationControls(true);
+  try{
   const response=await fetch(apiUrl("navigation"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,navigation_id:navigation.navigation.identity,operation})});
   if(!response.ok)throw new Error(`navigation delivery HTTP ${response.status}`);
   const next=requireSnapshot(await response.json());render(next);return next;
+  }finally{pendingNavigation-=1;fenceNavigationControls(pendingNavigation>0);}
 }
 async function dispatchWatch(action,subject){
   const watches=state.snapshot.watches;if(!watches)throw new Error("debugger Watches are unavailable");const response=await fetch(apiUrl("debugger-watch"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({presentation_id:state.snapshot.presentation.identity,presentation_revision:state.snapshot.presentation.revision,watch_revision:watches.revision,action,subject})});if(!response.ok)throw new Error(`debugger Watch HTTP ${response.status}`);const next=requireSnapshot(await response.json());render(next);return next;

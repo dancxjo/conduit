@@ -71,11 +71,22 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
     await page.locator('#subjects [data-application-component="choice-option-label"]')
       .filter({hasText:"hello/upper"}).locator('input[type="radio"][data-role="Gear"]').click();
     await responseCaptured;
-    await page.getByRole("button",{name:"Plan",exact:true}).click();
+    // A second observer can advance the server while this page awaits its
+    // earlier response. The page's pending controls must remain unavailable.
+    await expect(page.locator("#structured-navigator")).toHaveJSProperty("inert",true);
+    const basis=await(await fetch(`${url}/api/snapshot`)).json();
+    const advanced=await page.request.post(`${url}/api/navigation`,{data:{
+      presentation_id:basis.presentation.identity,
+      presentation_revision:basis.presentation.revision,
+      navigation_id:basis.navigation.navigation.identity,
+      operation:{kind:"show",aspect:"Plan"},
+    }});
+    expect(advanced.ok()).toBe(true);
     await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");
     const delayed=page.waitForResponse(response=>response.url().endsWith("/api/navigation")&&response.request().postDataJSON().operation.kind==="focus");
     release();
     await (await delayed).finished();
+    await expect(page.locator("#structured-navigator")).toHaveJSProperty("inert",false);
     // Wait for the page's response callback, not another action or a retry.
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     expect(await page.locator("#lens-label").textContent()).toBe("PROGRAM · PLAN");
@@ -84,5 +95,31 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
   } finally {
     release();
     server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");
+  }
+});
+
+test("a refused navigation response releases its pending controls",async({page})=>{
+  const server=startServer();
+  let release,observed;
+  const held=new Promise(resolve=>{release=resolve;});
+  const captured=new Promise(resolve=>{observed=resolve;});
+  const errors=[];
+  page.on("pageerror",error=>errors.push(error.message));
+  try {
+    await page.goto(await server.url);
+    await page.route("**/api/navigation",async route=>{
+      observed();await held;
+      await route.fulfill({status:409,body:"diagnostic navigation refusal"});
+    });
+    await page.getByRole("button",{name:"Plan",exact:true}).click();
+    await captured;
+    await expect(page.locator("#structured-navigator")).toHaveJSProperty("inert",true);
+    release();
+    await expect(page.locator("#structured-navigator")).toHaveJSProperty("inert",false);
+    await expect(page.locator("#place-controls")).toHaveJSProperty("inert",false);
+    await expect(page.locator("#lens-label")).toHaveText("PROGRAM · STRUCTURE");
+    expect(errors).toEqual(["navigation delivery HTTP 409"]);
+  } finally {
+    release();server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");
   }
 });
