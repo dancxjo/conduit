@@ -1,5 +1,40 @@
 import { expect, test } from "@playwright/test";
 
+test("ordered button transitions survive gaps between Host requests and refuse overflow", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await page.evaluate(() => {
+    globalThis.buttonFirst = globalThis.__conduitHumanInput.adapter.nextButton();
+  });
+  const bounds = await page.locator("#surface").boundingBox();
+  await page.mouse.move(bounds.x + 20, bounds.y + 20);
+  await page.mouse.down();
+  await page.mouse.up();
+  const transitions = await page.evaluate(async () => [
+    await globalThis.buttonFirst,
+    await globalThis.__conduitHumanInput.adapter.nextButton(),
+  ]);
+  expect(transitions.map(({ pressed, sequence }) => [pressed, sequence])).toEqual([[true, 0], [false, 1]]);
+  for (let index = 0; index < 5; index += 1) {
+    await page.mouse.down();
+    await page.mouse.up();
+  }
+  expect(await page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextButton().catch((error) => error.code))).toBe("Pressure");
+});
+
+test("queued button release cannot survive a replacement Boot", async ({ page }) => {
+  await page.goto("/proof/browser/browser-human-input.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await page.evaluate(() => { globalThis.buttonFirst = globalThis.__conduitHumanInput.adapter.nextButton(); });
+  const bounds = await page.locator("#surface").boundingBox();
+  await page.mouse.move(bounds.x + 20, bounds.y + 20);
+  await page.mouse.down();
+  await page.mouse.up();
+  expect(await page.evaluate(async () => (await globalThis.buttonFirst).pressed)).toBe(true);
+  await page.evaluate(() => globalThis.__conduitHumanInput.staleBoot());
+  expect(await page.evaluate(() => globalThis.__conduitHumanInput.adapter.nextButton().catch((error) => error.code))).toBe("StaleBoot");
+});
+
 test("selected keyboard and pointer adapt real Chromium actions to portable values", async ({ page }) => {
   const failures = [];
   page.on("pageerror", (error) => failures.push(error.stack ?? String(error)));

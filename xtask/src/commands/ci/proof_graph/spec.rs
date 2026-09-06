@@ -34,7 +34,9 @@ pub(super) struct ProofSpec {
     pub(super) id: &'static str,
     pub(super) contract_version: u32,
     pub(super) kind: ProofKind,
+    // Required source domains must exist in every candidate tree.
     pub(super) inputs: &'static [&'static str],
+    // Exact Git selectors, including absent paths: moves/deletions change receipts.
     pub(super) implementation_inputs: &'static [&'static str],
     pub(super) consumed_artifacts: &'static [&'static str],
     pub(super) environment: &'static str,
@@ -79,11 +81,10 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             ".github/workflows/reconcile-candidate.yml",
             ".github/workflows/retire-merged-pr-branch.yml",
             ".github/workflows/retire-superseded-candidates.yml",
-            "scripts/ci",
-            "tools/xtask-dispatch",
-            "xtask/src/commands/ci",
+            "tools",
+            "proof/ci",
         ],
-        implementation_inputs: &["proof/ci", "xtask/tests/ci_workflow_contract.rs"],
+        implementation_inputs: &["proof/ci", "scripts/ci", "xtask/src/commands/ci", "xtask/tests/ci_workflow_contract.rs", "tools"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-node-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -107,6 +108,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         implementation_inputs: &[
             ".github/workflows",
             "xtask/src/commands/ci/impact.rs",
+            "tools",
         ],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-shared-compile-v1",
@@ -118,8 +120,8 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         id: "workspace.lint",
         contract_version: 1,
         kind: ProofKind::Workspace,
-        inputs: &["Cargo.toml", "Cargo.lock", "architecture", "fabrication", "mechanisms", "products", "semantics", "targets", "xtask"],
-        implementation_inputs: &["xtask/src/suites/workspace_shards.rs", ".github/workflows/check.yml"],
+        inputs: &["Cargo.toml", "Cargo.lock", "architecture", "fabrication", "mechanisms", "products", "semantics", "targets", "tools"],
+        implementation_inputs: &["xtask", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-clippy-rustfmt-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -131,7 +133,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         contract_version: 1,
         kind: ProofKind::Workspace,
         inputs: &["Cargo.toml", "Cargo.lock", "architecture", "mechanisms", "semantics"],
-        implementation_inputs: &["xtask/src/suites/workspace_shards.rs", ".github/workflows/check.yml"],
+        implementation_inputs: &["xtask", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -143,7 +145,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         contract_version: 1,
         kind: ProofKind::Workspace,
         inputs: &["Cargo.toml", "Cargo.lock", "fabrication", "targets"],
-        implementation_inputs: &["xtask/src/suites/workspace_shards.rs", ".github/workflows/check.yml"],
+        implementation_inputs: &["xtask", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -166,6 +168,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         ],
         implementation_inputs: &[
             "xtask/src/commands/check.rs",
+            "tools",
             "xtask/src/suites",
             ".github/workflows/check.yml",
         ],
@@ -180,7 +183,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         contract_version: 1,
         kind: ProofKind::Workspace,
         inputs: &["Cargo.toml", "Cargo.lock", "architecture", "mechanisms", "semantics", "targets/std"],
-        implementation_inputs: &["xtask/src/suites/workspace_shards.rs", ".github/workflows/check.yml"],
+        implementation_inputs: &["xtask", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-wasm-thumbv6m-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -192,7 +195,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         contract_version: 1,
         kind: ProofKind::Workspace,
         inputs: &["Cargo.toml", "Cargo.lock", "architecture", "bodies", "semantics", "targets/rp2040"],
-        implementation_inputs: &["xtask/src/suites/workspace_shards.rs", ".github/workflows/check.yml"],
+        implementation_inputs: &["xtask", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.98.1-thumbv6m-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -217,12 +220,12 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", "tools", "package.json", "package-lock.json", "profiles", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-book.spec.mjs --project chromium --workers 1 --retries 0",
+        command: "npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "browser.patchbay-debugger",
@@ -231,8 +234,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         inputs: &[
             "Cargo.toml",
             "Cargo.lock",
-            "package.json",
-            "package-lock.json",
+            "proof/browser",
             "architecture/kernel/src/debug_observation.rs",
             "architecture/kernel/src/debug_observation",
             "architecture/kernel/src/scheduler.rs",
@@ -245,7 +247,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", "tools", "package.json", "package-lock.json", "profiles", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
         applicability: Applicability::CandidateAndIntegration,
@@ -259,12 +261,10 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         inputs: &[
             "Cargo.toml",
             "Cargo.lock",
-            "package.json",
-            "package-lock.json",
+            "proof/browser",
             "fabrication",
             "products",
-            "profiles/host-configurations",
-            "profiles/hosts",
+
             "semantics",
             "site",
             "targets/avr",
@@ -278,12 +278,12 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "scripts/ci", "tools", "package.json", "package-lock.json", "profiles", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::PagesProducts,
-        command: "workflow:book-and-creche-products/pages-carrier",
+        command: "workflow:tour-and-creche-products/pages-carrier",
     },
     ProofSpec {
         id: "repository.standalone-locks",
@@ -292,6 +292,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         inputs: &["Cargo.toml", "Cargo.lock", "targets/esp32"],
         implementation_inputs: &[
             "xtask/src/commands/ci/standalone_locks.rs",
+            "tools",
             ".github/workflows/check.yml",
         ],
         consumed_artifacts: &[],
@@ -305,7 +306,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         contract_version: 1,
         kind: ProofKind::Machine,
         inputs: &["Cargo.toml", "Cargo.lock", "architecture", "fabrication", "semantics", "targets/esp32"],
-        implementation_inputs: &["xtask/src/commands/esp32_firmware.rs", ".github/workflows/check.yml"],
+        implementation_inputs: &["xtask/src/commands/esp32_firmware.rs", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.91.1-xtensa-esp32-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -317,7 +318,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         contract_version: 1,
         kind: ProofKind::Machine,
         inputs: &["Cargo.toml", "Cargo.lock", "architecture", "fabrication", "semantics", "targets/esp32"],
-        implementation_inputs: &["xtask/src/commands/esp32_firmware.rs", ".github/workflows/check.yml"],
+        implementation_inputs: &["xtask/src/commands/esp32_firmware.rs", "tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-rust-1.91.1-xtensa-esp32s3-v1",
         applicability: Applicability::CandidateAndIntegration,
@@ -337,7 +338,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
             "targets/esp32",
         ],
         implementation_inputs: &[
-            "xtask/src/commands/esp32_firmware.rs",
+            "xtask/src/commands/esp32_firmware.rs", "tools",
             ".github/workflows/check.yml",
         ],
         consumed_artifacts: &[],
@@ -362,8 +363,8 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         id: "conduitos.tools",
         contract_version: 1,
         kind: ProofKind::Machine,
-        inputs: &["scripts/ci/conduitos-tools.sh", "scripts/ci/conduitos-tools-packages.txt"],
-        implementation_inputs: &[".github/workflows/check.yml"],
+        inputs: &["targets/conduitos"],
+        implementation_inputs: &["scripts/ci/conduitos-tools.sh", "scripts/ci/conduitos-tools-packages.txt", "targets/conduitos/tools", ".github/workflows/check.yml"],
         consumed_artifacts: &[],
         environment: "ubuntu-conduitos-tools-v1",
         applicability: Applicability::CandidateAndIntegration,

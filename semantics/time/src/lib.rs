@@ -16,6 +16,7 @@ mod calendar_proposal;
 mod historical_command;
 mod historical_configuration;
 mod historical_operation;
+mod historical_store;
 mod historical_timeline;
 mod historical_timeline_codec;
 mod replay_codec;
@@ -36,6 +37,7 @@ pub use calendar_proposal::*;
 pub use historical_command::*;
 pub use historical_configuration::*;
 pub use historical_operation::*;
+pub use historical_store::*;
 pub use historical_timeline::*;
 pub use historical_timeline_codec::*;
 pub use replay_codec::*;
@@ -63,3 +65,8 @@ pub use conduit_core::{
 mod catalog;
 #[cfg(feature = "form-catalog")]
 pub use catalog::*;
+
+#[cfg(feature = "kernel-operation")]
+mod button_attempt_operation;
+#[cfg(feature = "kernel-operation")]
+pub use button_attempt_operation::TimedButtonAttemptOperation;

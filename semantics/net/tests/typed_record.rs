@@ -59,6 +59,55 @@ fn bounded_frame_round_trips_exact_type_and_payload_in_caller_storage() {
 }
 
 #[test]
+fn declared_form_values_wrap_frame_and_deframe_exact_structured_info() {
+    let original = StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        b"CALLING".to_vec(),
+    )
+    .unwrap();
+    let typed = typed_record_value(&original).unwrap();
+    assert_eq!(
+        typed.value_type().profile().unwrap().value_kind().as_str(),
+        typed_record_type().profile().unwrap().value_kind().as_str()
+    );
+    assert_eq!(value_from_typed_record(&typed).unwrap(), original);
+
+    let mut frame = [0; MAXIMUM_TYPED_RECORD_FRAME_BYTES];
+    let written = frame_typed_record_value_into(&typed, &mut frame).unwrap();
+    let framed = framed_typed_record_value(&frame[..written]).unwrap();
+    assert_eq!(
+        framed.value_type().profile().unwrap().value_kind().as_str(),
+        framed_typed_record_type()
+            .profile()
+            .unwrap()
+            .value_kind()
+            .as_str()
+    );
+    assert_eq!(
+        value_from_typed_record(&deframe_typed_record_value(&framed).unwrap()).unwrap(),
+        original
+    );
+}
+
+#[test]
+fn every_maximum_frame_fits_its_declared_structured_leaf() {
+    assert_eq!(
+        MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+        conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES
+    );
+    let payload_type = StructuredInfoType::leaf(kind_id("value/bytes@1")).unwrap();
+    let empty = StructuredInfoValue::leaf(payload_type.clone(), Vec::new()).unwrap();
+    let canonical_overhead = empty.canonical_bytes().unwrap().len();
+    let maximum_content = MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES - canonical_overhead;
+    let original = StructuredInfoValue::leaf(payload_type, vec![7; maximum_content]).unwrap();
+    let typed = typed_record_value(&original).unwrap();
+    let mut bytes = [0; MAXIMUM_TYPED_RECORD_FRAME_BYTES];
+    let written = frame_typed_record_value_into(&typed, &mut bytes).unwrap();
+    assert!(written <= conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES);
+    framed_typed_record_value(&bytes[..written]).unwrap();
+}
+
+#[test]
 fn same_framing_contract_carries_a_non_text_quantity_record() {
     let (text_kind, _) = record_parts();
     let (quantity_kind, quantity_payload) = quantity_record_parts();

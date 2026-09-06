@@ -20,8 +20,10 @@ pub(crate) mod pointer_selector;
 mod presentation;
 mod quantity;
 mod quantity_output;
+pub(crate) mod resource;
 mod state_time;
 mod text;
+pub(crate) mod timing;
 mod values;
 
 #[cfg(test)]
@@ -31,9 +33,7 @@ pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, membership_advertisement,
     selected_human_machinery, BrowserManifestation,
 };
-pub(crate) use factory::{
-    advertisement_with_quantity_presentation, catalogs_with_quantity_presentation,
-};
+pub(crate) use factory::{advertisement_for_presentation, catalogs_for_presentation};
 pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
 pub(crate) use limits::{
@@ -59,3 +59,17 @@ pub(crate) use state_time::BROWSER_TIMER_MAXIMUM_MILLIS;
 
 #[cfg(test)]
 pub(crate) mod test_json;
+
+#[cfg(test)]
+pub(crate) mod test_timing_sink;
+
+pub(crate) mod button_attempt;
+
+mod catalogs;
+
+pub(crate) mod normalized_presentation;
+pub(crate) use catalogs::PresentationProfile;
+
+pub(crate) mod pattern_comparison;
+
+pub(crate) mod comparison_presentation;

@@ -14,11 +14,11 @@ use conduit_planner::{
 use std::collections::BTreeMap;
 
 pub(super) const MEMORY_BASE: &str = "conduit.base/browser-memory@1";
-const LINE_ID: &str = "book/browser-memory-line";
-const BINDING_ID: &str = "book/browser-memory-binding";
-const BASE_INSTANCE_ID: &str = "book/browser-memory-instance";
-const SOURCE_ENDPOINT_ID: &str = "book/browser-a-egress";
-const SINK_ENDPOINT_ID: &str = "book/browser-b-ingress";
+const LINE_ID: &str = "tour/browser-memory-line";
+const BINDING_ID: &str = "tour/browser-memory-binding";
+const BASE_INSTANCE_ID: &str = "tour/browser-memory-instance";
+const SOURCE_ENDPOINT_ID: &str = "tour/browser-a-egress";
+const SINK_ENDPOINT_ID: &str = "tour/browser-b-ingress";
 
 pub(super) struct PreparedPlan {
     pub(super) plan: Plan,
@@ -55,48 +55,69 @@ pub(super) fn prepare(
         .clone();
     let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
         .map_err(|error| format!("expand multi-Host executable-tour Form: {error:?}"))?;
-    if form.gears.len() != 2 || form.connections.len() != 1 {
-        return Err("two-browser lesson requires exactly two Gears and one Cord".into());
+    if form.gears.len() < 2
+        || form.gears.len() > crate::installed_browser::MAXIMUM_BROWSER_GEARS
+        || form.connections.len() != form.gears.len() - 1
+        || form.gears.iter().any(|gear| {
+            form.connections
+                .iter()
+                .filter(|cord| cord.source_gear_id == gear.gear_id)
+                .count()
+                > 1
+                || form
+                    .connections
+                    .iter()
+                    .filter(|cord| cord.sink_gear_id == gear.gear_id)
+                    .count()
+                    > 1
+        })
+    {
+        return Err("two-browser runner requires one bounded linear Form".into());
     }
-    let source_gear = form
+    let roots = form
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_text::TEXT_LITERAL_KIND)
-        .ok_or_else(|| "two-browser lesson requires one text/literal source".to_string())?;
-    let sink_gear = form
-        .gears
-        .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND)
-        .ok_or_else(|| "two-browser lesson requires one presentation/text sink".to_string())?;
+        .filter(|gear| {
+            !form
+                .connections
+                .iter()
+                .any(|cord| cord.sink_gear_id == gear.gear_id)
+        })
+        .collect::<Vec<_>>();
+    let [source_gear] = roots.as_slice() else {
+        return Err("two-browser runner requires one bounded linear Form".into());
+    };
     let source_host = advertisement(source_host_id.into(), source_boot_id.into());
     let sink_host = advertisement(sink_host_id.into(), sink_boot_id.into());
     let placements = PlacementChoices {
-        by_gear: BTreeMap::from([
-            (
-                source_gear.gear_id.clone(),
-                PlacementChoice {
-                    host_id: source_host.host_id.clone(),
-                    capability_id: capability(&source_host, conduit_text::TEXT_LITERAL_KIND)?,
-                },
-            ),
-            (
-                sink_gear.gear_id.clone(),
-                PlacementChoice {
-                    host_id: sink_host.host_id.clone(),
-                    capability_id: capability(
-                        &sink_host,
-                        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-                    )?,
-                },
-            ),
-        ]),
+        by_gear: form
+            .gears
+            .iter()
+            .map(|gear| {
+                let host = if gear.gear_id == source_gear.gear_id {
+                    &source_host
+                } else {
+                    &sink_host
+                };
+                Ok((
+                    gear.gear_id.clone(),
+                    PlacementChoice {
+                        host_id: host.host_id.clone(),
+                        capability_id: capability(host, gear.kind_id.as_str())?,
+                    },
+                ))
+            })
+            .collect::<Result<_, String>>()?,
     };
     let line = memory_line(&source_host, &sink_host);
     let plan = plan_expanded_canonical_with_options(
         &form,
         &[source_host.clone(), sink_host.clone()],
         &placements,
-        &[BaseImplementationId::from(MEMORY_BASE)],
+        &[
+            BaseImplementationId::from("conduit.base/local@1"),
+            BaseImplementationId::from(MEMORY_BASE),
+        ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -224,7 +245,7 @@ fn memory_line(source: &HostAdvertisement, sink: &HostAdvertisement) -> LineOffe
             line_id: LineId::from(LINE_ID),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: SignId::from("book/browser-memory-line/ready"),
+            sign_id: SignId::from("tour/browser-memory-line/ready"),
         },
         binding,
         contract: LineContract {

@@ -135,6 +135,6 @@ fn todo_unknown_index_refuses_without_emitting_a_success_snapshot() {
     assert!(!output.lines().any(|line| line == "[]"), "{output}");
     assert_eq!(
         report.unwrap_err(),
-        "installed kernel step: OperationFailed(105)"
+        "installed kernel step: OperationFailed(Failure { code: HostOperationFailed, detail: 105 })"
     );
 }

@@ -1,7 +1,7 @@
 const CANDIDATE_WORKFLOWS = new Set([
   "candidate",
   "check",
-  "book-and-creche-products",
+  "tour-and-creche-products",
   "book-pr-proof",
   "pages-deploy-pr-proof",
   "patchbay-debugger-pr-proof",

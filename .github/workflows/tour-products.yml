@@ -1,0 +1,1017 @@
+name: tour-and-creche-products
+
+on:
+  workflow_call:
+    inputs:
+      base_sha:
+        required: true
+        type: string
+      candidate_sha:
+        required: true
+        type: string
+      shared_compile_result:
+        required: false
+        default: success
+        type: string
+      shared_compile_packages:
+        required: false
+        default: '[]'
+        type: string
+      execute_proofs:
+        description: Exact product proof IDs selected by trusted reconciliation; empty keeps ordinary impact planning
+        required: false
+        default: ''
+        type: string
+      full_suite:
+        description: Fabricate and prove the complete stable-main product carrier
+        required: false
+        default: false
+        type: boolean
+      development_admission:
+        description: Prove affected browser presentation without release fabrication
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Exact target-base commit
+        required: true
+        type: string
+      candidate_sha:
+        description: Exact immutable candidate commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+  CONDUIT_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
+  CONDUIT_SHARED_COMPILE_RESULT: ${{ inputs.shared_compile_result || 'success' }}
+  CONDUIT_SHARED_COMPILE_PACKAGES: ${{ inputs.shared_compile_packages || '[]' }}
+concurrency:
+  group: tour-and-creche-products-${{ github.event.pull_request.number || github.ref }}-${{ inputs.candidate_sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      exact_execution: ${{ inputs.development_admission || inputs.execute_proofs != '' }}
+      required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      proofs: ${{ (inputs.execute_proofs != '' && inputs.execute_proofs) || steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
+      browser_runtime_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      tour_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.tour_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
+      pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
+      stack_role: ${{ steps.stack.outputs.role || 'independent' }}
+      stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
+      stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
+      standalone_locks_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.esp32_required || 'true' }}
+      controller_sha: ${{ steps.controller.outputs.sha }}
+      patchbay_debugger_required: ${{ inputs.full_suite || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.patchbay_debugger_required)) || (inputs.execute_proofs == '' && steps.debugger-bootstrap.outputs.required == 'true') }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - name: Resolve the current trusted CI controller
+        id: controller
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          read -r controller_sha _ < <(git ls-remote --exit-code origin "refs/heads/$DEFAULT_BRANCH")
+          if ! [[ "$controller_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "trusted controller did not resolve to an exact commit" >&2
+            exit 1
+          fi
+          echo "sha=$controller_sha" >> "$GITHUB_OUTPUT"
+          printf 'Trusted controller: `%s` from `%s`\n' "$controller_sha" "$DEFAULT_BRANCH" >> "$GITHUB_STEP_SUMMARY"
+      - name: Materialize the trusted controller outside the candidate workspace
+        env:
+          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+      - name: Classify this immutable candidate within its open PR stack
+        id: stack
+        if: github.event_name == 'pull_request' && inputs.candidate_sha == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONDUIT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          CONDUIT_STACK_ROLE_OUT: target/product-plan/pr-stack-role.json
+        run: |
+          classifier="$RUNNER_TEMP/conduit-ci-controller/scripts/ci/classify-pr-stack.mjs"
+          if test -f "$classifier"; then
+            mkdir -p target/product-plan
+            node "$classifier"
+          else
+            echo 'role=independent' >> "$GITHUB_OUTPUT"
+            echo 'reason=trusted-controller-has-no-stack-classifier' >> "$GITHUB_OUTPUT"
+            echo 'Trusted controller predates stack classification; proving conservatively.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain cheap product slice evidence for an intermediate PR
+        id: slice
+        if: steps.stack.outputs.role == 'intermediate'
+        run: |
+          git diff --check "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA"
+          echo 'required=false' >> "$GITHUB_OUTPUT"
+          echo 'proofs=[]' >> "$GITHUB_OUTPUT"
+          printf 'Intermediate PR slice is covered by cumulative tip PR #%s at `%s`; no product fabrication is scheduled.\n' \
+            '${{ steps.stack.outputs.tip_pr }}' '${{ steps.stack.outputs.tip_sha }}' >> "$GITHUB_STEP_SUMMARY"
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: steps.stack.outputs.role != 'intermediate'
+        with:
+          components: clippy,rustfmt
+      - name: Build the dependency-light trusted CI controller
+        if: steps.stack.outputs.role != 'intermediate'
+        run: >-
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target"
+          cargo build
+          --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml"
+          --package conduit-xtask-dispatch --locked
+      - name: Verify the exact generic Rust toolchain before product fan-out
+        if: steps.stack.outputs.role != 'intermediate'
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci rust-toolchain-preflight --locked
+      - name: Select exact product proof impact
+        id: impact
+        if: steps.stack.outputs.role != 'intermediate'
+        run: |
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci plan "$CONDUIT_BASE_SHA" "$CONDUIT_CANDIDATE_SHA" --locked \
+            --json-out target/product-plan/impact.json \
+            --summary-out "$GITHUB_STEP_SUMMARY" \
+            >> "$GITHUB_OUTPUT"
+      - name: Project the trusted reconciliation delta onto product jobs
+        id: exact
+        if: steps.stack.outputs.role != 'intermediate' && inputs.execute_proofs != ''
+        env:
+          EXECUTE_PROOFS: ${{ inputs.execute_proofs }}
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci product-execution-plan --proof-ids-json "$EXECUTE_PROOFS" --locked
+          >> "$GITHUB_OUTPUT"
+      - name: Admit a proof node unknown to the prior trusted controller
+        id: debugger-bootstrap
+        if: steps.stack.outputs.role != 'intermediate'
+        env:
+          TRUSTED_PROOFS: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
+          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
+        run: |
+          required=false
+          reason=trusted-registry-not-selected
+          if printf '%s' "$TRUSTED_PROOFS" | grep -Fq 'products.patchbay-debugger'; then
+            required=true
+            reason=trusted-registry
+          elif ! git diff --quiet "$CONTROLLER_SHA" -- \
+            .github/workflows/tour-products.yml \
+            xtask/src/commands/ci/impact/product_registry.rs \
+            xtask/src/commands/ci/proof_graph/spec.rs
+          then
+            required=true
+            reason=proof-definition-bootstrap
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          printf 'Patchbay debugger selection: `%s` (%s)\n' "$required" "$reason" >> "$GITHUB_STEP_SUMMARY"
+
+  browser-runtimes:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.browser_runtime_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Build the exact browser Host and product runtimes
+        run: |
+          mkdir -p target/browser-product-runtimes
+          cargo build --locked -p conduit-browser-host
+          cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features tour-surface
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
+          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
+          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
+          cargo build --locked -p patchbay-html --bin patchbay-static-assets
+          cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
+          if-no-files-found: error
+          retention-days: 7
+
+  standalone-locks:
+    needs: plan
+    if: needs.plan.outputs.pages_carrier_required == 'true' && needs.plan.outputs.standalone_locks_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Materialize the trusted CI controller outside the candidate workspace
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Validate every standalone fabrication lock before machine fan-out
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci standalone-locks --locked
+
+  tour-patchbay-proof:
+    needs: [plan, browser-runtimes]
+    if: >-
+      always() && needs.plan.result == 'success' &&
+      needs.browser-runtimes.result == 'success' &&
+      (needs.plan.outputs.tour_required == 'true' || needs.plan.outputs.patchbay_debugger_required == 'true')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Install the pinned browser proof dependency
+        run: npm ci --ignore-scripts --prefer-offline
+      - name: Download the exact browser product runtimes
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
+      - name: Stage only the Tour and its real embedded Patchbay
+        run: |
+          mkdir -p target/debug
+          cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          chmod 755 target/debug/conduit-browser-host
+          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+      - name: Prove exact live-debugger projection
+        run: >-
+          node --test
+          proof/browser/patchbay-debugger-projection.test.mjs
+          proof/browser/playwright-config.test.mjs
+          proof/ci/browser-product-ownership.test.mjs
+      - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
+        if: needs.plan.outputs.tour_required == 'true'
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/executable-tour.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+          --grep
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
+      - name: Complete the exact Tour proposition without entering the carrier pipeline
+        if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/executable-tour.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+          --grep-invert
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
+      - name: Install the native Rust linker
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+      - uses: dtolnay/rust-toolchain@1.98.1
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        with:
+          cache-on-failure: false
+      - name: Build only the Patchbay browser product
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: cargo build --locked -p patchbay-html
+      - name: Prove the finite debugger model
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: cargo test --locked -p patchbay-model debugger_
+      - name: Prove bounded kernel debugger control and causality
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: cargo test --locked -p conduit-kernel --test debug_observation
+      - name: Prove the focused Patchbay debugger interactions
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: >-
+          npx playwright test
+          --config proof/browser/patchbay-debugger.config.mjs
+          proof/browser/patchbay-debugger-watch.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+      - name: Materialize the trusted attestation controller
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags origin "$CONTROLLER_SHA"
+          git -c safe.directory="$GITHUB_WORKSPACE" worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful debugger proof key
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        run: >-
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
+          ci attest-success "$CONDUIT_CANDIDATE_SHA"
+          browser.patchbay-debugger
+          --evidence patchbay-model-debugger
+          --evidence kernel-debug-observation
+          --evidence playwright-chromium
+          --out target/ci-receipts/browser.patchbay-debugger.json
+          --locked
+      - name: Retain immutable debugger evidence
+        if: needs.plan.outputs.patchbay_debugger_required == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-browser.patchbay-debugger-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/ci-receipts/browser.patchbay-debugger.json
+          if-no-files-found: error
+          retention-days: 14
+
+  avr-release:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Restore the pinned AVR toolchain
+        uses: actions/cache@v6
+        with:
+          path: |
+            target/avr-promicro/tools
+            target/avr-promicro/arduino
+          key: avr-promicro-arduino-cli-1.5.1-arduino-avr-1.8.8-sparkfun-avr-1.1.13
+      - name: Compile and seal the exact generic Pro Micro release
+        run: cargo +1.98.1 xtask avr release --output target/creche-avr-release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-avr-promicro-release
+          path: target/creche-avr-release
+          if-no-files-found: error
+          retention-days: 7
+
+  browser-release:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Compile and seal the reviewed browser distribution
+        run: cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-existing-computer-releases-browser
+          path: target/creche-host-releases
+          if-no-files-found: error
+          retention-days: 7
+
+  host-releases:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            artifact: linux
+          - runner: windows-2025
+            platform: windows
+            artifact: windows-x86_64
+          - runner: macos-15
+            platform: macos
+            artifact: macos-aarch64
+    name: host-release-${{ matrix.artifact }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Install the Linux cross targets
+        if: matrix.platform == 'linux'
+        run: rustup target add aarch64-unknown-linux-gnu
+      - name: Install the Raspberry Pi OS cross linker
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+      - name: Compile and seal the reviewed generic existing-computer releases
+        run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-existing-computer-releases-${{ matrix.artifact }}
+          path: target/creche-host-releases
+          if-no-files-found: error
+          retention-days: 7
+
+  raspberry-pi-release:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rust-src
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Install the deterministic SD image tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dosfstools mtools
+      - name: Compile and seal the exact ARMv6 Raspberry Pi SD images
+        run: |
+          mkdir -p target/creche-rpi-release
+          for board in rpi-b-plus-v1.2 rpi-zero-v1 rpi-zero-w-v1.1 rpi-zero-wh-v1.1; do
+            cargo +1.98.1 xtask host rpi --board "$board" image --locked
+          done
+          cp target/conduitos/armv6/conduitos-rpi-*.img target/creche-rpi-release/
+          cp target/conduitos/armv6/rpi-*-image.json target/creche-rpi-release/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-raspberry-pi-release
+          path: target/creche-rpi-release
+          if-no-files-found: error
+          retention-days: 7
+
+  orange-pi-release:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: aarch64-unknown-none
+          components: rust-src
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Install the deterministic SD image tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dosfstools
+      - name: Compile and seal the exact Orange Pi 5 ConduitOS SD image
+        run: |
+          cargo +1.98.1 xtask --locked conduitos orange-pi5-image
+          mkdir -p target/creche-orange-pi-release
+          cp target/conduitos/aarch64/orange-pi-5/conduitos-orange-pi-5.img target/creche-orange-pi-release/
+          cp target/conduitos/aarch64/orange-pi-5/orange-pi-5-image.json target/creche-orange-pi-release/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-orange-pi-release
+          path: target/creche-orange-pi-release
+          if-no-files-found: error
+          retention-days: 7
+
+  conduitos-release-images:
+    needs: plan
+    if: (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.outputs.pages_carrier_required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            profile: profiles/hosts/conduitos-native.profile.json
+          - architecture: aarch64
+            profile: profiles/hosts/conduitos-aarch64-headless.profile.json
+          - architecture: ia32
+            profile: profiles/hosts/conduitos-ia32-headless.profile.json
+          - architecture: riscv64
+            profile: profiles/hosts/conduitos-riscv64-headless.profile.json
+          - architecture: loongarch64
+            profile: profiles/hosts/conduitos-loongarch64-headless.profile.json
+    name: conduitos-release-${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: i686-unknown-uefi,i686-unknown-linux-gnu,x86_64-unknown-none,aarch64-unknown-none,riscv64gc-unknown-none-elf,loongarch64-unknown-none
+          components: rust-src,llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+      - name: Restore an identical admitted ConduitOS image
+        id: image-cache
+        uses: actions/cache@v6
+        with:
+          path: target/creche-conduitos-build/${{ matrix.architecture }}
+          key: >-
+            conduitos-product-${{ matrix.architecture }}-${{
+            hashFiles('Cargo.lock', '**/Cargo.toml', 'architecture/**', 'fabrication/**',
+            'runtime/**', 'semantics/**', 'targets/conduitos/**', 'xtask/**', matrix.profile) }}
+      - name: Install the deterministic hybrid ISO tool
+        if: steps.image-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xorriso
+      - name: Compile the exact ${{ matrix.architecture }} ConduitOS product Host release
+        if: steps.image-cache.outputs.cache-hit != 'true'
+        run: >-
+          cargo +1.98.1 xtask host build ${{ matrix.profile }}
+          --output target/creche-conduitos-build/${{ matrix.architecture }} --locked
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-conduitos-build-${{ matrix.architecture }}
+          path: target/creche-conduitos-build/${{ matrix.architecture }}
+          if-no-files-found: error
+          retention-days: 7
+
+  conduitos-releases:
+    needs: conduitos-release-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Download the exact x86_64 ConduitOS image
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-conduitos-build-x86_64
+          path: target/creche-conduitos-build/x86_64
+      - name: Download the exact aarch64 ConduitOS image
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-conduitos-build-aarch64
+          path: target/creche-conduitos-build/aarch64
+      - name: Download the exact ia32 ConduitOS image
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-conduitos-build-ia32
+          path: target/creche-conduitos-build/ia32
+      - name: Download the exact riscv64 ConduitOS image
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-conduitos-build-riscv64
+          path: target/creche-conduitos-build/riscv64
+      - name: Download the exact loongarch64 ConduitOS image
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-conduitos-build-loongarch64
+          path: target/creche-conduitos-build/loongarch64
+      - name: Seal the complete ConduitOS release set
+        run: node targets/conduitos/fabrication/seal-creche-release.mjs target/creche-conduitos-build target/creche-conduitos-release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-conduitos-releases
+          path: target/creche-conduitos-release
+          if-no-files-found: error
+          retention-days: 7
+
+  esp32-release-images:
+    needs: [plan, standalone-locks]
+    if: always() && (inputs.shared_compile_result == '' || inputs.shared_compile_result == 'success') && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [c3, s3, wroom]
+    name: esp32-release-${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Install the pinned ESP32-C3 Rust toolchain
+        if: matrix.target == 'c3'
+        uses: dtolnay/rust-toolchain@1.91.1
+        with:
+          targets: riscv32imc-unknown-none-elf
+          components: rust-src
+      - name: Restore the exact named Xtensa toolchain
+        if: matrix.target != 'c3'
+        id: esp-toolchain-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.rustup/toolchains/esp-conduit-1.91.1
+          key: esp-xtensa-toolchain-v2-${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-1.91.1.0-ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
+      - name: Install the pinned Xtensa Rust toolchain
+        if: matrix.target != 'c3' && steps.esp-toolchain-cache.outputs.cache-hit != 'true'
+        uses: esp-rs/xtensa-toolchain@ec6d36527049a7f4fb2cb0c1a644668c1bb8a2a4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          buildtargets: ${{ matrix.target == 'wroom' && 'esp32' || 'esp32s3' }}
+          default: false
+          ldproxy: false
+          name: esp-conduit-1.91.1
+          version: "1.91.1.0"
+      - name: Activate the pinned Xtensa compiler
+        if: matrix.target != 'c3'
+        run: |
+          test -x "$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc"
+          echo "$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin" >> "$GITHUB_PATH"
+          echo "LIBCLANG_PATH=$HOME/.rustup/toolchains/esp-conduit-1.91.1/xtensa-esp32-elf-clang/esp-20.1.1_20250829/esp-clang/lib" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          workspaces: |
+            . -> target
+            targets/esp32/firmware/${{ matrix.target }}-signal -> target
+      - name: Build and seal the exact generic release IMAGE
+        run: >-
+          cargo +1.98.1 xtask esp32-firmware build
+          --target "${{ matrix.target }}"
+          --locked
+          --receipt "target/esp32-release/${{ matrix.target }}-build.json"
+          --browser-artifact "target/esp32-release/esp32-${{ matrix.target }}-generic-release.bin"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conduit-esp32-release-${{ matrix.target }}
+          path: |
+            target/esp32-release/esp32-${{ matrix.target }}-generic-release.bin
+            target/esp32-release/esp32-${{ matrix.target }}-generic-release.json
+          if-no-files-found: error
+          retention-days: 7
+
+  products-stage:
+    needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
+    if: >-
+      always() &&
+      needs.avr-release.result == 'success' &&
+      needs.browser-release.result == 'success' &&
+      needs.browser-runtimes.result == 'success' &&
+      needs.esp32-release-images.result == 'success' &&
+      needs.host-releases.result == 'success' &&
+      needs.orange-pi-release.result == 'success' &&
+      needs.raspberry-pi-release.result == 'success' &&
+      needs.conduitos-releases.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - name: Download the reviewed browser product runtimes
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-browser-product-runtimes
+          path: target/browser-product-runtimes
+      - name: Download the reviewed generic ESP32 release IMAGEs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: conduit-esp32-release-*
+          merge-multiple: true
+          path: target/creche-release-artifacts
+      - name: Download the reviewed generic existing-computer releases
+        uses: actions/download-artifact@v8
+        with:
+          pattern: conduit-existing-computer-releases-*
+          merge-multiple: true
+          path: target/creche-release-artifacts
+      - name: Verify the browser Host release carries the normal Form ABI
+        run: >-
+          node -e 'const fs=require("node:fs"); const names=new Set(WebAssembly.Module.exports(new WebAssembly.Module(fs.readFileSync("target/creche-release-artifacts/runtime.wasm"))).map(({name})=>name)); for (const name of ["conduit_browser_form_inventory","conduit_browser_form_start","conduit_browser_form_complete","conduit_browser_form_cancel"]) if (!names.has(name)) throw new Error(`browser Host runtime lacks ${name}`);'
+      - name: Download the reviewed generic Pro Micro release
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-avr-promicro-release
+          path: target/creche-release-artifacts
+      - name: Download the reviewed Raspberry Pi bare-metal release
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-raspberry-pi-release
+          path: target/creche-release-artifacts
+      - name: Download the reviewed Orange Pi bare-metal release
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-orange-pi-release
+          path: target/creche-release-artifacts
+      - name: Download the reviewed ConduitOS product Host releases
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-conduitos-releases
+          path: target/creche-release-artifacts
+      - name: Stage the exact browser products
+        run: |
+          mkdir -p target/debug
+          cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
+          chmod 755 target/debug/conduit-browser-host
+          chmod 755 target/browser-product-runtimes/patchbay-static-assets
+          cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
+          cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
+          rm -rf target/pages-root target/tour-product target/creche-product target/patchbay-product
+          scripts/ci/stage-pages-root.sh target/pages-root
+          scripts/ci/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
+          scripts/ci/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
+          scripts/ci/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
+      - name: Retain the exact staged products once for parallel consumers
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-staged-browser-products
+          path: |
+            target/debug/conduit-browser-host
+            target/pages-root
+            target/tour-product
+            target/creche-product
+            target/patchbay-product
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+          compression-level: 0
+
+  browser-proof:
+    needs: products-stage
+    if: always() && needs.products-stage.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: tour
+            specs: proof/browser/executable-tour.spec.mjs
+          - shard: browser-host
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs
+          - shard: creche-machines
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs
+          - shard: pages
+            specs: proof/browser/pages-front-door.spec.mjs
+    name: browser-proof-${{ matrix.shard }}
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - name: Install the pinned browser proof dependency
+        run: npm ci --ignore-scripts --prefer-offline
+      - name: Receive the exact staged products
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-staged-browser-products
+          path: target
+      - name: Restore executable Host permission
+        run: chmod 755 target/debug/conduit-browser-host
+      - name: Prove the ${{ matrix.shard }} surface in pinned Chromium
+        if: matrix.shard != 'tour'
+        env:
+          BROWSER_PROOF_SPECS: ${{ matrix.specs }}
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          $BROWSER_PROOF_SPECS
+          --project chromium
+          --workers 1
+          --retries 0
+      - name: Prove the remaining Tour surface in pinned Chromium
+        if: matrix.shard == 'tour'
+        run: >-
+          npx playwright test
+          --config proof/browser/playwright.config.mjs
+          proof/browser/executable-tour.spec.mjs
+          --project chromium
+          --workers 1
+          --retries 0
+          --grep-invert
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
+      - name: Retain the browser two-profile fabrication report
+        if: matrix.shard == 'creche-machines'
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-two-profile-capstone-proof
+          path: |
+            target/proof/browser-two-profile-capstone.json
+            target/proof/browser-two-profile-capstone.md
+          if-no-files-found: error
+          retention-days: 14
+
+  pages-carrier:
+    needs: [plan, products-stage, browser-proof]
+    if: always() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - name: Receive the exact staged products
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-staged-browser-products
+          path: target
+      - name: Seal the already-proven Pages carrier
+        run: |
+          rm -rf target/pages-site target/pages-carrier
+          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/patchbay
+          cp -a target/pages-root/. target/pages-site/
+          cp -a target/tour-product/. target/pages-site/tour/
+          cp -a target/creche-product/. target/pages-site/creche/
+          cp -a target/patchbay-product/. target/pages-site/patchbay/
+          node products/tour/tools/stage-legacy-routes.mjs target/pages-site
+          echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
+          test -f target/pages-site/tour/tour.application.json
+          test -f target/pages-site/book/index.html
+          test -f target/pages-site/creche/index.html
+          test -f target/pages-site/creche/creche.application.json
+          test -f target/pages-site/creche/runtime.wasm
+          test -f target/pages-site/patchbay/patchbay.application.json
+          test -f target/pages-site/patchbay/api/snapshot
+          source_commit=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse HEAD)
+          source_tree=$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')
+          node scripts/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
+          node scripts/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
+      - name: Retain the immutable Pages carrier for post-merge promotion
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-pages-carrier
+          path: target/pages-carrier
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Materialize the trusted carrier attestation controller
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful Pages carrier proposition
+        id: carrier-receipt
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          if ! git show "$CONTROLLER_SHA:xtask/src/commands/ci/proof_graph/spec.rs" | grep -Fq 'id: "products.pages-carrier"'; then
+            echo 'supported=false' >> "$GITHUB_OUTPUT"
+            echo 'Trusted controller predates the carrier proof receipt; bootstrap execution remains authoritative.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci attest-success "$CONDUIT_CANDIDATE_SHA" products.pages-carrier \
+            --evidence products-stage \
+            --evidence browser-proof \
+            --evidence pages-carrier-verification \
+            --out target/ci-receipts/products.pages-carrier.json \
+            --locked
+          echo 'supported=true' >> "$GITHUB_OUTPUT"
+      - name: Retain immutable Pages carrier proof evidence
+        if: steps.carrier-receipt.outputs.supported == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-products.pages-carrier-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/ci-receipts/products.pages-carrier.json
+          if-no-files-found: error
+          retention-days: 14
+
+  proof-receipts:
+    needs: [plan, tour-patchbay-proof, browser-proof]
+    if: >-
+      always() &&
+      needs.plan.outputs.tour_required == 'true' &&
+      needs.tour-patchbay-proof.result == 'success' &&
+      (needs.plan.outputs.exact_execution == 'true' || needs.browser-proof.result == 'success')
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Materialize the trusted proof attestation controller
+        env:
+          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
+        run: |
+          git fetch --no-tags origin "$CONTROLLER_SHA"
+          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
+          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
+            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
+            --package conduit-xtask-dispatch --locked
+      - name: Attest the exact successful Tour proof proposition
+        shell: bash
+        env:
+          EXACT_EXECUTION: ${{ needs.plan.outputs.exact_execution }}
+        run: |
+          evidence=(--evidence tour-patchbay-proof)
+          if test "$EXACT_EXECUTION" != true; then
+            evidence+=(--evidence browser-proof-tour)
+          fi
+          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
+            ci attest-success "$CONDUIT_CANDIDATE_SHA" browser.tour \
+            "${evidence[@]}" --out target/ci-receipts/browser.tour.json --locked
+      - name: Retain immutable Tour proof evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-proof-browser.tour-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: target/ci-receipts/browser.tour.json
+          if-no-files-found: error
+          retention-days: 14
+
+  products-proof:
+    needs: [plan, tour-patchbay-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
+    # A deliberately cancelled duplicate lifecycle run is not new proof
+    # failure. Real dependency failures still reach this gate and fail it.
+    if: ${{ always() && !cancelled() }}
+    # This gate only inspects completed dependency results. Keep it on the
+    # single-CPU automation lane so product fabrication cannot occupy its runner.
+    runs-on: ubuntu-slim
+    steps:
+      - name: Preserve the stable required product gate
+        env:
+          SHARED_COMPILE_RESULT: ${{ env.CONDUIT_SHARED_COMPILE_RESULT }}
+          SHARED_COMPILE_PACKAGES: ${{ env.CONDUIT_SHARED_COMPILE_PACKAGES }}
+          PRODUCT_REQUIRED: ${{ needs.plan.outputs.required }}
+          PRODUCT_PROOFS: ${{ needs.plan.outputs.proofs }}
+          TOUR_REQUIRED: ${{ needs.plan.outputs.tour_required }}
+          DEBUGGER_REQUIRED: ${{ needs.plan.outputs.patchbay_debugger_required }}
+          CARRIER_REQUIRED: ${{ needs.plan.outputs.pages_carrier_required }}
+          TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
+          STAGE_RESULT: ${{ needs.products-stage.result }}
+          BROWSER_RESULT: ${{ needs.browser-proof.result }}
+          CARRIER_RESULT: ${{ needs.pages-carrier.result }}
+          RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
+        run: |
+          if test "${SHARED_COMPILE_RESULT:-success}" != success; then
+            printf '{"schema":"conduit.ci.causal-block/v1","blocked_by":"workspace.shared-compile","packages":%s,"dependents":["products-proof"]}\n' \
+              "${SHARED_COMPILE_PACKAGES:-[]}" | tee causal-block.json
+            printf 'blocked-by: workspace.shared-compile (%s)\n' "${SHARED_COMPILE_PACKAGES:-[]}" >&2
+            exit 1
+          fi
+          if test "$PRODUCT_REQUIRED" != true; then
+            echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
+            exit 0
+          fi
+          if test "$TOUR_REQUIRED" = true || test "$DEBUGGER_REQUIRED" = true; then
+            test "$TOUR_PATCHBAY_RESULT" = success
+          fi
+          if test "$TOUR_REQUIRED" = true; then
+            test "$RECEIPTS_RESULT" = success
+          fi
+          if test "$CARRIER_REQUIRED" = true; then
+            test "$STAGE_RESULT" = success
+            test "$BROWSER_RESULT" = success
+            test "$CARRIER_RESULT" = success
+          fi

@@ -110,10 +110,31 @@ fn request(target_mode: OiMode) -> CreateModeServiceRequest<'static> {
 fn passive_safe_and_full_are_stop_first_exact_and_verified() {
     let host = host();
     let boot = boot();
-    for (mode, command) in [
-        (OiMode::Passive, 128),
-        (OiMode::Safe, 131),
-        (OiMode::Full, 132),
+    for (mode, expected_writes) in [
+        (
+            OiMode::Passive,
+            vec![vec![145, 0, 0, 0, 0], vec![128], vec![142, 35]],
+        ),
+        (
+            OiMode::Safe,
+            vec![
+                vec![145, 0, 0, 0, 0],
+                vec![128],
+                vec![131],
+                vec![145, 0, 0, 0, 0],
+                vec![142, 35],
+            ],
+        ),
+        (
+            OiMode::Full,
+            vec![
+                vec![145, 0, 0, 0, 0],
+                vec![128],
+                vec![132],
+                vec![145, 0, 0, 0, 0],
+                vec![142, 35],
+            ],
+        ),
     ] {
         let mut provider = provider(mode);
         let sign = transition_create_mode(
@@ -124,10 +145,7 @@ fn passive_safe_and_full_are_stop_first_exact_and_verified() {
             100,
         )
         .unwrap();
-        assert_eq!(
-            provider.writes,
-            [vec![145, 0, 0, 0, 0], vec![command], vec![142, 35]]
-        );
+        assert_eq!(provider.writes, expected_writes);
         assert_eq!(sign.prior_mode, OiMode::Safe);
         assert_eq!(sign.observed_mode, mode);
         assert_eq!(sign.offer_generation, OfferGeneration(9));
@@ -274,7 +292,9 @@ fn stop_transition_query_and_observation_fail_at_distinct_stages() {
     for (failed_write, stage, prior_writes) in [
         (0, CreateOiModeTransitionStage::MandatoryStop, 0),
         (1, CreateOiModeTransitionStage::ModeTransition, 1),
-        (2, CreateOiModeTransitionStage::VerificationQuery, 2),
+        (2, CreateOiModeTransitionStage::ModeTransition, 2),
+        (3, CreateOiModeTransitionStage::MandatoryStop, 3),
+        (4, CreateOiModeTransitionStage::VerificationQuery, 4),
     ] {
         let mut provider = provider(OiMode::Safe);
         provider.fail_write = Some(failed_write);

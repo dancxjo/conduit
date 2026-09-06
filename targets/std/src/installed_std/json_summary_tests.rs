@@ -33,7 +33,7 @@ fn todo_summary_refuses_missing_or_non_boolean_completion() {
         let (output, report) = execute_entry(&request, "todo/command-summary");
         assert_eq!(
             report.unwrap_err(),
-            format!("installed kernel step: OperationFailed({detail})")
+            format!("installed kernel step: OperationFailed(Failure {{ code: HostOperationFailed, detail: {detail} }})")
         );
         assert!(
             !output.lines().any(|line| line.starts_with('{')),

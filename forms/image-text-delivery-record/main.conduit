@@ -1,0 +1,14 @@
+form image-text-delivery-record (
+    > image: ImageObservationReference
+    > caption: Text
+    framed: FramedTypedRecord >
+) {
+    compose: media/compose-image-text
+    adapt: media/image-text-to-typed-record
+    frame: record/frame-typed
+    image > compose.image
+    caption > compose.caption
+    compose.record > adapt.record
+    adapt.typed > frame.record
+    frame.frame > framed
+}

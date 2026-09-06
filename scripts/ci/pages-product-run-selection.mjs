@@ -1,6 +1,8 @@
 const PRODUCT_CARRIER_WORKFLOW_PATHS = new Set([
   ".github/workflows/promotion.yml",
   ".github/workflows/candidate.yml",
+  ".github/workflows/tour-products.yml",
+  // Historical immutable carriers remain selectable by their original workflow.
   ".github/workflows/executable-book-pages.yml",
 ]);
 

@@ -38,6 +38,8 @@ export function openBrowserHumanInput({
   });
   const keyboardWaiters = [];
   const buttonWaiters = [];
+  const buttonQueue = [];
+  let buttonActive = false;
   const pointerConsumers = new Set();
   let closed = false;
   let terminal = null;
@@ -66,7 +68,7 @@ export function openBrowserHumanInput({
   };
 
   const onPointer = (event) => {
-    if (closed || (pointerConsumers.size === 0 && buttonWaiters.length === 0)) return;
+    if (closed || (pointerConsumers.size === 0 && !buttonActive)) return;
     try {
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
@@ -74,14 +76,18 @@ export function openBrowserHumanInput({
       if (event.buttons !== 0 && event.buttons !== 1) {
         refuse("UnsupportedInput", "pointer buttons exceed the reviewed primary-button profile");
       }
-      if (buttonWaiters.length > 0) {
-        const waiter = buttonWaiters.shift();
-        waiter.resolve(Object.freeze({
+      if (buttonActive) {
+        const transition = Object.freeze({
           schema: "input/button-transition@1",
           pressed: event.type === "pointerdown",
           sequence: buttonSequence++,
           owner,
-        }));
+        });
+        if (buttonWaiters.length > 0) buttonWaiters.shift().resolve(transition);
+        else {
+          if (buttonQueue.length >= maximumQueueItems) refuse("Pressure", "ordered button queue is full");
+          buttonQueue.push(transition);
+        }
       }
       const surface = target.nodeType === 9 ? target.documentElement : target;
       const bounds = surface.getBoundingClientRect();
@@ -107,6 +113,10 @@ export function openBrowserHumanInput({
       dropped = 0;
       for (const consume of pointerConsumers) consume(value);
     } catch (error) {
+      if (buttonActive) {
+        terminal = error;
+        buttonQueue.length = 0;
+      }
       while (buttonWaiters.length) buttonWaiters.shift().reject(error);
       for (const consume of pointerConsumers) consume(null, error);
     }
@@ -117,6 +127,7 @@ export function openBrowserHumanInput({
     terminal = new BrowserInputRefusal(code, code === "PageLost"
       ? "browser page was lost while input was pending"
       : "browser input target lost focus");
+    buttonQueue.length = 0;
     while (keyboardWaiters.length) keyboardWaiters.shift().reject(terminal);
     while (buttonWaiters.length) buttonWaiters.shift().reject(terminal);
   };
@@ -142,6 +153,7 @@ export function openBrowserHumanInput({
       keyboard_queue_items: maximumQueueItems,
       keyboard_event_bytes: KEYBOARD_EVENT_BYTES,
       keyboard_queue_bytes: KEYBOARD_QUEUE_BYTES,
+      button_queue_items: maximumQueueItems,
       pointer_queue_items: 1,
       pointer_value_bytes: POINTER_VALUE_BYTES,
     }),
@@ -156,6 +168,16 @@ export function openBrowserHumanInput({
     nextButton() {
       requireSelected(admitted, POINTER_IMPLEMENTATION);
       if (closed || terminal) return Promise.reject(terminal ?? new BrowserInputRefusal("Cancelled", "browser input adapter is closed"));
+      try {
+        assertCurrent(owner, currentBoot());
+        assertPageActive(target);
+      } catch (error) {
+        terminal = error;
+        buttonQueue.length = 0;
+        return Promise.reject(error);
+      }
+      buttonActive = true;
+      if (buttonQueue.length) return Promise.resolve(buttonQueue.shift());
       if (buttonWaiters.length >= maximumQueueItems) {
         return Promise.reject(new BrowserInputRefusal("Pressure", "button input queue is full"));
       }
@@ -170,6 +192,8 @@ export function openBrowserHumanInput({
       return () => pointerConsumers.delete(consume);
     },
     cancelPending() {
+      buttonActive = false;
+      buttonQueue.length = 0;
       while (keyboardWaiters.length) keyboardWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
       while (buttonWaiters.length) buttonWaiters.shift().reject(new BrowserInputRefusal("Cancelled", "browser input request was cancelled"));
     },

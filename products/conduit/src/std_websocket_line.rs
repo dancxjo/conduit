@@ -112,7 +112,10 @@ impl StepOperation<PORTS> for Driver {
                     return StepOutcome::Await;
                 }
                 if io.send(PortId(0), value).is_err() {
-                    return StepOutcome::Fail(1);
+                    return StepOutcome::Fail(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::InvalidLifecycle,
+                        detail: 1,
+                    });
                 }
                 *next += 1;
                 StepOutcome::Progress
@@ -120,13 +123,19 @@ impl StepOperation<PORTS> for Driver {
             Self::Sink { received } => {
                 if io.input(PortId(0)).is_some() {
                     if io.consume(PortId(0)).is_err() {
-                        return StepOutcome::Fail(2);
+                        return StepOutcome::Fail(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidLifecycle,
+                            detail: 2,
+                        });
                     }
                     *received += 1;
                     StepOutcome::Progress
                 } else if io.input_closed(PortId(0)) {
                     if io.consume_closed(PortId(0)).is_err() {
-                        return StepOutcome::Fail(3);
+                        return StepOutcome::Fail(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidLifecycle,
+                            detail: 3,
+                        });
                     }
                     StepOutcome::Complete
                 } else {

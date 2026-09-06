@@ -19,6 +19,8 @@ use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
+use super::image_text_operation::FACTORY as IMAGE_TEXT_FACTORY;
+use super::image_text_record_operation::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
 use super::input_semantic_operations::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
 use super::instrument_map_operation::FACTORY as INSTRUMENT_MAP_FACTORY;
 use super::json_operations::{
@@ -104,11 +106,15 @@ use super::timed_button_attempt_operation::FACTORY as TIMED_BUTTON_ATTEMPT_FACTO
 use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
+use super::typed_record_operation::FACTORY as TYPED_RECORD_FRAME_FACTORY;
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
     &KEYBOARD_INPUT_FACTORY,
+    &super::keyboard_input_operation::button::FACTORY,
+    &super::keyboard_input_operation::button::indicator::MAPPER,
+    &super::keyboard_input_operation::button::indicator::INDICATOR,
     &TICK_FACTORY,
     &super::pulse_observation_operation::FACTORY,
     #[cfg(test)]
@@ -201,6 +207,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_REMOTE_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
+    &IMAGE_TEXT_FACTORY,
+    &IMAGE_TEXT_RECORD_FACTORY,
     &JSON_ENCODE_FACTORY,
     &JSON_COLLECTION_STEP_FACTORY,
     &JSON_BOOLEAN_SUMMARY_FACTORY,
@@ -208,6 +216,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &STRUCTURED_SELECTOR_FACTORY,
     &STRUCTURED_LITERAL_FACTORY,
     &STRUCTURED_PRESENTATION_FACTORY,
+    &TYPED_RECORD_FRAME_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]
@@ -262,8 +271,9 @@ pub(super) fn factory(implementation_id: &ImplementationId) -> Option<&'static I
 
 pub(crate) fn supports(fragment: &PlanFragment) -> bool {
     !fragment.placements.is_empty()
-        && fragment
-            .placements
-            .iter()
-            .all(|placement| factory(&placement.implementation_id).is_some())
+        && fragment.placements.iter().all(|placement| {
+            factory(&placement.implementation_id).is_some()
+                || placement.implementation_id.as_str()
+                    == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+        })
 }

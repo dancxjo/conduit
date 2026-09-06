@@ -1,4 +1,5 @@
 //! Installed source state machine for a host-adapted portable keyboard.
+pub(super) mod button;
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};

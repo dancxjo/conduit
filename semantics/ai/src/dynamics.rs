@@ -193,6 +193,7 @@ impl IntegrateContract {
             gear_id: "ai/integrate".into(),
             value_kind: "ai/dynamics-state@1".into(),
             initial_value: state.generation.to_le_bytes().to_vec(),
+            retained: None,
             maximum_value_bytes,
             continuation: StateContinuation::MaximumTransitions(1),
         })
