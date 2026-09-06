@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 72
+maximum_forms = 75
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -323,3 +323,24 @@ entries = [
   { slug = "desk-telegraph", entry = "desk_telegraph" },
 ]
 deterministic = { package = "conduit-std-host", test = "body_wide_play", case = "three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_scheduler", plan_play_evidence = true, workload_revision_evidence = true }
+
+[[forms]]
+slug = "bounded-record-transcript"
+title = "Bounded Record Transcript"
+entry = "bounded-record-transcript"
+deterministic = { package = "conduit-net", test = "record_transcript", case = "transcript_is_an_ordinary_reusable_closing_flow_form" }
+browser_safe_not_applicable = "portable record semantics have no installed browser execution oracle"
+
+[[forms]]
+slug = "ordered-record-send-queue"
+title = "Ordered Record Send Queue"
+entry = "ordered-record-send-queue"
+deterministic = { package = "conduit-net", test = "ordered_record_queue", case = "ordered_queue_is_a_reusable_closing_flow_form" }
+browser_safe_not_applicable = "portable record semantics have no installed browser execution oracle"
+
+[[forms]]
+slug = "record-delivery-status"
+title = "Record Delivery Status"
+entry = "record-delivery-status"
+deterministic = { package = "conduit-net", test = "record_delivery", case = "delivery_projection_is_an_ordinary_reusable_closing_flow_form" }
+browser_safe_not_applicable = "portable record semantics have no installed browser execution oracle"

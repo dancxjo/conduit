@@ -1,0 +1,19 @@
+form bounded-record-transcript (
+    maximum-items: Count = 16
+    maximum-frame-bytes: Count = 4267
+    maximum-retained-bytes: Count = 136544
+    > sent: FramedTypedRecord...|
+    > received: FramedTypedRecord...|
+    > terminal: RecordTerminalEvent...|
+    retained-sent: FramedTypedRecord...| >
+    retained-received: FramedTypedRecord...| >
+    retained-terminal: RecordTerminalEvent...| >
+) {
+    transcript: record/bounded-transcript(maximum-items, maximum-frame-bytes, maximum-retained-bytes)
+    sent > transcript.sent
+    received > transcript.received
+    terminal > transcript.terminal
+    transcript.retained-sent > retained-sent
+    transcript.retained-received > retained-received
+    transcript.retained-terminal > retained-terminal
+}
