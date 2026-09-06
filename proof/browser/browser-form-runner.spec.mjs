@@ -133,3 +133,33 @@ test("an authored five-transition button stream handles three ordinary browser p
     await page.mouse.up();
   }
 });
+
+test("button input progresses alongside a pending timer and the Play can be cancelled", async ({ page }) => {
+  await openTourStep(page, entrance, 0);
+  const runner = page.locator('[data-application-component="tour-laboratory"]');
+  await runner.locator("textarea").fill(`form concurrent {
+    button: input/button(maximum-transitions = 1)
+    state: input/button-indicator-state
+    indicator: presentation/indicator-state
+    clock: time/every(freq = 10000ms)
+    count: state/count(start = 0)
+    show: presentation/count(maximum-values = 5)
+    button > state > indicator
+    clock.tick > count.bump
+    count.value > show.value
+  }`);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  const control = runner.getByRole("button", { name: "Hold to control indicator" });
+  await expect(control).toBeVisible();
+  await control.hover();
+  await page.mouse.down();
+  await expect(runner.getByRole("img", { name: "Indicator on", exact: true })).toBeVisible({ timeout: 3000 });
+  await page.mouse.up();
+  await runner.getByRole("button", { name: "Stop", exact: true }).click();
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("cancelled");
+  await expect(runner.getByRole("img", { name: "Indicator off", exact: true })).toBeVisible();
+  await runner.locator("textarea").fill(FORM);
+  await runner.getByRole("button", { name: "Run", exact: true }).click();
+  await expect(runner.locator(".morse")).toHaveText("SAY: HELLO");
+  await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
+});

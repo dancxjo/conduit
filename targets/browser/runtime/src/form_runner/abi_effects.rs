@@ -1,0 +1,111 @@
+//! Correlated completions preserve the session when stale callers are refused.
+use super::*;
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_pending_capacity() -> usize {
+    crate::installed_browser::BROWSER_PENDING_REQUESTS
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_poll_effect() -> i32 {
+    progress(|session| session.poll_effect())
+}
+
+/// Input is exact Play identity, placement identity, then optional canonical output.
+#[no_mangle]
+pub extern "C" fn conduit_browser_form_complete_effect(
+    play_length: usize,
+    placement_length: usize,
+    request_sequence: u32,
+    output_length: usize,
+) -> i32 {
+    let Some(total) = play_length
+        .checked_add(placement_length)
+        .and_then(|n| n.checked_add(output_length))
+    else {
+        return ERROR_INPUT;
+    };
+    if play_length == 0 || placement_length == 0 || total > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = match (
+            core::str::from_utf8(&input[..play_length]),
+            core::str::from_utf8(&input[play_length..play_length + placement_length]),
+        ) {
+            (Ok(play), Ok(placement)) => progress(|session| {
+                session.complete_effect(
+                    play,
+                    placement,
+                    request_sequence,
+                    (output_length > 0).then_some(&input[play_length + placement_length..total]),
+                )
+            }),
+            _ => ERROR_INPUT,
+        };
+        input[..total].fill(0);
+        result
+    })
+}
+
+fn progress(
+    action: impl FnOnce(&mut TourSession) -> Result<super::super::TourProgress, String>,
+) -> i32 {
+    clear_output();
+    SESSION.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        let Some(session) = slot.as_mut() else {
+            return ERROR_NOT_RUNNING;
+        };
+        let result = match action(session) {
+            Ok(result) => result,
+            Err(_) => return ERROR_COMPLETE,
+        };
+        if write_output(&result).is_err() {
+            return ERROR_OUTPUT;
+        }
+        if matches!(result, super::super::TourProgress::Receipt(_)) {
+            *slot = None;
+        }
+        STATUS_READY
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stale_correlated_completion_preserves_the_live_session() {
+        let source = "form test {\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message > morse > light\n}\n";
+        let (session, _) = TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
+        let play = session.active_play_id.as_str().to_owned();
+        let request = session.pending[0].request;
+        let placement = session.fragment.placements[usize::from(request.node.0)]
+            .placement_id
+            .as_str()
+            .to_owned();
+        SESSION.with(|slot| *slot.borrow_mut() = Some(session));
+        assert_eq!(
+            complete("stale", &placement, request.request.0),
+            ERROR_COMPLETE
+        );
+        SESSION.with(|slot| assert_eq!(slot.borrow().as_ref().unwrap().pending.len(), 1));
+        assert_eq!(complete(&play, &placement, request.request.0), STATUS_READY);
+        SESSION.with(|slot| assert!(slot.borrow().is_none()));
+        assert_eq!(
+            complete(&play, &placement, request.request.0),
+            ERROR_NOT_RUNNING
+        );
+    }
+
+    fn complete(play: &str, placement: &str, request: u32) -> i32 {
+        INPUT.with(|input| {
+            let mut input = input.borrow_mut();
+            input[..play.len()].copy_from_slice(play.as_bytes());
+            input[play.len()..play.len() + placement.len()].copy_from_slice(placement.as_bytes());
+        });
+        conduit_browser_form_complete_effect(play.len(), placement.len(), request, 0)
+    }
+}

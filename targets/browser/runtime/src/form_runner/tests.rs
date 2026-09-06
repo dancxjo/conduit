@@ -272,6 +272,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
         }
         match session.advance().unwrap() {
             TourProgress::Effect(next) => effect = *next,
+            TourProgress::Waiting { .. } => panic!("serial fixture unexpectedly waits"),
             TourProgress::Receipt(receipt) => {
                 assert_eq!(receipt.disposition, "completed");
                 return (

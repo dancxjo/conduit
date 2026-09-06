@@ -134,6 +134,12 @@ pub(super) struct TourReceipt {
 pub(super) enum TourProgress {
     Effect(Box<TourHostEffect>),
     Receipt(Box<TourReceipt>),
+    Waiting {
+        schema: &'static str,
+        disposition: &'static str,
+        active_play_id: String,
+        pending_effects: usize,
+    },
 }
 
 #[derive(Debug, Serialize)]
