@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod plan;
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
@@ -18,6 +19,8 @@ pub struct AdmittedStateGraph {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StateGraphError {
     InvalidForm,
+    InvalidPlan,
+    StateAlreadySealed,
     InvalidStatePlan(StatePlanError),
     UnknownStatePlacement,
     MissingInitialization,

@@ -54,3 +54,19 @@ transition allowance from successful processing under a larger allowance.
 This adapter does not yet establish checked-Form Host installation or cross-Play
 State continuity. Finite generation and Sign capacity are not claims of infinite
 physical execution.
+
+## Immutable State admission
+
+`PlanFragment.states` carries the exact State identity, owning Gear, value Kind,
+initial bytes, retained-byte capacity and continuation demand. Nonempty State
+contracts participate in both fragment and Plan fingerprints. Mutating any of
+those fields invalidates the sealed identity; a changed capacity requires a
+fresh Plan. The ordinary planner's `seal_state_plan` validates checked State
+graph admission and seals these contracts with their mandatory State evidence
+reserve, preserving the original Plan and checked Form identity.
+
+This is admission truth, not a claim of installed execution. Current lowering
+profiles refuse `UnsupportedState` for a valid fragment carrying these contracts
+until numeric State storage and Host installation implement them. A host must
+not ignore a sealed State contract. Cross-Play typed migration and Boot authority
+admission remain separate obligations under #2691.

@@ -733,6 +733,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 placements,
                 execution_regions: Vec::new(),
                 execution_fusions: Vec::new(),
+                states: Vec::new(),
                 connections,
                 shared_pools: Vec::new(),
                 startup_dependencies,

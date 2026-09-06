@@ -121,6 +121,82 @@ pub fn state_resource_budget(
     })
 }
 
+/// State is an immutable fragment commitment, not an unsealed side table.
+pub(crate) fn push_canonical_state(bytes: &mut Vec<u8>, states: &[PlannedStateBoundary]) {
+    if states.is_empty() {
+        return;
+    }
+    crate::push_string(bytes, "conduit/fragment-state@1");
+    crate::push_u64(bytes, states.len() as u64);
+    for state in states {
+        crate::push_string(bytes, state.state_id.as_str());
+        crate::push_string(bytes, state.gear_id.as_str());
+        crate::push_string(bytes, state.value_kind.as_str());
+        crate::push_u64(bytes, state.initial_value.len() as u64);
+        bytes.extend_from_slice(&state.initial_value);
+        crate::push_u32(bytes, state.maximum_value_bytes);
+        match state.continuation {
+            StateContinuation::MaximumTransitions(count) => {
+                bytes.push(0);
+                crate::push_u64(bytes, count);
+            }
+            StateContinuation::ExternallyBounded => bytes.push(1),
+        }
+    }
+}
+
+pub(crate) fn verify_plan_states(plan: &crate::Plan) -> bool {
+    let mut state_ids = alloc::collections::BTreeSet::new();
+    let mut gear_ids = alloc::collections::BTreeSet::new();
+    plan.fragments
+        .iter()
+        .flat_map(|fragment| &fragment.states)
+        .all(|state| state_ids.insert(&state.state_id) && gear_ids.insert(&state.gear_id))
+}
+
+pub(crate) fn verify_fragment_state(fragment: &crate::PlanFragment) -> bool {
+    if fragment.states.is_empty() {
+        return true;
+    }
+    let Ok(budget) = state_resource_budget(&fragment.states) else {
+        return false;
+    };
+    let Some(base_signs) = crate::mandatory_sign_storage_requirement(&fragment.expected_sign)
+    else {
+        return false;
+    };
+    if !fragment.states.is_empty()
+        && (base_signs
+            .item_capacity
+            .checked_add(budget.sign_storage.item_capacity)
+            .is_none_or(|required| required > fragment.sign_storage_budget.item_capacity)
+            || base_signs
+                .byte_capacity
+                .checked_add(budget.sign_storage.byte_capacity)
+                .is_none_or(|required| required > fragment.sign_storage_budget.byte_capacity))
+    {
+        return false;
+    }
+    fragment.states.iter().all(|state| {
+        let mut placements = fragment
+            .placements
+            .iter()
+            .filter(|gear| gear.gear_id == state.gear_id);
+        let Some(gear) = placements.next() else {
+            return false;
+        };
+        placements.next().is_none()
+            && gear.host_id == fragment.host_id
+            && gear.boot_id == fragment.boot_id
+            && gear.inputs.len() == 1
+            && gear.outputs.len() == 1
+            && gear.inputs[0].direction == crate::PortDirection::Input
+            && gear.outputs[0].direction == crate::PortDirection::Output
+            && gear.inputs[0].value_kind == state.value_kind
+            && gear.outputs[0].value_kind == state.value_kind
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

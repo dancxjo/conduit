@@ -607,6 +607,9 @@ pub struct PlanFragment {
     pub execution_regions: Vec<ExecutionRegion>,
     #[serde(default)]
     pub execution_fusions: Vec<PlannedFusion>,
+    /// Exact retained-State contracts owned by placements in this fragment.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub states: Vec<PlannedStateBoundary>,
     pub connections: Vec<PlannedConnection>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
@@ -723,6 +726,7 @@ pub fn verify_plan(plan: &Plan) -> bool {
                     .iter()
                     .all(|fragment| fragment.shared_pools == first.shared_pools)
         })
+        && state_delay::verify_plan_states(plan)
         && verify_plan_shared_pools(plan)
         && verify_plan_connections(plan)
 }
@@ -887,6 +891,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
     own_matches == 1
+        && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)
         && execution_fusion::verify(fragment)
         && compute_plan_id(

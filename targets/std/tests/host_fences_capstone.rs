@@ -102,6 +102,7 @@ fn exact_plan(hosts: &[HostAdvertisement], label: &str) -> Plan {
             placements: vec![],
             execution_regions: vec![],
             execution_fusions: vec![],
+            states: Vec::new(),
             connections: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],

@@ -246,6 +246,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     }
     canonical.extend_from_slice(&fragment.sign_storage_budget.item_capacity.to_le_bytes());
     push_u32(&mut canonical, fragment.sign_storage_budget.byte_capacity);
+    crate::state_delay::push_canonical_state(&mut canonical, &fragment.states);
     FragmentId::from(hash_bytes(&canonical))
 }
 
