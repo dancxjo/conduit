@@ -195,7 +195,10 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         child.kill().map_err(|error| {
             ConduitosError::refusal("product-journey-qemu-stop-failed", error.to_string())
         })?;
-        let _ = child.wait();
+        let stopped = child.wait().map_err(|error| {
+            ConduitosError::refusal("product-journey-qemu-wait-failed", error.to_string())
+        })?;
+        artifacts.stopped(&stopped, "harness-kill-after-interaction");
         let serial = fs::read_to_string(&serial_path).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
         })?;
@@ -338,18 +341,23 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         Ok(())
     })();
     if result.is_err() {
-        let diagnostic =
-            hid_qmp::connect(&monitor_socket, &mut child).and_then(|(mut stream, mut reader)| {
+        if let Some(status) = child.try_wait().ok().flatten() {
+            artifacts.stopped(&status, "exited-before-failure-diagnostics");
+        } else {
+            let diagnostic = hid_qmp::connect(&monitor_socket, &mut child).and_then(|(mut stream, mut reader)| {
                 artifacts.registers(super::qmp::request_value(&mut stream, &mut reader,
                     br#"{"execute":"human-monitor-command","arguments":{"command-line":"info registers"}}"#,
                     "failure-registers"));
                 artifacts.capture(&mut stream, &mut reader, "failure", false)
             });
-        if let Err(error) = diagnostic {
-            artifacts.diagnostic_failure(&error);
+            if let Err(error) = diagnostic {
+                artifacts.diagnostic_failure(&error);
+            }
+            let _ = child.kill();
+            if let Ok(status) = child.wait() {
+                artifacts.stopped(&status, "harness-kill-after-failure");
+            }
         }
-        let _ = child.kill();
-        let _ = child.wait();
     }
     // Artifact errors never replace the original runtime/proof refusal.
     if let Err(error) = artifacts.finish(result.as_ref().err()) {

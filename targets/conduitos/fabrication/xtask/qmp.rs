@@ -15,6 +15,7 @@ pub(super) struct Reader {
     inner: BufReader<UnixStream>,
     transcript: Option<std::fs::File>,
     trace_bytes: usize,
+    next_request: u16,
 }
 impl Reader {
     pub(super) fn new(stream: UnixStream) -> Self {
@@ -22,6 +23,7 @@ impl Reader {
             inner: BufReader::new(stream),
             transcript: None,
             trace_bytes: 0,
+            next_request: 0,
         }
     }
     fn record(&mut self, direction: &str, bytes: &[u8]) -> Result<(), ConduitosError> {
@@ -128,12 +130,20 @@ pub(super) fn request_value(
     command: &[u8],
     id: &str,
 ) -> Result<serde_json::Value, ConduitosError> {
+    if reader.next_request >= 1024 {
+        return Err(ConduitosError::refusal(
+            "qemu-qmp-command-bound",
+            "connection exhausted its 1024 admitted command IDs",
+        ));
+    }
+    let id = format!("{}:{id}", reader.next_request);
+    reader.next_request += 1;
     let mut command: serde_json::Value = serde_json::from_slice(command)
         .map_err(|error| ConduitosError::refusal("qemu-qmp-invalid-command", error.to_string()))?;
     let object = command
         .as_object_mut()
         .ok_or_else(|| ConduitosError::refusal("qemu-qmp-invalid-command", "expected object"))?;
-    object.insert("id".into(), id.into());
+    object.insert("id".into(), id.clone().into());
     let mut encoded = serde_json::to_vec(&command)
         .map_err(|error| ConduitosError::refusal("qemu-qmp-invalid-command", error.to_string()))?;
     if encoded.len() > MAXIMUM_MESSAGE_BYTES {
@@ -154,7 +164,7 @@ pub(super) fn request_value(
         if response.get("event").is_some() {
             continue;
         }
-        if response.get("id").and_then(serde_json::Value::as_str) != Some(id) {
+        if response.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str()) {
             return Err(ConduitosError::refusal(
                 "qemu-qmp-response-id",
                 "response does not match pending command",
@@ -246,7 +256,7 @@ mod tests {
             let mut command = String::new();
             reader.read_line(&mut command).unwrap();
             let command: serde_json::Value = serde_json::from_str(&command).unwrap();
-            assert_eq!(command["id"], "proof");
+            assert_eq!(command["id"], "0:proof");
             server.write_all(&response).unwrap();
         });
         let mut reader = Reader::new(client.try_clone().unwrap());
@@ -284,15 +294,42 @@ mod tests {
     }
 
     #[test]
+    fn repeated_action_labels_cannot_accept_a_duplicate_previous_reply() {
+        let (mut client, mut server) = UnixStream::pair().unwrap();
+        let worker = thread::spawn(move || {
+            let mut reader = BufReader::new(server.try_clone().unwrap());
+            for expected in ["0:repeat", "1:repeat"] {
+                let mut line = String::new();
+                reader.read_line(&mut line).unwrap();
+                let command: serde_json::Value = serde_json::from_str(&line).unwrap();
+                assert_eq!(command["id"], expected);
+                server
+                    .write_all(b"{\"return\":{},\"id\":\"0:repeat\"}\n")
+                    .unwrap();
+            }
+        });
+        let mut reader = Reader::new(client.try_clone().unwrap());
+        let command = br#"{"execute":"query-status"}"#;
+        request(&mut client, &mut reader, command, "repeat").unwrap();
+        assert_eq!(
+            request(&mut client, &mut reader, command, "repeat")
+                .unwrap_err()
+                .reason,
+            "qemu-qmp-response-id"
+        );
+        worker.join().unwrap();
+    }
+
+    #[test]
     fn interleaved_events_do_not_replace_matching_response() {
-        reply(b"{\"event\":\"STOP\"}\n{\"return\":{},\"id\":\"proof\"}\n").unwrap();
+        reply(b"{\"event\":\"STOP\"}\n{\"return\":{},\"id\":\"0:proof\"}\n").unwrap();
     }
 
     #[test]
     fn stale_response_and_command_error_refuse() {
         assert!(reply(b"{\"return\":{},\"id\":\"old\"}\n").is_err());
-        assert!(reply(b"{\"error\":{\"class\":\"GenericError\"},\"id\":\"proof\"}\n").is_err());
-        assert!(reply(b"{\"id\":\"proof\"}\n").is_err());
+        assert!(reply(b"{\"error\":{\"class\":\"GenericError\"},\"id\":\"0:proof\"}\n").is_err());
+        assert!(reply(b"{\"id\":\"0:proof\"}\n").is_err());
     }
 
     #[test]

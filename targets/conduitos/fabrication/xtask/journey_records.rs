@@ -20,7 +20,7 @@ pub(super) fn boot(serial: &str) -> Result<Option<Value>, ConduitosError> {
         .split_inclusive('\n')
         .filter(|line| line.ends_with('\n'))
         .filter_map(|line| line.strip_prefix("CONDUIT_BOOT_SIGN "))
-        .last()
+        .next_back()
         .map(serde_json::from_str)
         .transpose()
         .map_err(|error| {

@@ -102,6 +102,14 @@ impl Artifacts {
         Ok(())
     }
 
+    pub(super) fn stopped(&mut self, status: &std::process::ExitStatus, cause: &str) {
+        if self.context.get("process_stop").is_some() {
+            return;
+        }
+        self.context["process_stop"] =
+            json!({"cause":cause,"status":status.to_string(),"code":status.code()});
+    }
+
     pub(super) fn registers(&mut self, result: Result<Value, ConduitosError>) {
         self.context["register_diagnostic"] = match result {
             Ok(value) => json!({"result":value}),
