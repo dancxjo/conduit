@@ -14,7 +14,7 @@ An implementation must not possess materially more effect authority than its
 exact admitted realization. Forms describe meaning; Hosts offer realizations;
 Plans select exact current offers, resources, and authority. None of source,
 availability, selection, membership, or successful communication grants an
-effect permission. Universal computation and continuous lifetime do not change
+effect permission. General-purpose computation and continuous lifetime do not change
 this rule.
 
 The planner consumes authority facts. It is not an authority issuer. Treat a
@@ -108,8 +108,8 @@ effect. Displaying a grant ID is not a security badge.
 
 Keep semantic completion, waiting, Lull, cancellation, fuel exhaustion, State
 capacity exhaustion, other resource exhaustion, failure, Host/Boot/resource/Line
-loss, and Plan retirement distinct. A finite universal Play may exhaust its
-embodiment without halting its meaning. Neither exhaustion nor replan grants
+loss, and Plan retirement distinct. A finite computation may exhaust its
+embodiment without completing its meaning. Neither exhaustion nor replan grants
 additional authority or permits automatic retry.
 
 ## Stop line and remaining acceptance
