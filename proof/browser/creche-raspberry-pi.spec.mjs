@@ -116,7 +116,7 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
   });
   const downloadedPackage = await downloadArtifact(page, handoff);
   expect(downloadedPackage.filename).toMatch(/-raspios-bookworm-64-aarch64\.zip$/);
-  const { readBodyBoundZip } = await import("../../targets/browser/host/assets/creche-native-zip.mjs");
+  const { readBodyBoundZip } = await import("../../products/creche/browser/creche-native-zip.mjs");
   const archive = readBodyBoundZip(downloadedPackage.bytes);
   const nativePackage = {
     magic: new TextDecoder().decode(downloadedPackage.bytes.subarray(0, 4)),
@@ -199,7 +199,7 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   });
   const downloadedImage = await downloadArtifact(page, imageHandoff);
   expect(downloadedImage.filename).toMatch(/-conduitos-raspberry-pi-model-b-plus-v1-2\.img$/);
-  const { readBodyProvisionedMedia } = await import("../../targets/browser/host/assets/creche-native-disk.mjs");
+  const { readBodyProvisionedMedia } = await import("../../products/creche/browser/creche-native-disk.mjs");
   const artifact = readBodyProvisionedMedia(downloadedImage.bytes);
   const nativeImage = {
     mbrMagic: Array.from(downloadedImage.bytes.subarray(510, 512)),

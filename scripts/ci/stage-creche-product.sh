@@ -9,24 +9,24 @@ test -f "$runtime"
 test ! -e "$destination"
 mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr/browser-deployment" "$destination/targets/rp2040/browser-deployment" "$destination/targets/esp32/browser-deployment" "$destination/targets/std/browser-deployment" "$destination/targets/browser/browser-deployment" "$destination/targets/orange-pi/browser-deployment" "$destination/targets/raspberry-pi/browser-deployment" "$destination/targets/conduitos/browser-deployment"
 
-cp targets/browser/host/assets/creche.html "$destination/index.html"
-cp targets/browser/host/assets/creche.css "$destination/creche.css"
-cp targets/browser/host/assets/creche.mjs "$destination/creche.mjs"
+cp products/creche/browser/creche.html "$destination/index.html"
+cp products/creche/browser/creche.css "$destination/creche.css"
+cp products/creche/browser/creche.mjs "$destination/creche.mjs"
 cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
-cp targets/browser/host/assets/creche-lifecycle.mjs "$destination/creche-lifecycle.mjs"
-cp targets/browser/host/assets/creche-form-selection.mjs "$destination/creche-form-selection.mjs"
-cp targets/browser/host/assets/creche-names.mjs "$destination/creche-names.mjs"
-cp targets/browser/host/assets/creche-physical.mjs "$destination/creche-physical.mjs"
-cp targets/browser/host/assets/creche-physical-presentation.mjs "$destination/creche-physical-presentation.mjs"
-cp targets/browser/host/assets/creche-target-catalog.mjs "$destination/creche-target-catalog.mjs"
-cp targets/browser/host/assets/creche-browser-configuration.mjs "$destination/creche-browser-configuration.mjs"
-cp targets/browser/host/assets/creche-spore-bundle.mjs "$destination/creche-spore-bundle.mjs"
-cp targets/browser/host/assets/creche-native-zip.mjs "$destination/creche-native-zip.mjs"
-cp targets/browser/host/assets/creche-native-disk.mjs "$destination/creche-native-disk.mjs"
-cp targets/browser/host/assets/creche-release-bundle.mjs "$destination/creche-release-bundle.mjs"
-cp targets/browser/host/assets/creche-existing-computer.mjs "$destination/creche-existing-computer.mjs"
-cp targets/browser/host/assets/creche-graduation.mjs "$destination/creche-graduation.mjs"
-cp targets/browser/host/assets/creche-routing.mjs "$destination/creche-routing.mjs"
+cp products/creche/browser/creche-lifecycle.mjs "$destination/creche-lifecycle.mjs"
+cp products/creche/browser/creche-form-selection.mjs "$destination/creche-form-selection.mjs"
+cp products/creche/browser/creche-names.mjs "$destination/creche-names.mjs"
+cp products/creche/browser/creche-physical.mjs "$destination/creche-physical.mjs"
+cp products/creche/browser/creche-physical-presentation.mjs "$destination/creche-physical-presentation.mjs"
+cp products/creche/browser/creche-target-catalog.mjs "$destination/creche-target-catalog.mjs"
+cp products/creche/browser/creche-browser-configuration.mjs "$destination/creche-browser-configuration.mjs"
+cp products/creche/browser/creche-spore-bundle.mjs "$destination/creche-spore-bundle.mjs"
+cp products/creche/browser/creche-native-zip.mjs "$destination/creche-native-zip.mjs"
+cp products/creche/browser/creche-native-disk.mjs "$destination/creche-native-disk.mjs"
+cp products/creche/browser/creche-release-bundle.mjs "$destination/creche-release-bundle.mjs"
+cp products/creche/browser/creche-existing-computer.mjs "$destination/creche-existing-computer.mjs"
+cp products/creche/browser/creche-graduation.mjs "$destination/creche-graduation.mjs"
+cp products/creche/browser/creche-routing.mjs "$destination/creche-routing.mjs"
 cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination/application-syntax-presentation.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
 cp targets/browser/host/assets/application-theme.mjs "$destination/application-theme.mjs"
@@ -76,11 +76,11 @@ cp targets/conduitos/browser-deployment/*.mjs "$destination/targets/conduitos/br
 
 for route in birth first-host physical-host graduate; do
   mkdir "$destination/$route"
-  cp targets/browser/host/assets/creche.html "$destination/$route/index.html"
+  cp products/creche/browser/creche.html "$destination/$route/index.html"
 done
 
 node scripts/ci/build-browser-application-package.mjs \
-  targets/browser/host/assets/creche.application.template.json "$destination" creche.application.json
+  products/creche/browser/creche.application.template.json "$destination" creche.application.json
 
 file_count=$(find "$destination" -type f | wc -l)
 test "$file_count" -le 128

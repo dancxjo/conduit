@@ -609,7 +609,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
             "products/patchbay/html/assets/app.js".to_owned(),
             "proof/browser/pages-front-door.spec.mjs".to_owned(),
             "scripts/ci/render-product-masthead.mjs".to_owned(),
-            "scripts/ci/stage-book-product.sh".to_owned(),
+            "scripts/ci/stage-tour-product.sh".to_owned(),
             "scripts/ci/stage-creche-product.sh".to_owned(),
             "scripts/ci/stage-pages-root.sh".to_owned(),
             "scripts/ci/stage-patchbay-product.sh".to_owned(),
@@ -635,10 +635,10 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         vec![
             "proof/browser/executable-book.spec.mjs".to_owned(),
             "scripts/ci/stage-creche-product.sh".to_owned(),
-            "targets/browser/host/assets/creche-target-catalog.mjs".to_owned(),
-            "targets/browser/host/assets/creche.css".to_owned(),
-            "targets/browser/host/assets/creche.html".to_owned(),
-            "targets/browser/host/assets/creche.mjs".to_owned(),
+            "products/creche/browser/creche-target-catalog.mjs".to_owned(),
+            "products/creche/browser/creche.css".to_owned(),
+            "products/creche/browser/creche.html".to_owned(),
+            "products/creche/browser/creche.mjs".to_owned(),
             "targets/browser/host/src/server.rs".to_owned(),
         ],
         &packages,
@@ -653,7 +653,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let unproved_creche_presentation = plan_for_paths(
         &root,
-        vec!["targets/browser/host/assets/creche.mjs".to_owned()],
+        vec!["products/creche/browser/creche.mjs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -685,7 +685,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             ".github/workflows/check.yml".to_owned(),
-            "products/tour/assets/book.css".to_owned(),
+            "products/tour/assets/tour.css".to_owned(),
         ],
         &packages,
     )
