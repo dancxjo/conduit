@@ -42,11 +42,13 @@ mod operation_kind;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod preparation;
-pub(super) use preparation::state_storage_profile;
+pub(super) use preparation::{
+    lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
+};
 mod retained_run;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
-pub(super) use retained_run::InstalledRunHost;
+pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_operation;
@@ -176,8 +178,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
-    control: &RunControl,
+    lifecycle: RunLifecycle<'_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
+    let RunLifecycle { control, retained } = lifecycle;
     let InstalledRunHost {
         advertisement,
         playback,
@@ -188,7 +191,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut vector_search,
         mut calendar,
     } = host;
-    let lowered = preparation::lower_fragment(fragment)?;
+    let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
     if !supports(fragment)
@@ -251,7 +254,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &advertisement.boot_id,
         play_sequence,
     );
-    let drivers = preparation::prepare_operations(fragment, &lowered, &mut values, &active_play)?;
+    let drivers =
+        preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
     let driver_capacity_before = drivers
         .iter()
         .map(|driver| driver.operation().allocation_capacity())

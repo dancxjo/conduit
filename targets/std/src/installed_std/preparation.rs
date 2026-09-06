@@ -9,7 +9,14 @@ pub(super) fn prepare_operations(
     lowered: &LoweredPlanFragment,
     values: &mut HostedValueStore,
     play: &conduit_core::ActivePlayIdentity,
+    mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
 ) -> Result<[OperationDriver<InstalledOperation, PORTS>; MAX_NODES], String> {
+    validate_retained_inputs(
+        fragment,
+        lowered,
+        play,
+        retained.as_deref().map(Vec::as_slice).unwrap_or(&[]),
+    )?;
     let mut operations = Vec::with_capacity(MAX_NODES);
     for node in &lowered.nodes {
         let placement = fragment
@@ -17,6 +24,10 @@ pub(super) fn prepare_operations(
             .get(usize::from(node.node.0))
             .ok_or_else(|| "lowered node has no planned placement".to_string())?;
         if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
+            if state.contract.retained.is_some() {
+                operations.push(InstalledOperation::inactive());
+                continue;
+            }
             operations.push(InstalledOperation::TypedState(Box::new(
                 crate::state_value::TypedStateOperation::prepare_for_play(fragment, state, play)?,
             )));
@@ -26,6 +37,31 @@ pub(super) fn prepare_operations(
             })?;
             operations.push((factory.prepare)(placement, values)?);
         }
+    }
+    // Ordinary/fresh preparation finishes before any incoming cell is consumed.
+    for state in lowered
+        .states
+        .iter()
+        .filter(|state| state.contract.retained.is_some())
+    {
+        let sources = retained
+            .as_deref_mut()
+            .expect("retained inputs were validated");
+        let index = sources
+            .iter()
+            .position(|source| source.provenance().source_state == state.contract.state_id)
+            .expect("every retained obligation has one owned source");
+        let source = sources.remove(index);
+        let operation = match crate::state_value::TypedStateOperation::prepare_continued(
+            fragment, state, play, source,
+        ) {
+            Ok(operation) => operation,
+            Err(failure) => {
+                sources.insert(index, failure.source);
+                return Err(failure.reason);
+            }
+        };
+        operations[usize::from(state.node.0)] = InstalledOperation::TypedState(Box::new(operation));
     }
     while operations.len() < MAX_NODES {
         operations.push(InstalledOperation::inactive());
@@ -42,8 +78,14 @@ pub(super) fn prepare_operations(
     Ok(drivers)
 }
 
-pub(crate) fn lower_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, String> {
-    let profile = state_storage_profile();
+pub(crate) fn lower_fragment_with_continuity(
+    fragment: &PlanFragment,
+    continuity: bool,
+) -> Result<LoweredPlanFragment, String> {
+    let mut profile = state_storage_profile();
+    if continuity {
+        profile = profile.with_owned_state_continuity();
+    }
     conduit_plan_lowering::lowering::lower_plan_fragment_for_profile(fragment, profile)
         .map_err(|error| format!("lowering: {error:?}"))
 }
@@ -75,4 +117,39 @@ pub(super) fn operation_budget(
             .ok_or_else(|| "planned implementation is not installed".to_string())?;
         (factory.budget)(placement)
     }
+}
+
+pub(crate) fn validate_retained_inputs(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    play: &conduit_core::ActivePlayIdentity,
+    sources: &[crate::state_value::RetainedTypedState],
+) -> Result<(), String> {
+    let obligations = lowered
+        .states
+        .iter()
+        .filter(|state| state.contract.retained.is_some())
+        .count();
+    if sources.len() != obligations || sources.len() > MAX_NODES {
+        return Err("owned State count differs from sealed continuity obligations".into());
+    }
+    for state in lowered
+        .states
+        .iter()
+        .filter(|state| state.contract.retained.is_some())
+    {
+        let mut matches = sources
+            .iter()
+            .filter(|source| source.provenance().source_state == state.contract.state_id);
+        let source = matches
+            .next()
+            .ok_or_else(|| "retained State owner is missing".to_string())?;
+        if matches.next().is_some() {
+            return Err("duplicate retained State owner".into());
+        }
+        crate::state_value::TypedStateOperation::validate_continuation(
+            fragment, state, play, source,
+        )?;
+    }
+    Ok(())
 }

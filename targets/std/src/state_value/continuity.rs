@@ -80,6 +80,42 @@ impl TypedStateOperation {
         })
     }
 
+    pub(crate) fn validate_continuation(
+        fragment: &PlanFragment,
+        state: &LoweredState,
+        play: &ActivePlayIdentity,
+        source: &RetainedTypedState,
+    ) -> Result<(), String> {
+        Self::admit_continuation(fragment, state, play, source).map(|_| ())
+    }
+
+    fn admit_continuation(
+        fragment: &PlanFragment,
+        state: &LoweredState,
+        play: &ActivePlayIdentity,
+        source: &RetainedTypedState,
+    ) -> Result<
+        (
+            StateExecutionBinding,
+            conduit_core::PreparedStructuredValueValidator,
+        ),
+        String,
+    > {
+        let (placement, binding) = bind(fragment, state, play)?;
+        if binding.form != source.provenance.source_form
+            || state.contract.initial_value != source.initial_value
+            || state.contract.retained.as_ref() != Some(&source.provenance)
+            || source.provenance.source_play.active_play_id == play.active_play_id
+        {
+            return Err("owned State differs from sealed continuity obligation".into());
+        }
+        let validator = Self::prepare_validator(placement, &state.contract)?;
+        validator
+            .validate(source.cell.current())
+            .map_err(|error| format!("retained State shape: {error:?}"))?;
+        Ok((binding, validator))
+    }
+
     /// Validate the sealed destination obligation against actual owned source
     /// State, then move the cell without renewing generation or transition fuel.
     /// All schema/binding allocation happens before the replacement Play starts.
@@ -89,21 +125,7 @@ impl TypedStateOperation {
         play: &ActivePlayIdentity,
         source: RetainedTypedState,
     ) -> Result<Self, Box<StateContinuityFailure<RetainedTypedState>>> {
-        let admitted = (|| {
-            let (placement, binding) = bind(fragment, state, play)?;
-            if binding.form != source.provenance.source_form
-                || state.contract.initial_value != source.initial_value
-                || state.contract.retained.as_ref() != Some(&source.provenance)
-                || source.provenance.source_play.active_play_id == play.active_play_id
-            {
-                return Err("owned State differs from sealed continuity obligation".into());
-            }
-            let validator = Self::prepare_validator(placement, &state.contract)?;
-            validator
-                .validate(source.cell.current())
-                .map_err(|error| format!("retained State shape: {error:?}"))?;
-            Ok((binding, validator))
-        })();
+        let admitted = Self::admit_continuation(fragment, state, play, &source);
         let (binding, validator) = match admitted {
             Ok(admitted) => admitted,
             Err(reason) => return Err(Box::new(StateContinuityFailure { reason, source })),

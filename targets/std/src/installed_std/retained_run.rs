@@ -9,6 +9,11 @@ use conduit_core::PlanFragment;
 #[cfg(test)]
 use std::io::Write;
 
+pub(crate) struct RunLifecycle<'a> {
+    pub control: &'a super::RunControl,
+    pub retained: Option<&'a mut Vec<crate::state_value::RetainedTypedState>>,
+}
+
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
     pub advertisement: &'a HostAdvertisement,
     pub playback: Option<&'a crate::hosted_audio::HostedPlaybackSelection>,

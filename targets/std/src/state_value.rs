@@ -7,6 +7,7 @@ use conduit_kernel::{
     Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, ValueRef,
 };
 
+pub use crate::host_execution::continuity::StateContinuationRunFailure;
 mod continuity;
 pub use continuity::{RetainedTypedState, StateContinuityFailure};
 
