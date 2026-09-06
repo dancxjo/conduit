@@ -92,19 +92,21 @@ fn progress(
                     schema: &'static str,
                     disposition: &'static str,
                     active_play_id: &'a str,
+                    kernel_failure_code: Option<&'static str>,
                     kernel_failure_detail: Option<u16>,
                     message: &'a str,
                 }
-                let detail = session.scheduler.failure_detail;
+                let failure = session.scheduler.failure;
                 let refusal = CompletionRefusal {
-                    schema: "conduit.browser/completion-refusal@1",
-                    disposition: if detail.is_some() {
+                    schema: "conduit.browser/completion-refusal@2",
+                    disposition: if failure.is_some() {
                         "failed"
                     } else {
                         "refused"
                     },
                     active_play_id: session.active_play_id.as_str(),
-                    kernel_failure_detail: detail,
+                    kernel_failure_code: failure.map(|failure| failure.code.as_str()),
+                    kernel_failure_detail: failure.map(|failure| failure.detail),
                     message: &message,
                 };
                 return if write_output(&refusal).is_ok() {
@@ -148,9 +150,10 @@ mod tests {
                 serde_json::from_slice(&output.borrow()[..*length.borrow()]).unwrap()
             })
         });
-        assert_eq!(refusal["schema"], "conduit.browser/completion-refusal@1");
+        assert_eq!(refusal["schema"], "conduit.browser/completion-refusal@2");
         assert_eq!(refusal["disposition"], "refused");
         assert!(refusal["kernel_failure_detail"].is_null());
+        assert!(refusal["kernel_failure_code"].is_null());
         assert_eq!(refusal["active_play_id"], play);
         SESSION.with(|slot| assert_eq!(slot.borrow().as_ref().unwrap().pending.len(), 1));
         assert_eq!(complete(&play, &placement, request.request.0), STATUS_READY);
@@ -159,6 +162,55 @@ mod tests {
             complete(&play, &placement, request.request.0),
             ERROR_NOT_RUNNING
         );
+    }
+
+    #[test]
+    fn kernel_failure_category_and_detail_cross_the_completion_abi() {
+        use conduit_kernel::{
+            Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
+        };
+        let source = "form test {\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message > morse > light\n}\n";
+        for (code, expected) in [
+            (FailureCode::HostOperationFailed, "host_operation_failed"),
+            (FailureCode::StorageExhausted, "storage_exhausted"),
+            (FailureCode::HostOperationDenied, "host_operation_denied"),
+        ] {
+            let (mut session, _) =
+                TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
+            let play = session.active_play_id.as_str().to_owned();
+            let request = session.pending[0].request;
+            // Fixture Host reports failure of the exact outstanding operation.
+            // The ordinary scheduler and engine must retain its category.
+            session
+                .scheduler
+                .complete_host_operation(
+                    request.node,
+                    request.request,
+                    HostOperationOutcome {
+                        disposition: if code == FailureCode::HostOperationDenied {
+                            HostOperationDisposition::Denied
+                        } else {
+                            HostOperationDisposition::Failed
+                        },
+                        output: None,
+                        failure: Some(Failure { code, detail: 42 }),
+                    },
+                )
+                .unwrap();
+            SESSION.with(|slot| *slot.borrow_mut() = Some(session));
+            assert_eq!(conduit_browser_form_poll_effect(), ERROR_COMPLETE);
+            let refusal: serde_json::Value = OUTPUT.with(|output| {
+                OUTPUT_LEN.with(|length| {
+                    serde_json::from_slice(&output.borrow()[..*length.borrow()]).unwrap()
+                })
+            });
+            assert_eq!(refusal["schema"], "conduit.browser/completion-refusal@2");
+            assert_eq!(refusal["disposition"], "failed");
+            assert_eq!(refusal["kernel_failure_code"], expected);
+            assert_eq!(refusal["kernel_failure_detail"], 42);
+            assert_eq!(refusal["active_play_id"], play);
+            SESSION.with(|slot| *slot.borrow_mut() = None);
+        }
     }
 
     fn complete(play: &str, placement: &str, request: u32) -> i32 {
