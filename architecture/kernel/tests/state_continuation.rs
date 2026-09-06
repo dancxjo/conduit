@@ -249,3 +249,25 @@ fn retirement_refuses_input_wait_and_preserves_state_after_explicit_cancellation
     assert_eq!(moved.current(), &[1]);
     assert_eq!(evidence.destination_slot, 7);
 }
+
+#[test]
+fn cancelling_a_pressured_update_retires_only_the_last_committed_state() {
+    let mut play = play();
+    idle(&mut play); // the initial output occupies the sole output slot
+    play.admit_remote_input(RemoteEndpointId(0), CordId(0), 0, &[1])
+        .unwrap();
+    idle(&mut play); // the next output cannot commit yet
+    play.cancel().unwrap();
+    let retired = match play.try_retire() {
+        Ok(retired) => retired,
+        Err(_) => panic!("cancelled execution should retire"),
+    };
+    let [driver] = retired.drivers;
+    let state = driver.into_operation().into_state();
+    assert_eq!(
+        state.current(),
+        &[0],
+        "a pressured candidate was never published"
+    );
+    assert_eq!(state.generation(), 0);
+}

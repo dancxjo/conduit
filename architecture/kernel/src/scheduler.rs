@@ -166,6 +166,8 @@ struct PendingHostOperation {
 }
 
 pub trait StepOperation<const PORTS: usize> {
+    /// Finalize private state only after successful transactional I/O commit.
+    fn step_committed(&mut self) {}
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -407,6 +409,9 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
 }
 
 impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<O, PORTS> {
+    fn step_committed(&mut self) {
+        self.operation.step_committed();
+    }
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -1843,6 +1848,7 @@ where
                 }
                 return Err(error);
             }
+            self.drivers[node].step_committed();
         }
         match outcome {
             StepOutcome::Progress => {

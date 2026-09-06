@@ -105,13 +105,29 @@ impl<const BYTES: usize> Operation for StateOperation<BYTES> {
         if port != self.next || canonical.len() != value.byte_len as usize {
             return self.refuse(FailureCode::InvalidInput, 8);
         }
+        if self
+            .state
+            .maximum_transitions
+            .is_some_and(|maximum| self.state.generation >= maximum)
+        {
+            return self.state_refusal(StateError::TransitionLimitReached);
+        }
         if let Err(error) = self.state.offer_next(canonical) {
             return self.state_refusal(error);
         }
-        if let Err(error) = self.state.commit() {
-            return self.state_refusal(error);
+        OperationAction::EmitCanonical {
+            port: self.current,
+            value: CanonicalValue::new(canonical)
+                .expect("admitted State fits the canonical envelope"),
         }
-        self.emit_current()
+    }
+
+    fn step_committed(&mut self) {
+        if self.state.candidate_len.is_some() {
+            self.state
+                .commit()
+                .expect("candidate transition and identity bounds were admitted before I/O");
+        }
     }
 
     fn cancel(&mut self) {
