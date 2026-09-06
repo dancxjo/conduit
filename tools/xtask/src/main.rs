@@ -69,6 +69,7 @@ fn main() {
             DemoCommand::TextLab => commands::demo::run_text_lab(&opts),
             DemoCommand::Toggle => commands::toggle::run(),
             DemoCommand::LightSwitch(args) => commands::light_switch::run(args),
+            DemoCommand::ButtonIndicator(args) => commands::button_indicator::run(args, &opts),
             DemoCommand::Site => commands::toggle::run_site(),
             DemoCommand::Tongues => commands::tongues::run(&opts),
             DemoCommand::TonguesResearch => commands::tongues::run_research(&opts),

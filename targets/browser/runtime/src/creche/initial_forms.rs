@@ -13,6 +13,8 @@ struct ReviewedFormBundle {
 #[derive(Deserialize)]
 struct BundledForm {
     slug: String,
+    #[serde(default)]
+    entry: Option<String>,
     source: String,
 }
 
@@ -159,7 +161,8 @@ pub(super) fn check_inventory(source: &str) -> Result<Vec<CheckedInventoryEntry>
             ));
         }
         let form = &document.forms[0];
-        if entry.slug.replace('-', "_") != form.name
+        let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
+        if expected_entry != form.name
             || !names.insert(form.name.clone())
             || !identities.insert(form.checked_form_id.as_str().to_string())
         {

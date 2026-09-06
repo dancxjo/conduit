@@ -70,7 +70,9 @@ impl PatchbayHtmlServer {
     }
 
     pub(super) fn apply_body_workload(&mut self, bytes: &[u8]) -> Result<Vec<u8>, ServerError> {
-        if self.body_planning.is_some() {
+        if self.body_planning.as_ref().is_some_and(|planning| {
+            planning.wake().lifecycle != conduit_body::WakeLifecycle::Lulled
+        }) {
             return self.body_workload_refusal("BodyAwake");
         }
         let input: BodyWorkloadInput =
@@ -188,6 +190,10 @@ impl PatchbayHtmlServer {
         snapshot.interaction.last_disposition = Some("Succeeded".into());
         snapshot.body_host_offer_evidence = self.snapshot.body_host_offer_evidence.clone();
         snapshot.body_host_planning_offer = self.snapshot.body_host_planning_offer.clone();
+        snapshot.body_planning = self
+            .body_planning
+            .as_ref()
+            .map(|planning| planning.snapshot());
         self.body_workload = Some(candidate);
         self.snapshot = snapshot;
         self.navigation = super::navigation_state(&self.snapshot)?;

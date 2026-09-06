@@ -38,6 +38,16 @@ pub fn project_body_biography(
     let mut entries = Vec::with_capacity(evidence.records.len().min(MAX_BODY_BIOGRAPHY_RECORDS));
     for record in &evidence.records {
         let (heading, explanation) = match &record.kind {
+            BodyBiographyRecordKind::WakeEvent { wake_id, event_index } => {
+                let wake = evidence.wakes.iter().find(|wake| &wake.wake_id == wake_id)
+                    .expect("validated Wake reference");
+                let heading = wake_event_heading(&wake.events[usize::from(*event_index)]);
+                (heading, format!("{} in Wake {} (event {}).", heading, wake_id.as_str(), event_index))
+            }
+            BodyBiographyRecordKind::LullRetained { wake_id } => (
+                "Body retained after Lull",
+                format!("Wake {} ended; the Body and its history remain available.", wake_id.as_str()),
+            ),
             BodyBiographyRecordKind::Born { initial_workset, workload_revision } => (
                 "Born",
                 format!(
@@ -152,6 +162,24 @@ pub fn project_body_biography(
         friendly_name: evidence.friendly_name.clone(),
         entries,
     })
+}
+
+fn wake_event_heading(event: &conduit_body::WakeLifecycleEvent) -> &'static str {
+    use conduit_body::WakeLifecycleEvent::*;
+    match event {
+        Woke { .. } => "Woke",
+        PlanReady { .. } => "Plan ready",
+        PlanHeld { .. } => "Plan held",
+        HeldPlanReleased { .. } => "Held Plan released",
+        HeldPlanInvalidated { .. } => "Held Plan invalidated",
+        PlayStarted { .. } => "Play started",
+        BecameUnsatisfied { .. } => "Plan unsatisfied",
+        WorkloadChanged { .. } => "Wake workload changed",
+        Replanned { .. } => "Replacement Plan accepted",
+        SamePlanObserved { .. } => "Same Plan observed",
+        Lulled { .. } => "Wake lulled",
+        Failed { .. } => "Wake failed",
+    }
 }
 
 #[cfg(test)]

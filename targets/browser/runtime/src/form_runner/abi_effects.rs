@@ -136,7 +136,7 @@ mod tests {
         let (session, _) = TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
         let play = session.active_play_id.as_str().to_owned();
         let request = session.pending[0].request;
-        let placement = session.fragment.placements[usize::from(request.node.0)]
+        let placement = session.fragments[0].placements[usize::from(request.node.0)]
             .placement_id
             .as_str()
             .to_owned();

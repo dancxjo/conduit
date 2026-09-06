@@ -1,4 +1,5 @@
 //! Hosted std manifestations of portable presentation contracts.
+pub mod indicator_resource;
 
 use conduit_core::{
     kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,

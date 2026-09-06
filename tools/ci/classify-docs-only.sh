@@ -20,6 +20,11 @@ mapfile -t merge_bases < <(git merge-base --all "$base_sha" "$head_sha")
 ((${#merge_bases[@]} == 1)) || full "missing-or-ambiguous-merge-base"
 comparison_base_sha="${merge_bases[0]}"
 
+# Exhaustive promotion needs the controller and proof plans even when the
+# frozen snapshot changes only documentation. Publish one classification for
+# both this job's prerequisites and the downstream proof jobs.
+[[ "${CONDUIT_FULL_SUITE:-false}" != true ]] || full "full-suite"
+
 paths=()
 while IFS= read -r -d '' path; do
   paths+=("$path")

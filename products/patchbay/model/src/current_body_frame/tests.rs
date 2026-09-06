@@ -171,11 +171,12 @@ fn stale_and_malformed_replacements_clear_prior_friendly_content() {
 #[test]
 fn an_awake_body_offers_lull_without_inventing_a_physical_host() {
     let mut evidence = evidence(BodyGraduationChoice::ExternalReader);
-    let (awake, _) = evidence
+    let (awake, wake) = evidence
         .body
         .wake(5, SignId::from("sign/roseau-woke"))
         .unwrap();
-    evidence.body = awake;
+    let sequence = evidence.records.last().unwrap().sequence + 1;
+    evidence.append_wake(awake, wake, sequence).unwrap();
     let attachment = PatchbayBodyAttachment::open_serialized(
         &serde_json::to_vec(&evidence).unwrap(),
         PatchbayBodyApplicationEntrance::ExternalReader,

@@ -41,6 +41,7 @@ browser_safe_not_applicable = "portable typed history has no installed browser r
 slug = "button-across-room"
 title = "Button Across the Room"
 entry = "button_across_room"
+initial_body_order = 4
 deterministic = { package = "conduit-semantic-catalog", test = "button_across_room", case = "canonical_form_is_only_the_semantic_button_to_indicator_chain" }
 browser_safe_not_applicable = "the browser realization requires an explicit ordered pointer interaction proof"
 [[forms]]
@@ -58,6 +59,7 @@ browser_safe_not_applicable = "camera acquisition requires an explicit permissio
 slug = "clock"
 title = "Clock"
 entry = "clock-demo"
+initial_body_order = 5
 deterministic = { package = "conduit-std-host", test = "canonical_clock", case = "duration_spellings_have_one_semantic_identity_and_execute_four_bounded_ticks" }
 [[forms]]
 slug = "count"
