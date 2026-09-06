@@ -4,7 +4,10 @@
 //! expansion path used before Tour execution. It contains no renderer geometry,
 //! Host offer, placement, implementation, Plan, Play, or mutable editor state.
 
-use crate::installed_browser::{backs, catalogs, MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_GEARS};
+use crate::installed_browser::{
+    backs, catalogs_for_presentation, PresentationProfile, MAXIMUM_BROWSER_CORDS,
+    MAXIMUM_BROWSER_GEARS,
+};
 use conduit_form::ExpandedCanonicalForm;
 use serde::Serialize;
 
@@ -75,8 +78,17 @@ pub(super) fn project(
     sequence: u64,
     recursive: bool,
 ) -> Result<CompactPatchbayProjection, String> {
+    project_with_presentation(source, sequence, recursive, PresentationProfile::Annotation)
+}
+
+pub(super) fn project_with_presentation(
+    source: &str,
+    sequence: u64,
+    recursive: bool,
+    presentation: PresentationProfile,
+) -> Result<CompactPatchbayProjection, String> {
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), sequence)?;
-    let (startup, catalog) = catalogs()?;
+    let (startup, catalog) = catalogs_for_presentation(presentation)?;
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(

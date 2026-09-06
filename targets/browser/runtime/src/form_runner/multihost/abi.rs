@@ -257,6 +257,37 @@ pub extern "C" fn conduit_tour_multi_complete() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_tour_multi_complete_input(
+    play_length: usize,
+    request: u32,
+    length: usize,
+) -> i32 {
+    clear_output();
+    if play_length == 0
+        || play_length > 256
+        || length == 0
+        || length > crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
+        || play_length.saturating_add(length) > INPUT_BYTES
+    {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = match core::str::from_utf8(&input[..play_length]) {
+            Ok(play) => with_session(
+                |session| {
+                    session.complete_input(play, request, &input[play_length..play_length + length])
+                },
+                ERROR_COMPLETE,
+            ),
+            Err(_) => ERROR_INPUT,
+        };
+        input[..play_length + length].fill(0);
+        result
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_tour_multi_cancel() -> i32 {
     clear_output();
     SESSION.with(|slot| {

@@ -3,11 +3,12 @@
 //! Migrated profiles use this boundary instead of instantiating the legacy
 //! runtime merely to validate a plan and hold its resource pools.
 
+use crate::installed_std::state_storage_profile;
 use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, PlanFragment, PlanId, ResourceBinding,
     ResourceClassId, ResourcePoolId, PROTOCOL_VERSION,
 };
-use conduit_plan_lowering::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::lower_plan_fragment_for_profile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PoolUsage {
@@ -20,12 +21,14 @@ struct PoolUsage {
 #[derive(Debug, Clone)]
 pub(super) struct KernelResourceLedger {
     pools: Vec<PoolUsage>,
+    instances: Vec<(conduit_core::CapabilityId, u16)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct KernelResourceReservation {
     plan_id: PlanId,
     bindings: Vec<ResourceBinding>,
+    instances: Vec<(conduit_core::CapabilityId, u16)>,
 }
 
 impl KernelResourceLedger {
@@ -51,7 +54,17 @@ impl KernelResourceLedger {
                 used_units: 0,
             });
         }
-        Ok(Self { pools })
+        let mut instances = Vec::with_capacity(advertisement.capabilities.len());
+        for capability in &advertisement.capabilities {
+            if instances
+                .iter()
+                .any(|(id, _)| id == &capability.capability_id)
+            {
+                return Err("kernel host capability identities are duplicated".into());
+            }
+            instances.push((capability.capability_id.clone(), 0));
+        }
+        Ok(Self { pools, instances })
     }
 
     pub(super) fn prepare_and_reserve(
@@ -59,9 +72,107 @@ impl KernelResourceLedger {
         advertisement: &HostAdvertisement,
         fragment: &PlanFragment,
     ) -> Result<KernelResourceReservation, String> {
-        let lowered = lower_plan_fragment(fragment)
+        self.prepare_and_reserve_with_continuity(advertisement, fragment, false)
+    }
+
+    pub(super) fn prepare_and_reserve_with_continuity(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        continuity: bool,
+    ) -> Result<KernelResourceReservation, String> {
+        self.prepare_and_reserve_partitions(advertisement, &[(fragment, continuity)])?
+            .pop()
+            .ok_or_else(|| "single partition reservation disappeared".to_string())
+    }
+
+    /// Admit the complete local workload before committing any pool usage.
+    /// Each reservation retains its original Plan identity. BodyPlan/workset
+    /// validation remains the caller's responsibility; this grants no Play.
+    pub(super) fn prepare_and_reserve_partitions(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        partitions: &[(&PlanFragment, bool)],
+    ) -> Result<Vec<KernelResourceReservation>, String> {
+        if partitions.is_empty() || partitions.len() > conduit_body::MAX_BODY_FORMS {
+            return Err("local workload partition count exceeds the admitted profile".into());
+        }
+        for (index, (fragment, _)) in partitions.iter().enumerate() {
+            if partitions[..index].iter().any(|(prior, _)| {
+                prior.plan_id == fragment.plan_id && prior.fragment_id == fragment.fragment_id
+            }) {
+                return Err("duplicate local workload partition".into());
+            }
+        }
+        // Staging is pre-Play, finite, and includes all existing reservations.
+        // A late invalid partition or combined shortage discards the candidate
+        // ledger without requiring fallible rollback of the live ledger.
+        let mut staged = self.clone();
+        let mut reservations = Vec::with_capacity(partitions.len());
+        for (fragment, continuity) in partitions {
+            reservations.push(staged.reserve_partition(advertisement, fragment, *continuity)?);
+        }
+        for (live, admitted) in self.pools.iter_mut().zip(staged.pools) {
+            live.used_units = admitted.used_units;
+        }
+        for (live, admitted) in self.instances.iter_mut().zip(staged.instances) {
+            live.1 = admitted.1;
+        }
+        Ok(reservations)
+    }
+
+    fn reserve_partition(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        continuity: bool,
+    ) -> Result<KernelResourceReservation, String> {
+        let mut profile = state_storage_profile();
+        if continuity {
+            profile = profile.with_owned_state_continuity();
+        }
+        let lowered = lower_plan_fragment_for_profile(fragment, profile)
             .map_err(|error| format!("kernel preparation lowering: {error:?}"))?;
         validate_exact_profile(advertisement, fragment)?;
+
+        let mut instances = Vec::new();
+        for (id, used) in &mut self.instances {
+            let requested = u16::try_from(
+                fragment
+                    .placements
+                    .iter()
+                    .filter(|placement| &placement.capability_id == id)
+                    .count(),
+            )
+            .map_err(|_| "capability instance demand overflow".to_string())?;
+            if requested == 0 {
+                continue;
+            }
+            let offer = advertisement
+                .capabilities
+                .iter()
+                .find(|offer| &offer.capability_id == id)
+                .ok_or_else(|| "reserved capability is no longer offered".to_string())?;
+            let total = used
+                .checked_add(requested)
+                .filter(|total| *total <= offer.limits.max_active_instances)
+                .ok_or_else(|| {
+                    format!(
+                        "capability '{}' combined active-instance limit exceeded",
+                        id.as_str()
+                    )
+                })?;
+            *used = total;
+            instances.push((id.clone(), requested));
+        }
+        if fragment.placements.iter().any(|placement| {
+            !self
+                .instances
+                .iter()
+                .any(|(id, _)| id == &placement.capability_id)
+        }) {
+            return Err("planned capability is absent from the initialized ledger".into());
+        }
 
         if lowered.resources.len() != lowered.identity.resources.len() {
             return Err("lowered resource identity table width changed".to_string());
@@ -112,10 +223,21 @@ impl KernelResourceLedger {
         Ok(KernelResourceReservation {
             plan_id: fragment.plan_id.clone(),
             bindings,
+            instances,
         })
     }
 
     pub(super) fn release(&mut self, reservation: KernelResourceReservation) -> Result<(), String> {
+        for (id, released) in &reservation.instances {
+            let (_, used) = self
+                .instances
+                .iter_mut()
+                .find(|(candidate, _)| candidate == id)
+                .ok_or_else(|| "released capability is absent from the ledger".to_string())?;
+            *used = used
+                .checked_sub(*released)
+                .ok_or_else(|| "capability release exceeded its reservation".to_string())?;
+        }
         for pool in &mut self.pools {
             let released = requested_units(&reservation.bindings, &pool.pool_id, &pool.class_id)?;
             pool.used_units = pool.used_units.checked_sub(released).ok_or_else(|| {
@@ -134,6 +256,10 @@ impl KernelResourceLedger {
         self.pools.capacity()
     }
 }
+
+#[cfg(test)]
+#[path = "kernel_partition_reservation_tests.rs"]
+mod partition_tests;
 
 fn validate_exact_profile(
     advertisement: &HostAdvertisement,
@@ -277,8 +403,11 @@ mod tests {
         assert_eq!(first.bindings.len(), 3);
         let overlap = ledger
             .prepare_and_reserve(&host, fragment)
-            .expect_err("second reservation exceeds exact pools");
-        assert!(overlap.contains("above capacity"), "{overlap}");
+            .expect_err("second reservation exceeds the selected capability instance limit");
+        assert!(
+            overlap.contains("combined active-instance limit"),
+            "{overlap}"
+        );
         ledger.release(first).expect("terminal release succeeds");
         let second = ledger
             .prepare_and_reserve(&host, fragment)

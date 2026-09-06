@@ -84,6 +84,29 @@ fn filesystem_and_audio_profiles_share_one_exact_canonical_reference_contract() 
 }
 
 #[test]
+fn encoded_view_validates_without_owning_reference_identities() {
+    let resource = reference("content/image-rgba8@1", 16_384, Some(4_096));
+    let encoded = resource.encode().unwrap();
+    let view = BoundedResourceRef::validate_encoded(&encoded).unwrap();
+    assert_eq!(view.content_profile, resource.content_profile.as_str());
+    assert_eq!(view.access_class, resource.access_class.as_str());
+    assert_eq!(view.extent, resource.extent);
+
+    let mut malformed = encoded.clone();
+    malformed.push(0);
+    assert_eq!(
+        BoundedResourceRef::validate_encoded(&malformed),
+        Err(ResourceReferenceRefusal::MalformedEncoding)
+    );
+    let mut zero_identity = encoded;
+    zero_identity[1..33].fill(0);
+    assert_eq!(
+        BoundedResourceRef::validate_encoded(&zero_identity),
+        Err(ResourceReferenceRefusal::ZeroSemanticIdentity)
+    );
+}
+
+#[test]
 fn structured_form_value_carries_reference_without_inlining_large_content() {
     let reference_type = StructuredInfoType::leaf(kind_id(RESOURCE_REFERENCE_INFO_ID)).unwrap();
     let record_type = StructuredInfoType::record(

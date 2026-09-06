@@ -126,6 +126,7 @@ pub fn wired_plan() -> Plan {
             placements: vec![proposer, effect],
             execution_regions: vec![],
             execution_fusions: vec![],
+            states: Vec::new(),
             connections: vec![PlannedConnection {
                 connection_id: ConnectionId::from("connection/proposal-effect"),
                 source_placement_id: proposer_id,

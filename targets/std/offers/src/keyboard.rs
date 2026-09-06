@@ -1,4 +1,5 @@
 //! Exact generic keyboard realization offer owned by the hosted std Host.
+pub mod button;
 
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,

@@ -30,7 +30,7 @@ fn pointer_quantity_chain_uses_selectors_mapping_and_correlated_presentation() {
             &source,
             position_x as u64,
             MorseRealization::Direct,
-            true,
+            crate::installed_browser::PresentationProfile::Quantity,
         )
         .unwrap();
         let TourHostEffect::PointerEvent(input) = effect else {
@@ -85,7 +85,7 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
         &pointer_quantity_source(),
         1,
         MorseRealization::Direct,
-        true,
+        crate::installed_browser::PresentationProfile::Quantity,
     )
     .unwrap();
     let mut canonical = conduit_semantic_catalog::normalized_pointer_value(
@@ -117,7 +117,10 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
     // explicit converter, not to JS acquisition or a selector's field meaning.
     conduit_core::StructuredInfoValue::from_canonical_bytes(&canonical).unwrap();
     let error = session.advance_with_output(&canonical).unwrap_err();
-    assert!(error.contains("OperationFailed(12)"), "{error}");
+    assert!(
+        error.contains("OperationFailed(Failure { code: InvalidInput, detail: 12 })"),
+        "{error}"
+    );
 }
 
 #[test]
@@ -155,7 +158,7 @@ form zz-quantity-output {{
                 &source,
                 index as u64,
                 MorseRealization::Direct,
-                true,
+                crate::installed_browser::PresentationProfile::Quantity,
             )
             .unwrap();
             let TourHostEffect::Manifestation(effect) = effect else {

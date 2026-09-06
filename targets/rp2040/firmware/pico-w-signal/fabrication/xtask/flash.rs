@@ -192,7 +192,7 @@ fn try_headless_mount() -> PicoResult<Option<PathBuf>> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(format!(
-            "headless BOOTSEL mount helper failed: {}; install it with `sudo scripts/install-pico-headless-flash.sh`",
+            "headless BOOTSEL mount helper failed: {}; install it with `sudo targets/rp2040/tools/install-pico-headless-flash.sh`",
             stderr.trim()
         )
         .into());

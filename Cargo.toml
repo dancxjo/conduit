@@ -2,6 +2,7 @@
 members = [
 	# Universal architectural substrate.
 	"architecture/body",
+	"architecture/assigned-plan",
 	"architecture/composite",
 	"architecture/core",
 	"architecture/form",
@@ -57,17 +58,17 @@ members = [
 	# Exact Host, machine, board, and target-family realizations.
 	"targets/avr/fabrication",
 	"targets/browser/host",
-	"targets/browser/host/fabrication-package",
+	"targets/browser/fabrication",
 	"targets/browser/runtime",
 	"targets/conduitos",
-	"targets/conduitos/fabrication-package",
+	"targets/conduitos/fabrication",
 	"targets/esp32/fabrication",
-	"targets/orange-pi/fabrication-package",
-	"targets/raspberry-pi/fabrication-package",
+	"targets/orange-pi/fabrication",
+	"targets/raspberry-pi/fabrication",
 	"targets/rp2040/fabrication",
 	"targets/rp2040/network-realization",
 	"targets/std",
-	"targets/std/fabrication-package",
+	"targets/std/fabrication",
 	"targets/std/offers",
 
 	# Explicit proof and conformance packages.
@@ -78,9 +79,10 @@ members = [
 
 	# Repository-development tooling.
 	"tools/xtask-dispatch",
-	"xtask",
+	"tools/xtask",
 ]
 exclude = [
+	"targets/avr/firmware/promicro-host",
 	"targets/esp32/firmware/c3-signal",
 	"targets/esp32/firmware/s3-signal",
 	"targets/esp32/firmware/wroom-signal",

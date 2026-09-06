@@ -81,6 +81,8 @@ pub(super) struct TourButtonTransitionEffect {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(super) enum TourHostEffect {
+    ClockObservation(Box<TourKeyEventEffect>),
+    Snapshot(Box<SnapshotEffect>),
     Manifestation(Box<TourEffect>),
     Timer(Box<TourTimerEffect>),
     KeyEvent(Box<TourKeyEventEffect>),
@@ -94,6 +96,8 @@ impl TourHostEffect {
         source_interaction: SourceInteractionEvidence,
     ) {
         match self {
+            Self::ClockObservation(effect) => effect.source_interaction = Some(source_interaction),
+            Self::Snapshot(effect) => effect.source_interaction = Some(source_interaction),
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Timer(effect) => effect.source_interaction = Some(source_interaction),
             Self::KeyEvent(effect) => effect.source_interaction = Some(source_interaction),
@@ -132,8 +136,21 @@ pub(super) struct TourReceipt {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(super) enum TourProgress {
+    Cancellation {
+        schema: &'static str,
+        effect_kind: &'static str,
+        active_play_id: String,
+        placement_id: String,
+        request_sequence: u32,
+    },
     Effect(Box<TourHostEffect>),
     Receipt(Box<TourReceipt>),
+    Waiting {
+        schema: &'static str,
+        disposition: &'static str,
+        active_play_id: String,
+        pending_effects: usize,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -207,6 +224,25 @@ pub(super) fn decode_manifestation(
                 &manifestation.canonical_value,
             )
             .map_err(|error| format!("decode structured manifestation: {error:?}"))?;
+            if value.value_type() == &conduit_semantic_catalog::pattern_comparison_type() {
+                return Ok((
+                    0,
+                    Vec::new(),
+                    Some(crate::installed_browser::comparison_presentation::text(
+                        &manifestation.canonical_value,
+                    )?),
+                ));
+            }
+            if value.value_type() == &conduit_semantic_catalog::normalized_duration_sequence_type()
+            {
+                return Ok((
+                    0,
+                    Vec::new(),
+                    Some(crate::installed_browser::normalized_presentation::text(
+                        &manifestation.canonical_value,
+                    )?),
+                ));
+            }
             if value.value_type() == &conduit_semantic_catalog::wrapped_quantity_type() {
                 let quantity =
                     crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
@@ -292,4 +328,19 @@ pub(super) fn receipt(
         timer_completions,
         manifestation_completions,
     }
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct SnapshotEffect {
+    pub schema: &'static str,
+    pub effect_kind: &'static str,
+    pub active_play_id: String,
+    pub placement_id: String,
+    pub host_id: String,
+    pub boot_id: String,
+    pub request_sequence: u32,
+    pub key: String,
+    pub record: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_interaction: Option<SourceInteractionEvidence>,
 }

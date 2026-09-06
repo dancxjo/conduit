@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { exactLaneDisposition, laneReceiptRunLocator, publishCandidateResults, resolveCandidateRequest, successfulAdmissionEvidence, successfulLaneEvidence } from "../../scripts/ci/reconcile-candidate-request.mjs";
+import { exactLaneDisposition, laneReceiptRunLocator, publishCandidateResults, resolveCandidateRequest, successfulAdmissionEvidence, successfulLaneEvidence } from "../../tools/ci/reconcile-candidate-request.mjs";
 
 const candidate = "b".repeat(40);
 const base = "a".repeat(40);

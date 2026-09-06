@@ -144,7 +144,7 @@ pub(super) fn check_shared_backbone(
 fn compile_object(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     let source = paths
         .root
-        .join("targets/conduitos/proof-appliances/ia32/a0.rs");
+        .join("targets/conduitos/proof/appliances/ia32/a0.rs");
     let base_commit = git_head(&paths.root)?;
     let status = Command::new("rustc")
         .args([
@@ -186,7 +186,7 @@ fn link(paths: &Paths, object: &Path) -> Result<(), ConduitosError> {
     let linker = rust_lld(&paths.root)?;
     let script = paths
         .root
-        .join("targets/conduitos/proof-appliances/ia32/linker/a0.ld");
+        .join("targets/conduitos/proof/appliances/ia32/linker/a0.ld");
     let status = Command::new(linker)
         .args(["-flavor", "gnu", "-m", "elf_i386", "-T"])
         .arg(script)

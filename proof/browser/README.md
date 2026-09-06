@@ -43,8 +43,8 @@ Independent browser proof processes use distinct bounded loopback ports and
 result identities. For example, two one-worker shards may run concurrently as:
 
 ```sh
-CONDUIT_BROWSER_HOST_PORT=4173 CONDUIT_BROWSER_PROOF_SHARD=tour npx playwright test --config proof/browser/playwright.config.mjs proof/browser/executable-book.spec.mjs --workers=1 --retries=0
-CONDUIT_BROWSER_HOST_PORT=4174 CONDUIT_BROWSER_PROOF_SHARD=creche npx playwright test --config proof/browser/playwright.config.mjs proof/browser/creche-workload.spec.mjs --workers=1 --retries=0
+CONDUIT_BROWSER_HOST_PORT=4173 CONDUIT_BROWSER_PROOF_SHARD=tour node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --workers=1 --retries=0
+CONDUIT_BROWSER_HOST_PORT=4174 CONDUIT_BROWSER_PROOF_SHARD=creche node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/playwright.config.mjs proof/browser/creche-workload.spec.mjs --workers=1 --retries=0
 ```
 
 Both values are validated before a server starts. The port is always bound to

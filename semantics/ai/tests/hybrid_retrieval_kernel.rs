@@ -460,7 +460,10 @@ fn cancellation_and_malformed_stage_are_distinct_kernel_terminals() {
     assert_eq!(
         malformed.run(128),
         Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
-            6
+            conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::InvalidLifecycle,
+                detail: 6
+            }
         ))
     );
 }

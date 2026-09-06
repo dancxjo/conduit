@@ -1,0 +1,10 @@
+form talking-polaroid-inspection (
+    > image: ImageObservationReference
+    > caption: Text
+) {
+    compose: media/compose-image-text
+    inspect: presentation/structured-info
+    image > compose.image
+    caption > compose.caption
+    compose.record > inspect.input
+}
