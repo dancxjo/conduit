@@ -136,7 +136,7 @@ registerButtonMultiHostTests(openStep);
 
 test("every Tour page and Crèche step has a direct, history-aware route", async ({ page }) => {
   const tourPages = [
-    ["a-form-you-can-run", "A Form you can run"],
+    ["one-program-many-computers", "One Program, Many Computers"],
     ["faces-backs-and-implementation", "Faces, Backs, and implementation"],
     ["hosts-make-forms-real", "Hosts make Forms real"],
     ["one-form-across-several-hosts", "One Form across several Hosts"],
@@ -192,7 +192,7 @@ test("Tour route mutation crosses the finite Browser Host operation boundary", a
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page).toHaveURL(/\/tour\/faces-backs-and-implementation\/$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/tour\/a-form-you-can-run\/$/);
+  await expect(page).toHaveURL(/\/tour\/one-program-many-computers\/$/);
 });
 
 test("the Tour navigation remains legible and interactive in both theme modes", async ({ page }) => {
@@ -331,7 +331,7 @@ test("Tour owns the desktop viewport while the lesson reader scrolls independent
 
   await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
   await page.getByRole("button", { name: "Previous" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeFocused();
   expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
 });
 
@@ -341,7 +341,7 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
   await page.getByRole("button", { name: "Next" }).click();
   await page.locator("#chapter").evaluate((reader) => { reader.scrollTop = reader.scrollHeight; });
   await page.goBack();
-  await expect(page).toHaveURL(/\/tour\/a-form-you-can-run\/$/);
+  await expect(page).toHaveURL(/\/tour\/one-program-many-computers\/$/);
   expect(await page.locator("#chapter").evaluate((reader) => reader.scrollTop)).toBe(0);
   await page.goForward();
   await expect(page).toHaveURL(/\/tour\/faces-backs-and-implementation\/$/);
@@ -638,7 +638,7 @@ test("Tour Patchbay keeps branching explicit and opens one reviewed Back beneath
 test("the staged Tour and Crèche each boot with only their own product tree", async ({ page }) => {
   const tour = await startStaticProduct("target/tour-product");
   try {
-    await page.goto(`${tour.url}a-form-you-can-run/`);
+    await page.goto(`${tour.url}one-program-many-computers/`);
     await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     await expect(page.locator(".tour-flow-root").first()).toHaveAttribute("data-renderer", "react-flow");
     await expect(page.locator(".flow-faceplate").first()).toBeVisible();
@@ -966,14 +966,14 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   });
 
   await page.getByRole("button", { name: "Guided Tour" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeVisible();
 });
 
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));
   await openStep(page, 0);
-  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await expect(page).toHaveTitle(/Tour$/);
   await expect(page.locator("#chapter")).toContainText("one logical computer");
   await expect(page.locator("#chapter")).toContainText("one or many physical or virtual computers");
@@ -1774,7 +1774,7 @@ test("the physical workflow cancels one bounded catalog operation without accept
 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {
   const chapterChecks = [
-    { title: "A Form you can run", anchor: "Patchbay projects checked Form truth" },
+    { title: "One Program, Many Computers", anchor: "Patchbay projects checked Form truth" },
     { title: "Faces, Backs, and implementation", anchor: "open the reviewed Back" },
     { title: "Hosts make Forms real", anchor: "smallest case of a later Body-wide model" },
     { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
@@ -1808,7 +1808,7 @@ test("the first chapter builds from one Gear to branch, then hands off to Face/B
   await expect(runner.locator(".morse")).toHaveText("MAKE THIS LOUD");
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Completed");
 
-  await expect(page.getByRole("heading", { name: "A Form you can run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One Program, Many Computers" })).toBeVisible();
   await page.getByRole("button", { name: "Load branch-a-cord in the laboratory" }).click();
   runner = page.locator(".runner");
   await runner.getByRole("button", { name: "Run" }).click();
