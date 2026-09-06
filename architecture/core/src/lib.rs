@@ -9,7 +9,6 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-mod assigned_plan;
 mod characteristic;
 mod configuration;
 mod control_loop;
@@ -44,8 +43,8 @@ mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
 
-pub use assigned_plan::*;
 pub use characteristic::*;
+pub use conduit_assigned_plan::*;
 pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
 pub use control_loop::*;
 pub use deadline::*;

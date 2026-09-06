@@ -30,6 +30,7 @@ package_test_shard!(
         "conduit-rp2040-pio-audio-extension",
         "conduit-workspace-fabrication",
         "conduit-bluetooth",
+        "conduit-assigned-plan",
         "conduit-alife",
         "conduit-audio",
         "conduit-data",

@@ -1,6 +1,13 @@
 //! Bounded, allocation-free validation for one Host-assigned Plan projection.
 
-use sha2::{Digest, Sha256};
+#![no_std]
+
+mod execution;
+mod sha256;
+mod single_source;
+
+pub use execution::*;
+pub use single_source::*;
 
 pub const ASSIGNED_PLAN_SCHEMA: u16 = 2;
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 124;
@@ -26,7 +33,7 @@ pub struct AssignedIdentity(pub [u8; 16]);
 
 impl AssignedIdentity {
     pub fn from_text(value: &str) -> Self {
-        let digest = Sha256::digest(value.as_bytes());
+        let digest = sha256::digest(value.as_bytes());
         let mut result = [0; 16];
         result.copy_from_slice(&digest[..16]);
         Self(result)
@@ -50,6 +57,13 @@ pub struct AssignedPlanMaxima {
 }
 
 impl AssignedPlanMaxima {
+    /// Exact storage ceiling for the generic one-source tiny-Host profile.
+    pub const SINGLE_SOURCE: Self = Self {
+        encoded_bytes: 544,
+        runtime_state_bytes: 192,
+        counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2],
+    };
+
     pub const TINY_HOST: Self = Self {
         encoded_bytes: 1_536,
         runtime_state_bytes: 1_024,
@@ -146,7 +160,7 @@ pub fn decode_assigned_plan(
         }
     }
     let expected_digest = &bytes[92..124];
-    let actual_digest: [u8; 32] = Sha256::digest(&bytes[124..]).into();
+    let actual_digest = sha256::digest(&bytes[124..]);
     if actual_digest != expected_digest {
         return Err(AssignedPlanRefusal::DigestMismatch);
     }
@@ -302,7 +316,7 @@ pub fn decode_assigned_plan(
 }
 
 pub fn assigned_plan_payload_digest(payload: &[u8]) -> [u8; 32] {
-    Sha256::digest(payload).into()
+    sha256::digest(payload)
 }
 
 pub fn assigned_plan_magic() -> [u8; 8] {
