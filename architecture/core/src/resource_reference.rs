@@ -6,6 +6,7 @@
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     semantic_digest, KindId, ResourceClassId, TemporalInstant, TemporalRelation,
@@ -19,10 +20,10 @@ pub const MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_REFERENCED_BYTES: u64 = 1_u64 << 50;
 pub const MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES: usize = 512;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ResourceSemanticIdentity([u8; RESOURCE_REFERENCE_DIGEST_BYTES]);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ResourceVersionIdentity([u8; RESOURCE_REFERENCE_DIGEST_BYTES]);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

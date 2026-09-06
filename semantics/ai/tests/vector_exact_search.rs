@@ -72,6 +72,7 @@ fn state(sources: &[&str]) -> VectorIndexState {
 
 fn binding(work_units: u32) -> ResourceBinding {
     ResourceBinding {
+        content: None,
         pool_id: ResourcePoolId::from("pool/exact-fixture"),
         class_id: ResourceClassId::from(VECTOR_INDEX_RESOURCE_CLASS),
         units: work_units,

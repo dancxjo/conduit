@@ -136,6 +136,7 @@ fn admission(work_units: u32, maximum_results: u32) -> VectorIndexQueryAdmission
 
 fn binding(work_units: u32) -> ResourceBinding {
     ResourceBinding {
+        content: None,
         pool_id: ResourcePoolId::from("pool/hosted-hnsw-fixture"),
         class_id: ResourceClassId::from(VECTOR_INDEX_RESOURCE_CLASS),
         units: work_units,
@@ -335,6 +336,7 @@ fn work_authority_binding_and_empty_portable_filter_are_exact() {
         Err(HostedHnswRefusal::QueryWorkLimitExceeded)
     );
     let wrong_binding = ResourceBinding {
+        content: None,
         pool_id: ResourcePoolId::from("pool/wrong"),
         ..binding(required)
     };

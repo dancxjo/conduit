@@ -75,6 +75,7 @@ mod portable_layout;
 mod portable_navigation;
 mod portable_parts_projection;
 mod portable_projection;
+mod portable_resource_projection;
 mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;

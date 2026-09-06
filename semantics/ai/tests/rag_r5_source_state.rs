@@ -209,6 +209,7 @@ fn index_updates_deletions_and_loss_invalidate_every_prior_generation() {
                 concurrent_queries: 1,
             },
             &conduit_core::ResourceBinding {
+                content: None,
                 pool_id: state.contract.pool_id.clone(),
                 class_id: state.contract.class_id.clone(),
                 units: 1,

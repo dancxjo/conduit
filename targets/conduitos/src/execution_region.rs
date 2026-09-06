@@ -260,6 +260,7 @@ fn build_region(
         scheduling: ExecutionScheduling::CooperativeBoundedStep,
         lane_count: 1,
         lane_resource: ResourceBinding {
+            content: None,
             pool_id: lane_offer.pool_id.clone(),
             class_id: lane_offer.class_id.clone(),
             units: 1,

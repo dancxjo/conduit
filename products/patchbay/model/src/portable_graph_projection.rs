@@ -339,19 +339,7 @@ fn append_gear_plan(
             placement.limits.max_queue_bytes
         ),
     );
-    for (index, resource) in placement.resources.iter().enumerate() {
-        text(
-            content,
-            subject,
-            &format!("resource-{index}"),
-            &format!(
-                "{} · class {} · units {}",
-                resource.pool_id.as_str(),
-                resource.class_id.as_str(),
-                resource.units
-            ),
-        );
-    }
+    crate::portable_resource_projection::append_resources(content, subject, placement);
     crate::portable_vector_search_projection::append_vector_search_realization(
         content, subject, gear, placement,
     );
