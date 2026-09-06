@@ -27,6 +27,7 @@ mod input_semantic_operations;
 mod instrument_map_operation;
 mod json_operations;
 mod json_summary_operation;
+mod kernel_preparation;
 mod keyboard_input_host;
 mod keyboard_input_operation;
 mod layout_operations;
@@ -132,12 +133,11 @@ use conduit_core::{
     Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, NodeId,
-    PortId, SignSink, ValueStorage,
+    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, HostedSignLog,
+    HostedValueStore, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -265,52 +265,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .sum::<usize>();
     let value_allocation_before = values.allocation_capacities();
 
-    let inactive_node = NodeSpec {
-        input_cords: [None; PORTS],
-        maximum_step_work: 1,
-    };
-    let mut node_specs = [inactive_node; MAX_NODES];
-    node_specs[..active_nodes].copy_from_slice(&lowered.node_specs);
-    let inactive_cord = CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-    };
-    let mut cord_specs = [inactive_cord; MAX_CORDS];
-    for (destination, lowered_cord) in cord_specs
-        .iter_mut()
-        .zip(lowered.cords.iter())
-        .take(active_cords)
-    {
-        *destination = lowered_cord.spec;
-    }
-    let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .map_err(|error| format!("install std route: {error:?}"))?;
-    }
-    routes
-        .seal()
-        .map_err(|error| format!("seal std routes: {error:?}"))?;
-    let mut host_bindings =
-        FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(HOST_OPERATIONS_PER_NODE);
-    for operation in &lowered.host_operations {
-        host_bindings
-            .install(operation.node, operation.binding)
-            .map_err(|error| format!("install std host operation: {error:?}"))?;
-    }
-    host_bindings
-        .seal()
-        .map_err(|error| format!("seal std host operations: {error:?}"))?;
+    let kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
     let sign_bytes = u32::from(sign_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
@@ -340,18 +295,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .map_err(|error| error.to_string())?;
         _output.flush().map_err(|error| error.to_string())?;
     }
-    let mut scheduler = InstalledScheduler::new_with_active_counts_and_host_operations(
-        active_nodes,
-        active_cords,
-        node_specs,
-        cord_specs,
-        routes,
-        host_bindings,
-        drivers,
-        values,
-        sign,
-    )
-    .map_err(|error| format!("install std scheduler: {error:?}"))?;
+    let mut scheduler = kernel_tables.install(drivers, values, sign)?;
 
     let presentation_capacity = fragment
         .placements
