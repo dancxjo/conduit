@@ -82,11 +82,16 @@ fn round(index: usize) -> u32 {
 
 pub(crate) fn digest(input: &[u8]) -> [u8; 32] {
     let mut state = INITIAL;
-    let (blocks, remainder) = input.as_chunks::<64>();
-    for block in blocks {
+    let mut offset = 0;
+    while input.len() - offset >= 64 {
+        let block: &[u8; 64] = input[offset..offset + 64]
+            .try_into()
+            .expect("SHA-256 block width is exact");
         compress(&mut state, block);
+        offset += 64;
     }
 
+    let remainder = &input[offset..];
     let mut final_block = [0_u8; 64];
     final_block[..remainder.len()].copy_from_slice(remainder);
     final_block[remainder.len()] = 0x80;
@@ -99,8 +104,9 @@ pub(crate) fn digest(input: &[u8]) -> [u8; 32] {
     compress(&mut state, &final_block);
 
     let mut output = [0_u8; 32];
-    for (word, bytes) in state.iter().zip(output.as_chunks_mut::<4>().0) {
-        bytes.copy_from_slice(&word.to_be_bytes());
+    for (index, word) in state.iter().enumerate() {
+        let offset = index * 4;
+        output[offset..offset + 4].copy_from_slice(&word.to_be_bytes());
     }
     output
 }
