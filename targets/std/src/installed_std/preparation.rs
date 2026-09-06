@@ -16,7 +16,7 @@ pub(super) fn prepare_operations(
             .get(usize::from(node.node.0))
             .ok_or_else(|| "lowered node has no planned placement".to_string())?;
         if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
-            operations.push(InstalledOperation::TypedState(
+            operations.push(InstalledOperation::TypedState(Box::new(
                 crate::state_value::TypedStateOperation::prepare(
                     placement,
                     &state.contract,
@@ -24,7 +24,7 @@ pub(super) fn prepare_operations(
                     state.next,
                     state.current,
                 )?,
-            ));
+            )));
         } else {
             let factory = factory(&placement.implementation_id).ok_or_else(|| {
                 "planned implementation is not installed or lacks sealed State".to_string()
