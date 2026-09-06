@@ -45,6 +45,9 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
             "proof/browser/creche-browser-configuration.spec.mjs",
+            "proof/browser/creche-workload.spec.mjs",
+            "proof/browser/creche-naming.spec.mjs",
+            "proof/browser/creche-body-execution.spec.mjs",
         ],
         input_prefixes: &[
             "proof/browser/fourth-product/",
@@ -161,6 +164,27 @@ pub(super) fn browser_presentation_proofs_for_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn creche_body_contract_changes_select_the_product_carrier_proof() {
+        let root = crate::workspace::workspace_root().unwrap();
+        let packages = super::super::discover(&root).unwrap();
+        for path in [
+            "proof/browser/creche-workload.spec.mjs",
+            "proof/browser/creche-naming.spec.mjs",
+            "proof/browser/creche-body-execution.spec.mjs",
+        ] {
+            assert_eq!(
+                super::proofs_for_paths(&[path.into()]),
+                ["products.pages-carrier"],
+                "{path}"
+            );
+            let plan = super::super::plan_for_paths(&root, vec![path.into()], &packages).unwrap();
+            assert!(plan.pages_products_required, "{path}");
+            assert!(plan.browser_required, "{path}");
+            assert!(!plan.full_fallback, "{path}");
+        }
+    }
 
     #[test]
     fn shared_presentation_contract_and_fixture_changes_select_the_product_carrier() {

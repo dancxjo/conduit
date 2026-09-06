@@ -6,9 +6,12 @@ use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
+mod body_execution;
+mod body_execution_proposal;
 pub(crate) mod body_host_offer_evidence;
 pub(crate) mod body_host_planning_offer;
 mod body_membership_evidence;
+mod body_routes;
 mod body_workload;
 mod browser_membership;
 mod debug_control;
@@ -184,7 +187,7 @@ impl PatchbayHtmlServer {
             "assets/react.min.js" => Some(REACT),
             "assets/react-dom.min.js" => Some(REACT_DOM),
             "assets/react-flow.min.js" => Some(REACT_FLOW),
-            _ => None,
+            _ => body_execution::assets::resource(path),
         }
     }
 
@@ -380,23 +383,8 @@ impl PatchbayHtmlServer {
                 &body,
             );
         }
-        if first == "POST /api/body-workload HTTP/1.1" {
-            return self.deliver_body_workload(&mut stream, &request.body);
-        }
-        if first == "POST /api/body-membership-evidence HTTP/1.1" {
-            return self.deliver_body_membership_evidence(&mut stream, &request.body);
-        }
-        if first == "POST /api/body-host-offer-evidence HTTP/1.1" {
-            return self.deliver_body_host_offer_evidence(&mut stream, &request.body);
-        }
-        if first == "POST /api/body-host-planning-offer HTTP/1.1" {
-            return self.deliver_body_host_planning_offer(&mut stream, &request.body);
-        }
-        if first == "GET /api/body-planning-requirements HTTP/1.1" {
-            return self.deliver_body_planning_requirements(&mut stream);
-        }
-        if first == "GET /api/body-evidence HTTP/1.1" {
-            return self.deliver_body_evidence(&mut stream);
+        if let Some(result) = self.deliver_body_route(first, &mut stream, &request.body) {
+            return result;
         }
         if first == "POST /api/front-door-transition HTTP/1.1" {
             let body = self.apply_front_door_transition(&request.body)?;

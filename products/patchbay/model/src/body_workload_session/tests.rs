@@ -108,8 +108,8 @@ fn stale_duplicate_absent_and_reused_evidence_fail_without_partial_mutation() {
 fn awake_body_refuses_workload_change_instead_of_leaving_a_wake_stale() {
     let lulled = session();
     let mut evidence = lulled.evidence().clone();
-    let (awake, _) = evidence.body.wake(3, SignId::from("sign/woke")).unwrap();
-    evidence.body = awake;
+    let (awake, wake) = evidence.body.wake(3, SignId::from("sign/woke")).unwrap();
+    evidence.append_wake(awake, wake, 3).unwrap();
     let mut session = PatchbayBodyWorkloadSession::open_serialized(
         &serde_json::to_vec(&evidence).unwrap(),
         PatchbayBodyApplicationEntrance::ExternalReader,
@@ -122,4 +122,49 @@ fn awake_body_refuses_workload_change_instead_of_leaving_a_wake_stale() {
         Err(PatchbayBodyWorkloadError::BodyAwake)
     );
     assert_eq!(session.encoded_evidence(), before);
+}
+
+#[test]
+fn retained_lull_allows_later_workload_changes_and_readable_history() {
+    let mut session = session();
+    let id = session.evidence().body_id.clone();
+    let (body, wake) = session
+        .evidence()
+        .body
+        .wake(1, SignId::from("sign/woke"))
+        .unwrap();
+    session.retain_wake(body.clone(), wake.clone(), 3).unwrap();
+    let before = session.encoded_evidence().to_vec();
+    assert!(session.retain_wake(body.clone(), wake.clone(), 3).is_err());
+    assert_eq!(session.encoded_evidence(), before);
+    let wake = wake.lull(SignId::from("sign/lull")).unwrap();
+    let body = body
+        .retain_after_lull(&wake, SignId::from("sign/retained"))
+        .unwrap();
+    session.retain_wake(body, wake.clone(), 4).unwrap();
+    session
+        .admit_form(0, form("radio"), SignId::from("sign/radio"), 6)
+        .unwrap();
+    assert_eq!(session.evidence().body_id, id);
+    assert_eq!(session.evidence().wakes, vec![wake]);
+    let reopened = PatchbayBodyWorkloadSession::open_serialized(
+        session.encoded_evidence(),
+        PatchbayBodyApplicationEntrance::ExternalReader,
+    )
+    .unwrap();
+    let projection = crate::project_body_biography(reopened.evidence()).unwrap();
+    let headings: Vec<_> = projection
+        .entries
+        .iter()
+        .map(|entry| entry.heading)
+        .collect();
+    assert_eq!(
+        &headings[2..],
+        &[
+            "Woke",
+            "Wake lulled",
+            "Body retained after Lull",
+            "Form admitted"
+        ]
+    );
 }

@@ -1,4 +1,5 @@
 //! Deterministic combined review of a proposed Body workload against Host offers.
+mod queue_plan;
 
 use super::initial_forms::InitialFormSelection;
 use conduit_core::{
@@ -94,14 +95,12 @@ pub(super) fn review(
                     form.name
                 )
             })?;
-        conduit_planner::plan_expanded_canonical(&expanded, hosts, &placements, bases).map_err(
-            |error| {
-                format!(
-                    "initial workload is unrealizable for {:?}: {error}",
-                    form.name
-                )
-            },
-        )?;
+        queue_plan::review(&expanded, hosts, &placements, bases).map_err(|error| {
+            format!(
+                "initial workload is unrealizable for {:?}: {error}",
+                form.name
+            )
+        })?;
         accumulate_requirements(
             hosts,
             &placements,

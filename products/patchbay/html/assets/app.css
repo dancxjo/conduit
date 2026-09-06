@@ -14,6 +14,10 @@ body[data-application-ready="false"] #patchbay-root { pointer-events:none; }
 .body-offer-inspector label { display:block; margin-bottom:.25rem; color:var(--conduit-text-secondary); font-weight:700; }
 .body-offer-inspector select { width:100%; margin-bottom:.5rem; }
 .body-membership-actions { display:flex; gap:.45rem; flex-wrap:wrap; }
+.body-execution { margin-top:.75rem; overflow-wrap:anywhere; }
+.body-execution pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+#body-execution-input { padding:.75rem; border:1px solid var(--conduit-structure-secondary); border-radius:.35rem; }
+#body-execution-output { display:flex; flex-wrap:wrap; gap:.75rem; padding:.5rem 0; }
 #body-workbench .body-workbench-tabs { position:static; z-index:auto; width:auto; max-width:none; padding:0; border:0; background:transparent; }
 .body-workbench-hero h2,.body-workbench-hero p { margin:.2rem 0; }
 .body-workbench-tabs { justify-content:flex-start; margin:.8rem 0; }
