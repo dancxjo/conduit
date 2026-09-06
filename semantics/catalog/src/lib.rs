@@ -25,6 +25,8 @@ mod input_semantics;
 pub use input_semantics::*;
 mod http;
 pub use http::*;
+mod resource_snapshot;
+pub use resource_snapshot::*;
 mod json;
 pub use json::*;
 mod structured_selector;

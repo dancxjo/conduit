@@ -251,6 +251,23 @@ impl TourSession {
             .get(usize::from(pending.request.node.0))
             .ok_or_else(|| "Host effect has no planned placement".to_string())?;
         match &pending.effect {
+            engine::BrowserHostEffect::Snapshot { .. } => {
+                let request = engine::resource_effect::describe(&self.scheduler, pending)?;
+                Ok(TourHostEffect::Snapshot(Box::new(
+                    protocol::SnapshotEffect {
+                        schema: "conduit.browser/resource-effect@1",
+                        effect_kind: request.effect_kind,
+                        active_play_id: self.active_play_id.as_str().into(),
+                        placement_id: placement.placement_id.as_str().into(),
+                        host_id: self.host_id.as_str().into(),
+                        boot_id: self.boot_id.as_str().into(),
+                        request_sequence: pending.request.request.0,
+                        key: request.key.into(),
+                        record: request.record.map(<[u8]>::to_vec),
+                        source_interaction: self.source_interaction.clone(),
+                    },
+                )))
+            }
             engine::BrowserHostEffect::Timer { duration_millis } => {
                 Ok(TourHostEffect::Timer(Box::new(TourTimerEffect {
                     schema: "conduit.tour/timer-effect@1",

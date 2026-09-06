@@ -49,6 +49,7 @@ pub(super) fn prepare_scheduler(
     .map_err(|error| format!("browser value store: {error:?}"))?;
     let mut operations = Vec::with_capacity(MAXIMUM_BROWSER_GEARS);
     let mut mappings = [None; MAXIMUM_BROWSER_GEARS];
+    let mut snapshots = core::array::from_fn(|_| None);
     let mut selectors = core::array::from_fn(|_| None);
     let mut attempts = core::array::from_fn(|_| None);
     let mut comparisons = core::array::from_fn(|_| None);
@@ -64,6 +65,15 @@ pub(super) fn prepare_scheduler(
             mappings[usize::from(node.node.0)] = Some(
                 crate::installed_browser::prepare_quantity_mapping(placement)?,
             );
+        }
+        if placement
+            .host_operations
+            .iter()
+            .any(|operation| resource_effect::matches(operation.contract_id.as_str()))
+        {
+            snapshots[usize::from(node.node.0)] = Some(Box::new(
+                resource_effect::SnapshotState::prepare(placement)?,
+            ));
         }
         operations.push((installation.prepare)(placement, &mut values)?);
         comparisons[usize::from(node.node.0)] =
@@ -166,5 +176,6 @@ pub(super) fn prepare_scheduler(
         timing,
         attempts,
         comparisons,
+        snapshots,
     })
 }
