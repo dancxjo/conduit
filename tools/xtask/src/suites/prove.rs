@@ -201,8 +201,8 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     Step::typed(
         "prove.llm-embodiment.patchbay-browser",
         "Inspect the three graph-defined model situations through one pinned Chromium Patchbay manifestation",
-        "npx",
-        &["playwright", "test", "--config", "proof/browser/patchbay-llm-embodiment.playwright.config.mjs"],
+        "node",
+        &["proof/browser/node_modules/@playwright/test/cli.js", "test", "--config", "proof/browser/patchbay-llm-embodiment.playwright.config.mjs"],
         None,
         Some("playwright"),
         Some(ProofClass::LiveBrowser),
@@ -387,9 +387,9 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     Step::typed(
         "prove.body-membership.live-browser-admission",
         "Prove exact browser advertisement challenge proof and membership in Chromium",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/playwright.config.mjs",
@@ -449,9 +449,9 @@ pub const PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS: &[Step] = &[
     Step::typed(
         "prove.body-membership-hil.live-browser-membership",
         "Admit three Chromium Parts and the physical Pico into the exact R1 Body",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/playwright.config.mjs",
@@ -507,9 +507,9 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
     Step::typed(
         "prove.std-browser-s4.playwright",
         "Run Playwright distributed signal spec",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/playwright.config.mjs",
@@ -543,9 +543,9 @@ pub const PROVE_STD_BROWSER_TOGGLE_STEPS: &[Step] = &[
     Step::typed(
         "prove.std-browser-toggle.playwright",
         "Run Playwright distributed toggle spec",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/playwright.config.mjs",
@@ -714,9 +714,9 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
     Step::typed(
         "prove.browser-host.patchbay-html-matrix",
         "Run read-only HTML Patchbay browser matrix",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
@@ -814,9 +814,9 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-front-door.browser",
         "Run zero-Body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
@@ -831,9 +831,9 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-front-door.live-membership",
         "Admit a real Chromium Part into the presented Body, observe it offline, preserve the Plan, and replan",
-        "npx",
+        "node",
         &[
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/playwright.config.mjs",

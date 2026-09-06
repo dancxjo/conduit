@@ -157,10 +157,9 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
     Step::new(
         "quantity-mapping.chromium",
         "Prove real pointer causality and deterministic alternate input in pinned Chromium",
-        "npx",
+        "node",
         &[
-            "--no-install",
-            "playwright",
+            "proof/browser/node_modules/@playwright/test/cli.js",
             "test",
             "--config",
             "proof/browser/playwright.config.mjs",
