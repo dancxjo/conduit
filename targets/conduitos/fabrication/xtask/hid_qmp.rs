@@ -268,7 +268,7 @@ fn send_key(
     qmp::request(
         qmp,
         reader,
-        command.as_ref(),
+        command,
         if down { "key-down" } else { "key-up" },
     )
 }

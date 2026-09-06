@@ -73,8 +73,10 @@ pub(super) fn decode(bytes: &[u8]) -> Result<Pixmap, ConduitosError> {
         )
     })?;
     for (source, target) in rgb
-        .chunks_exact(3)
-        .zip(frame.data_mut().chunks_exact_mut(4))
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .zip(frame.data_mut().as_chunks_mut::<4>().0.iter_mut())
     {
         target[..3].copy_from_slice(source);
         target[3] = 255;
@@ -84,7 +86,13 @@ pub(super) fn decode(bytes: &[u8]) -> Result<Pixmap, ConduitosError> {
 
 pub(super) fn require_content(frame: &Pixmap) -> Result<(), ConduitosError> {
     let first = &frame.data()[..4];
-    if frame.data().chunks_exact(4).all(|pixel| pixel == first) {
+    if frame
+        .data()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .all(|pixel| pixel == first)
+    {
         return Err(ConduitosError::refusal(
             "qemu-display-uniform-frame",
             "display contains one uniform color",
@@ -138,7 +146,7 @@ pub(super) fn capture(
     Ok((
         serde_json::json!({"checkpoint":checkpoint,"png":png.file_name().unwrap().to_string_lossy(),
         "width":frame.width(),"height":frame.height(),
-        "non_background_pixels":frame.data().chunks_exact(4).filter(|pixel|*pixel != &frame.data()[..4]).count(),
+        "non_background_pixels":frame.data().as_chunks::<4>().0.iter().filter(|pixel|*pixel != &frame.data()[..4]).count(),
         "pixel_format":"RGBA8","png_bytes":encoded.len(),
         "png_sha256":format!("{:x}",Sha256::digest(&encoded)),"pixel_sha256":format!("{:x}",Sha256::digest(frame.data()))}),
         health_refusal,
