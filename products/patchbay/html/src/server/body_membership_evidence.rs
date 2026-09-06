@@ -7,6 +7,8 @@ use std::net::TcpStream;
 
 const MAX_BODY_MEMBERSHIP_EVIDENCE_BYTES: usize = 65_536;
 
+mod reconciliation;
+
 impl PatchbayHtmlServer {
     pub(super) fn deliver_body_membership_evidence(
         &mut self,
@@ -44,6 +46,8 @@ impl PatchbayHtmlServer {
             .body_workload
             .as_ref()
             .ok_or_else(|| ServerError::Interaction("Body workload session is absent".into()))?;
+        let candidate =
+            reconciliation::merge_membership_extension(prior_session.evidence(), &candidate)?;
         let operation = validate_membership_extension(prior_session.evidence(), &candidate)?;
         let mut next_planning = self.body_planning.clone();
         if operation == "leave" {
@@ -135,11 +139,13 @@ impl PatchbayHtmlServer {
             .clone()
             .filter(|evidence| super::body_host_offer_evidence::is_current(evidence, &candidate));
         snapshot.body_planning = next_planning.as_ref().map(|planning| planning.snapshot());
+        let navigation = navigation_state(&snapshot)?;
+        let encoded_snapshot = snapshot.encode()?;
         self.body_workload = Some(session);
         self.body_planning = next_planning;
         self.snapshot = snapshot;
-        self.navigation = navigation_state(&self.snapshot)?;
-        self.encoded_snapshot = self.snapshot.encode()?;
+        self.navigation = navigation;
+        self.encoded_snapshot = encoded_snapshot;
         Ok(self.encoded_snapshot.clone())
     }
 }
@@ -155,6 +161,7 @@ fn validate_membership_extension(
         || candidate.body_id != prior.body_id
         || candidate.friendly_name != prior.friendly_name
         || candidate.body != prior.body
+        || candidate.wakes != prior.wakes
         || candidate.graduation != prior.graduation
         || candidate.records.get(..prior_record_count) != Some(prior.records.as_slice())
         || candidate.membership.events.get(..prior_event_count)
