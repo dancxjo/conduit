@@ -79,6 +79,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &delay::TIME_DELAY,
     &state_time::STATE_COUNT,
     &state_time::COUNT_PRESENTATION,
+    &super::tick::INSTALLATION,
     &presentation::INDICATOR,
     &presentation::BOOL,
     &presentation::PATCHBAY,

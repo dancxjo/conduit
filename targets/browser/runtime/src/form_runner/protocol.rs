@@ -296,6 +296,11 @@ pub(super) fn decode_manifestation(
                 .map_err(|_| "planned count manifestation is not an exact Count")?;
             Ok((0, Vec::new(), Some(u64::from_le_bytes(encoded).to_string())))
         }
+        conduit_semantic_catalog::TICK_PRESENTATION_KIND => {
+            let sequence = conduit_time::decode_tick(&manifestation.canonical_value)
+                .map_err(|error| error.to_string())?;
+            Ok((0, Vec::new(), Some(sequence.to_string())))
+        }
         _ => Err("browser manifestation Kind is not installed in the Tour surface".into()),
     }
 }
