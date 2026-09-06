@@ -27,3 +27,44 @@ form todo/command-snapshot (
     update.tasks > persistable.tasks
     persistable.snapshot > snapshot
 }
+
+form todo/summary (
+    tasks: value/json@1 > summary: value/json@1
+) {
+    count: json/boolean-summary(field = "complete")
+    tasks > count.value
+    count.value > summary
+}
+
+form todo/command-summary (
+    request: value/json@1 > snapshot: text/json-utf8@1
+) {
+    update: todo/state-step
+    count: todo/summary
+    encode: todo/snapshot
+    request > update.request
+    update.tasks > count.tasks
+    count.summary > encode.tasks
+    encode.snapshot > snapshot
+}
+
+# Storage supplies encoded content; meaning is recovered in an authored Form.
+form todo/restore (
+    snapshot: text/json-utf8@1 > tasks: value/json@1
+) {
+    decode: json/decode
+    snapshot > decode.value
+    decode.value > tasks
+}
+
+form todo/restore-summary (
+    snapshot: text/json-utf8@1 > result: text/json-utf8@1
+) {
+    restore: todo/restore
+    count: todo/summary
+    encode: todo/snapshot
+    snapshot > restore.snapshot
+    restore.tasks > count.tasks
+    count.summary > encode.tasks
+    encode.snapshot > result
+}
