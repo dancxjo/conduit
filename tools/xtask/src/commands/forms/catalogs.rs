@@ -12,6 +12,7 @@ pub(super) fn catalogs(
     conduit_time::install_replay_control_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
