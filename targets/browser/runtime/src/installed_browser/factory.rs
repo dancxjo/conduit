@@ -110,6 +110,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &presentation::INDICATOR,
     &presentation::BOOL,
     &presentation::PATCHBAY,
+    &presentation::GARDEN,
     &layout::VIEWPORT,
     &input::KEYBOARD,
     &input::BUTTON,
