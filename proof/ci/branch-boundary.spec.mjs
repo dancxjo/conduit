@@ -78,11 +78,11 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /already-running/);
   assert.match(request, /already-current/);
   assert.match(request, /release\/\$dev_sha/);
-  assert.match(request, /gh pr merge "\$pr_url" --auto --merge/);
+  assert.match(request, /gh pr merge "\$pr_url" --auto --rebase/);
   const sync = readFileSync(".github/workflows/sync-release-to-dev.yml", "utf8");
   assert.match(sync, /Sync release fixes to dev/);
   assert.match(sync, /--base dev/);
-  assert.match(sync, /--auto --merge/);
+  assert.match(sync, /--auto --rebase/);
   for (const retired of [
     "candidate-shared-compile.yml",
     "reconcile-candidate.yml",
