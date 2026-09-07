@@ -84,7 +84,7 @@ pub(super) enum InstalledOperation {
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
     ButtonMapper(Box<super::keyboard_input_operation::button::indicator::Mapper>),
     Tick(TickOperation),
-    PulseObserve(super::pulse_observation_operation::PulseObservationOperation),
+    PulseObserve(conduit_time::PulseObservationOperation),
     #[cfg(test)]
     TestPulseSink(super::pulse_observation_sink::Sink),
     TimeDebounce(DebounceOperation),

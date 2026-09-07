@@ -72,3 +72,8 @@ pub use catalog::*;
 mod button_attempt_operation;
 #[cfg(feature = "kernel-operation")]
 pub use button_attempt_operation::TimedButtonAttemptOperation;
+
+#[cfg(feature = "kernel-operation")]
+mod pulse_observation_operation;
+#[cfg(feature = "kernel-operation")]
+pub use pulse_observation_operation::PulseObservationOperation;

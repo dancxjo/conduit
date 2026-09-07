@@ -1,12 +1,11 @@
 //! Tick bytes are validated at the kernel value boundary; all outputs exist before Play.
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
-use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, OperationAction, OperationInput, PortId, ValueRef,
-    ValueStorage,
-};
+#[cfg(test)]
+use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{HostedValueStore, ValueStorage};
 use conduit_time::{
-    PulseObservationConfiguration, PulseObservationRefusal, PULSE_OBSERVATION_ENCODED_LEN,
+    PulseObservationConfiguration, PulseObservationOperation, PULSE_OBSERVATION_ENCODED_LEN,
     TICK_ENCODED_LEN,
 };
 
@@ -16,109 +15,7 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     prepare,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Lifecycle {
-    Prepared,
-    Ready,
-    Emitting,
-    Terminal,
-    Cancelled,
-}
-
-pub(super) struct PulseObservationOperation {
-    configuration: PulseObservationConfiguration,
-    outputs: Vec<ValueRef>,
-    next: u32,
-    lifecycle: Lifecycle,
-}
-
-impl PulseObservationOperation {
-    pub(super) fn allocation_capacity(&self) -> usize {
-        self.outputs.capacity()
-    }
-
-    pub(super) fn start(&mut self) -> OperationAction {
-        if self.lifecycle != Lifecycle::Prepared {
-            return failure(FailureCode::InvalidLifecycle, 0);
-        }
-        self.lifecycle = Lifecycle::Ready;
-        OperationAction::Await
-    }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if self.lifecycle == Lifecycle::Cancelled {
-            return failure(FailureCode::Cancelled, 484);
-        }
-        if self.lifecycle != Lifecycle::Ready {
-            return failure(FailureCode::InvalidLifecycle, 1);
-        }
-        if port != PortId(0) {
-            return failure(FailureCode::InvalidPort, 480);
-        }
-        if value.byte_len != TICK_ENCODED_LEN || canonical.len() != TICK_ENCODED_LEN as usize {
-            return failure(FailureCode::InvalidInput, 481);
-        }
-        let sequence = conduit_time::decode_tick(canonical).expect("exact tick length checked");
-        match self.configuration.observe(self.next, sequence) {
-            Ok(_) => {}
-            Err(PulseObservationRefusal::Exhausted) => {
-                return failure(FailureCode::StorageExhausted, 483)
-            }
-            Err(PulseObservationRefusal::UnexpectedSequence { .. }) => {
-                return failure(FailureCode::InvalidInput, 482)
-            }
-            Err(PulseObservationRefusal::Configuration) => {
-                return failure(FailureCode::InvalidInput, 485)
-            }
-        }
-        self.lifecycle = Lifecycle::Emitting;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.outputs[self.next as usize],
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        if self.lifecycle == Lifecycle::Cancelled {
-            return failure(FailureCode::Cancelled, 484);
-        }
-        if self.lifecycle != Lifecycle::Ready {
-            return failure(FailureCode::InvalidLifecycle, 1);
-        }
-        match input {
-            OperationInput::Closed { port: PortId(0) } => {
-                self.lifecycle = Lifecycle::Terminal;
-                OperationAction::Complete
-            }
-            // Value bytes must cross resume_value; a ValueRef alone is not semantic proof.
-            _ => failure(FailureCode::InvalidLifecycle, 2),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.lifecycle == Lifecycle::Cancelled {
-            return failure(FailureCode::Cancelled, 484);
-        }
-        if self.lifecycle != Lifecycle::Emitting {
-            return failure(FailureCode::InvalidLifecycle, 3);
-        }
-        // The driver stages this output once. Its pending transaction retains
-        // the output under pressure and prevents another input from being consumed.
-        self.next += 1;
-        self.lifecycle = Lifecycle::Ready;
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.lifecycle = Lifecycle::Cancelled;
-    }
-}
-
+#[cfg(test)]
 fn failure(code: FailureCode, detail: u16) -> OperationAction {
     OperationAction::Fail(Failure { code, detail })
 }
@@ -171,12 +68,8 @@ fn prepare(
         );
     }
     Ok(InstalledOperation::PulseObserve(
-        PulseObservationOperation {
-            configuration,
-            outputs,
-            next: 0,
-            lifecycle: Lifecycle::Prepared,
-        },
+        PulseObservationOperation::from_prepared_outputs(configuration, outputs)
+            .map_err(str::to_owned)?,
     ))
 }
 
