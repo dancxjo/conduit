@@ -40,6 +40,113 @@ fn prepare_pair_for_alternate_line(source: &str) -> ((Session, Output), (Session
 }
 
 #[test]
+fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
+    let source = include_str!("../../../../../../forms/firefly-line-follower/main.conduit");
+    let interaction = crate::source_interaction::admit_source(source.as_bytes(), 7).unwrap();
+    let prepared = super::plan::prepare_partitioned(
+        "browser/firefly-a",
+        "boot/firefly-a",
+        "browser/firefly-b",
+        "boot/firefly-b",
+        source,
+        &[
+            conduit_time::RHYTHM_STATE_SOURCE_KIND,
+            conduit_time::PHASE_SYNCHRONIZE_KIND,
+            conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND,
+        ],
+    )
+    .unwrap();
+    let accepted =
+        super::plan::accept(prepared.plan.clone(), "browser/firefly-b", "boot/firefly-b").unwrap();
+    let (mut sender, mut output) =
+        Session::prepare(Role::Source, prepared, 9, interaction.clone()).unwrap();
+    let (mut follower, waiting) = Session::prepare(Role::Sink, accepted, 9, interaction).unwrap();
+    assert!(matches!(waiting, Output::Waiting { .. }));
+    let mut periods = Vec::new();
+    for sequence in 0..4 {
+        while let Output::Timer { timer, .. } = output {
+            assert_eq!(timer.host_id, "browser/firefly-a");
+            assert!(matches!(timer.duration_millis, 0 | 240));
+            output = sender
+                .complete_timer(&timer.active_play_id, timer.request_sequence)
+                .unwrap();
+        }
+        let Output::Line {
+            frame,
+            plan_projection: Some(projection),
+            ..
+        } = output
+        else {
+            panic!("Firefly source did not offer pulse {sequence}")
+        };
+        assert_eq!(frame.phase, "value");
+        assert_eq!(frame.sequence, sequence);
+        assert_eq!(frame.value_kind, conduit_time::PULSE_OBSERVATION_VALUE_KIND);
+        assert_eq!(
+            conduit_time::decode_pulse_observation(&frame.payload).unwrap(),
+            conduit_time::PulseObservation {
+                sequence: sequence as u32,
+                period_ms: 240,
+            }
+        );
+        assert_eq!(projection.hosts.len(), 2);
+        assert_eq!(projection.cord.maximum_in_flight_items, 1);
+        assert_eq!(projection.cord.maximum_payload_bytes, 4096);
+        let Output::Manifestation {
+            manifestation,
+            accepted_frame,
+            ..
+        } = follower.ingest(*frame).unwrap()
+        else {
+            panic!("Firefly follower did not manifest phase update {sequence}")
+        };
+        assert_eq!(manifestation.host_id, "browser/firefly-b");
+        assert_eq!(
+            manifestation.presentation_kind,
+            conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND
+        );
+        let text = manifestation.text.unwrap();
+        let period = text
+            .split("period ")
+            .nth(1)
+            .and_then(|suffix| suffix.split(" ms").next())
+            .unwrap()
+            .parse::<u16>()
+            .unwrap();
+        periods.push(period);
+        assert!(matches!(
+            sender.ingest(*accepted_frame).unwrap(),
+            Output::Waiting { .. }
+        ));
+        let delivered = match follower.complete_manifestation().unwrap() {
+            Output::Line { frame, .. } => frame,
+            _ => panic!("Firefly follower did not acknowledge manifestation"),
+        };
+        output = sender.ingest(*delivered).unwrap();
+    }
+    assert_eq!(periods, [270, 262, 262, 262]);
+    let Output::Line { frame: close, .. } = output else {
+        panic!("Firefly source did not close its pulse Cord")
+    };
+    assert_eq!(close.phase, "close");
+    let Output::Line {
+        frame: terminal,
+        receipt: Some(sink_receipt),
+        ..
+    } = follower.ingest(*close).unwrap()
+    else {
+        panic!("Firefly follower did not complete")
+    };
+    assert_eq!(sink_receipt.transferred_values, 4);
+    assert_eq!(sink_receipt.disposition, "completed");
+    let Output::Receipt { receipt, .. } = sender.ingest(*terminal).unwrap() else {
+        panic!("Firefly sender did not retain terminal truth")
+    };
+    assert_eq!(receipt.transferred_values, 4);
+    assert_eq!(receipt.disposition, "completed");
+}
+
+#[test]
 fn unchanged_form_executes_two_exact_fragments_over_one_planned_line() {
     let ((mut source, source_output), (mut sink, sink_output)) = prepare_pair();
     assert!(matches!(sink_output, Output::Waiting { .. }));

@@ -42,6 +42,27 @@ pub(super) fn prepare(
         sink_boot_id,
         source,
         MEMORY_BASE,
+        None,
+    )
+}
+
+#[cfg(test)]
+pub(super) fn prepare_partitioned(
+    source_host_id: &str,
+    source_boot_id: &str,
+    sink_host_id: &str,
+    sink_boot_id: &str,
+    source: &str,
+    sink_kinds: &[&str],
+) -> Result<PreparedPlan, String> {
+    prepare_with_base(
+        source_host_id,
+        source_boot_id,
+        sink_host_id,
+        sink_boot_id,
+        source,
+        MEMORY_BASE,
+        Some(sink_kinds),
     )
 }
 
@@ -52,6 +73,7 @@ fn prepare_with_base(
     sink_boot_id: &str,
     source: &str,
     line_base: &str,
+    sink_kinds: Option<&[&str]>,
 ) -> Result<PreparedPlan, String> {
     if source_host_id == sink_host_id || source_boot_id == sink_boot_id {
         return Err("two-browser lesson requires distinct Host and Boot identities".into());
@@ -69,22 +91,23 @@ fn prepare_with_base(
     let entry = super::super::executable_entry(&checked)?;
     let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
         .map_err(|error| format!("expand multi-Host executable-tour Form: {error:?}"))?;
-    if form.gears.len() < 2
-        || form.gears.len() > crate::installed_browser::MAXIMUM_BROWSER_GEARS
-        || form.connections.len() != form.gears.len() - 1
-        || form.gears.iter().any(|gear| {
-            form.connections
-                .iter()
-                .filter(|cord| cord.source_gear_id == gear.gear_id)
-                .count()
-                > 1
-                || form
-                    .connections
+    if sink_kinds.is_none()
+        && (form.gears.len() < 2
+            || form.gears.len() > crate::installed_browser::MAXIMUM_BROWSER_GEARS
+            || form.connections.len() != form.gears.len() - 1
+            || form.gears.iter().any(|gear| {
+                form.connections
                     .iter()
-                    .filter(|cord| cord.sink_gear_id == gear.gear_id)
+                    .filter(|cord| cord.source_gear_id == gear.gear_id)
                     .count()
                     > 1
-        })
+                    || form
+                        .connections
+                        .iter()
+                        .filter(|cord| cord.sink_gear_id == gear.gear_id)
+                        .count()
+                        > 1
+            }))
     {
         return Err("two-browser runner requires one bounded linear Form".into());
     }
@@ -98,33 +121,61 @@ fn prepare_with_base(
                 .any(|cord| cord.sink_gear_id == gear.gear_id)
         })
         .collect::<Vec<_>>();
-    let [source_gear] = roots.as_slice() else {
-        return Err("two-browser runner requires one bounded linear Form".into());
+    let sink_gears = if let Some(kinds) = sink_kinds {
+        let selected = form
+            .gears
+            .iter()
+            .filter(|gear| kinds.contains(&gear.kind_id.as_str()))
+            .map(|gear| gear.gear_id.clone())
+            .collect::<Vec<_>>();
+        if selected.is_empty() {
+            return Err("partitioned two-browser runner selected no sink Gears".into());
+        }
+        let crossings = form
+            .connections
+            .iter()
+            .filter(|cord| {
+                !selected.contains(&cord.source_gear_id) && selected.contains(&cord.sink_gear_id)
+            })
+            .count();
+        if crossings != 1
+            || form.connections.iter().any(|cord| {
+                selected.contains(&cord.source_gear_id) && !selected.contains(&cord.sink_gear_id)
+            })
+        {
+            return Err("partitioned two-browser runner requires one directed crossing".into());
+        }
+        selected
+    } else {
+        let [source_gear] = roots.as_slice() else {
+            return Err("two-browser runner requires one bounded linear Form".into());
+        };
+        let sink_root = form
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id.as_str() == conduit_net::TYPED_RECORD_DEFRAME_KIND)
+            .unwrap_or_else(|| {
+                form.connections
+                    .iter()
+                    .find(|cord| cord.source_gear_id == source_gear.gear_id)
+                    .and_then(|cord| {
+                        form.gears
+                            .iter()
+                            .find(|gear| gear.gear_id == cord.sink_gear_id)
+                    })
+                    .expect("a bounded linear Form with two gears has a sink root")
+            });
+        let mut selected = vec![sink_root.gear_id.clone()];
+        while let Some(next) = form
+            .connections
+            .iter()
+            .find(|cord| cord.source_gear_id == *selected.last().unwrap())
+            .map(|cord| cord.sink_gear_id.clone())
+        {
+            selected.push(next);
+        }
+        selected
     };
-    let sink_root = form
-        .gears
-        .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_net::TYPED_RECORD_DEFRAME_KIND)
-        .unwrap_or_else(|| {
-            form.connections
-                .iter()
-                .find(|cord| cord.source_gear_id == source_gear.gear_id)
-                .and_then(|cord| {
-                    form.gears
-                        .iter()
-                        .find(|gear| gear.gear_id == cord.sink_gear_id)
-                })
-                .expect("a bounded linear Form with two gears has a sink root")
-        });
-    let mut sink_gears = vec![sink_root.gear_id.clone()];
-    while let Some(next) = form
-        .connections
-        .iter()
-        .find(|cord| cord.source_gear_id == *sink_gears.last().unwrap())
-        .map(|cord| cord.sink_gear_id.clone())
-    {
-        sink_gears.push(next);
-    }
     let source_host = advertisement(source_host_id.into(), source_boot_id.into());
     let sink_host = advertisement(sink_host_id.into(), sink_boot_id.into());
     let placements = PlacementChoices {
@@ -340,5 +391,6 @@ pub(super) fn prepare_with_alternate_line(
         sink_boot_id,
         source,
         ALTERNATE_MEMORY_BASE,
+        None,
     )
 }
