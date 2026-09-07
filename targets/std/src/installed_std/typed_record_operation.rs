@@ -192,7 +192,7 @@ impl TypedRecordHost {
     }
 }
 
-fn typed_leaf<'a>(input: &'a [u8], value_type: &[u8]) -> Result<&'a [u8], u16> {
+pub(super) fn typed_leaf<'a>(input: &'a [u8], value_type: &[u8]) -> Result<&'a [u8], u16> {
     let node = input.strip_prefix(value_type).ok_or(210_u16)?;
     leaf_bytes(node).ok_or(211)
 }

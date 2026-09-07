@@ -32,6 +32,8 @@ use super::pattern_comparison_operation::PatternComparisonOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
+use super::record_queue_operation::RecordQueueOperation;
+use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
 use super::recurrence_operation::RecurrenceOperation;
 use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
@@ -139,6 +141,9 @@ pub(super) enum InstalledOperation {
     ImageText(ImageTextOperation),
     ImageTextRecord(ImageTextRecordOperation),
     TypedRecord(TypedRecordOperation),
+    RecordSingletonStream(RecordSingletonStreamOperation),
+    RecordExactlyOne(RecordExactlyOneOperation),
+    RecordQueue(RecordQueueOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),

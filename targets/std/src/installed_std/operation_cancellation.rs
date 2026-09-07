@@ -74,6 +74,9 @@ impl InstalledOperation {
             Self::ImageText(operation) => operation.cancel(),
             Self::ImageTextRecord(operation) => operation.cancel(),
             Self::TypedRecord(operation) => operation.cancel(),
+            Self::RecordSingletonStream(operation) => operation.cancel(),
+            Self::RecordExactlyOne(operation) => operation.cancel(),
+            Self::RecordQueue(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
             Self::StructuredLiteral(_) => {}
             Self::StructuredPresentation(operation) => operation.cancel(),
