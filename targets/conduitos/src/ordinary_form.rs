@@ -2,8 +2,9 @@
 
 use crate::ordinary_plan::PreparationError;
 
-pub(crate) fn checked_expanded_text_form(
+pub(crate) fn checked_expanded_text_form_named(
     source: &str,
+    form_name: &str,
 ) -> Result<conduit_form::ExpandedCanonicalForm, PreparationError> {
     let syntax = conduit_form::parse_syntax_document(source);
     let mut startup = conduit_form::StartupCatalog::new();
@@ -12,6 +13,6 @@ pub(crate) fn checked_expanded_text_form(
         .map_err(|_| PreparationError::FormRejected)?;
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::FormRejected)?;
-    conduit_form::expand_canonical_form(&checked, "conduitos-text-upper", &profile)
+    conduit_form::expand_canonical_form(&checked, form_name, &profile)
         .map_err(|_| PreparationError::FormRejected)
 }
