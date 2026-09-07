@@ -3,6 +3,8 @@ use super::{qmp_display, ConduitosError};
 use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
+const MAX_CHECKPOINTS: usize = 17;
+
 pub(super) struct Artifacts {
     directory: PathBuf,
     serial: PathBuf,
@@ -39,10 +41,10 @@ impl Artifacts {
         checkpoint: &str,
         expect_change: bool,
     ) -> Result<(), ConduitosError> {
-        if self.entries.len() >= 16 {
+        if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most sixteen captures admitted",
+                "at most seventeen captures admitted",
             ));
         }
         let mut serial = Vec::new();

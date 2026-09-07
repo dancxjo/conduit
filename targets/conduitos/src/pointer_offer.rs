@@ -13,6 +13,12 @@ pub const NEXT_POINTER_EVENT_HOST_OPERATION: &str = "conduit.host/input-next-poi
 pub const POINTER_EVENT_SLOTS: u16 = 8;
 pub const POINTER_OPERATION_SLOTS: u16 = 1;
 pub const POINTER_EVENT_MAXIMUM_BYTES: u32 = 512;
+pub const POINTER_DEVICE_RESOURCE: &str = "conduitos.resource/pointer-device-instance@1";
+pub const POINTER_INTERFACE_RESOURCE: &str = "conduitos.resource/pointer-interface-instance@1";
+pub const POINTER_ENDPOINT_RESOURCE: &str = "conduitos.resource/pointer-endpoint-instance@1";
+pub const POINTER_REPORT_RESOURCE: &str = "conduitos.resource/pointer-report-buffer@1";
+pub const POINTER_TRANSITION_RESOURCE: &str = "conduitos.resource/pointer-event-slot@1";
+pub const POINTER_OPERATION_RESOURCE: &str = "conduitos.resource/pointer-operation-slot@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PointerRealization {
@@ -86,34 +92,22 @@ pub(crate) fn append_to_advertisement(
             crate::keyboard_offer::CONTROLLER_RESOURCE,
             1_u32,
         ),
-        (
-            realization.device_id,
-            crate::keyboard_offer::DEVICE_RESOURCE,
-            1,
-        ),
-        (
-            realization.interface_id,
-            crate::keyboard_offer::INTERFACE_RESOURCE,
-            1,
-        ),
+        (realization.device_id, POINTER_DEVICE_RESOURCE, 1),
+        (realization.interface_id, POINTER_INTERFACE_RESOURCE, 1),
+        (realization.endpoint_id, POINTER_ENDPOINT_RESOURCE, 1),
         (
             realization.endpoint_id,
-            crate::keyboard_offer::ENDPOINT_RESOURCE,
-            1,
-        ),
-        (
-            realization.endpoint_id,
-            crate::keyboard_offer::REPORT_RESOURCE,
+            POINTER_REPORT_RESOURCE,
             u32::from(realization.report_buffers),
         ),
         (
             realization.endpoint_id,
-            crate::keyboard_offer::TRANSITION_RESOURCE,
+            POINTER_TRANSITION_RESOURCE,
             u32::from(realization.event_slots),
         ),
         (
             realization.endpoint_id,
-            crate::keyboard_offer::OPERATION_RESOURCE,
+            POINTER_OPERATION_RESOURCE,
             u32::from(realization.operation_slots),
         ),
     ];
@@ -147,12 +141,12 @@ pub(crate) fn append_to_advertisement(
     )];
     for class in [
         crate::keyboard_offer::CONTROLLER_RESOURCE,
-        crate::keyboard_offer::DEVICE_RESOURCE,
-        crate::keyboard_offer::INTERFACE_RESOURCE,
-        crate::keyboard_offer::ENDPOINT_RESOURCE,
-        crate::keyboard_offer::REPORT_RESOURCE,
-        crate::keyboard_offer::TRANSITION_RESOURCE,
-        crate::keyboard_offer::OPERATION_RESOURCE,
+        POINTER_DEVICE_RESOURCE,
+        POINTER_INTERFACE_RESOURCE,
+        POINTER_ENDPOINT_RESOURCE,
+        POINTER_REPORT_RESOURCE,
+        POINTER_TRANSITION_RESOURCE,
+        POINTER_OPERATION_RESOURCE,
     ] {
         requirements.push(conduit_core::resource_requirement(class, 1));
     }

@@ -57,7 +57,10 @@ extern "C" fn conduitos_start() -> ! {
                 None => emit_machine_refusal("usb-primary-device-absent"),
             };
             let pointer_usb = usb_devices[1].take();
-            let ftdi_usb = usb_devices[2].take();
+            let line_usb = usb_devices[2].take();
+            if line_usb.is_some() {
+                arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-device-current\n");
+            }
             arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
             let Some(arena_virtual_start) = record
                 .hhdm_offset
@@ -169,34 +172,6 @@ extern "C" fn conduitos_start() -> ! {
                 xhci.sign_slots,
             );
             arch::early_write(xhci_sign.as_bytes());
-            if !cfg!(feature = "scripted-keyboard-proof") {
-                if let Some(ftdi) = ftdi_usb.as_ref() {
-                    let ready =
-                        arch::prepare_ftdi_line(&mut xhci, ftdi, boot::executable_physical_address)
-                            .unwrap_or_else(|error| emit_machine_refusal(error.as_str()));
-                    let line_sign = conduitos::product_usb_line::current_offer_sign(
-                        &identities,
-                        xhci_base,
-                        ftdi,
-                        ready,
-                    )
-                    .unwrap_or_else(|error| emit_machine_refusal(error));
-                    arch::early_write(line_sign.as_bytes());
-                    arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-current\n");
-                    let mut carrier = arch::start_ftdi_line_session(ready);
-                    let mut packet = [0; arch::FTDI_PAYLOAD_BYTES];
-                    match carrier.receive(&mut xhci, ftdi, &mut packet) {
-                        Err(arch::FtdiLineError::DeviceRemoved) => {}
-                        Err(error) => emit_machine_refusal(error.as_str()),
-                        Ok(_) => emit_machine_refusal("usb-line-unexpected-peer-payload"),
-                    }
-                    let lost_sign =
-                        conduitos::product_usb_line::lost_sign(&identities, xhci_base, ftdi, ready)
-                            .unwrap_or_else(|error| emit_machine_refusal(error));
-                    arch::early_write(lost_sign.as_bytes());
-                    arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-lost\n");
-                }
-            }
             let device_id = identity::derive_usb_device(
                 &identities.boot,
                 &xhci_base,
@@ -377,9 +352,11 @@ extern "C" fn conduitos_start() -> ! {
                     &mut presentation_display,
                     &mut hid_session,
                     &mut xhci,
+                    xhci_base,
                     &usb,
                     pointer_session.as_mut(),
                     pointer_usb.as_ref(),
+                    line_usb.as_ref(),
                     &mut rescue_matcher,
                 ) {
                     emit_machine_refusal(reason);

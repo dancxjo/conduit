@@ -62,12 +62,12 @@ struct JourneyProof {
     pointer_release_sequence: u64,
     usb_line_id: String,
     usb_line_binding_id: String,
-    usb_line_base_instance_id: String,
-    usb_line_state_sign_id: String,
-    usb_line_lost_state_sign_id: String,
-    usb_line_peer_host_id: String,
-    usb_line_peer_boot_id: String,
-    usb_line_peer_connected_before_boot: bool,
+    usb_line_plan_id: String,
+    usb_line_source_active_play_id: String,
+    usb_line_sink_active_play_id: String,
+    usb_line_value: String,
+    usb_line_membership: String,
+    usb_line_body_unchanged: bool,
     open_effects: u8,
     body_retained_after_lull: bool,
     remained_alive: bool,
@@ -121,18 +121,21 @@ fn execute_image(
     image_sha256: String,
 ) -> Result<JourneyIdentity, ConduitosError> {
     let monitor_socket = paths.target.join("journey-monitor.sock");
-    let usb_line_socket = paths.target.join("journey-usb-line.sock");
     let serial_path = paths.target.join("journey-serial.log");
+    let line_socket = paths.target.join("journey-usb-line.sock");
     let proof_path = paths.target.join("journey-proof.json");
     let _ = fs::remove_file(&monitor_socket);
-    let _ = fs::remove_file(&usb_line_socket);
     let _ = fs::remove_file(&serial_path);
+    let _ = fs::remove_file(&line_socket);
     let monitor = format!(
         "unix:{},server=on,wait=off",
         monitor_socket.to_string_lossy()
     );
     let serial = format!("file:{}", serial_path.to_string_lossy());
-    let usb_line_chardev = super::journey_usb_line::chardev(&usb_line_socket);
+    let line_chardev = format!(
+        "socket,id=conduitos-usb-line-chardev,path={},server=on,wait=off",
+        line_socket.to_string_lossy()
+    );
     let mut command = Command::new("qemu-system-x86_64");
     command
         .args([
@@ -158,15 +161,15 @@ fn execute_image(
             "-net",
             "none",
             "-device",
-            super::journey_usb_line::QEMU_CONTROLLER,
+            "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
             "-device",
             "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
             "-device",
             "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
             "-chardev",
-            &usb_line_chardev,
+            &line_chardev,
             "-device",
-            super::journey_usb_line::QEMU_DEVICE,
+            "usb-serial,id=conduitos-usb-line,bus=conduitos-xhci.0,port=3,chardev=conduitos-usb-line-chardev",
             "-cdrom",
             image_path.to_str().ok_or_else(|| {
                 ConduitosError::refusal("product-journey-image-path-invalid", "non-UTF-8 ISO path")
@@ -192,31 +195,13 @@ fn execute_image(
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
 
     let result = (|| {
-        let _usb_line_peer = super::journey_usb_line::connect(&usb_line_socket, &mut child)?;
         let interaction = (|| {
             let (mut qmp, mut reader) = super::qmp::connect_traced(
                 &monitor_socket,
                 &mut child,
                 Some(&paths.target.join("journey-qmp.log")),
             )?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE usb-line-current",
-                "product-journey-usb-line-current-timeout",
-            )?;
-            super::qmp::request(
-                &mut qmp,
-                &mut reader,
-                b"{\"execute\":\"device_del\",\"arguments\":{\"id\":\"conduitos-usb-line\"}}\r\n",
-                "usb-line-device-del",
-            )?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_BOOT_STAGE usb-line-lost",
-                "product-journey-usb-line-lost-timeout",
-            )?;
+            let pending_line_peer = super::journey_usb_line::PendingPeer::connect(&line_socket)?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
@@ -224,19 +209,6 @@ fn execute_image(
                 "product-journey-front-door-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
-            journey_input::wait_tour_status(&serial_path, &mut child, "tour-opened")?;
-            artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
-            journey_input::wait_tour_status(&serial_path, &mut child, "result-visible")?;
-            artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "esc", "tour-return")?;
-            hid_qmp::wait_for_stage(
-                &serial_path,
-                &mut child,
-                "CONDUIT_TOUR_CHECKPOINT world-returned",
-                "product-journey-tour-return-timeout",
-            )?;
             for (key, status) in [
                 ("ret", "form-opened"),
                 ("f3", "born-lulled"),
@@ -280,14 +252,50 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
             journey_input::wait_status(&serial_path, &mut child, "lulled")?;
             artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-reopen")?;
-            hid_qmp::wait_for_stage_count(
+            journey_input::key_pair(&mut qmp, &mut reader, "f12", "usb-line")?;
+            hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
-                "CONDUIT_TOUR_CHECKPOINT workspace-opened",
-                2,
-                "product-journey-tour-reopen-timeout",
+                "CONDUIT_BOOT_STAGE usb-line-current",
+                "product-journey-usb-line-current-timeout",
             )?;
+            artifacts.capture(&mut qmp, &mut reader, "usb-line-current", true)?;
+            let mut line_peer = pending_line_peer.activate()?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE peer-attached",
+                "product-journey-usb-line-peer-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "peer-attached", true)?;
+            line_peer.receive_value_and_acknowledge()?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE line-value-visible",
+                "product-journey-usb-line-value-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "line-value-visible", true)?;
+            super::qmp::request_value(
+                &mut qmp,
+                &mut reader,
+                br#"{"execute":"device_del","arguments":{"id":"conduitos-usb-line"}}"#,
+                "usb-line-remove",
+            )?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE line-lost",
+                "product-journey-usb-line-loss-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "line-lost", true)?;
+            drop(line_peer);
+            journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
+            journey_input::wait_tour_status(&serial_path, &mut child, "tour-opened")?;
+            artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
+            journey_input::wait_tour_status(&serial_path, &mut child, "result-visible")?;
+            artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
@@ -334,7 +342,7 @@ fn execute_image(
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
         let pointer_records = super::journey_records::pointer(&serial)?;
-        let usb_line = super::journey_usb_line::evidence(&serial)?;
+        let usb_line_records = super::journey_records::usb_line(&serial)?;
         let by_status = records
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
@@ -396,6 +404,60 @@ fn execute_image(
                     identity,
                 ));
             }
+        }
+        if usb_line_records.len() != 4 {
+            return Err(ConduitosError::refusal(
+                "product-journey-usb-line-record-count",
+                "current, peer, value, and loss must produce exactly four Line records",
+            ));
+        }
+        for (record, status) in usb_line_records.iter().zip([
+            "usb-line-current",
+            "peer-attached",
+            "line-value-visible",
+            "line-lost",
+        ]) {
+            if record.get("status").and_then(Value::as_str) != Some(status)
+                || record.get("proof_class").and_then(Value::as_str)
+                    != Some("freestanding-emulator")
+                || record.get("membership").and_then(Value::as_str) != Some("not-requested")
+            {
+                return Err(ConduitosError::refusal(
+                    "product-journey-usb-line-stage-invalid",
+                    status,
+                ));
+            }
+        }
+        for identity in [
+            "line_id",
+            "binding_id",
+            "base_instance_id",
+            "plan_id",
+            "source_active_play_id",
+            "sink_active_play_id",
+            "source_host_id",
+            "source_boot_id",
+            "sink_host_id",
+            "sink_boot_id",
+            "body_id",
+        ] {
+            if usb_line_records
+                .iter()
+                .any(|record| record.get(identity) != usb_line_records[0].get(identity))
+            {
+                return Err(ConduitosError::refusal(
+                    "product-journey-usb-line-identity-drift",
+                    identity,
+                ));
+            }
+        }
+        if usb_line_records[2].get("value").and_then(Value::as_str) != Some("HELLO USB LINE")
+            || usb_line_records[0].get("body_id") != by_status["lulled"].get("body_id")
+        {
+            return Err(ConduitosError::refusal(
+                "product-journey-usb-line-causality-invalid",
+                "value or unchanged Body correlation did not match",
+            ));
         }
         if pointer_records.len() != 3 {
             return Err(ConduitosError::refusal(
@@ -552,14 +614,14 @@ fn execute_image(
             pointer_selected_subject: text(pointer_press, "subject")?,
             pointer_press_sequence: number(pointer_press, "sequence")?,
             pointer_release_sequence: number(pointer_release, "sequence")?,
-            usb_line_id: usb_line.line_id,
-            usb_line_binding_id: usb_line.binding_id,
-            usb_line_base_instance_id: usb_line.base_instance_id,
-            usb_line_state_sign_id: usb_line.state_sign_id,
-            usb_line_lost_state_sign_id: usb_line.lost_state_sign_id,
-            usb_line_peer_host_id: usb_line.peer_host_id,
-            usb_line_peer_boot_id: usb_line.peer_boot_id,
-            usb_line_peer_connected_before_boot: true,
+            usb_line_id: text(&usb_line_records[0], "line_id")?,
+            usb_line_binding_id: text(&usb_line_records[0], "binding_id")?,
+            usb_line_plan_id: text(&usb_line_records[0], "plan_id")?,
+            usb_line_source_active_play_id: text(&usb_line_records[0], "source_active_play_id")?,
+            usb_line_sink_active_play_id: text(&usb_line_records[0], "sink_active_play_id")?,
+            usb_line_value: text(&usb_line_records[2], "value")?,
+            usb_line_membership: text(&usb_line_records[0], "membership")?,
+            usb_line_body_unchanged: true,
             open_effects: 0,
             body_retained_after_lull: true,
             remained_alive: true,

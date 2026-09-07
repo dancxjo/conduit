@@ -9,10 +9,11 @@ const CHECKPOINTS = [
   "pointer-hover-or-focus", "pointer-selected",
   "form-opened", "born-lulled", "awake",
   "planned", "playing", "result-visible", "lulled",
+  "usb-line-current", "peer-attached", "line-value-visible", "line-lost",
 ];
 const DESCRIPTIONS = Object.freeze({
   "front-door-ready": "The ordinary ConduitOS front door after the exact Crèche artifact has booted and exposed its bounded product entrance.",
-  "tour-opened": "Tour opened from the ordinary ConduitOS front door through emulated xHCI, USB HID, and the admitted portable keyboard path; the canonical meet-one-gear lesson is ready but has not run.",
+  "tour-opened": "Tour opened from the ordinary ConduitOS product surface after the Body journey returned to Lulled, through emulated xHCI, USB HID, and the admitted portable keyboard path; the canonical meet-one-gear lesson is ready but has not run.",
   "tour-result-visible": "The canonical Tour Form has run through the production kernel and the visible HELLO result is correlated with exact source, checked Form, expanded Form, Plan, and active Play identities.",
   "tour-patchbay-open": "The same Tour workspace has opened its shared Patchbay surface while retaining the canonical specimen and visible result; this frame documents presentation continuity rather than a new Play.",
   "pointer-hover-or-focus": "A real emulated USB boot-pointer report crossed xHCI, USB, HID, and the portable pointer contract before the shared Patchbay geometry visibly marked the hovered Gear.",
@@ -24,6 +25,10 @@ const DESCRIPTIONS = Object.freeze({
   "playing": "The admitted Plan running as an active Play through the ordinary ConduitOS product path.",
   "result-visible": "The visible product result after guest semantic records report the correlated runtime outcome.",
   "lulled": "The completed journey returned to Lulled while retaining the same Body and exact journey evidence.",
+  "usb-line-current": "The same ordinary guest visibly reports one current bounded Line backed by QEMU's separately pinned FTDI USB function; the correlated guest record, rather than this raster, establishes controller, device, interface, endpoint, Line, binding, Host, and Boot facts.",
+  "peer-attached": "The host-side harness peer has completed the canonical bounded Hello/Ready session over bytes that crossed the emulated FTDI USB device. Connectivity remains explicitly pre-admission and does not imply Body membership.",
+  "line-value-visible": "The guest visibly manifests HELLO USB LINE after the canonical session delivered the bounded value across the emulated USB carrier with exact Line, session, Plan, Host, Boot, and unchanged Body correlation.",
+  "line-lost": "After QMP removes the separately pinned FTDI USB function, the ordinary guest visibly reports Line loss; correlated records establish device loss and stale-session refusal without changing Body identity.",
 });
 const [evidenceRoot, siteRoot, commit] = process.argv.slice(2);
 if (!evidenceRoot || !siteRoot || !/^[0-9a-f]{40}$/.test(commit ?? "")) {

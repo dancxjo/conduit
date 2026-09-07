@@ -2,6 +2,7 @@ use super::*;
 use crate::{
     keyboard_offer::KeyboardRealization,
     offer::{CpuFeatures, HostOffer},
+    pointer_offer::PointerRealization,
 };
 use conduit_body::WakeLifecycle;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
@@ -35,6 +36,20 @@ fn fixture() -> (BootIdentities, HostOffer<'static>, ProductJourney) {
         "build",
     )
     .unwrap();
+    let offer = offer
+        .with_pointer(
+            PointerRealization {
+                controller_id: [3; 32],
+                device_id: [7; 32],
+                interface_id: [8; 32],
+                endpoint_id: [9; 32],
+                report_buffers: 2,
+                event_slots: 8,
+                operation_slots: 1,
+            },
+            "build",
+        )
+        .unwrap();
     let journey = ProductJourney::new(
         HostId::from(crate::identity::hex(&identities.host)),
         BootId::from(crate::identity::hex(&identities.boot)),

@@ -1,98 +1,39 @@
-//! Ordinary-product publication of one exact current QEMU FTDI Line.
+//! Ordinary product service for one exact pre-admission USB connectivity seam.
 
-use alloc::{format, string::String};
-use conduit_core::{BaseInstanceId, BootId, HostId, LineId, LinkBindingId, LinkEndpointId, SignId};
+use alloc::{format, vec};
+use conduit_core::{
+    BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId, LineId, LinkBindingId,
+    LinkEndpointId, PlacementId, PlannedConnection, PortId, PortTemporal, SignId, bind_active_play,
+};
+use conduit_wire::{SessionBinding, SessionMessage, SessionRole};
 
 use crate::{
-    arch::{FtdiLineReady, UsbDevice},
+    arch::{FtdiLineReady, FtdiLineSession, UsbDevice, XhciReady, start_ftdi_line_session},
     identity::{self, BootIdentities},
     usb_line_offer::{
         AdmittedUsbLineBasis, UsbLineIdentity, UsbLineObservation, UsbLineRealization,
         UsbLineState, offer_usb_ftdi_line,
     },
+    usb_line_session::{ReceivedSessionMessage, UsbLineSession, UsbLineSessionError},
 };
 
-pub const QEMU_PEER_HOST_ID: &str = "host/qemu-product-journey-ftdi-peer";
-pub const QEMU_PEER_BOOT_ID: &str = "boot/qemu-product-journey-ftdi-peer/1";
+pub const HARNESS_HOST_ID: &str = "host/qemu-usb-line-peer";
+pub const HARNESS_BOOT_ID: &str = "boot/qemu-usb-line-peer/1";
+pub const LINE_VALUE: &[u8] = b"HELLO USB LINE";
 
-pub fn current_offer_sign(
-    identities: &BootIdentities,
-    controller_id: [u8; 32],
-    device: &UsbDevice,
-    ready: FtdiLineReady,
-) -> Result<String, &'static str> {
-    let (line, observation) = current_line(identities, controller_id, device, ready)?;
-    Ok(format!(
-        "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos/usb-line@1\",\"status\":\"current\",\"proof_class\":\"freestanding-emulator\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"source_endpoint_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"sink_endpoint_id\":\"{}\",\"state_sign_id\":\"{}\",\"controller_id\":\"{}\",\"device_id\":\"{}\",\"interface_id\":\"{}\",\"input_endpoint_id\":\"{}\",\"output_endpoint_id\":\"{}\",\"attachment_epoch\":{},\"maximum_in_flight_items\":{},\"maximum_payload_bytes\":{},\"maximum_buffered_bytes\":{},\"maximum_frame_bytes\":{}}}\n",
-        line.line_id.as_str(),
-        line.binding.binding_id.as_str(),
-        line.binding.base_instance_id.as_str(),
-        line.binding.source.host_id.as_str(),
-        line.binding.source.boot_id.as_str(),
-        line.binding.source.endpoint_id.as_str(),
-        line.binding.sink.host_id.as_str(),
-        line.binding.sink.boot_id.as_str(),
-        line.binding.sink.endpoint_id.as_str(),
-        line.availability.sign_id.as_str(),
-        identity::hex(&observation.realization.controller_id),
-        identity::hex(&observation.realization.device_id),
-        identity::hex(&observation.realization.interface_id),
-        identity::hex(&observation.realization.input_endpoint_id),
-        identity::hex(&observation.realization.output_endpoint_id),
-        observation.realization.attachment_epoch,
-        line.binding.limits.maximum_in_flight_items,
-        line.binding.limits.maximum_payload_bytes,
-        line.binding.limits.maximum_buffered_bytes,
-        line.binding.limits.maximum_frame_bytes,
-    ))
+pub struct ProductUsbLine {
+    observation: UsbLineObservation,
+    basis: AdmittedUsbLineBasis,
+    carrier: FtdiLineSession,
+    session: UsbLineSession,
 }
 
-pub fn lost_sign(
+pub fn prepare(
     identities: &BootIdentities,
     controller_id: [u8; 32],
     device: &UsbDevice,
     ready: FtdiLineReady,
-) -> Result<String, &'static str> {
-    let (line, mut observation) = current_line(identities, controller_id, device, ready)?;
-    observation.state = UsbLineState::Lost;
-    let lost_state = identity::derive_base(&identities.boot, "conduitos/usb-ftdi/lost/1");
-    observation.state_sign_id = SignId::from(identity::hex(&lost_state));
-    let admitted = AdmittedUsbLineBasis::from_offer(
-        &line,
-        &UsbLineObservation {
-            state: UsbLineState::Current,
-            state_sign_id: line.availability.sign_id.clone(),
-            ..observation.clone()
-        },
-    )
-    .map_err(|_| "usb-line-admission-invalid")?;
-    if !matches!(
-        admitted.validate_current(&observation),
-        Err(crate::usb_line_offer::UsbLineOfferError::Lost)
-    ) {
-        return Err("usb-line-stale-current-not-refused");
-    }
-    Ok(format!(
-        "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos/usb-line@1\",\"status\":\"lost\",\"proof_class\":\"freestanding-emulator\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"state_sign_id\":\"{}\",\"device_id\":\"{}\",\"attachment_epoch\":{},\"reason\":\"device-removed\",\"stale_current_refused\":true}}\n",
-        line.line_id.as_str(),
-        line.binding.binding_id.as_str(),
-        line.binding.base_instance_id.as_str(),
-        line.binding.source.host_id.as_str(),
-        line.binding.source.boot_id.as_str(),
-        line.binding.sink.host_id.as_str(),
-        line.binding.sink.boot_id.as_str(),
-        observation.state_sign_id.as_str(),
-        identity::hex(&observation.realization.device_id),
-        observation.realization.attachment_epoch,
-    ))
-}
-
-fn current_line(
-    identities: &BootIdentities,
-    controller_id: [u8; 32],
-    device: &UsbDevice,
-    ready: FtdiLineReady,
-) -> Result<(conduit_core::LineOffer, UsbLineObservation), &'static str> {
+) -> Result<ProductUsbLine, &'static str> {
     let device_id = identity::derive_usb_device(
         &identities.boot,
         &controller_id,
@@ -101,50 +42,233 @@ fn current_line(
         device.attachment_epoch,
     );
     let interface_id = identity::derive_usb_interface(&device_id, ready.interface_number, 0);
-    let input_endpoint_id =
-        identity::derive_usb_endpoint(&interface_id, ready.input_endpoint_address);
-    let output_endpoint_id =
-        identity::derive_usb_endpoint(&interface_id, ready.output_endpoint_address);
-    let base_instance = identity::derive_base(&identities.boot, "conduitos/usb-ftdi/0");
-    let state_sign = identity::derive_base(&identities.boot, "conduitos/usb-ftdi/current/1");
-    let observation = UsbLineObservation {
-        realization: UsbLineRealization {
-            controller_id,
-            device_id,
-            interface_id,
-            input_endpoint_id,
-            output_endpoint_id,
-            attachment_epoch: device.attachment_epoch,
-            input_dci: ready.input_dci,
-            output_dci: ready.output_dci,
-            packet_bytes: ready.packet_bytes,
-            payload_bytes: ready.payload_bytes,
-            transfer_trbs_per_direction: ready.transfer_trbs_per_direction,
-        },
-        base_instance_id: BaseInstanceId::from(identity::hex(&base_instance)),
-        state: UsbLineState::Current,
-        state_sign_id: SignId::from(identity::hex(&state_sign)),
+    let realization = UsbLineRealization {
+        controller_id,
+        device_id,
+        interface_id,
+        input_endpoint_id: identity::derive_usb_endpoint(
+            &interface_id,
+            ready.input_endpoint_address,
+        ),
+        output_endpoint_id: identity::derive_usb_endpoint(
+            &interface_id,
+            ready.output_endpoint_address,
+        ),
+        attachment_epoch: device.attachment_epoch,
+        input_dci: ready.input_dci,
+        output_dci: ready.output_dci,
+        packet_bytes: ready.packet_bytes,
+        payload_bytes: ready.payload_bytes,
+        transfer_trbs_per_direction: ready.transfer_trbs_per_direction,
     };
-    let line_id = identity::derive_base(&identities.boot, "conduitos/usb-ftdi/line/1");
-    let binding_id = identity::derive_base(&identities.boot, "conduitos/usb-ftdi/binding/1");
-    let source_endpoint =
-        identity::derive_base(&identities.boot, "conduitos/usb-ftdi/source-endpoint/1");
-    let line = offer_usb_ftdi_line(
-        UsbLineIdentity {
-            line_id: LineId::from(identity::hex(&line_id)),
-            binding_id: LinkBindingId::from(identity::hex(&binding_id)),
-            base_instance_id: observation.base_instance_id.clone(),
-            source_host_id: HostId::from(identity::hex(&identities.host)),
-            source_boot_id: BootId::from(identity::hex(&identities.boot)),
-            source_endpoint_id: LinkEndpointId::from(identity::hex(&source_endpoint)),
-            sink_host_id: HostId::from(QEMU_PEER_HOST_ID),
-            sink_boot_id: BootId::from(QEMU_PEER_BOOT_ID),
-            sink_endpoint_id: LinkEndpointId::from("endpoint/qemu-product-journey-ftdi-peer"),
-        },
-        &observation,
+    let base = identity::derive_base(&identities.boot, "conduitos/qemu-usb-ftdi/0");
+    let suffix = identity::hex(&base);
+    let base_instance_id = BaseInstanceId::from(format!("base/usb-ftdi/{suffix}"));
+    let observation = UsbLineObservation {
+        realization,
+        base_instance_id: base_instance_id.clone(),
+        state: UsbLineState::Current,
+        state_sign_id: SignId::from(format!("sign/usb-ftdi/{suffix}/current")),
+    };
+    let source_host = HostId::from(identity::hex(&identities.host));
+    let source_boot = BootId::from(identity::hex(&identities.boot));
+    let line_identity = UsbLineIdentity {
+        line_id: LineId::from(format!("line/usb-ftdi/{suffix}")),
+        binding_id: LinkBindingId::from(format!("binding/usb-ftdi/{suffix}")),
+        base_instance_id,
+        source_host_id: source_host.clone(),
+        source_boot_id: source_boot.clone(),
+        source_endpoint_id: LinkEndpointId::from(format!("endpoint/usb-ftdi/{suffix}/guest")),
+        sink_host_id: HostId::from(HARNESS_HOST_ID),
+        sink_boot_id: BootId::from(HARNESS_BOOT_ID),
+        sink_endpoint_id: LinkEndpointId::from("endpoint/qemu-usb-line-peer/ftdi"),
+    };
+    let offer = offer_usb_ftdi_line(line_identity, &observation)
+        .map_err(|_| "product-usb-line-offer-refused")?;
+    let basis = AdmittedUsbLineBasis::from_offer(&offer, &observation)
+        .map_err(|_| "product-usb-line-basis-refused")?;
+    let line = offer.admitted_line();
+    let connection = PlannedConnection {
+        connection_id: ConnectionId::from("connection/usb-line/connectivity-seam"),
+        source_placement_id: PlacementId::from("placement/conduitos/usb-line-source"),
+        source_port_id: PortId::from("value"),
+        sink_placement_id: PlacementId::from("placement/harness/usb-line-sink"),
+        sink_port_id: PortId::from("value"),
+        value_kind: KindId::from("info/text@1"),
+        temporal: PortTemporal::Value,
+        selected_line: Some(line.clone()),
+        admitted_lines: vec![line],
+        item_capacity: 1,
+        byte_capacity: crate::usb_line_offer::USB_LINE_MAXIMUM_PAYLOAD_BYTES,
+    };
+    let plan_id = conduit_core::PlanId::from("plan/usb-line/pre-admission-connectivity-seam");
+    let binding = SessionBinding::from_planned_connection(
+        plan_id,
+        FragmentId::from("fragment/conduitos/usb-line-source"),
+        FragmentId::from("fragment/harness/usb-line-sink"),
+        &connection,
     )
-    .map_err(|_| "usb-line-offer-invalid")?;
-    AdmittedUsbLineBasis::from_offer(&line, &observation)
-        .map_err(|_| "usb-line-admission-invalid")?;
-    Ok((line, observation))
+    .map_err(|_| "product-usb-line-session-binding-refused")?;
+    debug_assert_eq!(
+        binding.source_active_play_id,
+        bind_active_play(&binding.plan_id, &source_host, &source_boot, 0).active_play_id
+    );
+    Ok(ProductUsbLine {
+        observation,
+        basis,
+        carrier: start_ftdi_line_session(ready),
+        session: UsbLineSession::new(binding, SessionRole::Source)
+            .map_err(|_| "product-usb-line-session-refused")?,
+    })
+}
+
+impl ProductUsbLine {
+    pub fn run(
+        &mut self,
+        controller: &mut XhciReady,
+        device: &UsbDevice,
+        body_id: &str,
+        mut manifest: impl FnMut(
+            crate::front_door::ConnectivityStatus,
+            &str,
+            Option<&str>,
+        ) -> Result<(), &'static str>,
+    ) -> Result<(), &'static str> {
+        manifest(
+            crate::front_door::ConnectivityStatus::Current,
+            self.session.binding().attachment.line_id.as_str(),
+            None,
+        )?;
+        emit("usb-line-current", self, body_id, None);
+        crate::arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-current\n");
+        let binding = self.session.binding().clone();
+        self.send(controller, device, binding.hello_frame().message)?;
+        self.expect(controller, device, ReceivedSessionMessage::Hello)?;
+        self.send(controller, device, SessionMessage::Ready)?;
+        self.expect(controller, device, ReceivedSessionMessage::Ready)?;
+        manifest(
+            crate::front_door::ConnectivityStatus::PeerAttached,
+            self.session.binding().attachment.line_id.as_str(),
+            None,
+        )?;
+        emit("peer-attached", self, body_id, None);
+        crate::arch::early_write(b"CONDUIT_BOOT_STAGE peer-attached\n");
+        self.send(
+            controller,
+            device,
+            SessionMessage::Offered {
+                sequence: 0,
+                payload: LINE_VALUE,
+            },
+        )?;
+        self.expect(controller, device, ReceivedSessionMessage::Accepted(0))?;
+        self.expect(controller, device, ReceivedSessionMessage::Delivered(0))?;
+        manifest(
+            crate::front_door::ConnectivityStatus::ValueVisible,
+            self.session.binding().attachment.line_id.as_str(),
+            Some("HELLO USB LINE"),
+        )?;
+        emit("line-value-visible", self, body_id, Some("HELLO USB LINE"));
+        crate::arch::early_write(b"CONDUIT_BOOT_STAGE line-value-visible\n");
+        let loss = self.session.receive(
+            &mut self.carrier,
+            controller,
+            device,
+            &self.basis,
+            &self.observation,
+        );
+        if !matches!(
+            loss,
+            Err(UsbLineSessionError::Carrier(
+                crate::arch::FtdiLineError::DeviceRemoved
+            ))
+        ) {
+            return Err("product-usb-line-removal-not-observed");
+        }
+        self.observation.state = UsbLineState::Lost;
+        self.observation.state_sign_id = SignId::from("sign/usb-ftdi/lost");
+        if !matches!(
+            self.session.send(
+                &mut self.carrier,
+                controller,
+                device,
+                &self.basis,
+                &self.observation,
+                SessionMessage::Ready,
+            ),
+            Err(UsbLineSessionError::Current(
+                crate::usb_line_offer::UsbLineOfferError::Lost
+            ))
+        ) {
+            return Err("product-usb-line-stale-session-not-refused");
+        }
+        manifest(
+            crate::front_door::ConnectivityStatus::Lost,
+            self.session.binding().attachment.line_id.as_str(),
+            None,
+        )?;
+        emit("line-lost", self, body_id, None);
+        crate::arch::early_write(b"CONDUIT_BOOT_STAGE line-lost\n");
+        Ok(())
+    }
+
+    fn send(
+        &mut self,
+        controller: &mut XhciReady,
+        device: &UsbDevice,
+        message: SessionMessage<'_>,
+    ) -> Result<(), &'static str> {
+        self.session
+            .send(
+                &mut self.carrier,
+                controller,
+                device,
+                &self.basis,
+                &self.observation,
+                message,
+            )
+            .map_err(|_| "product-usb-line-send-refused")
+    }
+
+    fn expect(
+        &mut self,
+        controller: &mut XhciReady,
+        device: &UsbDevice,
+        expected: ReceivedSessionMessage,
+    ) -> Result<(), &'static str> {
+        let found = self
+            .session
+            .receive(
+                &mut self.carrier,
+                controller,
+                device,
+                &self.basis,
+                &self.observation,
+            )
+            .map_err(|_| "product-usb-line-receive-refused")?;
+        (found == expected)
+            .then_some(())
+            .ok_or("product-usb-line-message-unexpected")
+    }
+}
+
+fn emit(status: &str, line: &ProductUsbLine, body_id: &str, value: Option<&str>) {
+    let binding = line.session.binding();
+    let value = value.map_or_else(|| "null".into(), |value| format!("\"{value}\""));
+    crate::arch::early_write(
+        format!(
+            "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos.usb-line/v1\",\"status\":\"{status}\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"plan_id\":\"{}\",\"source_active_play_id\":\"{}\",\"sink_active_play_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"body_id\":\"{body_id}\",\"value\":{value},\"proof_class\":\"freestanding-emulator\",\"membership\":\"not-requested\",\"bounded\":true}}\n",
+            binding.attachment.line_id.as_str(),
+            binding.attachment.link_binding_id.as_str(),
+            binding.attachment.base_instance_id.as_str(),
+            binding.plan_id.as_str(),
+            binding.source_active_play_id.as_str(),
+            binding.sink_active_play_id.as_str(),
+            binding.source.host_id.as_str(),
+            binding.source.boot_id.as_str(),
+            binding.sink.host_id.as_str(),
+            binding.sink.boot_id.as_str(),
+        )
+        .as_bytes(),
+    );
 }

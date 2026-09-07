@@ -45,6 +45,10 @@ pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, Conduitos
                     line.strip_prefix(POINTER_PREFIX)
                         .map(|json| (json, "conduitos-pointer-sign-invalid"))
                 })
+                .or_else(|| {
+                    line.strip_prefix(USB_LINE_PREFIX)
+                        .map(|json| (json, "conduitos-usb-line-sign-invalid"))
+                })
         })
         .map(|(json, reason)| {
             serde_json::from_str(json)
@@ -124,14 +128,15 @@ mod tests {
     }
 
     #[test]
-    fn usb_line_records_are_complete_and_separate_from_product_checkpoints() {
+    fn latest_checkpoint_includes_complete_usb_line_records() {
         let serial = concat!(
-            "CONDUIT_USB_LINE_SIGN {\"status\":\"current\",\"line_id\":\"line/1\"}\n",
-            "CONDUIT_USB_LINE_SIGN {\"status\":\"lost\"",
+            "CONDUIT_POINTER_SIGN {\"status\":\"selected\"}\n",
+            "CONDUIT_USB_LINE_SIGN {\"status\":\"line-lost\",\"line_id\":\"line/1\"}\n",
         );
-        let records = usb_line(serial).unwrap();
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0]["line_id"], "line/1");
-        assert!(decode(serial).unwrap().is_empty());
+        assert_eq!(usb_line(serial).unwrap().len(), 1);
+        assert_eq!(
+            latest_checkpoint(serial).unwrap().unwrap()["status"],
+            "line-lost"
+        );
     }
 }
