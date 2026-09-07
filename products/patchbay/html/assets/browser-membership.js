@@ -2,7 +2,6 @@ import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
 import { openBrowserHostIdentity } from "/targets/browser/host/assets/browser-host-identity.mjs";
 
 const INPUT_CAPACITY = 4096;
-const MAXIMUM_OUTPUT_BYTES = 72 * 1024;
 const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
@@ -55,6 +54,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
     "conduit_browser_membership_input_ptr",
     "conduit_browser_membership_input_capacity",
     "conduit_browser_membership_output_ptr",
+    "conduit_browser_membership_output_capacity",
     "conduit_browser_membership_output_len",
     "conduit_browser_membership_initialize",
     "conduit_browser_membership_prove",
@@ -67,9 +67,10 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   }
   const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8", { fatal: true });
+  const outputCapacity = api.conduit_browser_membership_output_capacity();
   const readOutput = () => {
     const length = api.conduit_browser_membership_output_len();
-    if (length < 0 || length > MAXIMUM_OUTPUT_BYTES) {
+    if (length < 0 || length > outputCapacity) {
       throw new Error("invalid browser membership output length");
     }
     return new Uint8Array(

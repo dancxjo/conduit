@@ -71,9 +71,10 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
     expect((await snapshot()).body_workbench.body_id).toBe(bodyId);
     await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+    await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     await expect.poll(
       async () => (await snapshot()).body_host_offer_evidence?.stage,
-      { message: `Body membership was not admitted: ${probe.output()}`, timeout: 10_000 },
+      { message: `Body Host offer evidence was not adopted: ${probe.output()}`, timeout: 10_000 },
     ).toBe("AdmittedMembership");
     await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
