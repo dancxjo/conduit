@@ -61,6 +61,7 @@ struct GalleryForm {
     source: &'static str,
     source_document_id: String,
     checked_form_id: String,
+    presentation_profile: u8,
     required_kinds: Vec<String>,
     realizability: GalleryRealizability,
 }
@@ -157,6 +158,12 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             source,
             source_document_id: checked.source_document_id.as_str().into(),
             checked_form_id: form.checked_form_id.as_str().into(),
+            presentation_profile: match presentation {
+                PresentationProfile::Annotation => 0,
+                PresentationProfile::Quantity => 1,
+                PresentationProfile::NormalizedDurations => 2,
+                PresentationProfile::PatternComparison => 3,
+            },
             required_kinds,
             realizability: GalleryRealizability {
                 status: if current_offer_count == requirements.len() {
@@ -306,6 +313,24 @@ mod tests {
         let gallery = reviewed_gallery().unwrap();
         assert_eq!(gallery.maximum_forms, 7);
         assert_eq!(gallery.forms.len(), 7);
+        assert_eq!(
+            gallery
+                .forms
+                .iter()
+                .find(|form| form.name == "pocket-theremin")
+                .unwrap()
+                .presentation_profile,
+            1
+        );
+        assert_eq!(
+            gallery
+                .forms
+                .iter()
+                .find(|form| form.name == "secret-knock-demo")
+                .unwrap()
+                .presentation_profile,
+            3
+        );
         for form in gallery.forms {
             assert!(!form.source_document_id.is_empty());
             assert!(!form.checked_form_id.is_empty());

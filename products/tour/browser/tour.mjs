@@ -462,7 +462,11 @@ function createRunner(source, recursive = false, presentation = {}) {
   });
   const textarea = runner.querySelector(`[data-application-key="${listingId}"]`);
   const syntaxEditor = attachConduitSyntaxEditor(textarea, host.runtime);
-  runner.querySelector(".structured-output-profile")?.addEventListener("change", () => {
+  const outputProfile = runner.querySelector(".structured-output-profile");
+  if (outputProfile && Number.isInteger(presentation.outputProfile)) {
+    outputProfile.value = String(presentation.outputProfile);
+  }
+  outputProfile?.addEventListener("change", () => {
     if (running && activeRunner === runner) stopListing(runner);
     refreshCompactPatchbay(runner, textarea.value, recursive);
   });
