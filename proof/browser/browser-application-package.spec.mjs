@@ -341,7 +341,8 @@ test("Crèche refuses changed admitted code before application manifestation", a
     await route.fulfill({ response, body: `${await response.text()}\n// changed after packaging` });
   }, { times: 1 });
   await page.goto(entrance.url);
-  await expect(page.locator("body")).toHaveText("application resource application-module changed identity");
+  await expect(page.locator("#host-state")).toHaveText("Browser application refused");
+  await expect(page.locator("#workspace")).toHaveText("application resource application-module changed identity");
   expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
 });
 
