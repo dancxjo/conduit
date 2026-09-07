@@ -5,8 +5,10 @@ use conduit_form::{
 };
 use conduit_text::AddressDetection;
 use conduit_tongues::{
-    house_prompt_contract, install_house_conversation_catalog, prepare_house_generation_prompt,
-    HousePromptRefusal, HOUSE_CONTEXT_TO_PROMPT_KIND,
+    decode_address_detection, decode_wired_house_context, encode_address_detection,
+    encode_wired_house_context, house_prompt_contract, install_house_conversation_catalog,
+    prepare_house_generation_prompt, HouseConversationValueError, HousePromptRefusal,
+    HOUSE_CONTEXT_TO_PROMPT_KIND,
 };
 
 fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
@@ -17,6 +19,49 @@ fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
         provenance,
         source_identity: "sign/temperature/42".into(),
     }
+}
+
+#[test]
+fn runtime_port_values_are_canonical_bounded_and_provider_neutral() {
+    let detection = AddressDetection::Addressed {
+        matched_name_index: 0,
+        utterance: "status upstairs?".into(),
+    };
+    let detection_bytes = encode_address_detection(&detection).unwrap();
+    assert_eq!(decode_address_detection(&detection_bytes), Ok(detection));
+    let context = vec![context(HouseContextProvenanceClass::ObservedSign)];
+    let context_bytes = encode_wired_house_context(&context).unwrap();
+    assert_eq!(decode_wired_house_context(&context_bytes), Ok(context));
+    let text = String::from_utf8(context_bytes).unwrap();
+    for forbidden in ["ollama", "localhost", "11434", "model_name"] {
+        assert!(!text.contains(forbidden));
+    }
+}
+
+#[test]
+fn malformed_noncanonical_and_invalid_port_values_refuse() {
+    assert_eq!(
+        decode_address_detection(
+            br#"{ "schema":"conduit.house/address-detection-value@1","status":"not-addressed","matched_name_index":null,"utterance":null}"#
+        ),
+        Err(HouseConversationValueError::NonCanonical)
+    );
+    assert_eq!(
+        decode_address_detection(b"not-json"),
+        Err(HouseConversationValueError::Malformed)
+    );
+    let invalid = AddressDetection::Addressed {
+        matched_name_index: conduit_text::MAX_ADDRESS_NAMES as u8,
+        utterance: "status".into(),
+    };
+    assert_eq!(
+        encode_address_detection(&invalid),
+        Err(HouseConversationValueError::InvalidValue)
+    );
+    assert_eq!(
+        decode_wired_house_context(br#"{"schema":"wrong","items":[]}"#),
+        Err(HouseConversationValueError::WrongSchema)
+    );
 }
 
 #[test]
