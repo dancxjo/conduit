@@ -320,6 +320,14 @@ pub extern "C" fn conduit_tour_multi_timeout(code: u16) -> i32 {
     terminate_transport(TransportTermination::TimedOut, code)
 }
 
+#[no_mangle]
+pub extern "C" fn conduit_tour_multi_partial_send(sent_bytes: usize) -> i32 {
+    with_session(
+        |session| session.observe_partial_send(sent_bytes),
+        ERROR_TRANSPORT,
+    )
+}
+
 fn terminate_transport(termination: TransportTermination, code: u16) -> i32 {
     clear_output();
     SESSION.with(|slot| {
