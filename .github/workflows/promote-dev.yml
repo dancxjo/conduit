@@ -31,20 +31,27 @@ jobs:
           printf -- '- No release was requested because this development integration ended `%s`.\n' "$INTEGRATION_CONCLUSION" >> "$GITHUB_STEP_SUMMARY"
           printf -- '- Superseded integration: %s\n' "$INTEGRATION_URL" >> "$GITHUB_STEP_SUMMARY"
           printf -- '- A newer development head owns the next release decision.\n' >> "$GITHUB_STEP_SUMMARY"
-      - name: Check out everything currently in development
+      - name: Check out the exact successfully integrated development snapshot
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         uses: actions/checkout@v7
         with:
-          ref: dev
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'dev' || github.event.workflow_run.head_sha }}
           fetch-depth: 0
       - name: Create or reuse the repairable release pull request
         id: pull-request
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          INTEGRATION_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           dev_sha=$(git rev-parse HEAD)
+          if test "$EVENT_NAME" = workflow_run; then
+            test "$dev_sha" = "$INTEGRATION_SHA"
+          fi
           git fetch --no-tags origin main
+          git fetch --no-tags origin dev
+          git merge-base --is-ancestor "$dev_sha" origin/dev
           current_release=$(gh pr list --state open --base main --json url,headRefName \
             --jq '[.[] | select((.headRefName | startswith("release/")) or (.headRefName | startswith("promote/")))][0].url // empty')
           if test -n "$current_release"; then
