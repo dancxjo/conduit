@@ -11,6 +11,42 @@ pub(in crate::form_runner) fn complete_transform(
     operation: &HostOperationRequirement,
     request: HostOperationRequest,
 ) -> Result<bool, String> {
+    if operation.contract_id.as_str() == crate::installed_browser::historical::HOST_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.histories[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("bounded history was not prepared before Play")?
+            .execute(input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::record_delivery::HOST_OPERATION {
         let input = scheduler
             .kernel

@@ -3,6 +3,7 @@
 mod button_indicator;
 mod delay;
 mod factory;
+pub(crate) mod historical;
 mod input;
 mod inventory;
 pub(crate) mod json;
@@ -89,6 +90,9 @@ pub(crate) mod test_json;
 
 #[cfg(test)]
 pub(crate) mod test_timing_sink;
+
+#[cfg(test)]
+pub(crate) mod test_history_sink;
 
 pub(crate) mod button_attempt;
 
