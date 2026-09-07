@@ -12,7 +12,7 @@ pub const FTDI_PRODUCT_ID: u16 = 0x6001;
 pub const FTDI_DEVICE_VERSION: u16 = 0x0400;
 pub const FTDI_PACKET_BYTES: usize = 64;
 pub const FTDI_PAYLOAD_BYTES: usize = FTDI_PACKET_BYTES - 2;
-pub const FTDI_TRANSFER_TRBS: usize = 32;
+pub const FTDI_TRANSFER_TRBS: usize = 128;
 pub const FTDI_POLL_WINDOWS: u16 = 1_024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

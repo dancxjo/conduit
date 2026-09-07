@@ -21,6 +21,7 @@ enum SessionFailureState {
 /// Allocation-stable lifecycle verifier for one exact directional session.
 /// It owns no socket and performs no retry; lines may only submit inbound
 /// and outbound frames in the order admitted here.
+#[derive(Clone)]
 pub struct SessionMachine {
     binding: SessionBinding,
     role: SessionRole,

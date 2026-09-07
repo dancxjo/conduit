@@ -12,7 +12,7 @@ fn realization() -> UsbLineRealization {
         output_dci: 4,
         packet_bytes: 64,
         payload_bytes: 62,
-        transfer_trbs_per_direction: 32,
+        transfer_trbs_per_direction: 128,
     }
 }
 

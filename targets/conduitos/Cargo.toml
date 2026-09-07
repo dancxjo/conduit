@@ -213,6 +213,7 @@ conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-tour-model = { path = "../../products/tour/model" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
+conduit-wire = { path = "../../architecture/wire" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }

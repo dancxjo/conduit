@@ -140,8 +140,8 @@ fn every_refusal_is_machine_readable_and_storage_is_fixed() {
                 .any(|prior| prior.as_str() == failure.as_str())
         );
     }
-    assert!(core::mem::size_of::<FtdiDma>() <= 4096);
+    assert!(core::mem::size_of::<FtdiDma>() <= 8192);
     assert_eq!(core::mem::align_of::<FtdiDma>(), 4096);
-    assert_eq!(FTDI_TRANSFER_TRBS, 32);
+    assert_eq!(FTDI_TRANSFER_TRBS, 128);
     assert_eq!(FTDI_PAYLOAD_BYTES, 62);
 }
