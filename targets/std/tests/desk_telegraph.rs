@@ -7,6 +7,7 @@ use conduit_std_host::{StdHost, ThreadTimer};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../forms/desk-telegraph/main.conduit");
+const EVIDENCE_MARKER: &str = "CONDUIT_FORM_EVIDENCE=";
 
 fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let mut startup = StartupCatalog::new();
@@ -71,6 +72,7 @@ fn canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play() {
     let plan = plan(&host, &expanded);
     assert_eq!(plan.fragments.len(), 1);
     assert_eq!(plan.fragments[0].placements.len(), 9);
+    let plan_id = plan.plan_id.clone();
 
     let mut output = Vec::with_capacity(4_096);
     let mut timer = ThreadTimer;
@@ -88,6 +90,11 @@ fn canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play() {
     assert_eq!(
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
+    );
+    println!(
+        "{EVIDENCE_MARKER}{{\"plan_id\":\"{}\",\"play_id\":\"{}\"}}",
+        plan_id.as_str(),
+        kernel.active_play_id.as_str()
     );
 }
 
