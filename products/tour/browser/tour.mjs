@@ -126,7 +126,8 @@ function requireTourAbi(api) {
     "conduit_tour_multi_output_ptr", "conduit_tour_multi_output_len",
     "conduit_tour_multi_admit_source_interaction", "conduit_tour_multi_start_source",
     "conduit_tour_multi_start_sink", "conduit_tour_multi_complete_input",
-    "conduit_tour_multi_ingest", "conduit_tour_multi_complete", "conduit_tour_multi_cancel",
+    "conduit_tour_multi_complete_timer", "conduit_tour_multi_ingest",
+    "conduit_tour_multi_complete", "conduit_tour_multi_cancel",
   ];
   if (required.some((name) => !(name in api))) throw new Error("executable-tour ABI is incomplete");
 }
@@ -850,7 +851,7 @@ async function runMultiHostListing(runner, source) {
       sourceProgress.plan_projection.raw_plan,
       current,
     );
-    if (!["line", "input"].includes(sourceProgress.effect_kind) || sinkProgress.effect_kind !== "waiting") {
+    if (!["line", "input", "timer"].includes(sourceProgress.effect_kind) || sinkProgress.effect_kind !== "waiting") {
       throw new Error("two-Host runner did not start at the exact planned Line boundary");
     }
     const plan = sourceProgress.plan_projection;
@@ -861,7 +862,22 @@ async function runMultiHostListing(runner, source) {
       plan.cord.maximum_payload_bytes,
     );
     activeMemoryLine = line;
-    while (sourceProgress.effect_kind === "input" || sourceProgress.frame?.phase === "value") {
+    while (["input", "timer"].includes(sourceProgress.effect_kind) || sourceProgress.frame?.phase === "value") {
+      if (sourceProgress.effect_kind === "timer") {
+        const api = host.runtime;
+        const play = encoder.encode(sourceProgress.timer.active_play_id);
+        if (play.length > api.conduit_tour_multi_input_capacity()) {
+          throw new Error("multi-Host timer Play identity exceeds its admitted completion bound");
+        }
+        new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), play.length).set(play);
+        const code = api.conduit_tour_multi_complete_timer(
+          play.length,
+          sourceProgress.timer.request_sequence,
+        );
+        if (code < 0) throw new Error(`multi-Host timer completion refused (${code})`);
+        sourceProgress = readMultiOutput(api);
+        continue;
+      }
       if (sourceProgress.effect_kind === "input") {
         runner.querySelector(".input-button").hidden = false;
         runner.playStatus.ordinary("Waiting for one admitted button transition on Host A…");

@@ -46,26 +46,6 @@ pub(super) fn prepare(
     )
 }
 
-#[cfg(test)]
-pub(super) fn prepare_partitioned(
-    source_host_id: &str,
-    source_boot_id: &str,
-    sink_host_id: &str,
-    sink_boot_id: &str,
-    source: &str,
-    sink_kinds: &[&str],
-) -> Result<PreparedPlan, String> {
-    prepare_with_base(
-        source_host_id,
-        source_boot_id,
-        sink_host_id,
-        sink_boot_id,
-        source,
-        MEMORY_BASE,
-        Some(sink_kinds),
-    )
-}
-
 fn prepare_with_base(
     source_host_id: &str,
     source_boot_id: &str,
@@ -91,6 +71,17 @@ fn prepare_with_base(
     let entry = super::super::executable_entry(&checked)?;
     let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
         .map_err(|error| format!("expand multi-Host executable-tour Form: {error:?}"))?;
+    let firefly_sink_kinds = [
+        conduit_time::RHYTHM_STATE_SOURCE_KIND,
+        conduit_time::PHASE_SYNCHRONIZE_KIND,
+        conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND,
+    ];
+    let sink_kinds = sink_kinds.or_else(|| {
+        firefly_sink_kinds
+            .iter()
+            .all(|kind| form.gears.iter().any(|gear| gear.kind_id.as_str() == *kind))
+            .then_some(firefly_sink_kinds.as_slice())
+    });
     if sink_kinds.is_none()
         && (form.gears.len() < 2
             || form.gears.len() > crate::installed_browser::MAXIMUM_BROWSER_GEARS

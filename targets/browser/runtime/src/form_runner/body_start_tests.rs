@@ -90,6 +90,67 @@ fn canonical_button_clock_and_telegraph_complete_in_one_body_play() {
 }
 
 #[test]
+fn canonical_firefly_and_unrelated_text_complete_in_one_body_play() {
+    let request = request_from_sources(&[
+        include_str!("../../../../../forms/firefly-choir/main.conduit"),
+        "form unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+    ]);
+    let original = request.plan.clone();
+    let (mut session, started) = prepare(request).unwrap();
+    assert!(started.play.validate_for(&original));
+    assert_eq!(original.forms.len(), 2);
+
+    let mut progress = started.progress;
+    let mut pulses = Vec::new();
+    let mut rhythms = Vec::new();
+    let mut unrelated = false;
+    loop {
+        match progress {
+            TourProgress::Effect(effect) => {
+                match *effect {
+                    TourHostEffect::Timer(timer) => assert_eq!(timer.duration_millis, 240),
+                    TourHostEffect::Manifestation(value) => {
+                        assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
+                        assert!(original
+                            .forms
+                            .iter()
+                            .any(|part| part.plan.plan_id.as_str() == value.plan_id));
+                        match value.presentation_kind.as_str() {
+                            conduit_semantic_catalog::PULSE_PRESENTATION_KIND => {
+                                pulses.push(value.text.unwrap())
+                            }
+                            conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND => {
+                                rhythms.push(value.text.unwrap())
+                            }
+                            "presentation/text" => {
+                                assert_eq!(value.text.as_deref(), Some("unrelated workload"));
+                                unrelated = true;
+                            }
+                            _ => panic!("unexpected manifestation"),
+                        }
+                    }
+                    _ => panic!("unexpected effect"),
+                }
+                progress = session.advance().unwrap();
+            }
+            TourProgress::Receipt(receipt) => {
+                assert_eq!(receipt.disposition, "completed");
+                assert_eq!(receipt.active_play_id, started.play.active_play_id.as_str());
+                assert_eq!(receipt.timer_completions, 4);
+                assert_eq!(receipt.manifestation_completions, 9);
+                break;
+            }
+            _ => panic!("unexpected progress"),
+        }
+    }
+
+    assert_eq!(pulses.len(), 4);
+    assert_eq!(rhythms.len(), 4);
+    assert!(unrelated);
+    assert_eq!(session.fragments.len(), 2);
+}
+
+#[test]
 fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
     let source = include_str!("../../../../../forms/clock/main.conduit");
     let (mut session, effect) =

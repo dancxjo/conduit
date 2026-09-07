@@ -42,17 +42,12 @@ fn prepare_pair_for_alternate_line(source: &str) -> ((Session, Output), (Session
 fn prepare_firefly_pair() -> ((Session, Output), (Session, Output)) {
     let source = include_str!("../../../../../../forms/firefly-line-follower/main.conduit");
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), 7).unwrap();
-    let source_plan = super::plan::prepare_partitioned(
+    let source_plan = super::plan::prepare(
         "browser/firefly-a",
         "boot/firefly-a",
         "browser/firefly-b",
         "boot/firefly-b",
         source,
-        &[
-            conduit_time::RHYTHM_STATE_SOURCE_KIND,
-            conduit_time::PHASE_SYNCHRONIZE_KIND,
-            conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND,
-        ],
     )
     .unwrap();
     let sink_plan = super::plan::accept(

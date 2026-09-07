@@ -7,6 +7,7 @@ import { installB7Devices } from "./b7-fixture.mjs";
 import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 import { registerButtonMultiHostTests } from "./button-multihost.cases.mjs";
+import { registerFireflyMultiHostTests } from "./firefly-multihost.cases.mjs";
 
 let entrance;
 
@@ -133,6 +134,7 @@ test.beforeEach(async () => {
 test.afterEach(() => entrance?.child.kill());
 
 registerButtonMultiHostTests(openStep);
+registerFireflyMultiHostTests(openStep);
 
 test("every Tour page and Crèche step has a direct, history-aware route", async ({ page }) => {
   const tourPages = [
