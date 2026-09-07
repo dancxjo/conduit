@@ -1,5 +1,6 @@
 //! Checked catalogs and recursive backs of the installed browser profile.
 use super::{linguistics, quantity_output};
+use conduit_core::{CapabilityOffer, PortTemporal};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PresentationProfile {
     Annotation,
@@ -61,6 +62,11 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pattern_comparison_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_sequence_normalization_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_template_storage_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_final_normalized_pattern_catalogs(
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
@@ -84,6 +90,40 @@ pub(crate) fn catalogs_for_presentation(
         )?;
     }
     Ok((startup, profile))
+}
+
+pub(crate) fn install_checked_structured_selectors(
+    checked: &conduit_form::CheckedSyntaxDocument,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<Vec<CapabilityOffer>, String> {
+    let mut offers = Vec::new();
+    for selector in checked
+        .forms
+        .iter()
+        .flat_map(|form| &form.cords)
+        .flat_map(|cord| &cord.stages)
+        .filter_map(|stage| match stage {
+            conduit_form::CheckedCordStage::StructuredSelector { selector, .. } => Some(selector),
+            _ => None,
+        })
+    {
+        for temporal in [PortTemporal::Value, PortTemporal::Flow { closes: true }] {
+            let definition = conduit_form::structured_selector_definition(selector, temporal);
+            if profile.get(&definition.kind_id).is_none() {
+                profile
+                    .insert(definition)
+                    .map_err(|error| error.to_string())?;
+            }
+            let offer = super::structured_selector::offer(selector, temporal);
+            if !offers
+                .iter()
+                .any(|current: &CapabilityOffer| current.kind_id == offer.kind_id)
+            {
+                offers.push(offer);
+            }
+        }
+    }
+    Ok(offers)
 }
 
 pub(crate) fn backs(

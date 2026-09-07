@@ -15,6 +15,8 @@ use conduit_form::{
 
 pub const TEMPLATE_STORAGE_KIND: &str = "storage/named-pattern-templates";
 pub const TEMPLATE_STORAGE_REVISION: &str = "conduit.std/named-pattern-templates@1";
+pub const TEMPLATE_INITIALIZER_KIND: &str = "storage/named-pattern-template-initializer";
+pub const TEMPLATE_INITIALIZER_REVISION: &str = "conduit.std/named-pattern-template-initializer@1";
 pub const TEMPLATE_STORAGE_COMMAND_TYPE: &str = "NamedPatternTemplateCommand";
 pub const TEMPLATE_STORAGE_RESULT_TYPE: &str = "NamedPatternTemplateResult";
 pub const NAMED_PATTERN_TEMPLATE_TYPE: &str = "NamedPatternTemplate";
@@ -88,6 +90,37 @@ pub fn named_pattern_template_storage_definition() -> KindDefinition {
     }
 }
 
+pub fn named_pattern_template_initializer_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(TEMPLATE_INITIALIZER_KIND),
+        kind_contract_revision: KindContractRevision::from(TEMPLATE_INITIALIZER_REVISION),
+        inputs: vec![port(
+            "trigger",
+            &crate::input_button_transition_type(),
+            PortDirection::Input,
+        )],
+        outputs: vec![port(
+            "commands",
+            &template_storage_command_type(),
+            PortDirection::Output,
+        )],
+        configuration: vec![
+            ConfigurationField {
+                key: "name".into(),
+                default_value: ConfigurationValue::Text("knock".into()),
+                validation: ConfigurationRule::TextBytes {
+                    maximum: crate::MAXIMUM_TEMPLATE_NAME_BYTES as u32,
+                },
+            },
+            ConfigurationField {
+                key: "normalized-values".into(),
+                default_value: ConfigurationValue::Text("500000,1000000".into()),
+                validation: ConfigurationRule::TextBytes { maximum: 128 },
+            },
+        ],
+    }
+}
+
 pub fn install_template_storage_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -114,8 +147,28 @@ pub fn install_template_storage_catalogs(
             }],
         })
         .map_err(|error| error.to_string())?;
+    startup
+        .insert(KindSignature {
+            kind: TEMPLATE_INITIALIZER_KIND.into(),
+            startup_parameters: vec![
+                StartupParameterSignature {
+                    name: "name".into(),
+                    value_type: "Text".into(),
+                    default: Some("knock".into()),
+                },
+                StartupParameterSignature {
+                    name: "normalized-values".into(),
+                    value_type: "Text".into(),
+                    default: Some("500000,1000000".into()),
+                },
+            ],
+        })
+        .map_err(|error| error.to_string())?;
     profile
         .insert(named_pattern_template_storage_definition())
+        .map_err(|error| error.to_string())?;
+    profile
+        .insert(named_pattern_template_initializer_definition())
         .map_err(|error| error.to_string())
 }
 

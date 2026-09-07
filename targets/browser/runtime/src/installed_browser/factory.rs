@@ -40,6 +40,8 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::replay_source::INSTALLATION,
     &super::replay_control::INSTALLATION,
     &super::template_storage::INSTALLATION,
+    &super::template_storage::INITIALIZER,
+    &super::final_normalized_pattern::INSTALLATION,
     &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
@@ -205,6 +207,9 @@ pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    if implementation_id.as_str() == super::structured_selector::IMPLEMENTATION {
+        return Some(&super::structured_selector::INSTALLATION);
+    }
     if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
         return Some(resource);
     }

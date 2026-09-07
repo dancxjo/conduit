@@ -3,6 +3,7 @@
 mod button_indicator;
 mod delay;
 mod factory;
+mod final_normalized_pattern;
 pub(crate) mod historical;
 mod input;
 mod inventory;
@@ -30,6 +31,7 @@ pub(crate) mod replay_control;
 pub(crate) mod replay_source;
 pub(crate) mod resource;
 mod state_time;
+pub(crate) mod structured_selector;
 pub(crate) mod template_storage;
 mod text;
 mod tick;
@@ -99,7 +101,7 @@ pub(crate) mod test_replay_sink;
 
 pub(crate) mod button_attempt;
 
-mod catalogs;
+pub(crate) mod catalogs;
 
 pub(crate) mod normalized_presentation;
 pub(crate) use catalogs::PresentationProfile;

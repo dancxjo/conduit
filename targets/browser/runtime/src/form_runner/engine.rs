@@ -68,6 +68,8 @@ pub(super) struct TourScheduler {
     template_stores: [Option<
         Box<crate::installed_browser::template_storage::PreparedTemplateStore>,
     >; MAXIMUM_BROWSER_GEARS],
+    structured_selectors: [Option<crate::installed_browser::structured_selector::PreparedSelector>;
+        MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {

@@ -10,7 +10,7 @@ form secret-knock (
     normalize: normalize-durations
     storage: storage/named-pattern-templates(maximum-commands = 2)
     final_template: sequence/final-normalized-pattern(maximum-values = 1)
-    compare: compare-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 1)
+    compare: compare-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 150000)
     manifest: presentation/structured-info
 
     transitions > attempt.transition
@@ -55,4 +55,18 @@ form compare-pattern (
     candidate > compare.candidate
     template > compare.template
     compare.comparison > comparison
+}
+
+# The Gallery entry is a closed ordinary Form: pointer, device, or fixture
+# button realizations can drive the same reusable recognizer. The initializer
+# emits one bounded Put/Get command pair; storage remains an independently
+# selected and admitted realization rather than hidden UI state.
+form secret-knock-demo {
+    button: input/button(maximum-transitions = 5)
+    template: storage/named-pattern-template-initializer(name = "gallery-knock", normalized-values = "333333,1000000")
+    recognize: secret-knock
+
+    button.transition > recognize.transitions
+    button.transition > template.trigger
+    template.commands > recognize.template_commands
 }
