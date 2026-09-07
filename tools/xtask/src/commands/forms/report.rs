@@ -90,8 +90,20 @@ mod tests {
     #[test]
     fn static_report_has_every_mode_without_execution_claims() {
         let root = crate::workspace::workspace_root().unwrap();
+        let inventory = load_inventory(&root).unwrap();
         let report = build(&root).unwrap();
-        assert_eq!(report.results.len(), 71 * 3 + 23 * 3 + 3);
+        let canonical_results = inventory.forms.len() * 3;
+        let reusable_results = inventory
+            .forms
+            .iter()
+            .map(|form| form.reusable_entries.len())
+            .sum::<usize>()
+            * 3;
+        let combined_results = inventory.combined_workloads.len() * 3;
+        assert_eq!(
+            report.results.len(),
+            canonical_results + reusable_results + combined_results
+        );
         for slug in report
             .results
             .iter()
