@@ -1629,7 +1629,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         createAdapter: factory ?? (() => adapter),
       };
     };
-    const admittedBounds = { maximumOperationEvidenceBytes: 80 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 };
+    const admittedBounds = { maximumOperationEvidenceBytes: 104 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 };
     const catalog = createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("boundary", null, admittedBounds)] });
     const accepted = catalog.createAdapter({ targetId: "fixture/target-boundary", host: globalThis.__conduitCrecheHost });
     const evidence = { acceptedBounds: accepted.bounds };
@@ -1641,7 +1641,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
         bounds: { maximumEntries: 1 },
         contributions: [entry("one"), entry("two")],
       }),
-      operationBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("operation", null, { ...admittedBounds, maximumOperationEvidenceBytes: 80 * 1024 + 1 })] }),
+      operationBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("operation", null, { ...admittedBounds, maximumOperationEvidenceBytes: 104 * 1024 + 1 })] }),
       retainedBound: () => createPhysicalHostTargetCatalog({ generation: 2, contributions: [entry("retained", null, { ...admittedBounds, maximumRetainedEvidenceBytes: 128 * 1024 + 1 })] }),
       incompatible: () => {
         const catalog = createPhysicalHostTargetCatalog({
@@ -1660,7 +1660,7 @@ test("the physical target catalog refuses stale, duplicate, overflowing, and inc
     }
     return evidence;
   });
-  expect(refusals.acceptedBounds).toMatchObject({ maximumOperationEvidenceBytes: 80 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 });
+  expect(refusals.acceptedBounds).toMatchObject({ maximumOperationEvidenceBytes: 104 * 1024, maximumRetainedEvidenceBytes: 128 * 1024 });
   expect(refusals.operationBound).toMatchObject({ terminal: "IncompatibleContribution" });
   expect(refusals.retainedBound).toMatchObject({ terminal: "IncompatibleContribution" });
   expect(refusals.stale).toMatchObject({ terminal: "StaleCatalogGeneration", catalog_generation: 2 });
