@@ -9,10 +9,11 @@
   <link rel="stylesheet" href="./conduit.css">
   <link rel="stylesheet" href="./site.css">
 </head>
-<body>
+<body data-application-theme="conduit.presentation/phosphor@1">
+  <a class="conduit-skip-link" href="#main-content">Skip to main content</a>
   <!-- conduit-product-masthead -->
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <section class="hero" aria-labelledby="hero-title">
       <p class="eyebrow">The Body is the computer.</p>
       <h1 id="hero-title">One logical computer.<br>One machine or many.</h1>
@@ -32,12 +33,12 @@
       <div class="body-examples">
         <article class="body-card">
           <header><span class="body-mark" aria-hidden="true">◆</span><div><p class="card-kicker">Body A</p><h3>One physical computer</h3></div></header>
-          <div class="machine single-machine" aria-label="One machine with processor lanes, memory, storage, display, and devices"><span>8 CPU lanes</span><span>memory</span><span>storage</span><span>display + devices</span></div>
+          <div class="machine single-machine" role="img" aria-label="One machine with processor lanes, memory, storage, display, and devices"><span>8 CPU lanes</span><span>memory</span><span>storage</span><span>display + devices</span></div>
           <p>Conduit can schedule several Forms against one machine's finite resources. This is the operating-system-shaped case.</p>
         </article>
         <article class="body-card">
           <header><span class="body-mark" aria-hidden="true">◆</span><div><p class="card-kicker">Body B</p><h3>Several unlike computers</h3></div></header>
-          <div class="machine-grid" aria-label="Browser, laptop, virtual machine, and Pico participating in one Body"><span>browser</span><span>laptop</span><span>VM</span><span>Pico</span></div>
+          <div class="machine-grid" role="img" aria-label="Browser, laptop, virtual machine, and Pico participating in one Body"><span>browser</span><span>laptop</span><span>VM</span><span>Pico</span></div>
           <p>The same scheduling model can place compatible work across Hosts and admitted Lines. Distribution changes topology and cost, not the identity of the computer.</p>
         </article>
       </div>

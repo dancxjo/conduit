@@ -156,7 +156,7 @@ function setupTourModes() {
 function setTourMode(mode) {
   if (mode !== "guided" && mode !== "gallery") throw new Error("Tour entrance is not admitted");
   document.body.dataset.tourMode = mode;
-  for (const button of document.querySelectorAll("[data-tour-mode]")) {
+  for (const button of document.querySelectorAll("button[data-tour-mode]")) {
     button.setAttribute("aria-pressed", String(button.dataset.tourMode === mode));
   }
 }

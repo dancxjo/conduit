@@ -44,18 +44,25 @@ export function createTourWorkspace(root, readingState) {
     throw new Error("Tour workspace controls are incomplete");
   }
 
+  const exposePercent = (control, value) => {
+    control.setAttribute("aria-valuetext", `${value} percent`);
+    const output = root.querySelector(`#${control.id}-output`);
+    if (output) output.value = `${value}%`;
+  };
   const setWidth = (value, persist) => {
     const admitted = Number(value);
     if (!Number.isInteger(admitted) || admitted < 30 || admitted > 65) {
       throw new Error("Tour narrative width is outside its admitted bound");
     }
     width.value = String(admitted);
+    exposePercent(width, admitted);
     content.style.setProperty("--tour-narrative-percent", `${admitted}%`);
     if (persist) readingState.setNarrativePercent(admitted);
   };
   const setLaboratoryGeometry = (control, property, setter, value, persist) => {
     const admitted = Number(value);
     control.value = String(admitted);
+    exposePercent(control, admitted);
     laboratory.style.setProperty(property, `${admitted}%`);
     if (persist) setter(admitted);
   };
