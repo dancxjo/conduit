@@ -18,11 +18,13 @@ pub struct LocalModelLiveProofReceipt {
     pub classify_plan_id: String,
     pub extract_plan_id: String,
     pub interpret_plan_id: String,
+    pub house_plan_id: String,
     pub implementation_identity: String,
     pub generate_play_completed: bool,
     pub classify_play_completed: bool,
     pub extract_play_completed: bool,
     pub interpret_play_completed: bool,
+    pub house_play_completed: bool,
 }
 
 struct NoopTimer;
@@ -52,6 +54,8 @@ pub fn run(
             ),
         ]);
     }
+    additional_capabilities
+        .extend(crate::installed_std::test_local_model_io::house_source_offers());
     let mut host = StdHost::new_with_local_model_capabilities(
         StdHostConfig {
             host_id: HostId::from("host/local-ollama-proof"),
@@ -66,6 +70,7 @@ pub fn run(
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
     let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
     let interpret = run_profile(&mut host, LocalModelKindProfile::InterpretSignEvidence)?;
+    let house = run_house(&mut host)?;
     Ok(LocalModelLiveProofReceipt {
         proof_class: "live-local-model",
         host_id: host.advertisement.host_id.as_str().into(),
@@ -75,12 +80,53 @@ pub fn run(
         classify_plan_id: classify.0,
         extract_plan_id: extract.0,
         interpret_plan_id: interpret.0,
+        house_plan_id: house.0,
         implementation_identity: conduit_ai::LOCAL_MODEL_IMPLEMENTATION.into(),
         generate_play_completed: generate.1,
         classify_play_completed: classify.1,
         extract_play_completed: extract.1,
         interpret_play_completed: interpret.1,
+        house_play_completed: house.1,
     })
+}
+
+pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn std::error::Error>> {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles)?;
+    crate::installed_std::test_local_model_io::install_catalog(
+        &mut startup,
+        &mut profiles,
+        conduit_ai::GENERATION_REQUEST_VALUE_KIND,
+        conduit_ai::GENERATED_RESULT_VALUE_KIND,
+    );
+    crate::installed_std::test_local_model_io::install_house_source_catalog(
+        &mut startup,
+        &mut profiles,
+    );
+    let source = format!(
+        "{}\nform house-live-proof {{\n detection: {}\n context: {}\n house: house-conversation\n sink: conduit-test/local-model-result\n detection.value > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        include_str!("../../../forms/house-conversation/main.conduit"),
+        crate::installed_std::test_local_model_io::HOUSE_DETECTION_SOURCE_KIND,
+        crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
+    );
+    let checked =
+        check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
+            format!(
+                "House live proof Form check: {} {}",
+                error.code, error.message
+            )
+        })?;
+    let expanded = conduit_form::expand_canonical_form(&checked, "house-live-proof", &profiles)
+        .map_err(|error| {
+            format!(
+                "House live proof expansion: {} {}",
+                error.code, error.message
+            )
+        })?;
+    run_expanded(host, expanded, "House")
 }
 
 fn run_profile(
@@ -115,6 +161,14 @@ fn run_profile(
                 error.code, error.message
             )
         })?;
+    run_expanded(host, expanded, profile.kind())
+}
+
+fn run_expanded(
+    host: &mut StdHost,
+    expanded: conduit_form::ExpandedCanonicalForm,
+    proof_name: &str,
+) -> Result<(String, bool), Box<dyn std::error::Error>> {
     let hosts = vec![host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)?;
     let connection_bases = BTreeMap::new();
@@ -127,7 +181,7 @@ fn run_profile(
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
-            connection_item_capacity: 4,
+            connection_item_capacity: 1,
             connection_byte_capacity: 4_096,
             authority_grants: &[],
             protected_resource_grants: &[],
@@ -151,7 +205,7 @@ fn run_profile(
         .map_err(|error| {
             format!(
                 "{} live Plan/Play: {error}; connection limits {connection_limits:?}",
-                profile.kind()
+                proof_name
             )
         })?;
     Ok((plan_id, report.kernel.is_some()))

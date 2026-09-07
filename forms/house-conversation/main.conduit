@@ -4,7 +4,7 @@ form house-conversation (
     response: llm/generated-result@1 >
 ) {
     request: house/context-to-prompt
-    model: llm/generate(maximum-input-bytes = 131072, maximum-context-items = 128, maximum-output-bytes = 2048, maximum-work-units = 1000000, maximum-history-items = 64)
+    model: llm/generate(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2048, maximum-work-units = 4096, maximum-history-items = 0)
 
     detection > request.detection
     context > request.context

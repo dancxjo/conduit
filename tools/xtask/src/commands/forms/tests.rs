@@ -156,6 +156,15 @@ fn composition_check_refuses_an_inexact_occurrence_declaration() {
 }
 
 #[test]
+fn standard_catalog_checks_the_current_house_model_contract() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let source = fs::read_to_string(root.join("forms/house-conversation/main.conduit")).unwrap();
+    let (startup, _) = catalogs().unwrap();
+    conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(&source), &startup)
+        .unwrap();
+}
+
+#[test]
 fn initial_body_bundle_is_selected_by_the_shared_inventory() {
     let root = crate::workspace::workspace_root().unwrap();
     let output = std::env::temp_dir().join(format!(
