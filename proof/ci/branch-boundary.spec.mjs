@@ -100,6 +100,16 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /gh workflow run tour-and-creche-pages --ref main/);
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
+  const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
+  assert.match(request, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  assert.match(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  assert.match(monitor, /types?: choice/);
+  assert.match(monitor, /options: \[release, sync\]/);
+  assert.match(monitor, /actions\/runs\/\$run_id\/approve/);
+  assert.match(monitor, /sleep 30/);
+  assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
+  assert.match(monitor, /gh workflow run tour-and-creche-pages --ref main/);
+  assert.match(monitor, /gh workflow run dev-integration\.yml --ref dev/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
   assert.match(approval, /actor\.login == 'github-actions\[bot\]'/);
