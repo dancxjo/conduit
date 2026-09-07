@@ -63,7 +63,7 @@ async function clickInteraction(page, locator) {
 async function clickNavigation(page, locator) {
   const response = page.waitForResponse(candidate =>
     candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST");
-  await locator.click();
+  await locator.press("Enter");
   const snapshot = await (await response).json();
   expect(snapshot.interaction.last_disposition).toBe("Succeeded");
   return snapshot;
@@ -129,11 +129,12 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     expect(saved).not.toContain("literal-2:");
     expect(saved).toContain("literal.text > text.text");
 
-    await page.getByRole("button", { name: "Inspector", exact: true }).click();
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "false");
     await expect.poll(async () => (await current(page)).navigation.cursor.depth).toBe("Primary");
     await clickNavigation(page, page.getByRole("button", { name: "Entrance", exact: true }));
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
     await selectRole(page, "Form", "Empty Form");
     await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
     await expect.poll(async () => Boolean((await current(page)).presentation.basis.body_id)).toBe(true);
@@ -156,7 +157,6 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     const reopened = await spawnEntrance(server.source);
     server.child = reopened.child;
     await page.goto(reopened.url);
-    await page.getByRole("button", { name: "Forms", exact: true }).click();
     await page.getByRole("button", { name: "Open Form Empty Form" }).click();
     const restored = await current(page);
     expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.label).sort()).toEqual(["making/literal", "making/text"]);
