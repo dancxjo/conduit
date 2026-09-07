@@ -137,16 +137,17 @@ impl HousePromptHost {
         let (Some(detection), Some(context)) = (&self.detection, &self.context) else {
             return Ok(HostCompletion::Stored);
         };
-        let prompt =
-            match conduit_tongues::prepare_house_generation_prompt(detection, context, 2_048) {
-                Ok(prompt) => prompt,
+        let request =
+            match conduit_tongues::prepare_house_generation_request(detection, context, 2_048) {
+                Ok(request) => request,
                 Err(conduit_tongues::HousePromptRefusal::NotAddressed) => {
                     return Ok(HostCompletion::NotAddressed)
                 }
                 Err(error) => return Err(format!("House prompt projection: {error:?}")),
             };
         self.output.clear();
-        self.output.extend_from_slice(prompt.prompt.as_bytes());
+        self.output
+            .extend_from_slice(request.encoded_request.as_bytes());
         Ok(HostCompletion::Output(&self.output))
     }
 }

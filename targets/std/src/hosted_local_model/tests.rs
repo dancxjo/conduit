@@ -249,7 +249,7 @@ fn house_prompt_projection_plans_the_exact_std_realization() {
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles).unwrap();
-    let source = "form prompt-only (\n > detection: AddressDetection\n > context: HouseContext\n prompt: Text >\n) {\n request: house/context-to-prompt\n detection > request.detection\n context > request.context\n request.prompt > prompt\n}\n";
+    let source = "form prompt-only (\n > detection: AddressDetection\n > context: HouseContext\n request_value: llm/generation-request@1 >\n) {\n request: house/context-to-prompt\n detection > request.detection\n context > request.context\n request.request > request_value\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
         conduit_form::expand_canonical_form_for_authoring(&checked, "prompt-only", &profiles)

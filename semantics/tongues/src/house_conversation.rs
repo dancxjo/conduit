@@ -2,7 +2,7 @@
 
 use conduit_ai::{
     build_house_model_request, HouseContextProvenanceClass, HouseContextRefusal,
-    WiredHouseContextItem, TEXT_VALUE_KIND,
+    WiredHouseContextItem, GENERATION_REQUEST_VALUE_KIND,
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
@@ -179,9 +179,9 @@ pub struct HousePromptContract {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HouseGenerationPrompt {
+pub struct HouseGenerationRequest {
     pub request_identity: String,
-    pub prompt: String,
+    pub encoded_request: String,
     pub maximum_output_bytes: u64,
 }
 
@@ -228,7 +228,11 @@ pub fn house_prompt_contract() -> HousePromptContract {
                 PortDirection::Input,
             ),
         ],
-        outputs: vec![port("prompt", TEXT_VALUE_KIND, PortDirection::Output)],
+        outputs: vec![port(
+            "request",
+            GENERATION_REQUEST_VALUE_KIND,
+            PortDirection::Output,
+        )],
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -237,11 +241,11 @@ pub fn house_prompt_contract() -> HousePromptContract {
     }
 }
 
-pub fn prepare_house_generation_prompt(
+pub fn prepare_house_generation_request(
     detection: &AddressDetection,
     explicitly_wired: &[WiredHouseContextItem],
     maximum_output_bytes: u64,
-) -> Result<HouseGenerationPrompt, HousePromptRefusal> {
+) -> Result<HouseGenerationRequest, HousePromptRefusal> {
     let AddressDetection::Addressed { utterance, .. } = detection else {
         return Err(HousePromptRefusal::NotAddressed);
     };
@@ -272,9 +276,9 @@ pub fn prepare_house_generation_prompt(
     if prompt.len() > MAXIMUM_HOUSE_PROMPT_BYTES {
         return Err(HousePromptRefusal::PromptBoundExceeded);
     }
-    Ok(HouseGenerationPrompt {
+    Ok(HouseGenerationRequest {
         request_identity: request.request_identity,
-        prompt,
+        encoded_request: prompt,
         maximum_output_bytes: request.maximum_output_bytes,
     })
 }

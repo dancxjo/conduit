@@ -1,13 +1,13 @@
 form house-conversation (
     > detection: AddressDetection
     > context: HouseContext
-    response: Text >
+    response: llm/generated-result@1 >
 ) {
     request: house/context-to-prompt
-    model: ai/generate-text(maximum-input-bytes = 131072, maximum-context-tokens = 32768, maximum-output-tokens = 512, temperature-milli = 0)
+    model: llm/generate(maximum-input-bytes = 131072, maximum-context-items = 128, maximum-output-bytes = 2048, maximum-work-units = 1000000, maximum-history-items = 64)
 
     detection > request.detection
     context > request.context
-    request.prompt > model.prompt
-    model.text > response
+    request.request > model.request
+    model.result > response
 }
