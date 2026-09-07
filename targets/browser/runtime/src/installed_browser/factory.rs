@@ -43,6 +43,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::template_storage::INITIALIZER,
     &super::final_normalized_pattern::INSTALLATION,
     &super::pattern_comparison::INSTALLATION,
+    &super::phase_synchronization::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::pulse_observation::INSTALLATION,
     &super::pulse_presentation::INSTALLATION,
