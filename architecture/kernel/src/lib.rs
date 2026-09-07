@@ -13,8 +13,10 @@ extern crate alloc;
 use core::mem::size_of;
 
 pub mod debug_observation;
+mod execution_disposition;
 mod failure;
 mod operation;
+pub use execution_disposition::ExecutionDisposition;
 pub use failure::{Failure, FailureCode};
 pub mod scheduler;
 pub mod shared_flow;

@@ -4,8 +4,8 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::state_delay::{operation::StateOperation, StateDelay};
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId,
-    RemoteEndpointId, RouteRange, RouteTarget, ValueStorage,
+    CordEndpoint, CordId, ExecutionDisposition, FixedRoutes, FixedSignLog, FixedValueStore,
+    KernelEvent, NodeId, PortId, RemoteEndpointId, RouteRange, RouteTarget, ValueStorage,
 };
 
 type Play = FixedScheduler<
@@ -110,6 +110,11 @@ fn deliver(play: &mut Play, sequence: u64, expected: u8) {
 fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
     let mut play = play();
     idle(&mut play);
+    assert_eq!(
+        ExecutionDisposition::QuiescentAwaitingInput.as_str(),
+        "quiescent_awaiting_input"
+    );
+    assert!(!ExecutionDisposition::QuiescentAwaitingInput.is_semantic_completion());
     deliver(&mut play, 0, 0);
     idle(&mut play);
     assert_eq!(play.drivers()[0].operation().state().generation(), 0);
@@ -146,6 +151,7 @@ fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
         completed,
         "only explicit input closure completes this specimen"
     );
+    assert!(ExecutionDisposition::SemanticCompleted.is_semantic_completion());
     assert!(
         play.try_retire().is_ok(),
         "completed drained execution retires"
@@ -194,6 +200,14 @@ fn a_larger_transition_allowance_executes_the_same_input_without_hiding_exhausti
                         }
                     ))
                 );
+                assert_eq!(
+                    ExecutionDisposition::from_failure(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::WorkBudgetExhausted,
+                        detail: 2,
+                    }),
+                    ExecutionDisposition::WorkBudgetExhausted
+                );
+                assert!(!ExecutionDisposition::WorkBudgetExhausted.is_semantic_completion());
                 assert_eq!(play.drivers()[0].operation().state().generation(), 1);
                 assert_eq!(play.drivers()[0].operation().state().current(), &[1]);
             } else {
