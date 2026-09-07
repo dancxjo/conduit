@@ -31,6 +31,7 @@ use conduit_host_raspberry_pi::{
     ZERO_2_W_TARGET, ZERO_TARGET, ZERO_WH_TARGET, ZERO_W_TARGET,
 };
 use conduit_host_rp2040::Rp2040FabricationPackage;
+use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
 
 pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub(super) const STD_COMPUTER_TARGET_ID: &str = HOSTED_TARGET_ID;
@@ -308,8 +309,12 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&ConduitOsFabricationPackage])
-            .map_err(|error| format!("compose ConduitOS fabrication package: {error:?}"))?,
+        packages: FabricationPackageSet::compose(&[
+            &BrowserFabricationPackage,
+            &ConduitOsFabricationPackage,
+            &LinearFramebufferFabricationExtension,
+        ])
+        .map_err(|error| format!("compose ConduitOS fabrication package: {error:?}"))?,
     })
 }
 

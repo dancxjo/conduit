@@ -19,6 +19,8 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
     const directory = join(buildRoot, product.architecture);
     const build = JSON.parse(await readFile(join(directory, "build-manifest.json"), "utf8"));
     requireBuild(build, targetId, product);
+    const resolvedImage = JSON.parse(await readFile(join(directory, "resolved-image.json"), "utf8"));
+    requireResolvedImage(resolvedImage, build, targetId);
     const sourceImage = join(directory, build.image.file);
     const bytes = await readFile(sourceImage);
     const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -38,6 +40,8 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
       profile_id: build.profile_id,
       build_id: build.build_id,
       image_id: build.image_id,
+      resolved_description_binding: build.resolved_description_binding,
+      resolved_image: resolvedImage,
       source_identity: build.source_identity,
       toolchain_identity: build.toolchain_identity,
       boot_assets: build.boot_assets,
@@ -51,6 +55,20 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
     releases.push(release);
   }
   return Object.freeze(releases);
+}
+
+function requireResolvedImage(image, build, targetId) {
+  if (image?.manifest?.schema !== "conduit.host/build-manifest@2"
+    || JSON.stringify(image.manifest) !== JSON.stringify(build.resolved_build)
+    || image.manifest.image_id !== build.resolved_description_binding
+    || image.manifest.profile_id !== build.profile_id
+    || image.manifest.build_id !== build.build_id
+    || image.manifest.target !== targetId
+    || image.payload?.profile_id !== build.profile_id
+    || image.payload?.build_id !== build.build_id
+    || image.payload?.target !== targetId) {
+    throw new Error(`${targetId} BUILD lost its authoritative resolved IMAGE description`);
+  }
 }
 
 function requireBuild(build, targetId, product) {

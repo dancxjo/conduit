@@ -199,9 +199,11 @@ test("architecture, machine, firmware, bootloader, role, stale IMAGE, and absent
       missingBootloader: capture(() => mutate((candidate) => { candidate.boot_assets.boot_entry = ""; })),
       unsupportedRole: capture(() => mutate((candidate) => { candidate.artifact_role = "architecture-proof-appliance"; })),
       staleArtifact: capture(() => mutate((candidate) => { candidate.artifact.sha256 = `sha256:${"0".repeat(64)}`; })),
+      staleResolvedProfile: capture(() => mutate((candidate) => { candidate.resolved_image.manifest.profile_id = "stale"; })),
+      staleResolvedImage: capture(() => mutate((candidate) => { candidate.resolved_image.manifest.image_id = "image:sha256:stale"; })),
       unavailableWriter: capture(() => image.validateLoaderEvidence(null, adapter.CONDUITOS_X86_64_PROFILE, binding)),
       acceptedLoader: capture(() => image.validateLoaderEvidence(loader, adapter.CONDUITOS_X86_64_PROFILE, binding)),
     };
   }, { manifest, imageUrl: new URL("targets/conduitos/browser-deployment/image.mjs", entrance.url).href, adapterUrl: new URL("targets/conduitos/browser-deployment/creche-adapter.mjs", entrance.url).href });
-  expect(terminals).toEqual({ wrongArchitecture: "WrongArchitecture", wrongMachine: "WrongMachine", missingFirmware: "MissingFirmware", missingBootloader: "MissingBootloader", unsupportedRole: "UnsupportedProductRole", staleArtifact: "StaleArtifact", unavailableWriter: "UnavailableWriter", acceptedLoader: "accepted" });
+  expect(terminals).toEqual({ wrongArchitecture: "WrongArchitecture", wrongMachine: "WrongMachine", missingFirmware: "MissingFirmware", missingBootloader: "MissingBootloader", unsupportedRole: "UnsupportedProductRole", staleArtifact: "StaleArtifact", staleResolvedProfile: "StaleArtifact", staleResolvedImage: "StaleArtifact", unavailableWriter: "UnavailableWriter", acceptedLoader: "accepted" });
 });

@@ -3,7 +3,7 @@
 use conduit_body::{AdmissionSigns, SpawnAdmissionProof, SpawnInvitationSecret};
 use conduit_body_fabrication::{
     seal_prebuilt_body_spore, seal_prebuilt_body_spore_with_content_digest,
-    SelectedPrebuiltContent, SporeBinding,
+    seal_reviewed_prebuilt_body_spore_with_content_digest, SelectedPrebuiltContent, SporeBinding,
 };
 use conduit_core::{HostAdvertisement, SignId};
 use conduit_host_fabrication::{
@@ -109,6 +109,26 @@ pub(super) fn prepare_selected_for_target(
         target_id,
         selected_image_content_digest,
         None,
+        None,
+    )
+}
+
+pub(super) fn prepare_selected_for_target_with_image(
+    entropy: [u8; 32],
+    now_millis: u64,
+    target_id: &str,
+    selected_image_content_digest: &str,
+    image_bytes: &[u8],
+) -> Result<PreparedSpore, String> {
+    let image = serde_json::from_slice(image_bytes)
+        .map_err(|error| format!("decode reviewed IMAGE description: {error}"))?;
+    prepare_selected_for_target_with_browser_configuration(
+        entropy,
+        now_millis,
+        target_id,
+        Some(selected_image_content_digest),
+        None,
+        Some((image, image_bytes)),
     )
 }
 
@@ -124,6 +144,7 @@ pub(super) fn prepare_selected_browser(
         super::spore_target::BROWSER_PAGE_TARGET_ID,
         selected_image_content_digest,
         Some(selection),
+        None,
     )
 }
 
@@ -133,6 +154,7 @@ fn prepare_selected_for_target_with_browser_configuration(
     target_id: &str,
     selected_image_content_digest: Option<&str>,
     browser_selection: Option<super::browser_configuration::BrowserConfigurationSelection>,
+    reviewed_image: Option<(conduit_host_fabrication::HostImage, &[u8])>,
 ) -> Result<PreparedSpore, String> {
     session::with_session(|session| {
         if session.pending_spore.is_some() {
@@ -170,19 +192,35 @@ fn prepare_selected_for_target_with_browser_configuration(
             )
         };
         let catalog = FabricationCatalog::canonical().with_packages(&target.packages);
-        let (image, image_bytes) = build_host_image(
-            target.configuration.profile().clone(),
-            &catalog,
-            &target.packages,
-            &target.output,
-            &BuildInputs {
-                source_identity: target.source_identity.into(),
-                toolchain_available: true,
-            },
-        )
-        .map_err(|errors| format!("select reviewed prebuilt IMAGE: {errors:?}"))?;
-        let spore = match selected_image_content_digest {
-            Some(digest) => seal_prebuilt_body_spore_with_content_digest(
+        let has_reviewed_image = reviewed_image.is_some();
+        let (image, image_bytes) = if let Some((image, bytes)) = reviewed_image {
+            (image, bytes.to_vec())
+        } else {
+            build_host_image(
+                target.configuration.profile().clone(),
+                &catalog,
+                &target.packages,
+                &target.output,
+                &BuildInputs {
+                    source_identity: target.source_identity.into(),
+                    toolchain_available: true,
+                },
+            )
+            .map_err(|errors| format!("select reviewed prebuilt IMAGE: {errors:?}"))?
+        };
+        let spore = match (selected_image_content_digest, has_reviewed_image) {
+            (Some(digest), true) => seal_reviewed_prebuilt_body_spore_with_content_digest(
+                &target.body,
+                target.host_name,
+                &session.receipt.birth_sign_id,
+                &image,
+                SelectedPrebuiltContent {
+                    image_manifest_bytes: &image_bytes,
+                    image_content_digest: digest,
+                },
+                &target.packages,
+            ),
+            (Some(digest), false) => seal_prebuilt_body_spore_with_content_digest(
                 &target.body,
                 target.host_name,
                 &session.receipt.birth_sign_id,
@@ -194,7 +232,7 @@ fn prepare_selected_for_target_with_browser_configuration(
                 &catalog,
                 &target.packages,
             ),
-            None => seal_prebuilt_body_spore(
+            (None, _) => seal_prebuilt_body_spore(
                 &target.body,
                 target.host_name,
                 &session.receipt.birth_sign_id,
