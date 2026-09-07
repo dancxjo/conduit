@@ -12,30 +12,66 @@ use conduit_kernel::{
     HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
 };
 
-pub(crate) const OPERATIONS: [&str; 2] = [
+pub(crate) const OPERATIONS: [&str; 6] = [
     "conduit.host/browser-garden-step-0-prior@1",
     "conduit.host/browser-garden-step-1-clock@1",
+    "conduit.host/browser-garden-observation-0-clock@1",
+    "conduit.host/browser-garden-observation-1-contact@1",
+    "conduit.host/browser-garden-enriched-step-0-prior@1",
+    "conduit.host/browser-garden-enriched-step-1-observation@1",
 ];
-const IMPLEMENTATION: &str = "browser/kernel-garden-step@1";
+const MINIMAL_IMPLEMENTATION: &str = "browser/kernel-garden-step@1";
+const OBSERVATION_IMPLEMENTATION: &str = "browser/kernel-garden-observation@1";
+const ENRICHED_IMPLEMENTATION: &str = "browser/kernel-garden-enriched-step@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: IMPLEMENTATION,
-    offer,
+    implementation_id: MINIMAL_IMPLEMENTATION,
+    offer: minimal_offer,
+    prepare,
+    perform: None,
+};
+
+pub(super) static OBSERVATION_INSTALLATION: BrowserInstallation = BrowserInstallation {
+    implementation_id: OBSERVATION_IMPLEMENTATION,
+    offer: observation_offer,
+    prepare,
+    perform: None,
+};
+
+pub(super) static ENRICHED_INSTALLATION: BrowserInstallation = BrowserInstallation {
+    implementation_id: ENRICHED_IMPLEMENTATION,
+    offer: enriched_offer,
     prepare,
     perform: None,
 };
 
 pub(crate) struct PreparedGardenStep {
-    prior: Option<conduit_semantic_catalog::GardenState>,
+    mode: GardenMode,
+    first: Option<GardenFirst>,
+}
+
+#[derive(Clone, Copy)]
+enum GardenMode {
+    Minimal,
+    Observation,
+    Enriched,
+}
+
+enum GardenFirst {
+    State(conduit_semantic_catalog::GardenState),
+    Clock(conduit_semantic_catalog::GardenClockObservation),
 }
 
 impl PreparedGardenStep {
     pub(crate) fn for_placement(placement: &PlannedGear) -> Result<Option<Self>, String> {
-        if placement.implementation_id.as_str() != IMPLEMENTATION {
-            return Ok(None);
-        }
-        validate_placement(placement, &offer())?;
-        Ok(Some(Self { prior: None }))
+        let (mode, offered) = match placement.implementation_id.as_str() {
+            MINIMAL_IMPLEMENTATION => (GardenMode::Minimal, minimal_offer()),
+            OBSERVATION_IMPLEMENTATION => (GardenMode::Observation, observation_offer()),
+            ENRICHED_IMPLEMENTATION => (GardenMode::Enriched, enriched_offer()),
+            _ => return Ok(None),
+        };
+        validate_placement(placement, &offered)?;
+        Ok(Some(Self { mode, first: None }))
     }
 
     pub(crate) fn execute(
@@ -43,25 +79,22 @@ impl PreparedGardenStep {
         contract: &str,
         input: &[u8],
     ) -> Result<Option<Vec<u8>>, Failure> {
+        let operation_offset = match self.mode {
+            GardenMode::Minimal => 0,
+            GardenMode::Observation => 2,
+            GardenMode::Enriched => 4,
+        };
         match contract {
-            value if value == OPERATIONS[0] => {
-                if self.prior.is_some() {
+            value if value == OPERATIONS[operation_offset] => {
+                if self.first.is_some() {
                     return Err(failure(1));
                 }
-                self.prior = Some(
-                    conduit_semantic_catalog::decode_garden_state(input).map_err(|_| failure(2))?,
-                );
+                self.first = Some(self.decode_first(input)?);
                 Ok(None)
             }
-            value if value == OPERATIONS[1] => {
-                let prior = self.prior.take().ok_or(failure(3))?;
-                let clock = conduit_semantic_catalog::decode_garden_clock_observation(input)
-                    .map_err(|_| failure(4))?;
-                let next = conduit_semantic_catalog::evolve_garden_minimal(prior, clock)
-                    .map_err(|error| failure(evolution_detail(error)))?;
-                let bytes = conduit_semantic_catalog::garden_state_value(next)
-                    .and_then(|value| value.canonical_bytes())
-                    .map_err(|_| failure(10))?;
+            value if value == OPERATIONS[operation_offset + 1] => {
+                let first = self.first.take().ok_or(failure(3))?;
+                let bytes = self.finish(first, input)?;
                 if bytes.len() > MAXIMUM_BROWSER_VALUE_BYTES {
                     return Err(Failure {
                         code: FailureCode::StorageExhausted,
@@ -73,27 +106,95 @@ impl PreparedGardenStep {
             _ => Err(failure(12)),
         }
     }
+
+    fn decode_first(&self, input: &[u8]) -> Result<GardenFirst, Failure> {
+        match self.mode {
+            GardenMode::Minimal | GardenMode::Enriched => {
+                conduit_semantic_catalog::decode_garden_state(input)
+                    .map(GardenFirst::State)
+                    .map_err(|_| failure(2))
+            }
+            GardenMode::Observation => {
+                conduit_semantic_catalog::decode_garden_clock_observation(input)
+                    .map(GardenFirst::Clock)
+                    .map_err(|_| failure(2))
+            }
+        }
+    }
+
+    fn finish(&self, first: GardenFirst, second: &[u8]) -> Result<Vec<u8>, Failure> {
+        let value = match (self.mode, first) {
+            (GardenMode::Minimal, GardenFirst::State(prior)) => {
+                let clock = conduit_semantic_catalog::decode_garden_clock_observation(second)
+                    .map_err(|_| failure(4))?;
+                let next = conduit_semantic_catalog::evolve_garden_minimal(prior, clock)
+                    .map_err(|error| failure(evolution_detail(error)))?;
+                conduit_semantic_catalog::garden_state_value(next)
+            }
+            (GardenMode::Observation, GardenFirst::Clock(clock)) => {
+                let contact = conduit_semantic_catalog::decode_garden_contact_observation(second)
+                    .map_err(|_| failure(4))?;
+                let observation =
+                    conduit_semantic_catalog::combine_garden_observations(clock, contact)
+                        .map_err(|error| failure(evolution_detail(error)))?;
+                conduit_semantic_catalog::garden_enriched_observation_value(observation)
+            }
+            (GardenMode::Enriched, GardenFirst::State(prior)) => {
+                let observation =
+                    conduit_semantic_catalog::decode_garden_enriched_observation(second)
+                        .map_err(|_| failure(4))?;
+                let next = conduit_semantic_catalog::evolve_garden_enriched_observation(
+                    prior,
+                    observation,
+                )
+                .map_err(|error| failure(evolution_detail(error)))?;
+                conduit_semantic_catalog::garden_state_value(next)
+            }
+            _ => return Err(failure(2)),
+        };
+        value
+            .and_then(|value| value.canonical_bytes())
+            .map_err(|_| failure(10))
+    }
 }
 
-fn offer() -> CapabilityOffer {
+fn minimal_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::garden_minimal_step_definition();
+    offer_for(contract, MINIMAL_IMPLEMENTATION, &OPERATIONS[0..2])
+}
+
+fn observation_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::garden_observation_combine_definition();
+    offer_for(contract, OBSERVATION_IMPLEMENTATION, &OPERATIONS[2..4])
+}
+
+fn enriched_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::garden_enriched_reducer_definition();
+    offer_for(contract, ENRICHED_IMPLEMENTATION, &OPERATIONS[4..6])
+}
+
+fn offer_for(
+    contract: conduit_form::KindDefinition,
+    implementation: &str,
+    operations: &[&str],
+) -> CapabilityOffer {
     let kind = contract.kind_id.clone();
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
+        capability_id: CapabilityId::from(implementation),
         kind_id: kind.clone(),
         kind_contract_revision: KindContractRevision::from(
             conduit_semantic_catalog::GARDEN_CONTRACT_REVISION,
         ),
         implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
-            implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-browser-runtime/garden-step@1"),
+            execution_profile_id: ExecutionProfileId::from(implementation),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(implementation),
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: OPERATIONS
+        host_operations: operations
             .iter()
             .enumerate()
             .map(|(index, contract_id)| HostOperationRequirement {
@@ -120,7 +221,7 @@ fn offer() -> CapabilityOffer {
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     PreparedGardenStep::for_placement(placement)?
-        .ok_or_else(|| "Garden step selected another implementation".to_string())?;
+        .ok_or_else(|| "Garden operation selected another implementation".to_string())?;
     Ok(BrowserOperation::installed(GardenStepOperation::new()))
 }
 
@@ -259,7 +360,7 @@ mod tests {
     use conduit_core::{OfferGeneration, Scalar};
 
     fn placement() -> PlannedGear {
-        let offered = offer();
+        let offered = minimal_offer();
         PlannedGear {
             placement_id: "garden-step-placement".into(),
             gear_id: "garden-step".into(),
