@@ -73,7 +73,7 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
     assert_eq!(receipt.commands, 2);
     assert!(receipt.pixels_written > 0);
     assert!(bytes.iter().any(|byte| *byte != 0));
-    let first_glyph_pixel = 2 * 128 + 3 * 4;
+    let first_glyph_pixel = 6 * 128 + 4 * 4;
     assert_eq!(
         &bytes[first_glyph_pixel..first_glyph_pixel + 4],
         &format().pixel(205, 235, 224).to_le_bytes()
@@ -85,6 +85,32 @@ fn bounded_scene_renders_and_loss_remains_distinct() {
         lost: true,
     };
     assert_eq!(render_scene(&mut lost, &scene), Err(DisplayError::Lost));
+}
+
+#[test]
+fn pinned_unifont_subset_covers_ascii_and_multilingual_text() {
+    assert_eq!(font::glyph_count(), 929);
+    for character in ' '..='~' {
+        let (glyph, missing) = font::glyph(character);
+        assert!(!missing, "missing printable ASCII glyph {character:?}");
+        if character != ' ' {
+            assert!(glyph.bitmap.iter().any(|byte| *byte != 0));
+        }
+    }
+    assert_eq!(
+        &font::glyph('>').0.bitmap[..16],
+        &[
+            0, 0, 0, 0, 0, 0x40, 0x20, 0x10, 0x08, 0x04, 0x08, 0x10, 0x20, 0x40, 0, 0
+        ]
+    );
+    for character in ['é', 'Ω', 'Ж', '→', '─', '■'] {
+        assert!(
+            !font::glyph(character).1,
+            "missing subset glyph {character}"
+        );
+    }
+    assert_eq!(font::glyph('中').0.width, 16);
+    assert!(font::glyph('🦀').1);
 }
 
 #[test]
