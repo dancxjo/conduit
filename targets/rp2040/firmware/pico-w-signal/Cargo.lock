@@ -250,6 +250,7 @@ dependencies = [
  "conduit-web",
  "libm",
  "serde",
+ "serde_json",
  "sha2",
 ]
 
@@ -543,6 +544,7 @@ version = "0.1.0"
 name = "conduit-std-offers"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
@@ -565,6 +567,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
