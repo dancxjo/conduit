@@ -70,7 +70,6 @@ jobs:
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
           printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
           printf 'status=created\n' >> "$GITHUB_OUTPUT"
-          gh pr merge "$pr_url" --auto --merge
       - name: Summarize the release candidate
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         env:

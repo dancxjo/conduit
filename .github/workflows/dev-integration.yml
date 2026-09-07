@@ -3,6 +3,16 @@ name: dev-integration
 on:
   push:
     branches: [dev]
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Exact previous dev commit
+        required: true
+        type: string
+      candidate_sha:
+        description: Exact current dev commit
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -17,15 +27,15 @@ jobs:
   check:
     uses: ./.github/workflows/check.yml
     with:
-      base_sha: ${{ github.event.before }}
-      candidate_sha: ${{ github.sha }}
+      base_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha || github.event.before }}
+      candidate_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || github.sha }}
       development_admission: true
 
   products:
     uses: ./.github/workflows/tour-products.yml
     with:
-      base_sha: ${{ github.event.before }}
-      candidate_sha: ${{ github.sha }}
+      base_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha || github.event.before }}
+      candidate_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || github.sha }}
       development_admission: true
 
   dev-integration:
