@@ -384,3 +384,31 @@ fn renderer_loss_cannot_be_promoted_from_queued_to_remote_accepted() {
     assert_eq!(source_transcript.entries[0].event, "sent-record");
     assert_eq!(source_transcript.entries[1].event, "cancelled");
 }
+
+#[test]
+fn unavailable_disconnect_and_timeout_remain_distinct_line_terminal_truth() {
+    use super::session::TransportTermination;
+
+    let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
+    for (termination, expected) in [
+        (TransportTermination::Unavailable, "transport-unavailable"),
+        (TransportTermination::Disconnected, "disconnected"),
+        (TransportTermination::TimedOut, "timed-out"),
+    ] {
+        let ((mut source_session, source_output), _) = prepare_pair_for(source);
+        assert!(matches!(source_output, Output::Line { .. }));
+        let Output::Receipt { receipt, .. } =
+            source_session.terminate_transport(termination, 71).unwrap()
+        else {
+            panic!("Line termination did not retain a receipt")
+        };
+        assert_eq!(receipt.disposition, expected);
+        assert_eq!(receipt.deliveries.len(), 1);
+        assert_eq!(receipt.deliveries[0].state, expected);
+        assert_eq!(receipt.deliveries[0].failure_code, Some(71));
+        assert!(receipt.deliveries[0].remote_receipt_hex.is_none());
+        let transcript = receipt.transcript.as_ref().unwrap();
+        assert_eq!(transcript.entries[0].event, "sent-record");
+        assert_eq!(transcript.entries[1].event, expected);
+    }
+}

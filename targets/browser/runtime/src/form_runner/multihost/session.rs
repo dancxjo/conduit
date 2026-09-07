@@ -26,6 +26,13 @@ pub(super) enum Role {
     Sink,
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum TransportTermination {
+    Unavailable,
+    Disconnected,
+    TimedOut,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Stage {
     Input,
@@ -228,6 +235,50 @@ impl Session {
         Ok(Output::Receipt {
             schema: "conduit.tour/multi-host-progress@1",
             receipt: Box::new(self.receipt("cancelled")),
+        })
+    }
+
+    pub(super) fn terminate_transport(
+        &mut self,
+        termination: TransportTermination,
+        code: u16,
+    ) -> Result<Output, String> {
+        if self.stage == Stage::Complete || self.stage == Stage::Cancelled {
+            return Err("transport termination arrived after terminal truth".into());
+        }
+        self.scheduler
+            .cancel()
+            .map_err(|error| format!("cancel terminated multi-Host scheduler: {error:?}"))?;
+        if self.role == Role::Source {
+            for delivery in &mut self.deliveries {
+                if !delivery.is_terminal() {
+                    match termination {
+                        TransportTermination::Unavailable => delivery.transport_unavailable(code),
+                        TransportTermination::Disconnected => delivery.disconnected(code),
+                        TransportTermination::TimedOut => delivery.timed_out(code),
+                    }
+                    .map_err(debug_error)?;
+                }
+            }
+        }
+        let (disposition, terminal) = match termination {
+            TransportTermination::Unavailable => (
+                "transport-unavailable",
+                conduit_net::RecordTranscriptTerminal::TransportUnavailable,
+            ),
+            TransportTermination::Disconnected => (
+                "disconnected",
+                conduit_net::RecordTranscriptTerminal::Disconnected,
+            ),
+            TransportTermination::TimedOut => {
+                ("timed-out", conduit_net::RecordTranscriptTerminal::TimedOut)
+            }
+        };
+        self.retain_transcript_terminal(terminal)?;
+        self.stage = Stage::Complete;
+        Ok(Output::Receipt {
+            schema: "conduit.tour/multi-host-progress@1",
+            receipt: Box::new(self.receipt(disposition)),
         })
     }
 
@@ -553,6 +604,9 @@ fn transcript_projection(transcript: &SessionTranscript) -> RecordTranscriptProj
                 conduit_net::RecordTranscriptEventRef::Terminal(terminal) => match terminal {
                     conduit_net::RecordTranscriptTerminal::Completed => ("completed", 0, None),
                     conduit_net::RecordTranscriptTerminal::Cancelled => ("cancelled", 0, None),
+                    conduit_net::RecordTranscriptTerminal::TransportUnavailable => {
+                        ("transport-unavailable", 0, None)
+                    }
                     conduit_net::RecordTranscriptTerminal::Disconnected => {
                         ("disconnected", 0, None)
                     }

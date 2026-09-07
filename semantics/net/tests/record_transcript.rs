@@ -138,6 +138,7 @@ fn terminal_events_have_exact_distinct_fixed_wire_encodings() {
     for terminal in [
         RecordTranscriptTerminal::Completed,
         RecordTranscriptTerminal::Cancelled,
+        RecordTranscriptTerminal::TransportUnavailable,
         RecordTranscriptTerminal::Disconnected,
         RecordTranscriptTerminal::TimedOut,
         RecordTranscriptTerminal::Refused(17),
