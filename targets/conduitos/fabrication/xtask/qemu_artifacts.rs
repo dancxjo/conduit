@@ -60,7 +60,7 @@ impl Artifacts {
         let text = std::str::from_utf8(&serial).map_err(|error| {
             ConduitosError::refusal("qemu-display-serial-invalid", error.to_string())
         })?;
-        let record = super::journey_records::decode(text)?.pop();
+        let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;

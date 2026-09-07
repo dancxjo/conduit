@@ -47,6 +47,13 @@ struct JourneyProof {
     input_sign_id: String,
     result_sign_id: String,
     result: String,
+    tour_specimen_id: String,
+    tour_source_document_id: String,
+    tour_checked_form_id: String,
+    tour_expanded_form_id: String,
+    tour_plan_id: String,
+    tour_active_play_id: String,
+    tour_result: String,
     open_effects: u8,
     body_retained_after_lull: bool,
     remained_alive: bool,
@@ -175,6 +182,22 @@ fn execute_image(
                 "product-journey-front-door-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
+            key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
+            wait_tour_status(&serial_path, &mut child, "tour-opened")?;
+            artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
+            key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
+            wait_tour_status(&serial_path, &mut child, "result-visible")?;
+            artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
+            key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
+            wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
+            artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
+            key_pair(&mut qmp, &mut reader, "esc", "tour-return")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT world-returned",
+                "product-journey-tour-return-timeout",
+            )?;
             for (key, status) in [
                 ("ret", "form-opened"),
                 ("f3", "born-lulled"),
@@ -245,6 +268,7 @@ fn execute_image(
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
         })?;
         let records = journey_records(&serial)?;
+        let tour_records = super::journey_records::tour(&serial)?;
         let by_status = records
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
@@ -266,6 +290,47 @@ fn execute_image(
             }
         }
         let opened = by_status["form-opened"];
+        let tour_by_status = tour_records
+            .iter()
+            .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
+            .collect::<BTreeMap<_, _>>();
+        for status in ["tour-opened", "result-visible", "patchbay-open"] {
+            if !tour_by_status.contains_key(status) {
+                return Err(ConduitosError::refusal(
+                    "product-journey-tour-stage-missing",
+                    status,
+                ));
+            }
+        }
+        let tour_opened = tour_by_status["tour-opened"];
+        let tour_result = tour_by_status["result-visible"];
+        let tour_patchbay = tour_by_status["patchbay-open"];
+        if text(tour_opened, "specimen_id")? != "canonical-form:meet-one-gear"
+            || tour_opened.get("plan_id") != Some(&Value::Null)
+            || text(tour_result, "result")? != "HELLO"
+            || tour_result.get("plan_id") == Some(&Value::Null)
+            || tour_result.get("active_play_id") == Some(&Value::Null)
+            || tour_patchbay.get("result") != tour_result.get("result")
+            || tour_patchbay.get("plan_id") != Some(&Value::Null)
+        {
+            return Err(ConduitosError::refusal(
+                "product-journey-tour-causality-invalid",
+                "Tour open, production Play, result, and Patchbay continuity did not match",
+            ));
+        }
+        for identity in ["profile_id", "build_id", "image_id", "host_id", "boot_id"] {
+            let expected = opened.get(identity);
+            if expected.is_none()
+                || tour_records
+                    .iter()
+                    .any(|record| record.get(identity) != expected)
+            {
+                return Err(ConduitosError::refusal(
+                    "product-journey-tour-identity-drift",
+                    identity,
+                ));
+            }
+        }
         if opened.get("body_id") != Some(&Value::Null)
             || opened.get("wake_id") != Some(&Value::Null)
             || opened.get("plan_id") != Some(&Value::Null)
@@ -367,6 +432,13 @@ fn execute_image(
             input_sign_id: text(result, "input_sign_id")?,
             result_sign_id: text(result, "result_sign_id")?,
             result: text(result, "result")?,
+            tour_specimen_id: text(tour_opened, "specimen_id")?,
+            tour_source_document_id: text(tour_result, "source_document_id")?,
+            tour_checked_form_id: text(tour_result, "checked_form_id")?,
+            tour_expanded_form_id: text(tour_result, "expanded_form_id")?,
+            tour_plan_id: text(tour_result, "plan_id")?,
+            tour_active_play_id: text(tour_result, "active_play_id")?,
+            tour_result: text(tour_result, "result")?,
             open_effects: 0,
             body_retained_after_lull: true,
             remained_alive: true,
@@ -452,6 +524,33 @@ fn wait_status(
                 child,
                 "product-journey-stage-timeout",
                 format!("no complete guest record for {status}"),
+            );
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
+}
+
+fn wait_tour_status(
+    serial: &std::path::Path,
+    child: &mut std::process::Child,
+    status: &str,
+) -> Result<(), ConduitosError> {
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let text = fs::read_to_string(serial).map_err(|error| {
+            ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
+        })?;
+        if super::journey_records::tour(&text)?
+            .iter()
+            .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
+        {
+            return Ok(());
+        }
+        if std::time::Instant::now() >= deadline {
+            return hid_qmp::stop(
+                child,
+                "product-journey-tour-stage-timeout",
+                format!("no complete Tour guest record for {status}"),
             );
         }
         thread::sleep(Duration::from_millis(1));
