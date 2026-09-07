@@ -1,10 +1,12 @@
 use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    check_syntax_document, expand_canonical_form_for_authoring,
+    expand_canonical_form_for_authoring_with_backs, parse_syntax_document, CanonicalBackCatalog,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_semantic_catalog::{
-    garden_clock_observation_type, garden_contact_observation_type, install_signal_garden_catalog,
-    GARDEN_ENRICHED_STEP_KIND, GARDEN_FIXTURE_KIND, GARDEN_MINIMAL_STEP_KIND,
+    garden_clock_observation_type, garden_contact_observation_type, install_signal_garden_backs,
+    install_signal_garden_catalog, GARDEN_ENRICHED_REDUCER_KIND, GARDEN_ENRICHED_STEP_KIND,
+    GARDEN_FIXTURE_KIND, GARDEN_MINIMAL_STEP_KIND, GARDEN_OBSERVATION_COMBINE_KIND,
 };
 
 const GARDEN: &str = include_str!("../../../forms/signal-garden/main.conduit");
@@ -29,7 +31,7 @@ fn minimal_and_enriched_forms_preserve_distinct_mandatory_source_types() {
             .unwrap();
     assert_eq!(garden.forms.len(), 4);
     assert_eq!(minimal.expanded.gears.len(), 2);
-    assert_eq!(enriched.expanded.gears.len(), 2);
+    assert_eq!(enriched.expanded.gears.len(), 3);
     assert!(minimal
         .expanded
         .gears
@@ -40,11 +42,21 @@ fn minimal_and_enriched_forms_preserve_distinct_mandatory_source_types() {
         .gears
         .iter()
         .any(|gear| gear.kind_id.as_str() == GARDEN_MINIMAL_STEP_KIND));
-    assert!(enriched
+    assert!(!enriched
         .expanded
         .gears
         .iter()
         .any(|gear| gear.kind_id.as_str() == GARDEN_ENRICHED_STEP_KIND));
+    assert!(enriched
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == GARDEN_OBSERVATION_COMBINE_KIND));
+    assert!(enriched
+        .expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == GARDEN_ENRICHED_REDUCER_KIND));
 
     let minimal_step = profile
         .get(&conduit_core::kind_id(GARDEN_MINIMAL_STEP_KIND))
@@ -72,6 +84,44 @@ fn minimal_and_enriched_forms_preserve_distinct_mandatory_source_types() {
         minimal_step.inputs[1].value_kind,
         enriched_step.inputs[2].value_kind
     );
+}
+
+#[test]
+fn enriched_face_has_a_canonical_back_with_two_input_reusable_leaves() {
+    let (startup, profile) = catalogs();
+    let source = "form main (\n > prior: GardenState\n > clock: GardenClockObservation\n > contact: GardenContactObservation\n next: GardenState >\n) {\n evolve: state/garden-step-contact\n prior > evolve.prior\n clock > evolve.clock\n contact > evolve.contact\n evolve.next > next\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let mut backs = CanonicalBackCatalog::new();
+    install_signal_garden_backs(&startup, &profile, &mut backs).unwrap();
+    let expanded =
+        expand_canonical_form_for_authoring_with_backs(&checked, "main", &profile, &backs)
+            .unwrap()
+            .expanded;
+
+    assert_eq!(expanded.realization_backs.len(), 1);
+    assert_eq!(
+        expanded.realization_backs[0].kind_id.as_str(),
+        GARDEN_ENRICHED_STEP_KIND
+    );
+    assert_eq!(expanded.gears.len(), 2);
+    assert!(expanded
+        .gears
+        .iter()
+        .all(|gear| gear.kind_id.as_str() != GARDEN_ENRICHED_STEP_KIND));
+    for expected in [
+        GARDEN_OBSERVATION_COMBINE_KIND,
+        GARDEN_ENRICHED_REDUCER_KIND,
+    ] {
+        assert!(expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == expected));
+    }
+    assert!(expanded.gears.iter().all(|gear| {
+        profile
+            .get(&gear.kind_id)
+            .is_some_and(|definition| definition.inputs.len() <= 2)
+    }));
 }
 
 #[test]

@@ -36,6 +36,7 @@ pub enum GardenEvolutionRefusal {
     MalformedState,
     MalformedClockObservation,
     MalformedContactObservation,
+    MalformedEnrichedObservation,
     StepCapacityExceeded,
     ArithmeticOverflow,
 }
@@ -79,6 +80,13 @@ pub fn evolve_garden_enriched(
         .min(Scalar::SCALE);
     next.vitality = Scalar::from_raw_microunits(boosted);
     Ok(next)
+}
+
+pub fn evolve_garden_enriched_observation(
+    prior: GardenState,
+    observation: crate::GardenEnrichedObservation,
+) -> Result<GardenState, GardenEvolutionRefusal> {
+    evolve_garden_enriched(prior, observation.clock, observation.contact)
 }
 
 pub fn garden_state_value(
@@ -235,6 +243,10 @@ pub fn garden_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
             GARDEN_CONTACT_OBSERVATION_TYPE,
             garden_contact_observation_type(),
         ),
+        (
+            crate::GARDEN_ENRICHED_OBSERVATION_TYPE,
+            crate::garden_enriched_observation_type(),
+        ),
     ]
 }
 
@@ -306,6 +318,38 @@ mod tests {
         assert_eq!(
             decode_garden_state(&encoded_clock),
             Err(GardenEvolutionRefusal::MalformedState)
+        );
+    }
+
+    #[test]
+    fn contact_and_composed_observations_round_trip_without_type_erasure() {
+        let clock = GardenClockObservation {
+            phase: Scalar::from_raw_microunits(700_000),
+        };
+        let contact = GardenContactObservation {
+            intensity: Scalar::from_raw_microunits(300_000),
+        };
+        let observation = crate::combine_garden_observations(clock, contact).unwrap();
+        let encoded_contact = crate::garden_contact_observation_value(contact)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let encoded_observation = crate::garden_enriched_observation_value(observation)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+
+        assert_eq!(
+            crate::decode_garden_contact_observation(&encoded_contact),
+            Ok(contact)
+        );
+        assert_eq!(
+            crate::decode_garden_enriched_observation(&encoded_observation),
+            Ok(observation)
+        );
+        assert_eq!(
+            evolve_garden_enriched_observation(state(0), observation),
+            evolve_garden_enriched(state(0), clock, contact)
         );
     }
 
