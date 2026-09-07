@@ -8,6 +8,8 @@
 use crate::keyboard_offer::{KeyboardOffer, KeyboardOfferError, KeyboardRealization};
 #[cfg(target_arch = "x86_64")]
 use crate::pc_speaker_offer::{PcSpeakerOffer, PcSpeakerOfferError, PcSpeakerRealization};
+#[cfg(target_arch = "x86_64")]
+use crate::pointer_offer::{PointerOffer, PointerOfferError, PointerRealization};
 use crate::{identity::BootIdentities, machine::BaseKind};
 
 pub const BASE_COUNT: usize = 7;
@@ -89,6 +91,8 @@ pub struct HostOffer<'a> {
     pub sign_item_capacity: u16,
     pub interrupt_fact_capacity: u16,
     pub keyboard: Option<KeyboardOffer<'a>>,
+    #[cfg(target_arch = "x86_64")]
+    pub pointer: Option<PointerOffer<'a>>,
     #[cfg(target_arch = "x86_64")]
     pub pc_speaker: Option<PcSpeakerOffer<'a>>,
 }
@@ -229,6 +233,8 @@ impl<'a> HostOffer<'a> {
             interrupt_fact_capacity: INTERRUPT_FACT_CAPACITY,
             keyboard: None,
             #[cfg(target_arch = "x86_64")]
+            pointer: None,
+            #[cfg(target_arch = "x86_64")]
             pc_speaker: None,
         }
     }
@@ -246,6 +252,23 @@ impl<'a> HostOffer<'a> {
             .validate(self.capabilities[0].artifact_build)
             .map_err(|_| OfferError::InvalidDeviceOffer)?;
         self.keyboard = Some(keyboard);
+        Ok(self)
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    pub fn with_pointer(
+        mut self,
+        realization: PointerRealization,
+        build_id: &'a str,
+    ) -> Result<Self, OfferError> {
+        let pointer = PointerOffer {
+            artifact_build: build_id,
+            realization,
+        };
+        pointer
+            .validate(self.capabilities[0].artifact_build)
+            .map_err(|_| OfferError::InvalidDeviceOffer)?;
+        self.pointer = Some(pointer);
         Ok(self)
     }
 
@@ -348,6 +371,12 @@ impl<'a> HostOffer<'a> {
             keyboard
                 .validate(self.capabilities[0].artifact_build)
                 .map_err(|_error: KeyboardOfferError| OfferError::InvalidDeviceOffer)?;
+        }
+        #[cfg(target_arch = "x86_64")]
+        if let Some(pointer) = self.pointer {
+            pointer
+                .validate(self.capabilities[0].artifact_build)
+                .map_err(|_error: PointerOfferError| OfferError::InvalidDeviceOffer)?;
         }
         #[cfg(target_arch = "x86_64")]
         if let Some(pc_speaker) = self.pc_speaker {
