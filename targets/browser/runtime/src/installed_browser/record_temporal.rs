@@ -6,7 +6,9 @@ use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     ImplementationId, ImplementationOffer, KindContractRevision, PlannedGear,
 };
-use conduit_kernel::HostedValueStore;
+use conduit_kernel::{
+    HostedValueStore, Operation, OperationAction, OperationInput, PortId, ValueRef,
+};
 
 const SINGLETON_IMPLEMENTATION: &str = "browser/record-singleton-stream@1";
 const EXACTLY_ONE_IMPLEMENTATION: &str = "browser/record-exactly-one@1";
@@ -74,7 +76,10 @@ fn prepare_singleton(
     _: &mut HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &singleton_offer())?;
-    Ok(BrowserOperation::singleton_stream(MAXIMUM))
+    Ok(BrowserOperation::installed(SingletonStreamOperation {
+        maximum_bytes: MAXIMUM,
+        emitted: false,
+    }))
 }
 
 fn prepare_exactly_one(
@@ -82,5 +87,105 @@ fn prepare_exactly_one(
     _: &mut HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &exactly_one_offer())?;
-    Ok(BrowserOperation::exactly_one(MAXIMUM))
+    Ok(BrowserOperation::installed(ExactlyOneOperation {
+        maximum_bytes: MAXIMUM,
+        held: None,
+        released: None,
+        emitted: false,
+        retain_resumed: false,
+    }))
+}
+
+struct SingletonStreamOperation {
+    maximum_bytes: u32,
+    emitted: bool,
+}
+
+impl Operation for SingletonStreamOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if !self.emitted && value.byte_len <= self.maximum_bytes => {
+                self.emitted = true;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value,
+                }
+            }
+            _ => fail(40),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Complete
+    }
+}
+
+struct ExactlyOneOperation {
+    maximum_bytes: u32,
+    held: Option<ValueRef>,
+    released: Option<ValueRef>,
+    emitted: bool,
+    retain_resumed: bool,
+}
+
+impl Operation for ExactlyOneOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        self.retain_resumed = false;
+        match input {
+            OperationInput::Value {
+                port: PortId(0),
+                value,
+            } if self.held.is_none() && value.byte_len <= self.maximum_bytes => {
+                self.held = Some(value);
+                self.retain_resumed = true;
+                OperationAction::Await
+            }
+            OperationInput::Closed { port: PortId(0) } if !self.emitted => {
+                let Some(value) = self.held.take() else {
+                    return fail(41);
+                };
+                self.emitted = true;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value,
+                }
+            }
+            _ => fail(41),
+        }
+    }
+
+    fn retains_resumed_value(&self) -> bool {
+        self.retain_resumed
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Complete
+    }
+
+    fn take_released_value(&mut self) -> Option<ValueRef> {
+        self.released.take()
+    }
+
+    fn cancel(&mut self) {
+        self.released = self.held.take();
+        self.retain_resumed = false;
+    }
+}
+
+fn fail(detail: u16) -> OperationAction {
+    OperationAction::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::OperationFailed,
+        detail,
+    })
 }
