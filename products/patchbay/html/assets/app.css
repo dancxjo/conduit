@@ -18,7 +18,7 @@ h3 { font-size:.9rem; }
 .eyebrow { margin:0; color:var(--conduit-structure-primary); letter-spacing:.16em; font-size:.72rem; font-weight:700; }
 nav:not([data-application-key="product-navigation"]) { display:flex; gap:.4rem; flex-wrap:wrap; position:sticky; top:0; padding:.5rem 1rem; background:color-mix(in srgb,var(--conduit-background) 94%,transparent); z-index:3; border-bottom:1px solid var(--conduit-structure-secondary); }
 nav:not([data-application-key="product-navigation"]) a { text-decoration:none; }
-.lens-controls { display:flex; gap:.25rem; }
+.view-controls,.lens-controls { display:flex; gap:.25rem; flex-wrap:wrap; }
 .place-controls nav,.lens-controls nav { position:static; inset:auto; display:flex; width:auto; max-width:none; margin:0; padding:0; gap:.25rem; border:0; background:transparent; }
 .lens-controls button[aria-current="page"] { color:var(--conduit-background); background:var(--conduit-emphasis); }
 main { padding:.75rem 1rem 2rem; }
