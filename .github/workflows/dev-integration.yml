@@ -54,4 +54,4 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run promote-dev.yml --ref main
+        run: gh workflow run promote-dev.yml --repo "$GITHUB_REPOSITORY" --ref main

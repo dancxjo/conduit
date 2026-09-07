@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 94
+maximum_forms = 95
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -20,6 +20,12 @@ title = "House Conversation"
 entry = "house-conversation"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_form" }
 browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
+[[forms]]
+slug = "bench-telemetry"
+title = "Bench Telemetry"
+entry = "bench-telemetry"
+deterministic = { package = "conduit-data", test = "measurement_processing_reuse", case = "bench_consumes_the_exact_little_seismograph_plot_back_without_copying_source" }
+browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and presentation remain separate unfinished Forms"
 [[forms]]
 slug = "bounded-job"
 title = "Bounded Job"
