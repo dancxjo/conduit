@@ -67,6 +67,9 @@ impl InstalledOperation {
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
             Self::AddressDetect(operation) => operation.cancel(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::RecordedSpeech(operation) => operation.cancel(),
+            Self::RecognitionText(operation) => operation.cancel(),
             Self::HousePrompt(operation) => operation.cancel(),
             Self::LocalModel(operation) => operation.cancel(),
             Self::ModelText(operation) => operation.cancel(),

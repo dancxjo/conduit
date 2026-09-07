@@ -371,6 +371,7 @@ fn all_five_l3_profiles_execute_through_ordinary_plan_and_play() {
 fn checked_house_form_executes_through_the_ordinary_local_model_play() {
     let mut capabilities =
         crate::installed_std::test_local_model_io::house_source_offers().to_vec();
+    capabilities.push(crate::installed_std::recorded_speech_operation::offer());
     capabilities.push(crate::installed_std::test_local_model_io::house_text_sink_offer());
     let mut host = StdHost::new_with_local_model_capabilities(
         config(),

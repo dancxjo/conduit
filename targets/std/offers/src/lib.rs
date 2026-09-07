@@ -74,6 +74,8 @@ mod house_conversation;
 pub use house_conversation::*;
 mod model_text;
 pub use model_text::*;
+mod speech_recognition;
+pub use speech_recognition::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
@@ -214,7 +216,6 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         text_literal_offer(),
         text_upper_offer(),
         text_join_offer(),
-        address_detect_offer(),
         text_presentation_offer(),
         key_event_tee_offer(),
         keymap_offer(),

@@ -212,6 +212,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::text_upper_offer(),
             conduit_std_offers::text_join_offer(),
             conduit_std_offers::address_detect_offer(),
+            conduit_std_offers::recognition_to_text_std_offer(),
             installed_std::text_offer(),
         ]);
     }

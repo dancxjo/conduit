@@ -56,6 +56,7 @@ pub fn run(
     }
     additional_capabilities
         .extend(crate::installed_std::test_local_model_io::house_source_offers());
+    additional_capabilities.push(crate::installed_std::recorded_speech_operation::offer());
     additional_capabilities
         .push(crate::installed_std::test_local_model_io::house_text_sink_offer());
     let mut host = StdHost::new_with_local_model_capabilities(
@@ -96,6 +97,7 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profiles)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles)?;
@@ -114,10 +116,10 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut profiles,
     );
     let source = format!(
-        "{}\n{}\nform house-live-proof {{\n recognized: {}\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n recognized.value > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        "{}\n{}\nform house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value > recognize.audio\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
         include_str!("../../../forms/addressed-utterance/main.conduit"),
         include_str!("../../../forms/house-conversation/main.conduit"),
-        crate::installed_std::test_local_model_io::HOUSE_RECOGNIZED_SOURCE_KIND,
+        crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_ADDRESSES_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,

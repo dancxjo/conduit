@@ -6,13 +6,18 @@ use conduit_core::{
     PortDirection, PortTemporal,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
 pub const SPEECH_RECOGNIZE_KIND: &str = "speech/recognize";
 pub const SPEECH_RECOGNIZE_REVISION: &str = "conduit.speech/recognize@1";
 pub const SPEECH_RECOGNITION_RESULT_KIND: &str = "speech/recognition-result@1";
+pub const SPEECH_RECOGNITION_TO_TEXT_KIND: &str = "speech/recognition-to-text";
+pub const SPEECH_RECOGNITION_TO_TEXT_REVISION: &str = "conduit.speech/recognition-to-text@1";
 pub const MAXIMUM_RECOGNIZED_TEXT_BYTES: usize = 256;
+pub const MAXIMUM_RECOGNITION_RESULT_BYTES: usize = 2_048;
+pub const RECOGNITION_RESULT_QUEUE_BYTES: u32 = 4_096;
 pub const MAXIMUM_RECOGNITION_FIXTURES: usize = 8;
 pub const MAXIMUM_RECOGNITION_AUDIO_BYTES: usize = 32_768;
 
@@ -25,13 +30,13 @@ pub struct SpeechRecognitionContract {
     pub limits: CapabilityLimits,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SpeechRecognitionDisposition {
     Recognized,
     NoSpeech,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SpeechRecognitionResult {
     pub disposition: SpeechRecognitionDisposition,
     pub text: Option<String>,
@@ -55,6 +60,26 @@ pub enum SpeechRecognitionRefusal {
     AudioTooLarge,
     InvalidPcm,
     UnsupportedPcmProfile,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SpeechRecognitionValueError {
+    BoundExceeded,
+    Malformed,
+    NonCanonical,
+    InvalidValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RecognitionTextRefusal {
+    InvalidResult,
+    NotRecognized,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SpeechRecognitionValue {
+    schema: String,
+    result: SpeechRecognitionResult,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -88,24 +113,108 @@ pub fn speech_recognition_contract() -> SpeechRecognitionContract {
     }
 }
 
+pub fn speech_recognition_to_text_contract() -> SpeechRecognitionContract {
+    SpeechRecognitionContract {
+        kind_id: kind_id(SPEECH_RECOGNITION_TO_TEXT_KIND),
+        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNITION_TO_TEXT_REVISION),
+        inputs: vec![port(
+            "result",
+            SPEECH_RECOGNITION_RESULT_KIND,
+            PortDirection::Input,
+        )],
+        outputs: vec![port(
+            "text",
+            conduit_text::TEXT_VALUE_KIND,
+            PortDirection::Output,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: RECOGNITION_RESULT_QUEUE_BYTES,
+        },
+    }
+}
+
 pub fn install_speech_recognition_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    let contract = speech_recognition_contract();
-    startup.insert(KindSignature {
-        kind: SPEECH_RECOGNIZE_KIND.into(),
-        startup_parameters: vec![],
-    })?;
-    profile
-        .insert(KindDefinition {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![],
-        })
-        .map_err(|error| error.to_string())
+    for contract in [
+        speech_recognition_contract(),
+        speech_recognition_to_text_contract(),
+    ] {
+        startup.insert(KindSignature {
+            kind: contract.kind_id.as_str().into(),
+            startup_parameters: vec![],
+        })?;
+        profile
+            .insert(KindDefinition {
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
+                configuration: vec![],
+            })
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+pub fn encode_speech_recognition_result(
+    result: &SpeechRecognitionResult,
+) -> Result<Vec<u8>, SpeechRecognitionValueError> {
+    validate_result(result)?;
+    let encoded = serde_json::to_vec(&SpeechRecognitionValue {
+        schema: "conduit.speech/recognition-result-value@1".into(),
+        result: result.clone(),
+    })
+    .map_err(|_| SpeechRecognitionValueError::Malformed)?;
+    if encoded.len() > MAXIMUM_RECOGNITION_RESULT_BYTES {
+        return Err(SpeechRecognitionValueError::BoundExceeded);
+    }
+    Ok(encoded)
+}
+
+pub fn decode_speech_recognition_result(
+    encoded: &[u8],
+) -> Result<SpeechRecognitionResult, SpeechRecognitionValueError> {
+    if encoded.len() > MAXIMUM_RECOGNITION_RESULT_BYTES {
+        return Err(SpeechRecognitionValueError::BoundExceeded);
+    }
+    let value: SpeechRecognitionValue =
+        serde_json::from_slice(encoded).map_err(|_| SpeechRecognitionValueError::Malformed)?;
+    if value.schema != "conduit.speech/recognition-result-value@1" {
+        return Err(SpeechRecognitionValueError::InvalidValue);
+    }
+    validate_result(&value.result)?;
+    if encode_speech_recognition_result(&value.result)? != encoded {
+        return Err(SpeechRecognitionValueError::NonCanonical);
+    }
+    Ok(value.result)
+}
+
+pub fn project_recognized_text(encoded: &[u8]) -> Result<Vec<u8>, RecognitionTextRefusal> {
+    let result = decode_speech_recognition_result(encoded)
+        .map_err(|_| RecognitionTextRefusal::InvalidResult)?;
+    match (result.disposition, result.text) {
+        (SpeechRecognitionDisposition::Recognized, Some(text)) => Ok(text.into_bytes()),
+        (SpeechRecognitionDisposition::NoSpeech, None) => {
+            Err(RecognitionTextRefusal::NotRecognized)
+        }
+        _ => Err(RecognitionTextRefusal::InvalidResult),
+    }
+}
+
+fn validate_result(result: &SpeechRecognitionResult) -> Result<(), SpeechRecognitionValueError> {
+    match (&result.disposition, &result.text) {
+        (SpeechRecognitionDisposition::Recognized, Some(text))
+            if !text.is_empty() && text.len() <= MAXIMUM_RECOGNIZED_TEXT_BYTES =>
+        {
+            Ok(())
+        }
+        (SpeechRecognitionDisposition::NoSpeech, None) => Ok(()),
+        _ => Err(SpeechRecognitionValueError::InvalidValue),
+    }
 }
 
 impl RecordedSpeechRecognizer {
