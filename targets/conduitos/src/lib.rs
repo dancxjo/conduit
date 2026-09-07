@@ -132,6 +132,8 @@ pub mod product_front_door;
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod product_journey;
+#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+pub mod product_pointer;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
 pub mod sign_format;

@@ -86,10 +86,12 @@ pub fn run_product(
     session: &mut HidKeyboardSession,
     controller: &mut XhciReady,
     device: &UsbDevice,
-    mut interact: impl FnMut(ProductInputEvent) -> Result<(), &'static str>,
+    mut interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
 ) -> Result<(), &'static str> {
     for transition in session.transitions().iter().copied() {
-        interact(ProductInputEvent::Transition(transition))?;
+        if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
+            return Ok(());
+        }
     }
     loop {
         let (transitions, count) = match session.receive_followup(controller, device) {
@@ -101,9 +103,17 @@ pub fn run_product(
             }
         };
         for transition in transitions[..count].iter().copied() {
-            interact(ProductInputEvent::Transition(transition))?;
+            if interact(ProductInputEvent::Transition(transition))? == ProductInputControl::Yield {
+                return Ok(());
+            }
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProductInputControl {
+    Continue,
+    Yield,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

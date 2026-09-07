@@ -10,11 +10,11 @@ use conduit_presentation::{
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID};
 
 use crate::{
-    arch::{self, HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},
+    arch::{self, HidKeyTransition, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
     fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
-    keyboard_input::{self, ProductInputEvent},
+    keyboard_input::{self, ProductInputControl, ProductInputEvent},
     local_rescue::LocalRescueMatcher,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
@@ -40,6 +40,8 @@ pub fn run(
     hid_session: &mut HidKeyboardSession,
     controller: &mut XhciReady,
     usb: &UsbDevice,
+    pointer_session: Option<&mut HidPointerSession>,
+    pointer_usb: Option<&UsbDevice>,
     rescue_matcher: &mut LocalRescueMatcher,
 ) -> Result<(), &'static str> {
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
@@ -59,6 +61,7 @@ pub fn run(
         form.checked_form_id,
         u64::try_from(CAPABILITY_COUNT).unwrap_or(u64::MAX)
             + u64::from(offer.keyboard.is_some())
+            + u64::from(offer.pointer.is_some())
             + u64::from(offer.pc_speaker.is_some()),
         true,
     );
@@ -94,7 +97,7 @@ pub fn run(
                     let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                     emit_journey_sign(&journey.projection(), fabrication, &receipt);
                 }
-                return Ok(());
+                return Ok(ProductInputControl::Continue);
             }
         };
         rescue_guest::observe(
@@ -113,7 +116,7 @@ pub fn run(
             tour_open = true;
             render_tour(&tour, display)?;
             emit_tour_sign(&tour, None, identities, fabrication);
-            return Ok(());
+            return Ok(ProductInputControl::Continue);
         }
         if tour_open && event.transition() == KeyTransition::Pressed {
             if event.usage() == ESCAPE {
@@ -122,7 +125,7 @@ pub fn run(
                     .present(&front_door, display)
                     .map_err(|error| error.as_str())?;
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT world-returned\n");
-                return Ok(());
+                return Ok(ProductInputControl::Continue);
             }
             if let Some(action) = tour_action(event.usage()) {
                 let event = ApplicationEvent {
@@ -148,7 +151,13 @@ pub fn run(
                     arch::early_write(b"\n");
                 }
                 emit_tour_sign(&tour, Some(&update), identities, fabrication);
-                return Ok(());
+                return Ok(
+                    if action == OPEN_PATCHBAY_ACTION_ID && pointer_session.is_some() {
+                        ProductInputControl::Yield
+                    } else {
+                        ProductInputControl::Continue
+                    },
+                );
             }
         }
         if journey.status() == JourneyStatus::Playing && !is_control_transition(transition) {
@@ -159,7 +168,7 @@ pub fn run(
                 let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                 emit_journey_sign(&journey.projection(), fabrication, &receipt);
             }
-            return Ok(());
+            return Ok(ProductInputControl::Continue);
         }
         if event.transition() == KeyTransition::Pressed
             && let Some(action) = action_for(transition.usage(), &front_door, &journey)
@@ -181,7 +190,7 @@ pub fn run(
                 .map_err(|error| error.as_str())?;
             let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
             emit_journey_sign(&journey.projection(), fabrication, &receipt);
-            return Ok(());
+            return Ok(ProductInputControl::Continue);
         }
         let revision = front_door.revision();
         if front_door
@@ -201,8 +210,20 @@ pub fn run(
                 );
             }
         }
-        Ok(())
-    })
+        Ok(ProductInputControl::Continue)
+    })?;
+    let (pointer_session, pointer_usb) = pointer_session
+        .zip(pointer_usb)
+        .ok_or("front-door-pointer-realization-missing")?;
+    crate::product_pointer::run(
+        identities,
+        fabrication,
+        &mut tour,
+        display,
+        pointer_session,
+        controller,
+        pointer_usb,
+    )
 }
 
 fn tour_action(usage: u8) -> Option<&'static str> {
@@ -213,7 +234,7 @@ fn tour_action(usage: u8) -> Option<&'static str> {
     }
 }
 
-fn render_tour(
+pub(crate) fn render_tour(
     tour: &TourProduct,
     display: &mut impl crate::display::PixelTarget,
 ) -> Result<(), &'static str> {

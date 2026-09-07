@@ -2,8 +2,8 @@
 
 use conduit_presentation::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
-    CANONICAL_SPECIMEN_ID, TourRunProof, TourWorkspaceController, TourWorkspaceRefusal,
-    TourWorkspaceRequest,
+    CANONICAL_SPECIMEN_ID, TourPointerOutcome, TourRunProof, TourWorkspaceController,
+    TourWorkspaceLayout, TourWorkspaceRefusal, TourWorkspaceRequest,
 };
 
 use crate::{
@@ -58,6 +58,19 @@ impl TourProduct {
     pub fn scene(&self, width: u16, height: u16) -> Result<GraphicsScene, TourProductError> {
         crate::tour_workspace::scene_for_state(width, height, self.controller.state())
             .map_err(TourProductError::Scene)
+    }
+
+    pub fn accept_pointer(
+        &mut self,
+        sample: conduit_semantic_catalog::NormalizedPointerSample,
+        width: u16,
+        height: u16,
+    ) -> Result<TourPointerOutcome, &'static str> {
+        let layout = TourWorkspaceLayout::default_for(width, height)
+            .map_err(|_| "tour-pointer-layout-refused")?;
+        self.controller
+            .accept_pointer(sample, &layout)
+            .map_err(|_| "tour-pointer-refused")
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -272,6 +285,37 @@ mod tests {
         assert_eq!(
             product.controller().state().phase,
             TourWorkspacePhase::PatchbayOpen
+        );
+        let outcome = product
+            .accept_pointer(
+                conduit_semantic_catalog::NormalizedPointerSample {
+                    position_x: 700_000,
+                    position_y: 100_000,
+                    delta_x: 200_000,
+                    delta_y: -400_000,
+                    primary_pressed: true,
+                    coalesced: 0,
+                    dropped: 0,
+                    queue_capacity: 2,
+                    sequence: 1,
+                },
+                640,
+                480,
+            )
+            .unwrap();
+        assert_eq!(
+            outcome,
+            conduit_tour_model::TourPointerOutcome::Selected {
+                subject: "meet-one-gear/change".into()
+            }
+        );
+        assert!(
+            product
+                .scene(640, 480)
+                .unwrap()
+                .commands()
+                .iter()
+                .any(|command| command.payload().contains("selected meet-one-gear/change"))
         );
     }
 }

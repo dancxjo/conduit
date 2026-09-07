@@ -56,6 +56,7 @@ extern "C" fn conduitos_start() -> ! {
                 Some(device) => device,
                 None => emit_machine_refusal("usb-primary-device-absent"),
             };
+            let pointer_usb = usb_devices[1].take();
             arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
             let Some(arena_virtual_start) = record
                 .hhdm_offset
@@ -240,8 +241,12 @@ extern "C" fn conduitos_start() -> ! {
                 Ok(ready) => ready,
                 Err(error) => emit_machine_refusal(error.as_str()),
             };
+            let pointer_ready = pointer_usb.as_ref().map(|device| {
+                arch::prepare_boot_pointer(&mut xhci, device, boot::executable_physical_address)
+                    .unwrap_or_else(|error| emit_machine_refusal(error.as_str()))
+            });
             arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-ready\n");
-            let offer = match conduitos::offer_fabrication::ImageBoundHostOffer::new(
+            let keyboard_offer = conduitos::offer_fabrication::ImageBoundHostOffer::new(
                 &identities,
                 fabrication,
                 arch::feature_basis(),
@@ -260,8 +265,17 @@ extern "C" fn conduitos_start() -> ! {
                         operation_slots: hid_ready.operation_slots,
                     },
                 )
-            })
-            .and_then(|offer| {
+            });
+            let input_offer = keyboard_offer.and_then(|offer| {
+                let Some((pointer, ready)) = pointer_usb.as_ref().zip(pointer_ready) else {
+                    return Ok(offer);
+                };
+                let realization =
+                    conduitos::product_pointer::realization(&identities, xhci_base, pointer, ready)
+                        .unwrap_or_else(|error| emit_machine_refusal(error));
+                offer.with_pointer(fabrication, realization)
+            });
+            let offer = match input_offer.and_then(|offer| {
                 offer.with_pc_speaker(
                     fabrication,
                     conduitos::pc_speaker_offer::PcSpeakerRealization {
@@ -293,6 +307,7 @@ extern "C" fn conduitos_start() -> ! {
             } else {
                 arch::start_boot_keyboard_session(hid_ready)
             };
+            let mut pointer_session = pointer_ready.map(arch::start_pointer_session);
             let mut rescue_matcher = conduitos::local_rescue::LocalRescueMatcher::new();
             let mut modifier_prefix = !hid_session.transitions().is_empty()
                 && hid_session
@@ -334,6 +349,8 @@ extern "C" fn conduitos_start() -> ! {
                     &mut hid_session,
                     &mut xhci,
                     &usb,
+                    pointer_session.as_mut(),
+                    pointer_usb.as_ref(),
                     &mut rescue_matcher,
                 ) {
                     emit_machine_refusal(reason);
