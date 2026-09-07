@@ -26,30 +26,35 @@ pub fn body_workbench_fixture_forms() -> Result<Vec<FormCandidate>, BodyWorkbenc
             "Hello",
             "forms/hello/main.conduit",
             include_str!("../../../../forms/hello/main.conduit"),
+            "hello",
             5,
         )?,
         reviewed_form(
             "Greet",
             "forms/greet/main.conduit",
             include_str!("../../../../forms/greet/main.conduit"),
+            "greet",
             6,
         )?,
         reviewed_form(
             "Count",
             "forms/count/main.conduit",
             include_str!("../../../../forms/count/main.conduit"),
+            "count",
             7,
         )?,
         reviewed_form(
             "Desk Telegraph",
             "forms/desk-telegraph/main.conduit",
             include_str!("../../../../forms/desk-telegraph/main.conduit"),
+            "desk_telegraph",
             8,
         )?,
         reviewed_form(
             "Memory Lantern",
             "forms/memory-lantern/main.conduit",
             include_str!("../../../../forms/memory-lantern/main.conduit"),
+            "memory_lantern",
             9,
         )?,
     ])
@@ -150,12 +155,14 @@ fn reviewed_form(
     label: &str,
     source_name: &str,
     source: &str,
+    form_name: &str,
     freshness: u64,
 ) -> Result<FormCandidate, BodyWorkbenchError> {
-    FormCandidate::from_source(
+    FormCandidate::from_source_form(
         label,
         source_name,
         source,
+        form_name,
         "reviewed canonical fixture Form",
         SignId::from(format!("sign/{}-reviewed", label.to_lowercase())),
         freshness,

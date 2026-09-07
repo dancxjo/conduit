@@ -14,6 +14,7 @@ creche-surface = []
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-creche-model = { path = "../../../products/creche/model" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-body-fabrication = { path = "../../../fabrication/body" }

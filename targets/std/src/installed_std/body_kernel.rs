@@ -7,7 +7,8 @@ use crate::{hosted_keyboard::HostedKeyboardAdapter, RunControl, TimerAdapter};
 use conduit_core::{CancellationReason, FailureReason, PlanFragment, TerminalDisposition};
 use conduit_kernel::{
     scheduler::{HostOperationRequest, OperationDriver, SchedulerStatus},
-    HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent,
+    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, HostedSignLog,
+    HostedValueStore, KernelEvent,
 };
 use conduit_plan_lowering::{
     fragment_set::{lower_local_fragment_set, FragmentSetBounds},
@@ -19,6 +20,7 @@ pub(crate) struct BodyKernel {
     scheduler: InstalledScheduler,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostOperation>,
+    typed_record_hosts: Vec<Option<super::typed_record_operation::TypedRecordHost>>,
     requests: Vec<HostOperationRequest>,
 }
 
@@ -36,6 +38,15 @@ fn keyboard(contract: &conduit_core::HostOperationContractId) -> bool {
 }
 fn timer(contract: &conduit_core::HostOperationContractId) -> bool {
     contract.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT
+}
+fn typed_record_codec(contract: &conduit_core::HostOperationContractId) -> bool {
+    [
+        conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
+        conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
+        conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
+        conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+    ]
+    .contains(&contract.as_str())
 }
 fn presentation(operation: &LoweredHostOperation) -> bool {
     operation.target_kind.as_ref().is_some_and(|target| {
@@ -79,7 +90,10 @@ impl BodyKernel {
                 if !has_keyboard {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
-            } else if !timer(&operation.contract_id) && !presentation(operation) {
+            } else if !timer(&operation.contract_id)
+                && !typed_record_codec(&operation.contract_id)
+                && !presentation(operation)
+            {
                 return Err(format!(
                     "Body Host operation is unsupported: {}",
                     operation.contract_id.as_str()
@@ -129,6 +143,10 @@ impl BodyKernel {
             u32::from(sign_items) * core::mem::size_of::<KernelEvent>() as u32,
         )
         .map_err(|error| format!("Body Sign store: {error:?}"))?;
+        let typed_record_hosts = fragments
+            .iter()
+            .flat_map(|fragment| super::typed_record_operation::prepare_hosts(fragment))
+            .collect();
         Ok(Self {
             scheduler: tables.install(drivers, values, signs)?,
             operations: lowered
@@ -141,6 +159,7 @@ impl BodyKernel {
                 .into_iter()
                 .map(|part| part.identity)
                 .collect(),
+            typed_record_hosts,
             requests: Vec::with_capacity(request_capacity),
         })
     }
@@ -206,6 +225,50 @@ impl BodyKernel {
                         .map_err(|error| format!("Body request value: {error:?}"))?;
                     if keyboard(&operation.contract_id) {
                         keys.accept(request, input)?;
+                        continue;
+                    }
+                    if typed_record_codec(&operation.contract_id) {
+                        let completion = self
+                            .typed_record_hosts
+                            .get_mut(usize::from(request.node.0))
+                            .and_then(Option::as_mut)
+                            .ok_or("Body typed-record codec has no admitted Host")?
+                            .execute(input);
+                        let (disposition, output, failure) = match completion {
+                            Ok(encoded) => {
+                                let value =
+                                    self.scheduler.store_host_value(encoded).map_err(|error| {
+                                        format!("Body typed-record output: {error:?}")
+                                    })?;
+                                let output = BoundedValueRef::new(
+                                    value,
+                                    operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("Body typed-record output bound: {error:?}")
+                                })?;
+                                (HostOperationDisposition::Completed, Some(output), None)
+                            }
+                            Err(detail) => (
+                                HostOperationDisposition::Failed,
+                                None,
+                                Some(conduit_kernel::Failure {
+                                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                                    detail,
+                                }),
+                            ),
+                        };
+                        self.scheduler
+                            .complete_host_operation(
+                                request.node,
+                                request.request,
+                                HostOperationOutcome {
+                                    disposition,
+                                    output,
+                                    failure,
+                                },
+                            )
+                            .map_err(|error| format!("Body typed-record completion: {error:?}"))?;
                         continue;
                     }
                     if timer(&operation.contract_id) {
