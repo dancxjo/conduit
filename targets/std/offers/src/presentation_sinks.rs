@@ -125,7 +125,7 @@ pub fn bitmap_presentation_offer() -> CapabilityOffer {
 }
 
 pub fn indicator_presentation_offer() -> CapabilityOffer {
-    let mut offer = presentation_offer(
+    presentation_offer(
         conduit_semantic_catalog::indicator_presentation_contract(),
         conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
         "presentation-indicator-v1",
@@ -134,10 +134,7 @@ pub fn indicator_presentation_offer() -> CapabilityOffer {
         INDICATOR_PRESENTATION_ARTIFACT,
         INDICATOR_PRESENTATION_TARGET,
         conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
-    );
-    offer.limits.max_queue_items = 4;
-    offer.limits.max_queue_bytes = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4;
-    offer
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
