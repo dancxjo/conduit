@@ -57,7 +57,7 @@ struct GalleryRequirement {
 }
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
-    let (startup, profile) = crate::installed_browser::catalogs()?;
+    let (startup, mut profile) = crate::installed_browser::catalogs()?;
     let host_inventory = crate::installed_browser::inventory();
     let mut forms = Vec::with_capacity(REVIEWED_SOURCES.len());
     for (name, title, source) in REVIEWED_SOURCES {
@@ -70,6 +70,11 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
         }
         let checked = conduit_form::check_syntax_document(&syntax, &startup)
             .map_err(|error| format!("check reviewed Gallery Form {name}: {error:?}"))?;
+        let selector_offers =
+            crate::installed_browser::catalogs::install_checked_structured_selectors(
+                &checked,
+                &mut profile,
+            )?;
         let form = checked
             .forms
             .iter()
@@ -91,14 +96,19 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
                     .entries
                     .iter()
                     .find(|entry| entry.kind_id == *kind && entry.implementation_id.is_some());
+                let selector_offer = selector_offers
+                    .iter()
+                    .find(|entry| entry.kind_id.as_str() == kind);
                 GalleryRequirement {
                     kind_id: kind.clone(),
-                    offer_state: if offer.is_some() {
+                    offer_state: if offer.is_some() || selector_offer.is_some() {
                         "current-host-offer"
                     } else {
                         "not-currently-offered"
                     },
-                    realization_class: offer.map(|entry| entry.classification),
+                    realization_class: offer
+                        .map(|entry| entry.classification)
+                        .or_else(|| selector_offer.map(|_| "kernel-transform")),
                 }
             })
             .collect::<Vec<_>>();

@@ -12,6 +12,8 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_forms() {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)
         .unwrap();
+    conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
+        .unwrap();
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)
         .unwrap();

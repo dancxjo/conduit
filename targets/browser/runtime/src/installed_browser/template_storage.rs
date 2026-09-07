@@ -7,16 +7,26 @@ use conduit_core::{
     FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, PlannedGear, ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_kernel::{Failure, FailureCode, HostedValueStore};
+use conduit_kernel::{
+    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
+    ValueRef, ValueStorage,
+};
 
 pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-named-pattern-storage@1";
 pub(crate) const IMPLEMENTATION: &str = "browser/kernel-named-pattern-storage@1";
 pub(crate) const RESOURCE_CLASS: &str = "conduit.resource/named-pattern-storage-slot@1";
+const INITIALIZER_IMPLEMENTATION: &str = "browser/kernel-named-pattern-template-initializer@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
     offer,
     prepare,
+    perform: None,
+};
+pub(super) static INITIALIZER: BrowserInstallation = BrowserInstallation {
+    implementation_id: INITIALIZER_IMPLEMENTATION,
+    offer: initializer_offer,
+    prepare: prepare_initializer,
     perform: None,
 };
 
@@ -85,6 +95,47 @@ fn offer() -> CapabilityOffer {
     }
 }
 
+fn initializer_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::named_pattern_template_initializer_definition();
+    CapabilityOffer {
+        startup_parameters: vec![
+            FaceStartupParameter {
+                name: "name".into(),
+                value_type: "Text".into(),
+                has_default: true,
+            },
+            FaceStartupParameter {
+                name: "normalized-values".into(),
+                value_type: "Text".into(),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        capability_id: CapabilityId::from(INITIALIZER_IMPLEMENTATION),
+        kind_id: contract.kind_id.clone(),
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(
+                "browser/named-pattern-template-initializer@1",
+            ),
+            implementation_id: ImplementationId::from(INITIALIZER_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(
+                "conduit-browser-runtime/named-pattern-template-initializer@1",
+            ),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: Vec::new(),
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 2,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+        },
+    }
+}
+
 fn validate(placement: &PlannedGear) -> Result<u64, String> {
     validate_placement(placement, &offer())?;
     if placement.resources.len() != 1
@@ -115,6 +166,101 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),
     ))
+}
+
+fn prepare_initializer(
+    placement: &PlannedGear,
+    values: &mut HostedValueStore,
+) -> Result<BrowserOperation, String> {
+    validate_placement(placement, &initializer_offer())?;
+    let configured = |key| {
+        placement
+            .configuration
+            .iter()
+            .find_map(|entry| match (&*entry.key, &entry.value) {
+                (found, ConfigurationValue::Text(value)) if found == key => Some(value.as_str()),
+                _ => None,
+            })
+            .ok_or_else(|| format!("template initializer lacks {key}"))
+    };
+    let name = configured("name")?;
+    let normalized = configured("normalized-values")?
+        .split(',')
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .map_err(|_| "invalid normalized pattern")
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let pattern = conduit_semantic_catalog::normalized_value(&normalized)
+        .map_err(|error| format!("normalized pattern: {error:?}"))?;
+    let commands = [
+        conduit_semantic_catalog::put_template_command(name, pattern)
+            .map_err(|error| format!("template put: {error:?}"))?,
+        conduit_semantic_catalog::get_template_command(name)
+            .map_err(|error| format!("template get: {error:?}"))?,
+    ];
+    let stored = commands
+        .iter()
+        .map(|command| {
+            values
+                .store(
+                    &command
+                        .canonical_bytes()
+                        .map_err(|error| format!("template command: {error:?}"))?,
+                )
+                .map_err(|error| format!("store template command: {error:?}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(BrowserOperation::installed(TemplateInitializerOperation {
+        commands: stored
+            .try_into()
+            .map_err(|_| "template initializer command count")?,
+        next: 0,
+        closed: false,
+    }))
+}
+
+struct TemplateInitializerOperation {
+    commands: [ValueRef; 2],
+    next: usize,
+    closed: bool,
+}
+
+impl Operation for TemplateInitializerOperation {
+    fn start(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        match input {
+            OperationInput::Value {
+                port: PortId(0), ..
+            } if self.next < self.commands.len() => {
+                let value = self.commands[self.next];
+                self.next += 1;
+                OperationAction::Emit {
+                    port: PortId(0),
+                    value,
+                }
+            }
+            OperationInput::Value {
+                port: PortId(0), ..
+            } => OperationAction::Await,
+            OperationInput::Closed { port: PortId(0) } if !self.closed => {
+                self.closed = true;
+                OperationAction::Complete
+            }
+            _ => OperationAction::Fail(Failure {
+                code: FailureCode::InvalidLifecycle,
+                detail: 265,
+            }),
+        }
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        OperationAction::Await
+    }
 }
 
 fn failure(refusal: conduit_semantic_catalog::TemplateStoreRefusal) -> Failure {
