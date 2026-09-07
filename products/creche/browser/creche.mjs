@@ -170,7 +170,7 @@ async function navigateToStep(index) {
   await routing.move(index, "push");
   currentStep = index;
   renderNavigation();
-  renderStep();
+  renderStep(true);
 }
 
 function refreshContext() {

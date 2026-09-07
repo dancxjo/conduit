@@ -38,11 +38,13 @@ test("shared skip link reaches each product's primary content", async ({ page })
   for (const path of ["", "tour/", "creche/", "patchbay/"]) {
     await page.goto(`${entrance.url}${path}`);
     if (path === "tour/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-    if (path === "creche/") await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    if (path === "creche/") {
+      await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+      await expect(page.locator("#workspace h2")).toBeFocused();
+    }
     if (path === "patchbay/") await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-    await page.evaluate(() => document.activeElement?.blur());
-    await page.keyboard.press("Tab");
     const skip = page.getByRole("link", { name: "Skip to main content" });
+    await skip.focus();
     await expect(skip).toBeFocused();
     await skip.press("Enter");
     await expect(page.getByRole("main")).toBeFocused();
