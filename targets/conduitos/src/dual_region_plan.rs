@@ -217,6 +217,11 @@ fn advertisement(
         crate::keyboard_offer::append_to_advertisement(&mut advertisement, keyboard, build_id)
             .map_err(|_| PreparationError::OfferMismatch)?;
     }
+    #[cfg(target_arch = "x86_64")]
+    if let Some(pointer) = fixed.pointer {
+        crate::pointer_offer::append_to_advertisement(&mut advertisement, pointer, build_id)
+            .map_err(|_| PreparationError::OfferMismatch)?;
+    }
     Ok(advertisement)
 }
 
