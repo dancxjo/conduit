@@ -149,6 +149,36 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
+    if operation.contract_id.as_str() == crate::installed_browser::record_queue::HOST_OPERATION {
+        let result = crate::installed_browser::record_queue::execute(
+            placement,
+            scheduler
+                .host_value(request.input.value)
+                .map_err(debug_error)?,
+        );
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler.store_host_value(&bytes).map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::pointer_selector::HOST_OPERATION
     {
         let input = scheduler

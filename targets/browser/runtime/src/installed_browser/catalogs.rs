@@ -22,6 +22,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_web::install_json_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)?;
+    conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
     match presentation {
