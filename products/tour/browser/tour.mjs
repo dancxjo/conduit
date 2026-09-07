@@ -153,7 +153,7 @@ function setupTourModes() {
     const button = event.target.closest("button[data-tour-mode]");
     if (button?.dataset.tourMode === "guided") renderPage(currentPage).catch(showTourFailure);
     else if (button?.dataset.tourMode === "gallery") renderGallery();
-  });
+  }, { capture: true });
 }
 
 function setTourMode(mode) {
