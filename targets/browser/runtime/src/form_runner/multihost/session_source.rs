@@ -4,6 +4,25 @@ use super::*;
 use crate::form_runner::protocol::TourButtonTransitionEffect;
 
 impl Session {
+    pub(in super::super) fn observe_partial_send(
+        &mut self,
+        sent_bytes: usize,
+    ) -> Result<Output, String> {
+        if self.role != Role::Source || self.stage != Stage::Offered {
+            return Err("partial Line progress does not match an offered source frame".into());
+        }
+        self.deliveries
+            .get_mut(usize::try_from(self.sequence).map_err(debug_error)?)
+            .ok_or("partial Line progress has no correlated delivery tracker")?
+            .partially_sent(sent_bytes)
+            .map_err(debug_error)?;
+        Ok(Output::Waiting {
+            schema: "conduit.tour/multi-host-progress@1",
+            phase: "partially-sent-awaiting-delivery",
+            plan_id: self.fragment.plan_id.as_str().into(),
+        })
+    }
+
     pub(in super::super) fn complete_input(
         &mut self,
         active_play_id: &str,
