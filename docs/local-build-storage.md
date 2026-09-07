@@ -20,3 +20,17 @@ reclamation is prohibited. Shared compilation-cache selection, active-job
 leases, evidence separation and bounded reclamation remain tracked in #2516.
 Do not point every product build at a shared target directory until its staging
 paths and concurrent executable consumers have been checked.
+
+Use `cargo xtask ci storage-reclaim --locked` for a dry-run selection of
+regenerable Cargo compilation directories. It preserves the current worktree,
+dirty worktrees, heads not reachable from a current remote ref, targets
+referenced by live processes, symlinks, root executables, staged products, and
+proof evidence. Selection is capped at 10 GiB of logical bytes by default; set a
+smaller explicit cap with `--maximum-bytes N`.
+
+On the user-owned `forebrain`, `victus`, and `envie` hosts only, add `--apply`
+to remove exactly the selected compilation directories. Apply mode is refused
+elsewhere and on platforms where live process references cannot be inspected.
+The JSON result distinguishes selected from reclaimed logical bytes and records
+every preserved worktree and reason. Refresh remote refs before applying so the
+reachability guard uses current remote truth.
