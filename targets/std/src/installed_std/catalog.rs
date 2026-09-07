@@ -18,6 +18,7 @@ use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_
 use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
+use super::house_prompt_operation::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::image_text_operation::FACTORY as IMAGE_TEXT_FACTORY;
 use super::image_text_record_operation::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
@@ -215,6 +216,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_SMALL_FACTORY,
     &GENERATE_TEXT_LARGE_FACTORY,
     &GENERATE_TEXT_REMOTE_FACTORY,
+    &HOUSE_PROMPT_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
     &IMAGE_TEXT_FACTORY,

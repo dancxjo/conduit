@@ -1021,6 +1021,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-tongues",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -1053,6 +1054,7 @@ dependencies = [
  "conduit-signal",
  "conduit-text",
  "conduit-time",
+ "conduit-tongues",
  "conduit-web",
 ]
 

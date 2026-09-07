@@ -66,6 +66,7 @@ impl InstalledOperation {
             Self::MidiInput(operation) => operation.cancel(),
             Self::ExternalWebSocketListener(operation) => operation.cancel(),
             Self::GenerateText(operation) => operation.cancel(),
+            Self::HousePrompt(operation) => operation.cancel(),
             Self::LocalModel(operation) => operation.cancel(),
             Self::VectorSearch(operation) => operation.cancel(),
             Self::HttpClient(operation) => operation.cancel(),

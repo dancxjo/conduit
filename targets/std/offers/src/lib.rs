@@ -70,6 +70,8 @@ mod patchbay;
 pub use patchbay::*;
 mod signal;
 pub use signal::*;
+mod house_conversation;
+pub use house_conversation::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
