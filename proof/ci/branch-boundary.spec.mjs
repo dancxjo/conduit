@@ -80,7 +80,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /Record a superseded development integration/);
   assert.match(request, /A newer development head owns the next release decision/);
   assert.match(request, /Check out the exact successfully integrated development snapshot/);
-  assert.match(request, /github\.event_name == 'workflow_dispatch' && 'dev' \|\| github\.event\.workflow_run\.head_sha/);
+  assert.match(request, /integrated_sha:/);
+  assert.match(request, /inputs\.integrated_sha \|\| 'dev'/);
   assert.match(request, /test "\$dev_sha" = "\$INTEGRATION_SHA"/);
   assert.match(request, /git merge-base --is-ancestor "\$dev_sha" origin\/dev/);
   assert.match(request, /already-running/);
@@ -101,6 +102,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(devIntegration, /Continue the release train after an explicitly dispatched integration/);
   assert.match(devIntegration, /if: github\.event_name == 'workflow_dispatch'/);
   assert.match(devIntegration, /gh workflow run promote-dev\.yml --repo "\$GITHUB_REPOSITORY" --ref main/);
+  assert.match(devIntegration, /-f integrated_sha="\$INTEGRATED_SHA"/);
   const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
   assert.match(finalizer, /types: \[completed\]/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
