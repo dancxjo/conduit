@@ -7,7 +7,7 @@ use conduit_text::AddressDetection;
 use conduit_tongues::{
     decode_address_detection, decode_wired_house_context, encode_address_detection,
     encode_wired_house_context, house_prompt_contract, install_house_conversation_catalog,
-    prepare_house_generation_prompt, HouseConversationValueError, HousePromptRefusal,
+    prepare_house_generation_request, HouseConversationValueError, HousePromptRefusal,
     HOUSE_CONTEXT_TO_PROMPT_KIND,
 };
 
@@ -66,7 +66,7 @@ fn malformed_noncanonical_and_invalid_port_values_refuse() {
 
 #[test]
 fn addressed_house_context_becomes_bounded_provider_neutral_model_input() {
-    let prompt = prepare_house_generation_prompt(
+    let request = prepare_house_generation_request(
         &AddressDetection::Addressed {
             matched_name_index: 0,
             utterance: "what is the temperature upstairs?".into(),
@@ -75,19 +75,23 @@ fn addressed_house_context_becomes_bounded_provider_neutral_model_input() {
         1024,
     )
     .unwrap();
-    assert!(prompt.prompt.contains("what is the temperature upstairs?"));
-    assert!(prompt.prompt.contains("21 C, observed 18 seconds ago"));
-    assert!(prompt.prompt.contains("observed-sign"));
-    assert!(prompt.prompt.contains("sign/temperature/42"));
+    assert!(request
+        .encoded_request
+        .contains("what is the temperature upstairs?"));
+    assert!(request
+        .encoded_request
+        .contains("21 C, observed 18 seconds ago"));
+    assert!(request.encoded_request.contains("observed-sign"));
+    assert!(request.encoded_request.contains("sign/temperature/42"));
     for forbidden in ["ollama", "localhost", "11434", "model_name", "HostId"] {
-        assert!(!prompt.prompt.contains(forbidden));
+        assert!(!request.encoded_request.contains(forbidden));
     }
 }
 
 #[test]
 fn unaddressed_text_never_becomes_model_eligible() {
     assert_eq!(
-        prepare_house_generation_prompt(
+        prepare_house_generation_request(
             &AddressDetection::NotAddressed,
             &[context(HouseContextProvenanceClass::ObservedSign)],
             1024,
@@ -102,7 +106,7 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile).unwrap();
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     install_house_conversation_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
@@ -118,7 +122,7 @@ fn canonical_house_conversation_is_an_ordinary_checked_form() {
     assert!(expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_id.as_str() == "ai/generate-text"));
+        .any(|gear| gear.kind_id.as_str() == conduit_ai::LLM_GENERATE_KIND));
     let contract = house_prompt_contract();
     assert_eq!(contract.inputs.len(), 2);
     for forbidden in ["ollama", "http", "microphone", "speaker", "actuator"] {
