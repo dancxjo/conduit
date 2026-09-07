@@ -1,0 +1,13 @@
+form house-conversation (
+    > detection: AddressDetection
+    > context: HouseContext
+    response: Text >
+) {
+    request: house/context-to-prompt
+    model: ai/generate-text(maximum-input-bytes = 131072, maximum-context-tokens = 32768, maximum-output-tokens = 512, temperature-milli = 0)
+
+    detection > request.detection
+    context > request.context
+    request.prompt > model.prompt
+    model.text > response
+}
