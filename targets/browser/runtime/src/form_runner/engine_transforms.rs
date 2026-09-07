@@ -399,6 +399,40 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
+    if crate::installed_browser::measurement_window::OPERATIONS
+        .contains(&operation.contract_id.as_str())
+    {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.measurement_windows[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("measurement window was not prepared before Play")?
+            .execute(operation.contract_id.as_str(), input);
+        let outcome = match result {
+            Ok(output) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: output
+                    .map(|bytes| {
+                        let value = scheduler.store_host_value(&bytes).map_err(debug_error)?;
+                        BoundedValueRef::new(value, operation.maximum_output_bytes)
+                            .map_err(debug_error)
+                    })
+                    .transpose()?,
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if crate::installed_browser::typed_record::OPERATIONS.contains(&operation.contract_id.as_str())
     {
         let result = crate::installed_browser::typed_record::execute(

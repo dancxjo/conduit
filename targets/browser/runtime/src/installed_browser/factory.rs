@@ -57,6 +57,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::json::SUMMARY,
     &super::measurement_plot::INSTALLATION,
     &super::measurement_summary::INSTALLATION,
+    &super::measurement_window::INSTALLATION,
     &super::typed_record::TEXT_TO_RECORD,
     &super::typed_record::FRAME,
     &super::typed_record::DEFRAME,
