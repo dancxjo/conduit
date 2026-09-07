@@ -117,6 +117,26 @@ test("Tour Form Gallery ordinary controls use the shared presentation vocabulary
   }
 });
 
+test("Tour page navigation uses product-owned semantic presentation", async () => {
+  const navigation = await readFile(join(repository, "products/tour/browser/tour-navigation.mjs"), "utf8");
+  const composition = navigation.slice(
+    navigation.indexOf("export function createTourNavigation"),
+    navigation.indexOf("export function createTourWorkspace"),
+  );
+  expect(composition, "Tour navigation must not construct low-level component arrays").not.toContain(
+    "component:",
+  );
+  expect(composition, "Tour navigation must request its product-owned semantic view").toContain(
+    "conduit_tour_navigation_view",
+  );
+  const model = await readFile(join(repository, "products/tour/model/src/navigation.rs"), "utf8");
+  for (const mechanism of ["Navigation", "Status", "Action"]) {
+    expect(model, `Tour navigation must describe ${mechanism} through shared semantics`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
 test("Crèche browser configuration ordinary controls use product-owned semantics", async () => {
   const configuration = await readFile(
     join(repository, "products/creche/browser/creche-browser-configuration.mjs"),
