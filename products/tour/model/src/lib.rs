@@ -9,7 +9,9 @@ use conduit_presentation::{
     StatusKind,
 };
 
+mod controller;
 mod layout;
+pub use controller::*;
 pub use layout::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";
@@ -40,6 +42,7 @@ pub struct TourWorkspaceState {
     pub specimen_id: String,
     pub source: String,
     pub result: Option<String>,
+    pub run_pending: bool,
 }
 
 impl TourWorkspaceState {
@@ -55,6 +58,7 @@ impl TourWorkspaceState {
             specimen_id: CANONICAL_SPECIMEN_ID.into(),
             source: CANONICAL_SOURCE.into(),
             result: (phase == TourWorkspacePhase::ResultVisible).then(|| CANONICAL_RESULT.into()),
+            run_pending: false,
         }
     }
 
@@ -165,11 +169,23 @@ impl TourWorkspaceState {
                                     label: "Tour actions".into(),
                                 },
                                 vec![
-                                    action("run", RUN_ACTION_ID, "Run Form"),
+                                    action(
+                                        "run",
+                                        RUN_ACTION_ID,
+                                        "Run Form",
+                                        if self.run_pending {
+                                            ActionAvailability::Busy {
+                                                detail: "Canonical Play is active".into(),
+                                            }
+                                        } else {
+                                            ActionAvailability::Available
+                                        },
+                                    ),
                                     action(
                                         "open-patchbay",
                                         OPEN_PATCHBAY_ACTION_ID,
                                         "Open Patchbay",
+                                        ActionAvailability::Available,
                                     ),
                                 ],
                             ),
@@ -191,14 +207,19 @@ fn format_phase(phase: TourWorkspacePhase) -> &'static str {
     }
 }
 
-fn action(key: &str, identity: &str, label: &str) -> SemanticPresentationNode {
+fn action(
+    key: &str,
+    identity: &str,
+    label: &str,
+    availability: ActionAvailability,
+) -> SemanticPresentationNode {
     node(
         key,
         PresentationMechanism::Action(SemanticAction {
             identity: identity.into(),
             event: ApplicationEventKind::Activate,
             label: label.into(),
-            availability: ActionAvailability::Available,
+            availability,
         }),
         vec![],
     )
