@@ -50,7 +50,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(integration, /cancel-in-progress: false/);
   assert.match(promotion, /branches: \[main\]/);
   assert.match(promotion, /full_suite: true/g);
-  assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.number \}\}/);
+  assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.head\.ref \}\}/);
   assert.match(promotion, /cancel-in-progress: true/);
   const check = readFileSync(".github/workflows/check.yml", "utf8");
   const classification = check.split("      - name: Classify exact change set\n")[1]
@@ -70,6 +70,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(deploy, /github\.event\.pull_request\.merged == true/);
   assert.match(deploy, /github\.event\.pull_request\.base\.ref == 'main'/);
   assert.match(promotion, /Verify the captured development snapshot remains in the release/);
+  assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.head\.ref \}\}/);
+  assert.doesNotMatch(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(promotion, /fetch-depth: 0/);
   assert.match(promotion, /git merge-base --is-ancestor "\$snapshot" origin\/dev/);
   assert.match(promotion, /git merge-base --is-ancestor "\$snapshot" HEAD/);
@@ -80,7 +82,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /Record a superseded development integration/);
   assert.match(request, /A newer development head owns the next release decision/);
   assert.match(request, /Check out the exact successfully integrated development snapshot/);
-  assert.match(request, /github\.event_name == 'workflow_dispatch' && 'dev' \|\| github\.event\.workflow_run\.head_sha/);
+  assert.match(request, /integrated_sha:/);
+  assert.match(request, /inputs\.integrated_sha \|\| 'dev'/);
   assert.match(request, /test "\$dev_sha" = "\$INTEGRATION_SHA"/);
   assert.match(request, /git merge-base --is-ancestor "\$dev_sha" origin\/dev/);
   assert.match(request, /already-running/);
@@ -101,6 +104,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(devIntegration, /Continue the release train after an explicitly dispatched integration/);
   assert.match(devIntegration, /if: github\.event_name == 'workflow_dispatch'/);
   assert.match(devIntegration, /gh workflow run promote-dev\.yml --repo "\$GITHUB_REPOSITORY" --ref main/);
+  assert.match(devIntegration, /-f integrated_sha="\$INTEGRATED_SHA"/);
   const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
   assert.match(finalizer, /types: \[completed\]/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);

@@ -36,6 +36,7 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::garden_step::INSTALLATION,
     &super::historical::INSTALLATION,
     &super::replay_source::INSTALLATION,
     &super::replay_control::INSTALLATION,
@@ -237,6 +238,10 @@ pub(crate) fn factory(
     #[cfg(test)]
     if implementation_id.as_str() == super::test_measurement_sink::KIND {
         return Some(&super::test_measurement_sink::SINK);
+    }
+    #[cfg(test)]
+    if implementation_id.as_str() == super::test_garden_sink::KIND {
+        return Some(&super::test_garden_sink::SINK);
     }
     #[cfg(test)]
     if implementation_id.as_str() == super::test_measurement_decision_sink::KIND {

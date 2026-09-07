@@ -4,6 +4,7 @@ mod button_indicator;
 mod delay;
 mod factory;
 mod final_normalized_pattern;
+pub(crate) mod garden_step;
 pub(crate) mod historical;
 mod input;
 mod inventory;
@@ -108,6 +109,8 @@ pub(crate) mod test_timing_sink;
 #[cfg(test)]
 pub(crate) mod test_replay_sink;
 
+#[cfg(test)]
+pub(crate) mod test_garden_sink;
 #[cfg(test)]
 pub(crate) mod test_measurement_sink;
 

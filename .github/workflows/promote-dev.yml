@@ -2,6 +2,11 @@ name: Promote dev to main
 
 on:
   workflow_dispatch:
+    inputs:
+      integrated_sha:
+        description: Exact successfully integrated dev commit, or empty for a manual current-dev snapshot
+        required: false
+        type: string
   workflow_run:
     workflows: [dev-integration]
     types: [completed]
@@ -35,18 +40,17 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'dev' || github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && (inputs.integrated_sha || 'dev') || github.event.workflow_run.head_sha }}
           fetch-depth: 0
       - name: Create or reuse the repairable release pull request
         id: pull-request
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
-          INTEGRATION_SHA: ${{ github.event.workflow_run.head_sha }}
+          INTEGRATION_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.integrated_sha || github.event.workflow_run.head_sha }}
         run: |
           dev_sha=$(git rev-parse HEAD)
-          if test "$EVENT_NAME" = workflow_run; then
+          if test -n "$INTEGRATION_SHA"; then
             test "$dev_sha" = "$INTEGRATION_SHA"
           fi
           git fetch --no-tags origin main
