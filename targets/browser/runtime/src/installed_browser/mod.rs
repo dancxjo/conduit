@@ -30,6 +30,7 @@ pub(crate) mod replay_control;
 pub(crate) mod replay_source;
 pub(crate) mod resource;
 mod state_time;
+pub(crate) mod template_storage;
 mod text;
 mod tick;
 pub(crate) mod timing;

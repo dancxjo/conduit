@@ -39,6 +39,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::historical::INSTALLATION,
     &super::replay_source::INSTALLATION,
     &super::replay_control::INSTALLATION,
+    &super::template_storage::INSTALLATION,
     &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
@@ -283,6 +284,11 @@ pub(crate) fn advertisement_for_machinery(
     }
     resources.push(resource_offer("browser/timer", TIMER_RESOURCE_CLASS, 1));
     super::button_attempt::admit_clock_resource(&mut resources);
+    resources.push(resource_offer(
+        "browser/named-pattern-storage",
+        super::template_storage::RESOURCE_CLASS,
+        1,
+    ));
     if machinery.keyboard || machinery.pointer {
         resources.push(resource_offer(
             "browser/window-input",
@@ -290,6 +296,7 @@ pub(crate) fn advertisement_for_machinery(
             1,
         ));
     }
+    resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id,
