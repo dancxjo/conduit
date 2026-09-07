@@ -1,30 +1,43 @@
 use serde::Serialize;
 
-const REVIEWED_SOURCES: [(&str, &str, &str); 5] = [
+use crate::installed_browser::PresentationProfile;
+
+const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 6] = [
     (
         "morse_network",
         "Morse Network",
         include_str!("../../../../../forms/morse-network/main.conduit"),
+        PresentationProfile::Annotation,
     ),
     (
         "memory_lantern",
         "Memory Lantern",
         include_str!("../../../../../forms/memory-lantern/main.conduit"),
+        PresentationProfile::Annotation,
     ),
     (
         "desk_telegraph",
         "Desk Telegraph",
         include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+        PresentationProfile::Annotation,
     ),
     (
         "secret-knock-demo",
         "Secret Knock",
         include_str!("../../../../../forms/secret-knock/main.conduit"),
+        PresentationProfile::PatternComparison,
+    ),
+    (
+        "pocket-theremin",
+        "Pocket Theremin",
+        include_str!("../../../../../forms/pocket-theremin/main.conduit"),
+        PresentationProfile::Quantity,
     ),
     (
         "button_across_room",
         "Button Across the Room",
         include_str!("../../../../../forms/button-across-room/main.conduit"),
+        PresentationProfile::Annotation,
     ),
 ];
 
@@ -62,12 +75,15 @@ struct GalleryRequirement {
 }
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
-    let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
-        crate::installed_browser::PresentationProfile::PatternComparison,
-    )?;
-    let host_inventory = crate::installed_browser::inventory();
     let mut forms = Vec::with_capacity(REVIEWED_SOURCES.len());
-    for (name, title, source) in REVIEWED_SOURCES {
+    for (name, title, source, presentation) in REVIEWED_SOURCES {
+        let (startup, mut profile) =
+            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        let host = crate::installed_browser::advertisement_for_presentation(
+            "browser/gallery".into(),
+            "browser/gallery-boot".into(),
+            presentation,
+        );
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
@@ -99,10 +115,10 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
         let requirements = required_kinds
             .iter()
             .map(|kind| {
-                let offer = host_inventory
-                    .entries
+                let offer = host
+                    .capabilities
                     .iter()
-                    .find(|entry| entry.kind_id == *kind && entry.implementation_id.is_some());
+                    .find(|entry| entry.kind_id.as_str() == kind);
                 let selector_offer = selector_offers
                     .iter()
                     .find(|entry| entry.kind_id.as_str() == kind);
@@ -114,7 +130,13 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
                         "not-currently-offered"
                     },
                     realization_class: offer
-                        .map(|entry| entry.classification)
+                        .map(|entry| {
+                            if entry.host_operations.is_empty() {
+                                "pure-kernel-or-local"
+                            } else {
+                                "bounded-browser-host-operation"
+                            }
+                        })
                         .or_else(|| selector_offer.map(|_| "kernel-transform")),
                 }
             })
@@ -276,8 +298,8 @@ mod tests {
     #[test]
     fn gallery_projects_exact_checked_canonical_sources() {
         let gallery = reviewed_gallery().unwrap();
-        assert_eq!(gallery.maximum_forms, 5);
-        assert_eq!(gallery.forms.len(), 5);
+        assert_eq!(gallery.maximum_forms, 6);
+        assert_eq!(gallery.forms.len(), 6);
         for form in gallery.forms {
             assert!(!form.source_document_id.is_empty());
             assert!(!form.checked_form_id.is_empty());
@@ -308,7 +330,7 @@ mod tests {
                 .iter()
                 .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
                 .count(),
-            5
+            6
         );
         let handoff = view
             .nodes

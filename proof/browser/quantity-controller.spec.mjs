@@ -5,7 +5,7 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("."); });
 test.afterEach(() => entrance?.child.kill());
 
-test("pointer and deterministic input causally reach Conduit quantity output", async ({ page }) => {
+test("Pocket Theremin maps pointer and deterministic control to typed pitch", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(new URL("proof/browser/quantity-controller.test.html", entrance.url).href);

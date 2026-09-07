@@ -2,19 +2,7 @@ const { instance } = await WebAssembly.instantiate(
   await (await fetch("../../target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm")).arrayBuffer(), {},
 );
 const api = instance.exports;
-const authored = await (await fetch("../../forms/quantity-range-map/main.conduit")).text();
-const source = `${authored}
-form zz-pointer-quantity {
- pointer: input/pointer-source
- normalize: math/normalized-quantity-scalar
- map: quantity-range-map
- wrap: structured-info/wrap-quantity
- show: presentation/structured-info
- pointer.pointer > project(PointerEvent.position) > project(Point2.x) > normalize.in
- normalize.out > map.control
- map.quantity > wrap.in
- wrap.out > show.input
-}`;
+const source = await (await fetch("../../forms/pocket-theremin/main.conduit")).text();
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const sourceBytes = encoder.encode(source);
