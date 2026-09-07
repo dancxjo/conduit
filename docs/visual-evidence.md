@@ -107,30 +107,30 @@ These stable links are published only after the frozen promotion boots the exact
 Crèche-produced spore and the main-only Pages carrier accepts its complete,
 correlated 1280 by 800 RGBA8 visual journey.
 
-The journey retains all seventeen checkpoints. Each link opens a provenance page
-with the full-size screenshot and exact manifest correlation:
+The journey page presents all seventeen real screenshots inline in transition
+order. Each checkpoint separately explains what a user can see, the action that
+led there, the semantic behavior the harness proved, and the Conduit concepts in
+view. Its image also links to a focused provenance page with exact manifest
+correlation.
 
-- [Front door ready](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready.png)) — the ordinary product entrance after the exact Crèche artifact boots.
-- [Tour opened](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-opened/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-opened.png)) — Tour opened from the ordinary product surface after the Body journey returned to Lulled, through emulated xHCI/USB/HID and the portable keyboard bridge, showing the canonical `meet-one-gear` lesson before execution.
-- [Tour result visible](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-result-visible/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-result-visible.png)) — the same Tour workspace after its canonical Form runs through the production kernel and exposes `HELLO`, correlated to exact source, checked Form, expanded Form, Plan, and active Play identities.
-- [Tour Patchbay open](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-patchbay-open/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-patchbay-open.png)) — the shared Patchbay surface opened in that workspace while preserving the canonical specimen and visible result; no additional Play is claimed.
-- [Pointer hover or focus](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-hover-or-focus/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-hover-or-focus.png)) — a real QEMU USB mouse report crossed the admitted xHCI, USB, HID, and portable pointer path; the shared Patchbay layout visibly identifies the hovered Gear while the correlated guest record retains exact image, Host, Boot, Tour revision, position, and sequence facts.
-- [Pointer selected](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-selected/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-selected.png)) — a distinct primary-button press selected the hit-tested Gear through the same real device path; the screenshot shows the selection and the correlated record distinguishes press from the subsequently observed release.
-- [Form opened](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened.png)) — the selected product Form before Body birth or execution.
-- [Born, lulled](https://dancxjo.github.io/conduit/current/conduitos/x86_64/born-lulled/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/born-lulled.png)) — the newly born Body retained without an active Play.
-- [Awake](https://dancxjo.github.io/conduit/current/conduitos/x86_64/awake/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/awake.png)) — the same Body after Wake and before planning.
-- [Planned](https://dancxjo.github.io/conduit/current/conduitos/x86_64/planned/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/planned.png)) — the exact admitted Plan before it becomes active.
-- [Playing](https://dancxjo.github.io/conduit/current/conduitos/x86_64/playing/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/playing.png)) — the admitted Plan executing as an active Play.
-- [Result visible](https://dancxjo.github.io/conduit/current/conduitos/x86_64/result-visible/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/result-visible.png)) — the visible result correlated with guest runtime records.
-- [Lulled](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled.png)) — the completed journey returned to Lulled with the same Body retained.
-- [USB Line current](https://dancxjo.github.io/conduit/current/conduitos/x86_64/usb-line-current/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/usb-line-current.png)) — the same ordinary guest visibly reports one current bounded Line backed by QEMU's separately pinned FTDI USB function. The correlated record—not the screenshot—establishes the exact controller, device, interface, endpoints, Line, binding, Host, and Boot facts.
-- [Peer attached](https://dancxjo.github.io/conduit/current/conduitos/x86_64/peer-attached/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/peer-attached.png)) — the harness peer completed the canonical bounded `Hello`/`Ready` exchange over bytes that crossed the emulated FTDI USB device. The screen and record explicitly label this as a pre-admission connectivity seam; no Body membership is inferred.
-- [Line value visible](https://dancxjo.github.io/conduit/current/conduitos/x86_64/line-value-visible/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/line-value-visible.png)) — `HELLO USB LINE` is visibly manifested after its canonical session delivery, correlated to distinct Line, binding, Plan, active-Play, Host, Boot, and unchanged Body identities.
-- [Line lost](https://dancxjo.github.io/conduit/current/conduitos/x86_64/line-lost/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/line-lost.png)) — QMP removed the separately pinned FTDI USB function; the ordinary guest visibly reports Line loss while serial evidence proves device removal, stale-session refusal, and an unchanged Body identity.
+Refresh the source artifacts by running the ordinary repository-development
+entrance:
 
-Each image links to a provenance page containing the exact accepted commit and
-the manifest correlation context. The gallery also retains all seventeen named
-checkpoints under the commit-addressed journey index. Emulator pixels remain
+```sh
+cargo xtask conduitos journey-proof
+```
+
+That proof replaces `target/conduitos/x86_64/journey-frames/manifest.json` and
+its checkpoint PNGs during one real QEMU journey. Publication runs
+`tools/ci/stage-conduitos-pages-evidence.mjs` against those same artifacts; it
+refuses an incomplete journey, a missing, duplicated, or renamed checkpoint,
+unexpected dimensions or pixel format, and PNG bytes that do not match the
+manifest. There is no separately maintained documentation screenshot set.
+
+The published walkthrough is available at the
+[current ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/).
+The gallery also retains the same narrated walkthrough and focused provenance
+pages under the commit-addressed journey index. Emulator pixels remain
 documentary evidence and never imply physical hardware acceptance.
 
 `cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
