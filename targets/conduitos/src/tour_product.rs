@@ -29,6 +29,17 @@ pub enum TourProductError {
     Scene(TourWorkspaceSceneRefusal),
 }
 
+impl TourProductError {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Controller(_) => "tour-controller-refused",
+            Self::Preparation(error) => error.as_str(),
+            Self::Play(_) => "tour-play-refused",
+            Self::Scene(_) => "tour-scene-refused",
+        }
+    }
+}
+
 pub struct TourProduct {
     controller: TourWorkspaceController,
 }

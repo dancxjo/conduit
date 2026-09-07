@@ -110,7 +110,12 @@ impl FrontDoor {
                     "  DETAILS"
                 },
             )?;
-            text(&mut scene, 18, 176, "ARROWS SELECT  ENTER OPEN  F2 DETAILS")?;
+            text(
+                &mut scene,
+                18,
+                176,
+                "ARROWS SELECT  ENTER OPEN  F2 DETAILS  F9 TOUR",
+            )?;
         }
         Ok(scene)
     }

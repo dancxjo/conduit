@@ -3,6 +3,11 @@
 use alloc::{format, string::String};
 
 use conduit_human::KeyTransition;
+use conduit_presentation::{
+    ApplicationEvent, ApplicationEventKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, LayoutRect,
+};
+use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID};
 
 use crate::{
     arch::{self, HidKeyTransition, HidKeyboardSession, UsbDevice, XhciReady},
@@ -16,9 +21,14 @@ use crate::{
     product_bindings::binding_for_usage,
     product_journey::{JourneyAction, JourneyProjection, JourneyStatus, ProductJourney},
     rescue_guest,
+    tour_product::{TourProduct, TourProductUpdate},
 };
 
 const ENTER: u8 = 40;
+const ESCAPE: u8 = 41;
+const F9: u8 = 66;
+const F10: u8 = 67;
+const F11: u8 = 68;
 
 #[allow(clippy::too_many_arguments)]
 pub fn run(
@@ -66,6 +76,12 @@ pub fn run(
         .present(&front_door, display)
         .map_err(|error| error.as_str())?;
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\n");
+    let mut tour = TourProduct::canonical(1);
+    let mut tour_open = false;
+    let mut clock = arch::Clock::new();
+    let mut serial = arch::Serial::new();
+    let mut interrupts = arch::Interrupts::new();
+    let mut idle = arch::Idle::new();
     keyboard_input::run_product(hid_session, controller, usb, |input| {
         let transition = match input {
             ProductInputEvent::Transition(transition) => transition,
@@ -93,6 +109,45 @@ pub fn run(
             transition.modifiers(),
         )
         .map_err(|_| "front-door-key-event-invalid")?;
+        if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
+            tour_open = true;
+            render_tour(&tour, display)?;
+            emit_tour_sign(&tour, None, fabrication);
+            return Ok(());
+        }
+        if tour_open && event.transition() == KeyTransition::Pressed {
+            if event.usage() == ESCAPE {
+                tour_open = false;
+                presenter
+                    .present(&front_door, display)
+                    .map_err(|error| error.as_str())?;
+                arch::early_write(b"CONDUIT_TOUR_CHECKPOINT world-returned\n");
+                return Ok(());
+            }
+            if let Some(action) = tour_action(event.usage()) {
+                let event = ApplicationEvent {
+                    revision: tour.controller().state().revision,
+                    action: action.into(),
+                    kind: ApplicationEventKind::Activate,
+                    value: alloc::vec::Vec::new(),
+                };
+                let update = tour
+                    .accept(
+                        &event,
+                        identities,
+                        offer,
+                        fabrication.build_id,
+                        &mut clock,
+                        &mut serial,
+                        &mut interrupts,
+                        &mut idle,
+                    )
+                    .map_err(|error| error.as_str())?;
+                render_tour(&tour, display)?;
+                emit_tour_sign(&tour, Some(&update), fabrication);
+                return Ok(());
+            }
+        }
         if journey.status() == JourneyStatus::Playing && !is_control_transition(transition) {
             if journey
                 .accept_play_input(event)
@@ -145,6 +200,86 @@ pub fn run(
         }
         Ok(())
     })
+}
+
+fn tour_action(usage: u8) -> Option<&'static str> {
+    match usage {
+        F10 => Some(RUN_ACTION_ID),
+        F11 => Some(OPEN_PATCHBAY_ACTION_ID),
+        _ => None,
+    }
+}
+
+fn render_tour(
+    tour: &TourProduct,
+    display: &mut impl crate::display::PixelTarget,
+) -> Result<(), &'static str> {
+    let format = display
+        .format()
+        .validate()
+        .map_err(crate::display::DisplayError::as_str)?;
+    let scene = tour
+        .scene(
+            u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
+            u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
+        )
+        .map_err(|error| error.as_str())?;
+    let bounds = LayoutRect {
+        x: 0,
+        y: 0,
+        width: u16::try_from(format.width).map_err(|_| "tour-display-extent-invalid")?,
+        height: u16::try_from(format.height).map_err(|_| "tour-display-extent-invalid")?,
+    };
+    let mut background = GraphicsScene::empty();
+    background
+        .push(
+            GraphicsCommand::rect(
+                bounds,
+                bounds,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            )
+            .map_err(|_| "tour-background-scene-refused")?,
+        )
+        .map_err(|_| "tour-background-scene-refused")?;
+    crate::display::render_scene(display, &background)
+        .map_err(crate::display::DisplayError::as_str)?;
+    crate::display::render_scene(display, &scene)
+        .map(|_| ())
+        .map_err(crate::display::DisplayError::as_str)
+}
+
+fn emit_tour_sign(
+    tour: &TourProduct,
+    update: Option<&TourProductUpdate>,
+    fabrication: &FabricationRecord,
+) {
+    let state = tour.controller().state();
+    let play = update.and_then(|value| value.play.as_ref());
+    let line = format!(
+        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v1\",\"status\":\"{}\",\"revision\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"source_document_id\":{},\"checked_form_id\":{},\"expanded_form_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        match state.phase {
+            conduit_tour_model::TourWorkspacePhase::LessonReady => "tour-opened",
+            conduit_tour_model::TourWorkspacePhase::ResultVisible => "result-visible",
+            conduit_tour_model::TourWorkspacePhase::PatchbayOpen => "patchbay-open",
+        },
+        state.revision,
+        state.specimen_id,
+        fabrication.profile_id,
+        fabrication.build_id,
+        fabrication.image_binding,
+        json_optional(play.map(|value| value.source_document_id.as_str())),
+        json_optional(play.map(|value| value.checked_form_id.as_str())),
+        json_optional(play.map(|value| value.expanded_form_id.as_str())),
+        json_optional(play.map(|value| value.plan_id.as_str())),
+        json_optional(play.map(|value| value.active_play_id.as_str())),
+        json_optional(state.result.as_deref()),
+    );
+    arch::early_write(line.as_bytes());
+}
+
+fn json_optional(value: Option<&str>) -> String {
+    value.map_or_else(|| "null".into(), |value| format!("\"{value}\""))
 }
 
 fn action_for(
