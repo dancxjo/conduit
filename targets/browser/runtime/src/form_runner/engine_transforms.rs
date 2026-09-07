@@ -11,6 +11,44 @@ pub(in crate::form_runner) fn complete_transform(
     operation: &HostOperationRequirement,
     request: HostOperationRequest,
 ) -> Result<bool, String> {
+    if operation.contract_id.as_str()
+        == crate::installed_browser::structured_selector::HOST_OPERATION
+    {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.structured_selectors[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("structured selector was not prepared before Play")?
+            .execute(input);
+        let outcome = match result {
+            Ok(output) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: output
+                    .map(|bytes| {
+                        let value = scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?;
+                        BoundedValueRef::new(value, operation.maximum_output_bytes)
+                            .map_err(debug_error)
+                    })
+                    .transpose()?,
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::template_storage::HOST_OPERATION
     {
         let input = scheduler

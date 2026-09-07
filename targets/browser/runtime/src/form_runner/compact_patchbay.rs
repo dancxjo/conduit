@@ -88,7 +88,7 @@ pub(super) fn project_with_presentation(
     presentation: PresentationProfile,
 ) -> Result<CompactPatchbayProjection, String> {
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), sequence)?;
-    let (startup, catalog) = catalogs_for_presentation(presentation)?;
+    let (startup, mut catalog) = catalogs_for_presentation(presentation)?;
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
@@ -98,6 +98,10 @@ pub(super) fn project_with_presentation(
     }
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|error| format!("check compact Tour Patchbay: {error:?}"))?;
+    crate::installed_browser::catalogs::install_checked_structured_selectors(
+        &checked,
+        &mut catalog,
+    )?;
     let entry = checked
         .forms
         .last()

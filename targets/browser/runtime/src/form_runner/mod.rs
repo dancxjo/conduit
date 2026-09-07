@@ -107,7 +107,8 @@ impl TourSession {
         realization: MorseRealization,
         presentation: crate::installed_browser::PresentationProfile,
     ) -> Result<(Self, TourHostEffect), String> {
-        let (startup, catalog) = crate::installed_browser::catalogs_for_presentation(presentation)?;
+        let (startup, mut catalog) =
+            crate::installed_browser::catalogs_for_presentation(presentation)?;
         let syntax = conduit_form::parse_syntax_document(source);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
@@ -117,6 +118,11 @@ impl TourSession {
         }
         let checked = conduit_form::check_syntax_document(&syntax, &startup)
             .map_err(|error| format!("check executable-tour Form: {error:?}"))?;
+        let selector_offers =
+            crate::installed_browser::catalogs::install_checked_structured_selectors(
+                &checked,
+                &mut catalog,
+            )?;
         let entry = executable_entry(&checked)?;
         let form = match realization {
             MorseRealization::Direct => {
@@ -131,11 +137,14 @@ impl TourSession {
             )
             .map_err(|error| format!("expand recursive executable-tour Form: {error:?}"))?,
         };
-        let host = crate::installed_browser::advertisement_for_presentation(
+        let mut host = crate::installed_browser::advertisement_for_presentation(
             host_id.into(),
             boot_id.into(),
             presentation,
         );
+        host.capabilities.extend(selector_offers);
+        host.capabilities
+            .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
         let hosts = [host];
         let placements = default_expanded_placements(&form, &hosts)
             .map_err(|error| format!("place executable-tour Form: {error:?}"))?;
