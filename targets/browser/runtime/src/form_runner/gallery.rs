@@ -130,6 +130,96 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
     })
 }
 
+pub(super) fn reviewed_gallery_view(
+    query: &str,
+    selected_checked_form_id: Option<&str>,
+    creche_url: &str,
+    revision: u32,
+) -> Result<Vec<u8>, String> {
+    let gallery = reviewed_gallery()?;
+    let entries = gallery
+        .forms
+        .iter()
+        .map(|form| {
+            let realization = form
+                .realizability
+                .requirements
+                .iter()
+                .map(|requirement| {
+                    let class = match requirement.realization_class {
+                        Some("pure-kernel-or-local") => "local",
+                        Some("bounded-browser-host-operation") => "browser Host",
+                        _ => "unrealized",
+                    };
+                    format!(
+                        "{}={}/{}",
+                        requirement.kind_id,
+                        if requirement.offer_state == "current-host-offer" {
+                            "current"
+                        } else {
+                            "missing"
+                        },
+                        class
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("; ");
+            conduit_tour_model::TourGalleryEntry {
+                title: form.title.into(),
+                checked_form_id: form.checked_form_id.clone(),
+                realization: format!(
+                    "Kinds and realization: {realization}. Offers {}/{}; {}.",
+                    form.realizability.current_offer_count,
+                    form.realizability.required_kind_count,
+                    if form.realizability.status == "runnable-on-current-browser-host" {
+                        "runnable here"
+                    } else {
+                        "not runnable here"
+                    }
+                ),
+                runnable: form.realizability.status == "runnable-on-current-browser-host",
+                handoff: form_handoff(creche_url, form),
+            }
+        })
+        .collect();
+    conduit_tour_model::TourGalleryState {
+        revision,
+        query: query.into(),
+        selected_checked_form_id: selected_checked_form_id.map(Into::into),
+        entries,
+    }
+    .presentation()
+    .map_err(|error| format!("describe reviewed Gallery: {error:?}"))?
+    .lower()
+    .map_err(|error| format!("lower reviewed Gallery: {error:?}"))?
+    .encode()
+    .map_err(|error| format!("encode reviewed Gallery: {error:?}"))
+}
+
+fn form_handoff(creche_url: &str, form: &GalleryForm) -> String {
+    format!(
+        "{}{}form={}&source_document_id={}&checked_form_id={}",
+        creche_url,
+        if creche_url.contains('?') { "&" } else { "?" },
+        percent_encode(form.name),
+        percent_encode(&form.source_document_id),
+        percent_encode(&form.checked_form_id),
+    )
+}
+
+fn percent_encode(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            use core::fmt::Write;
+            write!(&mut encoded, "%{byte:02X}").expect("writing to a String cannot fail");
+        }
+    }
+    encoded
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -157,5 +247,29 @@ mod tests {
                     && requirement.realization_class.is_some()
             }));
         }
+    }
+
+    #[test]
+    fn gallery_view_uses_the_product_semantic_model_and_exact_handoffs() {
+        let encoded = reviewed_gallery_view("", None, "/conduit/creche/", 4).unwrap();
+        let view = conduit_presentation::ApplicationView::decode(&encoded).unwrap();
+        assert_eq!(view.revision, 4);
+        assert_eq!(
+            view.nodes
+                .iter()
+                .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
+                .count(),
+            4
+        );
+        let handoff = view
+            .nodes
+            .iter()
+            .filter(|node| node.component == conduit_presentation::ApplicationComponent::Link)
+            .find(|node| node.value.contains("form=memory_lantern"))
+            .unwrap();
+        assert!(handoff
+            .value
+            .starts_with("/conduit/creche/?form=memory_lantern"));
+        assert!(handoff.value.contains("checked_form_id="));
     }
 }

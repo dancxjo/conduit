@@ -43,16 +43,6 @@ body[data-tour-mode="gallery"] [data-application-slot="tour-navigation"] { displ
   border-radius: 9px; background: var(--panel); color: var(--ink); text-align: left; cursor: pointer;
 }
 .tour-stage-selector[aria-pressed="true"] { border-color: var(--amber); box-shadow: inset .25rem 0 var(--amber); }
-.form-gallery { display: grid; gap: 1rem; }
-.form-gallery [data-application-key="gallery-heading"] { font-size: clamp(2rem, 5vw, 3.5rem); }
-.form-gallery [data-application-key="gallery-search"] { padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
-.form-gallery [data-application-key="gallery-cards"] { display: grid; gap: .8rem; }
-.form-gallery [data-gallery-card] { padding: 1rem; }
-.form-gallery [data-gallery-card][aria-current="true"] { border-color: var(--amber); box-shadow: inset .25rem 0 var(--amber); }
-.form-gallery [data-gallery-card] h3 { margin: 0 0 .35rem; }
-.form-gallery [data-gallery-card] p { margin: .35rem 0; }
-.form-gallery [data-gallery-card] code { overflow-wrap: anywhere; font-size: .68rem; }
-.form-gallery [data-application-key^="form-actions-"] { margin-top: .8rem; }
 .conceptual-laboratory { display: grid; gap: 1rem; }
 .conceptual-patchbay { min-height: 12rem; display: grid; place-items: center; padding: 1rem; color: var(--muted); text-align: center; }
 h1 { margin: 0 0 .65rem; color:var(--amber); font: 750 clamp(2.35rem, 7vw, 5rem)/.95 var(--conduit-font-editorial); letter-spacing: -.045em; }

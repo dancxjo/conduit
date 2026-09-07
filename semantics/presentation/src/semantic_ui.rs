@@ -14,6 +14,7 @@ mod choice_lowering;
 mod evidence_lowering;
 mod form_lowering;
 mod mechanism_lowering;
+mod structure_lowering;
 use choice_lowering::lower_choice_group;
 use evidence_lowering::{
     code_node, definition_node, evidence_component, push_definition, push_evidence_state,
@@ -21,6 +22,7 @@ use evidence_lowering::{
 };
 use form_lowering::{lower_form_field, progress_node};
 use mechanism_lowering::{action_node, titled};
+use structure_lowering::structural_node;
 
 /// Stable identities for the shared application-presentation vocabulary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -28,6 +30,8 @@ pub enum PresentationMechanismKind {
     Shell,
     Workbench,
     Panel,
+    Heading,
+    Grid,
     ActionGroup,
     Action,
     Status,
@@ -55,6 +59,8 @@ impl PresentationMechanismKind {
             Self::Shell => "conduit.presentation/shell@1",
             Self::Workbench => "conduit.presentation/workbench@1",
             Self::Panel => "conduit.presentation/panel@1",
+            Self::Heading => "conduit.presentation/heading@1",
+            Self::Grid => "conduit.presentation/grid@1",
             Self::ActionGroup => "conduit.presentation/action-group@1",
             Self::Action => "conduit.presentation/action@1",
             Self::Status => "conduit.presentation/status@1",
@@ -188,6 +194,10 @@ pub enum PresentationMechanism {
     Panel {
         title: String,
     },
+    Heading {
+        text: String,
+    },
+    Grid,
     ActionGroup {
         label: String,
     },
@@ -254,6 +264,8 @@ impl PresentationMechanism {
             Self::Shell => PresentationMechanismKind::Shell,
             Self::Workbench => PresentationMechanismKind::Workbench,
             Self::Panel { .. } => PresentationMechanismKind::Panel,
+            Self::Heading { .. } => PresentationMechanismKind::Heading,
+            Self::Grid => PresentationMechanismKind::Grid,
             Self::ActionGroup { .. } => PresentationMechanismKind::ActionGroup,
             Self::Action(_) => PresentationMechanismKind::Action,
             Self::Status { .. } => PresentationMechanismKind::Status,
@@ -406,32 +418,25 @@ fn lower_mechanism(
     mechanism: &PresentationMechanism,
     actions: &mut Vec<ApplicationAction>,
 ) -> Result<LoweredMechanism, SemanticPresentationRefusal> {
+    if let Some((component, text, value, value_capacity, action, state)) =
+        structural_node(mechanism)
+    {
+        return Ok(LoweredMechanism {
+            component,
+            text,
+            value,
+            value_capacity,
+            action,
+            state,
+        });
+    }
     let empty = String::new();
     let (component, text, value, value_capacity, action, state) = match mechanism {
-        PresentationMechanism::Shell => (
-            ApplicationComponent::Shell,
-            empty,
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
-        PresentationMechanism::Workbench => (
-            ApplicationComponent::Grid,
-            empty,
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
-        PresentationMechanism::Panel { title } => (
-            ApplicationComponent::Panel,
-            title.clone(),
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
+        PresentationMechanism::Shell
+        | PresentationMechanism::Workbench
+        | PresentationMechanism::Panel { .. }
+        | PresentationMechanism::Heading { .. }
+        | PresentationMechanism::Grid => unreachable!("structural mechanisms return above"),
         PresentationMechanism::ActionGroup { label } => {
             if label.is_empty() {
                 return Err(SemanticPresentationRefusal::InvalidActionGroup);

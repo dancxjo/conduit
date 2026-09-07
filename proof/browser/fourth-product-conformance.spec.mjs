@@ -96,14 +96,23 @@ test("one semantic ProductMasthead composition replaces product-private global c
 
 test("Tour Form Gallery ordinary controls use the shared presentation vocabulary", async () => {
   const gallery = await readFile(join(repository, "products/tour/browser/tour-inventory-presentation.mjs"), "utf8");
+  const galleryComposition = gallery.slice(
+    gallery.indexOf("export function createReviewedFormGallery"),
+    gallery.indexOf("export function presentTourInventory"),
+  );
   for (const tag of ["input", "output", "button", "a"]) {
-    expect(gallery, `Gallery must not directly construct generic ${tag} controls`).not.toContain(
+    expect(galleryComposition, `Gallery must not directly construct generic ${tag} controls`).not.toContain(
       `createElement("${tag}")`,
     );
   }
-  for (const component of ["form-field", "text-input", "status", "button", "link"]) {
-    expect(gallery, `Gallery must describe ${component} through the shared vocabulary`).toContain(
-      `component: "${component}"`,
+  expect(galleryComposition, "Gallery must not construct low-level component arrays").not.toContain("component:");
+  expect(galleryComposition, "Gallery must request the product-owned semantic view").toContain(
+    "conduit_browser_form_reviewed_gallery_view",
+  );
+  const model = await readFile(join(repository, "products/tour/model/src/gallery.rs"), "utf8");
+  for (const mechanism of ["FormField", "Status", "Action", "Link", "Grid"]) {
+    expect(model, `Gallery must describe ${mechanism} through the shared semantic vocabulary`).toContain(
+      `PresentationMechanism::${mechanism}`,
     );
   }
 });

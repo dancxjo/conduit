@@ -44,56 +44,35 @@ export function reviewedFormStage(form) {
   });
 }
 
-export function createReviewedFormGallery(document, presentation, surface, gallery, crecheUrl, onOpen) {
+export function createReviewedFormGallery(api, presentation, surface, gallery, crecheUrl, onOpen) {
   let query = "";
   let selected = null;
-  const actions = [{ id: "gallery.search", event: "input" }];
-  for (const [index] of gallery.forms.entries()) {
-    actions.push(
-      { id: `gallery.open.${index}`, event: "activate" },
-      { id: `gallery.inspect.${index}`, event: "activate" },
-    );
+  const handoff = new URL(crecheUrl, surface.ownerDocument.baseURI);
+  if (handoff.origin !== new URL(surface.ownerDocument.baseURI).origin || !handoff.pathname.startsWith("/")) {
+    throw new Error("Crèche product handoff is outside the admitted site boundary");
   }
+  const admittedCrechePath = `${handoff.pathname}${handoff.search}`;
 
   const render = () => {
-    const overCapacity = encoder.encode(query).length > 128;
-    const terms = query.trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean);
-    const visible = gallery.forms.filter((form) => !overCapacity && terms.every((term) => (
-      `${form.title} ${form.name} ${form.required_kinds.join(" ")}`.toLocaleLowerCase().includes(term)
-    )));
-    const nodes = [
-      { parent: null, component: "stack", key: "gallery", text: "", action: null },
-      { parent: 0, component: "heading", key: "gallery-heading", text: "Form Gallery", action: null },
-      { parent: 0, component: "paragraph", key: "gallery-purpose", text: "Open a reviewed canonical Form in the same laboratory. Browsing acquires no resource or authority; Run admits work separately.", action: null },
-      { parent: 0, component: "form-field", key: "gallery-search", text: "", action: null },
-      { parent: 3, component: "field-label", key: "search-label", text: "Search reviewed Forms", action: null },
-      { parent: 3, component: "field-help", key: "search-help", text: "Title, Form name, or required kind; 128-byte bound.", action: null },
-      { parent: 3, component: "text-input", key: "search-input", text: "Search reviewed Forms", value: query, valueCapacity: 512, action: 0 },
-      { parent: 0, component: "status", key: "gallery-status", text: overCapacity ? "Search is outside the admitted 128-byte bound." : `${visible.length} reviewed ${visible.length === 1 ? "Form" : "Forms"}`, action: null },
-      { parent: 0, component: "grid", key: "gallery-cards", text: "", action: null },
-    ];
-    for (const [index, form] of gallery.forms.entries()) {
-      const card = nodes.length;
-      const available = form.realizability.status === "runnable-on-current-browser-host";
-      const realization = form.realizability.requirements.map((requirement) => {
-        const realizationClass = requirement.realization_class === "pure-kernel-or-local"
-          ? "local"
-          : requirement.realization_class === "bounded-browser-host-operation"
-            ? "browser Host"
-            : "unrealized";
-        return `${requirement.kind_id}=${requirement.offer_state === "current-host-offer" ? "current" : "missing"}/${realizationClass}`;
-      }).join("; ");
-      nodes.push(
-        { parent: 8, component: "artifact", key: `form-${index}`, text: form.title, action: null },
-        { parent: card, component: "paragraph", key: `form-detail-${index}`, text: `Kinds and realization: ${realization}. Offers ${form.realizability.current_offer_count}/${form.realizability.required_kind_count}; ${available ? "runnable here" : "not runnable here"}.`, action: null },
-        { parent: card, component: "code", key: `form-id-${index}`, text: form.checked_form_id, action: null },
-        { parent: card, component: "action-group", key: `form-actions-${index}`, text: `${form.title} actions`, action: null },
-        { parent: card + 3, component: "button", key: `form-open-${index}`, text: "Open in laboratory", valueCapacity: 0, action: 1 + index * 2 },
-        { parent: card + 3, component: "button", key: `form-inspect-${index}`, text: "Inspect Patchbay", valueCapacity: 0, action: 2 + index * 2 },
-        { parent: card + 3, component: "link", key: `form-add-${index}`, text: "Add to new Body", value: formHandoff(document, crecheUrl, form), valueCapacity: 2_048, action: null },
-      );
+    const request = encoder.encode(JSON.stringify({
+      revision: ++revision,
+      query,
+      selected_checked_form_id: selected,
+      creche_url: admittedCrechePath,
+    }));
+    if (request.length > api.conduit_browser_form_input_capacity()) {
+      throw new Error("reviewed Form Gallery presentation request is over capacity");
     }
-    presentation.present("tour-form-gallery", { revision: ++revision, actions, nodes }, { onEvent(event) {
+    new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), request.length).set(request);
+    if (api.conduit_browser_form_reviewed_gallery_view(request.length) < 0) {
+      throw new Error("reviewed Form Gallery presentation was refused");
+    }
+    const encodedView = new Uint8Array(
+      api.memory.buffer,
+      api.conduit_browser_form_output_ptr(),
+      api.conduit_browser_form_output_len(),
+    ).slice();
+    presentation.present("tour-form-gallery", encodedView, { onEvent(event) {
       presentation.nextEvent("tour-form-gallery");
       if (event.action === "gallery.search") query = decoder.decode(event.value);
       else {
@@ -103,38 +82,16 @@ export function createReviewedFormGallery(document, presentation, surface, galle
       }
       render();
     } });
-    for (const [index, form] of gallery.forms.entries()) {
-      const card = surface.querySelector(`[data-application-key="form-${index}"]`);
-      card.dataset.galleryCard = "";
-      card.dataset.checkedFormId = form.checked_form_id;
-      card.dataset.status = form.realizability.status;
-      card.hidden = !visible.includes(form);
-      if (form.checked_form_id === selected) card.setAttribute("aria-current", "true");
-    }
   };
   render();
   return Object.freeze({
     surface,
-    heading: surface.querySelector('[data-application-key="gallery-heading"]'),
+    heading: () => surface.querySelector('[data-application-key="gallery-heading"]'),
     select(checkedFormId) {
       selected = checkedFormId;
-      for (const card of surface.querySelectorAll("[data-gallery-card]")) {
-        if (card.dataset.checkedFormId === selected) card.setAttribute("aria-current", "true");
-        else card.removeAttribute("aria-current");
-      }
+      render();
     },
   });
-}
-
-function formHandoff(document, crecheUrl, form) {
-  const handoff = new URL(crecheUrl, document.baseURI);
-  if (handoff.origin !== new URL(document.baseURI).origin || !handoff.pathname.startsWith("/")) {
-    throw new Error("Crèche product handoff is outside the admitted site boundary");
-  }
-  handoff.searchParams.set("form", form.name);
-  handoff.searchParams.set("source_document_id", form.source_document_id);
-  handoff.searchParams.set("checked_form_id", form.checked_form_id);
-  return `${handoff.pathname}${handoff.search}`;
 }
 
 export function presentTourInventory(presentation, inventory) {

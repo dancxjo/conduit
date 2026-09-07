@@ -106,6 +106,8 @@ fn every_vocabulary_identity_is_distinct_and_versioned() {
         PresentationMechanismKind::Shell,
         PresentationMechanismKind::Workbench,
         PresentationMechanismKind::Panel,
+        PresentationMechanismKind::Heading,
+        PresentationMechanismKind::Grid,
         PresentationMechanismKind::ActionGroup,
         PresentationMechanismKind::Action,
         PresentationMechanismKind::Status,
