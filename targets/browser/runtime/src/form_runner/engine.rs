@@ -59,6 +59,8 @@ pub(super) struct TourScheduler {
         [Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>; MAXIMUM_BROWSER_GEARS],
     timing: [Option<crate::installed_browser::timing::PreparedTiming>; MAXIMUM_BROWSER_GEARS],
     deliveries: [Option<conduit_net::BoundedRecordDeliveryStatusCodec>; MAXIMUM_BROWSER_GEARS],
+    histories:
+        [Option<crate::installed_browser::historical::PreparedHistory>; MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -404,6 +406,10 @@ mod json_tests;
 #[cfg(test)]
 #[path = "timing_kernel_tests.rs"]
 mod timing_kernel_tests;
+
+#[cfg(test)]
+#[path = "history_kernel_tests.rs"]
+mod history_kernel_tests;
 
 #[cfg(test)]
 #[path = "concurrent_effect_tests.rs"]
