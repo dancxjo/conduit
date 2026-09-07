@@ -9,6 +9,7 @@
 
 extern crate alloc;
 
+mod addressed_utterance;
 mod morse;
 #[cfg(feature = "form-catalog")]
 mod morse_backs;
@@ -16,6 +17,7 @@ mod morse_catalog;
 mod morse_key;
 mod morse_table;
 mod morse_values;
+pub use addressed_utterance::*;
 pub use morse::*;
 #[cfg(feature = "form-catalog")]
 pub use morse_backs::*;
@@ -38,6 +40,10 @@ pub const TEXT_UPPER_KIND: &str = "text/upper";
 pub const TEXT_UPPER_CONTRACT_REVISION: &str = "conduit.std/text-upper@1";
 pub const TEXT_JOIN_KIND: &str = "text/join";
 pub const TEXT_JOIN_CONTRACT_REVISION: &str = "conduit.std/text-join@1";
+pub const ADDRESS_DETECT_KIND: &str = "text/address-detect";
+pub const ADDRESS_DETECT_CONTRACT_REVISION: &str = "conduit.text/address-detect@1";
+pub const ADDRESS_SET_VALUE_KIND: &str = "text/address-set@1";
+pub const ADDRESS_DETECTION_VALUE_KIND: &str = "text/address-detection@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextConfigurationField {
@@ -97,6 +103,24 @@ pub fn text_join_semantics() -> TextKindContract {
     }
 }
 
+pub fn address_detect_semantics() -> TextKindContract {
+    TextKindContract {
+        kind_id: kind_id(ADDRESS_DETECT_KIND),
+        kind_contract_revision: KindContractRevision::from(ADDRESS_DETECT_CONTRACT_REVISION),
+        inputs: vec![
+            named_text_port("recognized", TEXT_VALUE_KIND, PortDirection::Input),
+            named_text_port("addresses", ADDRESS_SET_VALUE_KIND, PortDirection::Input),
+        ],
+        outputs: vec![named_text_port(
+            "detection",
+            ADDRESS_DETECTION_VALUE_KIND,
+            PortDirection::Output,
+        )],
+        configuration: Vec::new(),
+        limits: text_limits(),
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_text_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -108,10 +132,14 @@ pub fn install_text_catalogs(
         StartupParameterSignature,
     };
 
+    startup.insert_value_kind_alias("AddressSet", kind_id(ADDRESS_SET_VALUE_KIND))?;
+    startup.insert_value_kind_alias("AddressDetection", kind_id(ADDRESS_DETECTION_VALUE_KIND))?;
+
     for (kind, parameter) in [
         (TEXT_LITERAL_KIND, Some(("value", "Text"))),
         (TEXT_UPPER_KIND, None),
         (TEXT_JOIN_KIND, Some(("prefix", "Text"))),
+        (ADDRESS_DETECT_KIND, None),
     ] {
         startup.insert(KindSignature {
             kind: kind.to_string(),
@@ -129,6 +157,7 @@ pub fn install_text_catalogs(
         text_literal_semantics(),
         text_upper_semantics(),
         text_join_semantics(),
+        address_detect_semantics(),
     ] {
         profile
             .insert(KindDefinition {
@@ -154,9 +183,13 @@ pub fn install_text_catalogs(
 }
 
 fn text_port(direction: PortDirection) -> PortDescriptor {
+    named_text_port("text", TEXT_VALUE_KIND, direction)
+}
+
+fn named_text_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
-        port_id: port_id("text"),
-        value_kind: kind_id(TEXT_VALUE_KIND),
+        port_id: port_id(name),
+        value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
     }

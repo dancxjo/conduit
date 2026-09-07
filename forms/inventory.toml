@@ -1,8 +1,14 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 78
+maximum_forms = 79
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
+[[forms]]
+slug = "addressed-utterance"
+title = "Addressed Utterance"
+entry = "addressed-utterance"
+deterministic = { package = "conduit-text", test = "addressed_utterance", case = "canonical_address_detector_is_a_reusable_checked_form" }
+browser_safe_not_applicable = "portable address detection has no installed browser Host execution oracle"
 [[forms]]
 slug = "arithmetic-lesson"
 title = "Arithmetic Lesson"

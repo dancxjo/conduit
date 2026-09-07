@@ -1,0 +1,10 @@
+form addressed-utterance (
+    > recognized: Text
+    > addresses: AddressSet
+    detection: AddressDetection >
+) {
+    detector: text/address-detect
+    recognized > detector.recognized
+    addresses > detector.addresses
+    detector.detection > detection
+}
