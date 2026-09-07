@@ -240,6 +240,10 @@ pub(crate) fn factory(
         return Some(&super::test_measurement_sink::SINK);
     }
     #[cfg(test)]
+    if implementation_id.as_str() == super::test_garden_sink::KIND {
+        return Some(&super::test_garden_sink::SINK);
+    }
+    #[cfg(test)]
     if implementation_id.as_str() == super::test_measurement_decision_sink::KIND {
         return Some(&super::test_measurement_decision_sink::SINK);
     }
