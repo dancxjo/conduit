@@ -48,6 +48,8 @@ mod record_queue;
 pub use record_queue::*;
 mod record_delivery;
 pub use record_delivery::*;
+mod record_transcript;
+pub use record_transcript::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod keyboard;

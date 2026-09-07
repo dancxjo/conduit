@@ -230,6 +230,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::record_exactly_one_std_offer(),
             conduit_std_offers::ordered_record_queue_std_offer(),
             conduit_std_offers::record_delivery_status_std_offer(),
+            conduit_std_offers::record_transcript_std_offer(),
         ]);
     }
     if composition.state {

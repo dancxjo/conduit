@@ -35,6 +35,7 @@ use super::presentation_composition::{
 use super::record_delivery_operation::RecordDeliveryStatusOperation;
 use super::record_queue_operation::RecordQueueOperation;
 use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
+use super::record_transcript_operation::RecordTranscriptOperation;
 use super::recurrence_operation::RecurrenceOperation;
 use super::render_demand_operation::AudioRenderDemandOperation;
 use super::rhythm_compare_operation::RhythmCompareOperation;
@@ -146,6 +147,7 @@ pub(super) enum InstalledOperation {
     RecordExactlyOne(RecordExactlyOneOperation),
     RecordQueue(RecordQueueOperation),
     RecordDeliveryStatus(RecordDeliveryStatusOperation),
+    RecordTranscript(RecordTranscriptOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),
