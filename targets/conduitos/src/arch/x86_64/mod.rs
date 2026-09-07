@@ -18,7 +18,8 @@ mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
 pub use ftdi_line::{
-    FtdiLineError, FtdiLineReady, FtdiLineSession, prepare_ftdi_line, start_ftdi_line_session,
+    FTDI_PACKET_BYTES, FTDI_PAYLOAD_BYTES, FTDI_TRANSFER_TRBS, FtdiLineError, FtdiLineReady,
+    FtdiLineSession, prepare_ftdi_line, start_ftdi_line_session,
 };
 pub use hid::{
     HidError, HidKeyTransition, HidKeyboardSession, HidProof, finish_boot_keyboard,
