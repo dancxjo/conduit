@@ -258,6 +258,26 @@ pub extern "C" fn conduit_tour_multi_complete() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_tour_multi_complete_timer(play_length: usize, request: u32) -> i32 {
+    clear_output();
+    if play_length == 0 || play_length > 256 || play_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = match core::str::from_utf8(&input[..play_length]) {
+            Ok(play) => with_session(
+                |session| session.complete_timer(play, request),
+                ERROR_COMPLETE,
+            ),
+            Err(_) => ERROR_INPUT,
+        };
+        input[..play_length].fill(0);
+        result
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_tour_multi_complete_input(
     play_length: usize,
     request: u32,

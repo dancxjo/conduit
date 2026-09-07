@@ -35,6 +35,7 @@ pub(super) enum TransportTermination {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Stage {
+    Timing,
     Input,
     Offered,
     Accepted,
