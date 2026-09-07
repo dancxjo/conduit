@@ -114,9 +114,11 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut profiles,
     );
     let source = format!(
-        "{}\nform house-live-proof {{\n detection: {}\n context: {}\n house: house-conversation\n sink: {}\n detection.value > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        "{}\n{}\nform house-live-proof {{\n recognized: {}\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n recognized.value > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        include_str!("../../../forms/addressed-utterance/main.conduit"),
         include_str!("../../../forms/house-conversation/main.conduit"),
-        crate::installed_std::test_local_model_io::HOUSE_DETECTION_SOURCE_KIND,
+        crate::installed_std::test_local_model_io::HOUSE_RECOGNIZED_SOURCE_KIND,
+        crate::installed_std::test_local_model_io::HOUSE_ADDRESSES_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_CONTEXT_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );

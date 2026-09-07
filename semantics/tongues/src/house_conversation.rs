@@ -16,7 +16,8 @@ pub const HOUSE_CONTEXT_TO_PROMPT_KIND: &str = "house/context-to-prompt";
 pub const HOUSE_CONTEXT_TO_PROMPT_REVISION: &str = "conduit.house/context-to-prompt@1";
 pub const WIRED_HOUSE_CONTEXT_VALUE_KIND: &str = "house/wired-context@1";
 pub const MAXIMUM_HOUSE_PROMPT_BYTES: usize = 131_072;
-pub const MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES: usize = 8_192;
+pub const MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES: usize =
+    conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES;
 pub const MAXIMUM_WIRED_HOUSE_CONTEXT_VALUE_BYTES: usize = 131_072;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -30,14 +31,6 @@ pub enum HouseConversationValueError {
 }
 
 #[derive(Serialize, Deserialize)]
-struct AddressDetectionValue {
-    schema: String,
-    status: String,
-    matched_name_index: Option<u8>,
-    utterance: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
 struct WiredHouseContextValue {
     schema: String,
     items: Vec<WiredHouseContextItem>,
@@ -46,55 +39,13 @@ struct WiredHouseContextValue {
 pub fn encode_address_detection(
     detection: &AddressDetection,
 ) -> Result<Vec<u8>, HouseConversationValueError> {
-    validate_detection(detection)?;
-    let (status, matched_name_index, utterance) = match detection {
-        AddressDetection::NotAddressed => ("not-addressed", None, None),
-        AddressDetection::Addressed {
-            matched_name_index,
-            utterance,
-        } => (
-            "addressed",
-            Some(*matched_name_index),
-            Some(utterance.clone()),
-        ),
-    };
-    bounded_json(
-        &AddressDetectionValue {
-            schema: "conduit.house/address-detection-value@1".into(),
-            status: status.into(),
-            matched_name_index,
-            utterance,
-        },
-        MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES,
-    )
+    conduit_text::encode_address_detection(detection).map_err(map_address_value_error)
 }
 
 pub fn decode_address_detection(
     bytes: &[u8],
 ) -> Result<AddressDetection, HouseConversationValueError> {
-    if bytes.len() > MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES {
-        return Err(HouseConversationValueError::BoundExceeded);
-    }
-    let value: AddressDetectionValue =
-        serde_json::from_slice(bytes).map_err(|_| HouseConversationValueError::Malformed)?;
-    if value.schema != "conduit.house/address-detection-value@1" {
-        return Err(HouseConversationValueError::WrongSchema);
-    }
-    let detection = match (
-        value.status.as_str(),
-        value.matched_name_index,
-        value.utterance.clone(),
-    ) {
-        ("not-addressed", None, None) => AddressDetection::NotAddressed,
-        ("addressed", Some(matched_name_index), Some(utterance)) => AddressDetection::Addressed {
-            matched_name_index,
-            utterance,
-        },
-        _ => return Err(HouseConversationValueError::InvalidValue),
-    };
-    validate_detection(&detection)?;
-    require_canonical(bytes, &value, MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES)?;
-    Ok(detection)
+    conduit_text::decode_address_detection(bytes).map_err(map_address_value_error)
 }
 
 pub fn encode_wired_house_context(
@@ -126,19 +77,15 @@ pub fn decode_wired_house_context(
     Ok(value.items)
 }
 
-fn validate_detection(value: &AddressDetection) -> Result<(), HouseConversationValueError> {
-    if let AddressDetection::Addressed {
-        matched_name_index,
-        utterance,
-    } = value
-    {
-        if usize::from(*matched_name_index) >= conduit_text::MAX_ADDRESS_NAMES
-            || utterance.len() > conduit_text::MAX_TEXT_BYTES as usize
-        {
-            return Err(HouseConversationValueError::InvalidValue);
+fn map_address_value_error(error: conduit_text::AddressValueError) -> HouseConversationValueError {
+    match error {
+        conduit_text::AddressValueError::BoundExceeded => {
+            HouseConversationValueError::BoundExceeded
         }
+        conduit_text::AddressValueError::Malformed => HouseConversationValueError::Malformed,
+        conduit_text::AddressValueError::NonCanonical => HouseConversationValueError::NonCanonical,
+        conduit_text::AddressValueError::InvalidValue => HouseConversationValueError::InvalidValue,
     }
-    Ok(())
 }
 
 fn validate_context(items: &[WiredHouseContextItem]) -> Result<(), HouseConversationValueError> {

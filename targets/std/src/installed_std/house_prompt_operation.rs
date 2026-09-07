@@ -5,7 +5,7 @@ use conduit_ai::WiredHouseContextItem;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     Failure, FailureCode, HostOperationDisposition, HostOperationId, OperationAction,
-    OperationInput, PortId, RequestId,
+    OperationInput, PortId, RequestId, ValueRef,
 };
 use conduit_text::AddressDetection;
 
@@ -18,6 +18,8 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct HousePromptOperation {
     seen: [bool; 2],
     pending: Option<RequestId>,
+    deferred: Option<(u16, ValueRef)>,
+    next_request: u32,
     emitted: bool,
 }
 
@@ -31,24 +33,15 @@ impl HousePromptOperation {
             OperationInput::Value {
                 port: PortId(port),
                 value,
-            } if port < 2 && !self.seen[usize::from(port)] && self.pending.is_none() => {
+            } if port < 2 && !self.seen[usize::from(port)] => {
                 self.seen[usize::from(port)] = true;
-                let request = RequestId(u32::from(port));
-                self.pending = Some(request);
-                let Ok(input) = conduit_kernel::BoundedValueRef::new(
-                    value,
-                    if port == 0 {
-                        conduit_tongues::MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES as u32
-                    } else {
-                        conduit_tongues::MAXIMUM_WIRED_HOUSE_CONTEXT_VALUE_BYTES as u32
-                    },
-                ) else {
-                    return fail(FailureCode::InvalidInput, 4);
-                };
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(if port == 0 { 1 } else { 0 }),
-                    input,
+                if self.pending.is_some() {
+                    if self.deferred.replace((port, value)).is_some() {
+                        return fail(FailureCode::InvalidLifecycle, 3);
+                    }
+                    OperationAction::Await
+                } else {
+                    self.request(port, value)
                 }
             }
             OperationInput::HostOperationCompleted { request, outcome }
@@ -63,12 +56,22 @@ impl HousePromptOperation {
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostOperationDisposition::Completed, None, None) => self
+                        .deferred
+                        .take()
+                        .map_or(OperationAction::Await, |(port, value)| {
+                            self.request(port, value)
+                        }),
                     (HostOperationDisposition::Denied, _, _) => {
                         fail(FailureCode::HostOperationDenied, 1)
                     }
                     _ => fail(FailureCode::HostOperationFailed, 2),
                 }
+            }
+            OperationInput::Closed { port: PortId(port) }
+                if port < 2 && self.seen[usize::from(port)] =>
+            {
+                OperationAction::Await
             }
             _ => fail(FailureCode::InvalidLifecycle, 3),
         }
@@ -84,6 +87,28 @@ impl HousePromptOperation {
 
     pub(super) fn cancel(&mut self) {
         self.pending = None;
+        self.deferred = None;
+    }
+
+    fn request(&mut self, port: u16, value: ValueRef) -> OperationAction {
+        let request = RequestId(self.next_request);
+        self.next_request = self.next_request.saturating_add(1);
+        self.pending = Some(request);
+        let Ok(input) = conduit_kernel::BoundedValueRef::new(
+            value,
+            if port == 0 {
+                conduit_tongues::MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES as u32
+            } else {
+                conduit_tongues::MAXIMUM_WIRED_HOUSE_CONTEXT_VALUE_BYTES as u32
+            },
+        ) else {
+            return fail(FailureCode::InvalidInput, 4);
+        };
+        OperationAction::RequestHostOperation {
+            request,
+            operation: HostOperationId(if port == 0 { 1 } else { 0 }),
+            input,
+        }
     }
 }
 
@@ -202,6 +227,8 @@ fn prepare(
     Ok(InstalledOperation::HousePrompt(HousePromptOperation {
         seen: [false; 2],
         pending: None,
+        deferred: None,
+        next_request: 0,
         emitted: false,
     }))
 }

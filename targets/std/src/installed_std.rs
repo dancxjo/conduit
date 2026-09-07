@@ -1,3 +1,4 @@
+mod address_detect_operation;
 mod alife_host;
 mod alife_operations;
 mod audio_play_operation;
@@ -391,6 +392,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
+    let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
@@ -1426,6 +1428,44 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete model-text projection: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::ADDRESS_DETECT_RECOGNIZED_OPERATION
+                    | conduit_std_offers::ADDRESS_DETECT_ADDRESSES_OPERATION
+            ) {
+                let completion = address_detect_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "address-detect request has no admitted host".to_string())?
+                    .execute(contract.as_str(), input)?;
+                let output = match completion {
+                    address_detect_operation::HostCompletion::Stored => None,
+                    address_detect_operation::HostCompletion::Output(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store address detection: {error:?}"))?;
+                        Some(
+                            BoundedValueRef::new(
+                                value,
+                                conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
+                            )
+                            .map_err(|error| format!("bound address detection: {error:?}"))?,
+                        )
+                    }
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition: HostOperationDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete address detection: {error:?}"))?;
                 continue;
             } else if matches!(
                 contract.as_str(),

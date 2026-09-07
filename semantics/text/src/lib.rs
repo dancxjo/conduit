@@ -117,7 +117,11 @@ pub fn address_detect_semantics() -> TextKindContract {
             PortDirection::Output,
         )],
         configuration: Vec::new(),
-        limits: text_limits(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 2,
+            max_queue_bytes: 4_096,
+        },
     }
 }
 

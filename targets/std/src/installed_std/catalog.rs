@@ -1,5 +1,6 @@
 //! Exact installed implementation factory catalog.
 
+use super::address_detect_operation::FACTORY as ADDRESS_DETECT_FACTORY;
 use super::alife_operations::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
@@ -122,6 +123,7 @@ use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTOR
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
+    &ADDRESS_DETECT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,

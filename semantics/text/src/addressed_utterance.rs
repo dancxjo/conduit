@@ -1,11 +1,17 @@
 //! Finite text-level address detection independent of speech or model machinery.
 
 use alloc::{string::String, vec::Vec};
+use serde::{Deserialize, Serialize};
 
 use crate::MAX_TEXT_BYTES;
 
 pub const MAX_ADDRESS_NAMES: usize = 8;
 pub const MAX_ADDRESS_NAME_BYTES: usize = 64;
+pub const MAX_ADDRESS_SET_VALUE_BYTES: usize = 1_024;
+pub const MAX_ADDRESS_DETECTION_VALUE_BYTES: usize = 1_024;
+
+const ADDRESS_SET_SCHEMA: &str = "conduit.text/address-set-value@1";
+const ADDRESS_DETECTION_SCHEMA: &str = "conduit.text/address-detection-value@1";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AddressSet {
@@ -28,12 +34,34 @@ pub enum AddressDetectionError {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AddressValueError {
+    BoundExceeded,
+    Malformed,
+    NonCanonical,
+    InvalidValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AddressDetection {
     NotAddressed,
     Addressed {
         matched_name_index: u8,
         utterance: String,
     },
+}
+
+#[derive(Serialize, Deserialize)]
+struct AddressSetValue {
+    schema: String,
+    names: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AddressDetectionValue {
+    schema: String,
+    status: String,
+    matched_name_index: Option<u8>,
+    utterance: Option<String>,
 }
 
 impl AddressSet {
@@ -101,6 +129,101 @@ impl AddressSet {
         }
         Ok(AddressDetection::NotAddressed)
     }
+}
+
+pub fn encode_address_set(addresses: &AddressSet) -> Result<Vec<u8>, AddressValueError> {
+    encode_bounded(
+        &AddressSetValue {
+            schema: ADDRESS_SET_SCHEMA.into(),
+            names: addresses.names.clone(),
+        },
+        MAX_ADDRESS_SET_VALUE_BYTES,
+    )
+}
+
+pub fn decode_address_set(bytes: &[u8]) -> Result<AddressSet, AddressValueError> {
+    let value: AddressSetValue = decode_canonical(bytes, MAX_ADDRESS_SET_VALUE_BYTES)?;
+    if value.schema != ADDRESS_SET_SCHEMA {
+        return Err(AddressValueError::InvalidValue);
+    }
+    let names = value.names.iter().map(String::as_str).collect::<Vec<_>>();
+    AddressSet::new(&names).map_err(|_| AddressValueError::InvalidValue)
+}
+
+pub fn encode_address_detection(
+    detection: &AddressDetection,
+) -> Result<Vec<u8>, AddressValueError> {
+    let (status, matched_name_index, utterance) = match detection {
+        AddressDetection::NotAddressed => ("not-addressed", None, None),
+        AddressDetection::Addressed {
+            matched_name_index,
+            utterance,
+        } if usize::from(*matched_name_index) < MAX_ADDRESS_NAMES
+            && utterance.len() <= MAX_TEXT_BYTES as usize =>
+        {
+            (
+                "addressed",
+                Some(*matched_name_index),
+                Some(utterance.clone()),
+            )
+        }
+        AddressDetection::Addressed { .. } => return Err(AddressValueError::InvalidValue),
+    };
+    encode_bounded(
+        &AddressDetectionValue {
+            schema: ADDRESS_DETECTION_SCHEMA.into(),
+            status: status.into(),
+            matched_name_index,
+            utterance,
+        },
+        MAX_ADDRESS_DETECTION_VALUE_BYTES,
+    )
+}
+
+pub fn decode_address_detection(bytes: &[u8]) -> Result<AddressDetection, AddressValueError> {
+    let value: AddressDetectionValue = decode_canonical(bytes, MAX_ADDRESS_DETECTION_VALUE_BYTES)?;
+    if value.schema != ADDRESS_DETECTION_SCHEMA {
+        return Err(AddressValueError::InvalidValue);
+    }
+    match (
+        value.status.as_str(),
+        value.matched_name_index,
+        value.utterance,
+    ) {
+        ("not-addressed", None, None) => Ok(AddressDetection::NotAddressed),
+        ("addressed", Some(matched_name_index), Some(utterance))
+            if usize::from(matched_name_index) < MAX_ADDRESS_NAMES
+                && utterance.len() <= MAX_TEXT_BYTES as usize =>
+        {
+            Ok(AddressDetection::Addressed {
+                matched_name_index,
+                utterance,
+            })
+        }
+        _ => Err(AddressValueError::InvalidValue),
+    }
+}
+
+fn encode_bounded<T: Serialize>(value: &T, maximum: usize) -> Result<Vec<u8>, AddressValueError> {
+    let bytes = serde_json::to_vec(value).map_err(|_| AddressValueError::Malformed)?;
+    if bytes.len() > maximum {
+        return Err(AddressValueError::BoundExceeded);
+    }
+    Ok(bytes)
+}
+
+fn decode_canonical<T>(bytes: &[u8], maximum: usize) -> Result<T, AddressValueError>
+where
+    T: Serialize + for<'de> Deserialize<'de>,
+{
+    if bytes.len() > maximum {
+        return Err(AddressValueError::BoundExceeded);
+    }
+    let value = serde_json::from_slice(bytes).map_err(|_| AddressValueError::Malformed)?;
+    if encode_bounded(&value, maximum)? != bytes {
+        return Err(AddressValueError::NonCanonical);
+    }
+    Ok(value)
 }
 
 fn matching_prefix_bytes(text: &str, name: &str) -> Option<usize> {
