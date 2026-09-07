@@ -4,6 +4,7 @@ mod button_indicator;
 mod delay;
 mod factory;
 mod final_normalized_pattern;
+pub(crate) mod garden_step;
 pub(crate) mod historical;
 mod input;
 mod inventory;
