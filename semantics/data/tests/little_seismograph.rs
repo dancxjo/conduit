@@ -51,7 +51,7 @@ fn processing_composes_four_reusable_forms_without_source_copying() {
         assert!(kinds.contains(&expected), "missing primitive {expected}");
     }
     assert_eq!(authored.expanded.gears.len(), 4);
-    assert_eq!(authored.input_bindings.len(), 2);
+    assert_eq!(authored.input_bindings.len(), 3);
     assert_eq!(authored.output_bindings.len(), 4);
 }
 

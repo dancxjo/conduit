@@ -1,9 +1,11 @@
 # Reusable count-bounded measurement retention. The full policy is semantic and
 # explicit; no renderer or acquisition mechanism owns this state.
 form measurement-window (
+    > profile: MeasurementWindowProfile
     measurement: MeasurementSample...| > window: MeasurementWindow
 ) {
-    retain: data/measurement-count-window(count = 8, when-full = "drop-oldest")
+    retain: data/measurement-count-window
+    profile > retain.profile
     measurement > retain.measurement
     retain.window > window
 }
@@ -37,6 +39,7 @@ form measurement-plot (
 
 # The processing waist accepts any compatible exact typed measurement flow.
 form little-seismograph-processing (
+    > profile: MeasurementWindowProfile
     > measurement: MeasurementSample...|
     > policy: MeasurementThresholdPolicy
     window: MeasurementWindow >
@@ -49,6 +52,7 @@ form little-seismograph-processing (
     decide: measurement-threshold
     plot: measurement-plot
 
+    profile > samples.profile
     measurement > samples.measurement
     samples.window > window
     samples.window > summarize.window

@@ -6,6 +6,7 @@ use conduit_core::{
 };
 
 pub const MEASUREMENT_SAMPLE_INFO_ID: &str = "data/measurement-sample@1";
+pub const MEASUREMENT_WINDOW_PROFILE_INFO_ID: &str = "data/measurement-window-profile@1";
 pub const MEASUREMENT_WINDOW_INFO_ID: &str = "data/measurement-window@1";
 pub const MAXIMUM_MEASUREMENT_WINDOW_SAMPLES: usize = 64;
 
