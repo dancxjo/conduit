@@ -232,7 +232,7 @@ jobs:
   tour-patchbay-proof:
     needs: [plan, browser-runtimes]
     if: >-
-      always() && needs.plan.result == 'success' &&
+      always() && !cancelled() && needs.plan.result == 'success' &&
       needs.browser-runtimes.result == 'success' &&
       (needs.plan.outputs.tour_required == 'true' || needs.plan.outputs.patchbay_debugger_required == 'true')
     runs-on: ubuntu-24.04
@@ -612,7 +612,7 @@ jobs:
 
   esp32-release-images:
     needs: [plan, standalone-locks]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
+    if: always() && !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.pages_carrier_required == 'true' && (needs.standalone-locks.result == 'success' || needs.standalone-locks.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -680,7 +680,7 @@ jobs:
   products-stage:
     needs: [avr-release, browser-release, browser-runtimes, esp32-release-images, host-releases, orange-pi-release, raspberry-pi-release, conduitos-releases]
     if: >-
-      always() &&
+      always() && !cancelled() &&
       needs.avr-release.result == 'success' &&
       needs.browser-release.result == 'success' &&
       needs.browser-runtimes.result == 'success' &&
@@ -772,7 +772,7 @@ jobs:
 
   browser-proof:
     needs: products-stage
-    if: always() && needs.products-stage.result == 'success'
+    if: always() && !cancelled() && needs.products-stage.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     container:
@@ -853,7 +853,7 @@ jobs:
 
   pages-carrier:
     needs: [plan, products-stage, browser-proof]
-    if: always() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
+    if: always() && !cancelled() && needs.products-stage.result == 'success' && needs.browser-proof.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -935,7 +935,7 @@ jobs:
   proof-receipts:
     needs: [plan, tour-patchbay-proof, browser-proof]
     if: >-
-      always() &&
+      always() && !cancelled() &&
       needs.plan.outputs.tour_required == 'true' &&
       needs.tour-patchbay-proof.result == 'success' &&
       (needs.plan.outputs.exact_execution == 'true' || needs.browser-proof.result == 'success')

@@ -104,6 +104,22 @@ test("workflow topology keeps fast development separate from stable promotion", 
   }
 });
 
+test("cancelled exact heads cannot start more reusable proof jobs", () => {
+  for (const path of [".github/workflows/check.yml", ".github/workflows/tour-products.yml"]) {
+    const workflow = readFileSync(path, "utf8");
+    assert.doesNotMatch(
+      workflow,
+      /^    if: (?:\$\{\{ )?always\(\) && (?!\!cancelled\(\))/m,
+      `${path} has a cancellation-resistant job condition`,
+    );
+    assert.doesNotMatch(
+      workflow,
+      /^      always\(\) && (?!\!cancelled\(\))/m,
+      `${path} has a cancellation-resistant multiline job condition`,
+    );
+  }
+});
+
 test("documentation-only promotion prepares proofs while ordinary documentation stays cheap", () => {
   const classifier = resolve("tools/ci/classify-docs-only.sh");
   const directory = mkdtempSync(join(tmpdir(), "conduit-promotion-classify-"));
