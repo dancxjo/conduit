@@ -13,6 +13,16 @@ mod layout;
 pub use layout::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";
+pub const CANONICAL_LITERAL: &str = "hello";
+pub const CANONICAL_RESULT: &str = "HELLO";
+pub const CANONICAL_SOURCE: &str = concat!(
+    "form meet-one-gear {\n",
+    "    words: text/literal(\"hello\")\n",
+    "    change: text/upper\n",
+    "    result: presentation/text\n\n",
+    "    words > change > result\n",
+    "}"
+);
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,16 +53,8 @@ impl TourWorkspaceState {
                 TourWorkspacePhase::PatchbayOpen => "patchbay".into(),
             },
             specimen_id: CANONICAL_SPECIMEN_ID.into(),
-            source: concat!(
-                "form meet-one-gear {\n",
-                "    words: text/literal(\"hello\")\n",
-                "    change: text/upper\n",
-                "    result: presentation/text\n\n",
-                "    words > change > result\n",
-                "}"
-            )
-            .into(),
-            result: (phase == TourWorkspacePhase::ResultVisible).then(|| "HELLO".into()),
+            source: CANONICAL_SOURCE.into(),
+            result: (phase == TourWorkspacePhase::ResultVisible).then(|| CANONICAL_RESULT.into()),
         }
     }
 

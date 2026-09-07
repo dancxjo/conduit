@@ -68,8 +68,26 @@ pub fn prepare(
     fixed_offer: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<PreparedOrdinaryPlay, PreparationError> {
+    prepare_source(
+        identities,
+        fixed_offer,
+        build_id,
+        ORDINARY_FORM_SOURCE,
+        "conduitos-text-upper",
+        TEXT_LITERAL,
+    )
+}
+
+pub fn prepare_source(
+    identities: &BootIdentities,
+    fixed_offer: &HostOffer<'_>,
+    build_id: &str,
+    source: &str,
+    form_name: &str,
+    expected_literal: &str,
+) -> Result<PreparedOrdinaryPlay, PreparationError> {
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
-    let form = crate::ordinary_form::checked_expanded_text_form(ORDINARY_FORM_SOURCE)?;
+    let form = crate::ordinary_form::checked_expanded_text_form_named(source, form_name)?;
     validate_text_capacity(&form, CORD_BYTES)?;
     let hosts = [advertisement.clone()];
     let placements = default_expanded_placements(&form, &hosts)
@@ -113,7 +131,7 @@ pub fn prepare(
     {
         return Err(PreparationError::PlanRejected);
     }
-    let kernel = TextPlannedKernel::prepare(fragment, &lowered)
+    let kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
         .map_err(|_| PreparationError::KernelRejected)?;
     let active_play = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     Ok(PreparedOrdinaryPlay {
