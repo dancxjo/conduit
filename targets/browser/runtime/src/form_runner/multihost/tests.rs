@@ -412,3 +412,39 @@ fn unavailable_disconnect_and_timeout_remain_distinct_line_terminal_truth() {
         assert_eq!(transcript.entries[1].event, expected);
     }
 }
+
+#[test]
+fn partial_send_cancelled_before_receipt_remains_explicitly_undelivered() {
+    let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
+    let ((mut source_session, source_output), _) = prepare_pair_for(source);
+    let frame_bytes = match source_output {
+        Output::Line { frame, .. } => frame.payload.len(),
+        _ => panic!("Desk Telegraph did not offer its framed value"),
+    };
+    assert!(frame_bytes > 1);
+
+    assert!(matches!(
+        source_session
+            .observe_partial_send(frame_bytes - 1)
+            .unwrap(),
+        Output::Waiting {
+            phase: "partially-sent-awaiting-delivery",
+            ..
+        }
+    ));
+    let Output::Receipt { receipt, .. } = source_session.cancel().unwrap() else {
+        panic!("partial undelivered send did not retain cancellation evidence")
+    };
+    assert_eq!(receipt.disposition, "cancelled");
+    assert_eq!(receipt.transferred_values, 0);
+    assert_eq!(receipt.deliveries.len(), 1);
+    assert_eq!(receipt.deliveries[0].state, "partially-sent");
+    assert_eq!(
+        receipt.deliveries[0].sent_bytes,
+        Some(u32::try_from(frame_bytes - 1).unwrap())
+    );
+    assert!(receipt.deliveries[0].remote_receipt_hex.is_none());
+    let transcript = receipt.transcript.as_ref().unwrap();
+    assert_eq!(transcript.entries[0].event, "sent-record");
+    assert_eq!(transcript.entries[1].event, "cancelled");
+}
