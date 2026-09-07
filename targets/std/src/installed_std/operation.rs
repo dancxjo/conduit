@@ -83,6 +83,7 @@ impl Operation for InstalledOperation {
             Self::RecordExactlyOne(operation) => operation.start(),
             Self::RecordQueue(operation) => operation.start(),
             Self::RecordDeliveryStatus(operation) => operation.start(),
+            Self::RecordTranscript(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
             Self::StructuredPresentation(operation) => operation.start(),
@@ -210,6 +211,7 @@ impl Operation for InstalledOperation {
             (Self::RecordExactlyOne(operation), input) => operation.resume(input),
             (Self::RecordQueue(operation), input) => operation.resume(input),
             (Self::RecordDeliveryStatus(operation), input) => operation.resume(input),
+            (Self::RecordTranscript(operation), input) => operation.resume(input),
             (Self::StructuredSelector(operation), input) => operation.resume(input),
             (Self::StructuredLiteral(_), _) => Self::fail(153),
             (Self::StructuredPresentation(operation), input) => operation.resume(input),
@@ -274,6 +276,7 @@ impl Operation for InstalledOperation {
             Self::StateSelectScalar(operation) => operation.resume_value(port, value, canonical),
             Self::RoboticsDrive(operation) => operation.resume_value(port, value, canonical),
             Self::RecordQueue(operation) => operation.resume_value(port, value, canonical),
+            Self::RecordTranscript(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
             Self::TestLogicSink(operation) => operation.resume_value(port, value, canonical),
             #[cfg(test)]
@@ -388,6 +391,7 @@ impl Operation for InstalledOperation {
             Self::RecordExactlyOne(operation) => operation.advance(),
             Self::RecordQueue(operation) => operation.advance(),
             Self::RecordDeliveryStatus(_) => OperationAction::Await,
+            Self::RecordTranscript(operation) => operation.advance(),
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;

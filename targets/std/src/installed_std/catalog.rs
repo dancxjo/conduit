@@ -56,6 +56,7 @@ use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
 use super::record_temporal_operation::{
     EXACTLY_ONE as RECORD_EXACTLY_ONE_FACTORY, SINGLETON as RECORD_SINGLETON_STREAM_FACTORY,
 };
+use super::record_transcript_operation::FACTORY as RECORD_TRANSCRIPT_FACTORY;
 use super::recurrence_operation::FACTORY as RECURRENCE_FACTORY;
 use super::render_demand_operation::AUDIO_RENDER_DEMAND_FACTORY;
 use super::rhythm_compare_operation::FACTORY as RHYTHM_COMPARE_FACTORY;
@@ -233,6 +234,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &RECORD_EXACTLY_ONE_FACTORY,
     &RECORD_QUEUE_FACTORY,
     &RECORD_DELIVERY_STATUS_FACTORY,
+    &RECORD_TRANSCRIPT_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]

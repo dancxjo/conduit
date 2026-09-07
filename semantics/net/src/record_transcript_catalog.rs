@@ -11,8 +11,9 @@ use conduit_form::{
 };
 
 use crate::{
-    framed_typed_record_type, MAXIMUM_RECORD_TRANSCRIPT_BYTES, MAXIMUM_RECORD_TRANSCRIPT_ITEMS,
-    MAXIMUM_TYPED_RECORD_FRAME_BYTES, TYPED_RECORD_FRAME_HEADER_BYTES,
+    framed_typed_record_type, MAXIMUM_RECORD_TRANSCRIPT_BYTES, MAXIMUM_RECORD_TRANSCRIPT_EVENTS,
+    MAXIMUM_RECORD_TRANSCRIPT_ITEMS, MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+    TYPED_RECORD_FRAME_HEADER_BYTES,
 };
 
 pub const RECORD_TRANSCRIPT_KIND: &str = "record/bounded-transcript";
@@ -29,6 +30,7 @@ pub fn install_record_transcript_catalog(
         kind: RECORD_TRANSCRIPT_KIND.to_string(),
         startup_parameters: vec![
             parameter("maximum-items", "16"),
+            parameter("maximum-events", "32"),
             parameter(
                 "maximum-frame-bytes",
                 &MAXIMUM_TYPED_RECORD_FRAME_BYTES.to_string(),
@@ -66,6 +68,12 @@ pub fn record_transcript_kind_definition() -> KindDefinition {
                 16,
                 1,
                 MAXIMUM_RECORD_TRANSCRIPT_ITEMS as u64,
+            ),
+            count_field(
+                "maximum-events",
+                32,
+                1,
+                MAXIMUM_RECORD_TRANSCRIPT_EVENTS as u64,
             ),
             count_field(
                 "maximum-frame-bytes",

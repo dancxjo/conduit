@@ -63,6 +63,7 @@ mod quantity_mapping;
 mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
+mod record_transcript_operation;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;
