@@ -170,6 +170,21 @@ impl FormCandidate {
         Ok(candidate)
     }
 
+    pub fn select_checked_form(&mut self, checked_form_id: &CheckedFormId) -> Result<(), String> {
+        if !self
+            .editor
+            .view()
+            .checked
+            .forms
+            .iter()
+            .any(|form| &form.checked_form_id == checked_form_id)
+        {
+            return Err("checked Form is absent from its exact source document".into());
+        }
+        self.checked_form_id = checked_form_id.clone();
+        Ok(())
+    }
+
     pub(super) fn editor(&self) -> Result<FormEditor, String> {
         Ok(self.editor.clone())
     }

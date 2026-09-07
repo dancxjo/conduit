@@ -183,7 +183,7 @@ impl PatchbayHtmlServer {
 
     pub fn with_body_planning_forms(
         mut self,
-        forms: Vec<patchbay_model::FormCandidate>,
+        mut forms: Vec<patchbay_model::FormCandidate>,
     ) -> Result<Self, ServerError> {
         let workset = &self
             .body_workload
@@ -192,6 +192,19 @@ impl PatchbayHtmlServer {
             .evidence()
             .body
             .workset;
+        for resident in workset.forms() {
+            let candidate = forms
+                .iter_mut()
+                .find(|candidate| candidate.source_document_id == resident.source_document_id)
+                .ok_or_else(|| {
+                    ServerError::Interaction("Body planning forms: MissingForm".into())
+                })?;
+            candidate
+                .select_checked_form(&resident.checked_form_id)
+                .map_err(|error| {
+                    ServerError::Interaction(format!("Body planning forms: {error}"))
+                })?;
+        }
         patchbay_model::body_planning_requirements(workset, &forms)
             .map_err(|error| ServerError::Interaction(format!("Body planning forms: {error:?}")))?;
         self.body_planning_forms = forms;
