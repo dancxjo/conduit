@@ -64,6 +64,8 @@ function requireResolvedImage(image, build, targetId) {
     || image.manifest.profile_id !== build.profile_id
     || image.manifest.build_id !== build.build_id
     || image.manifest.target !== targetId
+    || image.manifest.source_identity !== build.source_identity
+    || image.manifest.toolchain_identity !== build.toolchain_identity
     || image.payload?.profile_id !== build.profile_id
     || image.payload?.build_id !== build.build_id
     || image.payload?.target !== targetId) {

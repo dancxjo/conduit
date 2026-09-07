@@ -59,6 +59,8 @@ export function validateConduitOsReleaseManifest(manifest, profile) {
     || manifest.resolved_image?.manifest?.profile_id !== manifest.profile_id
     || manifest.resolved_image?.manifest?.build_id !== manifest.build_id
     || manifest.resolved_image?.manifest?.target !== profile.target.id
+    || manifest.resolved_image?.manifest?.source_identity !== manifest.source_identity
+    || manifest.resolved_image?.manifest?.toolchain_identity !== manifest.toolchain_identity
     || manifest.resolved_image?.payload?.profile_id !== manifest.profile_id
     || manifest.resolved_image?.payload?.build_id !== manifest.build_id
     || manifest.resolved_image?.payload?.target !== profile.target.id
