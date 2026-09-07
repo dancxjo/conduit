@@ -14,7 +14,10 @@ fn args() -> StdDriveArgs {
         motion_environment: MotionEnvironment::WheelsOffFloor,
         confirm_wheels_off_floor: true,
         reduced_safety_floor_ack: None,
-        read_timeout_ms: 1_000,
+        // The full xtask suite runs hundreds of tests concurrently; retain the
+        // production-admitted maximum so scheduler delay cannot impersonate
+        // provider loss before the scripted terminal step.
+        read_timeout_ms: 5_000,
         evidence_out: "target/pete-drive.json".into(),
     }
 }
