@@ -7,6 +7,7 @@ on:
     types: [completed]
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -68,8 +69,18 @@ jobs:
               --body "Release candidate containing everything through dev \`$dev_sha\`. Fix failures on this branch; the exact final head must pass the exhaustive promotion gate. Successful release fixes are synchronized back to dev automatically.")
           fi
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
+          printf 'number=%s\n' "$(gh pr view "$pr_url" --json number --jq .number)" >> "$GITHUB_OUTPUT"
           printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
           printf 'status=created\n' >> "$GITHUB_OUTPUT"
+      - name: Monitor the trusted release without relying on recursive events
+        if: steps.pull-request.outputs.status == 'created'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pull-request.outputs.number }}
+          HEAD_SHA: ${{ steps.pull-request.outputs.dev_sha }}
+        run: >-
+          gh workflow run monitor-trusted-pr.yml --ref main
+          -f kind=release -f pr_number="$PR_NUMBER" -f head_sha="$HEAD_SHA"
       - name: Summarize the release candidate
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         env:

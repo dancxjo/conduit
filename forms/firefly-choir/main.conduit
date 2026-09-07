@@ -12,16 +12,30 @@ form firefly-choir {
     peer_observe.observation > follow.peer
 }
 
-# Reusable pulse-to-presentation composition. A Host may realize the
-# manifestation as light, sound, or another exact admitted presentation.
+# Reusable light-only pulse manifestation. Sound is omitted by authored
+# composition: there is no tone Gear or Cord to skip at runtime.
 form pulse-manifestation (
     > tick: value/tick@1...|
 ) {
     observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
-    manifest: presentation/pulse(maximum-values = 4)
+    light: presentation/pulse(maximum-values = 4)
 
     tick > observe.tick
-    observe.observation > manifest.pulse
+    observe.observation > light.pulse
+}
+
+# Explicit enriched composition. Light and tone are separate semantic sinks
+# fed by ordinary atomic fan-out and require separately offered realizations.
+form pulse-light-tone-manifestation (
+    > tick: value/tick@1...|
+) {
+    observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
+    light: presentation/pulse(maximum-values = 4)
+    tone: sound/pulse-tone(maximum-values = 4)
+
+    tick > observe.tick
+    observe.observation > light.pulse
+    observe.observation > tone.pulse
 }
 
 # Reusable stateful follower. One explicit initial state is updated by a finite
