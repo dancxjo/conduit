@@ -16,6 +16,26 @@ fn inventory_form() -> InventoryForm {
 }
 
 #[test]
+fn quiet_check_suppresses_human_output_without_hiding_json() {
+    assert_eq!(
+        check_output_mode(&GlobalOpts {
+            quiet: true,
+            ..GlobalOpts::default()
+        }),
+        None
+    );
+    assert_eq!(
+        check_output_mode(&GlobalOpts {
+            quiet: true,
+            json: true,
+            ..GlobalOpts::default()
+        }),
+        Some(true)
+    );
+    assert_eq!(check_output_mode(&GlobalOpts::default()), Some(false));
+}
+
+#[test]
 fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
     let root = crate::workspace::workspace_root().unwrap();
     let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
