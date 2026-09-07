@@ -53,13 +53,18 @@ fn canonical_button_clock_and_unrelated_form_are_one_initial_body_workset() {
     for (entry, canonical) in inventory.forms.iter().zip([BUTTON, CLOCK, OTHER]) {
         assert_eq!(entry.source, canonical);
         let standalone = initial_forms::check_source(canonical).unwrap();
+        let standalone_form = standalone
+            .forms
+            .iter()
+            .find(|form| form.name == entry.name)
+            .unwrap();
         assert_eq!(
             entry.source_document_id,
             standalone.source_document_id.as_str()
         );
         assert_eq!(
             entry.checked_form_id,
-            standalone.forms[0].checked_form_id.as_str()
+            standalone_form.checked_form_id.as_str()
         );
     }
     let selection: Vec<_> = inventory
