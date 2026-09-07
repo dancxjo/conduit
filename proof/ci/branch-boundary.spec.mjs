@@ -47,7 +47,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(integration, /branches: \[dev\]/);
   assert.match(integration, /tour-products\.yml/);
   assert.match(integration, /group: dev-integration\n/);
-  assert.match(integration, /cancel-in-progress: true/);
+  assert.match(integration, /cancel-in-progress: false/);
   assert.match(promotion, /branches: \[main\]/);
   assert.match(promotion, /full_suite: true/g);
   assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.number \}\}/);
@@ -114,6 +114,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(sync, /permissions:\n  actions: write\n  contents: write/);
   assert.match(monitor, /types?: choice/);
   assert.match(monitor, /options: \[release, sync\]/);
+  assert.match(monitor, /runs-on: ubuntu-24\.04/);
+  assert.match(monitor, /timeout-minutes: 48/);
   assert.match(monitor, /actions\/runs\/\$run_id\/approve/);
   assert.match(monitor, /sleep 30/);
   assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
