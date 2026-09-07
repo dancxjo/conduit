@@ -206,6 +206,11 @@ fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
             name => panic!("unexpected reviewed Form {name}"),
         };
         let individually_checked = super::initial_forms::check_source(canonical).unwrap();
+        let individually_checked_form = individually_checked
+            .forms
+            .iter()
+            .find(|checked| checked.name == form.name)
+            .unwrap();
         assert_eq!(form.source, canonical);
         assert_eq!(
             form.source_document_id,
@@ -213,7 +218,7 @@ fn reviewed_inventory_derives_exact_identities_and_stale_selection_refuses() {
         );
         assert_eq!(
             form.checked_form_id,
-            individually_checked.forms[0].checked_form_id.as_str()
+            individually_checked_form.checked_form_id.as_str()
         );
     }
     assert!(inventory
