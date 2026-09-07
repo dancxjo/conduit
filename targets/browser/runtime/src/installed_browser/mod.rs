@@ -110,6 +110,8 @@ pub(crate) mod test_timing_sink;
 pub(crate) mod test_replay_sink;
 
 #[cfg(test)]
+pub(crate) mod test_garden_sink;
+#[cfg(test)]
 pub(crate) mod test_measurement_sink;
 
 #[cfg(test)]

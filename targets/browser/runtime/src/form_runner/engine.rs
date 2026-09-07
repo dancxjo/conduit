@@ -436,6 +436,9 @@ mod measurement_plot_kernel_tests;
 mod measurement_window_kernel_tests;
 
 #[cfg(test)]
+#[path = "garden_step_kernel_tests.rs"]
+mod garden_step_kernel_tests;
+#[cfg(test)]
 #[path = "measurement_hysteresis_kernel_tests.rs"]
 mod measurement_hysteresis_kernel_tests;
 
