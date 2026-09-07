@@ -112,7 +112,7 @@ pub fn run(
         if event.transition() == KeyTransition::Pressed && event.usage() == F9 && !tour_open {
             tour_open = true;
             render_tour(&tour, display)?;
-            emit_tour_sign(&tour, None, fabrication);
+            emit_tour_sign(&tour, None, identities, fabrication);
             return Ok(());
         }
         if tour_open && event.transition() == KeyTransition::Pressed {
@@ -144,7 +144,10 @@ pub fn run(
                     )
                     .map_err(|error| error.as_str())?;
                 render_tour(&tour, display)?;
-                emit_tour_sign(&tour, Some(&update), fabrication);
+                if update.play.is_some() {
+                    arch::early_write(b"\n");
+                }
+                emit_tour_sign(&tour, Some(&update), identities, fabrication);
                 return Ok(());
             }
         }
@@ -252,12 +255,13 @@ fn render_tour(
 fn emit_tour_sign(
     tour: &TourProduct,
     update: Option<&TourProductUpdate>,
+    identities: &BootIdentities,
     fabrication: &FabricationRecord,
 ) {
     let state = tour.controller().state();
     let play = update.and_then(|value| value.play.as_ref());
     let line = format!(
-        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v1\",\"status\":\"{}\",\"revision\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"source_document_id\":{},\"checked_form_id\":{},\"expanded_form_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v1\",\"status\":\"{}\",\"revision\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":{},\"checked_form_id\":{},\"expanded_form_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
         match state.phase {
             conduit_tour_model::TourWorkspacePhase::LessonReady => "tour-opened",
             conduit_tour_model::TourWorkspacePhase::ResultVisible => "result-visible",
@@ -268,6 +272,8 @@ fn emit_tour_sign(
         fabrication.profile_id,
         fabrication.build_id,
         fabrication.image_binding,
+        identity::hex(&identities.host),
+        identity::hex(&identities.boot),
         json_optional(play.map(|value| value.source_document_id.as_str())),
         json_optional(play.map(|value| value.checked_form_id.as_str())),
         json_optional(play.map(|value| value.expanded_form_id.as_str())),
