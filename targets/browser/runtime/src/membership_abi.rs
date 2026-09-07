@@ -43,6 +43,11 @@ pub extern "C" fn conduit_browser_membership_output_ptr() -> *const u8 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_membership_output_capacity() -> u32 {
+    OUTPUT_CAPACITY as u32
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_membership_output_len() -> u32 {
     OUTPUT_LEN.with(|length| *length.borrow() as u32)
 }
@@ -253,6 +258,14 @@ mod tests {
 
     fn output<const N: usize>() -> [u8; N] {
         OUTPUT.with(|output| output.borrow()[..N].try_into().unwrap())
+    }
+
+    #[test]
+    fn output_capacity_exports_the_body_advertisement_bound() {
+        assert_eq!(
+            conduit_browser_membership_output_capacity(),
+            conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES
+        );
     }
 
     fn initialize() -> AdmissionChallenge {

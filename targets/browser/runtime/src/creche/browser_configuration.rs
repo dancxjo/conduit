@@ -13,6 +13,8 @@ use conduit_host_fabrication::{
 };
 use serde::{Deserialize, Serialize};
 
+mod presentation;
+
 pub(super) const CATALOG_GENERATION: u32 = 1;
 const CONFIGURATION_NAME: &str = "creche-browser-page";
 const DEFAULT_IMPLEMENTATIONS: &[&str] = &[

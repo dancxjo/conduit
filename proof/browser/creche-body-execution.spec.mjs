@@ -48,7 +48,11 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     processes.push(probe.process);
     const patchbay = spawn("target/debug/patchbay-html", [
       "--body-evidence", evidencePath, "--external-reader", "--body-invitation", probe.url,
-      ...["button-across-room", "clock", "desk-telegraph"].flatMap(name => ["--form", name, `forms/${name}/main.conduit`]),
+      ...[
+        ["button-across-room", "button-across-room"],
+        ["clock", "clock"],
+        ["desk_telegraph", "desk-telegraph"],
+      ].flatMap(([name, path]) => ["--form", name, `forms/${path}/main.conduit`]),
     ], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
     processes.push(patchbay);
     const url = await new Promise((resolve, reject) => {
@@ -67,7 +71,11 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
     expect((await snapshot()).body_workbench.body_id).toBe(bodyId);
     await page.getByRole("button", { name: "Join this Body", exact: true }).click();
-    await expect.poll(async () => (await snapshot()).body_host_offer_evidence?.stage).toBe("AdmittedMembership");
+    await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
+    await expect.poll(
+      async () => (await snapshot()).body_host_offer_evidence?.stage,
+      { message: `Body Host offer evidence was not adopted: ${probe.output()}`, timeout: 10_000 },
+    ).toBe("AdmittedMembership");
     await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
     await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();

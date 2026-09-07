@@ -139,6 +139,42 @@ pub extern "C" fn conduit_tour_reviewed_gallery() -> i32 {
     }
 }
 
+#[derive(serde::Deserialize)]
+struct GalleryViewRequest {
+    revision: u32,
+    query: String,
+    selected_checked_form_id: Option<String>,
+    creche_url: String,
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_tour_reviewed_gallery_view(request_length: usize) -> i32 {
+    clear_output();
+    if request_length == 0 || request_length > INPUT_BYTES {
+        return ERROR_INPUT;
+    }
+    INPUT.with(|input| {
+        let mut input = input.borrow_mut();
+        let result = serde_json::from_slice::<GalleryViewRequest>(&input[..request_length])
+            .map_err(|error| format!("decode reviewed Gallery view request: {error}"))
+            .and_then(|request| {
+                super::gallery::reviewed_gallery_view(
+                    &request.query,
+                    request.selected_checked_form_id.as_deref(),
+                    &request.creche_url,
+                    request.revision,
+                )
+            });
+        input[..request_length].fill(0);
+        match result.and_then(|encoded| {
+            write_output_bytes(&encoded).map_err(|_| "write reviewed Gallery view".into())
+        }) {
+            Ok(()) => STATUS_READY,
+            Err(_) => ERROR_PROJECTION,
+        }
+    })
+}
+
 /// Projects the exact checked Form beside its Tour source without planning or
 /// starting a Play.
 #[no_mangle]

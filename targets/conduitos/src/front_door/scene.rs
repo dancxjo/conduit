@@ -36,6 +36,18 @@ impl FrontDoor {
             .map_err(|_| Error::Scene)?;
         text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
         let presentation = self.presentation()?;
+        if let Some(line) = &self.connectivity
+            && !self.exact_details_open
+        {
+            text(&mut scene, 18, 42, "CURRENT BODY")?;
+            exact_text(&mut scene, 18, 66, line.body_id.as_str())?;
+            text(&mut scene, 18, 132, line.status.label())?;
+            exact_text(&mut scene, 18, 156, &line.line_id)?;
+            if let Some(value) = &line.value {
+                exact_text(&mut scene, 18, 184, value)?;
+            }
+            return Ok(scene);
+        }
         if self
             .journey
             .as_ref()
@@ -110,7 +122,12 @@ impl FrontDoor {
                     "  DETAILS"
                 },
             )?;
-            text(&mut scene, 18, 176, "ARROWS SELECT  ENTER OPEN  F2 DETAILS")?;
+            text(
+                &mut scene,
+                18,
+                176,
+                "ARROWS SELECT  ENTER OPEN  F2 DETAILS  F9 TOUR",
+            )?;
         }
         Ok(scene)
     }

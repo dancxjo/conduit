@@ -134,6 +134,34 @@ fn invalid_limits_frames_and_exhausted_sequences_refuse_without_false_history() 
 }
 
 #[test]
+fn terminal_events_have_exact_distinct_fixed_wire_encodings() {
+    for terminal in [
+        RecordTranscriptTerminal::Completed,
+        RecordTranscriptTerminal::Cancelled,
+        RecordTranscriptTerminal::TransportUnavailable,
+        RecordTranscriptTerminal::Disconnected,
+        RecordTranscriptTerminal::TimedOut,
+        RecordTranscriptTerminal::Refused(17),
+        RecordTranscriptTerminal::Failed(23),
+    ] {
+        let wire = encode_record_transcript_terminal(terminal);
+        assert_eq!(decode_record_transcript_terminal(&wire), Ok(terminal));
+    }
+    assert_eq!(
+        decode_record_transcript_terminal(&[1, 0, 1, 0]),
+        Err(RecordTranscriptRefusal::MalformedTerminal)
+    );
+    assert_eq!(
+        decode_record_transcript_terminal(&[1, 9, 0, 0]),
+        Err(RecordTranscriptRefusal::MalformedTerminal)
+    );
+    assert_eq!(
+        decode_record_transcript_terminal(&[1, 0, 0]),
+        Err(RecordTranscriptRefusal::MalformedTerminal)
+    );
+}
+
+#[test]
 fn transcript_is_an_ordinary_reusable_closing_flow_form() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -154,4 +182,5 @@ fn transcript_is_an_ordinary_reusable_closing_flow_form() {
         .inputs
         .iter()
         .all(|input| input.temporal == conduit_core::PortTemporal::Flow { closes: true }));
+    assert_eq!(authored.expanded.gears[0].configuration.len(), 4);
 }

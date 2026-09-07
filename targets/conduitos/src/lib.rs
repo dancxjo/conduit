@@ -92,8 +92,14 @@ pub mod pc_speaker_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod pc_speaker_play;
 pub mod planned_kernel;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod usb_line_offer;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod usb_line_session;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(
@@ -130,6 +136,10 @@ pub mod product_front_door;
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod product_journey;
+#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+pub mod product_pointer;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod product_usb_line;
 #[cfg(target_arch = "x86_64")]
 pub mod rescue_guest;
 pub mod sign_format;
@@ -144,3 +154,7 @@ pub mod text_upper;
 pub mod timer_nucleus;
 mod timing_plan;
 pub mod timing_profile;
+pub mod tour_play;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod tour_product;
+pub mod tour_workspace;

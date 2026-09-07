@@ -14,6 +14,7 @@ mod choice_lowering;
 mod evidence_lowering;
 mod form_lowering;
 mod mechanism_lowering;
+mod structure_lowering;
 use choice_lowering::lower_choice_group;
 use evidence_lowering::{
     code_node, definition_node, evidence_component, push_definition, push_evidence_state,
@@ -21,6 +22,7 @@ use evidence_lowering::{
 };
 use form_lowering::{lower_form_field, progress_node};
 use mechanism_lowering::{action_node, titled};
+use structure_lowering::structural_node;
 
 /// Stable identities for the shared application-presentation vocabulary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -28,6 +30,9 @@ pub enum PresentationMechanismKind {
     Shell,
     Workbench,
     Panel,
+    Heading,
+    Separator,
+    Grid,
     ActionGroup,
     Action,
     Status,
@@ -40,6 +45,7 @@ pub enum PresentationMechanismKind {
     ChoiceGroup,
     Navigation,
     NavigationLink,
+    Link,
     Stepper,
     Progress,
     Artifact,
@@ -54,6 +60,9 @@ impl PresentationMechanismKind {
             Self::Shell => "conduit.presentation/shell@1",
             Self::Workbench => "conduit.presentation/workbench@1",
             Self::Panel => "conduit.presentation/panel@1",
+            Self::Heading => "conduit.presentation/heading@1",
+            Self::Separator => "conduit.presentation/separator@1",
+            Self::Grid => "conduit.presentation/grid@1",
             Self::ActionGroup => "conduit.presentation/action-group@1",
             Self::Action => "conduit.presentation/action@1",
             Self::Status => "conduit.presentation/status@1",
@@ -66,6 +75,7 @@ impl PresentationMechanismKind {
             Self::ChoiceGroup => "conduit.presentation/choice-group@1",
             Self::Navigation => "conduit.presentation/navigation@1",
             Self::NavigationLink => "conduit.presentation/navigation-link@1",
+            Self::Link => "conduit.presentation/link@1",
             Self::Stepper => "conduit.presentation/stepper@1",
             Self::Progress => "conduit.presentation/progress@1",
             Self::Artifact => "conduit.presentation/artifact@1",
@@ -186,6 +196,13 @@ pub enum PresentationMechanism {
     Panel {
         title: String,
     },
+    Heading {
+        text: String,
+    },
+    Separator {
+        label: String,
+    },
+    Grid,
     ActionGroup {
         label: String,
     },
@@ -224,6 +241,10 @@ pub enum PresentationMechanism {
         label: String,
         destination: AdmittedNavigationDestination,
     },
+    Link {
+        label: String,
+        destination: String,
+    },
     Stepper {
         label: String,
         current: u16,
@@ -248,6 +269,9 @@ impl PresentationMechanism {
             Self::Shell => PresentationMechanismKind::Shell,
             Self::Workbench => PresentationMechanismKind::Workbench,
             Self::Panel { .. } => PresentationMechanismKind::Panel,
+            Self::Heading { .. } => PresentationMechanismKind::Heading,
+            Self::Separator { .. } => PresentationMechanismKind::Separator,
+            Self::Grid => PresentationMechanismKind::Grid,
             Self::ActionGroup { .. } => PresentationMechanismKind::ActionGroup,
             Self::Action(_) => PresentationMechanismKind::Action,
             Self::Status { .. } => PresentationMechanismKind::Status,
@@ -260,6 +284,7 @@ impl PresentationMechanism {
             Self::ChoiceGroup { .. } => PresentationMechanismKind::ChoiceGroup,
             Self::Navigation { .. } => PresentationMechanismKind::Navigation,
             Self::NavigationLink { .. } => PresentationMechanismKind::NavigationLink,
+            Self::Link { .. } => PresentationMechanismKind::Link,
             Self::Stepper { .. } => PresentationMechanismKind::Stepper,
             Self::Progress { .. } => PresentationMechanismKind::Progress,
             Self::Artifact(_) => PresentationMechanismKind::Artifact,
@@ -399,32 +424,26 @@ fn lower_mechanism(
     mechanism: &PresentationMechanism,
     actions: &mut Vec<ApplicationAction>,
 ) -> Result<LoweredMechanism, SemanticPresentationRefusal> {
+    if let Some((component, text, value, value_capacity, action, state)) =
+        structural_node(mechanism)
+    {
+        return Ok(LoweredMechanism {
+            component,
+            text,
+            value,
+            value_capacity,
+            action,
+            state,
+        });
+    }
     let empty = String::new();
     let (component, text, value, value_capacity, action, state) = match mechanism {
-        PresentationMechanism::Shell => (
-            ApplicationComponent::Shell,
-            empty,
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
-        PresentationMechanism::Workbench => (
-            ApplicationComponent::Grid,
-            empty,
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
-        PresentationMechanism::Panel { title } => (
-            ApplicationComponent::Panel,
-            title.clone(),
-            String::new(),
-            0,
-            None,
-            ApplicationNodeState::Ready,
-        ),
+        PresentationMechanism::Shell
+        | PresentationMechanism::Workbench
+        | PresentationMechanism::Panel { .. }
+        | PresentationMechanism::Heading { .. }
+        | PresentationMechanism::Separator { .. }
+        | PresentationMechanism::Grid => unreachable!("structural mechanisms return above"),
         PresentationMechanism::ActionGroup { label } => {
             if label.is_empty() {
                 return Err(SemanticPresentationRefusal::InvalidActionGroup);
@@ -529,6 +548,19 @@ fn lower_mechanism(
                 label.clone(),
                 identity.into(),
                 u32::try_from(identity.len()).unwrap_or(u32::MAX),
+                None,
+                ApplicationNodeState::Ready,
+            )
+        }
+        PresentationMechanism::Link { label, destination } => {
+            if label.is_empty() || !crate::application_view::valid_same_site_link(destination) {
+                return Err(SemanticPresentationRefusal::InvalidNavigation);
+            }
+            (
+                ApplicationComponent::Link,
+                label.clone(),
+                destination.clone(),
+                u32::try_from(destination.len()).unwrap_or(u32::MAX),
                 None,
                 ApplicationNodeState::Ready,
             )

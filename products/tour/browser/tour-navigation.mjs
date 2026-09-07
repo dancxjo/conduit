@@ -1,20 +1,13 @@
-export function createTourNavigation(presentation, navigate) {
+export function createTourNavigation(runtime, presentation, navigate) {
   let revision = 0;
   return Object.freeze({
-    render(currentPage, pageCount, running) {
-      presentation.present("tour-navigation", {
-        revision: ++revision,
-        actions: [
-          { id: "tour.previous", event: "activate" },
-          { id: "tour.next", event: "activate" },
-        ],
-        nodes: [
-          { parent: null, component: "navigation", key: "navigation", text: "Tour pages", action: null },
-          { parent: 0, component: "status", key: "progress", text: `Page ${currentPage + 1} of ${pageCount}`, action: null },
-          { parent: 0, component: "button", key: "previous", text: "Previous", action: currentPage > 0 ? 0 : null },
-          { parent: 0, component: "button", key: "next", text: "Next", action: currentPage < pageCount - 1 ? 1 : null },
-        ],
-      }, {
+    render(currentPage, pageCount) {
+      const code = runtime.conduit_tour_navigation_view(++revision, currentPage, pageCount);
+      if (code < 0) throw new Error(`Tour navigation presentation was refused (${code})`);
+      const pointer = runtime.conduit_tour_navigation_view_ptr();
+      const length = runtime.conduit_tour_navigation_view_len();
+      const encoded = new Uint8Array(runtime.memory.buffer, pointer, length).slice();
+      presentation.present("tour-navigation", encoded, {
         onEvent(event) {
           presentation.nextEvent("tour-navigation");
           if (event.action === "tour.previous") navigate(-1);
@@ -22,6 +15,20 @@ export function createTourNavigation(presentation, navigate) {
         },
       });
     },
+  });
+}
+
+export function presentTourWorkspaceSeparator(presentation) {
+  presentation.present("tour-workspace-separator", {
+    revision: 1,
+    actions: [],
+    nodes: [{
+      parent: null,
+      component: "separator",
+      key: "lesson-laboratory-boundary",
+      text: "Lesson and laboratory boundary",
+      action: null,
+    }],
   });
 }
 

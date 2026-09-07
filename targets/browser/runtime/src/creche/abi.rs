@@ -23,7 +23,7 @@ const ERROR_INTERACTION: i32 = -454;
 const STATUS_ABSENT: i32 = 1;
 pub(super) const ERROR_SPORE: i32 = -455;
 const ERROR_ADMISSION: i32 = -456;
-const ERROR_GRADUATION: i32 = -457;
+pub(super) const ERROR_GRADUATION: i32 = -457;
 const ERROR_RESTORE: i32 = -458;
 const ERROR_INVENTORY: i32 = -459;
 const ERROR_REVIEW: i32 = -460;
@@ -424,10 +424,14 @@ pub(super) fn refuse(message: String, code: i32) -> i32 {
 
 pub(super) fn write_output(value: &impl serde::Serialize) -> Result<(), ()> {
     let encoded = serde_json::to_vec(value).map_err(|_| ())?;
+    write_output_bytes(&encoded)
+}
+
+pub(super) fn write_output_bytes(encoded: &[u8]) -> Result<(), ()> {
     if encoded.len() > OUTPUT_BYTES {
         return Err(());
     }
-    OUTPUT.with(|output| output.borrow_mut()[..encoded.len()].copy_from_slice(&encoded));
+    OUTPUT.with(|output| output.borrow_mut()[..encoded.len()].copy_from_slice(encoded));
     OUTPUT_LEN.with(|length| *length.borrow_mut() = encoded.len());
     Ok(())
 }

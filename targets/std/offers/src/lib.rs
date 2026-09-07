@@ -42,6 +42,14 @@ mod image_text;
 pub use image_text::*;
 mod typed_record;
 pub use typed_record::*;
+mod record_temporal;
+pub use record_temporal::*;
+mod record_queue;
+pub use record_queue::*;
+mod record_delivery;
+pub use record_delivery::*;
+mod record_transcript;
+pub use record_transcript::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod keyboard;
@@ -62,6 +70,12 @@ mod patchbay;
 pub use patchbay::*;
 mod signal;
 pub use signal::*;
+mod house_conversation;
+pub use house_conversation::*;
+mod model_text;
+pub use model_text::*;
+mod speech_recognition;
+pub use speech_recognition::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,

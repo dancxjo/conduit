@@ -27,7 +27,7 @@ impl HostedLocalModelAdapter for FakeLocalModel {
     ) -> LocalModelAdapterTerminal {
         output.clear();
         let encoded = match placement.kind_id.as_str() {
-            conduit_ai::LLM_GENERATE_KIND => input.to_vec(),
+            conduit_ai::LLM_GENERATE_KIND => b"The upstairs temperature is 21 C.".to_vec(),
             conduit_ai::LLM_CLASSIFY_KIND => {
                 serde_json::to_vec(&conduit_ai::FiniteClassification {
                     label: "conduit".into(),
@@ -71,7 +71,37 @@ impl HostedLocalModelAdapter for FakeLocalModel {
             }
             _ => return LocalModelAdapterTerminal::Refused,
         };
-        output.extend_from_slice(&encoded);
+        let contract = conduit_ai::llm_contract(placement.kind_id.as_str()).unwrap();
+        let result = conduit_ai::ModelDerivedResult {
+            provenance: conduit_ai::ModelResultProvenance::ModelDerived,
+            payload_kind: contract.result_payload_kind.as_str().into(),
+            payload: encoded,
+            implementation_identity: "fixture-runtime/fixture-model".into(),
+            request_identity: "request/fixture".into(),
+            run_identity: "run/fixture".into(),
+            confidence: None,
+            disposition: match self.terminal {
+                LocalModelAdapterTerminal::Produced => conduit_ai::ModelResultDisposition::Produced,
+                LocalModelAdapterTerminal::Truncated => {
+                    conduit_ai::ModelResultDisposition::Truncated
+                }
+                _ => {
+                    self.calls.push(placement.kind_id.as_str().into());
+                    return self.terminal;
+                }
+            },
+            determinism: self.offer.determinism,
+            accounting: conduit_ai::ModelWorkAccounting {
+                input_bytes: input.len() as u64,
+                context_items: 1,
+                output_bytes: 0,
+                work_units: 1,
+                history_items: 0,
+            },
+        };
+        let mut result = result;
+        result.accounting.output_bytes = result.payload.len() as u64;
+        output.extend_from_slice(&serde_json::to_vec(&result).unwrap());
         self.calls.push(placement.kind_id.as_str().into());
         self.terminal
     }
@@ -93,7 +123,7 @@ fn offer(profiles: Vec<LocalModelKindProfile>) -> LocalModelOffer {
             work: LlmWorkBounds {
                 maximum_input_bytes: 4_096,
                 maximum_context_items: 1,
-                maximum_output_bytes: 1_024,
+                maximum_output_bytes: 4_096,
                 maximum_work_units: 4_096,
                 maximum_history_items: 0,
             },
@@ -157,6 +187,10 @@ fn only_initialized_adapter_capabilities_enter_the_host_advertisement() {
         })
         .collect::<Vec<_>>();
     assert_eq!(local.len(), 2);
+    assert!(host.advertisement().capabilities.iter().any(|capability| {
+        capability.implementation.implementation_id.as_str()
+            == conduit_std_offers::HOUSE_PROMPT_STD_IMPLEMENTATION
+    }));
     assert!(host.advertisement().resources.iter().any(|resource| {
         resource.class_id.as_str() == conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE
             && resource.capacity_units == 1
@@ -229,27 +263,56 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
     assert!(host.plan_expanded_local(&authoring.expanded).is_err());
 }
 
+#[test]
+fn house_prompt_projection_plans_the_exact_std_realization() {
+    let host = StdHost::new_with_local_model(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::Generate]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+    )
+    .unwrap();
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
+    conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles).unwrap();
+    let source = "form prompt-only (\n > detection: AddressDetection\n > context: HouseContext\n request_value: llm/generation-request@1 >\n) {\n request: house/context-to-prompt\n detection > request.detection\n context > request.context\n request.request > request_value\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authored =
+        conduit_form::expand_canonical_form_for_authoring(&checked, "prompt-only", &profiles)
+            .unwrap();
+    let plan = host.plan_expanded_local(&authored.expanded).unwrap();
+    let placements = &plan.fragments[0].placements;
+    assert_eq!(placements.len(), 1);
+    assert!(placements.iter().any(|placement| {
+        placement.implementation_id.as_str() == conduit_std_offers::HOUSE_PROMPT_STD_IMPLEMENTATION
+    }));
+}
+
 fn plan_and_play(profile: LocalModelKindProfile) {
     let local_offer = offer(vec![profile]);
     let contract = conduit_ai::llm_contract(profile.kind()).unwrap();
-    let mut advertisement = StdHost::new_with_composition(config(), StdHostComposition::minimal())
-        .advertisement()
-        .clone();
-    advertisement
-        .resources
-        .extend(resource_offers(&local_offer.limits));
-    advertisement.resources.sort();
-    advertisement
-        .capabilities
-        .extend(local_offer.capability_offers().unwrap());
-    advertisement.capabilities.extend([
-        crate::installed_std::test_local_model_io::source_offer(
-            contract.inputs[0].value_kind.as_str(),
-        ),
-        crate::installed_std::test_local_model_io::sink_offer(
-            contract.outputs[0].value_kind.as_str(),
-        ),
-    ]);
+    let mut host = StdHost::new_with_local_model_capabilities(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: local_offer,
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+        vec![
+            crate::installed_std::test_local_model_io::source_offer(
+                contract.inputs[0].value_kind.as_str(),
+            ),
+            crate::installed_std::test_local_model_io::sink_offer(
+                contract.outputs[0].value_kind.as_str(),
+            ),
+        ],
+    )
+    .unwrap();
 
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
@@ -261,12 +324,12 @@ fn plan_and_play(profile: LocalModelKindProfile) {
         contract.outputs[0].value_kind.as_str(),
     );
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 1024, 4096, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
+        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
         profile.kind()
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = conduit_form::expand_canonical_form(&checked, "run", &profiles).unwrap();
-    let hosts = vec![advertisement.clone()];
+    let hosts = vec![host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
     let connection_bases = BTreeMap::new();
     let line_candidates = BTreeMap::new();
@@ -288,32 +351,10 @@ fn plan_and_play(profile: LocalModelKindProfile) {
         },
     )
     .unwrap();
-    let mut adapter = FakeLocalModel {
-        offer: local_offer,
-        terminal: LocalModelAdapterTerminal::Produced,
-        calls: Vec::new(),
-    };
-    let mut sign_sequence = 0;
-    crate::installed_std::run_fragment(
-        crate::installed_std::InstalledRunHost {
-            advertisement: &advertisement,
-            playback: None,
-            midi_input: None,
-            midi_output: None,
-            keyboard: None,
-            local_model: Some(&mut adapter),
-            vector_search: None,
-            calendar: None,
-        },
-        &plan.fragments[0],
-        1,
-        &mut sign_sequence,
-        &mut Vec::new(),
-        &mut NoopTimer,
-        &crate::RunControl::default(),
-    )
-    .unwrap();
-    assert_eq!(adapter.calls, vec![profile.kind().to_string()]);
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut Vec::new(), &mut NoopTimer)
+        .unwrap();
+    assert!(report.kernel.is_some());
 }
 
 #[test]
@@ -323,4 +364,27 @@ fn all_five_l3_profiles_execute_through_ordinary_plan_and_play() {
     plan_and_play(LocalModelKindProfile::ExtractValidatedInfo);
     plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
     plan_and_play(LocalModelKindProfile::InterpretSignEvidence);
+}
+
+#[cfg(feature = "local-model-proof")]
+#[test]
+fn checked_house_form_executes_through_the_ordinary_local_model_play() {
+    let mut capabilities =
+        crate::installed_std::test_local_model_io::house_source_offers().to_vec();
+    capabilities.push(crate::installed_std::recorded_speech_operation::offer());
+    capabilities.push(crate::installed_std::test_local_model_io::house_text_sink_offer());
+    let mut host = StdHost::new_with_local_model_capabilities(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::Generate]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+        capabilities,
+    )
+    .unwrap();
+    let (plan_id, completed) = crate::local_model_proof::run_house(&mut host).unwrap();
+    assert!(!plan_id.is_empty());
+    assert!(completed);
 }

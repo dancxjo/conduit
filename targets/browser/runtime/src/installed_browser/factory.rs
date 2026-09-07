@@ -36,6 +36,9 @@ pub(crate) struct BrowserInstallation {
 }
 
 static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &super::historical::INSTALLATION,
+    &super::replay_source::INSTALLATION,
+    &super::replay_control::INSTALLATION,
     &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::timing::INTERVALS,
@@ -44,6 +47,15 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::json::DECODE,
     &super::json::COLLECTION,
     &super::json::SUMMARY,
+    &super::typed_record::TEXT_TO_RECORD,
+    &super::typed_record::FRAME,
+    &super::typed_record::DEFRAME,
+    &super::typed_record::RECORD_TO_TEXT,
+    &super::record_queue::INSTALLATION,
+    &super::record_delivery::INSTALLATION,
+    &super::record_transcript::INSTALLATION,
+    &super::record_temporal::SINGLETON,
+    &super::record_temporal::EXACTLY_ONE,
     &text::LITERAL,
     &text::UPPER,
     &text::JOIN,
@@ -202,6 +214,10 @@ pub(crate) fn factory(
     #[cfg(test)]
     if implementation_id.as_str() == super::test_timing_sink::KIND {
         return Some(&super::test_timing_sink::SINK);
+    }
+    #[cfg(test)]
+    if implementation_id.as_str() == super::test_replay_sink::KIND {
+        return Some(&super::test_replay_sink::SINK);
     }
     if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
         return Some(&super::comparison_presentation::PRESENTATION);

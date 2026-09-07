@@ -43,6 +43,11 @@ pub extern "C" fn conduit_browser_form_reviewed_gallery() -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_form_reviewed_gallery_view(request_length: usize) -> i32 {
+    abi::conduit_tour_reviewed_gallery_view(request_length)
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_form_admit_source_interaction(
     source_length: usize,
     sequence: u64,

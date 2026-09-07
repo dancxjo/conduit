@@ -211,6 +211,8 @@ pub(super) fn build_advertisement(
             conduit_std_offers::text_literal_offer(),
             conduit_std_offers::text_upper_offer(),
             conduit_std_offers::text_join_offer(),
+            conduit_std_offers::address_detect_offer(),
+            conduit_std_offers::recognition_to_text_std_offer(),
             installed_std::text_offer(),
         ]);
     }
@@ -223,6 +225,14 @@ pub(super) fn build_advertisement(
             conduit_std_offers::image_text_std_offer(),
             conduit_std_offers::image_text_record_std_offer(),
             conduit_std_offers::typed_record_frame_std_offer(),
+            conduit_std_offers::typed_record_deframe_std_offer(),
+            conduit_std_offers::text_to_typed_record_std_offer(),
+            conduit_std_offers::typed_record_to_text_std_offer(),
+            conduit_std_offers::record_singleton_stream_std_offer(),
+            conduit_std_offers::record_exactly_one_std_offer(),
+            conduit_std_offers::ordered_record_queue_std_offer(),
+            conduit_std_offers::record_delivery_status_std_offer(),
+            conduit_std_offers::record_transcript_std_offer(),
         ]);
     }
     if composition.state {

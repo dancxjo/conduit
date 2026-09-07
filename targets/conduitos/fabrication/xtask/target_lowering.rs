@@ -113,6 +113,7 @@ pub(super) fn lower_x86_64_pc(
         | conduitos::fabrication::IMPL_TEXT_UPPER
         | conduitos::fabrication::IMPL_TEXT_PRESENTATION
         | conduitos::fabrication::IMPL_KEYBOARD
+        | conduitos::fabrication::IMPL_POINTER
         | conduitos::fabrication::IMPL_PC_SPEAKER
         | conduitos::fabrication::IMPL_OPL2;
     let (presentation_surface_slots, presentation_surface_bytes) = presentation_surfaces

@@ -105,6 +105,12 @@ fn canonical_constituent(
     let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)
         .expect("the installed text pipeline catalogs are disjoint");
+    conduit_net::install_typed_record_catalogs(&mut startup, &mut profiles)
+        .expect("the installed typed-record catalogs are disjoint");
+    conduit_net::install_record_temporal_catalogs(&mut startup, &mut profiles)
+        .expect("the installed record temporal catalogs are disjoint");
+    conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profiles)
+        .expect("the installed ordered-record queue catalog is disjoint");
     let syntax = parse_syntax_document(source);
     assert_eq!(syntax.round_trip(), source);
     let checked = check_syntax_document(&syntax, &startup).expect("reviewed Form checks");

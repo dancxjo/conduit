@@ -57,7 +57,7 @@ struct GalleryRequirement {
 }
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
-    let (startup, _) = crate::installed_browser::catalogs()?;
+    let (startup, profile) = crate::installed_browser::catalogs()?;
     let host_inventory = crate::installed_browser::inventory();
     let mut forms = Vec::with_capacity(REVIEWED_SOURCES.len());
     for (name, title, source) in REVIEWED_SOURCES {
@@ -75,10 +75,12 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             .iter()
             .find(|form| form.name == name)
             .ok_or_else(|| format!("reviewed Gallery source does not define {name}"))?;
-        let mut required_kinds = form
+        let expanded = conduit_form::expand_canonical_form(&checked, name, &profile)
+            .map_err(|error| format!("expand reviewed Gallery Form {name}: {error:?}"))?;
+        let mut required_kinds = expanded
             .gears
             .iter()
-            .map(|gear| gear.kind.clone())
+            .map(|gear| gear.kind_id.as_str().to_owned())
             .collect::<Vec<_>>();
         required_kinds.sort();
         required_kinds.dedup();
@@ -130,6 +132,126 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
     })
 }
 
+pub(super) fn reviewed_gallery_view(
+    query: &str,
+    selected_checked_form_id: Option<&str>,
+    creche_url: &str,
+    revision: u32,
+) -> Result<Vec<u8>, String> {
+    let gallery = reviewed_gallery()?;
+    let entries = gallery
+        .forms
+        .iter()
+        .map(|form| {
+            let requirements = form
+                .realizability
+                .requirements
+                .iter()
+                .map(|requirement| {
+                    let class = match requirement.realization_class {
+                        Some("pure-kernel-or-local") => "local",
+                        Some("bounded-browser-host-operation") => "browser Host",
+                        _ => "unrealized",
+                    };
+                    format!(
+                        "{}={}/{}",
+                        requirement.kind_id,
+                        if requirement.offer_state == "current-host-offer" {
+                            "current"
+                        } else {
+                            "missing"
+                        },
+                        class
+                    )
+                })
+                .collect::<Vec<_>>();
+            conduit_tour_model::TourGalleryEntry {
+                title: form.title.into(),
+                checked_form_id: form.checked_form_id.clone(),
+                realization: bounded_realization_summary(
+                    &requirements,
+                    form.realizability.current_offer_count,
+                    form.realizability.required_kind_count,
+                    form.realizability.status == "runnable-on-current-browser-host",
+                ),
+                search_terms: form.required_kinds.join(" "),
+                runnable: form.realizability.status == "runnable-on-current-browser-host",
+                handoff: form_handoff(creche_url, form),
+            }
+        })
+        .collect();
+    conduit_tour_model::TourGalleryState {
+        revision,
+        query: query.into(),
+        selected_checked_form_id: selected_checked_form_id.map(Into::into),
+        entries,
+    }
+    .presentation()
+    .map_err(|error| format!("describe reviewed Gallery: {error:?}"))?
+    .lower()
+    .map_err(|error| format!("lower reviewed Gallery: {error:?}"))?
+    .encode()
+    .map_err(|error| format!("encode reviewed Gallery: {error:?}"))
+}
+
+fn bounded_realization_summary(
+    requirements: &[String],
+    current: usize,
+    required: usize,
+    runnable: bool,
+) -> String {
+    const REQUIREMENT_BYTES: usize = 160;
+    let mut shown = String::new();
+    let mut shown_count = 0;
+    for requirement in requirements {
+        let separator = if shown.is_empty() { "" } else { "; " };
+        if shown.len() + separator.len() + requirement.len() > REQUIREMENT_BYTES {
+            break;
+        }
+        shown.push_str(separator);
+        shown.push_str(requirement);
+        shown_count += 1;
+    }
+    let omitted = requirements.len() - shown_count;
+    format!(
+        "Kinds: {shown}{}. Offers {current}/{required}; {}.",
+        if omitted == 0 {
+            String::new()
+        } else {
+            format!("; +{omitted} more exact requirements")
+        },
+        if runnable {
+            "runnable here"
+        } else {
+            "not runnable here"
+        }
+    )
+}
+
+fn form_handoff(creche_url: &str, form: &GalleryForm) -> String {
+    format!(
+        "{}{}form={}&source_document_id={}&checked_form_id={}",
+        creche_url,
+        if creche_url.contains('?') { "&" } else { "?" },
+        percent_encode(form.name),
+        percent_encode(&form.source_document_id),
+        percent_encode(&form.checked_form_id),
+    )
+}
+
+fn percent_encode(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            use core::fmt::Write;
+            write!(&mut encoded, "%{byte:02X}").expect("writing to a String cannot fail");
+        }
+    }
+    encoded
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -157,5 +279,44 @@ mod tests {
                     && requirement.realization_class.is_some()
             }));
         }
+    }
+
+    #[test]
+    fn gallery_view_uses_the_product_semantic_model_and_exact_handoffs() {
+        let encoded = reviewed_gallery_view("", None, "/conduit/creche/", 4).unwrap();
+        let view = conduit_presentation::ApplicationView::decode(&encoded).unwrap();
+        assert_eq!(view.revision, 4);
+        assert_eq!(
+            view.nodes
+                .iter()
+                .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
+                .count(),
+            4
+        );
+        let handoff = view
+            .nodes
+            .iter()
+            .filter(|node| node.component == conduit_presentation::ApplicationComponent::Link)
+            .find(|node| node.value.contains("form=memory_lantern"))
+            .unwrap();
+        assert!(handoff
+            .value
+            .starts_with("/conduit/creche/?form=memory_lantern"));
+        assert!(handoff.value.contains("checked_form_id="));
+    }
+
+    #[test]
+    fn dense_gallery_requirements_remain_truthful_within_the_view_text_bound() {
+        let summary = bounded_realization_summary(
+            &(0..20)
+                .map(|index| format!("semantic/requirement-{index}=current/local"))
+                .collect::<Vec<_>>(),
+            20,
+            20,
+            true,
+        );
+        assert!(summary.len() <= conduit_presentation::MAX_APPLICATION_VIEW_TEXT_BYTES - 20);
+        assert!(summary.contains("more exact requirements"));
+        assert!(summary.contains("Offers 20/20; runnable here"));
     }
 }

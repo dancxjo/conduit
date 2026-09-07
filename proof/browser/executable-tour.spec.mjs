@@ -381,6 +381,11 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
 test("Tour workspace bounds each pane and persists accessible desktop split geometry", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await openStep(page, 0);
+  const separator = page.getByRole("separator", { name: "Lesson and laboratory boundary" });
+  await expect(separator).toBeVisible();
+  await expect(separator).toHaveAttribute("data-application-component", "separator");
+  await expect(page.locator(".tour-divider").getByRole("slider")).toHaveCount(0);
+  await expect(page.locator(".tour-divider").getByRole("button")).toHaveCount(0);
   const measures = await page.evaluate(() => {
     const content = document.querySelector(".tour-content").getBoundingClientRect();
     const lesson = document.querySelector("#chapter").getBoundingClientRect();
@@ -403,13 +408,14 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.editor.top + 1);
   expect(Math.abs(measures.editor.top - measures.result.top)).toBeLessThan(2);
 
+  await page.getByText("Pane layout", { exact: true }).click();
   const width = page.getByRole("slider", { name: "Narrative width" });
   await width.focus();
   await width.press("End");
   await expect(width).toHaveValue("65");
   await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
-  await page.getByText("Pane layout", { exact: true }).click();
   const beforeLabResize = await page.evaluate(() => ({
+    patchbayHeight: document.querySelector(".compact-patchbay").getBoundingClientRect().height,
     editorWidth: document.querySelector(".editor").getBoundingClientRect().width,
     resultWidth: document.querySelector(".result").getBoundingClientRect().width,
   }));
@@ -426,14 +432,14 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
     editor: document.querySelector(".editor").getBoundingClientRect().toJSON(),
     result: document.querySelector(".result").getBoundingClientRect().toJSON(),
   }));
-  expect(resized.patchbay.height).toBeGreaterThan(measures.patchbay.height);
+  expect(resized.patchbay.height).toBeGreaterThan(beforeLabResize.patchbayHeight);
   expect(resized.editor.width).toBeLessThan(beforeLabResize.editorWidth);
   expect(resized.result.width).toBeGreaterThan(beforeLabResize.resultWidth);
   await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(width).toHaveValue("65");
   await page.getByText("Pane layout", { exact: true }).click();
+  await expect(width).toHaveValue("65");
   await expect(patchbayHeight).toHaveValue("70");
   await expect(sourceWidth).toHaveValue("40");
   await page.getByRole("button", { name: "Reset panes" }).focus();
@@ -914,19 +920,18 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await page.getByRole("button", { name: "Form Gallery" }).click();
   await expect(page).toHaveTitle("Form Gallery · Tour");
   await expect(page.getByRole("heading", { level: 1, name: "Form Gallery" })).toBeFocused();
-  const cards = page.locator(".form-gallery-card");
+  const cards = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]');
   await expect(cards).toHaveCount(4);
-  await expect(cards.locator('[data-status="runnable-on-current-browser-host"]')).toHaveCount(4);
-  await expect(cards.first().locator(".form-gallery-realization li")).toHaveCount(2);
-  await expect(cards.first()).toContainText("current offer · local/kernel");
-  await expect(cards.first()).toContainText("Browsing acquires no resource or authority");
+  await expect(cards.getByRole("status").filter({ hasText: "Runnable here" })).toHaveCount(4);
+  await expect(cards.first()).toContainText("=current/local");
+  await expect(page.locator('[data-application-key="gallery-status"]')).toContainText("Browsing acquires no resource or authority");
   await expect(page.locator(".tour-workbench")).toHaveCount(1);
   await expect(page.locator(".runner")).toHaveCount(1);
   await expect(page.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
 
-  const search = page.getByRole("searchbox", { name: "Search reviewed Forms" });
+  const search = page.getByRole("textbox", { name: "Search reviewed Forms" });
   await search.fill("memory presentation/text");
-  await expect(page.locator(".form-gallery-card:visible")).toHaveCount(1);
+  await expect(cards).toHaveCount(1);
   await expect(page.getByRole("status").filter({ hasText: "1 reviewed Form" })).toBeVisible();
   await search.fill("🌀".repeat(40));
   await expect(page.getByRole("status").filter({ hasText: "outside the admitted 128-byte bound" })).toBeVisible();
@@ -937,8 +942,8 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await memory.getByRole("button", { name: "Inspect Patchbay" }).click();
   const laboratory = page.locator(".tour-workbench");
   await expect(laboratory).toHaveAttribute("data-specimen-id", reviewedIdentity);
-  await expect(memory).toHaveAttribute("aria-current", "true");
-  await expect(cards.first()).not.toHaveAttribute("aria-current", "true");
+  await expect(memory.getByRole("status").filter({ hasText: "Selected" })).toBeVisible();
+  await expect(cards.first().getByRole("status")).not.toContainText("Selected");
   await expect(laboratory.locator(".compact-patchbay")).toBeFocused();
   await expect(laboratory.locator("textarea")).toHaveValue(await readFile(new URL("../../forms/memory-lantern/main.conduit", import.meta.url), "utf8"));
   await expect(laboratory.locator(".compact-patchbay")).toHaveAttribute("data-checked-form-id", reviewedIdentity);
@@ -1029,10 +1034,11 @@ test("the standalone Crèche runs the same durable birth and graduation path wit
   await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toHaveAttribute("data-application-component", "success-status");
   await expect(page.locator('.first-host-runner [data-application-key="host-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
   await page.getByRole("button", { name: "4. Graduate" }).click();
-  await expect(page.locator('[data-application-key="without-patchbay"]')).toHaveAttribute("data-application-action", "graduate.without-patchbay");
-  await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
+  const finishWithoutPatchbay = page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true });
+  await expect(finishWithoutPatchbay).toHaveAttribute("data-application-action", "graduate.without-patchbay");
+  await finishWithoutPatchbay.click();
   await expect(page.locator('[data-application-key="graduation-status"]')).toHaveAttribute("data-application-component", "success-status");
-  await expect(page.locator('[data-application-key="end-creche"]')).toHaveAttribute("data-application-action", "graduate.end");
+  await expect(page.getByRole("button", { name: "End the Crèche", exact: true })).toHaveAttribute("data-application-action", "graduate.end");
   await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
   await expect(page.locator('.body-biography [data-application-key^="biography-record-"]')).toHaveCount(4);
   const durable = await page.evaluate(() => {

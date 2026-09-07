@@ -1,0 +1,10 @@
+[package]
+name = "conduit-tour-model"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }

@@ -2,7 +2,10 @@
 #[path = "body_run_cancellation_tests.rs"]
 mod cancellation;
 use super::*;
-use crate::installed_std::{kernel_preparation::KernelTables, simple_presentation_host};
+use crate::installed_std::MAX_CORDS;
+use crate::installed_std::{
+    kernel_preparation::KernelTables, simple_presentation_host, typed_record_operation,
+};
 use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, ResidentForm};
 use conduit_core::{resource_offer, HostAdvertisement, Plan, SignId};
 use conduit_form::{
@@ -22,6 +25,9 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)
         .unwrap();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_net::install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
         .unwrap();
@@ -81,6 +87,22 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
                         conduit_semantic_catalog::BUTTON_TRANSITION_MAXIMUM_BYTES
                     } else if connection.value_kind.as_str() == conduit_core::BOOL_INFO_ID {
                         1
+                    } else if [
+                        conduit_net::TYPED_RECORD_INFO_ID,
+                        conduit_net::FRAMED_TYPED_RECORD_INFO_ID,
+                    ]
+                    .contains(&connection.value_kind.as_str())
+                        || connection
+                            .source_gear_id
+                            .as_str()
+                            .starts_with("desk_telegraph/")
+                            && !connection.source_gear_id.as_str().ends_with("/message")
+                            && !connection
+                                .source_gear_id
+                                .as_str()
+                                .ends_with("/decode/unwrap")
+                    {
+                        conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES as u32
                     } else {
                         64
                     };
@@ -182,8 +204,8 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         FIXED_KERNEL_STORAGE_PROFILE,
         FragmentSetBounds {
             fragments: 3,
-            nodes: 7,
-            cords: 4,
+            nodes: MAX_NODES as u16,
+            cords: MAX_CORDS as u16,
             queue_slots: 64,
             value_bytes: fragments
                 .iter()
@@ -245,6 +267,10 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     assert_eq!(playing.body_id, body.body_id);
     let mut keys = [[0x2c_u8, 0, 0], [0x2c, 1, 0]].into_iter();
     let mut output = Vec::with_capacity(1024);
+    let mut typed_record_hosts: Vec<_> = fragments
+        .iter()
+        .flat_map(|fragment| typed_record_operation::prepare_hosts(fragment))
+        .collect();
     let mut completed = false;
     for _ in 0..512 {
         while let Some(request) = kernel.next_host_request() {
@@ -272,6 +298,23 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
             {
                 // Deterministic timer completion, not wall-clock or physical proof.
                 conduit_time::decode_tick(kernel.host_value(request.input.value).unwrap()).unwrap();
+            } else if [
+                conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
+                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+            ]
+            .contains(&operation.contract_id.as_str())
+            {
+                let encoded = typed_record_hosts[usize::from(request.node.0)]
+                    .as_mut()
+                    .unwrap()
+                    .execute(kernel.host_value(request.input.value).unwrap())
+                    .unwrap();
+                let value = kernel.store_host_value(encoded).unwrap();
+                result.output = Some(
+                    BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap(),
+                );
             } else {
                 assert!(simple_presentation_host::present(
                     operation.target_kind.as_ref(),

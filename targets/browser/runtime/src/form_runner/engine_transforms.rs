@@ -5,12 +5,156 @@ use conduit_core::{HostOperationRequirement, PlannedGear};
 use conduit_kernel::scheduler::HostOperationRequest;
 use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
 
-pub(super) fn complete_transform(
+pub(in crate::form_runner) fn complete_transform(
     scheduler: &mut TourScheduler,
     placement: &PlannedGear,
     operation: &HostOperationRequirement,
     request: HostOperationRequest,
 ) -> Result<bool, String> {
+    if operation.contract_id.as_str() == crate::installed_browser::replay_control::HOST_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.replay_controls[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("replay control was not prepared before Play")?
+            .execute(operation.contract_id.as_str(), input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: bytes
+                    .map(|bytes| {
+                        let value = scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?;
+                        BoundedValueRef::new(value, operation.maximum_output_bytes)
+                            .map_err(debug_error)
+                    })
+                    .transpose()?,
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if operation.contract_id.as_str() == crate::installed_browser::replay_source::HOST_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.replay_sources[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("replay source was not prepared before Play")?
+            .execute(input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if operation.contract_id.as_str() == crate::installed_browser::historical::HOST_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.histories[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("bounded history was not prepared before Play")?
+            .execute(input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if operation.contract_id.as_str() == crate::installed_browser::record_delivery::HOST_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.deliveries[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("delivery codec was not prepared before Play")?
+            .execute(input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(refusal) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(crate::installed_browser::record_delivery::failure(refusal)),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if let Some(port) =
         crate::installed_browser::pattern_comparison::input_port(operation.contract_id.as_str())
     {
@@ -91,6 +235,67 @@ pub(super) fn complete_transform(
         let result = crate::installed_browser::json::execute(
             placement,
             operation.contract_id.as_str(),
+            scheduler
+                .host_value(request.input.value)
+                .map_err(debug_error)?,
+        );
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler.store_host_value(&bytes).map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if crate::installed_browser::typed_record::OPERATIONS.contains(&operation.contract_id.as_str())
+    {
+        let result = crate::installed_browser::typed_record::execute(
+            operation.contract_id.as_str(),
+            scheduler
+                .host_value(request.input.value)
+                .map_err(debug_error)?,
+        );
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler.store_host_value(&bytes).map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
+    if operation.contract_id.as_str() == crate::installed_browser::record_queue::HOST_OPERATION {
+        let result = crate::installed_browser::record_queue::execute(
+            placement,
             scheduler
                 .host_value(request.input.value)
                 .map_err(debug_error)?,

@@ -21,6 +21,12 @@ pub const TEXT_JOIN_ARTIFACT: &str = "conduit-std-host/text-join@1";
 pub const TEXT_JOIN_CAPABILITY: &str = "text-join-v1";
 pub const TEXT_JOIN_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-join@1";
 pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
+pub const ADDRESS_DETECT_EXECUTION_PROFILE: &str = "conduit.std/address-detect-kernel-hosted@1";
+pub const ADDRESS_DETECT_IMPLEMENTATION: &str = "std/kernel-address-detect@1";
+pub const ADDRESS_DETECT_ARTIFACT: &str = "conduit-std-host/address-detect@1";
+pub const ADDRESS_DETECT_CAPABILITY: &str = "address-detect-v1";
+pub const ADDRESS_DETECT_RECOGNIZED_OPERATION: &str = "conduit.host/address-detect-recognized@1";
+pub const ADDRESS_DETECT_ADDRESSES_OPERATION: &str = "conduit.host/address-detect-addresses@1";
 
 pub fn text_literal_offer() -> CapabilityOffer {
     offer(
@@ -82,6 +88,35 @@ pub fn text_join_offer() -> CapabilityOffer {
     offer
 }
 
+pub fn address_detect_offer() -> CapabilityOffer {
+    let mut offer = offer(
+        conduit_text::address_detect_semantics(),
+        ADDRESS_DETECT_CAPABILITY,
+        ADDRESS_DETECT_EXECUTION_PROFILE,
+        ADDRESS_DETECT_IMPLEMENTATION,
+        ADDRESS_DETECT_ARTIFACT,
+        Vec::new(),
+        None,
+    );
+    offer.host_operations = vec![
+        HostOperationRequirement {
+            contract_id: HostOperationContractId::from(ADDRESS_DETECT_ADDRESSES_OPERATION),
+            target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAX_ADDRESS_SET_VALUE_BYTES as u32,
+            maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
+        },
+        HostOperationRequirement {
+            contract_id: HostOperationContractId::from(ADDRESS_DETECT_RECOGNIZED_OPERATION),
+            target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
+            maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
+        },
+    ];
+    offer
+}
+
 #[allow(clippy::too_many_arguments)]
 fn offer(
     contract: conduit_text::TextKindContract,
@@ -122,6 +157,10 @@ mod tests {
             (text_literal_offer(), conduit_text::text_literal_semantics()),
             (text_upper_offer(), conduit_text::text_upper_semantics()),
             (text_join_offer(), conduit_text::text_join_semantics()),
+            (
+                address_detect_offer(),
+                conduit_text::address_detect_semantics(),
+            ),
         ] {
             assert_eq!(offer.kind_id, semantic.kind_id);
             assert_eq!(

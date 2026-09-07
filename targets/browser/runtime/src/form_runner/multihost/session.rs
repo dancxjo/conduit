@@ -4,7 +4,10 @@
 mod source;
 
 use super::plan::PreparedPlan;
-use super::protocol::{self, LineFrame, MultiHostReceipt, Output, PlanProjection};
+use super::protocol::{
+    self, LineFrame, MultiHostReceipt, Output, PlanProjection, RecordDeliveryProjection,
+    RecordTranscriptEntryProjection, RecordTranscriptProjection,
+};
 use crate::form_runner::engine::{self, BrowserHostEffect, DriveStatus, PendingHostEffect};
 use crate::form_runner::protocol::{
     decode_manifestation, TourBackEvidence, TourEffect, TourGearEvidence,
@@ -21,6 +24,13 @@ use conduit_plan_lowering::lowering::{LoweredPlanFragment, RemoteCordDirection};
 pub(super) enum Role {
     Source,
     Sink,
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum TransportTermination {
+    Unavailable,
+    Disconnected,
+    TimedOut,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,6 +58,13 @@ pub(super) struct Session {
     latest_presentation: Option<PresentationIdentity>,
     sequence: u64,
     transferred_values: u32,
+    deliveries: Vec<conduit_net::RecordDeliveryTracker>,
+    transcript: Option<SessionTranscript>,
+}
+
+struct SessionTranscript {
+    history: conduit_net::BoundedRecordTranscript,
+    framed_type: Vec<u8>,
 }
 
 impl Session {
@@ -110,6 +127,27 @@ impl Session {
             Role::Source => Stage::Offered,
             Role::Sink => Stage::Accepted,
         };
+        let transcript = if &lowered.remote_endpoints[0].value_kind
+            == conduit_net::framed_typed_record_type()
+                .profile()
+                .map_err(debug_error)?
+                .value_kind()
+        {
+            Some(SessionTranscript {
+                history: conduit_net::BoundedRecordTranscript::new(
+                    16,
+                    conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+                    16 * conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+                    0,
+                )
+                .map_err(debug_error)?,
+                framed_type: conduit_net::framed_typed_record_type()
+                    .canonical_bytes()
+                    .map_err(debug_error)?,
+            })
+        } else {
+            None
+        };
         let mut session = Self {
             role,
             stage,
@@ -124,6 +162,10 @@ impl Session {
             latest_presentation: None,
             sequence: 0,
             transferred_values: 0,
+            deliveries: Vec::with_capacity(
+                conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS.into(),
+            ),
+            transcript,
         };
         let output = match role {
             Role::Source => session.source_offer()?,
@@ -175,10 +217,19 @@ impl Session {
     }
 
     pub(super) fn cancel(&mut self) -> Result<Output, String> {
-        if self.stage != Stage::Complete && self.stage != Stage::Cancelled {
+        let newly_cancelled = self.stage != Stage::Complete && self.stage != Stage::Cancelled;
+        if newly_cancelled {
             self.scheduler
                 .cancel()
                 .map_err(|error| format!("cancel multi-Host scheduler: {error:?}"))?;
+        }
+        if newly_cancelled {
+            if let Some(transcript) = &mut self.transcript {
+                transcript
+                    .history
+                    .terminal(conduit_net::RecordTranscriptTerminal::Cancelled)
+                    .map_err(debug_error)?;
+            }
         }
         self.stage = Stage::Cancelled;
         Ok(Output::Receipt {
@@ -187,8 +238,56 @@ impl Session {
         })
     }
 
+    pub(super) fn terminate_transport(
+        &mut self,
+        termination: TransportTermination,
+        code: u16,
+    ) -> Result<Output, String> {
+        if self.stage == Stage::Complete || self.stage == Stage::Cancelled {
+            return Err("transport termination arrived after terminal truth".into());
+        }
+        self.scheduler
+            .cancel()
+            .map_err(|error| format!("cancel terminated multi-Host scheduler: {error:?}"))?;
+        if self.role == Role::Source {
+            for delivery in &mut self.deliveries {
+                if !delivery.is_terminal() {
+                    match termination {
+                        TransportTermination::Unavailable => delivery.transport_unavailable(code),
+                        TransportTermination::Disconnected => delivery.disconnected(code),
+                        TransportTermination::TimedOut => delivery.timed_out(code),
+                    }
+                    .map_err(debug_error)?;
+                }
+            }
+        }
+        let (disposition, terminal) = match termination {
+            TransportTermination::Unavailable => (
+                "transport-unavailable",
+                conduit_net::RecordTranscriptTerminal::TransportUnavailable,
+            ),
+            TransportTermination::Disconnected => (
+                "disconnected",
+                conduit_net::RecordTranscriptTerminal::Disconnected,
+            ),
+            TransportTermination::TimedOut => {
+                ("timed-out", conduit_net::RecordTranscriptTerminal::TimedOut)
+            }
+        };
+        self.retain_transcript_terminal(terminal)?;
+        self.stage = Stage::Complete;
+        Ok(Output::Receipt {
+            schema: "conduit.tour/multi-host-progress@1",
+            receipt: Box::new(self.receipt(disposition)),
+        })
+    }
+
     fn sink_admit_value(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "value", true)?;
+        self.retain_line_record(
+            conduit_net::RecordTranscriptDirection::Received,
+            &frame.payload,
+        )?;
         let remote = self.remote();
         let (endpoint, cord) = (remote.endpoint, remote.cord);
         let admission = self
@@ -248,6 +347,12 @@ impl Session {
         self.scheduler
             .remote_egress_delivered(endpoint, cord, self.sequence)
             .map_err(debug_error)?;
+        let receipt = self.sink_active_play_id.as_str().as_bytes();
+        self.deliveries
+            .get_mut(usize::try_from(self.sequence).map_err(debug_error)?)
+            .ok_or("delivered Line value has no correlated delivery tracker")?
+            .remote_accepted(receipt)
+            .map_err(debug_error)?;
         self.sequence = self
             .sequence
             .checked_add(1)
@@ -267,6 +372,7 @@ impl Session {
             .close_remote_input(endpoint, cord)
             .map_err(debug_error)?;
         self.drive_to_complete()?;
+        self.retain_transcript_terminal(conduit_net::RecordTranscriptTerminal::Completed)?;
         self.stage = Stage::Complete;
         Ok(Output::Line {
             schema: "conduit.tour/browser-memory-line-effect@1",
@@ -279,6 +385,7 @@ impl Session {
     fn source_terminal(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "terminal", false)?;
         self.stage = Stage::Complete;
+        self.retain_transcript_terminal(conduit_net::RecordTranscriptTerminal::Completed)?;
         Ok(Output::Receipt {
             schema: "conduit.tour/multi-host-progress@1",
             receipt: Box::new(self.receipt("completed")),
@@ -422,12 +529,150 @@ impl Session {
             boot_id: self.fragment.boot_id.as_str().into(),
             terminal_sign_id: sign.sign_id.as_str().into(),
             transferred_values: self.transferred_values,
+            deliveries: self
+                .deliveries
+                .iter()
+                .enumerate()
+                .map(|(sequence, tracker)| delivery_projection(sequence as u64, tracker))
+                .collect(),
+            transcript: self.transcript.as_ref().map(transcript_projection),
         }
     }
 
     fn remote(&self) -> &conduit_plan_lowering::lowering::LoweredRemoteEndpoint {
         &self.lowered.remote_endpoints[0]
     }
+
+    fn retain_line_record(
+        &mut self,
+        direction: conduit_net::RecordTranscriptDirection,
+        canonical: &[u8],
+    ) -> Result<(), String> {
+        let Some(transcript) = &mut self.transcript else {
+            return Ok(());
+        };
+        let frame = exact_leaf(canonical, &transcript.framed_type)?;
+        transcript
+            .history
+            .record(direction, frame)
+            .map(|_| ())
+            .map_err(debug_error)
+    }
+
+    fn retain_transcript_terminal(
+        &mut self,
+        terminal: conduit_net::RecordTranscriptTerminal,
+    ) -> Result<(), String> {
+        if let Some(transcript) = &mut self.transcript {
+            transcript.history.terminal(terminal).map_err(debug_error)?;
+        }
+        Ok(())
+    }
+}
+
+fn exact_leaf<'a>(canonical: &'a [u8], value_type: &[u8]) -> Result<&'a [u8], String> {
+    let node = canonical
+        .strip_prefix(value_type)
+        .ok_or("framed Line value has the wrong exact type")?;
+    if node.first() != Some(&0) || node.len() < 5 {
+        return Err("framed Line value has malformed canonical shape".into());
+    }
+    let length = usize::try_from(u32::from_le_bytes(
+        node[1..5]
+            .try_into()
+            .map_err(|_| "framed Line leaf length is truncated")?,
+    ))
+    .map_err(debug_error)?;
+    (node.len() == 5 + length)
+        .then_some(&node[5..])
+        .ok_or_else(|| "framed Line leaf length is not exact".into())
+}
+
+fn transcript_projection(transcript: &SessionTranscript) -> RecordTranscriptProjection {
+    let entries = (0..transcript.history.len())
+        .filter_map(|index| transcript.history.entry(index))
+        .map(|entry| {
+            let (event, frame_bytes, terminal_code) = match entry.event {
+                conduit_net::RecordTranscriptEventRef::Record { direction, frame } => (
+                    match direction {
+                        conduit_net::RecordTranscriptDirection::Sent => "sent-record",
+                        conduit_net::RecordTranscriptDirection::Received => "received-record",
+                    },
+                    frame.len(),
+                    None,
+                ),
+                conduit_net::RecordTranscriptEventRef::Terminal(terminal) => match terminal {
+                    conduit_net::RecordTranscriptTerminal::Completed => ("completed", 0, None),
+                    conduit_net::RecordTranscriptTerminal::Cancelled => ("cancelled", 0, None),
+                    conduit_net::RecordTranscriptTerminal::TransportUnavailable => {
+                        ("transport-unavailable", 0, None)
+                    }
+                    conduit_net::RecordTranscriptTerminal::Disconnected => {
+                        ("disconnected", 0, None)
+                    }
+                    conduit_net::RecordTranscriptTerminal::TimedOut => ("timed-out", 0, None),
+                    conduit_net::RecordTranscriptTerminal::Refused(code) => {
+                        ("refused", 0, Some(code))
+                    }
+                    conduit_net::RecordTranscriptTerminal::Failed(code) => {
+                        ("failed", 0, Some(code))
+                    }
+                },
+            };
+            RecordTranscriptEntryProjection {
+                sequence: entry.sequence,
+                event,
+                frame_bytes,
+                terminal_code,
+            }
+        })
+        .collect();
+    RecordTranscriptProjection {
+        retained_items: transcript.history.len(),
+        retained_bytes: transcript.history.retained_bytes(),
+        retention_gap: transcript.history.retention_gap(),
+        entries,
+    }
+}
+
+fn delivery_projection(
+    sequence: u64,
+    tracker: &conduit_net::RecordDeliveryTracker,
+) -> RecordDeliveryProjection {
+    use conduit_net::RecordDeliveryStateRef::*;
+    let (state, queue_sequence, sent_bytes, receipt, code) = match tracker.state() {
+        LocallyAccepted => ("locally-accepted", None, None, None, None),
+        FramedQueued { queue_sequence } => {
+            ("framed-queued", Some(queue_sequence), None, None, None)
+        }
+        PartiallySent { sent_bytes, .. } => ("partially-sent", None, Some(sent_bytes), None, None),
+        RemoteAccepted { receipt } => ("remote-accepted", None, None, Some(receipt), None),
+        TransportUnavailable { code } => ("transport-unavailable", None, None, None, Some(code)),
+        Disconnected { code } => ("disconnected", None, None, None, Some(code)),
+        TimedOut { code } => ("timed-out", None, None, None, Some(code)),
+        Refused { code } => ("refused", None, None, None, Some(code)),
+        Failed { code } => ("failed", None, None, None, Some(code)),
+    };
+    RecordDeliveryProjection {
+        sequence,
+        correlation_hex: hex(tracker.correlation()),
+        frame_bytes: tracker.frame_bytes(),
+        state,
+        queue_sequence,
+        sent_bytes,
+        remote_receipt_hex: receipt.map(hex),
+        failure_code: code,
+    }
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        encoded.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    encoded
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {

@@ -1,5 +1,5 @@
 use super::*;
-use crate::arch::x86_64::xhci::XhciError;
+use crate::arch::x86_64::xhci::{Event, XhciError};
 
 fn blank_device() -> UsbDevice {
     device_from_descriptor(
@@ -56,6 +56,29 @@ fn interface_and_endpoint_limits_are_finite() {
     assert_eq!(descriptor::MAX_ENDPOINTS, 8);
     assert_eq!(MAX_OUTSTANDING_CONTROL_TRANSFERS, 1);
     assert_eq!(MAX_ENUMERATION_RETRIES, 0);
+    assert_eq!(USB_DEVICE_DMA_SLOTS, 3);
+}
+
+#[test]
+fn admitted_devices_have_distinct_fixed_dma_storage() {
+    let primary = dma_pointer(UsbDmaSlot::PRIMARY) as usize;
+    let secondary = dma_pointer(UsbDmaSlot::SECONDARY) as usize;
+    let tertiary = dma_pointer(UsbDmaSlot::TERTIARY) as usize;
+    assert_ne!(primary, secondary);
+    assert_ne!(primary, tertiary);
+    assert_ne!(secondary, tertiary);
+    assert_eq!(primary % core::mem::align_of::<UsbDma>(), 0);
+    assert_eq!(secondary % core::mem::align_of::<UsbDma>(), 0);
+    assert_eq!(tertiary % core::mem::align_of::<UsbDma>(), 0);
+    assert_eq!(
+        UsbDmaSlot::from_index(USB_DEVICE_DMA_SLOTS),
+        Err(UsbError::DmaSlotInvalid)
+    );
+}
+
+#[test]
+fn descriptor_devices_begin_in_the_primary_dma_slot() {
+    assert_eq!(blank_device().dma_slot, UsbDmaSlot::PRIMARY.index());
 }
 
 #[test]
@@ -209,6 +232,8 @@ fn all_failures_are_machine_readable_and_distinct() {
         UsbError::ControlStall,
         UsbError::DeviceVanished,
         UsbError::StaleDeviceInstance,
+        UsbError::DmaSlotInvalid,
+        UsbError::RootPortInvalid,
     ];
     for error in errors {
         assert!(error.as_str().starts_with("usb-"));

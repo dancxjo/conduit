@@ -18,7 +18,10 @@ mod pci;
 use pci::discover;
 const COMMAND_TRBS: usize = 16;
 const EVENT_TRBS: usize = 16;
-const ADMITTED_DEVICE_SLOTS: u8 = 1;
+/// Keyboard, pointer, and one USB-backed Line are the complete admitted
+/// device set for the pinned ConduitOS Q35 proof.
+const ADMITTED_DEVICE_SLOTS: u8 = 3;
+const DCBAA_ENTRIES: usize = ADMITTED_DEVICE_SLOTS as usize + 1;
 const MAX_PENDING_COMMANDS: u8 = 1;
 const POLL_STEPS: u32 = 2_000_000;
 const SIGN_SLOTS: u8 = 8;
@@ -29,6 +32,7 @@ pub enum XhciError {
     WrongClass,
     InvalidBar,
     InvalidLayout,
+    InsufficientDeviceSlots,
     UnsupportedPageSize,
     ScratchpadsUnsupported,
     ResetTimeout,
@@ -46,6 +50,7 @@ impl XhciError {
             Self::WrongClass => "xhci-wrong-pci-class",
             Self::InvalidBar => "xhci-invalid-bar",
             Self::InvalidLayout => "xhci-invalid-register-layout",
+            Self::InsufficientDeviceSlots => "xhci-insufficient-device-slots",
             Self::UnsupportedPageSize => "xhci-unsupported-page-size",
             Self::ScratchpadsUnsupported => "xhci-scratchpads-unsupported",
             Self::ResetTimeout => "xhci-reset-timeout",
@@ -100,8 +105,9 @@ pub(super) struct Event {
 
 #[repr(C, align(64))]
 struct DmaStorage {
-    dcbaa: [u64; 2],
-    _dcbaa_padding: [u8; 48],
+    // Entry zero is reserved by xHCI; admitted slots occupy entries 1..=3.
+    dcbaa: [u64; DCBAA_ENTRIES],
+    _dcbaa_padding: [u8; 32],
     command_ring: [[u32; 4]; COMMAND_TRBS],
     event_ring: [[u32; 4]; EVENT_TRBS],
     erst: [u64; 2],
@@ -109,8 +115,8 @@ struct DmaStorage {
 }
 
 static mut DMA: DmaStorage = DmaStorage {
-    dcbaa: [0; 2],
-    _dcbaa_padding: [0; 48],
+    dcbaa: [0; DCBAA_ENTRIES],
+    _dcbaa_padding: [0; 32],
     command_ring: [[0; 4]; COMMAND_TRBS],
     event_ring: [[0; 4]; EVENT_TRBS],
     erst: [0; 2],
@@ -231,6 +237,9 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<Registe
     {
         return Err(XhciError::InvalidLayout);
     }
+    if hardware_slots < ADMITTED_DEVICE_SLOTS {
+        return Err(XhciError::InsufficientDeviceSlots);
+    }
     if scratchpads != 0 {
         return Err(XhciError::ScratchpadsUnsupported);
     }
@@ -279,12 +288,12 @@ unsafe fn initialize_registers(mmio: usize, dma_physical: u64) -> Result<Registe
     }
     unsafe {
         (*dma).erst = [event_phys, EVENT_TRBS as u64];
-        (*dma).dcbaa = [0; 2];
+        (*dma).dcbaa = [0; DCBAA_ENTRIES];
     }
     unsafe {
         write64(operational + 0x18, command_phys | 1);
         write64(operational + 0x30, dcbaa_phys);
-        write32(operational + 0x38, 1);
+        write32(operational + 0x38, u32::from(ADMITTED_DEVICE_SLOTS));
     }
     let interrupter = runtime + 0x20;
     unsafe {

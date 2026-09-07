@@ -1,5 +1,6 @@
 //! Exact installed implementation factory catalog.
 
+use super::address_detect_operation::FACTORY as ADDRESS_DETECT_FACTORY;
 use super::alife_operations::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
@@ -18,6 +19,7 @@ use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_
 use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
+use super::house_prompt_operation::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::image_text_operation::FACTORY as IMAGE_TEXT_FACTORY;
 use super::image_text_record_operation::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
@@ -41,6 +43,7 @@ use super::logic_operations::{
 use super::math_operations::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FACTORY};
 use super::midi_input_operation::MIDI_INPUT_FACTORY;
 use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
+use super::model_text_operation::FACTORY as MODEL_TEXT_FACTORY;
 use super::operation::InstalledFactory;
 use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
 use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
@@ -51,6 +54,15 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::recognition_text_operation::FACTORY as RECOGNITION_TEXT_FACTORY;
+use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
+use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
+use super::record_temporal_operation::{
+    EXACTLY_ONE as RECORD_EXACTLY_ONE_FACTORY, SINGLETON as RECORD_SINGLETON_STREAM_FACTORY,
+};
+use super::record_transcript_operation::FACTORY as RECORD_TRANSCRIPT_FACTORY;
+#[cfg(any(test, feature = "local-model-proof"))]
+use super::recorded_speech_operation::FACTORY as RECORDED_SPEECH_FACTORY;
 use super::recurrence_operation::FACTORY as RECURRENCE_FACTORY;
 use super::render_demand_operation::AUDIO_RENDER_DEMAND_FACTORY;
 use super::rhythm_compare_operation::FACTORY as RHYTHM_COMPARE_FACTORY;
@@ -106,11 +118,18 @@ use super::timed_button_attempt_operation::FACTORY as TIMED_BUTTON_ATTEMPT_FACTO
 use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_operation::STATE_TOGGLE_FACTORY;
-use super::typed_record_operation::FACTORY as TYPED_RECORD_FRAME_FACTORY;
+use super::typed_record_operation::{
+    DEFRAME as TYPED_RECORD_DEFRAME_FACTORY, FRAME as TYPED_RECORD_FRAME_FACTORY,
+    RECORD_TO_TEXT as TYPED_RECORD_TO_TEXT_FACTORY, TEXT_TO_RECORD as TEXT_TO_TYPED_RECORD_FACTORY,
+};
 use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
+    #[cfg(any(test, feature = "local-model-proof"))]
+    &RECORDED_SPEECH_FACTORY,
+    &ADDRESS_DETECT_FACTORY,
+    &RECOGNITION_TEXT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,
@@ -164,6 +183,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
+    &MODEL_TEXT_FACTORY,
     &EXACT_VECTOR_SEARCH_FACTORY,
     &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,
@@ -206,6 +226,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &GENERATE_TEXT_SMALL_FACTORY,
     &GENERATE_TEXT_LARGE_FACTORY,
     &GENERATE_TEXT_REMOTE_FACTORY,
+    &HOUSE_PROMPT_FACTORY,
     &HTTP_CLIENT_FACTORY,
     &HTTP_SERVER_FACTORY,
     &IMAGE_TEXT_FACTORY,
@@ -218,6 +239,14 @@ const FACTORIES: &[&InstalledFactory] = &[
     &STRUCTURED_LITERAL_FACTORY,
     &STRUCTURED_PRESENTATION_FACTORY,
     &TYPED_RECORD_FRAME_FACTORY,
+    &TYPED_RECORD_DEFRAME_FACTORY,
+    &TEXT_TO_TYPED_RECORD_FACTORY,
+    &TYPED_RECORD_TO_TEXT_FACTORY,
+    &RECORD_SINGLETON_STREAM_FACTORY,
+    &RECORD_EXACTLY_ONE_FACTORY,
+    &RECORD_QUEUE_FACTORY,
+    &RECORD_DELIVERY_STATUS_FACTORY,
+    &RECORD_TRANSCRIPT_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]

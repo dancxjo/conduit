@@ -7,6 +7,9 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
             .iter()
             .filter(|child| child.parent == Some(index as u8));
         match node.component {
+            ApplicationComponent::Separator if children.clone().count() != 0 => {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
             ApplicationComponent::FormField => {
                 let children = children.collect::<Vec<_>>();
                 let count = |component| {
@@ -140,4 +143,13 @@ pub(super) fn valid_progress(value: &str) -> bool {
             .zip(total.parse::<u16>().ok())
             .is_some_and(|(current, total)| total > 0 && current <= total)
     })
+}
+
+pub(crate) fn valid_same_site_link(value: &str) -> bool {
+    value.starts_with('/')
+        && !value.starts_with("//")
+        && value.len() <= 2_048
+        && !value
+            .bytes()
+            .any(|byte| byte <= b' ' || byte == 0x7f || byte == b'\\')
 }

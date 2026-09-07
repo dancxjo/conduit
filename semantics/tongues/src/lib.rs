@@ -6,6 +6,7 @@ mod analysis_math;
 mod contract;
 #[cfg(feature = "speech")]
 mod execution;
+mod house_conversation;
 #[cfg(feature = "speech")]
 mod pcm;
 #[cfg(feature = "speech")]
@@ -22,12 +23,14 @@ mod research_report;
 mod signs;
 #[cfg(feature = "speech")]
 mod specimen;
+mod speech_recognition;
 
 pub use analysis::*;
 #[cfg(feature = "speech")]
 pub use contract::*;
 #[cfg(feature = "speech")]
 pub use execution::*;
+pub use house_conversation::*;
 #[cfg(feature = "speech")]
 pub use planning::*;
 #[cfg(feature = "speech")]
@@ -41,3 +44,4 @@ pub use research_report::*;
 pub use signs::*;
 #[cfg(feature = "speech")]
 pub use specimen::*;
+pub use speech_recognition::*;

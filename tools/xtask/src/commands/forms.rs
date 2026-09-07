@@ -178,7 +178,9 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
     match args.command {
         FormsCommand::Check => {
             let report = build_report(&root, false, opts)?;
-            render(&report, opts.json)?;
+            if let Some(json) = check_output_mode(opts) {
+                render(&report, json)?;
+            }
             if report
                 .results
                 .iter()
@@ -222,6 +224,16 @@ pub fn run(args: FormsArgs, opts: &GlobalOpts) -> Result<(), String> {
         FormsCommand::BundleInitialBody { output } => bundle_initial_body(&root, &output)?,
     }
     Ok(())
+}
+
+fn check_output_mode(opts: &GlobalOpts) -> Option<bool> {
+    if opts.json {
+        Some(true)
+    } else if opts.quiet {
+        None
+    } else {
+        Some(false)
+    }
 }
 
 fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {

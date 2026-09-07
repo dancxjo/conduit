@@ -14,7 +14,10 @@ fn args() -> StdDriveArgs {
         motion_environment: MotionEnvironment::WheelsOffFloor,
         confirm_wheels_off_floor: true,
         reduced_safety_floor_ack: None,
-        read_timeout_ms: 1_000,
+        // Exercise the production-admitted maximum; each PTY responder below
+        // synchronizes before execution starts so scheduler delay cannot
+        // impersonate provider loss before the scripted terminal step.
+        read_timeout_ms: 5_000,
         evidence_out: "target/pete-drive.json".into(),
     }
 }
@@ -58,7 +61,12 @@ fn exact_pty_path_runs_kernel_motion_then_ttl_zero_and_post_observation() {
     let mut value = args();
     value.serial_path = pty.slave_path.clone();
     let _slave_guard = pty.slave_guard;
-    let peer = thread::spawn(move || success_script(pty.master));
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+    let peer = thread::spawn(move || {
+        ready_tx.send(()).unwrap();
+        success_script(pty.master);
+    });
+    ready_rx.recv().unwrap();
     let evidence = execute(&value).unwrap();
     peer.join().unwrap();
     assert!(matches!(evidence.outcome, Outcome::Completed));
@@ -87,7 +95,12 @@ fn floor_mode_without_plan_bound_ack_never_emits_motion() {
     let _slave_guard = pty.slave_guard;
     value.motion_environment = MotionEnvironment::Floor;
     value.confirm_wheels_off_floor = false;
-    let peer = thread::spawn(move || pre_observation_script(pty.master));
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+    let peer = thread::spawn(move || {
+        ready_tx.send(()).unwrap();
+        pre_observation_script(pty.master);
+    });
+    ready_rx.recv().unwrap();
     let evidence = execute(&value).unwrap();
     peer.join().unwrap();
     assert!(matches!(
@@ -107,7 +120,12 @@ fn provider_loss_during_mandatory_zero_is_failed_not_safe_success() {
     let mut value = args();
     value.serial_path = pty.slave_path.clone();
     let _slave_guard = pty.slave_guard;
-    let peer = thread::spawn(move || provider_loss_after_motion_script(pty.master));
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+    let peer = thread::spawn(move || {
+        ready_tx.send(()).unwrap();
+        provider_loss_after_motion_script(pty.master);
+    });
+    ready_rx.recv().unwrap();
     let evidence = execute(&value).unwrap();
     peer.join().unwrap();
     assert!(matches!(

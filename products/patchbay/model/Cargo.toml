@@ -9,6 +9,7 @@ conduit-human = { path = "../../../semantics/human" }
 patchbay-control = { path = "../control" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-net = { path = "../../../semantics/net" }
 conduit-observatory = { path = "../../../architecture/observatory" }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-presentation = { path = "../../../semantics/presentation" }

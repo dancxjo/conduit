@@ -1,5 +1,6 @@
 use super::*;
 use crate::display::PixelTarget;
+use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 fn door() -> FrontDoor {
     FrontDoor::new(
@@ -23,6 +24,43 @@ fn key(usage: u8) -> KeyEvent {
         conduit_human::KeyModifiers::from_bits(0),
     )
     .unwrap()
+}
+
+fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjection {
+    JourneyProjection {
+        status: JourneyStatus::Lulled,
+        revision: 9,
+        source_document_id: SourceDocumentId::from("source"),
+        checked_form_id: CheckedFormId::from("checked"),
+        expanded_form_id: conduit_core::ExpandedFormId::from("expanded"),
+        host_id: HostId::from("host"),
+        boot_id: BootId::from("boot"),
+        offer_generation: OfferGeneration(3),
+        body_id: Some(body_id),
+        born_sign_id: None,
+        part_id: None,
+        wake_id: None,
+        plan_id: None,
+        active_play_id: None,
+        gear_ids: vec![],
+        port_ids: vec![],
+        cord_ids: vec![],
+        input_sign_id: None,
+        result_sign_id: None,
+        result: None,
+        last_request_id: None,
+    }
+}
+
+fn body_id(sequence: u64) -> conduit_body::BodyId {
+    conduit_body::Body::born(
+        SourceDocumentId::from("source"),
+        CheckedFormId::from("checked"),
+        sequence,
+        conduit_core::SignId::from("sign/born"),
+    )
+    .unwrap()
+    .body_id
 }
 
 struct Sink;
@@ -119,4 +157,51 @@ fn releases_and_unrelated_keys_do_not_act() {
     .unwrap();
     assert!(!door.accept(release, 1).unwrap());
     assert!(!door.accept(key(4), 1).unwrap());
+}
+
+#[test]
+fn connectivity_is_projected_through_the_current_body_presentation() {
+    let mut door = door();
+    let body_id = body_id(1);
+    door.observe_journey(born_projection(body_id.clone()))
+        .unwrap();
+    door.observe_connectivity(ConnectivityProjection {
+        line_id: "line:usb:one".into(),
+        status: ConnectivityStatus::ValueVisible,
+        value: Some("HELLO USB LINE".into()),
+        body_id: body_id.clone(),
+    })
+    .unwrap();
+
+    let presentation = door.presentation().unwrap();
+    assert!(presentation.subjects.iter().any(|subject| {
+        subject.identity == "line:usb:one" && subject.role == PresentationRole::Line
+    }));
+    assert!(presentation.relationships.iter().any(|relationship| {
+        relationship.target == "line:usb:one"
+            && relationship.kind == PresentationRelationshipKind::Connects
+    }));
+    assert!(presentation.properties.iter().any(|property| {
+        property.subject == "line:usb:one"
+            && property.name == "received-value"
+            && property.value == PresentationPropertyValue::Text("HELLO USB LINE".into())
+    }));
+}
+
+#[test]
+fn connectivity_refuses_an_absent_or_different_body() {
+    let mut door = door();
+    let line = ConnectivityProjection {
+        line_id: "line:usb:one".into(),
+        status: ConnectivityStatus::Current,
+        value: None,
+        body_id: body_id(1),
+    };
+    assert_eq!(
+        door.observe_connectivity(line.clone()),
+        Err(Error::Presentation)
+    );
+
+    door.observe_journey(born_projection(body_id(2))).unwrap();
+    assert_eq!(door.observe_connectivity(line), Err(Error::Presentation));
 }

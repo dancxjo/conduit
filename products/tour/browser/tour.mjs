@@ -1,7 +1,7 @@
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "../../patchbay/html/assets/flow.js";
 import { conceptualTourStage, createTourStage, openTourReadingState } from "./tour-state.mjs";
-import { createTourNavigation, createTourRunnerActions, createTourWorkspace } from "./tour-navigation.mjs";
+import { createTourNavigation, createTourRunnerActions, createTourWorkspace, presentTourWorkspaceSeparator } from "./tour-navigation.mjs";
 import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./tour-runner-presentation.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
@@ -41,13 +41,11 @@ try {
   hostPresentation = application.presentation;
   hostPresentationFor = application.presentationFor;
   hostStatus = createProductMasthead(hostPresentation, "product-masthead", "tour");
+  presentTourWorkspaceSeparator(hostPresentation);
   hostStatus.ordinary("Starting browser Host…");
   readingState = await openTourReadingState(application.storage);
   workspace = createTourWorkspace(document, readingState);
   configureFlowStorage(application.storage);
-  navigation = createTourNavigation(hostPresentation, (offset) => {
-    renderPage(currentPage + offset, "push").catch(showTourFailure);
-  });
   admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
     Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
@@ -55,6 +53,9 @@ try {
   ]);
   host = initialized;
   requireTourAbi(host.runtime);
+  navigation = createTourNavigation(host.runtime, hostPresentation, (offset) => {
+    renderPage(currentPage + offset, "push").catch(showTourFailure);
+  });
   gallery = readReviewedGallery(host.runtime);
   if (host.runtime.conduit_browser_form_human_machinery() < 0) {
     throw new Error("browser Host selected machinery is unavailable");
@@ -116,6 +117,7 @@ function requireTourAbi(api) {
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
+    "conduit_tour_navigation_view", "conduit_tour_navigation_view_ptr", "conduit_tour_navigation_view_len",
     "conduit_tour_encode_button_transition",
     "conduit_tour_project_patchbay", "conduit_tour_project_patchbay_recursive",
     "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
@@ -139,7 +141,7 @@ async function renderPage(index, routeChange = "none") {
   renderMarkdown(guidedPages[index]);
   chapter.scrollTop = 0;
   if (routeChange === "push") chapter.querySelector("h1")?.focus({ preventScroll: true });
-  navigation.render(currentPage, guidedPages.length, running);
+  navigation.render(currentPage, guidedPages.length);
   document.title = guidedPages[index].title + " · Tour";
 }
 
@@ -166,7 +168,11 @@ function renderGallery() {
   chapter.replaceChildren();
   const crecheUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content;
   if (!crecheUrl) throw new Error("Crèche product handoff is unavailable");
-  const gallerySurface = createReviewedFormGallery(document, gallery, crecheUrl, (form, action) => {
+  const surface = document.createElement("section");
+  surface.className = "form-gallery";
+  surface.dataset.applicationSlot = "tour-form-gallery";
+  chapter.append(surface);
+  const gallerySurface = createReviewedFormGallery(host.runtime, hostPresentation, surface, gallery, crecheUrl, (form, action) => {
     selectLaboratoryStage(reviewedFormStage(form), [], true);
     gallerySurface.select(form.checked_form_id);
     if (action === "inspect") {
@@ -175,19 +181,17 @@ function renderGallery() {
       patchbay.focus({ preventScroll: true });
     }
   });
-  const { surface, heading } = gallerySurface;
-  chapter.append(surface);
   selectLaboratoryStage(reviewedFormStage(gallery.forms[0]), []);
   gallerySurface.select(gallery.forms[0].checked_form_id);
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
   chapter.scrollTop = 0;
-  heading.focus({ preventScroll: true });
+  gallerySurface.heading().focus({ preventScroll: true });
   document.title = "Form Gallery · Tour";
 }
 
 function setNavigationDisabled(disabled) {
   if (disabled !== running) throw new Error("Tour navigation state is inconsistent");
-  navigation.render(currentPage, guidedPages.length, running);
+  navigation.render(currentPage, guidedPages.length);
 }
 
 function renderMarkdown(page) {

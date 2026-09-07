@@ -567,6 +567,7 @@ dependencies = [
  "conduit-body-fabrication",
  "conduit-chat",
  "conduit-core",
+ "conduit-creche-model",
  "conduit-form",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
@@ -591,6 +592,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-tour-model",
  "conduit-web",
  "conduit-wire",
  "ed25519-dalek",
@@ -636,6 +638,13 @@ dependencies = [
 [[package]]
 name = "conduit-create-oi"
 version = "0.1.0"
+
+[[package]]
+name = "conduit-creche-model"
+version = "0.1.0"
+dependencies = [
+ "conduit-presentation",
+]
 
 [[package]]
 name = "conduit-data"
@@ -798,6 +807,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-planner",
+ "conduit-text",
  "serde",
  "serde_json",
 ]
@@ -1011,6 +1021,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-tongues",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",
@@ -1031,6 +1042,7 @@ dependencies = [
 name = "conduit-std-offers"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
@@ -1043,6 +1055,7 @@ dependencies = [
  "conduit-signal",
  "conduit-text",
  "conduit-time",
+ "conduit-tongues",
  "conduit-web",
 ]
 
@@ -1071,6 +1084,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1101,6 +1116,15 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tongues-pipeline",
+]
+
+[[package]]
+name = "conduit-tour-model"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-presentation",
+ "conduit-semantic-catalog",
 ]
 
 [[package]]
@@ -1167,7 +1191,9 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-tour-model",
  "conduit-web",
+ "conduit-wire",
  "limine",
  "patchbay-control",
  "serde_json",
@@ -2702,6 +2728,7 @@ dependencies = [
  "conduit-form",
  "conduit-human",
  "conduit-kernel",
+ "conduit-net",
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",

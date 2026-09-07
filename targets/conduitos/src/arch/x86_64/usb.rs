@@ -1,46 +1,41 @@
-//! One bounded root-attached USB device realized through the xHCI Base.
+//! A bounded root-attached USB device set realized through the xHCI Base.
 //!
 //! This module retains structural USB truth only. It neither parses HID reports
 //! nor advertises a semantic input capability.
 
-use core::{
-    hint::spin_loop,
-    ptr::{read_volatile, write_volatile},
-};
+use core::ptr::{read_volatile, write_volatile};
 
-use super::xhci::{Event, XhciReady};
+use super::xhci::XhciReady;
 
+#[path = "usb_attachment.rs"]
+mod attachment;
 #[path = "usb_descriptor.rs"]
 pub(super) mod descriptor;
+#[path = "usb_dma.rs"]
+pub(in crate::arch::x86_64) mod dma;
 #[path = "usb_error.rs"]
 mod error;
+#[path = "usb_transfer.rs"]
+mod transfer;
 
+#[cfg(test)]
+use attachment::classify_port_reset;
+use attachment::{attached_root_port, reset_port};
+pub use attachment::{retire_removed_device, wait_for_attachment_state};
 pub use descriptor::UsbDevice;
 use descriptor::{
     MAX_CONFIGURATION_BYTES, device_from_descriptor, parse_configuration, validate_header,
 };
+pub use dma::USB_DEVICE_DMA_SLOTS;
+use dma::{UsbDma, UsbDmaSlot, device_dma_pointer, dma_pointer};
 pub use error::UsbError;
+use transfer::validate_transfer_event;
 pub const MAX_CONTROL_TRANSFERS: u8 = 5;
 pub const MAX_OUTSTANDING_CONTROL_TRANSFERS: u8 = 1;
 pub const MAX_ENUMERATION_RETRIES: u8 = 0;
 pub const USB_SIGN_SLOTS: u8 = 12;
 const TRANSFER_TRBS: usize = 32;
 const PORT_POLL_STEPS: u32 = 2_000_000;
-
-#[repr(C, align(4096))]
-pub(super) struct UsbDma {
-    pub(super) device_context: [u8; 2048],
-    pub(super) input_context: [u8; 2112],
-    transfer_ring: [[u32; 4]; TRANSFER_TRBS],
-    descriptor: [u8; MAX_CONFIGURATION_BYTES],
-}
-
-pub(super) static mut USB_DMA: UsbDma = UsbDma {
-    device_context: [0; 2048],
-    input_context: [0; 2112],
-    transfer_ring: [[0; 4]; TRANSFER_TRBS],
-    descriptor: [0; MAX_CONFIGURATION_BYTES],
-};
 
 struct ControlRing {
     enqueue: usize,
@@ -49,6 +44,7 @@ struct ControlRing {
     buffer_physical: u64,
     root_port: u8,
     short_packets: u8,
+    dma: *mut UsbDma,
 }
 
 #[derive(Clone, Copy)]
@@ -73,10 +69,34 @@ pub fn enumerate_one_at_epoch(
     image_virtual_to_physical: fn(u64) -> Option<u64>,
     attachment_epoch: u32,
 ) -> Result<UsbDevice, UsbError> {
+    let root_port = attached_root_port(controller)?;
+    enumerate_root_port_at_epoch(
+        controller,
+        image_virtual_to_physical,
+        root_port,
+        UsbDmaSlot::PRIMARY,
+        attachment_epoch,
+    )
+}
+
+fn enumerate_root_port_at_epoch(
+    controller: &mut XhciReady,
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+    root_port: u8,
+    dma_slot: UsbDmaSlot,
+    attachment_epoch: u32,
+) -> Result<UsbDevice, UsbError> {
     if attachment_epoch == 0 {
         return Err(UsbError::StaleDeviceInstance);
     }
-    let dma_virtual = core::ptr::addr_of_mut!(USB_DMA) as u64;
+    if root_port == 0 || root_port > controller.maximum_ports() {
+        return Err(UsbError::RootPortInvalid);
+    }
+    if controller.port_status(root_port) & 1 == 0 {
+        return Err(UsbError::NoDevice);
+    }
+    let dma = dma_pointer(dma_slot);
+    let dma_virtual = dma as u64;
     let dma_physical = image_virtual_to_physical(dma_virtual).ok_or(UsbError::DmaAddressInvalid)?;
     if dma_physical & 0xfff != 0 {
         return Err(UsbError::DmaAddressInvalid);
@@ -85,14 +105,13 @@ pub fn enumerate_one_at_epoch(
         return Err(UsbError::ContextGeometry);
     }
     unsafe {
-        USB_DMA = UsbDma {
+        *dma = UsbDma {
             device_context: [0; 2048],
             input_context: [0; 2112],
             transfer_ring: [[0; 4]; TRANSFER_TRBS],
             descriptor: [0; MAX_CONFIGURATION_BYTES],
         }
     };
-    let root_port = attached_root_port(controller)?;
     reset_port(controller, root_port)?;
     let speed = ((controller.port_status(root_port) >> 10) & 0xf) as u8;
     let initial_packet = match speed {
@@ -113,7 +132,7 @@ pub fn enumerate_one_at_epoch(
     let input_phys = dma_physical + core::mem::offset_of!(UsbDma, input_context) as u64;
     let ring_phys = dma_physical + core::mem::offset_of!(UsbDma, transfer_ring) as u64;
     let buffer_phys = dma_physical + core::mem::offset_of!(UsbDma, descriptor) as u64;
-    prepare_address_context(context, root_port, speed, initial_packet, ring_phys)?;
+    prepare_address_context(dma, context, root_port, speed, initial_packet, ring_phys)?;
     controller.set_device_context(slot, device_phys);
     let address = controller
         .command([
@@ -128,7 +147,7 @@ pub fn enumerate_one_at_epoch(
     }
     let device_address = unsafe {
         (read_volatile(
-            core::ptr::addr_of!(USB_DMA.device_context)
+            core::ptr::addr_of!((*dma).device_context)
                 .cast::<u8>()
                 .add(12)
                 .cast::<u32>(),
@@ -144,6 +163,7 @@ pub fn enumerate_one_at_epoch(
         buffer_physical: buffer_phys,
         root_port,
         short_packets: 0,
+        dma,
     };
     let first = control(
         controller,
@@ -161,12 +181,12 @@ pub fn enumerate_one_at_epoch(
     if first < 8 {
         return Err(UsbError::MalformedDescriptor);
     }
-    let ep0 = unsafe { read_volatile(core::ptr::addr_of!(USB_DMA.descriptor[7])) } as u16;
+    let ep0 = unsafe { read_volatile(core::ptr::addr_of!((*dma).descriptor[7])) } as u16;
     if ep0 == 0 {
         return Err(UsbError::MalformedDescriptor);
     }
     if ep0 != initial_packet {
-        update_ep0(controller, context, slot, input_phys, ep0, ring_phys)?;
+        update_ep0(controller, dma, context, slot, input_phys, ep0, ring_phys)?;
     }
     let device_length = control(
         controller,
@@ -184,10 +204,11 @@ pub fn enumerate_one_at_epoch(
     if device_length != 18 {
         return Err(UsbError::MalformedDescriptor);
     }
-    let device_bytes = unsafe { &USB_DMA.descriptor[..18] };
+    let device_bytes = unsafe { &(&(*dma).descriptor)[..18] };
     validate_header(device_bytes, 18, 1)?;
     let mut result = device_from_descriptor(root_port, slot, device_address, ep0, device_bytes)?;
     result.attachment_epoch = attachment_epoch;
+    result.dma_slot = dma_slot.index();
     let header_length = control(
         controller,
         &mut ring,
@@ -205,7 +226,7 @@ pub fn enumerate_one_at_epoch(
         return Err(UsbError::MalformedDescriptor);
     }
     let total =
-        u16::from_le_bytes(unsafe { [USB_DMA.descriptor[2], USB_DMA.descriptor[3]] }) as usize;
+        u16::from_le_bytes(unsafe { [(*dma).descriptor[2], (*dma).descriptor[3]] }) as usize;
     if total > MAX_CONFIGURATION_BYTES {
         return Err(UsbError::OversizedConfiguration);
     }
@@ -228,7 +249,7 @@ pub fn enumerate_one_at_epoch(
     if configuration_length != total {
         return Err(UsbError::MalformedDescriptor);
     }
-    parse_configuration(unsafe { &USB_DMA.descriptor[..total] }, &mut result)?;
+    parse_configuration(unsafe { &(&(*dma).descriptor)[..total] }, &mut result)?;
     control(
         controller,
         &mut ring,
@@ -254,34 +275,43 @@ pub fn enumerate_one_at_epoch(
     Ok(result)
 }
 
-pub fn wait_for_attachment_state(
-    controller: &XhciReady,
-    root_port: u8,
-    attached: bool,
-) -> Result<(), UsbError> {
-    for _ in 0..PORT_POLL_STEPS {
-        if (controller.port_status(root_port) & 1 != 0) == attached {
-            return Ok(());
-        }
-        spin_loop();
-    }
-    Err(if attached {
-        UsbError::NoDevice
-    } else {
-        UsbError::DeviceVanished
-    })
-}
-
-pub fn retire_removed_device(
+/// Enumerates at most the three admitted root devices in ascending port order,
+/// assigning each an independent fixed DMA slot. The caller supplies the
+/// attachment epoch for each admitted position so reattachment cannot inherit
+/// an earlier device identity.
+pub fn enumerate_attached_at_epochs(
     controller: &mut XhciReady,
-    device: &UsbDevice,
-) -> Result<u8, UsbError> {
-    if controller.port_status(device.root_port) & 1 != 0 {
-        return Err(UsbError::StaleDeviceInstance);
+    image_virtual_to_physical: fn(u64) -> Option<u64>,
+    attachment_epochs: [u32; USB_DEVICE_DMA_SLOTS as usize],
+) -> Result<[Option<UsbDevice>; USB_DEVICE_DMA_SLOTS as usize], UsbError> {
+    let dma_slots = [
+        UsbDmaSlot::PRIMARY,
+        UsbDmaSlot::SECONDARY,
+        UsbDmaSlot::TERTIARY,
+    ];
+    let mut devices = [None, None, None];
+    let mut count = 0_usize;
+    for root_port in 1..=controller.maximum_ports() {
+        if controller.port_status(root_port) & 1 == 0 {
+            continue;
+        }
+        if count == devices.len() {
+            return Err(UsbError::MultipleDevices);
+        }
+        devices[count] = Some(enumerate_root_port_at_epoch(
+            controller,
+            image_virtual_to_physical,
+            root_port,
+            dma_slots[count],
+            attachment_epochs[count],
+        )?);
+        count += 1;
     }
-    controller
-        .disable_removed_slot(device.slot)
-        .map_err(UsbError::from)
+    if count == 0 {
+        Err(UsbError::NoDevice)
+    } else {
+        Ok(devices)
+    }
 }
 
 pub(super) fn select_boot_protocol(
@@ -290,7 +320,8 @@ pub(super) fn select_boot_protocol(
     interface: u8,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
 ) -> Result<(), UsbError> {
-    let dma_virtual = core::ptr::addr_of_mut!(USB_DMA) as u64;
+    let dma = device_dma_pointer(device)?;
+    let dma_virtual = dma as u64;
     let dma_physical = image_virtual_to_physical(dma_virtual).ok_or(UsbError::DmaAddressInvalid)?;
     let mut ring = ControlRing {
         enqueue: 14,
@@ -299,6 +330,7 @@ pub(super) fn select_boot_protocol(
         buffer_physical: dma_physical + core::mem::offset_of!(UsbDma, descriptor) as u64,
         root_port: device.root_port,
         short_packets: 0,
+        dma,
     };
     control(
         controller,
@@ -316,50 +348,8 @@ pub(super) fn select_boot_protocol(
     Ok(())
 }
 
-fn attached_root_port(controller: &XhciReady) -> Result<u8, UsbError> {
-    let mut found = 0;
-    for port in 1..=controller.maximum_ports() {
-        if controller.port_status(port) & 1 != 0 {
-            if found != 0 {
-                return Err(UsbError::MultipleDevices);
-            }
-            found = port;
-        }
-    }
-    if found == 0 {
-        Err(UsbError::NoDevice)
-    } else {
-        Ok(found)
-    }
-}
-
-fn reset_port(controller: &XhciReady, port: u8) -> Result<(), UsbError> {
-    controller.write_port_status(port, controller.port_status(port) | (1 << 4));
-    for _ in 0..PORT_POLL_STEPS {
-        let status = controller.port_status(port);
-        if let Some(result) = classify_port_reset(status) {
-            return result;
-        }
-        spin_loop();
-    }
-    Err(UsbError::PortResetTimeout)
-}
-
-fn classify_port_reset(status: u32) -> Option<Result<(), UsbError>> {
-    if status & 1 == 0 {
-        Some(Err(UsbError::DeviceVanished))
-    } else if status & (1 << 4) == 0 {
-        Some(if status & 2 != 0 {
-            Ok(())
-        } else {
-            Err(UsbError::PortResetFailed)
-        })
-    } else {
-        None
-    }
-}
-
 fn prepare_address_context(
+    dma: *mut UsbDma,
     context: usize,
     port: u8,
     speed: u8,
@@ -370,20 +360,21 @@ fn prepare_address_context(
         return Err(UsbError::ContextGeometry);
     }
     unsafe {
-        write_context_u32(4, 3);
-        write_context_u32(context, (u32::from(speed) << 20) | (1 << 27));
-        write_context_u32(context + 4, u32::from(port) << 16);
+        write_context_u32(dma, 4, 3);
+        write_context_u32(dma, context, (u32::from(speed) << 20) | (1 << 27));
+        write_context_u32(dma, context + 4, u32::from(port) << 16);
         let ep = context * 2;
-        write_context_u32(ep + 4, (3 << 1) | (4 << 3) | (u32::from(packet) << 16));
-        write_context_u32(ep + 8, ring as u32 | 1);
-        write_context_u32(ep + 12, (ring >> 32) as u32);
-        write_context_u32(ep + 16, 8);
+        write_context_u32(dma, ep + 4, (3 << 1) | (4 << 3) | (u32::from(packet) << 16));
+        write_context_u32(dma, ep + 8, ring as u32 | 1);
+        write_context_u32(dma, ep + 12, (ring >> 32) as u32);
+        write_context_u32(dma, ep + 16, 8);
     }
     Ok(())
 }
 
 fn update_ep0(
     controller: &mut XhciReady,
+    dma: *mut UsbDma,
     context: usize,
     slot: u8,
     input: u64,
@@ -391,13 +382,13 @@ fn update_ep0(
     ring: u64,
 ) -> Result<(), UsbError> {
     unsafe {
-        USB_DMA.input_context = [0; 2112];
-        write_context_u32(4, 2);
+        (*dma).input_context = [0; 2112];
+        write_context_u32(dma, 4, 2);
         let ep = context * 2;
-        write_context_u32(ep + 4, (3 << 1) | (4 << 3) | (u32::from(packet) << 16));
-        write_context_u32(ep + 8, ring as u32 | 1);
-        write_context_u32(ep + 12, (ring >> 32) as u32);
-        write_context_u32(ep + 16, 8);
+        write_context_u32(dma, ep + 4, (3 << 1) | (4 << 3) | (u32::from(packet) << 16));
+        write_context_u32(dma, ep + 8, ring as u32 | 1);
+        write_context_u32(dma, ep + 12, (ring >> 32) as u32);
+        write_context_u32(dma, ep + 16, 8);
     }
     let event = controller.command([
         input as u32,
@@ -412,10 +403,10 @@ fn update_ep0(
     }
 }
 
-unsafe fn write_context_u32(offset: usize, value: u32) {
+unsafe fn write_context_u32(dma: *mut UsbDma, offset: usize, value: u32) {
     unsafe {
         write_volatile(
-            core::ptr::addr_of_mut!(USB_DMA.input_context)
+            core::ptr::addr_of_mut!((*dma).input_context)
                 .cast::<u8>()
                 .add(offset)
                 .cast::<u32>(),
@@ -448,7 +439,7 @@ fn control(
         8,
         (2 << 10) | (1 << 6) | (if input { 3 << 16 } else { 0 }) | ring.cycle,
     ];
-    put_transfer(ring.enqueue, setup);
+    put_transfer(ring.dma, ring.enqueue, setup);
     ring.enqueue += 1;
     if length != 0 {
         let data = [
@@ -457,11 +448,12 @@ fn control(
             u32::from(length),
             (3 << 10) | (u32::from(input) << 16) | ring.cycle,
         ];
-        put_transfer(ring.enqueue, data);
+        put_transfer(ring.dma, ring.enqueue, data);
         ring.enqueue += 1;
     }
     let status_index = ring.enqueue;
     put_transfer(
+        ring.dma,
         status_index,
         [
             0,
@@ -488,26 +480,8 @@ fn control(
     Ok(usize::from(length.saturating_sub(event.residual as u16)))
 }
 
-fn put_transfer(index: usize, trb: [u32; 4]) {
-    unsafe { write_volatile(core::ptr::addr_of_mut!(USB_DMA.transfer_ring[index]), trb) };
-}
-
-fn validate_transfer_event(event: Event, slot: u8, pointer: u64) -> Result<bool, UsbError> {
-    if event.event_type != 32 || event.pointer != pointer {
-        return Err(UsbError::WrongController);
-    }
-    if event.slot != slot {
-        return Err(UsbError::WrongSlot);
-    }
-    if event.endpoint != 1 {
-        return Err(UsbError::WrongEndpoint);
-    }
-    match event.completion_code {
-        1 => Ok(false),
-        13 => Ok(true),
-        6 => Err(UsbError::ControlStall),
-        _ => Err(UsbError::ControlError),
-    }
+fn put_transfer(dma: *mut UsbDma, index: usize, trb: [u32; 4]) {
+    unsafe { write_volatile(core::ptr::addr_of_mut!((*dma).transfer_ring[index]), trb) };
 }
 
 #[cfg(test)]

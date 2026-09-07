@@ -1,7 +1,7 @@
 //! Bounded WASM boundary for the two-browser-Host Tour lesson.
 
 use super::protocol::{LineFrame, Output};
-use super::session::{Role, Session};
+use super::session::{Role, Session, TransportTermination};
 use std::cell::RefCell;
 
 const INPUT_BYTES: usize = 64 * 1_024;
@@ -15,6 +15,7 @@ const ERROR_PROTOCOL: i32 = -455;
 const ERROR_COMPLETE: i32 = -456;
 const ERROR_CANCEL: i32 = -457;
 const ERROR_INTERACTION: i32 = -458;
+const ERROR_TRANSPORT: i32 = -459;
 
 thread_local! {
     static SESSION: RefCell<Option<Session>> = const { RefCell::new(None) };
@@ -300,6 +301,37 @@ pub extern "C" fn conduit_tour_multi_cancel() -> i32 {
         {
             Ok(()) => STATUS_READY,
             Err(_) => ERROR_CANCEL,
+        }
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_tour_multi_transport_unavailable(code: u16) -> i32 {
+    terminate_transport(TransportTermination::Unavailable, code)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_tour_multi_disconnect(code: u16) -> i32 {
+    terminate_transport(TransportTermination::Disconnected, code)
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_tour_multi_timeout(code: u16) -> i32 {
+    terminate_transport(TransportTermination::TimedOut, code)
+}
+
+fn terminate_transport(termination: TransportTermination, code: u16) -> i32 {
+    clear_output();
+    SESSION.with(|slot| {
+        let Some(mut session) = slot.borrow_mut().take() else {
+            return ERROR_NOT_RUNNING;
+        };
+        match session
+            .terminate_transport(termination, code)
+            .and_then(|output| write_output(&output).map_err(|_| "output".into()))
+        {
+            Ok(()) => STATUS_READY,
+            Err(_) => ERROR_TRANSPORT,
         }
     })
 }

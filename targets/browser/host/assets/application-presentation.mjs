@@ -1,7 +1,7 @@
 import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
 
-const VERSION = 8;
-const RETIRED_VERSION = 7;
+const VERSION = 10;
+const RETIRED_VERSION = 9;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 40;
 const MAX_DEPTH = 8;
@@ -68,7 +68,8 @@ const COMPONENTS = Object.freeze({
   40: ["fieldset", "choice-group"], 41: ["legend", "choice-group-label"],
   42: ["label", "choice-option-label"], 43: ["input", "independent-choice"],
   44: ["input", "exclusive-choice"],
-  45: ["a", "navigation-link"],
+  45: ["a", "navigation-link"], 46: ["a", "link"],
+  47: ["hr", "separator"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -87,6 +88,12 @@ function validProgress(value) {
   const current = Number(match[1]);
   const total = Number(match[2]);
   return current <= 65_535 && total > 0 && total <= 65_535 && current <= total;
+}
+
+function validSameSiteLink(value) {
+  return value.startsWith("/") && !value.startsWith("//")
+    && new TextEncoder().encode(value).length <= 2_048
+    && !/[\u0000-\u0020\u007f\\]/u.test(value);
 }
 
 export function decodeApplicationTheme(input) {
@@ -132,20 +139,20 @@ export function decodeApplicationView(input) {
     if (!(stateIdentity in NODE_STATES)) refuse("malformed-encoding");
     const state = NODE_STATES[stateIdentity];
     if (keyLength === 0 || keyLength > MAX_KEY_BYTES || textLength > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
     if ((hasValue && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || valueLength !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((valueLength > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || valueLength > valueCapacity)) || (valueLength === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((index === 0 && parent !== null) || (index !== 0 && (parent === null || parent >= index))) refuse("unknown-parent");
     if (action !== null && action >= actions.length) refuse("unknown-action");
-    if (component === 45 && action !== null) refuse("invalid-control-value");
+    if ((component === 45 || component === 46) && action !== null) refuse("invalid-control-value");
     if ((component === 43 || component === 44) && action !== null && actions[action].event !== "change") refuse("invalid-control-value");
     const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43 || component === 44;
     if (state !== "ready" && (!stateful || action !== null)) refuse("invalid-node-state");
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
     const value = cursor.text(valueLength);
-    if ([12, 14, 39, 40, 41, 42, 43, 44, 45].includes(component) && text.length === 0) refuse("invalid-control-value");
+    if ([12, 14, 39, 40, 41, 42, 43, 44, 45, 46, 47].includes(component) && text.length === 0) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(value)) refuse("invalid-control-value");
     if (component === 38 && value.startsWith("0/")) refuse("invalid-control-value");
     if (keys.has(key)) refuse("duplicate-key");
@@ -178,6 +185,8 @@ export function decodeApplicationView(input) {
     if (node.component === 42 && (node.parent === null || nodes[node.parent].component !== 40 || children.filter((child) => child.component === 43 || child.component === 44).length !== 1)) refuse("invalid-control-value");
     if ((node.component === 43 || node.component === 44) && (!['true', 'false'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 42)) refuse("invalid-control-value");
     if (node.component === 45 && (!['home', 'tour', 'creche', 'patchbay', 'source'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 12)) refuse("invalid-control-value");
+    if (node.component === 46 && !validSameSiteLink(node.value)) refuse("invalid-control-value");
+    if (node.component === 47 && children.length !== 0) refuse("invalid-control-value");
   }
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
@@ -215,7 +224,7 @@ export function encodeApplicationView(view) {
     const value = new TextEncoder().encode(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
-    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45;
+    const hasValue = component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
     if (!Number.isSafeInteger(valueCapacity) || valueCapacity < 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES
       || (hasValue && (valueCapacity === 0 || value.length > valueCapacity))
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
@@ -444,6 +453,11 @@ export function manifestApplicationView(input, root, options = {}) {
       element.href = browserDestinationHref(node.value);
       element.textContent = node.text;
       if (node.value === "home") element.setAttribute("aria-label", "Conduit home");
+    } else if (node.component === 46) {
+      element.href = new URL(node.value, document.baseURI).href;
+      element.textContent = node.text;
+    } else if (node.component === 47) {
+      element.setAttribute("aria-label", node.text);
     } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
       const title = document.createElement("h3");
       title.textContent = node.text;
@@ -454,6 +468,7 @@ export function manifestApplicationView(input, root, options = {}) {
     if (node.component === 8 || node.component === 15 || node.component === 16 || node.component === 17 || node.component === 43 || node.component === 44) {
       element.dataset.applicationAvailability = node.state;
     }
+    if (node.component === 6) element.tabIndex = -1;
     if (node.component === 15 || node.component === 16 || node.component === 17) {
       element.setAttribute("aria-label", node.text);
       element.value = node.value;

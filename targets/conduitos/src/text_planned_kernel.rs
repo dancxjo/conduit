@@ -54,7 +54,15 @@ impl TextPlannedKernel {
         fragment: &PlanFragment,
         lowered: &LoweredPlanFragment,
     ) -> Result<Self, SchedulerError> {
-        validate_shape(fragment, lowered)?;
+        Self::prepare_with_literal(fragment, lowered, crate::ordinary_plan::TEXT_LITERAL)
+    }
+
+    pub fn prepare_with_literal(
+        fragment: &PlanFragment,
+        lowered: &LoweredPlanFragment,
+        expected_literal: &str,
+    ) -> Result<Self, SchedulerError> {
+        validate_shape(fragment, lowered, expected_literal)?;
         let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
         let literal_index = fragment
             .placements
@@ -261,6 +269,7 @@ fn configured_text<'a>(
 fn validate_shape(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
+    expected_literal: &str,
 ) -> Result<(), SchedulerError> {
     if fragment.placements.len() != MAX_NODES
         || fragment.connections.len() != MAX_CORDS
@@ -305,7 +314,7 @@ fn validate_shape(
         || upper.host_operations[0].maximum_in_flight != 1
         || upper.host_operations[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
         || upper.host_operations[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
-        || configured_text(&literal.configuration, "value")? != crate::ordinary_plan::TEXT_LITERAL
+        || configured_text(&literal.configuration, "value")? != expected_literal
         || configured_u64(&presentation.configuration, "maximum-values")?
             != conduit_semantic_catalog::MAX_TEXT_VALUES
     {
