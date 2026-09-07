@@ -313,6 +313,19 @@ mod tests {
         let gallery = reviewed_gallery().unwrap();
         assert_eq!(gallery.maximum_forms, 7);
         assert_eq!(gallery.forms.len(), 7);
+        let morse = gallery
+            .forms
+            .iter()
+            .find(|form| form.name == "morse_network")
+            .unwrap();
+        assert_eq!(
+            morse.source,
+            include_str!("../../../../../forms/morse-network/main.conduit")
+        );
+        assert!(morse.required_kinds.contains(&"text/morse".to_owned()));
+        assert!(morse
+            .required_kinds
+            .contains(&"presentation/indicator".to_owned()));
         assert_eq!(
             gallery
                 .forms

@@ -6,6 +6,7 @@ use conduit_form::{
 use conduit_std_host::{StdHost, ThreadTimer};
 
 const HELLO_PROGRAM: &str = include_str!("../../../forms/hello/main.conduit");
+const MORSE_NETWORK: &str = include_str!("../../../forms/morse-network/main.conduit");
 
 fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let mut startup = StartupCatalog::new();
@@ -71,6 +72,46 @@ fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign() {
         kernel.value_allocation_capacity_before,
         kernel.value_allocation_capacity_after
     );
+}
+
+#[test]
+fn canonical_morse_network_runs_through_the_std_kernel_and_indicator_effect() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_text::install_morse_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
+        .unwrap();
+    let syntax = parse_syntax_document(MORSE_NETWORK);
+    let checked = check_syntax_document(&syntax, &startup).expect("Morse Network checks");
+    let expanded =
+        expand_canonical_form(&checked, "morse_network", &profile).expect("Morse Network expands");
+    let mut host = StdHost::new();
+    let plan = host
+        .plan_expanded_local(&expanded)
+        .expect("Morse Network plans onto exact installed offers");
+    let fragment = plan
+        .fragments
+        .into_iter()
+        .next()
+        .expect("std fragment exists");
+    let mut output = Vec::with_capacity(4_096);
+    let mut timer = ThreadTimer;
+    let report = host
+        .run_fragment_to(fragment, &mut output, &mut timer)
+        .expect("Morse Network executes through the installed kernel table");
+    let output = String::from_utf8(output).unwrap();
+    assert!(
+        output.contains("indicator unit-ms=120 segments=17\n"),
+        "{output}"
+    );
+    assert_eq!(output.matches("indicator unit-ms=").count(), 1, "{output}");
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
 }
 
 #[test]

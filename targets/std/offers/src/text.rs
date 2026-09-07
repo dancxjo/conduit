@@ -21,6 +21,12 @@ pub const TEXT_JOIN_ARTIFACT: &str = "conduit-std-host/text-join@1";
 pub const TEXT_JOIN_CAPABILITY: &str = "text-join-v1";
 pub const TEXT_JOIN_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-join@1";
 pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
+pub const TEXT_MORSE_EXECUTION_PROFILE: &str = "conduit.std/text-morse-kernel-hosted@1";
+pub const TEXT_MORSE_IMPLEMENTATION: &str = "std/kernel-text-morse@1";
+pub const TEXT_MORSE_ARTIFACT: &str = "conduit-std-host/text-morse@1";
+pub const TEXT_MORSE_CAPABILITY: &str = "text-morse-v1";
+pub const TEXT_MORSE_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-to-morse@1";
+pub const TEXT_MORSE_HOST_OPERATION_TARGET: &str = "text/morse-pattern";
 pub const ADDRESS_DETECT_EXECUTION_PROFILE: &str = "conduit.std/address-detect-kernel-hosted@1";
 pub const ADDRESS_DETECT_IMPLEMENTATION: &str = "std/kernel-address-detect@1";
 pub const ADDRESS_DETECT_ARTIFACT: &str = "conduit-std-host/address-detect@1";
@@ -85,6 +91,41 @@ pub fn text_join_offer() -> CapabilityOffer {
         maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
         maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
     });
+    offer
+}
+
+pub fn text_morse_offer() -> CapabilityOffer {
+    let contract = conduit_text::text_morse_semantics();
+    let mut offer = CapabilityOffer {
+        startup_parameters: vec![FaceStartupParameter {
+            name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
+            value_type: "Count".into(),
+            has_default: true,
+        }],
+        shorthand: Some((port_id("text"), port_id("pattern"))),
+        capability_id: CapabilityId::from(TEXT_MORSE_CAPABILITY),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(TEXT_MORSE_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(TEXT_MORSE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(TEXT_MORSE_ARTIFACT),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![HostOperationRequirement {
+            contract_id: HostOperationContractId::from(TEXT_MORSE_HOST_OPERATION_CONTRACT),
+            target_kind: Some(kind_id(TEXT_MORSE_HOST_OPERATION_TARGET)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
+            maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+        }],
+        resource_requirements: Vec::new(),
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    };
+    offer.limits.max_queue_items = 4;
+    offer.limits.max_queue_bytes = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4;
     offer
 }
 
@@ -171,5 +212,16 @@ mod tests {
             assert_eq!(offer.outputs, semantic.outputs);
             assert_eq!(offer.limits, semantic.limits);
         }
+        let offer = text_morse_offer();
+        let semantic = conduit_text::text_morse_semantics();
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert!(offer.limits.max_queue_items >= semantic.limits.max_queue_items);
+        assert!(offer.limits.max_queue_bytes >= semantic.limits.max_queue_bytes);
     }
 }

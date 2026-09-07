@@ -40,6 +40,11 @@ pub const BITMAP_PRESENTATION_EXECUTION_PROFILE: &str = "conduit.std/presentatio
 pub const BITMAP_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-bitmap@1";
 pub const BITMAP_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-bitmap@1";
 pub const BITMAP_PRESENTATION_TARGET: &str = "presentation/bitmap-gray8";
+pub const INDICATOR_PRESENTATION_EXECUTION_PROFILE: &str =
+    "conduit.std/presentation-indicator-kernel-hosted@1";
+pub const INDICATOR_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-presentation-indicator@1";
+pub const INDICATOR_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-indicator@1";
+pub const INDICATOR_PRESENTATION_TARGET: &str = "presentation/stdout-indicator";
 
 pub fn tick_presentation_offer() -> CapabilityOffer {
     presentation_offer(
@@ -119,6 +124,22 @@ pub fn bitmap_presentation_offer() -> CapabilityOffer {
     )
 }
 
+pub fn indicator_presentation_offer() -> CapabilityOffer {
+    let mut offer = presentation_offer(
+        conduit_semantic_catalog::indicator_presentation_contract(),
+        conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
+        "presentation-indicator-v1",
+        INDICATOR_PRESENTATION_EXECUTION_PROFILE,
+        INDICATOR_PRESENTATION_IMPLEMENTATION,
+        INDICATOR_PRESENTATION_ARTIFACT,
+        INDICATOR_PRESENTATION_TARGET,
+        conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+    );
+    offer.limits.max_queue_items = 4;
+    offer.limits.max_queue_bytes = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32 * 4;
+    offer
+}
+
 #[allow(clippy::too_many_arguments)]
 fn presentation_offer(
     contract: StandardKindContract,
@@ -178,6 +199,10 @@ mod tests {
             (
                 bitmap_presentation_offer(),
                 conduit_semantic_catalog::bitmap_presentation_contract(),
+            ),
+            (
+                indicator_presentation_offer(),
+                conduit_semantic_catalog::indicator_presentation_contract(),
             ),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);
