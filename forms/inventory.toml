@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 89
+maximum_forms = 90
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -213,7 +213,10 @@ entry = "patchbay-front-door"
 slug = "firefly-choir"
 title = "Firefly Choir"
 entry = "firefly-choir"
-reusable_entries = [{ entry = "pulse-manifestation", title = "Pulse Manifestation", composition = { parent = "firefly-choir", occurrences = ["observe"] } }]
+reusable_entries = [
+  { entry = "pulse-manifestation", title = "Pulse Manifestation", composition = { parent = "firefly-choir", occurrences = ["observe"] } },
+  { entry = "phase-follower", title = "Phase Follower", composition = { parent = "firefly-choir", occurrences = ["follow"] } },
+]
 deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_firefly_choir_manifests_four_exact_bounded_pulses" }
 browser_safe_not_applicable = "the deterministic browser-runtime oracle exercises the ordinary finite browser kernel; pinned multi-Host convergence proof remains owned by issue 2215"
 [[forms]]

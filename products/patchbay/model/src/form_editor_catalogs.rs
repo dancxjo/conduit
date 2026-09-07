@@ -23,6 +23,8 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Fo
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
+    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profile)
+        .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)

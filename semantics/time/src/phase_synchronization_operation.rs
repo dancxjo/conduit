@@ -19,7 +19,7 @@ enum Lifecycle {
     Cancelled,
 }
 
-/// Pairs one local state with one peer observation and derives one exact state.
+/// Retains one admitted local state while each peer observation derives an update.
 pub struct PhaseSynchronizationOperation {
     local: Option<RhythmState>,
     peer: Option<PulseObservation>,
@@ -44,15 +44,15 @@ impl PhaseSynchronizationOperation {
     }
 
     fn derive_if_ready(&mut self) -> OperationAction {
-        let (Some(mut local), Some(peer)) = (self.local, self.peer) else {
+        let (Some(local), Some(peer)) = (self.local.as_mut(), self.peer) else {
             return OperationAction::Await;
         };
         let observed_at_ms = peer.sequence.wrapping_mul(u32::from(peer.period_ms));
-        let outcome = match synchronize(&mut local, peer, observed_at_ms) {
+        let outcome = match synchronize(local, peer, observed_at_ms) {
             Ok(outcome) => outcome,
             Err(_) => return failure(FailureCode::InvalidInput, 511),
         };
-        let value = match CanonicalValue::new(&encode_rhythm_state(local)) {
+        let value = match CanonicalValue::new(&encode_rhythm_state(*local)) {
             Ok(value) => value,
             Err(_) => return failure(FailureCode::StorageExhausted, 512),
         };
@@ -121,7 +121,7 @@ impl Operation for PhaseSynchronizationOperation {
         };
         *closed = true;
         if self.closed == [true, true] {
-            if self.local.is_some() || self.peer.is_some() {
+            if self.local.is_none() || self.peer.is_some() {
                 return failure(FailureCode::InvalidInput, 508);
             }
             self.lifecycle = Lifecycle::Terminal;
@@ -137,7 +137,6 @@ impl Operation for PhaseSynchronizationOperation {
         if self.lifecycle != Lifecycle::Emitting {
             return failure(FailureCode::InvalidLifecycle, 510);
         }
-        self.local = None;
         self.peer = None;
         self.lifecycle = Lifecycle::Ready;
         OperationAction::Await
@@ -212,10 +211,11 @@ mod tests {
             operation.last_outcome(),
             Some(SynchronizationOutcome::Stale)
         );
-        operation.advance();
+        let mut outside = PhaseSynchronizationOperation::new();
+        outside.start();
         assert!(matches!(
             pair(
-                &mut operation,
+                &mut outside,
                 local(8),
                 PulseObservation {
                     sequence: 8,
@@ -225,7 +225,7 @@ mod tests {
             OperationAction::EmitCanonical { .. }
         ));
         assert_eq!(
-            operation.last_outcome(),
+            outside.last_outcome(),
             Some(SynchronizationOutcome::OutsideWindow)
         );
     }
@@ -255,6 +255,14 @@ mod tests {
         );
         assert_eq!(
             missing.resume(OperationInput::Closed { port: PortId(1) }),
+            OperationAction::Complete
+        );
+
+        let mut no_local = PhaseSynchronizationOperation::new();
+        no_local.start();
+        no_local.resume(OperationInput::Closed { port: PortId(0) });
+        assert_eq!(
+            no_local.resume(OperationInput::Closed { port: PortId(1) }),
             failure(FailureCode::InvalidInput, 508)
         );
 

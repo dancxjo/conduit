@@ -33,6 +33,8 @@ mod record_transcript;
 pub(crate) mod replay_control;
 pub(crate) mod replay_source;
 pub(crate) mod resource;
+mod rhythm_presentation;
+mod rhythm_state;
 mod state_time;
 pub(crate) mod structured_selector;
 pub(crate) mod template_storage;

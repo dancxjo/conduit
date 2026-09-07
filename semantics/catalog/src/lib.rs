@@ -84,6 +84,8 @@ mod tick_presentation;
 pub use tick_presentation::*;
 mod pulse_presentation;
 pub use pulse_presentation::*;
+mod rhythm_presentation;
+pub use rhythm_presentation::*;
 mod presentation_bool;
 pub use presentation_bool::*;
 mod presentation_indicator;

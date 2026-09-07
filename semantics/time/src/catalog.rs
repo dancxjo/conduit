@@ -129,7 +129,60 @@ pub fn install_rhythm_catalog(
     })?;
     profile
         .insert(phase_synchronize_kind_definition())
+        .map_err(|error| error.to_string())?;
+    startup.insert(KindSignature {
+        kind: crate::RHYTHM_STATE_SOURCE_KIND.into(),
+        startup_parameters: [
+            ("sequence", "0"),
+            ("next-pulse-at-ms", "0"),
+            ("period-ms", "240"),
+            ("expected-peer-sequence", "0"),
+        ]
+        .into_iter()
+        .map(|(name, default)| StartupParameterSignature {
+            name: name.into(),
+            value_type: "Count".into(),
+            default: Some(default.into()),
+        })
+        .collect(),
+    })?;
+    profile
+        .insert(rhythm_state_source_kind_definition())
         .map_err(|error| error.to_string())
+}
+
+pub fn rhythm_state_source_kind_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(crate::RHYTHM_STATE_SOURCE_KIND),
+        kind_contract_revision: KindContractRevision::from(crate::RHYTHM_STATE_SOURCE_REVISION),
+        inputs: vec![],
+        outputs: vec![flow_port(
+            "state",
+            RHYTHM_STATE_VALUE_KIND,
+            PortDirection::Output,
+        )],
+        configuration: vec![
+            count_field("sequence", 0, u32::MAX.into()),
+            count_field("next-pulse-at-ms", 0, u32::MAX.into()),
+            count_field(
+                "period-ms",
+                crate::MINIMUM_PERIOD_MS.into(),
+                crate::MAXIMUM_PERIOD_MS.into(),
+            ),
+            count_field("expected-peer-sequence", 0, u32::MAX.into()),
+        ],
+    }
+}
+
+fn count_field(key: &str, minimum: u64, maximum: u64) -> ConfigurationField {
+    ConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::U64(match key {
+            "period-ms" => 240,
+            _ => 0,
+        }),
+        validation: ConfigurationRule::U64Range { minimum, maximum },
+    }
 }
 
 pub fn phase_synchronize_kind_definition() -> KindDefinition {
