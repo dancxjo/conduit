@@ -63,6 +63,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profiles)?;

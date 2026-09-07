@@ -326,6 +326,22 @@ pub(super) fn decode_manifestation(
                 Some(format!("pulse {} · {} ms", pulse.sequence, pulse.period_ms)),
             ))
         }
+        conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND => {
+            let rhythm = conduit_time::decode_rhythm_state(&manifestation.canonical_value)
+                .map_err(|error| format!("decode rhythm manifestation: {error:?}"))?;
+            Ok((
+                u16::try_from(rhythm.sequence)
+                    .map_err(|_| "rhythm manifestation sequence exceeds presentation bound")?,
+                Vec::new(),
+                Some(format!(
+                    "rhythm {} · next {} ms · period {} ms · peer {}",
+                    rhythm.sequence,
+                    rhythm.next_pulse_at_ms,
+                    rhythm.period_ms,
+                    rhythm.expected_peer_sequence
+                )),
+            ))
+        }
         _ => Err("browser manifestation Kind is not installed in the Tour surface".into()),
     }
 }
