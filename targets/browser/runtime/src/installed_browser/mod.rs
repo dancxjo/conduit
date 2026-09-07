@@ -26,6 +26,7 @@ mod state_time;
 mod text;
 mod tick;
 pub(crate) mod timing;
+pub(crate) mod typed_record;
 mod values;
 
 #[cfg(test)]

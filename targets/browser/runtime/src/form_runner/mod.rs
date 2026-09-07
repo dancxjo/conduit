@@ -117,12 +117,7 @@ impl TourSession {
         }
         let checked = conduit_form::check_syntax_document(&syntax, &startup)
             .map_err(|error| format!("check executable-tour Form: {error:?}"))?;
-        let entry = checked
-            .forms
-            .last()
-            .ok_or_else(|| "executable-tour source has no Form".to_string())?
-            .name
-            .clone();
+        let entry = executable_entry(&checked)?;
         let form = match realization {
             MorseRealization::Direct => {
                 conduit_form::expand_canonical_form(&checked, &entry, &catalog)
@@ -415,6 +410,24 @@ impl TourSession {
             self.manifestation_completions,
         ))
     }
+}
+
+fn executable_entry(checked: &conduit_form::CheckedSyntaxDocument) -> Result<String, String> {
+    checked
+        .forms
+        .iter()
+        .rev()
+        .find(|form| {
+            let face = form.checked_face();
+            face.inputs().is_empty()
+                && face.outputs().is_empty()
+                && face
+                    .startup_parameters()
+                    .iter()
+                    .all(|parameter| parameter.has_default)
+        })
+        .map(|form| form.name.clone())
+        .ok_or_else(|| "executable-tour source has no closed root Form".to_string())
 }
 
 #[derive(Clone, Copy)]
