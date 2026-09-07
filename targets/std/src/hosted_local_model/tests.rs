@@ -335,3 +335,28 @@ fn all_five_l3_profiles_execute_through_ordinary_plan_and_play() {
     plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
     plan_and_play(LocalModelKindProfile::InterpretSignEvidence);
 }
+
+#[cfg(feature = "local-model-proof")]
+#[test]
+fn checked_house_form_executes_through_the_ordinary_local_model_play() {
+    let contract = conduit_ai::llm_contract(conduit_ai::LLM_GENERATE_KIND).unwrap();
+    let mut capabilities =
+        crate::installed_std::test_local_model_io::house_source_offers().to_vec();
+    capabilities.push(crate::installed_std::test_local_model_io::sink_offer(
+        contract.outputs[0].value_kind.as_str(),
+    ));
+    let mut host = StdHost::new_with_local_model_capabilities(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::Generate]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+        capabilities,
+    )
+    .unwrap();
+    let (plan_id, completed) = crate::local_model_proof::run_house(&mut host).unwrap();
+    assert!(!plan_id.is_empty());
+    assert!(completed);
+}

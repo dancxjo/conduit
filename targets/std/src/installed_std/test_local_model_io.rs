@@ -9,6 +9,10 @@ use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueSto
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
 const SOURCE_REVISION: &str = "conduit-test/local-model-request@1";
+pub(crate) const HOUSE_DETECTION_SOURCE_KIND: &str = "conduit-test/house-detection-source";
+const HOUSE_DETECTION_SOURCE_REVISION: &str = "conduit-test/house-detection-source@1";
+pub(crate) const HOUSE_CONTEXT_SOURCE_KIND: &str = "conduit-test/house-context-source";
+const HOUSE_CONTEXT_SOURCE_REVISION: &str = "conduit-test/house-context-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/local-model-request-kernel@1";
 const SINK_KIND: &str = "conduit-test/local-model-result";
 const SINK_REVISION: &str = "conduit-test/local-model-result@1";
@@ -82,6 +86,25 @@ pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     )
 }
 
+pub(crate) fn house_source_offers() -> [CapabilityOffer; 2] {
+    [
+        offer(
+            HOUSE_DETECTION_SOURCE_KIND,
+            HOUSE_DETECTION_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_text::ADDRESS_DETECTION_VALUE_KIND,
+            PortDirection::Output,
+        ),
+        offer(
+            HOUSE_CONTEXT_SOURCE_KIND,
+            HOUSE_CONTEXT_SOURCE_REVISION,
+            SOURCE_IMPLEMENTATION,
+            conduit_tongues::WIRED_HOUSE_CONTEXT_VALUE_KIND,
+            PortDirection::Output,
+        ),
+    ]
+}
+
 pub(crate) fn sink_offer(value_kind: &str) -> CapabilityOffer {
     offer(
         SINK_KIND,
@@ -144,27 +167,56 @@ pub(crate) fn install_catalog(
     result_kind: &str,
 ) {
     for offer in [source_offer(request_kind), sink_offer(result_kind)] {
-        startup
-            .insert(KindSignature {
-                kind: offer.kind_id.as_str().into(),
-                startup_parameters: Vec::new(),
-            })
-            .expect("test local-model IO startup Kind is unique");
-        catalog
-            .insert(KindDefinition {
-                kind_id: offer.kind_id,
-                kind_contract_revision: offer.kind_contract_revision,
-                inputs: offer.inputs,
-                outputs: offer.outputs,
-                configuration: Vec::new(),
-            })
-            .expect("test local-model IO Kind is unique");
+        install_offer(startup, catalog, offer);
     }
+}
+
+pub(crate) fn install_house_source_catalog(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+) {
+    for offer in house_source_offers() {
+        install_offer(startup, catalog, offer);
+    }
+}
+
+fn install_offer(
+    startup: &mut StartupCatalog,
+    catalog: &mut ProfileCatalog,
+    offer: CapabilityOffer,
+) {
+    startup
+        .insert(KindSignature {
+            kind: offer.kind_id.as_str().into(),
+            startup_parameters: Vec::new(),
+        })
+        .expect("test local-model IO startup Kind is unique");
+    catalog
+        .insert(KindDefinition {
+            kind_id: offer.kind_id,
+            kind_contract_revision: offer.kind_contract_revision,
+            inputs: offer.inputs,
+            outputs: offer.outputs,
+            configuration: Vec::new(),
+        })
+        .expect("test local-model IO Kind is unique");
 }
 
 fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), String> {
     let (kind, revision, implementation) = if direction == PortDirection::Output {
-        (SOURCE_KIND, SOURCE_REVISION, SOURCE_IMPLEMENTATION)
+        match placement.kind_id.as_str() {
+            HOUSE_DETECTION_SOURCE_KIND => (
+                HOUSE_DETECTION_SOURCE_KIND,
+                HOUSE_DETECTION_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            HOUSE_CONTEXT_SOURCE_KIND => (
+                HOUSE_CONTEXT_SOURCE_KIND,
+                HOUSE_CONTEXT_SOURCE_REVISION,
+                SOURCE_IMPLEMENTATION,
+            ),
+            _ => (SOURCE_KIND, SOURCE_REVISION, SOURCE_IMPLEMENTATION),
+        }
     } else {
         (SINK_KIND, SINK_REVISION, SINK_IMPLEMENTATION)
     };
@@ -206,59 +258,77 @@ fn prepare_source(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     validate(placement, PortDirection::Output)?;
-    let request =
-        if placement.outputs[0].value_kind.as_str() == conduit_ai::SIMILARITY_QUERY_VALUE_KIND {
-            serde_json::to_vec(&conduit_ai::SimilarityQuery {
-                embedding: conduit_ai::Embedding {
-                    profile: conduit_ai::EmbeddingProfile {
-                        identity: "embedding/vector-play-fixture".into(),
-                        semantic_space_identity: "space/vector-play-fixture".into(),
-                        model_identity: "model/vector-play-fixture".into(),
-                        provider_identity: "provider/vector-play-fixture".into(),
-                        dimensions: 3,
-                        normalization: conduit_ai::EmbeddingNormalization::None,
-                        compatible_metrics: conduit_ai::CompatibleMetrics {
-                            cosine_similarity: true,
-                            dot_product_similarity: true,
-                            squared_euclidean_distance: true,
-                        },
+    let request = if placement.outputs[0].value_kind.as_str()
+        == conduit_text::ADDRESS_DETECTION_VALUE_KIND
+    {
+        conduit_tongues::encode_address_detection(&conduit_text::AddressDetection::Addressed {
+            matched_name_index: 0,
+            utterance: "what is the temperature upstairs?".into(),
+        })
+        .map_err(|error| format!("encode House address detection: {error:?}"))?
+    } else if placement.outputs[0].value_kind.as_str()
+        == conduit_tongues::WIRED_HOUSE_CONTEXT_VALUE_KIND
+    {
+        conduit_tongues::encode_wired_house_context(&[conduit_ai::WiredHouseContextItem {
+            item_identity: "context/upstairs-temperature".into(),
+            value_kind: "temperature/summary@1".into(),
+            canonical_value: b"21 C, observed 18 seconds ago".to_vec(),
+            provenance: conduit_ai::HouseContextProvenanceClass::ObservedSign,
+            source_identity: "sign/temperature/42".into(),
+        }])
+        .map_err(|error| format!("encode House context: {error:?}"))?
+    } else if placement.outputs[0].value_kind.as_str() == conduit_ai::SIMILARITY_QUERY_VALUE_KIND {
+        serde_json::to_vec(&conduit_ai::SimilarityQuery {
+            embedding: conduit_ai::Embedding {
+                profile: conduit_ai::EmbeddingProfile {
+                    identity: "embedding/vector-play-fixture".into(),
+                    semantic_space_identity: "space/vector-play-fixture".into(),
+                    model_identity: "model/vector-play-fixture".into(),
+                    provider_identity: "provider/vector-play-fixture".into(),
+                    dimensions: 3,
+                    normalization: conduit_ai::EmbeddingNormalization::None,
+                    compatible_metrics: conduit_ai::CompatibleMetrics {
+                        cosine_similarity: true,
+                        dot_product_similarity: true,
+                        squared_euclidean_distance: true,
                     },
-                    values: vec![1.0, 0.0, 0.0],
                 },
-                metric: conduit_ai::SimilarityMetric::CosineSimilarity,
-                top_k: 2,
-                threshold: None,
-                filters: Vec::new(),
-                temporal_intent: None,
-            })
-            .map_err(|error| format!("encode vector-search request: {error}"))?
-        } else if placement.outputs[0].value_kind.as_str() == "llm/interpretation-request@1" {
-            serde_json::to_vec(&conduit_ai::InterpretationRequest {
-                evidence: vec![
-                    conduit_ai::InterpretationEvidence {
-                        sign_id: conduit_core::SignId::from("sign/line/carrier-lost/7"),
-                        observation: "carrier lost".into(),
-                    },
-                    conduit_ai::InterpretationEvidence {
-                        sign_id: conduit_core::SignId::from("sign/peer/unreachable/8"),
-                        observation: "peer unreachable".into(),
-                    },
-                    conduit_ai::InterpretationEvidence {
-                        sign_id: conduit_core::SignId::from("sign/host/offer-fresh/9"),
-                        observation: "fresh Host offer remains available".into(),
-                    },
-                ],
-                context: "explain the likely operational boundary without taking action".into(),
-                temporal_reference: conduit_ai::TemporalReference {
-                    reference_at: 1_723_456_789_000,
-                    clock_basis: conduit_ai::ClockBasis::UnixEpochMilliseconds,
+                values: vec![1.0, 0.0, 0.0],
+            },
+            metric: conduit_ai::SimilarityMetric::CosineSimilarity,
+            top_k: 2,
+            threshold: None,
+            filters: Vec::new(),
+            temporal_intent: None,
+        })
+        .map_err(|error| format!("encode vector-search request: {error}"))?
+    } else if placement.outputs[0].value_kind.as_str() == "llm/interpretation-request@1" {
+        serde_json::to_vec(&conduit_ai::InterpretationRequest {
+            evidence: vec![
+                conduit_ai::InterpretationEvidence {
+                    sign_id: conduit_core::SignId::from("sign/line/carrier-lost/7"),
+                    observation: "carrier lost".into(),
                 },
-                temporal_intent: Some(conduit_ai::TemporalRetrievalIntent::LatestEvidence),
-            })
-            .map_err(|error| format!("encode local-model interpretation request: {error}"))?
-        } else {
-            b"Conduit bounded local model request".to_vec()
-        };
+                conduit_ai::InterpretationEvidence {
+                    sign_id: conduit_core::SignId::from("sign/peer/unreachable/8"),
+                    observation: "peer unreachable".into(),
+                },
+                conduit_ai::InterpretationEvidence {
+                    sign_id: conduit_core::SignId::from("sign/host/offer-fresh/9"),
+                    observation: "fresh Host offer remains available".into(),
+                },
+            ],
+            context: "explain the likely operational boundary without taking action".into(),
+            temporal_reference: conduit_ai::TemporalReference {
+                reference_at: 1_723_456_789_000,
+                clock_basis: conduit_ai::ClockBasis::UnixEpochMilliseconds,
+            },
+            temporal_intent: Some(conduit_ai::TemporalRetrievalIntent::LatestEvidence),
+        })
+        .map_err(|error| format!("encode local-model interpretation request: {error}"))?
+    } else {
+        b"Conduit bounded local model request".to_vec()
+    };
     let value = values
         .store(&request)
         .map_err(|error| format!("store local-model test request: {error:?}"))?;

@@ -91,6 +91,7 @@ pub(super) fn catalogs(
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
     conduit_tongues::install_research_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
     Ok((startup, profile))

@@ -75,15 +75,17 @@ pub(super) fn prove(
             offer.limits.cancellation_supported
         );
         println!(
-            "Plans: generate={} classify={} extract={} interpret={} completed={}/{}/{}/{}",
+            "Plans: generate={} classify={} extract={} interpret={} house={} completed={}/{}/{}/{}/{}",
             receipt.generate_plan_id,
             receipt.classify_plan_id,
             receipt.extract_plan_id,
             receipt.interpret_plan_id,
+            receipt.house_plan_id,
             receipt.generate_play_completed,
             receipt.classify_play_completed,
             receipt.extract_play_completed,
-            receipt.interpret_play_completed
+            receipt.interpret_play_completed,
+            receipt.house_play_completed
         );
     }
     Ok(())
