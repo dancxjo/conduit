@@ -34,6 +34,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_data::install_measurement_summary_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_threshold_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_plot_form_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
     match presentation {
@@ -139,5 +140,6 @@ pub(crate) fn backs(
 ) -> Result<conduit_form::CanonicalBackCatalog, String> {
     let mut backs = conduit_form::CanonicalBackCatalog::new();
     conduit_text::install_morse_backs(startup, profile, &mut backs)?;
+    conduit_data::install_measurement_plot_form_back(startup, profile, &mut backs)?;
     Ok(backs)
 }
