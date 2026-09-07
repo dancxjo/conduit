@@ -44,7 +44,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "check")
         .collect();
-    assert_eq!(checks.len(), 65);
+    assert_eq!(checks.len(), 66);
     assert!(checks.iter().all(|result| result.status == "passed"));
     let little_seismograph = checks
         .iter()
