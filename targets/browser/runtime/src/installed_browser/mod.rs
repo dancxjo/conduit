@@ -14,6 +14,7 @@ mod linguistics;
 mod logic;
 mod math;
 pub(crate) mod measurement_plot;
+pub(crate) mod measurement_summary;
 mod membership_offer;
 mod morse;
 mod morse_composition;
