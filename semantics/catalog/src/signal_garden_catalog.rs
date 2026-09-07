@@ -1,6 +1,7 @@
 //! Checked catalog surface for explicit minimal and enriched Garden reducers.
 
 use alloc::{
+    format,
     string::{String, ToString},
     vec,
     vec::Vec,
@@ -9,16 +10,21 @@ use conduit_core::{
     kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
     StructuredInfoType,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{
+    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
+    KindSignature,
+};
 
 use crate::{
-    garden_clock_observation_type, garden_contact_observation_type, garden_registered_types,
-    garden_state_type,
+    garden_clock_observation_type, garden_contact_observation_type,
+    garden_enriched_observation_type, garden_registered_types, garden_state_type,
 };
 
 pub const GARDEN_FIXTURE_KIND: &str = "garden/deterministic-observations";
 pub const GARDEN_MINIMAL_STEP_KIND: &str = "state/garden-step";
 pub const GARDEN_ENRICHED_STEP_KIND: &str = "state/garden-step-contact";
+pub const GARDEN_OBSERVATION_COMBINE_KIND: &str = "observation/garden-clock-contact";
+pub const GARDEN_ENRICHED_REDUCER_KIND: &str = "state/garden-step-enriched-reducer";
 pub const GARDEN_CONTRACT_REVISION: &str = "conduit.std/signal-garden-state@1";
 
 pub fn install_signal_garden_catalog(
@@ -62,7 +68,61 @@ pub fn install_signal_garden_catalog(
         GARDEN_ENRICHED_STEP_KIND,
         reducer_inputs(true),
         vec![port("next", &garden_state_type(), PortDirection::Output)],
+    )?;
+    insert_kind(
+        startup,
+        profile,
+        GARDEN_OBSERVATION_COMBINE_KIND,
+        vec![
+            port(
+                "clock",
+                &garden_clock_observation_type(),
+                PortDirection::Input,
+            ),
+            port(
+                "contact",
+                &garden_contact_observation_type(),
+                PortDirection::Input,
+            ),
+        ],
+        vec![port(
+            "observation",
+            &garden_enriched_observation_type(),
+            PortDirection::Output,
+        )],
+    )?;
+    insert_kind(
+        startup,
+        profile,
+        GARDEN_ENRICHED_REDUCER_KIND,
+        vec![
+            port("prior", &garden_state_type(), PortDirection::Input),
+            port(
+                "observation",
+                &garden_enriched_observation_type(),
+                PortDirection::Input,
+            ),
+        ],
+        vec![port("next", &garden_state_type(), PortDirection::Output)],
     )
+}
+
+pub fn install_signal_garden_backs(
+    startup: &conduit_form::StartupCatalog,
+    profile: &conduit_form::ProfileCatalog,
+    backs: &mut CanonicalBackCatalog,
+) -> Result<(), String> {
+    let checked = check_syntax_document(
+        &parse_syntax_document(include_str!("../../../forms/signal-garden/main.conduit")),
+        startup,
+    )
+    .map_err(|error| format!("check Signal Garden Back: {error:?}"))?;
+    let definition = profile
+        .get(&kind_id(GARDEN_ENRICHED_STEP_KIND))
+        .ok_or_else(|| "missing enriched Signal Garden definition".to_string())?;
+    backs
+        .insert(definition, &checked, "garden-state-step-contact")
+        .map_err(|error| format!("install enriched Signal Garden Back: {error:?}"))
 }
 
 pub fn garden_minimal_step_definition() -> KindDefinition {

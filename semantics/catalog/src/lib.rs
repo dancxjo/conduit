@@ -208,6 +208,9 @@ mod quantity_mapping;
 pub use quantity_mapping::*;
 mod signal_garden;
 pub use signal_garden::*;
+
+mod signal_garden_observation;
+pub use signal_garden_observation::*;
 #[cfg(feature = "form-catalog")]
 mod signal_garden_catalog;
 #[cfg(feature = "form-catalog")]

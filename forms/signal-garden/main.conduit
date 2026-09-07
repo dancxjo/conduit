@@ -17,10 +17,12 @@ form garden-state-step-contact (
     > contact: GardenContactObservation
     next: GardenState >
 ) {
-    evolve: state/garden-step-contact
+    combine: observation/garden-clock-contact
+    evolve: state/garden-step-enriched-reducer
     prior > evolve.prior
-    clock > evolve.clock
-    contact > evolve.contact
+    clock > combine.clock
+    contact > combine.contact
+    combine.observation > evolve.observation
     evolve.next > next
 }
 
