@@ -127,6 +127,118 @@ fn correlation_frame_receipt_and_transition_bounds_fail_closed() {
 }
 
 #[test]
+fn every_delivery_observation_has_an_exact_bounded_wire_round_trip() {
+    fn round_trip(event: RecordDeliveryObservationEvent<'_>) {
+        let observation = RecordDeliveryObservationRef {
+            correlation: b"message/9",
+            frame_bytes: 100,
+            event,
+        };
+        let mut wire = [0_u8; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES];
+        let written = encode_record_delivery_observation_into(observation, &mut wire).unwrap();
+        assert_eq!(
+            decode_record_delivery_observation(&wire[..written]).unwrap(),
+            observation
+        );
+    }
+
+    round_trip(RecordDeliveryObservationEvent::LocallyAccepted);
+    round_trip(RecordDeliveryObservationEvent::FramedQueued { queue_sequence: 41 });
+    round_trip(RecordDeliveryObservationEvent::PartiallySent { sent_bytes: 29 });
+    round_trip(RecordDeliveryObservationEvent::RemoteAccepted {
+        receipt: b"remote/receipt/4",
+    });
+    round_trip(RecordDeliveryObservationEvent::TransportUnavailable { code: 1 });
+    round_trip(RecordDeliveryObservationEvent::Disconnected { code: 2 });
+    round_trip(RecordDeliveryObservationEvent::TimedOut { code: 3 });
+    round_trip(RecordDeliveryObservationEvent::Refused { code: 4 });
+    round_trip(RecordDeliveryObservationEvent::Failed { code: 5 });
+}
+
+#[test]
+fn delivery_wire_refuses_truncation_trailing_bytes_empty_receipts_and_small_output() {
+    let observation = RecordDeliveryObservationRef {
+        correlation: b"message/10",
+        frame_bytes: 20,
+        event: RecordDeliveryObservationEvent::FramedQueued { queue_sequence: 7 },
+    };
+    let mut wire = [0_u8; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES];
+    let written = encode_record_delivery_observation_into(observation, &mut wire).unwrap();
+    for length in 0..written {
+        assert!(decode_record_delivery_observation(&wire[..length]).is_err());
+    }
+    wire[written] = 99;
+    assert_eq!(
+        decode_record_delivery_observation(&wire[..written + 1]),
+        Err(RecordDeliveryRefusal::MalformedWire)
+    );
+    assert_eq!(
+        encode_record_delivery_observation_into(observation, &mut [0_u8; 1]),
+        Err(RecordDeliveryRefusal::OutputTooSmall)
+    );
+
+    let empty_receipt = RecordDeliveryObservationRef {
+        event: RecordDeliveryObservationEvent::RemoteAccepted { receipt: b"" },
+        ..observation
+    };
+    assert_eq!(
+        encode_record_delivery_observation_into(empty_receipt, &mut wire),
+        Err(RecordDeliveryRefusal::EmptyReceipt)
+    );
+    let mut malformed_receipt = [0_u8; 9];
+    malformed_receipt[0] = RECORD_DELIVERY_WIRE_VERSION;
+    malformed_receipt[1] = 1;
+    malformed_receipt[2..6].copy_from_slice(&1_u32.to_le_bytes());
+    malformed_receipt[6] = 3;
+    malformed_receipt[7] = b'x';
+    assert_eq!(
+        decode_record_delivery_observation(&malformed_receipt),
+        Err(RecordDeliveryRefusal::MalformedWire)
+    );
+}
+
+#[test]
+fn tracker_applies_only_matching_ordered_observations_and_projects_exact_status() {
+    let mut delivery = RecordDeliveryTracker::locally_accepted(b"message/11", 50).unwrap();
+    let queued = RecordDeliveryObservationRef {
+        correlation: b"message/11",
+        frame_bytes: 50,
+        event: RecordDeliveryObservationEvent::FramedQueued { queue_sequence: 8 },
+    };
+    delivery.apply(queued).unwrap();
+    assert_eq!(delivery.observation(), queued);
+
+    let wrong_identity = RecordDeliveryObservationRef {
+        correlation: b"message/12",
+        ..queued
+    };
+    assert_eq!(
+        delivery.apply(wrong_identity),
+        Err(RecordDeliveryRefusal::ObservationIdentityMismatch)
+    );
+    delivery
+        .apply(RecordDeliveryObservationRef {
+            event: RecordDeliveryObservationEvent::PartiallySent { sent_bytes: 12 },
+            ..queued
+        })
+        .unwrap();
+    delivery
+        .apply(RecordDeliveryObservationRef {
+            event: RecordDeliveryObservationEvent::RemoteAccepted {
+                receipt: b"remote/12",
+            },
+            ..queued
+        })
+        .unwrap();
+    assert_eq!(
+        delivery.observation().event,
+        RecordDeliveryObservationEvent::RemoteAccepted {
+            receipt: b"remote/12",
+        }
+    );
+}
+
+#[test]
 fn delivery_projection_is_an_ordinary_reusable_closing_flow_form() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
