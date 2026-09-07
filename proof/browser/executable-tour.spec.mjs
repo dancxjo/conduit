@@ -962,7 +962,7 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await page.mouse.down();
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("button transition");
   await page.mouse.up();
-  await expect(laboratory.locator('[role="img"]')).toHaveAttribute("aria-label", "Indicator off");
+  await expect(laboratory.locator(".indicator")).toHaveAttribute("aria-label", "Indicator off");
   await expect(laboratory.locator('[data-application-key="play-status"]')).toContainText("2 planned manifestations");
   expect(await page.evaluate(() => globalThis.__galleryAuthorityRequests)).toBe(0);
   const add = memory.getByRole("link", { name: "Add to new Body" });
