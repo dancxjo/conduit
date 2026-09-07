@@ -1,10 +1,10 @@
-//! Typed history observation fixture, excluded from production installations.
+//! Typed replay observation fixture, excluded from production installations.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
 use super::BrowserOperation;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 
-pub(crate) const KIND: &str = "conduit-test/history-sink";
+pub(crate) const KIND: &str = "conduit-test/replay-sink";
 
 pub(super) static SINK: BrowserInstallation = BrowserInstallation {
     implementation_id: KIND,
@@ -14,24 +14,24 @@ pub(super) static SINK: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer() -> CapabilityOffer {
-    let mut contract = conduit_time::historical_timeline_kind_definition();
-    contract.inputs = contract.outputs;
+    let mut contract = conduit_time::replay_source_kind_definition();
+    contract.inputs = vec![contract.outputs.remove(0)];
     contract.inputs[0].direction = PortDirection::Input;
     CapabilityOffer {
         kind_id: KIND.into(),
-        kind_contract_revision: "conduit-test/history-sink@1".into(),
+        kind_contract_revision: "conduit-test/replay-sink@1".into(),
         capability_id: KIND.into(),
         startup_parameters: Vec::new(),
         shorthand: None,
         inputs: contract.inputs,
         outputs: Vec::new(),
         implementation: ImplementationOffer {
-            execution_profile_id: "conduit-test/history-sink@1".into(),
+            execution_profile_id: "conduit-test/replay-sink@1".into(),
             implementation_id: KIND.into(),
-            artifact_id: "conduit-test/history-sink@1".into(),
+            artifact_id: "conduit-test/replay-sink@1".into(),
         },
         host_operations: vec![HostOperationRequirement {
-            contract_id: "conduit-test/history-output".into(),
+            contract_id: "conduit-test/replay-output".into(),
             target_kind: Some(KIND.into()),
             maximum_in_flight: 1,
             maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,

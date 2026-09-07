@@ -26,6 +26,7 @@ pub(crate) mod record_delivery;
 pub(crate) mod record_queue;
 mod record_temporal;
 mod record_transcript;
+pub(crate) mod replay_source;
 pub(crate) mod resource;
 mod state_time;
 mod text;
@@ -92,7 +93,7 @@ pub(crate) mod test_json;
 pub(crate) mod test_timing_sink;
 
 #[cfg(test)]
-pub(crate) mod test_history_sink;
+pub(crate) mod test_replay_sink;
 
 pub(crate) mod button_attempt;
 

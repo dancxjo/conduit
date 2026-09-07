@@ -1,8 +1,9 @@
 //! Deterministic planned history ingress; no live Line or storage claim.
 use super::*;
 use conduit_core::{
-    process_owned_line_offer_with_limits, BaseImplementationId, LinkLimits, PortDirection,
-    StructuredInfoType,
+    process_owned_line_offer_with_limits, BaseImplementationId, BoundedResourceRef, LinkLimits,
+    PortDirection, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
+    ResourceVersionIdentity, StructuredInfoType, TemporalInstant, TemporalScale,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
@@ -15,7 +16,7 @@ fn fragment() -> PlanFragment {
     let (mut startup, mut catalog) = crate::installed_browser::catalogs().unwrap();
     let mut browser =
         crate::installed_browser::advertisement("history-browser".into(), "history-boot".into());
-    let sink = crate::installed_browser::test_history_sink::offer();
+    let sink = crate::installed_browser::test_replay_sink::offer();
     startup
         .insert(KindSignature {
             kind: sink.kind_id.as_str().into(),
@@ -70,7 +71,7 @@ fn fragment() -> PlanFragment {
     source_host.capabilities = vec![source_offer];
 
     let syntax = parse_syntax_document(
-        "form history {\n source: fixture/history-command\n history: history/bounded-typed(maximum-entries = 4)\n result: conduit-test/history-sink\n source.command > history.command\n history.timeline > result.timeline\n}\n",
+        "form history {\n source: fixture/history-command\n history: history/bounded-typed(maximum-entries = 4)\n replay: history/replay-source\n result: conduit-test/replay-sink\n source.command > history.command\n history.timeline > replay.timeline\n replay.replay > result.replay\n}\n",
     );
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "history", &catalog).unwrap();
@@ -153,10 +154,33 @@ fn fragment() -> PlanFragment {
     .unwrap()
 }
 
-fn clear_command() -> Vec<u8> {
+fn append_command() -> Vec<u8> {
     let mut command = [0; conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES];
     let length = conduit_time::encode_historical_timeline_command_into(
-        &conduit_time::HistoricalTimelineCommand::Clear,
+        &conduit_time::HistoricalTimelineCommand::Append {
+            identity: "memory/one".into(),
+            event_time: TemporalInstant {
+                ticks: 100,
+                scale: TemporalScale::Milliseconds,
+                clock_basis: "history/event-clock".into(),
+                resolution_ticks: 1,
+                uncertainty_ticks: 0,
+            },
+            origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
+            value: BoundedResourceRef {
+                identity: ResourceSemanticIdentity::from_digest([1; 32]),
+                content_profile: conduit_core::kind_id("value/text@1"),
+                access_class: ResourceClassId::from("conduit.resource/history-value@1"),
+                extent: ResourceExtent {
+                    bytes: 4,
+                    items: Some(1),
+                },
+                lifetime: ResourceLifetime {
+                    version: ResourceVersionIdentity::from_digest([2; 32]),
+                    expires_at: None,
+                },
+            },
+        },
         &mut command,
     )
     .unwrap();
@@ -182,33 +206,35 @@ fn exact_leaf<'a>(canonical: &'a [u8], value_type: &[u8]) -> Option<&'a [u8]> {
 }
 
 #[test]
-fn planned_browser_history_mutates_and_presents_through_the_production_kernel() {
+fn planned_browser_history_projects_replay_through_the_production_kernel() {
     let fragment = fragment();
     let (mut scheduler, lowered) = prepare_remote_fragment(&fragment).unwrap();
     let remote = &lowered.remote_endpoints[0];
     let capacities = scheduler.values().allocation_capacities();
     scheduler
-        .admit_remote_input(remote.endpoint, remote.cord, 0, &clear_command())
+        .admit_remote_input(remote.endpoint, remote.cord, 0, &append_command())
         .unwrap();
     scheduler
         .close_remote_input(remote.endpoint, remote.cord)
         .unwrap();
 
     let DriveStatus::Effect(pending) = drive(&mut scheduler, &fragment).unwrap() else {
-        panic!("expected the typed history manifestation");
+        panic!("expected the typed replay manifestation");
     };
     let BrowserHostEffect::Manifestation(output) = &pending.effect else {
-        panic!("expected history manifestation");
+        panic!("expected replay manifestation");
     };
-    let timeline_type = StructuredInfoType::leaf(conduit_core::kind_id("history/typed-timeline@1"))
+    let replay_type = StructuredInfoType::leaf(conduit_core::kind_id("history/replay-timeline@1"))
         .unwrap()
         .canonical_bytes()
         .unwrap();
-    let timeline = conduit_time::decode_historical_timeline(
-        exact_leaf(&output.canonical_value, &timeline_type).unwrap(),
+    let replay = conduit_time::decode_replay_timeline(
+        exact_leaf(&output.canonical_value, &replay_type).unwrap(),
     )
     .unwrap();
-    assert_eq!(timeline.clear_revision(), 1);
+    assert_eq!(replay.len(), 1);
+    assert_eq!(replay[0].identity, "memory/one");
+    assert_eq!(replay[0].event_time.ticks, 100);
     complete_host_effect(&mut scheduler, &pending).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
@@ -221,6 +247,6 @@ fn planned_browser_history_mutates_and_presents_through_the_production_kernel() 
             .events()
             .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
             .count(),
-        2
+        3
     );
 }

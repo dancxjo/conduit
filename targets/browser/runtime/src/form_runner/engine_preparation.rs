@@ -82,6 +82,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
     let mut timing = core::array::from_fn(|_| None);
     let mut deliveries = core::array::from_fn(|_| None);
     let mut histories = core::array::from_fn(|_| None);
+    let mut replay_sources = core::array::from_fn(|_| None);
     for (fragment, node) in partitions
         .iter()
         .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))
@@ -121,6 +122,10 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
             crate::installed_browser::record_delivery::prepare_codec(placement)?;
         histories[usize::from(node.node.0)] =
             crate::installed_browser::historical::PreparedHistory::for_placement(placement)?;
+        replay_sources[usize::from(node.node.0)] =
+            crate::installed_browser::replay_source::PreparedReplaySource::for_placement(
+                placement,
+            )?;
         if placement.host_operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == crate::installed_browser::pointer_selector::HOST_OPERATION
@@ -226,6 +231,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         timing,
         deliveries,
         histories,
+        replay_sources,
         attempts,
         comparisons,
         snapshots,
