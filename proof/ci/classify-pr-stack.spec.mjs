@@ -122,37 +122,3 @@ test("candidate workflows retain only cheap gates for an intermediate stack slic
   assert.match(products, /no product fabrication is scheduled/);
   assert.match(products, /echo 'required=false'/);
 });
-
-
-test("workflow classifier lookup follows only one tracked trusted implementation", (t) => {
-  const workflow = readFileSync(".github/workflows/candidate-shared-compile.yml", "utf8");
-  const script = workflow.match(/          mapfile -t classifiers[\s\S]*?          node "\$RUNNER_TEMP\/conduit-ci-controller\/\$\{classifiers\[0\]\}"/)[0];
-  for (const name of ["check.yml", "tour-products.yml"]) {
-    assert.ok(readFileSync(`.github/workflows/${name}`, "utf8").includes(script));
-  }
-  for (const owner of ["scripts/ci", "tools/ci"]) {
-    const temporary = mkdtempSync(join(tmpdir(), "conduit-controller-owner-"));
-    t.after(() => rmSync(temporary, { recursive: true, force: true }));
-    const controller = join(temporary, "conduit-ci-controller");
-    mkdirSync(controller);
-    assert.equal(spawnSync("git", ["init", "-q", controller]).status, 0);
-    const selected = `${owner}/classify-pr-stack.mjs`;
-    mkdirSync(dirname(join(controller, selected)), { recursive: true });
-    writeFileSync(join(controller, selected), `console.log(${JSON.stringify(owner)});`);
-    assert.equal(spawnSync("git", ["-C", controller, "add", selected]).status, 0);
-    const untracked = "untracked/classify-pr-stack.mjs";
-    mkdirSync(dirname(join(controller, untracked)));
-    writeFileSync(join(controller, untracked), 'throw new Error("untracked source executed");');
-    const run = () => spawnSync("bash", ["-e", "-c", script], {
-      cwd: temporary, env: { ...process.env, RUNNER_TEMP: temporary }, encoding: "utf8",
-    });
-    const exact = run();
-    assert.equal(exact.status, 0, exact.stderr);
-    assert.equal(exact.stdout.trim(), owner);
-    assert.equal(spawnSync("git", ["-C", controller, "add", untracked]).status, 0);
-    const ambiguous = run();
-    assert.notEqual(ambiguous.status, 0);
-    assert.match(ambiguous.stderr, /Expected one tracked stack classifier/);
-    assert.equal(ambiguous.stdout, "");
-  }
-});

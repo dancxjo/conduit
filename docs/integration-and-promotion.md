@@ -1,87 +1,70 @@
 # Integration and promotion
 
-Conduit uses two proof speeds because not every development commit needs to be release-grade; every `main` commit does.
+Conduit deliberately separates inexpensive development entry from exhaustive
+release proof.
 
 ```text
-feature branch
-      |
-      | focused candidate proof
-      v
-     dev  -- combined-tree integration smoke
-      |
-      | periodic promotion PR, exhaustive proof
-      v
-     main -- known-good, releasable, deployable
+feature PR -> candidate -> dev -> dev-integration
+                                  |
+                       successful integration
+                                  |
+                         release branch
+                                  |
+                    repair + promotion -> main
 ```
 
 ## Branch contracts
 
-`dev` is the construction site and the ordinary pull-request target. Candidate CI explicitly checks out the PR head and uses the existing impact planner to compile affected crates and select relevant semantic, browser, firmware, or ConduitOS proofs. It is an admission screen, not a release certification.
+`dev` is the construction branch and the target for ordinary pull requests.
+The `candidate` workflow checks the exact PR head for patch integrity,
+formatting, and lightweight CI-controller contracts. It does not compile the
+full workspace, fabricate products, start browsers, install firmware
+toolchains, or boot ConduitOS. A newer push cancels work for the superseded
+head; unrelated pull requests never cancel one another.
 
-Every `dev` update runs integration smoke on the combined tree. A failure is an integration incident: repairing `dev` takes priority over merging more product work. The PR shepherd owns triage and keeps the queue from turning into stacks of mutually stale candidates.
+Every update to `dev` runs combined-tree integration, including affected
+product and machine proofs. Only the newest development head matters. If another
+merge advances `dev`, GitHub cancels the obsolete run and proves the new
+combined tree. A red current head is useful integration feedback, not a reason
+to reconcile every previously merged pull request.
 
-The earlier candidate reconciliation and workflow-run retirement controllers remain manually dispatchable during migration but do not run on ordinary PR lifecycle events. Native merged-branch deletion replaces the latter in the steady state.
+`main` is the stable publication branch. After successful development
+integration, the release controller creates `release/<captured-dev-sha>`
+containing everything then in `dev` and opens its PR to `main`—unless a release
+is already running or the two trees already agree. The branch is intentionally
+repairable: exhaustive proof may expose interactions that inexpensive
+development entry did not. Repair those bugs on the release branch until its
+exact final head passes.
 
-`main` is the stable publication branch. Its only routine input is a same-repository frozen snapshot named `promote/<full-promotion-sha>`. The promotion commit has the current `main` as first parent, the chosen `dev` snapshot as second parent, and exactly the chosen `dev` tree. The stable `promotion` check verifies that shape before forcing the complete workspace and product proof graphs, including release fabrication. A feature branch or the moving `dev` ref aimed directly at `main` fails the branch boundary rather than acquiring an alternative path.
+After a release merges, automation opens an auto-merged sync back to `dev`.
+Release repairs therefore become part of later development rather than being
+rediscovered.
 
-After a promotion merges, Pages deployment accepts the carrier produced by that exact promotion run. Deployment remains privileged and separate; it does not execute code from an untrusted `pull_request_target` checkout.
+## Contributor procedure
 
-The Pages resolver admits `promotion.yml` as an exact carrier producer even though `dev` is the repository default. An explicit recovery deployment still verifies the requested SHA against `refs/heads/main`; default-branch metadata is not publication identity.
+- To change Conduit: open a pull request to `dev`, then review the single
+  `candidate` result.
+- Publication normally starts automatically after successful development
+  integration. **Promote dev to main** is the manual escape hatch.
+- If development integration fails: repair `dev` through another ordinary PR.
+- If promotion fails: repair the release branch and let the exact new head run.
 
-## Evidence meanings
+No person or agent supplies integration identities, operates proof receipts,
+creates ceremonial merge commits, dispatches reconciliation, or polls every
+child job.
 
-| Boundary | Question answered | Cost |
-| --- | --- | --- |
-| feature PR to `dev` | Is this delta sound enough to integrate? | Focused by actual impact |
-| push on `dev` | Does the current combined development tree work in affected domains? | Focused integration smoke |
-| frozen `dev` snapshot to `main` | Is this exact integrated tree releasable? | Exhaustive |
+See [CI for contributors](contributing/ci.md) for status meanings. Historical
+candidate-reconciliation details remain only as a
+[short archaeology note](ci-candidate-evidence.md).
 
-Passing a feature PR does not promise eternal compatibility with later `dev`. When an old PR is ready to enter integration, rebase it or reapply its clean product delta onto current `dev` and prove that refreshed head.
+## Guarantees retained behind the interface
 
-## Promotion procedure
+- candidate code never receives privileged deployment credentials;
+- each gate evaluates its exact current head;
+- entry to `dev` is cheap, while combined and release failures remain visible;
+- release proof is exhaustive and applies to the final repaired release head;
+- a successful older run never substitutes for a failed newer head;
+- release fixes return to `dev`; and
+- Pages deploys only a carrier produced by the accepted promotion.
 
-1. Require green `dev` integration smoke and record its exact commit `S`. Product admission to `dev` does not pause after this point.
-2. Run `cargo xtask ci promotion-snapshot --push --locked`. This publishes a deterministic two-parent `promote/<full-promotion-sha>` commit whose tree is exactly `S`; an existing ref with different content is refused.
-3. Open the sole `promote/<full-promotion-sha>`-to-`main` promotion PR without adding a product delta.
-4. Require the stable `promotion` result at exact snapshot `S`. Do not substitute evidence from later `dev`, local, candidate, canceled, or older runs.
-5. Merge without rewriting the proven source tree. Verify the resulting `main` tree is `S`, then delete the snapshot branch after deployment has consumed its exact carrier.
-6. Let the trusted post-merge deployment upload the already-proven Pages carrier.
-7. Close issues only when their stated proof class and stable-main requirements are actually met.
-
-Commits admitted to `dev` after `S` belong to the next promotion. They neither cancel nor enlarge the in-flight proof. A merge commit may leave `main` and `dev` with different ancestry even when their trees agree; synchronize that bookkeeping opportunistically and never make product agents wait for it.
-
-## Emergency queue consolidation
-
-An uber-PR is recovery, not the steady state. The shepherd records the exact head of every stranded PR, combines reviewed deltas once on current `dev`, resolves shared fallout, validates the combined head, and closes an old PR only after its head is an ancestor or its exact patch is demonstrably present. Explicit maintainer authorization may permit a leased force update to `dev`; it never permits an unproven tree to bypass promotion into `main`.
-
-## Updating PR metadata
-
-For a title, body, or base update that fails because `gh pr edit` queries the
-deprecated Projects Classic API, use the narrow Pull Requests REST endpoint.
-This administrative operation requires no checkout or CI run. Prepare the
-description in a UTF-8 file with actual newlines; do not interpolate its contents
-into shell code. Replace the example PR number and file path:
-
-```sh
-gh api --method PATCH repos/dancxjo/conduit/pulls/1234 \
-  -F body=@/absolute/path/pr-body.md \
-  --jq '{number, html_url, body}'
-```
-
-`-F body=@...` reads the file as the sole changed field. Verify the returned
-`number`, repository in `html_url`, and `body` before reporting success. A title
-update instead uses `-f title='Reviewed title'`; a deliberate development-base
-update uses `-f base=dev`. Send only the intended field. Continue using ordinary
-`gh pr edit` for broader metadata operations when it works. These requests change
-PR metadata only; they do not admit code or establish proof.
-
-For a partial issue slice, write `Owning issue: #1234` and
-`Remaining work is tracked in #1234`. Avoid negating closing keywords: GitHub
-can still interpret `does not close #1234` as a closing link. Before admission,
-inspect the PR's linked closing issues and remove unintended links from its
-description. After merging, verify the affected issues remain open until their
-complete acceptance criteria and promotion evidence are met.
-
-## Roles
-
-Product agents get useful Conduit into `dev`: small owned deltas, focused local proof, and prompt refresh when stale. Agent Fiona is the current PR shepherd: keep `dev` integrable, watch Actions and the open queue, resolve jams, and promote proven batches to `main`. CI work is justified when it protects these two boundaries or removes a demonstrated jam, not merely because a more elaborate evidence theory is possible.
+These are implementation requirements, not contributor chores.
