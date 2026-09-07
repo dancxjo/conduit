@@ -3,25 +3,11 @@
 use super::*;
 
 fn pointer_quantity_source() -> String {
-    format!(
-        r#"{}
-form zz-pointer-quantity {{
- pointer: input/pointer-source
- normalize: math/normalized-quantity-scalar
- map: quantity-range-map
- wrap: structured-info/wrap-quantity
- show: presentation/structured-info
- pointer.pointer > project(PointerEvent.position) > project(Point2.x) > normalize.in
- normalize.out > map.control
- map.quantity > wrap.in
- wrap.out > show.input
-}}"#,
-        include_str!("../../../../../forms/quantity-range-map/main.conduit")
-    )
+    include_str!("../../../../../forms/pocket-theremin/main.conduit").into()
 }
 
 #[test]
-fn pointer_quantity_chain_uses_selectors_mapping_and_correlated_presentation() {
+fn canonical_pocket_theremin_maps_pointer_position_to_typed_pitch() {
     let source = pointer_quantity_source();
     for (position_x, expected) in [(0, "20 Hz"), (500_000, "10010 Hz"), (1_000_000, "20000 Hz")] {
         let (mut session, effect) = TourSession::prepare_with_profile(
@@ -146,7 +132,7 @@ form zz-quantity-output {{
  input: scalar/literal(value = {value})
  map: {name}
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: presentation/quantity
  input.value > map.control
  map.{output} > wrap.in
  wrap.out > show.input
@@ -167,7 +153,7 @@ form zz-quantity-output {{
             assert_eq!(effect.text.as_deref(), Some(expected[index]));
             assert_eq!(
                 effect.presentation_kind,
-                conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
+                conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND
             );
             assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
             assert_eq!(effect.active_play_id, session.active_play_id.as_str());

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 85
+maximum_forms = 87
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -221,6 +221,13 @@ title = "Pete Situation"
 entry = "pete-situation"
 deterministic = { package = "conduit-pete", test = "lib", case = "canonical_pete_situation_is_one_checked_open_form" }
 browser_safe_not_applicable = "Pete situation selection has no installed browser realization"
+[[forms]]
+slug = "pocket-theremin"
+title = "Pocket Theremin"
+entry = "pocket-theremin"
+reusable_entries = [{ entry = "quantity-range-map", title = "Typed Pitch Mapping", composition = { parent = "pocket-theremin", occurrences = ["pitch"] } }]
+deterministic = { package = "conduit-semantic-catalog", test = "quantity_mapping_form", case = "reusable_mapping_and_outside_consumer_are_checked_and_host_neutral" }
+browser_safe = { spec = "proof/browser/quantity-controller.spec.mjs", case = "Pocket Theremin maps pointer and deterministic control to typed pitch" }
 [[forms]]
 slug = "pool-webchat"
 title = "Pool Webchat"
