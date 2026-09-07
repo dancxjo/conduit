@@ -1,5 +1,63 @@
 use super::*;
 
+fn pulse_sinks(form: &conduit_form::ExpandedCanonicalForm) -> Vec<&str> {
+    form.gears
+        .iter()
+        .filter(|gear| {
+            matches!(
+                gear.kind_id.as_str(),
+                conduit_semantic_catalog::PULSE_PRESENTATION_KIND
+                    | conduit_semantic_catalog::PULSE_TONE_PRESENTATION_KIND
+            )
+        })
+        .map(|gear| gear.kind_id.as_str())
+        .collect()
+}
+
+#[test]
+fn pulse_light_and_tone_are_explicit_and_sound_omission_removes_its_cord() {
+    let source = include_str!("../../../../../forms/firefly-choir/main.conduit");
+    let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
+    let checked =
+        conduit_form::check_syntax_document(&conduit_form::parse_syntax_document(source), &startup)
+            .unwrap();
+    let light_only = conduit_form::expand_canonical_form_for_authoring(
+        &checked,
+        "pulse-manifestation",
+        &catalog,
+    )
+    .unwrap();
+    let enriched = conduit_form::expand_canonical_form_for_authoring(
+        &checked,
+        "pulse-light-tone-manifestation",
+        &catalog,
+    )
+    .unwrap();
+
+    assert_eq!(
+        pulse_sinks(&enriched.expanded),
+        [
+            conduit_semantic_catalog::PULSE_PRESENTATION_KIND,
+            conduit_semantic_catalog::PULSE_TONE_PRESENTATION_KIND,
+        ]
+    );
+    assert_eq!(enriched.expanded.connections.len(), 2);
+    assert_eq!(
+        pulse_sinks(&light_only.expanded),
+        [conduit_semantic_catalog::PULSE_PRESENTATION_KIND]
+    );
+    assert_eq!(light_only.expanded.connections.len(), 1);
+    let browser =
+        crate::installed_browser::advertisement("browser/light".into(), "boot/light".into());
+    assert!(browser
+        .capabilities
+        .iter()
+        .any(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::PULSE_PRESENTATION_KIND));
+    assert!(browser.capabilities.iter().all(|offer| {
+        offer.kind_id.as_str() != conduit_semantic_catalog::PULSE_TONE_PRESENTATION_KIND
+    }));
+}
+
 #[test]
 fn canonical_firefly_choir_manifests_four_exact_bounded_pulses() {
     let source = include_str!("../../../../../forms/firefly-choir/main.conduit");
