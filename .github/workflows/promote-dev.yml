@@ -59,7 +59,7 @@ jobs:
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
           printf 'dev_sha=%s\n' "$dev_sha" >> "$GITHUB_OUTPUT"
           printf 'status=created\n' >> "$GITHUB_OUTPUT"
-          gh pr merge "$pr_url" --auto --merge
+          gh pr merge "$pr_url" --auto --rebase
       - name: Summarize the release candidate
         env:
           PR_URL: ${{ steps.pull-request.outputs.url }}
