@@ -128,7 +128,7 @@ test("an authored five-transition button stream handles three ordinary browser p
     await page.mouse.up();
     await page.mouse.down();
     await expect(runner.locator('[data-application-key="play-status"]')).toContainText("5 planned manifestations");
-    await expect(runner.locator('[role="img"]')).toHaveAttribute("aria-label", "Indicator on");
+    await expect(runner.locator('[role="img"].indicator')).toHaveAttribute("aria-label", "Indicator on");
     expect(failures).toEqual([]);
   } finally {
     await page.mouse.up();

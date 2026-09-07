@@ -1324,8 +1324,10 @@ test("an exact browser release becomes a Body-bound spore and a newly admitted b
   await runner.getByRole("button", { name: "Realize selected Host" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
+  const admit = runner.getByRole("button", { name: "Admit Part and offers" });
+  await expect(admit).toBeEnabled({ timeout: 15_000 });
   await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
-  await runner.getByRole("button", { name: "Admit Part and offers" }).click();
+  await admit.click();
   await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
   const evidenceParts = await runner.locator("details code").allTextContents();
   expect(evidenceParts.every((part) => Buffer.byteLength(part) <= 65_536)).toBe(true);
@@ -2106,10 +2108,12 @@ test("Add a physical Host keeps IMAGE, deployment, Boot, join, admission, offers
   await expect(runner.locator(".physical-status")).toContainText("No Boot or join has been observed, and no membership, offers, readiness, Plan, or Play has been admitted");
 
   await runner.getByRole("button", { name: "Observe Boot and join" }).click();
+  const admit = runner.getByRole("button", { name: "Admit Part and offers" });
+  await expect(admit).toBeEnabled({ timeout: 15_000 });
   await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("Admission remains an explicit action");
 
-  await runner.getByRole("button", { name: "Admit Part and offers" }).click();
+  await admit.click();
   await expect(runner.locator('[data-application-key="physical-stage-admit"]')).not.toContainText("waiting");
   await expect(runner.locator(".physical-status")).toContainText("current offers are ready. No Plan or Play was created");
   const evidence = JSON.parse(await runner.locator("details code").textContent());

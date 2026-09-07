@@ -40,6 +40,7 @@ test("shared skip link reaches each product's primary content", async ({ page })
     if (path === "tour/") await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
     if (path === "creche/") await expect(page.locator("#host-state")).toHaveText("Crèche ready");
     if (path === "patchbay/") await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
+    await page.evaluate(() => document.activeElement?.blur());
     await page.keyboard.press("Tab");
     const skip = page.getByRole("link", { name: "Skip to main content" });
     await expect(skip).toBeFocused();
@@ -52,6 +53,7 @@ test("dynamic workspaces use focused headings instead of broad live regions", as
   await page.goto(`${entrance.url}tour/`);
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
   await expect(page.locator("#chapter")).not.toHaveAttribute("aria-live", /.+/);
+  await page.getByText("Pane layout", { exact: true }).click();
   const range = page.getByRole("slider", { name: "Patchbay height" });
   await expect(range).toHaveAttribute("aria-valuetext", "55 percent");
   await range.press("ArrowRight");
