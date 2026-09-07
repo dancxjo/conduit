@@ -39,6 +39,7 @@ pub enum TourWorkspaceRefusal {
 pub struct TourWorkspaceController {
     state: TourWorkspaceState,
     last_run: Option<TourRunProof>,
+    last_pointer_sequence: Option<u64>,
 }
 
 impl TourWorkspaceController {
@@ -46,6 +47,7 @@ impl TourWorkspaceController {
         Self {
             state: TourWorkspaceState::canonical(revision, TourWorkspacePhase::LessonReady),
             last_run: None,
+            last_pointer_sequence: None,
         }
     }
 
@@ -55,6 +57,26 @@ impl TourWorkspaceController {
 
     pub fn last_run(&self) -> Option<&TourRunProof> {
         self.last_run.as_ref()
+    }
+
+    pub(crate) const fn last_pointer_sequence(&self) -> Option<u64> {
+        self.last_pointer_sequence
+    }
+
+    pub(crate) fn commit_pointer(
+        &mut self,
+        sequence: u64,
+        hovered: String,
+        selected: Option<String>,
+        revision: u32,
+    ) {
+        self.last_pointer_sequence = Some(sequence);
+        self.state.hovered_patchbay_subject = Some(hovered);
+        if let Some(selected) = selected {
+            self.state.selected_patchbay_subject = Some(selected);
+            self.state.focused_key = "patchbay".into();
+        }
+        self.state.revision = revision;
     }
 
     pub fn request(
@@ -124,7 +146,7 @@ impl TourWorkspaceController {
         Ok(())
     }
 
-    fn next_revision(&self) -> Result<u32, TourWorkspaceRefusal> {
+    pub(crate) fn next_revision(&self) -> Result<u32, TourWorkspaceRefusal> {
         self.state
             .revision
             .checked_add(1)
