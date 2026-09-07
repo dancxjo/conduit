@@ -45,9 +45,6 @@ try {
   readingState = await openTourReadingState(application.storage);
   workspace = createTourWorkspace(document, readingState);
   configureFlowStorage(application.storage);
-  navigation = createTourNavigation(hostPresentation, (offset) => {
-    renderPage(currentPage + offset, "push").catch(showTourFailure);
-  });
   admittedRuntimeBytes = application.bytes("runtime");
   const [chapters, initialized] = await Promise.all([
     Promise.resolve([1, 2, 3, 4, 5, 6, 8].map((number) => application.text(`chapter-${number}`))),
@@ -55,6 +52,9 @@ try {
   ]);
   host = initialized;
   requireTourAbi(host.runtime);
+  navigation = createTourNavigation(host.runtime, hostPresentation, (offset) => {
+    renderPage(currentPage + offset, "push").catch(showTourFailure);
+  });
   gallery = readReviewedGallery(host.runtime);
   if (host.runtime.conduit_browser_form_human_machinery() < 0) {
     throw new Error("browser Host selected machinery is unavailable");
@@ -116,6 +116,7 @@ function requireTourAbi(api) {
     "conduit_browser_form_start_recursive", "conduit_browser_form_complete", "conduit_browser_form_complete_with_output", "conduit_browser_form_cancel",
     "conduit_browser_form_inventory", "conduit_browser_form_human_machinery", "conduit_browser_form_admit_source_interaction",
     "conduit_browser_form_reviewed_gallery",
+    "conduit_tour_navigation_view", "conduit_tour_navigation_view_ptr", "conduit_tour_navigation_view_len",
     "conduit_tour_encode_button_transition",
     "conduit_tour_project_patchbay", "conduit_tour_project_patchbay_recursive",
     "conduit_syntax_input_ptr", "conduit_syntax_input_capacity",
@@ -139,7 +140,7 @@ async function renderPage(index, routeChange = "none") {
   renderMarkdown(guidedPages[index]);
   chapter.scrollTop = 0;
   if (routeChange === "push") chapter.querySelector("h1")?.focus({ preventScroll: true });
-  navigation.render(currentPage, guidedPages.length, running);
+  navigation.render(currentPage, guidedPages.length);
   document.title = guidedPages[index].title + " · Tour";
 }
 
@@ -189,7 +190,7 @@ function renderGallery() {
 
 function setNavigationDisabled(disabled) {
   if (disabled !== running) throw new Error("Tour navigation state is inconsistent");
-  navigation.render(currentPage, guidedPages.length, running);
+  navigation.render(currentPage, guidedPages.length);
 }
 
 function renderMarkdown(page) {

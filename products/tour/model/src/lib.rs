@@ -12,10 +12,12 @@ use conduit_presentation::{
 mod controller;
 mod gallery;
 mod layout;
+mod navigation;
 mod pointer;
 pub use controller::*;
 pub use gallery::*;
 pub use layout::*;
+pub use navigation::*;
 pub use pointer::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";
