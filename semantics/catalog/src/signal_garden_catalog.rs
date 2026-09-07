@@ -73,37 +73,15 @@ pub fn install_signal_garden_catalog(
         startup,
         profile,
         GARDEN_OBSERVATION_COMBINE_KIND,
-        vec![
-            port(
-                "clock",
-                &garden_clock_observation_type(),
-                PortDirection::Input,
-            ),
-            port(
-                "contact",
-                &garden_contact_observation_type(),
-                PortDirection::Input,
-            ),
-        ],
-        vec![port(
-            "observation",
-            &garden_enriched_observation_type(),
-            PortDirection::Output,
-        )],
+        garden_observation_combine_definition().inputs,
+        garden_observation_combine_definition().outputs,
     )?;
     insert_kind(
         startup,
         profile,
         GARDEN_ENRICHED_REDUCER_KIND,
-        vec![
-            port("prior", &garden_state_type(), PortDirection::Input),
-            port(
-                "observation",
-                &garden_enriched_observation_type(),
-                PortDirection::Input,
-            ),
-        ],
-        vec![port("next", &garden_state_type(), PortDirection::Output)],
+        garden_enriched_reducer_definition().inputs,
+        garden_enriched_reducer_definition().outputs,
     )
 }
 
@@ -130,6 +108,48 @@ pub fn garden_minimal_step_definition() -> KindDefinition {
         kind_id: kind_id(GARDEN_MINIMAL_STEP_KIND),
         kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
         inputs: reducer_inputs(false),
+        outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
+        configuration: vec![],
+    }
+}
+
+pub fn garden_observation_combine_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_OBSERVATION_COMBINE_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: vec![
+            port(
+                "clock",
+                &garden_clock_observation_type(),
+                PortDirection::Input,
+            ),
+            port(
+                "contact",
+                &garden_contact_observation_type(),
+                PortDirection::Input,
+            ),
+        ],
+        outputs: vec![port(
+            "observation",
+            &garden_enriched_observation_type(),
+            PortDirection::Output,
+        )],
+        configuration: vec![],
+    }
+}
+
+pub fn garden_enriched_reducer_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_ENRICHED_REDUCER_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: vec![
+            port("prior", &garden_state_type(), PortDirection::Input),
+            port(
+                "observation",
+                &garden_enriched_observation_type(),
+                PortDirection::Input,
+            ),
+        ],
         outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
         configuration: vec![],
     }
