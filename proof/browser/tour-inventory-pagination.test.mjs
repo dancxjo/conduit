@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { presentTourInventory } from "../../products/tour/browser/tour-inventory-presentation.mjs";
 
-test("all inventory offers remain reachable inside the unchanged 40-node bound", () => {
+test("all inventory offers remain reachable in compact 40-node pages", () => {
   for (const count of [0, 32, 33, 64, 65]) {
     let current;
     const presentation = {

@@ -3,7 +3,7 @@ import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
 const VERSION = 10;
 const RETIRED_VERSION = 9;
 const MAX_BYTES = 131_072;
-const MAX_NODES = 40;
+const MAX_NODES = 128;
 const MAX_DEPTH = 8;
 const MAX_KEY_BYTES = 32;
 const MAX_TEXT_BYTES = 256;

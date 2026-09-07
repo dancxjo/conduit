@@ -95,8 +95,8 @@ export function createReviewedFormGallery(api, presentation, surface, gallery, c
 }
 
 export function presentTourInventory(presentation, inventory) {
-  // Two inventory nodes, at most 32 offers, and three navigation nodes fit
-  // the existing 40-node application presentation envelope.
+  // Two inventory nodes, at most 32 offers, and three navigation nodes keep
+  // each page within 40 nodes of the finite 128-node presentation envelope.
   const pageSize = 32;
   const pageCount = Math.max(1, Math.ceil(inventory.entries.length / pageSize));
   let page = 0;
