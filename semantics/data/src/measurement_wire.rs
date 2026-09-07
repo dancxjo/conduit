@@ -5,12 +5,13 @@ use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
     BoundedMeasurementWindow, FullWindowPolicy, MeasurementPlotPoint, MeasurementPlotSeries,
-    MeasurementRange, MeasurementSample, MeasurementWindowProfile, MAXIMUM_MEASUREMENT_PLOT_POINTS,
-    MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
+    MeasurementRange, MeasurementSample, MeasurementSummary, MeasurementWindowProfile,
+    MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
 pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = 32_768;
 pub const MAXIMUM_MEASUREMENT_PLOT_SERIES_BYTES: usize = 1_024;
+pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 1_024;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MeasurementWireRefusal {
@@ -135,6 +136,91 @@ pub fn encode_measurement_plot_series(
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
     Ok(bytes)
+}
+
+pub fn encode_measurement_summary(
+    summary: &MeasurementSummary,
+) -> Result<Vec<u8>, MeasurementWireRefusal> {
+    validate_summary(summary)?;
+    let mut bytes = Vec::with_capacity(256);
+    bytes.push(1);
+    bytes.extend_from_slice(&summary.sample_count.to_le_bytes());
+    put_instant(&mut bytes, &summary.first_observed_at)?;
+    put_instant(&mut bytes, &summary.last_observed_at)?;
+    for quantity in [
+        summary.minimum,
+        summary.maximum,
+        summary.range,
+        summary.mean,
+    ] {
+        bytes.extend_from_slice(&quantity.encode());
+    }
+    if bytes.len() > MAXIMUM_MEASUREMENT_SUMMARY_BYTES {
+        return Err(MeasurementWireRefusal::CapacityExceeded);
+    }
+    Ok(bytes)
+}
+
+pub fn decode_measurement_summary(
+    bytes: &[u8],
+) -> Result<MeasurementSummary, MeasurementWireRefusal> {
+    if bytes.len() > MAXIMUM_MEASUREMENT_SUMMARY_BYTES {
+        return Err(MeasurementWireRefusal::CapacityExceeded);
+    }
+    let mut input = Input::new(bytes);
+    if input.u8()? != 1 {
+        return Err(MeasurementWireRefusal::UnsupportedVersion);
+    }
+    let sample_count = input.u64()?;
+    let first_observed_at = input.instant()?;
+    let last_observed_at = input.instant()?;
+    let minimum = input.quantity()?;
+    let maximum = input.quantity()?;
+    let range = input.quantity()?;
+    let mean = input.quantity()?;
+    if !input.finished() {
+        return Err(MeasurementWireRefusal::Malformed);
+    }
+    let summary = MeasurementSummary {
+        unit: minimum.unit(),
+        sample_count,
+        first_observed_at,
+        last_observed_at,
+        minimum,
+        maximum,
+        range,
+        mean,
+    };
+    validate_summary(&summary)?;
+    Ok(summary)
+}
+
+fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireRefusal> {
+    use conduit_core::TemporalRelation;
+    if summary.sample_count == 0
+        || [
+            summary.minimum,
+            summary.maximum,
+            summary.range,
+            summary.mean,
+        ]
+        .iter()
+        .any(|quantity| quantity.unit() != summary.unit)
+        || summary.minimum.value() > summary.maximum.value()
+        || summary.mean.value() < summary.minimum.value()
+        || summary.mean.value() > summary.maximum.value()
+        || summary.maximum.value().checked_sub(summary.minimum.value())
+            != Some(summary.range.value())
+    {
+        return Err(MeasurementWireRefusal::Malformed);
+    }
+    match summary
+        .last_observed_at
+        .relation_to(&summary.first_observed_at)
+    {
+        Ok(TemporalRelation::Future { .. } | TemporalRelation::Present) => Ok(()),
+        _ => Err(MeasurementWireRefusal::Malformed),
+    }
 }
 
 pub fn decode_measurement_plot_series(
@@ -341,6 +427,37 @@ mod tests {
         bytes.push(0);
         assert_eq!(
             decode_measurement_window(&bytes),
+            Err(MeasurementWireRefusal::Malformed)
+        );
+    }
+
+    #[test]
+    fn summary_payload_round_trips_and_rejects_inconsistent_range() {
+        let instant = |ticks| TemporalInstant {
+            ticks,
+            scale: TemporalScale::Milliseconds,
+            clock_basis: "wire-clock".into(),
+            resolution_ticks: 1,
+            uncertainty_ticks: 0,
+        };
+        let summary = MeasurementSummary {
+            unit: conduit_core::QuantityUnit::Millivolt,
+            sample_count: 3,
+            first_observed_at: instant(1),
+            last_observed_at: instant(3),
+            minimum: Quantity::new(0, conduit_core::QuantityUnit::Millivolt),
+            maximum: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
+            range: Quantity::new(100, conduit_core::QuantityUnit::Millivolt),
+            mean: Quantity::new(50, conduit_core::QuantityUnit::Millivolt),
+        };
+        assert_eq!(
+            decode_measurement_summary(&encode_measurement_summary(&summary).unwrap()),
+            Ok(summary.clone())
+        );
+        let mut invalid = summary;
+        invalid.range = Quantity::new(99, conduit_core::QuantityUnit::Millivolt);
+        assert_eq!(
+            encode_measurement_summary(&invalid),
             Err(MeasurementWireRefusal::Malformed)
         );
     }
