@@ -79,6 +79,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /workflows: \[dev-integration\]/);
   assert.match(request, /Record a superseded development integration/);
   assert.match(request, /A newer development head owns the next release decision/);
+  assert.match(request, /Check out the exact successfully integrated development snapshot/);
+  assert.match(request, /github\.event_name == 'workflow_dispatch' && 'dev' \|\| github\.event\.workflow_run\.head_sha/);
+  assert.match(request, /test "\$dev_sha" = "\$INTEGRATION_SHA"/);
+  assert.match(request, /git merge-base --is-ancestor "\$dev_sha" origin\/dev/);
   assert.match(request, /already-running/);
   assert.match(request, /already-current/);
   assert.match(request, /release\/\$dev_sha/);
