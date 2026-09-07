@@ -82,6 +82,8 @@ pub use palette_metadata::*;
 pub use tick::*;
 mod tick_presentation;
 pub use tick_presentation::*;
+mod pulse_presentation;
+pub use pulse_presentation::*;
 mod presentation_bool;
 pub use presentation_bool::*;
 mod presentation_indicator;

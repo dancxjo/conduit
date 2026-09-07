@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 87
+maximum_forms = 89
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -210,6 +210,13 @@ slug = "patchbay-front-door"
 title = "Patchbay Front Door"
 entry = "patchbay-front-door"
 [[forms]]
+slug = "firefly-choir"
+title = "Firefly Choir"
+entry = "firefly-choir"
+reusable_entries = [{ entry = "pulse-manifestation", title = "Pulse Manifestation", composition = { parent = "firefly-choir", occurrences = ["observe"] } }]
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "canonical_firefly_choir_manifests_four_exact_bounded_pulses" }
+browser_safe_not_applicable = "the deterministic browser-runtime oracle exercises the ordinary finite browser kernel; pinned multi-Host convergence proof remains owned by issue 2215"
+[[forms]]
 slug = "phase-synchronization"
 title = "Phase Synchronization"
 entry = "phase-synchronization"
@@ -239,7 +246,7 @@ slug = "pulse-observation"
 title = "Pulse Observation"
 entry = "pulse-observation"
 deterministic = { package = "conduit-time", test = "rhythm_composition", case = "canonical_rhythm_forms_compose_as_gears_in_an_independent_closed_form" }
-browser_safe_not_applicable = "portable pulse observation has no installed browser realization"
+browser_safe_not_applicable = "the browser realization is exercised through the Firefly Choir deterministic kernel oracle"
 [[forms]]
 slug = "quantity-range-map"
 title = "Quantity Range Map"

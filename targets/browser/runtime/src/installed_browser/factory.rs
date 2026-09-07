@@ -45,6 +45,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::pattern_comparison::INSTALLATION,
     &super::button_attempt::INSTALLATION,
     &super::pulse_observation::INSTALLATION,
+    &super::pulse_presentation::INSTALLATION,
     &super::timing::INTERVALS,
     &super::timing::NORMALIZE,
     &super::json::ENCODE,
