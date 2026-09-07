@@ -980,6 +980,59 @@ test("Form Gallery browses exact canonical Forms in the one production laborator
   await expect(page.getByRole("heading", { level: 1, name: "One Program, Many Computers" })).toBeVisible();
 });
 
+test("Form Gallery remains a bounded two-pane workspace without horizontal or nested gallery scrolling", async ({ page }) => {
+  for (const viewport of [{ width: 1366, height: 768 }, { width: 900, height: 720 }]) {
+    await page.setViewportSize(viewport);
+    await openStep(page, 0);
+    await page.getByRole("button", { name: "Form Gallery" }).click();
+
+    const measurements = await page.evaluate(() => {
+      const chapter = document.querySelector("#chapter");
+      const gallery = document.querySelector(".form-gallery");
+      const laboratory = document.querySelector("#laboratory-slot");
+      const content = document.querySelector(".tour-content");
+      const overflowingGalleryDescendants = [...gallery.querySelectorAll("*")].filter((element) => {
+        const style = getComputedStyle(element);
+        return element.scrollHeight > element.clientHeight + 1
+          && ["auto", "scroll"].includes(style.overflowY);
+      });
+      return {
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+        bodyHeight: document.body.scrollHeight,
+        viewportHeight: innerHeight,
+        contentRight: content.getBoundingClientRect().right,
+        contentBottom: content.getBoundingClientRect().bottom,
+        chapterHorizontalOverflow: chapter.scrollWidth - chapter.clientWidth,
+        galleryHorizontalOverflow: gallery.scrollWidth - gallery.clientWidth,
+        laboratoryHorizontalOverflow: laboratory.scrollWidth - laboratory.clientWidth,
+        nestedGalleryScrollers: overflowingGalleryDescendants.length,
+        horizontallyOverflowingGalleryElements: [...gallery.querySelectorAll("*")]
+          .filter((element) => element.scrollWidth > element.clientWidth + 1)
+          .map((element) => ({
+            component: element.dataset.applicationComponent ?? element.tagName.toLowerCase(),
+            key: element.dataset.applicationKey ?? "",
+            overflow: element.scrollWidth - element.clientWidth,
+          })),
+      };
+    });
+
+    expect(measurements.documentWidth).toBeLessThanOrEqual(measurements.viewportWidth);
+    expect(measurements.bodyHeight).toBeLessThanOrEqual(measurements.viewportHeight);
+    expect(measurements.contentRight).toBeLessThanOrEqual(measurements.viewportWidth);
+    expect(measurements.contentBottom).toBeLessThanOrEqual(measurements.viewportHeight);
+    expect(measurements.chapterHorizontalOverflow, JSON.stringify(measurements.horizontallyOverflowingGalleryElements)).toBeLessThanOrEqual(1);
+    expect(measurements.galleryHorizontalOverflow).toBeLessThanOrEqual(1);
+    expect(measurements.laboratoryHorizontalOverflow).toBeLessThanOrEqual(1);
+    expect(measurements.nestedGalleryScrollers).toBe(0);
+
+    const lastCard = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]').last();
+    await lastCard.getByRole("button", { name: "Inspect Patchbay" }).focus();
+    await expect(lastCard.getByRole("button", { name: "Inspect Patchbay" })).toBeFocused();
+    await expect(lastCard.getByRole("button", { name: "Inspect Patchbay" })).toBeInViewport();
+  }
+});
+
 test("the Tour opens with one logical Body premise and keeps Crèche machinery later", async ({ page }) => {
   const responses = [];
   page.on("response", (response) => responses.push(new URL(response.url()).pathname));
