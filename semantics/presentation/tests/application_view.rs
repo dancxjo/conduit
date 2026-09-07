@@ -306,7 +306,7 @@ fn malformed_oversized_and_noncanonical_views_refuse() {
 }
 
 #[test]
-fn the_forty_node_product_boundary_is_exact() {
+fn the_finite_product_node_boundary_is_exact() {
     let mut admitted = view();
     for index in admitted.nodes.len()..MAX_APPLICATION_VIEW_NODES {
         admitted.nodes.push(ApplicationViewNode {
