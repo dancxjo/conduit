@@ -54,6 +54,7 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::recognition_text_operation::FACTORY as RECOGNITION_TEXT_FACTORY;
 use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
 use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
 use super::record_temporal_operation::{
@@ -124,6 +125,7 @@ use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
     &ADDRESS_DETECT_FACTORY,
+    &RECOGNITION_TEXT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
     &super::keyboard_input_operation::button::FACTORY,
     &super::keyboard_input_operation::button::indicator::MAPPER,

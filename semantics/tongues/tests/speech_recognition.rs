@@ -1,10 +1,13 @@
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_form::{ProfileCatalog, StartupCatalog};
 use conduit_tongues::{
-    install_speech_recognition_catalog, speech_recognition_contract, RecordedSpeechRecognizer,
+    decode_speech_recognition_result, encode_speech_recognition_result,
+    install_speech_recognition_catalog, project_recognized_text, speech_recognition_contract,
+    speech_recognition_to_text_contract, RecognitionTextRefusal, RecordedSpeechRecognizer,
     SpeechRecognitionAttempt, SpeechRecognitionDisposition, SpeechRecognitionRefusal,
-    MAXIMUM_RECOGNITION_AUDIO_BYTES, MAXIMUM_RECOGNITION_FIXTURES, MAXIMUM_RECOGNIZED_TEXT_BYTES,
-    SPEECH_RECOGNITION_RESULT_KIND, SPEECH_RECOGNIZE_KIND,
+    SpeechRecognitionValueError, MAXIMUM_RECOGNITION_AUDIO_BYTES, MAXIMUM_RECOGNITION_FIXTURES,
+    MAXIMUM_RECOGNIZED_TEXT_BYTES, SPEECH_RECOGNITION_RESULT_KIND, SPEECH_RECOGNITION_TO_TEXT_KIND,
+    SPEECH_RECOGNIZE_KIND,
 };
 
 fn pcm(samples: &[i16]) -> Vec<u8> {
@@ -24,6 +27,40 @@ fn pcm(samples: &[i16]) -> Vec<u8> {
     .unwrap()
     .encode_frame(&payload)
     .unwrap()
+}
+
+#[test]
+fn recognition_results_are_canonical_and_project_only_recognized_text() {
+    let audio = pcm(&[12, -8, 24, -16]);
+    let recognizer = RecordedSpeechRecognizer::new(&[(&audio, "Rosehip House, status")]).unwrap();
+    let SpeechRecognitionAttempt::Result(recognized) = recognizer.recognize(&audio).unwrap() else {
+        panic!("fixture was not recognized")
+    };
+    let encoded = encode_speech_recognition_result(&recognized).unwrap();
+    assert_eq!(
+        decode_speech_recognition_result(&encoded).unwrap(),
+        recognized
+    );
+    assert_eq!(
+        project_recognized_text(&encoded).unwrap(),
+        b"Rosehip House, status"
+    );
+    let mut noncanonical = encoded;
+    noncanonical.push(b' ');
+    assert_eq!(
+        decode_speech_recognition_result(&noncanonical),
+        Err(SpeechRecognitionValueError::NonCanonical)
+    );
+
+    let SpeechRecognitionAttempt::Result(no_speech) =
+        recognizer.recognize(&pcm(&[0, 0, 0, 0])).unwrap()
+    else {
+        panic!("silence did not produce a result")
+    };
+    assert_eq!(
+        project_recognized_text(&encode_speech_recognition_result(&no_speech).unwrap()),
+        Err(RecognitionTextRefusal::NotRecognized)
+    );
 }
 
 #[test]
@@ -98,6 +135,10 @@ fn fixture_and_audio_bounds_refuse_before_recognition() {
 fn portable_contract_contains_no_engine_device_or_host_facts() {
     let contract = speech_recognition_contract();
     assert_eq!(contract.kind_id.as_str(), SPEECH_RECOGNIZE_KIND);
+    assert_eq!(
+        speech_recognition_to_text_contract().kind_id.as_str(),
+        SPEECH_RECOGNITION_TO_TEXT_KIND
+    );
     assert_eq!(contract.inputs[0].value_kind.as_str(), "audio/pcm-frames@1");
     assert_eq!(
         contract.outputs[0].value_kind.as_str(),

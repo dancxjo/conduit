@@ -63,6 +63,7 @@ mod pulse_observation_operation;
 #[cfg(test)]
 mod pulse_observation_sink;
 mod quantity_mapping;
+mod recognition_text_operation;
 mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
@@ -1400,6 +1401,34 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
+                let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
+                    Ok(text) => {
+                        let value = scheduler
+                            .store_host_value(&text)
+                            .map_err(|error| format!("store bounded recognized text: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
+                        )
+                        .map_err(|error| format!("bound recognized text: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output))
+                    }
+                    Err(_) => (HostOperationDisposition::Denied, None),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete recognition-to-text: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_ai::project_generated_text(input) {

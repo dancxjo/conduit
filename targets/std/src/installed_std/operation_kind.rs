@@ -76,6 +76,7 @@ use conduit_kernel::{Failure, FailureCode, OperationAction};
 
 pub(super) enum InstalledOperation {
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
+    RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),
     KeyboardInput(KeyboardInputOperation),
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
