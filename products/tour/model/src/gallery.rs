@@ -13,6 +13,8 @@ pub const GALLERY_SEARCH_BYTES: usize = 128;
 pub struct TourGalleryEntry {
     pub title: String,
     pub checked_form_id: String,
+    /// Search-only semantic vocabulary; it is never lowered as display text.
+    pub search_terms: String,
     pub realization: String,
     pub runnable: bool,
     pub handoff: String,
@@ -39,7 +41,7 @@ impl TourGalleryState {
                     && terms.iter().all(|term| {
                         format!(
                             "{} {} {}",
-                            entry.title, entry.checked_form_id, entry.realization
+                            entry.title, entry.checked_form_id, entry.search_terms
                         )
                         .to_ascii_lowercase()
                         .contains(term)
@@ -198,6 +200,7 @@ mod tests {
             entries: vec![TourGalleryEntry {
                 title: "Memory Lantern".into(),
                 checked_form_id: "checked/memory".into(),
+                search_terms: "presentation/text record/bounded-transcript".into(),
                 realization: "presentation/text=current/local".into(),
                 runnable: true,
                 handoff: "/conduit/creche/?form=memory_lantern&checked_form_id=checked%2Fmemory"
@@ -245,5 +248,29 @@ mod tests {
                 .any(|node| node.component == ApplicationComponent::WarningStatus)
         );
         assert!(!lowered.nodes.iter().any(|node| node.key == "form-0"));
+    }
+
+    #[test]
+    fn semantic_kind_search_does_not_expand_display_text() {
+        let lowered = state("record/bounded-transcript")
+            .presentation()
+            .unwrap()
+            .lower()
+            .unwrap();
+        assert_eq!(
+            lowered
+                .nodes
+                .iter()
+                .filter(|node| node.component == ApplicationComponent::Panel)
+                .count(),
+            1
+        );
+        assert!(
+            lowered
+                .nodes
+                .iter()
+                .all(|node| !node.text.contains("record/bounded-transcript"))
+        );
+        assert!(lowered.encode().is_ok());
     }
 }

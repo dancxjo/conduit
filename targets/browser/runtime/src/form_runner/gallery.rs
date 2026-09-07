@@ -143,34 +143,19 @@ pub(super) fn reviewed_gallery_view(
         .forms
         .iter()
         .map(|form| {
-            let realization = form
+            let search_terms = form
                 .realizability
                 .requirements
                 .iter()
-                .map(|requirement| {
-                    let class = match requirement.realization_class {
-                        Some("pure-kernel-or-local") => "local",
-                        Some("bounded-browser-host-operation") => "browser Host",
-                        _ => "unrealized",
-                    };
-                    format!(
-                        "{}={}/{}",
-                        requirement.kind_id,
-                        if requirement.offer_state == "current-host-offer" {
-                            "current"
-                        } else {
-                            "missing"
-                        },
-                        class
-                    )
-                })
+                .map(|requirement| requirement.kind_id.as_str())
                 .collect::<Vec<_>>()
-                .join("; ");
+                .join(" ");
             conduit_tour_model::TourGalleryEntry {
                 title: form.title.into(),
                 checked_form_id: form.checked_form_id.clone(),
+                search_terms,
                 realization: format!(
-                    "Kinds and realization: {realization}. Offers {}/{}; {}.",
+                    "Browser Host offers {}/{} required Kinds; {}.",
                     form.realizability.current_offer_count,
                     form.realizability.required_kind_count,
                     if form.realizability.status == "runnable-on-current-browser-host" {
