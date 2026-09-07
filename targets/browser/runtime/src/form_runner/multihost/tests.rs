@@ -179,7 +179,7 @@ fn ordinary_transform_can_run_after_the_remote_cord() {
 }
 
 #[test]
-fn desk_telegraph_frames_before_one_planned_line_and_deframes_on_the_remote_host() {
+fn desk_telegraph_patchbay_separates_record_queue_line_delivery_transcript_and_signs() {
     let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
     let prepared =
         super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source).unwrap();
@@ -218,10 +218,41 @@ fn desk_telegraph_frames_before_one_planned_line_and_deframes_on_the_remote_host
     let ((mut source_session, source_output), (mut sink_session, sink_output)) =
         prepare_pair_for(source);
     assert!(matches!(sink_output, Output::Waiting { .. }));
-    let offered = match source_output {
-        Output::Line { frame, .. } => frame,
+    let (offered, projection) = match source_output {
+        Output::Line {
+            frame,
+            plan_projection: Some(projection),
+            ..
+        } => (frame, projection),
         _ => panic!("Desk Telegraph did not offer its framed value"),
     };
+    let kinds = projection
+        .hosts
+        .iter()
+        .flat_map(|host| host.gears.iter())
+        .map(|gear| gear.kind_id.as_str())
+        .collect::<Vec<_>>();
+    for kind in [
+        conduit_net::TEXT_TO_TYPED_RECORD_KIND,
+        conduit_net::TYPED_RECORD_FRAME_KIND,
+        conduit_net::RECORD_SINGLETON_STREAM_KIND,
+        conduit_net::ORDERED_RECORD_QUEUE_KIND,
+        conduit_net::RECORD_EXACTLY_ONE_KIND,
+        conduit_net::TYPED_RECORD_DEFRAME_KIND,
+        conduit_net::TYPED_RECORD_TO_TEXT_KIND,
+    ] {
+        assert!(kinds.contains(&kind), "Patchbay omitted {kind}");
+    }
+    assert_eq!(
+        projection.cord.value_kind,
+        conduit_net::framed_typed_record_type()
+            .profile()
+            .unwrap()
+            .value_kind()
+            .as_str()
+    );
+    assert_eq!(projection.cord.line_id, "tour/browser-memory-line");
+    assert_eq!(projection.cord.maximum_in_flight_items, 1);
     assert_ne!(offered.payload, b"CALLING");
     let framed = conduit_core::StructuredInfoValue::from_canonical_bytes(&offered.payload).unwrap();
     assert_eq!(
@@ -268,6 +299,9 @@ fn desk_telegraph_frames_before_one_planned_line_and_deframes_on_the_remote_host
         Output::Receipt { receipt, .. } => receipt,
         _ => panic!("Desk Telegraph source did not retain terminal evidence"),
     };
+    assert_eq!(source_receipt.deliveries[0].state, "remote-accepted");
+    assert!(source_receipt.deliveries[0].remote_receipt_hex.is_some());
+    assert!(!source_receipt.terminal_sign_id.is_empty());
     let source_transcript = source_receipt.transcript.as_ref().unwrap();
     assert_eq!(source_transcript.retention_gap, 0);
     assert_eq!(source_transcript.entries.len(), 2);
