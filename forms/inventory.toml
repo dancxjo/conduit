@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 82
+maximum_forms = 83
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -14,6 +14,12 @@ slug = "arithmetic-lesson"
 title = "Arithmetic Lesson"
 entry = "arithmetic-lesson"
 deterministic = { package = "conduit-semantic-catalog", test = "education_forms", case = "arithmetic_fixture_emits_exact_assessment_feedback_and_current_progress" }
+[[forms]]
+slug = "house-conversation"
+title = "House Conversation"
+entry = "house-conversation"
+deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_form" }
+browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
 [[forms]]
 slug = "bounded-job"
 title = "Bounded Job"
