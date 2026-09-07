@@ -106,13 +106,15 @@ jobs:
           test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
           git merge-base --is-ancestor "$release_merge" origin/main
           git merge-base --is-ancestor "$release_merge" "$HEAD_SHA"
-          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+          expected_tree=$(git merge-tree --write-tree "$base_sha" "$HEAD_SHA")
+          [[ "$expected_tree" =~ ^[0-9a-f]{40}$ ]]
+          gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA"
           merge_sha=$(gh pr view "$pr_url" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
           [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin dev
           test "$(git rev-parse origin/dev)" = "$merge_sha"
           test "$(git rev-parse "$merge_sha^1")" = "$base_sha"
-          test "$(git rev-parse "$merge_sha^2")" = "$HEAD_SHA"
+          test "$(git rev-parse "$merge_sha^{tree}")" = "$expected_tree"
           printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
           printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
       - name: Dispatch the exact synchronized development integration
