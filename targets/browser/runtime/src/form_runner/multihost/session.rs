@@ -6,6 +6,7 @@ mod source;
 use super::plan::PreparedPlan;
 use super::protocol::{
     self, LineFrame, MultiHostReceipt, Output, PlanProjection, RecordDeliveryProjection,
+    RecordTranscriptEntryProjection, RecordTranscriptProjection,
 };
 use crate::form_runner::engine::{self, BrowserHostEffect, DriveStatus, PendingHostEffect};
 use crate::form_runner::protocol::{
@@ -51,6 +52,12 @@ pub(super) struct Session {
     sequence: u64,
     transferred_values: u32,
     deliveries: Vec<conduit_net::RecordDeliveryTracker>,
+    transcript: Option<SessionTranscript>,
+}
+
+struct SessionTranscript {
+    history: conduit_net::BoundedRecordTranscript,
+    framed_type: Vec<u8>,
 }
 
 impl Session {
@@ -113,6 +120,27 @@ impl Session {
             Role::Source => Stage::Offered,
             Role::Sink => Stage::Accepted,
         };
+        let transcript = if &lowered.remote_endpoints[0].value_kind
+            == conduit_net::framed_typed_record_type()
+                .profile()
+                .map_err(debug_error)?
+                .value_kind()
+        {
+            Some(SessionTranscript {
+                history: conduit_net::BoundedRecordTranscript::new(
+                    16,
+                    conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+                    16 * conduit_net::MAXIMUM_TYPED_RECORD_FRAME_BYTES,
+                    0,
+                )
+                .map_err(debug_error)?,
+                framed_type: conduit_net::framed_typed_record_type()
+                    .canonical_bytes()
+                    .map_err(debug_error)?,
+            })
+        } else {
+            None
+        };
         let mut session = Self {
             role,
             stage,
@@ -130,6 +158,7 @@ impl Session {
             deliveries: Vec::with_capacity(
                 conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS.into(),
             ),
+            transcript,
         };
         let output = match role {
             Role::Source => session.source_offer()?,
@@ -181,10 +210,19 @@ impl Session {
     }
 
     pub(super) fn cancel(&mut self) -> Result<Output, String> {
-        if self.stage != Stage::Complete && self.stage != Stage::Cancelled {
+        let newly_cancelled = self.stage != Stage::Complete && self.stage != Stage::Cancelled;
+        if newly_cancelled {
             self.scheduler
                 .cancel()
                 .map_err(|error| format!("cancel multi-Host scheduler: {error:?}"))?;
+        }
+        if newly_cancelled {
+            if let Some(transcript) = &mut self.transcript {
+                transcript
+                    .history
+                    .terminal(conduit_net::RecordTranscriptTerminal::Cancelled)
+                    .map_err(debug_error)?;
+            }
         }
         self.stage = Stage::Cancelled;
         Ok(Output::Receipt {
@@ -195,6 +233,10 @@ impl Session {
 
     fn sink_admit_value(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "value", true)?;
+        self.retain_line_record(
+            conduit_net::RecordTranscriptDirection::Received,
+            &frame.payload,
+        )?;
         let remote = self.remote();
         let (endpoint, cord) = (remote.endpoint, remote.cord);
         let admission = self
@@ -279,6 +321,7 @@ impl Session {
             .close_remote_input(endpoint, cord)
             .map_err(debug_error)?;
         self.drive_to_complete()?;
+        self.retain_transcript_terminal(conduit_net::RecordTranscriptTerminal::Completed)?;
         self.stage = Stage::Complete;
         Ok(Output::Line {
             schema: "conduit.tour/browser-memory-line-effect@1",
@@ -291,6 +334,7 @@ impl Session {
     fn source_terminal(&mut self, frame: LineFrame) -> Result<Output, String> {
         self.validate_frame(&frame, "terminal", false)?;
         self.stage = Stage::Complete;
+        self.retain_transcript_terminal(conduit_net::RecordTranscriptTerminal::Completed)?;
         Ok(Output::Receipt {
             schema: "conduit.tour/multi-host-progress@1",
             receipt: Box::new(self.receipt("completed")),
@@ -440,11 +484,100 @@ impl Session {
                 .enumerate()
                 .map(|(sequence, tracker)| delivery_projection(sequence as u64, tracker))
                 .collect(),
+            transcript: self.transcript.as_ref().map(transcript_projection),
         }
     }
 
     fn remote(&self) -> &conduit_plan_lowering::lowering::LoweredRemoteEndpoint {
         &self.lowered.remote_endpoints[0]
+    }
+
+    fn retain_line_record(
+        &mut self,
+        direction: conduit_net::RecordTranscriptDirection,
+        canonical: &[u8],
+    ) -> Result<(), String> {
+        let Some(transcript) = &mut self.transcript else {
+            return Ok(());
+        };
+        let frame = exact_leaf(canonical, &transcript.framed_type)?;
+        transcript
+            .history
+            .record(direction, frame)
+            .map(|_| ())
+            .map_err(debug_error)
+    }
+
+    fn retain_transcript_terminal(
+        &mut self,
+        terminal: conduit_net::RecordTranscriptTerminal,
+    ) -> Result<(), String> {
+        if let Some(transcript) = &mut self.transcript {
+            transcript.history.terminal(terminal).map_err(debug_error)?;
+        }
+        Ok(())
+    }
+}
+
+fn exact_leaf<'a>(canonical: &'a [u8], value_type: &[u8]) -> Result<&'a [u8], String> {
+    let node = canonical
+        .strip_prefix(value_type)
+        .ok_or("framed Line value has the wrong exact type")?;
+    if node.first() != Some(&0) || node.len() < 5 {
+        return Err("framed Line value has malformed canonical shape".into());
+    }
+    let length = usize::try_from(u32::from_le_bytes(
+        node[1..5]
+            .try_into()
+            .map_err(|_| "framed Line leaf length is truncated")?,
+    ))
+    .map_err(debug_error)?;
+    (node.len() == 5 + length)
+        .then_some(&node[5..])
+        .ok_or_else(|| "framed Line leaf length is not exact".into())
+}
+
+fn transcript_projection(transcript: &SessionTranscript) -> RecordTranscriptProjection {
+    let entries = (0..transcript.history.len())
+        .filter_map(|index| transcript.history.entry(index))
+        .map(|entry| {
+            let (event, frame_bytes, terminal_code) = match entry.event {
+                conduit_net::RecordTranscriptEventRef::Record { direction, frame } => (
+                    match direction {
+                        conduit_net::RecordTranscriptDirection::Sent => "sent-record",
+                        conduit_net::RecordTranscriptDirection::Received => "received-record",
+                    },
+                    frame.len(),
+                    None,
+                ),
+                conduit_net::RecordTranscriptEventRef::Terminal(terminal) => match terminal {
+                    conduit_net::RecordTranscriptTerminal::Completed => ("completed", 0, None),
+                    conduit_net::RecordTranscriptTerminal::Cancelled => ("cancelled", 0, None),
+                    conduit_net::RecordTranscriptTerminal::Disconnected => {
+                        ("disconnected", 0, None)
+                    }
+                    conduit_net::RecordTranscriptTerminal::TimedOut => ("timed-out", 0, None),
+                    conduit_net::RecordTranscriptTerminal::Refused(code) => {
+                        ("refused", 0, Some(code))
+                    }
+                    conduit_net::RecordTranscriptTerminal::Failed(code) => {
+                        ("failed", 0, Some(code))
+                    }
+                },
+            };
+            RecordTranscriptEntryProjection {
+                sequence: entry.sequence,
+                event,
+                frame_bytes,
+                terminal_code,
+            }
+        })
+        .collect();
+    RecordTranscriptProjection {
+        retained_items: transcript.history.len(),
+        retained_bytes: transcript.history.retained_bytes(),
+        retention_gap: transcript.history.retention_gap(),
+        entries,
     }
 }
 

@@ -243,6 +243,36 @@ fn desk_telegraph_frames_before_one_planned_line_and_deframes_on_the_remote_host
         source_session.ingest(*accepted).unwrap(),
         Output::Waiting { .. }
     ));
+    let delivered = match sink_session.complete_manifestation().unwrap() {
+        Output::Line { frame, .. } => frame,
+        _ => panic!("Desk Telegraph sink did not acknowledge delivery"),
+    };
+    let close = match source_session.ingest(*delivered).unwrap() {
+        Output::Line { frame, .. } => frame,
+        _ => panic!("Desk Telegraph source did not close its Line"),
+    };
+    let (terminal, sink_receipt) = match sink_session.ingest(*close).unwrap() {
+        Output::Line {
+            frame,
+            receipt: Some(receipt),
+            ..
+        } => (frame, receipt),
+        _ => panic!("Desk Telegraph sink did not retain terminal evidence"),
+    };
+    let sink_transcript = sink_receipt.transcript.as_ref().unwrap();
+    assert_eq!(sink_transcript.retention_gap, 0);
+    assert_eq!(sink_transcript.entries.len(), 2);
+    assert_eq!(sink_transcript.entries[0].event, "received-record");
+    assert_eq!(sink_transcript.entries[1].event, "completed");
+    let source_receipt = match source_session.ingest(*terminal).unwrap() {
+        Output::Receipt { receipt, .. } => receipt,
+        _ => panic!("Desk Telegraph source did not retain terminal evidence"),
+    };
+    let source_transcript = source_receipt.transcript.as_ref().unwrap();
+    assert_eq!(source_transcript.retention_gap, 0);
+    assert_eq!(source_transcript.entries.len(), 2);
+    assert_eq!(source_transcript.entries[0].event, "sent-record");
+    assert_eq!(source_transcript.entries[1].event, "completed");
 }
 
 #[test]
@@ -302,6 +332,9 @@ fn renderer_loss_cannot_be_promoted_from_queued_to_remote_accepted() {
         panic!("renderer loss did not cancel the sink Play")
     };
     assert_eq!(sink_cancelled.disposition, "cancelled");
+    let sink_transcript = sink_cancelled.transcript.as_ref().unwrap();
+    assert_eq!(sink_transcript.entries[0].event, "received-record");
+    assert_eq!(sink_transcript.entries[1].event, "cancelled");
 
     let Output::Receipt {
         receipt: source_cancelled,
@@ -313,4 +346,7 @@ fn renderer_loss_cannot_be_promoted_from_queued_to_remote_accepted() {
     assert_eq!(source_cancelled.deliveries.len(), 1);
     assert_eq!(source_cancelled.deliveries[0].state, "framed-queued");
     assert!(source_cancelled.deliveries[0].remote_receipt_hex.is_none());
+    let source_transcript = source_cancelled.transcript.as_ref().unwrap();
+    assert_eq!(source_transcript.entries[0].event, "sent-record");
+    assert_eq!(source_transcript.entries[1].event, "cancelled");
 }
