@@ -144,3 +144,4 @@ pub mod text_upper;
 pub mod timer_nucleus;
 mod timing_plan;
 pub mod timing_profile;
+pub mod tour_workspace;

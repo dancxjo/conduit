@@ -591,6 +591,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
+ "conduit-tour-model",
  "conduit-web",
  "conduit-wire",
  "ed25519-dalek",
@@ -1104,6 +1105,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-tour-model"
+version = "0.1.0"
+dependencies = [
+ "conduit-presentation",
+]
+
+[[package]]
 name = "conduit-web"
 version = "0.1.0"
 dependencies = [
@@ -1167,6 +1175,7 @@ dependencies = [
  "conduit-synth",
  "conduit-text",
  "conduit-time",
+ "conduit-tour-model",
  "conduit-web",
  "limine",
  "patchbay-control",
