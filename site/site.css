@@ -5,7 +5,6 @@ body { margin: 0; min-height: 100vh; background:
   linear-gradient(180deg, var(--conduit-background), color-mix(in srgb, var(--conduit-background) 96%, var(--conduit-text-primary)) 58%, var(--conduit-background));
 }
 a { color: inherit; }
-a:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; }
 
 main { width: 100%; }
 .hero {

@@ -11,6 +11,7 @@ function PortRow({ port, onActivate }) {
     position: receiving ? Flow.Position.Left : Flow.Position.Right,
     isConnectable: true,
     className: "faceplate-handle",
+    role: "img",
     "aria-label": port.accessibilityName,
     "data-port-id": port.id,
     "data-port-direction": port.direction,
@@ -67,7 +68,7 @@ export function FaceplateNode({ data }) {
     },
   }, data.backExpanded ? "Close Back" : "Open Back"),
   data.clue && e("p", { className: "faceplate-clue", title: data.clue }, data.clue),
-  data.ports.length > 0 && e("div", { className: "faceplate-ports", "aria-label": "Exact typed Ports" },
+  data.ports.length > 0 && e("div", { className: "faceplate-ports", role: "group", "aria-label": "Exact typed Ports" },
     data.ports.map((port) => e(PortRow, { key: port.id, port, onActivate:data.onActivate })),
   ));
 }

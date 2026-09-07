@@ -68,7 +68,7 @@ export async function startApplication(application) {
     host,
     applicationId: application.manifest.applicationId,
     steps,
-    onPopState(index) { currentStep = index; renderNavigation(); renderStep(); },
+    onPopState(index) { currentStep = index; renderNavigation(); renderStep(true); },
     onFailure(error) { renderHostStatus(error instanceof Error ? error.message : String(error), "failure-status"); },
   });
   currentStep = routing.current();
@@ -77,7 +77,7 @@ export async function startApplication(application) {
   globalThis.__conduitCrecheHost = host;
   globalThis.__conduitCrecheDurability = Object.freeze({ settled: durabilitySettled });
   renderNavigation();
-  renderStep();
+  renderStep(true);
   if (routing.isProductRoot()) await routing.move(currentStep, "replace");
  } catch (error) {
   renderHostStatus("Crèche unavailable", "failure-status");
@@ -116,11 +116,12 @@ function renderHostStatus(text, component) {
   productMasthead.present(text, component);
 }
 
-function renderStep() {
+function renderStep(focus = false) {
   workspace.replaceChildren();
   const heading = document.createElement("h2");
   heading.textContent = steps[currentStep].name;
   workspace.append(heading);
+  heading.tabIndex = -1;
   if (currentStep === 0) workspace.append(createBodyBirthRunner({
     source: initialFormSource, sourceKey: "standalone-creche", listingId: "creche-forms", host,
     presentationFor, inventory: reviewedFormInventory, initialSelection: initialFormSelection,
@@ -143,6 +144,7 @@ function renderStep() {
     onEnd: renderComplete,
   }));
   refreshContext();
+  if (focus) heading.focus({ preventScroll: true });
 }
 
 function galleryHandoff() {
@@ -273,6 +275,9 @@ function renderComplete(receipt, biography) {
   const patchbayCommand = `conduit patchbay --on browser --body-evidence ${evidenceFilename}`;
   section.innerHTML = `<h2>The Body continues</h2><p>The Crèche can close; durable Body evidence remains available to compatible readers.</p><code>${escapeText(receipt.body_id)}</code><div data-application-slot="creche-complete-actions"></div><aside class="creche-handoff" aria-labelledby="creche-handoff-title"><h3 id="creche-handoff-title">Continue in Patchbay</h3><p>Save the evidence, then open that exact Body through the Conduit product entrance:</p><code>${escapeText(patchbayCommand)}</code></aside><section class="body-biography" data-application-slot="creche-complete-biography"></section>`;
   workspace.append(section);
+  const completeHeading = section.querySelector("h2");
+  completeHeading.tabIndex = -1;
+  completeHeading.focus({ preventScroll: true });
   renderBiography(presentation, "creche-complete-biography", biography, ++presentationRevision);
   presentation.present("creche-complete-actions", {
     revision: ++presentationRevision,

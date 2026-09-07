@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
   <meta name="conduit-application-package" content="./patchbay.application.json">
   <title>Conduit Patchbay</title>
   <style data-conduit-bootstrap>
@@ -14,12 +15,13 @@
     @keyframes conduit-pulse { 70%,100% { box-shadow:0 0 0 1.5rem #0dd8f600; transform:scale(.94); } } @media (prefers-reduced-motion:reduce) { #conduit-suspense,#conduit-suspense .conduit-pulse { animation:none; transition:none; } }
   </style>
 </head>
-<body data-application-ready="false">
+<body data-application-ready="false" data-application-theme="conduit.presentation/phosphor@1">
+<a class="conduit-skip-link" href="#main-content">Skip to main content</a>
 <div id="conduit-suspense" role="status" aria-live="polite" aria-busy="true"><div><div class="conduit-pulse" aria-hidden="true"></div><strong>Conduit Patchbay</strong><span>Preparing the workbench…</span></div></div>
 <div id="patchbay-root" inert>
   <div data-application-slot="product-masthead"></div>
   <nav aria-label="Patchbay workspace">
-    <span class="shell-launchers" role="toolbar" aria-label="Patchbay drawers"><button id="toggle-palette" type="button" aria-expanded="false" aria-controls="palette">Forms</button><button id="toggle-parts" type="button" aria-expanded="false" aria-controls="parts">Parts</button><button id="toggle-inspector" type="button" aria-expanded="false" aria-controls="inspector">Inspector</button><button id="toggle-truth" type="button" aria-expanded="false" aria-controls="deep-inspection">Exact truth</button><button id="toggle-structured" type="button" aria-expanded="false" aria-controls="structured-navigator">Subjects</button></span>
+    <span class="shell-launchers" aria-label="Patchbay drawers"><button id="toggle-palette" type="button" aria-expanded="false" aria-controls="palette">Forms</button><button id="toggle-parts" type="button" aria-expanded="false" aria-controls="parts">Parts</button><button id="toggle-inspector" type="button" aria-expanded="false" aria-controls="inspector">Inspector</button><button id="toggle-truth" type="button" aria-expanded="false" aria-controls="deep-inspection">Exact truth</button><button id="toggle-structured" type="button" aria-expanded="false" aria-controls="structured-navigator">Subjects</button></span>
     <span id="place-controls" class="place-controls" data-application-slot="place-controls"></span><span id="aspect-controls" class="lens-controls" data-application-slot="aspect-controls"></span><a href="#linear">Linear presentation</a>
   </nav>
   <section id="body-workbench" class="body-workbench" aria-labelledby="body-workbench-title" hidden>
@@ -48,7 +50,8 @@
       <details><summary>Linear BODY / SIGNS evidence</summary><div id="body-linear"><div data-application-slot="body-linear-0"></div><div data-application-slot="body-linear-1"></div><div data-application-slot="body-linear-2"></div><div data-application-slot="body-linear-3"></div><div data-application-slot="body-linear-4"></div><div data-application-slot="body-linear-5"></div><div data-application-slot="body-linear-6"></div><div data-application-slot="body-linear-7"></div><div data-application-slot="body-linear-8"></div><div data-application-slot="body-linear-9"></div><div data-application-slot="body-linear-10"></div><div data-application-slot="body-linear-11"></div><div data-application-slot="body-linear-12"></div><div data-application-slot="body-linear-13"></div><div data-application-slot="body-linear-14"></div><div data-application-slot="body-linear-15"></div></div></details>
     </section>
   </section>
-  <main>
+  <main id="main-content" tabindex="-1">
+    <h1 class="visually-hidden">Conduit Patchbay</h1>
     <div class="workspace" data-layout-regions="finite" data-overflow="scroll-regions">
       <aside id="palette" class="side-panel" aria-labelledby="palette-title" data-region="navigator" data-priority="secondary-context">
         <div class="furniture-bar" data-application-slot="palette-furniture"></div>
