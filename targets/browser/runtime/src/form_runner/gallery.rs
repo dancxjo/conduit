@@ -143,7 +143,7 @@ pub(super) fn reviewed_gallery_view(
         .forms
         .iter()
         .map(|form| {
-            let realization = form
+            let requirements = form
                 .realizability
                 .requirements
                 .iter()
@@ -164,21 +164,17 @@ pub(super) fn reviewed_gallery_view(
                         class
                     )
                 })
-                .collect::<Vec<_>>()
-                .join("; ");
+                .collect::<Vec<_>>();
             conduit_tour_model::TourGalleryEntry {
                 title: form.title.into(),
                 checked_form_id: form.checked_form_id.clone(),
-                realization: format!(
-                    "Kinds and realization: {realization}. Offers {}/{}; {}.",
+                realization: bounded_realization_summary(
+                    &requirements,
                     form.realizability.current_offer_count,
                     form.realizability.required_kind_count,
-                    if form.realizability.status == "runnable-on-current-browser-host" {
-                        "runnable here"
-                    } else {
-                        "not runnable here"
-                    }
+                    form.realizability.status == "runnable-on-current-browser-host",
                 ),
+                search_terms: form.required_kinds.join(" "),
                 runnable: form.realizability.status == "runnable-on-current-browser-host",
                 handoff: form_handoff(creche_url, form),
             }
@@ -196,6 +192,40 @@ pub(super) fn reviewed_gallery_view(
     .map_err(|error| format!("lower reviewed Gallery: {error:?}"))?
     .encode()
     .map_err(|error| format!("encode reviewed Gallery: {error:?}"))
+}
+
+fn bounded_realization_summary(
+    requirements: &[String],
+    current: usize,
+    required: usize,
+    runnable: bool,
+) -> String {
+    const REQUIREMENT_BYTES: usize = 160;
+    let mut shown = String::new();
+    let mut shown_count = 0;
+    for requirement in requirements {
+        let separator = if shown.is_empty() { "" } else { "; " };
+        if shown.len() + separator.len() + requirement.len() > REQUIREMENT_BYTES {
+            break;
+        }
+        shown.push_str(separator);
+        shown.push_str(requirement);
+        shown_count += 1;
+    }
+    let omitted = requirements.len() - shown_count;
+    format!(
+        "Kinds: {shown}{}. Offers {current}/{required}; {}.",
+        if omitted == 0 {
+            String::new()
+        } else {
+            format!("; +{omitted} more exact requirements")
+        },
+        if runnable {
+            "runnable here"
+        } else {
+            "not runnable here"
+        }
+    )
 }
 
 fn form_handoff(creche_url: &str, form: &GalleryForm) -> String {
@@ -273,5 +303,20 @@ mod tests {
             .value
             .starts_with("/conduit/creche/?form=memory_lantern"));
         assert!(handoff.value.contains("checked_form_id="));
+    }
+
+    #[test]
+    fn dense_gallery_requirements_remain_truthful_within_the_view_text_bound() {
+        let summary = bounded_realization_summary(
+            &(0..20)
+                .map(|index| format!("semantic/requirement-{index}=current/local"))
+                .collect::<Vec<_>>(),
+            20,
+            20,
+            true,
+        );
+        assert!(summary.len() <= conduit_presentation::MAX_APPLICATION_VIEW_TEXT_BYTES - 20);
+        assert!(summary.contains("more exact requirements"));
+        assert!(summary.contains("Offers 20/20; runnable here"));
     }
 }

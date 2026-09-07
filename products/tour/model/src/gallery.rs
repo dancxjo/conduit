@@ -14,6 +14,7 @@ pub struct TourGalleryEntry {
     pub title: String,
     pub checked_form_id: String,
     pub realization: String,
+    pub search_terms: String,
     pub runnable: bool,
     pub handoff: String,
 }
@@ -39,7 +40,7 @@ impl TourGalleryState {
                     && terms.iter().all(|term| {
                         format!(
                             "{} {} {}",
-                            entry.title, entry.checked_form_id, entry.realization
+                            entry.title, entry.checked_form_id, entry.search_terms
                         )
                         .to_ascii_lowercase()
                         .contains(term)
@@ -199,6 +200,7 @@ mod tests {
                 title: "Memory Lantern".into(),
                 checked_form_id: "checked/memory".into(),
                 realization: "presentation/text=current/local".into(),
+                search_terms: "presentation/text".into(),
                 runnable: true,
                 handoff: "/conduit/creche/?form=memory_lantern&checked_form_id=checked%2Fmemory"
                     .into(),

@@ -117,6 +117,29 @@ test("Tour Form Gallery ordinary controls use the shared presentation vocabulary
   }
 });
 
+test("Crèche browser configuration ordinary controls use product-owned semantics", async () => {
+  const configuration = await readFile(
+    join(repository, "products/creche/browser/creche-browser-configuration.mjs"),
+    "utf8",
+  );
+  const composition = configuration.slice(
+    configuration.indexOf("export function createBrowserConfigurationOutfitter"),
+    configuration.indexOf("export function prepareCheckedBrowserSpore"),
+  );
+  expect(composition, "Crèche configuration must not construct low-level component arrays").not.toContain(
+    "component:",
+  );
+  expect(composition, "Crèche configuration must request its product-owned semantic view").toContain(
+    "conduit_creche_browser_configuration_view",
+  );
+  const model = await readFile(join(repository, "products/creche/model/src/lib.rs"), "utf8");
+  for (const mechanism of ["ChoiceGroup", "Evidence", "DefinitionTable", "CodeBlock", "Action"]) {
+    expect(model, `Crèche configuration must describe ${mechanism} through shared semantics`).toContain(
+      `PresentationMechanism::${mechanism}`,
+    );
+  }
+});
+
 test("all four web surfaces inherit one product-owned browser design system", async () => {
   const shared = await readFile(join(repository, "products/shared/browser/conduit.css"), "utf8");
   expect(shared).toContain("--conduit-font-body:");
