@@ -68,7 +68,9 @@ pub(crate) fn catalogs_for_presentation(
         &mut profile,
     )?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;

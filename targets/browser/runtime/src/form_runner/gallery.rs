@@ -2,7 +2,13 @@ use serde::Serialize;
 
 use crate::installed_browser::PresentationProfile;
 
-const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 6] = [
+const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 7] = [
+    (
+        "firefly-choir",
+        "Firefly Choir",
+        include_str!("../../../../../forms/firefly-choir/main.conduit"),
+        PresentationProfile::Annotation,
+    ),
     (
         "morse_network",
         "Morse Network",
@@ -298,8 +304,8 @@ mod tests {
     #[test]
     fn gallery_projects_exact_checked_canonical_sources() {
         let gallery = reviewed_gallery().unwrap();
-        assert_eq!(gallery.maximum_forms, 6);
-        assert_eq!(gallery.forms.len(), 6);
+        assert_eq!(gallery.maximum_forms, 7);
+        assert_eq!(gallery.forms.len(), 7);
         for form in gallery.forms {
             assert!(!form.source_document_id.is_empty());
             assert!(!form.checked_form_id.is_empty());
@@ -330,7 +336,7 @@ mod tests {
                 .iter()
                 .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
                 .count(),
-            6
+            7
         );
         let handoff = view
             .nodes

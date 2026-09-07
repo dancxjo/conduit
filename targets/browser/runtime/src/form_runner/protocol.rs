@@ -316,6 +316,16 @@ pub(super) fn decode_manifestation(
                 .map_err(|error| error.to_string())?;
             Ok((0, Vec::new(), Some(sequence.to_string())))
         }
+        conduit_semantic_catalog::PULSE_PRESENTATION_KIND => {
+            let pulse = conduit_time::decode_pulse_observation(&manifestation.canonical_value)
+                .map_err(|error| format!("decode pulse manifestation: {error:?}"))?;
+            Ok((
+                u16::try_from(pulse.sequence)
+                    .map_err(|_| "pulse manifestation sequence exceeds presentation bound")?,
+                Vec::new(),
+                Some(format!("pulse {} · {} ms", pulse.sequence, pulse.period_ms)),
+            ))
+        }
         _ => Err("browser manifestation Kind is not installed in the Tour surface".into()),
     }
 }
