@@ -183,6 +183,18 @@ extern "C" fn conduitos_start() -> ! {
                     .unwrap_or_else(|error| emit_machine_refusal(error));
                     arch::early_write(line_sign.as_bytes());
                     arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-current\n");
+                    let mut carrier = arch::start_ftdi_line_session(ready);
+                    let mut packet = [0; arch::FTDI_PAYLOAD_BYTES];
+                    match carrier.receive(&mut xhci, ftdi, &mut packet) {
+                        Err(arch::FtdiLineError::DeviceRemoved) => {}
+                        Err(error) => emit_machine_refusal(error.as_str()),
+                        Ok(_) => emit_machine_refusal("usb-line-unexpected-peer-payload"),
+                    }
+                    let lost_sign =
+                        conduitos::product_usb_line::lost_sign(&identities, xhci_base, ftdi, ready)
+                            .unwrap_or_else(|error| emit_machine_refusal(error));
+                    arch::early_write(lost_sign.as_bytes());
+                    arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-lost\n");
                 }
             }
             let device_id = identity::derive_usb_device(
