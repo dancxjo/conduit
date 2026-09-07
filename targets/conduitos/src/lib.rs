@@ -98,6 +98,8 @@ pub mod pointer_offer;
 mod presentation_offers;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod usb_line_session;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(

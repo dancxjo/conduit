@@ -1188,6 +1188,7 @@ dependencies = [
  "conduit-time",
  "conduit-tour-model",
  "conduit-web",
+ "conduit-wire",
  "limine",
  "patchbay-control",
  "serde_json",
