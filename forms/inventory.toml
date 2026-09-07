@@ -323,12 +323,12 @@ entry = "tongues-latent-training"
 slug = "typed-record-deframe"
 title = "Typed Record Deframe"
 entry = "typed-record-deframe"
-deterministic = { package = "conduit-net", test = "typed_record", case = "framing_and_deframing_are_independent_reusable_checked_forms" }
+deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "framing_and_deframing_are_independent_reusable_checked_forms" }
 [[forms]]
 slug = "typed-record-frame"
 title = "Typed Record Frame"
 entry = "typed-record-frame"
-deterministic = { package = "conduit-net", test = "typed_record", case = "framing_and_deframing_are_independent_reusable_checked_forms" }
+deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "framing_and_deframing_are_independent_reusable_checked_forms" }
 [[forms]]
 slug = "vision-metadata"
 title = "Vision Metadata"
