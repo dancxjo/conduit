@@ -103,6 +103,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const monitor = readFileSync(".github/workflows/monitor-trusted-pr.yml", "utf8");
   assert.match(request, /gh workflow run monitor-trusted-pr\.yml --ref main/);
   assert.match(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
+  assert.match(request, /permissions:\n  actions: write/);
+  assert.match(sync, /permissions:\n  actions: write/);
   assert.match(monitor, /types?: choice/);
   assert.match(monitor, /options: \[release, sync\]/);
   assert.match(monitor, /actions\/runs\/\$run_id\/approve/);
