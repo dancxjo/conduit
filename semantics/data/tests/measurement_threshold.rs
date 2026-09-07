@@ -97,7 +97,8 @@ fn threshold_is_a_reusable_form_independent_of_presentation() {
     install_measurement_window_catalog(&mut startup, &mut catalog).unwrap();
     install_measurement_summary_catalog(&mut startup, &mut catalog).unwrap();
     install_measurement_threshold_catalog(&mut startup, &mut catalog).unwrap();
-    let source = include_str!("../../../forms/measurement-threshold/main.conduit");
+    install_measurement_plot_catalog(&mut startup, &mut catalog).unwrap();
+    let source = include_str!("../../../forms/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
         expand_canonical_form_for_authoring(&checked, "measurement-threshold", &catalog).unwrap();

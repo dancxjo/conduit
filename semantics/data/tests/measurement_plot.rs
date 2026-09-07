@@ -85,8 +85,10 @@ fn reusable_plot_projection_has_an_exact_checked_form_contract() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut profile).unwrap();
+    install_measurement_summary_catalog(&mut startup, &mut profile).unwrap();
+    install_measurement_threshold_catalog(&mut startup, &mut profile).unwrap();
     install_measurement_plot_catalog(&mut startup, &mut profile).unwrap();
-    let source = include_str!("../../../forms/measurement-plot/main.conduit");
+    let source = include_str!("../../../forms/little-seismograph/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
         expand_canonical_form_for_authoring(&checked, "measurement-plot", &profile).unwrap();

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 92
+maximum_forms = 93
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -165,25 +165,17 @@ entry = "memory_lantern"
 initial_body_order = 2
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
 [[forms]]
-slug = "measurement-plot"
-title = "Measurement Plot"
-entry = "measurement-plot"
-deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" }
-browser_safe_not_applicable = "portable plot-series projection has no reviewed browser Host execution oracle"
-[[forms]]
-slug = "measurement-summary"
-title = "Measurement Summary"
-entry = "measurement-summary"
-deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" }
-[[forms]]
-slug = "measurement-threshold"
-title = "Measurement Threshold"
-entry = "measurement-threshold"
-deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_form_independent_of_presentation" }
-[[forms]]
-slug = "measurement-window"
-title = "Measurement Window"
-entry = "measurement-window"
+slug = "little-seismograph"
+title = "Little Seismograph"
+entry = "little-seismograph-processing"
+reusable_entries = [
+  { entry = "measurement-window", title = "Measurement Window", composition = { parent = "little-seismograph-processing", occurrences = ["samples"] }, deterministic = { package = "conduit-data", test = "measurement_window", case = "reusable_window_has_an_exact_checked_form_contract" } },
+  { entry = "measurement-summary", title = "Measurement Summary", composition = { parent = "little-seismograph-processing", occurrences = ["summarize"] }, deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" } },
+  { entry = "measurement-threshold", title = "Measurement Threshold", composition = { parent = "little-seismograph-processing", occurrences = ["decide"] }, deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_form_independent_of_presentation" } },
+  { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" } },
+]
+deterministic = { package = "conduit-data", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
+browser_safe_not_applicable = "the portable processing waist has no reviewed browser source realization yet"
 [[forms]]
 slug = "messaging-delivery"
 title = "Messaging Delivery"
