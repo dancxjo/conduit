@@ -123,21 +123,30 @@ pub fn install_rhythm_catalog(
     profile
         .insert(pulse_observe_kind_definition())
         .map_err(|error| error.to_string())?;
-    insert_rhythm_kind(
-        startup,
-        profile,
-        PHASE_SYNCHRONIZE_KIND,
-        PHASE_SYNCHRONIZE_REVISION,
-        vec![
+    startup.insert(KindSignature {
+        kind: PHASE_SYNCHRONIZE_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert(phase_synchronize_kind_definition())
+        .map_err(|error| error.to_string())
+}
+
+pub fn phase_synchronize_kind_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(PHASE_SYNCHRONIZE_KIND),
+        kind_contract_revision: KindContractRevision::from(PHASE_SYNCHRONIZE_REVISION),
+        inputs: vec![
             flow_port("local", RHYTHM_STATE_VALUE_KIND, PortDirection::Input),
             flow_port("peer", PULSE_OBSERVATION_VALUE_KIND, PortDirection::Input),
         ],
-        vec![flow_port(
+        outputs: vec![flow_port(
             "updated",
             RHYTHM_STATE_VALUE_KIND,
             PortDirection::Output,
         )],
-    )
+        configuration: vec![],
+    }
 }
 
 /// Nominal pulse period and observation count are semantic, finite configuration.
@@ -170,29 +179,6 @@ pub fn pulse_observe_kind_definition() -> KindDefinition {
             },
         ],
     }
-}
-
-fn insert_rhythm_kind(
-    startup: &mut StartupCatalog,
-    profile: &mut ProfileCatalog,
-    kind: &str,
-    revision: &'static str,
-    inputs: alloc::vec::Vec<PortDescriptor>,
-    outputs: alloc::vec::Vec<PortDescriptor>,
-) -> Result<(), String> {
-    startup.insert(KindSignature {
-        kind: kind.to_string(),
-        startup_parameters: vec![],
-    })?;
-    profile
-        .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(revision),
-            inputs,
-            outputs,
-            configuration: vec![],
-        })
-        .map_err(|error| error.to_string())
 }
 
 fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
