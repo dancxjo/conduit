@@ -39,6 +39,8 @@ mod hybrid_retrieval_contract;
 pub use hybrid_retrieval_contract::*;
 mod model_result;
 pub use model_result::*;
+mod model_text;
+pub use model_text::*;
 mod model_signature;
 pub use model_signature::*;
 mod model_artifact;
