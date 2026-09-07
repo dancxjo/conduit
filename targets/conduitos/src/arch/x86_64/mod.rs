@@ -1,4 +1,5 @@
 mod cpu;
+mod ftdi_line;
 mod gdt;
 mod hid;
 mod hid_pointer;
@@ -16,6 +17,9 @@ mod usb;
 mod xhci;
 
 pub use cpu::{boot_entropy, deterministic_exit, feature_basis};
+pub use ftdi_line::{
+    FtdiLineError, FtdiLineReady, FtdiLineSession, prepare_ftdi_line, start_ftdi_line_session,
+};
 pub use hid::{
     HidError, HidKeyTransition, HidKeyboardSession, HidProof, finish_boot_keyboard,
     prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
