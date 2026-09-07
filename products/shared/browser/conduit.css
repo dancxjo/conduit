@@ -1,4 +1,5 @@
-:where([data-application-theme]) {
+:root {
+  color-scheme: dark;
   --conduit-background: #05070b;
   --conduit-reading-paper: #0c121c;
   --conduit-workbench-canvas: #05070b;
@@ -14,6 +15,21 @@
   --conduit-failure: #ff7272;
   --conduit-success: #63d69b;
   --conduit-muted: #8c4c19;
+  /* Short aliases remain available while product layout styles migrate to semantic names. */
+  --ink: var(--conduit-text-primary);
+  --muted: var(--conduit-text-secondary);
+  --paper: var(--conduit-background);
+  --panel: var(--conduit-reading-paper);
+  --field: var(--conduit-bootstrap-surface);
+  --line: #183d61;
+  --green: var(--conduit-structure-primary);
+  --green-dark: var(--conduit-text-primary);
+  --amber: var(--conduit-emphasis);
+  --focus: var(--conduit-focus);
+  --failure: var(--conduit-failure);
+  --conduit-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --conduit-font-editorial: Georgia, "Times New Roman", serif;
+  --conduit-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --conduit-type-body: 16px;
   --conduit-type-small: 14px;
   --conduit-line-height: 150%;
@@ -29,7 +45,35 @@
   box-sizing: border-box;
   color: var(--conduit-text-primary);
   background: var(--conduit-background);
-  font: var(--conduit-type-body)/var(--conduit-line-height) system-ui, sans-serif;
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+:where([data-application-theme]) {
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --conduit-background: #eef5f8;
+    --conduit-reading-paper: #ffffff;
+    --conduit-workbench-canvas: #e5eff4;
+    --conduit-bootstrap-surface: #f7fbfd;
+    --conduit-surface: #ffffff;
+    --conduit-structure-primary: #00758c;
+    --conduit-structure-secondary: #9ab8d1;
+    --conduit-text-primary: #17364d;
+    --conduit-text-secondary: #496b82;
+    --conduit-emphasis: #9a5b00;
+    --conduit-focus: #775d00;
+    --conduit-warning: #8a5200;
+    --conduit-failure: #a32d37;
+    --conduit-success: #08784e;
+    --conduit-muted: #7b654f;
+    --line: #b8cfdd;
+    --green-dark: #174f68;
+    color-scheme: light;
+  }
 }
 :where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
 :where([data-application-syntax="conduit"]) { position: relative; min-width: 0; }
@@ -38,14 +82,14 @@
   position: absolute; inset: 0; z-index: 0; margin: 0; padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
   overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
   white-space: pre-wrap; overflow-wrap: normal;
-  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
 }
 [data-application-syntax="conduit"] .syntax-editor > textarea {
   display: block; width: 100%; border: 0;
   padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
   position: relative; z-index: 1; color: transparent; caret-color: #fff; background: transparent;
   -webkit-text-fill-color: transparent;
-  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 4;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
 }
 [data-application-syntax="conduit"] .syntax-editor > textarea::selection {
   /* Selection paints readable glyphs above the backdrop. */
@@ -74,7 +118,7 @@
 :where([data-application-component="navigation-link"]):focus-visible { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:3px; }
 :where([data-application-component="navigation-link"])[aria-current="page"] { color:var(--conduit-emphasis); }
 :where([data-application-component="navigation-link"])[aria-current="page"]:hover { color:var(--conduit-text-primary); }
-:where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:ui-monospace,monospace; letter-spacing:.08em; }
+:where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:var(--conduit-font-mono); letter-spacing:.08em; }
 :where([data-application-key="product-status"]) { margin-inline-start:auto; color:var(--conduit-text-secondary); text-align:end; }
 @media (max-width:650px) { :where([data-application-key="product-masthead"]) { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } :where([data-application-key="product-navigation"]) { order:3; width:100%; } }
 :where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {

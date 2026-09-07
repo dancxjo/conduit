@@ -530,7 +530,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(application.contains("var(--conduit-focus)"));
     assert!(!application.contains("#08111f"));
 
-    let shared = request("/assets/application-theme.css", "GET");
+    let shared = request("/assets/conduit.css", "GET");
     assert!(shared.starts_with("HTTP/1.1 200 OK"));
     assert!(shared.contains("[data-application-component=\"navigation\"]"));
 

@@ -15,7 +15,7 @@ const HOST_IDENTITY: &[u8] = include_bytes!("../assets/browser-host-identity.mjs
 const APPLICATION_PRESENTATION: &[u8] = include_bytes!("../assets/application-presentation.mjs");
 const APPLICATION_THEME_MODULE: &[u8] = include_bytes!("../assets/application-theme.mjs");
 const BROWSER_HOST_OPERATIONS: &[u8] = include_bytes!("../assets/browser-host-operations.mjs");
-const APPLICATION_THEME: &[u8] = include_bytes!("../assets/application-theme.css");
+const APPLICATION_THEME: &[u8] = include_bytes!("../../../../products/shared/browser/conduit.css");
 const MEDIA_HOST: &[u8] = include_bytes!("../assets/media-host.mjs");
 const DEVICE_BASE: &[u8] = include_bytes!("../assets/device-base.mjs");
 const USB_DEVICE_BASE: &[u8] = include_bytes!("../assets/usb-device-base.mjs");
@@ -172,7 +172,7 @@ impl BrowserHostServer {
                 "text/javascript; charset=utf-8",
                 APPLICATION_PRESENTATION,
             ),
-            Some("GET /assets/application-theme.css HTTP/1.1") => {
+            Some("GET /assets/conduit.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", APPLICATION_THEME)
             }
             Some("GET /assets/application-theme.mjs HTTP/1.1") => (

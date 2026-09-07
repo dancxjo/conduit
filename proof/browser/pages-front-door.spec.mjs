@@ -148,9 +148,7 @@ test("the shared shell follows dark and light preferences without changing appli
         };
       });
       expect(palette.scheme).toContain(colorScheme);
-      expect(palette.background).toBe(colorScheme === "dark"
-        ? "#05070b"
-        : path === "/patchbay/" ? "#e5eff4" : "#eef5f8");
+      expect(palette.background).toBe(colorScheme === "dark" ? "#05070b" : "#eef5f8");
       const primaryNavigation = page.getByRole("navigation", { name: "Conduit products" });
       await expect(primaryNavigation).toBeVisible();
       const hoverTarget = primaryNavigation.getByRole("link", {
