@@ -21,6 +21,12 @@ entry = "house-conversation"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_form" }
 browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
 [[forms]]
+slug = "bench-telemetry"
+title = "Bench Telemetry"
+entry = "bench-telemetry"
+deterministic = { package = "conduit-data", test = "measurement_processing_reuse", case = "bench_consumes_the_exact_little_seismograph_plot_back_without_copying_source" }
+browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and presentation remain separate unfinished Forms"
+[[forms]]
 slug = "bounded-job"
 title = "Bounded Job"
 entry = "bounded-job"
