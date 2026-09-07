@@ -1,9 +1,13 @@
 //! Correlated, evidence-honest lifecycle for one finite record delivery.
 
 use crate::MAXIMUM_TYPED_RECORD_FRAME_BYTES;
+#[cfg(feature = "form-catalog")]
+use alloc::vec::Vec;
 
 pub const MAXIMUM_RECORD_CORRELATION_BYTES: usize = 128;
 pub const MAXIMUM_RECORD_RECEIPT_BYTES: usize = 128;
+pub const MAXIMUM_RECORD_DELIVERY_OBSERVATIONS: u16 = 16;
+pub const MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES: usize = 1_024;
 pub const MAXIMUM_RECORD_DELIVERY_WIRE_BYTES: usize =
     7 + MAXIMUM_RECORD_CORRELATION_BYTES + 1 + MAXIMUM_RECORD_RECEIPT_BYTES;
 pub const RECORD_DELIVERY_WIRE_VERSION: u8 = 1;
@@ -93,6 +97,112 @@ pub struct RecordDeliveryTracker {
     receipt_len: u8,
     frame_bytes: u32,
     state: RecordDeliveryState,
+}
+
+#[cfg(feature = "form-catalog")]
+pub struct BoundedRecordDeliveryStatusCodec {
+    tracker: Option<RecordDeliveryTracker>,
+    observation_type: Vec<u8>,
+    status_type: Vec<u8>,
+    wire: [u8; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES],
+    output: Vec<u8>,
+}
+
+#[cfg(feature = "form-catalog")]
+impl BoundedRecordDeliveryStatusCodec {
+    pub fn prepare() -> Result<Self, RecordDeliveryRefusal> {
+        Ok(Self {
+            tracker: None,
+            observation_type: crate::delivery_observation_type()
+                .canonical_bytes()
+                .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+            status_type: crate::delivery_status_type()
+                .canonical_bytes()
+                .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+            wire: [0; MAXIMUM_RECORD_DELIVERY_WIRE_BYTES],
+            output: Vec::with_capacity(MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES),
+        })
+    }
+
+    pub fn execute(&mut self, canonical: &[u8]) -> Result<&[u8], RecordDeliveryRefusal> {
+        let wire = exact_leaf(canonical, &self.observation_type)?;
+        let observation = decode_record_delivery_observation(wire)?;
+        match self.tracker.as_mut() {
+            None => {
+                if observation.event != RecordDeliveryObservationEvent::LocallyAccepted {
+                    return Err(RecordDeliveryRefusal::InvalidTransition);
+                }
+                self.tracker = Some(RecordDeliveryTracker::locally_accepted(
+                    observation.correlation,
+                    usize::try_from(observation.frame_bytes)
+                        .map_err(|_| RecordDeliveryRefusal::FrameTooLarge)?,
+                )?);
+            }
+            Some(tracker) => tracker.apply(observation)?,
+        }
+        let tracker = self
+            .tracker
+            .as_ref()
+            .expect("tracker was initialized above");
+        let written =
+            encode_record_delivery_observation_into(tracker.observation(), &mut self.wire)?;
+        write_exact_leaf(&mut self.output, &self.status_type, &self.wire[..written])?;
+        Ok(&self.output)
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        self.tracker
+            .as_ref()
+            .is_some_and(RecordDeliveryTracker::is_terminal)
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+fn exact_leaf<'a>(
+    canonical: &'a [u8],
+    value_type: &[u8],
+) -> Result<&'a [u8], RecordDeliveryRefusal> {
+    let node = canonical
+        .strip_prefix(value_type)
+        .ok_or(RecordDeliveryRefusal::MalformedWire)?;
+    if node.first() != Some(&0) || node.len() < 5 {
+        return Err(RecordDeliveryRefusal::MalformedWire);
+    }
+    let length = usize::try_from(u32::from_le_bytes(
+        node[1..5]
+            .try_into()
+            .map_err(|_| RecordDeliveryRefusal::MalformedWire)?,
+    ))
+    .map_err(|_| RecordDeliveryRefusal::MalformedWire)?;
+    (node.len() == 5 + length)
+        .then_some(&node[5..])
+        .ok_or(RecordDeliveryRefusal::MalformedWire)
+}
+
+#[cfg(feature = "form-catalog")]
+fn write_exact_leaf(
+    output: &mut Vec<u8>,
+    value_type: &[u8],
+    bytes: &[u8],
+) -> Result<(), RecordDeliveryRefusal> {
+    let required = value_type
+        .len()
+        .checked_add(5)
+        .and_then(|length| length.checked_add(bytes.len()))
+        .ok_or(RecordDeliveryRefusal::OutputTooSmall)?;
+    if required > output.capacity() {
+        return Err(RecordDeliveryRefusal::OutputTooSmall);
+    }
+    output.clear();
+    output.extend_from_slice(value_type);
+    output.push(0);
+    output.extend_from_slice(
+        &u32::try_from(bytes.len())
+            .map_err(|_| RecordDeliveryRefusal::OutputTooSmall)?
+            .to_le_bytes(),
+    );
+    output.extend_from_slice(bytes);
+    Ok(())
 }
 
 impl RecordDeliveryTracker {

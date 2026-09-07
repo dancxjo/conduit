@@ -11,6 +11,42 @@ pub(in crate::form_runner) fn complete_transform(
     operation: &HostOperationRequirement,
     request: HostOperationRequest,
 ) -> Result<bool, String> {
+    if operation.contract_id.as_str() == crate::installed_browser::record_delivery::HOST_OPERATION {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.deliveries[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("delivery codec was not prepared before Play")?
+            .execute(input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(bytes)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(refusal) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(crate::installed_browser::record_delivery::failure(refusal)),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if let Some(port) =
         crate::installed_browser::pattern_comparison::input_port(operation.contract_id.as_str())
     {

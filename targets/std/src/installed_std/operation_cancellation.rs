@@ -77,6 +77,7 @@ impl InstalledOperation {
             Self::RecordSingletonStream(operation) => operation.cancel(),
             Self::RecordExactlyOne(operation) => operation.cancel(),
             Self::RecordQueue(operation) => operation.cancel(),
+            Self::RecordDeliveryStatus(operation) => operation.cancel(),
             Self::StructuredSelector(operation) => operation.cancel(),
             Self::StructuredLiteral(_) => {}
             Self::StructuredPresentation(operation) => operation.cancel(),

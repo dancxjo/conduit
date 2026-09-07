@@ -60,6 +60,7 @@ mod pulse_observation_operation;
 #[cfg(test)]
 mod pulse_observation_sink;
 mod quantity_mapping;
+mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
 mod recurrence_codec;
@@ -388,6 +389,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
+    let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
             fragment,
@@ -654,6 +656,49 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete typed-record codec: {error:?}"))?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::RECORD_DELIVERY_STATUS_HOST_OPERATION {
+                let completion = record_delivery_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "record delivery request has no admitted status codec".to_string()
+                    })?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(encoded)
+                            .map_err(|error| format!("store delivery status: {error:?}"))?;
+                        let output = BoundedValueRef::new(
+                            value,
+                            lowered_operation.binding.maximum_output_bytes,
+                        )
+                        .map_err(|error| format!("bound delivery status: {error:?}"))?;
+                        (HostOperationDisposition::Completed, Some(output), None)
+                    }
+                    Err(refusal) => (
+                        HostOperationDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            detail: record_delivery_operation::refusal_detail(refusal),
+                        }),
+                    ),
+                };
+                requests.push(request);
+                scheduler
+                    .complete_host_operation(
+                        request.node,
+                        request.request,
+                        HostOperationOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete delivery status: {error:?}"))?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION {

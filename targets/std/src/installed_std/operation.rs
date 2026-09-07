@@ -82,6 +82,7 @@ impl Operation for InstalledOperation {
             Self::RecordSingletonStream(operation) => operation.start(),
             Self::RecordExactlyOne(operation) => operation.start(),
             Self::RecordQueue(operation) => operation.start(),
+            Self::RecordDeliveryStatus(operation) => operation.start(),
             Self::StructuredSelector(operation) => operation.start(),
             Self::StructuredLiteral(operation) => operation.start(),
             Self::StructuredPresentation(operation) => operation.start(),
@@ -208,6 +209,7 @@ impl Operation for InstalledOperation {
             (Self::RecordSingletonStream(operation), input) => operation.resume(input),
             (Self::RecordExactlyOne(operation), input) => operation.resume(input),
             (Self::RecordQueue(operation), input) => operation.resume(input),
+            (Self::RecordDeliveryStatus(operation), input) => operation.resume(input),
             (Self::StructuredSelector(operation), input) => operation.resume(input),
             (Self::StructuredLiteral(_), _) => Self::fail(153),
             (Self::StructuredPresentation(operation), input) => operation.resume(input),
@@ -385,6 +387,7 @@ impl Operation for InstalledOperation {
             Self::RecordSingletonStream(operation) => operation.advance(),
             Self::RecordExactlyOne(operation) => operation.advance(),
             Self::RecordQueue(operation) => operation.advance(),
+            Self::RecordDeliveryStatus(_) => OperationAction::Await,
             #[cfg(test)]
             Self::TestTextSource(operation) => {
                 operation.next += 1;

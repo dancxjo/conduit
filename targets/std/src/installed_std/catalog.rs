@@ -51,6 +51,7 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
 use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
 use super::record_temporal_operation::{
     EXACTLY_ONE as RECORD_EXACTLY_ONE_FACTORY, SINGLETON as RECORD_SINGLETON_STREAM_FACTORY,
@@ -231,6 +232,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &RECORD_SINGLETON_STREAM_FACTORY,
     &RECORD_EXACTLY_ONE_FACTORY,
     &RECORD_QUEUE_FACTORY,
+    &RECORD_DELIVERY_STATUS_FACTORY,
     #[cfg(test)]
     &TEST_TEXT_SOURCE_FACTORY,
     #[cfg(test)]

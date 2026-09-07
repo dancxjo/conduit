@@ -32,6 +32,7 @@ use super::pattern_comparison_operation::PatternComparisonOperation;
 use super::presentation_composition::{
     GraphicsPresentationOperation, PresentationCompositionOperation,
 };
+use super::record_delivery_operation::RecordDeliveryStatusOperation;
 use super::record_queue_operation::RecordQueueOperation;
 use super::record_temporal_operation::{RecordExactlyOneOperation, RecordSingletonStreamOperation};
 use super::recurrence_operation::RecurrenceOperation;
@@ -144,6 +145,7 @@ pub(super) enum InstalledOperation {
     RecordSingletonStream(RecordSingletonStreamOperation),
     RecordExactlyOne(RecordExactlyOneOperation),
     RecordQueue(RecordQueueOperation),
+    RecordDeliveryStatus(RecordDeliveryStatusOperation),
     StructuredSelector(StructuredSelectorOperation),
     StructuredLiteral(StructuredLiteralOperation),
     StructuredPresentation(StructuredPresentationOperation),

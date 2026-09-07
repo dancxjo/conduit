@@ -21,6 +21,7 @@ pub(crate) mod pointer_selector;
 mod presentation;
 mod quantity;
 mod quantity_output;
+pub(crate) mod record_delivery;
 pub(crate) mod record_queue;
 mod record_temporal;
 pub(crate) mod resource;
@@ -54,6 +55,23 @@ pub(crate) use normalized_quantity::{
     transform as normalize_quantity, HOST_OPERATION as NORMALIZE_QUANTITY_OPERATION,
 };
 pub(crate) use operation::BrowserOperation;
+
+fn record_delivery_refusal_detail(refusal: conduit_net::RecordDeliveryRefusal) -> u16 {
+    use conduit_net::RecordDeliveryRefusal::*;
+    match refusal {
+        EmptyCorrelation => 1,
+        CorrelationTooLong => 2,
+        EmptyFrame => 3,
+        FrameTooLarge => 4,
+        InvalidTransition => 5,
+        InvalidPartialProgress => 6,
+        EmptyReceipt => 7,
+        ReceiptTooLong => 8,
+        OutputTooSmall => 9,
+        MalformedWire => 10,
+        ObservationIdentityMismatch => 11,
+    }
+}
 pub(crate) use pointer::HOST_OPERATION as POINTER_EVENT_OPERATION;
 pub(crate) use quantity::{
     configuration as prepare_quantity_mapping, transform as transform_quantity,
