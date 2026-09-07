@@ -124,6 +124,25 @@ pub(super) struct MultiHostReceipt {
     pub(super) terminal_sign_id: String,
     pub(super) transferred_values: u32,
     pub(super) deliveries: Vec<RecordDeliveryProjection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) transcript: Option<RecordTranscriptProjection>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(super) struct RecordTranscriptProjection {
+    pub(super) retained_items: usize,
+    pub(super) retained_bytes: usize,
+    pub(super) retention_gap: u64,
+    pub(super) entries: Vec<RecordTranscriptEntryProjection>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(super) struct RecordTranscriptEntryProjection {
+    pub(super) sequence: u64,
+    pub(super) event: &'static str,
+    pub(super) frame_bytes: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) terminal_code: Option<u16>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

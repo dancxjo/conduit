@@ -56,6 +56,7 @@ impl Session {
                     return Err("multi-Host delivery correlation sequence is not contiguous".into());
                 }
                 let correlation = offer.sequence.to_le_bytes();
+                self.retain_line_record(conduit_net::RecordTranscriptDirection::Sent, &payload)?;
                 let mut delivery = conduit_net::RecordDeliveryTracker::locally_accepted(
                     &correlation,
                     payload.len(),

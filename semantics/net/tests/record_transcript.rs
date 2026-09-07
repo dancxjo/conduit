@@ -137,6 +137,7 @@ fn invalid_limits_frames_and_exhausted_sequences_refuse_without_false_history() 
 fn terminal_events_have_exact_distinct_fixed_wire_encodings() {
     for terminal in [
         RecordTranscriptTerminal::Completed,
+        RecordTranscriptTerminal::Cancelled,
         RecordTranscriptTerminal::Disconnected,
         RecordTranscriptTerminal::TimedOut,
         RecordTranscriptTerminal::Refused(17),
