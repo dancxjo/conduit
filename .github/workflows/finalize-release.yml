@@ -1,0 +1,125 @@
+name: Finalize trusted release automation
+
+on:
+  workflow_run:
+    workflows: [promotion, candidate]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: finalize-release-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.name == 'promotion' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'release/')
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Merge only the exact successful release head
+        id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          snapshot=${HEAD_BRANCH#release/}
+          [[ "$snapshot" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          pulls=$(gh pr list --state open --base main --head "$HEAD_BRANCH" --json number,url,headRefOid)
+          test "$(jq length <<<"$pulls")" = 1
+          test "$(jq -r '.[0].headRefOid' <<<"$pulls")" = "$HEAD_SHA"
+          pr_number=$(jq -r '.[0].number' <<<"$pulls")
+          pr_url=$(jq -r '.[0].url' <<<"$pulls")
+          base_sha=$(git rev-parse origin/main)
+          git fetch --no-tags origin "$snapshot"
+          git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
+          git merge-base --is-ancestor "$snapshot" "$HEAD_SHA"
+          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+          pull=$(gh pr view "$pr_number" --json state,mergeCommit)
+          test "$(jq -r .state <<<"$pull")" = MERGED
+          merge_sha=$(jq -r .mergeCommit.oid <<<"$pull")
+          git fetch --no-tags origin main
+          test "$(git rev-parse origin/main)" = "$merge_sha"
+          test "$(git rev-parse "$merge_sha^1")" = "$base_sha"
+          test "$(git rev-parse "$merge_sha^2")" = "$HEAD_SHA"
+          test "$(git rev-parse "$merge_sha^{tree}")" = "$(git rev-parse "$HEAD_SHA^{tree}")"
+          printf 'pr_number=%s\n' "$pr_number" >> "$GITHUB_OUTPUT"
+          printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
+      - name: Dispatch exact-main Pages and release synchronization
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.merge.outputs.pr_number }}
+          MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
+        run: |
+          gh workflow run tour-and-creche-pages --ref main -f pr_number="$PR_NUMBER"
+          gh workflow run sync-release-to-dev.yml --ref main \
+            -f pr_number="$PR_NUMBER" -f merge_sha="$MERGE_SHA"
+
+  sync:
+    if: >-
+      github.event.workflow_run.name == 'candidate' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'sync-release/')
+    runs-on: ubuntu-slim
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: dev
+          fetch-depth: 0
+      - name: Merge only the exact successful synchronization head
+        id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          release_merge=${HEAD_BRANCH#sync-release/}
+          [[ "$release_merge" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          pulls=$(gh pr list --state open --base dev --head "$HEAD_BRANCH" --json number,url,headRefOid)
+          test "$(jq length <<<"$pulls")" = 1
+          test "$(jq -r '.[0].headRefOid' <<<"$pulls")" = "$HEAD_SHA"
+          pr_url=$(jq -r '.[0].url' <<<"$pulls")
+          base_sha=$(git rev-parse origin/dev)
+          git fetch --no-tags origin main
+          git fetch --no-tags origin "refs/heads/$HEAD_BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$HEAD_SHA"
+          git merge-base --is-ancestor "$release_merge" origin/main
+          git merge-base --is-ancestor "$release_merge" "$HEAD_SHA"
+          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+          merge_sha=$(gh pr view "$pr_url" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
+          [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
+          git fetch --no-tags origin dev
+          test "$(git rev-parse origin/dev)" = "$merge_sha"
+          test "$(git rev-parse "$merge_sha^1")" = "$base_sha"
+          test "$(git rev-parse "$merge_sha^2")" = "$HEAD_SHA"
+          printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
+          printf 'merge_sha=%s\n' "$merge_sha" >> "$GITHUB_OUTPUT"
+      - name: Dispatch the exact synchronized development integration
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ steps.merge.outputs.base_sha }}
+          MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
+        run: >-
+          gh workflow run dev-integration.yml --ref dev
+          -f base_sha="$BASE_SHA" -f candidate_sha="$MERGE_SHA"
