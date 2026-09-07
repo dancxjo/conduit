@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-const REVIEWED_SOURCES: [(&str, &str, &str); 4] = [
+const REVIEWED_SOURCES: [(&str, &str, &str); 5] = [
     (
         "morse_network",
         "Morse Network",
@@ -15,6 +15,11 @@ const REVIEWED_SOURCES: [(&str, &str, &str); 4] = [
         "desk_telegraph",
         "Desk Telegraph",
         include_str!("../../../../../forms/desk-telegraph/main.conduit"),
+    ),
+    (
+        "secret-knock-demo",
+        "Secret Knock",
+        include_str!("../../../../../forms/secret-knock/main.conduit"),
     ),
     (
         "button_across_room",
@@ -57,7 +62,9 @@ struct GalleryRequirement {
 }
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
-    let (startup, mut profile) = crate::installed_browser::catalogs()?;
+    let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
+        crate::installed_browser::PresentationProfile::PatternComparison,
+    )?;
     let host_inventory = crate::installed_browser::inventory();
     let mut forms = Vec::with_capacity(REVIEWED_SOURCES.len());
     for (name, title, source) in REVIEWED_SOURCES {
@@ -269,8 +276,8 @@ mod tests {
     #[test]
     fn gallery_projects_exact_checked_canonical_sources() {
         let gallery = reviewed_gallery().unwrap();
-        assert_eq!(gallery.maximum_forms, 4);
-        assert_eq!(gallery.forms.len(), 4);
+        assert_eq!(gallery.maximum_forms, 5);
+        assert_eq!(gallery.forms.len(), 5);
         for form in gallery.forms {
             assert!(!form.source_document_id.is_empty());
             assert!(!form.checked_form_id.is_empty());
@@ -301,7 +308,7 @@ mod tests {
                 .iter()
                 .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
                 .count(),
-            4
+            5
         );
         let handoff = view
             .nodes
