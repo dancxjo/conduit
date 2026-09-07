@@ -47,7 +47,7 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(integration, /branches: \[dev\]/);
   assert.match(integration, /tour-products\.yml/);
   assert.match(integration, /group: dev-integration\n/);
-  assert.match(integration, /cancel-in-progress: true/);
+  assert.match(integration, /cancel-in-progress: false/);
   assert.match(promotion, /branches: \[main\]/);
   assert.match(promotion, /full_suite: true/g);
   assert.match(promotion, /group: promotion-\$\{\{ github\.event\.pull_request\.number \}\}/);
