@@ -606,11 +606,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 })
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract.as_str() == conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION {
+            if [
+                conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
+                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+            ]
+            .contains(&contract.as_str())
+            {
                 let completion = typed_record_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
-                    .ok_or_else(|| "typed-record frame request has no admitted host".to_string())?
+                    .ok_or_else(|| "typed-record codec request has no admitted host".to_string())?
                     .execute(input);
                 let (disposition, output, failure) = match completion {
                     Ok(encoded) => {
@@ -629,7 +636,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         None,
                         Some(conduit_kernel::Failure {
                             code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: refusal as u16,
+                            detail: refusal,
                         }),
                     ),
                 };
@@ -644,7 +651,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure,
                         },
                     )
-                    .map_err(|error| format!("complete typed-record frame: {error:?}"))?;
+                    .map_err(|error| format!("complete typed-record codec: {error:?}"))?;
                 continue;
             }
             if contract.as_str() == conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION {

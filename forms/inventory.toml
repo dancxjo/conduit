@@ -88,7 +88,7 @@ reusable_entries = [
   { entry = "text-record", title = "Text Record", composition = { parent = "desk_telegraph", occurrences = ["encode"] } },
   { entry = "text-from-record", title = "Text from Record", composition = { parent = "desk_telegraph", occurrences = ["decode"] } },
 ]
-deterministic = { package = "conduit-net", features = ["form-catalog"], test = "typed_record", case = "desk_telegraph_uses_reusable_text_record_faces_around_exact_framing" }
+deterministic = { package = "conduit-std-host", test = "desk_telegraph", case = "canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play", plan_play_evidence = true }
 browser_safe_not_applicable = "typed-record codecs have no installed browser realization yet"
 [[forms]]
 slug = "garden-state-step"

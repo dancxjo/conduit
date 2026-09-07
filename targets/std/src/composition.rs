@@ -223,6 +223,9 @@ pub(super) fn build_advertisement(
             conduit_std_offers::image_text_std_offer(),
             conduit_std_offers::image_text_record_std_offer(),
             conduit_std_offers::typed_record_frame_std_offer(),
+            conduit_std_offers::typed_record_deframe_std_offer(),
+            conduit_std_offers::text_to_typed_record_std_offer(),
+            conduit_std_offers::typed_record_to_text_std_offer(),
         ]);
     }
     if composition.state {
