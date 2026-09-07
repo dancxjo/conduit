@@ -65,6 +65,14 @@ impl Session {
                     .host_operations
                     .get(usize::from(request.operation.0))
                     .ok_or("multi-Host input has no planned Host operation")?;
+                if engine::transforms::complete_transform(
+                    &mut self.scheduler,
+                    placement,
+                    operation,
+                    request,
+                )? {
+                    continue;
+                }
                 if operation.contract_id.as_str()
                     != crate::installed_browser::BUTTON_EVENT_OPERATION
                 {

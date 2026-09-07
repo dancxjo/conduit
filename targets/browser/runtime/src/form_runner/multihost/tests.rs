@@ -8,9 +8,13 @@ const SOURCE: &str = r#"form hello-across {
 }"#;
 
 fn prepare_pair() -> ((Session, Output), (Session, Output)) {
-    let interaction = crate::source_interaction::admit_source(SOURCE.as_bytes(), 7).unwrap();
+    prepare_pair_for(SOURCE)
+}
+
+fn prepare_pair_for(source: &str) -> ((Session, Output), (Session, Output)) {
+    let interaction = crate::source_interaction::admit_source(source.as_bytes(), 7).unwrap();
     let source_plan =
-        super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", SOURCE).unwrap();
+        super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source).unwrap();
     let sink_plan = super::plan::accept(source_plan.plan.clone(), "browser/b", "boot/b").unwrap();
     (
         Session::prepare(Role::Source, source_plan, 9, interaction.clone()).unwrap(),
@@ -149,4 +153,71 @@ fn ordinary_transform_can_run_after_the_remote_cord() {
             .sum::<usize>(),
         3
     );
+}
+
+#[test]
+fn desk_telegraph_frames_before_one_planned_line_and_deframes_on_the_remote_host() {
+    let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
+    let prepared =
+        super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source).unwrap();
+    assert_eq!(prepared.plan.fragments.len(), 2);
+    let source_fragment = prepared
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == "browser/a")
+        .unwrap();
+    let sink_fragment = prepared
+        .plan
+        .fragments
+        .iter()
+        .find(|fragment| fragment.host_id.as_str() == "browser/b")
+        .unwrap();
+    assert!(source_fragment
+        .placements
+        .iter()
+        .any(|placement| { placement.kind_id.as_str() == conduit_net::TYPED_RECORD_FRAME_KIND }));
+    assert!(sink_fragment
+        .placements
+        .iter()
+        .any(|placement| { placement.kind_id.as_str() == conduit_net::TYPED_RECORD_DEFRAME_KIND }));
+    let selected = source_fragment
+        .connections
+        .iter()
+        .find_map(|connection| connection.selected_line.as_ref())
+        .unwrap();
+    assert_eq!(selected.binding.limits.maximum_in_flight_items, 1);
+    assert_eq!(
+        selected.contract.ordering,
+        conduit_core::LineOrdering::Ordered
+    );
+
+    let ((mut source_session, source_output), (mut sink_session, sink_output)) =
+        prepare_pair_for(source);
+    assert!(matches!(sink_output, Output::Waiting { .. }));
+    let offered = match source_output {
+        Output::Line { frame, .. } => frame,
+        _ => panic!("Desk Telegraph did not offer its framed value"),
+    };
+    assert_ne!(offered.payload, b"CALLING");
+    let framed = conduit_core::StructuredInfoValue::from_canonical_bytes(&offered.payload).unwrap();
+    assert_eq!(
+        framed.value_type(),
+        &conduit_net::framed_typed_record_type()
+    );
+    let accepted = match sink_session.ingest(*offered).unwrap() {
+        Output::Manifestation {
+            accepted_frame,
+            manifestation,
+            ..
+        } => {
+            assert_eq!(manifestation.text.as_deref(), Some("CALLING"));
+            accepted_frame
+        }
+        _ => panic!("remote Desk Telegraph did not present reconstructed text"),
+    };
+    assert!(matches!(
+        source_session.ingest(*accepted).unwrap(),
+        Output::Waiting { .. }
+    ));
 }

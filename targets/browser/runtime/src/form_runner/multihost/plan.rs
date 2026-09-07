@@ -47,12 +47,7 @@ pub(super) fn prepare(
     }
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
         .map_err(|error| format!("check multi-Host executable-tour Form: {error:?}"))?;
-    let entry = checked
-        .forms
-        .last()
-        .ok_or_else(|| "multi-Host executable-tour source has no Form".to_string())?
-        .name
-        .clone();
+    let entry = super::super::executable_entry(&checked)?;
     let form = conduit_form::expand_canonical_form(&checked, &entry, &catalog)
         .map_err(|error| format!("expand multi-Host executable-tour Form: {error:?}"))?;
     if form.gears.len() < 2
@@ -87,6 +82,30 @@ pub(super) fn prepare(
     let [source_gear] = roots.as_slice() else {
         return Err("two-browser runner requires one bounded linear Form".into());
     };
+    let sink_root = form
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == conduit_net::TYPED_RECORD_DEFRAME_KIND)
+        .unwrap_or_else(|| {
+            form.connections
+                .iter()
+                .find(|cord| cord.source_gear_id == source_gear.gear_id)
+                .and_then(|cord| {
+                    form.gears
+                        .iter()
+                        .find(|gear| gear.gear_id == cord.sink_gear_id)
+                })
+                .expect("a bounded linear Form with two gears has a sink root")
+        });
+    let mut sink_gears = vec![sink_root.gear_id.clone()];
+    while let Some(next) = form
+        .connections
+        .iter()
+        .find(|cord| cord.source_gear_id == *sink_gears.last().unwrap())
+        .map(|cord| cord.sink_gear_id.clone())
+    {
+        sink_gears.push(next);
+    }
     let source_host = advertisement(source_host_id.into(), source_boot_id.into());
     let sink_host = advertisement(sink_host_id.into(), sink_boot_id.into());
     let placements = PlacementChoices {
@@ -94,10 +113,10 @@ pub(super) fn prepare(
             .gears
             .iter()
             .map(|gear| {
-                let host = if gear.gear_id == source_gear.gear_id {
-                    &source_host
-                } else {
+                let host = if sink_gears.contains(&gear.gear_id) {
                     &sink_host
+                } else {
+                    &source_host
                 };
                 Ok((
                     gear.gear_id.clone(),

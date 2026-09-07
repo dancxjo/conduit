@@ -5,7 +5,7 @@ use conduit_core::{HostOperationRequirement, PlannedGear};
 use conduit_kernel::scheduler::HostOperationRequest;
 use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
 
-pub(super) fn complete_transform(
+pub(in crate::form_runner) fn complete_transform(
     scheduler: &mut TourScheduler,
     placement: &PlannedGear,
     operation: &HostOperationRequirement,
