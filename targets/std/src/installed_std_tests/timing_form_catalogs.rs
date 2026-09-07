@@ -2,6 +2,7 @@
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub(super) fn install_catalogs(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) {
+    conduit_semantic_catalog::install_button_indicator_catalogs(startup, profile).unwrap();
     conduit_semantic_catalog::install_generalized_input_catalogs(startup, profile).unwrap();
     conduit_semantic_catalog::install_timed_pattern_catalogs(startup, profile).unwrap();
     conduit_semantic_catalog::install_timed_button_attempt_catalogs(startup, profile).unwrap();
