@@ -1,5 +1,7 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
+mod font;
+
 use conduit_presentation::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     LayoutRect,
@@ -293,8 +295,8 @@ fn stroke(
     Ok(())
 }
 
-// Private bounded 5x7 raster mechanism. Portable text meaning remains the
-// exact UTF-8 payload above this boundary; unsupported glyphs use one box.
+// Private bounded Unifont raster mechanism. Portable text meaning remains the
+// exact UTF-8 payload above this boundary; unsupported glyphs use U+FFFD.
 fn text(
     target: &mut impl PixelTarget,
     rect: LayoutRect,
@@ -306,71 +308,27 @@ fn text(
     let origin_y = u32::from(rect.y as u16);
     let right = origin_x + u32::from(rect.width);
     let bottom = origin_y + u32::from(rect.height);
-    for (index, character) in value.chars().enumerate() {
-        let cell_x = origin_x + u32::try_from(index).unwrap_or(u32::MAX).saturating_mul(6);
-        if cell_x + 5 > right {
+    let mut cell_x = origin_x;
+    for character in value.chars() {
+        let (glyph, _) = font::glyph(character);
+        let width = u32::from(glyph.width);
+        if cell_x + width > right {
             break;
         }
-        let rows = glyph(character);
-        for row in 0..7_u32 {
+        for row in 0..font::GLYPH_HEIGHT {
             if origin_y + row >= bottom {
                 break;
             }
-            for column in 0..5_u32 {
-                if rows[row as usize] & (0x10 >> column) != 0 {
+            for column in 0..width {
+                let byte = glyph.bitmap[row as usize * (width as usize / 8) + column as usize / 8];
+                if byte & (0x80 >> (column % 8)) != 0 {
                     put(target, cell_x + column, origin_y + row, color, receipt)?;
                 }
             }
         }
+        cell_x = cell_x.saturating_add(width);
     }
     Ok(())
-}
-
-fn glyph(character: char) -> [u8; 7] {
-    match character.to_ascii_uppercase() {
-        ' ' => [0, 0, 0, 0, 0, 0, 0],
-        'A' => [14, 17, 17, 31, 17, 17, 17],
-        'B' => [30, 17, 17, 30, 17, 17, 30],
-        'C' => [14, 17, 16, 16, 16, 17, 14],
-        'D' => [30, 17, 17, 17, 17, 17, 30],
-        'E' => [31, 16, 16, 30, 16, 16, 31],
-        'F' => [31, 16, 16, 30, 16, 16, 16],
-        'G' => [14, 17, 16, 23, 17, 17, 15],
-        'H' => [17, 17, 17, 31, 17, 17, 17],
-        'I' => [14, 4, 4, 4, 4, 4, 14],
-        'J' => [7, 2, 2, 2, 18, 18, 12],
-        'K' => [17, 18, 20, 24, 20, 18, 17],
-        'L' => [16, 16, 16, 16, 16, 16, 31],
-        'M' => [17, 27, 21, 21, 17, 17, 17],
-        'N' => [17, 25, 21, 19, 17, 17, 17],
-        'O' => [14, 17, 17, 17, 17, 17, 14],
-        'P' => [30, 17, 17, 30, 16, 16, 16],
-        'Q' => [14, 17, 17, 17, 21, 18, 13],
-        'R' => [30, 17, 17, 30, 20, 18, 17],
-        'S' => [15, 16, 16, 14, 1, 1, 30],
-        'T' => [31, 4, 4, 4, 4, 4, 4],
-        'U' => [17, 17, 17, 17, 17, 17, 14],
-        'V' => [17, 17, 17, 17, 17, 10, 4],
-        'W' => [17, 17, 17, 21, 21, 21, 10],
-        'X' => [17, 17, 10, 4, 10, 17, 17],
-        'Y' => [17, 17, 10, 4, 4, 4, 4],
-        'Z' => [31, 1, 2, 4, 8, 16, 31],
-        '0' => [14, 17, 19, 21, 25, 17, 14],
-        '1' => [4, 12, 4, 4, 4, 4, 14],
-        '2' => [14, 17, 1, 2, 4, 8, 31],
-        '3' => [30, 1, 1, 14, 1, 1, 30],
-        '4' => [2, 6, 10, 18, 31, 2, 2],
-        '5' => [31, 16, 16, 30, 1, 1, 30],
-        '6' => [14, 16, 16, 30, 17, 17, 14],
-        '7' => [31, 1, 2, 4, 8, 8, 8],
-        '8' => [14, 17, 17, 14, 17, 17, 14],
-        '9' => [14, 17, 17, 15, 1, 1, 14],
-        '-' => [0, 0, 0, 31, 0, 0, 0],
-        '/' => [1, 1, 2, 4, 8, 16, 16],
-        ':' => [0, 4, 4, 0, 4, 4, 0],
-        '.' => [0, 0, 0, 0, 0, 12, 12],
-        _ => [31, 17, 21, 21, 21, 17, 31],
-    }
 }
 
 fn put(

@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 91
+maximum_forms = 94
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -98,12 +98,6 @@ reusable_entries = [
 deterministic = { package = "conduit-std-host", test = "desk_telegraph", case = "canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play", plan_play_evidence = true }
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form desk-telegraph runs browser-safe" }
 [[forms]]
-slug = "garden-state-step"
-title = "Garden State Step"
-entry = "garden-state-step"
-deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
-browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
-[[forms]]
 slug = "generalized-input"
 title = "Generalized Input"
 entry = "generalized-input"
@@ -165,19 +159,17 @@ entry = "memory_lantern"
 initial_body_order = 2
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form memory-lantern runs browser-safe" }
 [[forms]]
-slug = "measurement-summary"
-title = "Measurement Summary"
-entry = "measurement-summary"
-deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" }
-[[forms]]
-slug = "measurement-threshold"
-title = "Measurement Threshold"
-entry = "measurement-threshold"
-deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_form_independent_of_presentation" }
-[[forms]]
-slug = "measurement-window"
-title = "Measurement Window"
-entry = "measurement-window"
+slug = "little-seismograph"
+title = "Little Seismograph"
+entry = "little-seismograph-processing"
+reusable_entries = [
+  { entry = "measurement-window", title = "Measurement Window", composition = { parent = "little-seismograph-processing", occurrences = ["samples"] }, deterministic = { package = "conduit-data", test = "measurement_window", case = "reusable_window_has_an_exact_checked_form_contract" } },
+  { entry = "measurement-summary", title = "Measurement Summary", composition = { parent = "little-seismograph-processing", occurrences = ["summarize"] }, deterministic = { package = "conduit-data", test = "measurement_summary", case = "canonical_summary_is_a_reusable_exact_typed_form" } },
+  { entry = "measurement-threshold", title = "Measurement Threshold", composition = { parent = "little-seismograph-processing", occurrences = ["decide"] }, deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_form_independent_of_presentation" } },
+  { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" } },
+]
+deterministic = { package = "conduit-data", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
+browser_safe_not_applicable = "the portable processing waist has no reviewed browser source realization yet"
 [[forms]]
 slug = "messaging-delivery"
 title = "Messaging Delivery"
@@ -309,7 +301,11 @@ deterministic = { package = "conduit", test = "two_std_line", case = "installed_
 slug = "signal-garden"
 title = "Signal Garden"
 entry = "signal-garden-interactive"
-reusable_entries = [{ entry = "signal-garden-minimal", title = "Signal Garden Minimal" }]
+reusable_entries = [
+  { entry = "signal-garden-minimal", title = "Signal Garden Minimal" },
+  { entry = "garden-state-step", title = "Garden State Step", composition = { parent = "signal-garden-minimal", occurrences = ["evolve"] } },
+  { entry = "garden-state-step-contact", title = "Garden State Step with Contact", composition = { parent = "signal-garden-interactive", occurrences = ["evolve"] } },
+]
 deterministic = { package = "conduit-semantic-catalog", features = ["form-catalog"], test = "signal_garden_forms", case = "minimal_and_enriched_forms_preserve_distinct_mandatory_source_types" }
 browser_safe_not_applicable = "portable Garden state evolution has no reviewed browser Host execution oracle"
 [[forms]]

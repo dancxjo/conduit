@@ -82,11 +82,18 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(request, /already-running/);
   assert.match(request, /already-current/);
   assert.match(request, /release\/\$dev_sha/);
-  assert.match(request, /gh pr merge "\$pr_url" --auto --rebase/);
+  assert.match(request, /gh pr merge "\$pr_url" --auto --merge/);
   const sync = readFileSync(".github/workflows/sync-release-to-dev.yml", "utf8");
   assert.match(sync, /Sync release fixes to dev/);
   assert.match(sync, /--base dev/);
-  assert.match(sync, /--auto --rebase/);
+  assert.match(sync, /--auto --merge/);
+  const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
+  assert.match(approval, /workflows: \[promotion, candidate\]/);
+  assert.match(approval, /actor\.login == 'github-actions\[bot\]'/);
+  assert.match(approval, /startsWith\(github\.event\.workflow_run\.head_branch, 'release\/'\)/);
+  assert.match(approval, /startsWith\(github\.event\.workflow_run\.head_branch, 'sync-release\/'\)/);
+  assert.match(approval, /test "\$HEAD_REPOSITORY" = "\$GITHUB_REPOSITORY"/);
+  assert.match(approval, /actions\/runs\/\$RUN_ID\/approve/);
   for (const retired of [
     "candidate-shared-compile.yml",
     "reconcile-candidate.yml",
@@ -94,6 +101,22 @@ test("workflow topology keeps fast development separate from stable promotion", 
     "retire-superseded-candidates.yml",
   ]) {
     assert.equal(existsSync(`.github/workflows/${retired}`), false, retired);
+  }
+});
+
+test("cancelled exact heads cannot start more reusable proof jobs", () => {
+  for (const path of [".github/workflows/check.yml", ".github/workflows/tour-products.yml"]) {
+    const workflow = readFileSync(path, "utf8");
+    assert.doesNotMatch(
+      workflow,
+      /^    if: (?:\$\{\{ )?always\(\) && (?!\!cancelled\(\))/m,
+      `${path} has a cancellation-resistant job condition`,
+    );
+    assert.doesNotMatch(
+      workflow,
+      /^      always\(\) && (?!\!cancelled\(\))/m,
+      `${path} has a cancellation-resistant multiline job condition`,
+    );
   }
 });
 
