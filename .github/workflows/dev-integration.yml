@@ -55,6 +55,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INTEGRATED_SHA: ${{ inputs.candidate_sha }}
-        run: >-
-          gh workflow run promote-dev.yml --repo "$GITHUB_REPOSITORY" --ref main
-          -f integrated_sha="$INTEGRATED_SHA"
+        run: |
+          main_controller=$(gh api \
+            "repos/$GITHUB_REPOSITORY/contents/.github/workflows/promote-dev.yml?ref=main" \
+            --jq .content | base64 --decode)
+          if grep -q 'integrated_sha:' <<< "$main_controller"; then
+            gh workflow run promote-dev.yml --repo "$GITHUB_REPOSITORY" --ref main \
+              -f integrated_sha="$INTEGRATED_SHA"
+          else
+            printf 'The trusted main controller predates exact dispatch inputs; its workflow_run trigger owns this completed integration.\n'
+          fi
