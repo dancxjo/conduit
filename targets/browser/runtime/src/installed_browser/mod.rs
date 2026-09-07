@@ -18,6 +18,7 @@ mod morse;
 mod morse_composition;
 mod normalized_quantity;
 mod operation;
+mod phase_synchronization;
 mod pointer;
 pub(crate) mod pointer_selector;
 mod presentation;

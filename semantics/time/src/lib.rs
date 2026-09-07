@@ -77,3 +77,8 @@ pub use button_attempt_operation::TimedButtonAttemptOperation;
 mod pulse_observation_operation;
 #[cfg(feature = "kernel-operation")]
 pub use pulse_observation_operation::PulseObservationOperation;
+
+#[cfg(feature = "kernel-operation")]
+mod phase_synchronization_operation;
+#[cfg(feature = "kernel-operation")]
+pub use phase_synchronization_operation::PhaseSynchronizationOperation;
