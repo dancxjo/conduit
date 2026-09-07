@@ -1,7 +1,7 @@
 import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
 
-const VERSION = 9;
-const RETIRED_VERSION = 8;
+const VERSION = 10;
+const RETIRED_VERSION = 9;
 const MAX_BYTES = 131_072;
 const MAX_NODES = 40;
 const MAX_DEPTH = 8;
@@ -69,6 +69,7 @@ const COMPONENTS = Object.freeze({
   42: ["label", "choice-option-label"], 43: ["input", "independent-choice"],
   44: ["input", "exclusive-choice"],
   45: ["a", "navigation-link"], 46: ["a", "link"],
+  47: ["hr", "separator"],
 });
 const EVENTS = Object.freeze({ 1: "click", 2: "change", 3: "input", 4: "toggle", 5: "submit" });
 const COMPONENT_IDENTITIES = Object.freeze(Object.fromEntries(
@@ -151,7 +152,7 @@ export function decodeApplicationView(input) {
     const key = cursor.text(keyLength);
     const text = cursor.text(textLength);
     const value = cursor.text(valueLength);
-    if ([12, 14, 39, 40, 41, 42, 43, 44, 45, 46].includes(component) && text.length === 0) refuse("invalid-control-value");
+    if ([12, 14, 39, 40, 41, 42, 43, 44, 45, 46, 47].includes(component) && text.length === 0) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(value)) refuse("invalid-control-value");
     if (component === 38 && value.startsWith("0/")) refuse("invalid-control-value");
     if (keys.has(key)) refuse("duplicate-key");
@@ -185,6 +186,7 @@ export function decodeApplicationView(input) {
     if ((node.component === 43 || node.component === 44) && (!['true', 'false'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 42)) refuse("invalid-control-value");
     if (node.component === 45 && (!['home', 'tour', 'creche', 'patchbay', 'source'].includes(node.value) || node.parent === null || nodes[node.parent].component !== 12)) refuse("invalid-control-value");
     if (node.component === 46 && !validSameSiteLink(node.value)) refuse("invalid-control-value");
+    if (node.component === 47 && children.length !== 0) refuse("invalid-control-value");
   }
   if (cursor.offset !== encoded.length) refuse("malformed-encoding");
   return Object.freeze({ revision, actions: Object.freeze(actions), nodes: Object.freeze(nodes) });
@@ -454,6 +456,8 @@ export function manifestApplicationView(input, root, options = {}) {
     } else if (node.component === 46) {
       element.href = new URL(node.value, document.baseURI).href;
       element.textContent = node.text;
+    } else if (node.component === 47) {
+      element.setAttribute("aria-label", node.text);
     } else if (node.component === 33 || node.component in EVIDENCE_DISPOSITIONS) {
       const title = document.createElement("h3");
       title.textContent = node.text;

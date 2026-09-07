@@ -381,6 +381,11 @@ test("Tour routes return to a bounded reader top and narrow mode keeps every sur
 test("Tour workspace bounds each pane and persists accessible desktop split geometry", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await openStep(page, 0);
+  const separator = page.getByRole("separator", { name: "Lesson and laboratory boundary" });
+  await expect(separator).toBeVisible();
+  await expect(separator).toHaveAttribute("data-application-component", "separator");
+  await expect(page.locator(".tour-divider").getByRole("slider")).toHaveCount(0);
+  await expect(page.locator(".tour-divider").getByRole("button")).toHaveCount(0);
   const measures = await page.evaluate(() => {
     const content = document.querySelector(".tour-content").getBoundingClientRect();
     const lesson = document.querySelector("#chapter").getBoundingClientRect();
@@ -403,13 +408,14 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
   expect(measures.patchbay.bottom).toBeLessThanOrEqual(measures.editor.top + 1);
   expect(Math.abs(measures.editor.top - measures.result.top)).toBeLessThan(2);
 
+  await page.getByText("Pane layout", { exact: true }).click();
   const width = page.getByRole("slider", { name: "Narrative width" });
   await width.focus();
   await width.press("End");
   await expect(width).toHaveValue("65");
   await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
-  await page.getByText("Pane layout", { exact: true }).click();
   const beforeLabResize = await page.evaluate(() => ({
+    patchbayHeight: document.querySelector(".compact-patchbay").getBoundingClientRect().height,
     editorWidth: document.querySelector(".editor").getBoundingClientRect().width,
     resultWidth: document.querySelector(".result").getBoundingClientRect().width,
   }));
@@ -426,14 +432,14 @@ test("Tour workspace bounds each pane and persists accessible desktop split geom
     editor: document.querySelector(".editor").getBoundingClientRect().toJSON(),
     result: document.querySelector(".result").getBoundingClientRect().toJSON(),
   }));
-  expect(resized.patchbay.height).toBeGreaterThan(measures.patchbay.height);
+  expect(resized.patchbay.height).toBeGreaterThan(beforeLabResize.patchbayHeight);
   expect(resized.editor.width).toBeLessThan(beforeLabResize.editorWidth);
   expect(resized.result.width).toBeGreaterThan(beforeLabResize.resultWidth);
   await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
   await page.reload();
   await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await expect(width).toHaveValue("65");
   await page.getByText("Pane layout", { exact: true }).click();
+  await expect(width).toHaveValue("65");
   await expect(patchbayHeight).toHaveValue("70");
   await expect(sourceWidth).toHaveValue("40");
   await page.getByRole("button", { name: "Reset panes" }).focus();

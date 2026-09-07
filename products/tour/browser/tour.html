@@ -35,6 +35,9 @@
         <input id="tour-patchbay-height" type="range" min="35" max="70" step="1" value="55">
         <label for="tour-source-width">Source width</label>
         <input id="tour-source-width" type="range" min="40" max="75" step="1" value="60">
+        <label for="tour-narrative-width">Narrative width</label>
+        <input id="tour-narrative-width" type="range" min="30" max="65" step="1" value="46">
+        <button type="button" data-tour-reset-layout>Reset panes</button>
       </details>
     </nav>
     <nav class="tour-view-switcher" aria-label="Tour workspace views">
@@ -43,11 +46,7 @@
     </nav>
     <div class="tour-content" data-narrow-view="lesson">
       <main id="chapter" tabindex="-1" aria-label="Tour lesson" aria-live="polite"></main>
-      <div class="tour-divider">
-        <label for="tour-narrative-width">Narrative width</label>
-        <input id="tour-narrative-width" type="range" min="30" max="65" step="1" value="46">
-        <button type="button" data-tour-reset-layout>Reset panes</button>
-      </div>
+      <div class="tour-divider" data-application-slot="tour-workspace-separator"></div>
       <aside id="laboratory-slot" tabindex="-1" aria-label="Tour laboratory"></aside>
     </div>
     <div data-application-slot="tour-navigation"></div>

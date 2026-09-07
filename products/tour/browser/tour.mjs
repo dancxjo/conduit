@@ -1,7 +1,7 @@
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-membership.mjs";
 import { configureFlowStorage, renderFlow, renderFlowRefusal } from "../../patchbay/html/assets/flow.js";
 import { conceptualTourStage, createTourStage, openTourReadingState } from "./tour-state.mjs";
-import { createTourNavigation, createTourRunnerActions, createTourWorkspace } from "./tour-navigation.mjs";
+import { createTourNavigation, createTourRunnerActions, createTourWorkspace, presentTourWorkspaceSeparator } from "./tour-navigation.mjs";
 import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./tour-runner-presentation.mjs";
 import { createProductMasthead } from "../../../semantics/presentation/assets/product-masthead.mjs";
 import { attachConduitSyntaxEditor, createConduitSyntaxExample } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
@@ -41,6 +41,7 @@ try {
   hostPresentation = application.presentation;
   hostPresentationFor = application.presentationFor;
   hostStatus = createProductMasthead(hostPresentation, "product-masthead", "tour");
+  presentTourWorkspaceSeparator(hostPresentation);
   hostStatus.ordinary("Starting browser Host…");
   readingState = await openTourReadingState(application.storage);
   workspace = createTourWorkspace(document, readingState);

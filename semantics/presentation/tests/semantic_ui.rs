@@ -707,3 +707,28 @@ fn incomplete_evidence_artifact_definition_and_code_refuse_before_lowering() {
         Err(SemanticPresentationRefusal::InvalidArtifact)
     );
 }
+
+#[test]
+fn separator_lowers_as_passive_renderer_neutral_structure() {
+    let lowered = SemanticApplicationView {
+        revision: 11,
+        root: node(
+            "boundary",
+            PresentationMechanism::Separator {
+                label: "Lesson and laboratory boundary".into(),
+            },
+            vec![],
+        ),
+    }
+    .lower()
+    .unwrap();
+
+    assert_eq!(lowered.nodes[0].component, ApplicationComponent::Separator);
+    assert_eq!(lowered.nodes[0].text, "Lesson and laboratory boundary");
+    assert!(lowered.nodes[0].action.is_none());
+    assert!(lowered.actions.is_empty());
+    assert_eq!(
+        ApplicationView::decode(&lowered.encode().unwrap()),
+        Ok(lowered)
+    );
+}

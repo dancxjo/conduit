@@ -6,9 +6,9 @@ mod structure;
 
 pub(crate) use structure::valid_same_site_link;
 
-pub const APPLICATION_VIEW_VERSION: u8 = 9;
-/// Version 8 omitted bounded same-site links.
-pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 8;
+pub const APPLICATION_VIEW_VERSION: u8 = 10;
+/// Version 9 omitted renderer-neutral separators.
+pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 9;
 pub const MAX_APPLICATION_VIEW_NODES: usize = 40;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
@@ -74,6 +74,7 @@ pub enum ApplicationComponent {
     ExclusiveChoice = 44,
     NavigationLink = 45,
     Link = 46,
+    Separator = 47,
 }
 
 /// Renderer-neutral state for an interactive presentation node.
@@ -172,6 +173,7 @@ impl ApplicationView {
                     | ApplicationComponent::ExclusiveChoice
                     | ApplicationComponent::NavigationLink
                     | ApplicationComponent::Link
+                    | ApplicationComponent::Separator
                     | ApplicationComponent::Progress
             ) && node.text.is_empty()
             {
@@ -540,6 +542,7 @@ fn decode_component(value: u8) -> Result<ApplicationComponent, ApplicationViewRe
         44 => Ok(ApplicationComponent::ExclusiveChoice),
         45 => Ok(ApplicationComponent::NavigationLink),
         46 => Ok(ApplicationComponent::Link),
+        47 => Ok(ApplicationComponent::Separator),
         _ => Err(ApplicationViewRefusal::MalformedEncoding),
     }
 }

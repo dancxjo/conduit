@@ -31,6 +31,7 @@ pub enum PresentationMechanismKind {
     Workbench,
     Panel,
     Heading,
+    Separator,
     Grid,
     ActionGroup,
     Action,
@@ -60,6 +61,7 @@ impl PresentationMechanismKind {
             Self::Workbench => "conduit.presentation/workbench@1",
             Self::Panel => "conduit.presentation/panel@1",
             Self::Heading => "conduit.presentation/heading@1",
+            Self::Separator => "conduit.presentation/separator@1",
             Self::Grid => "conduit.presentation/grid@1",
             Self::ActionGroup => "conduit.presentation/action-group@1",
             Self::Action => "conduit.presentation/action@1",
@@ -197,6 +199,9 @@ pub enum PresentationMechanism {
     Heading {
         text: String,
     },
+    Separator {
+        label: String,
+    },
     Grid,
     ActionGroup {
         label: String,
@@ -265,6 +270,7 @@ impl PresentationMechanism {
             Self::Workbench => PresentationMechanismKind::Workbench,
             Self::Panel { .. } => PresentationMechanismKind::Panel,
             Self::Heading { .. } => PresentationMechanismKind::Heading,
+            Self::Separator { .. } => PresentationMechanismKind::Separator,
             Self::Grid => PresentationMechanismKind::Grid,
             Self::ActionGroup { .. } => PresentationMechanismKind::ActionGroup,
             Self::Action(_) => PresentationMechanismKind::Action,
@@ -436,6 +442,7 @@ fn lower_mechanism(
         | PresentationMechanism::Workbench
         | PresentationMechanism::Panel { .. }
         | PresentationMechanism::Heading { .. }
+        | PresentationMechanism::Separator { .. }
         | PresentationMechanism::Grid => unreachable!("structural mechanisms return above"),
         PresentationMechanism::ActionGroup { label } => {
             if label.is_empty() {
