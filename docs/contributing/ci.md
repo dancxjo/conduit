@@ -25,7 +25,8 @@ child job, or preserve an obsolete candidate run. The newest head owns the PR.
 Every merge starts integration on the latest combined `dev` tree. This is where
 affected product, browser, firmware, and ConduitOS interactions may report bugs.
 Another merge cancels the now-obsolete integration run and validates the newer
-tree instead.
+tree instead. The release controller records that cancellation as a successful
+`superseded` routing decision rather than displaying a skipped release.
 
 A current integration failure is work to repair through an ordinary PR. It does
 not retroactively invalidate the history of every contributing PR.
@@ -41,7 +42,8 @@ After development integration succeeds, automation asks:
 
 The release branch contains everything accumulated in `dev`. Exhaustive proof
 runs there. If it exposes a cross-product bug, repair the release branch and let
-the new exact head run. After merge, automation returns release fixes to `dev`.
+the new exact head run; that new run cancels the obsolete exhaustive run for the
+same release PR. After merge, automation returns release fixes to `dev`.
 That successful development integration naturally starts the next waiting batch.
 
 **Promote dev to main** remains available as a manual escape hatch. It performs

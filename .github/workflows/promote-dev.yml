@@ -16,18 +16,29 @@ concurrency:
 
 jobs:
   request:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    name: Create release branch
+    name: Route release request
     runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:
+      - name: Record a superseded development integration
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+        env:
+          INTEGRATION_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          INTEGRATION_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          printf '## Release train\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- No release was requested because this development integration ended `%s`.\n' "$INTEGRATION_CONCLUSION" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- Superseded integration: %s\n' "$INTEGRATION_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf -- '- A newer development head owns the next release decision.\n' >> "$GITHUB_STEP_SUMMARY"
       - name: Check out everything currently in development
+        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         uses: actions/checkout@v7
         with:
           ref: dev
           fetch-depth: 0
       - name: Create or reuse the repairable release pull request
         id: pull-request
+        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -61,6 +72,7 @@ jobs:
           printf 'status=created\n' >> "$GITHUB_OUTPUT"
           gh pr merge "$pr_url" --auto --rebase
       - name: Summarize the release candidate
+        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
         env:
           PR_URL: ${{ steps.pull-request.outputs.url }}
           DEV_SHA: ${{ steps.pull-request.outputs.dev_sha }}
