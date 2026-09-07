@@ -432,6 +432,9 @@ impl StdHost {
                 .capability_offers()
                 .map_err(|error| format!("local-model capabilities: {error:?}"))?,
         );
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::house_prompt_std_offer());
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
             left.capability_id

@@ -12,6 +12,7 @@ use super::final_normalized_pattern_operation::FinalNormalizedPatternOperation;
 use super::flow_gate_operation::FlowGateScalarOperation;
 use super::flow_state_operations::{FlowTeeScalarOperation, StateLatestScalarOperation};
 use super::generate_text::GenerateTextOperation;
+use super::house_prompt_operation::HousePromptOperation;
 use super::http::{HttpClientOperation, HttpServerOperation};
 use super::image_text_operation::ImageTextOperation;
 use super::image_text_record_operation::ImageTextRecordOperation;
@@ -135,6 +136,7 @@ pub(super) enum InstalledOperation {
     MidiInput(Box<MidiInputOperation>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerOperation),
     GenerateText(GenerateTextOperation),
+    HousePrompt(HousePromptOperation),
     LocalModel(LocalModelOperation),
     VectorSearch(VectorSearchOperation),
     HttpClient(HttpClientOperation),

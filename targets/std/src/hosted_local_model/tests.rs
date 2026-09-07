@@ -157,6 +157,10 @@ fn only_initialized_adapter_capabilities_enter_the_host_advertisement() {
         })
         .collect::<Vec<_>>();
     assert_eq!(local.len(), 2);
+    assert!(host.advertisement().capabilities.iter().any(|capability| {
+        capability.implementation.implementation_id.as_str()
+            == conduit_std_offers::HOUSE_PROMPT_STD_IMPLEMENTATION
+    }));
     assert!(host.advertisement().resources.iter().any(|resource| {
         resource.class_id.as_str() == conduit_ai::LOCAL_MODEL_MEMORY_RESOURCE
             && resource.capacity_units == 1
@@ -227,6 +231,35 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
         conduit_form::expand_canonical_form_for_authoring(&checked, "classification", &profiles)
             .unwrap();
     assert!(host.plan_expanded_local(&authoring.expanded).is_err());
+}
+
+#[test]
+fn house_prompt_projection_plans_the_exact_std_realization() {
+    let host = StdHost::new_with_local_model(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::Generate]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+    )
+    .unwrap();
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
+    conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles).unwrap();
+    let source = "form prompt-only (\n > detection: AddressDetection\n > context: HouseContext\n prompt: Text >\n) {\n request: house/context-to-prompt\n detection > request.detection\n context > request.context\n request.prompt > prompt\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authored =
+        conduit_form::expand_canonical_form_for_authoring(&checked, "prompt-only", &profiles)
+            .unwrap();
+    let plan = host.plan_expanded_local(&authored.expanded).unwrap();
+    let placements = &plan.fragments[0].placements;
+    assert_eq!(placements.len(), 1);
+    assert!(placements.iter().any(|placement| {
+        placement.implementation_id.as_str() == conduit_std_offers::HOUSE_PROMPT_STD_IMPLEMENTATION
+    }));
 }
 
 fn plan_and_play(profile: LocalModelKindProfile) {
