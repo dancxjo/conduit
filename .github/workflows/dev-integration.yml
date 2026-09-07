@@ -15,7 +15,7 @@ on:
         type: string
 
 permissions:
-  actions: read
+  actions: write
   contents: read
   pull-requests: read
 
@@ -50,3 +50,8 @@ jobs:
         run: |
           test "$CHECK_RESULT" = success
           test "$PRODUCTS_RESULT" = success
+      - name: Continue the release train after an explicitly dispatched integration
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run promote-dev.yml --ref main
