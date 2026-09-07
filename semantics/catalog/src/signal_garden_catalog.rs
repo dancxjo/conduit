@@ -25,6 +25,7 @@ pub const GARDEN_MINIMAL_STEP_KIND: &str = "state/garden-step";
 pub const GARDEN_ENRICHED_STEP_KIND: &str = "state/garden-step-contact";
 pub const GARDEN_OBSERVATION_COMBINE_KIND: &str = "observation/garden-clock-contact";
 pub const GARDEN_ENRICHED_REDUCER_KIND: &str = "state/garden-step-enriched-reducer";
+pub const GARDEN_STATE_PRESENTATION_KIND: &str = "presentation/garden-state";
 pub const GARDEN_CONTRACT_REVISION: &str = "conduit.std/signal-garden-state@1";
 
 pub fn install_signal_garden_catalog(
@@ -82,7 +83,25 @@ pub fn install_signal_garden_catalog(
         GARDEN_ENRICHED_REDUCER_KIND,
         garden_enriched_reducer_definition().inputs,
         garden_enriched_reducer_definition().outputs,
+    )?;
+    let presentation = garden_state_presentation_definition();
+    insert_kind(
+        startup,
+        profile,
+        GARDEN_STATE_PRESENTATION_KIND,
+        presentation.inputs,
+        presentation.outputs,
     )
+}
+
+pub fn garden_state_presentation_definition() -> KindDefinition {
+    KindDefinition {
+        kind_id: kind_id(GARDEN_STATE_PRESENTATION_KIND),
+        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        inputs: vec![port("state", &garden_state_type(), PortDirection::Input)],
+        outputs: vec![],
+        configuration: vec![],
+    }
 }
 
 pub fn install_signal_garden_backs(
