@@ -9,7 +9,8 @@ pub(crate) use structure::valid_same_site_link;
 pub const APPLICATION_VIEW_VERSION: u8 = 10;
 /// Version 9 omitted renderer-neutral separators.
 pub const RETIRED_APPLICATION_VIEW_VERSION: u8 = 9;
-pub const MAX_APPLICATION_VIEW_NODES: usize = 40;
+/// Enough finite presentation topology for the reviewed twelve-Form Gallery.
+pub const MAX_APPLICATION_VIEW_NODES: usize = 128;
 pub const MAX_APPLICATION_VIEW_DEPTH: usize = 8;
 pub const MAX_APPLICATION_VIEW_KEY_BYTES: usize = 32;
 pub const MAX_APPLICATION_VIEW_TEXT_BYTES: usize = 256;
