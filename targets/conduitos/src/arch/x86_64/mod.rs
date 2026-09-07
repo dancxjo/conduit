@@ -1,6 +1,7 @@
 mod cpu;
 mod gdt;
 mod hid;
+mod hid_pointer;
 mod idt;
 mod io;
 mod irq;
@@ -19,6 +20,10 @@ pub use hid::{
     HidError, HidKeyTransition, HidKeyboardSession, HidProof, finish_boot_keyboard,
     prepare_boot_keyboard, receive_boot_keyboard, receive_first_boot_keyboard_report,
     run_boot_keyboard, start_boot_keyboard_session,
+};
+pub use hid_pointer::{
+    HidPointerError, HidPointerReady, HidPointerSession, prepare_boot_pointer,
+    start_pointer_session,
 };
 pub use opl2::Opl2;
 pub use pc_speaker::PcSpeaker;
