@@ -421,6 +421,10 @@ mod timing_kernel_tests;
 mod history_kernel_tests;
 
 #[cfg(test)]
+#[path = "measurement_plot_kernel_tests.rs"]
+mod measurement_plot_kernel_tests;
+
+#[cfg(test)]
 #[path = "concurrent_effect_tests.rs"]
 mod concurrent_effect_tests;
 #[cfg(test)]

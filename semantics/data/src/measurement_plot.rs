@@ -41,9 +41,36 @@ pub enum MeasurementPlotRefusal {
     Full,
     DegenerateValueRange,
     ArithmeticOverflow,
+    InvalidProjection,
 }
 
 impl MeasurementPlotSeries {
+    pub fn from_projected(
+        points: Vec<MeasurementPlotPoint>,
+        source_samples: usize,
+        omitted_samples: usize,
+    ) -> Result<Self, MeasurementPlotRefusal> {
+        if points.is_empty()
+            || points.len() > MAXIMUM_MEASUREMENT_PLOT_POINTS
+            || source_samples.checked_sub(points.len()) != Some(omitted_samples)
+            || points.iter().any(|point| {
+                point.source_index >= source_samples
+                    || !(0..=PLOT_AXIS_MILLIONTHS).contains(&point.time_millionths)
+                    || !(0..=PLOT_AXIS_MILLIONTHS).contains(&point.value_millionths)
+            })
+            || points
+                .windows(2)
+                .any(|pair| pair[0].source_index >= pair[1].source_index)
+        {
+            return Err(MeasurementPlotRefusal::InvalidProjection);
+        }
+        Ok(Self {
+            points,
+            source_samples,
+            omitted_samples,
+        })
+    }
+
     pub fn project(
         window: &BoundedMeasurementWindow,
         profile: MeasurementPlotProfile,

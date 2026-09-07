@@ -568,6 +568,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-creche-model",
+ "conduit-data",
  "conduit-form",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",

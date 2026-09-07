@@ -55,6 +55,7 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::json::DECODE,
     &super::json::COLLECTION,
     &super::json::SUMMARY,
+    &super::measurement_plot::INSTALLATION,
     &super::typed_record::TEXT_TO_RECORD,
     &super::typed_record::FRAME,
     &super::typed_record::DEFRAME,
@@ -229,6 +230,10 @@ pub(crate) fn factory(
     #[cfg(test)]
     if implementation_id.as_str() == super::test_replay_sink::KIND {
         return Some(&super::test_replay_sink::SINK);
+    }
+    #[cfg(test)]
+    if implementation_id.as_str() == super::test_measurement_sink::KIND {
+        return Some(&super::test_measurement_sink::SINK);
     }
     if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
         return Some(&super::comparison_presentation::PRESENTATION);

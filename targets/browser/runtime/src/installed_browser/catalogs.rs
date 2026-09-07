@@ -30,6 +30,8 @@ pub(crate) fn catalogs_for_presentation(
     conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
     conduit_time::install_replay_source_catalog(&mut startup, &mut profile)?;
     conduit_time::install_replay_control_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_window_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
     match presentation {

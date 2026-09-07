@@ -13,6 +13,7 @@ mod limits;
 mod linguistics;
 mod logic;
 mod math;
+pub(crate) mod measurement_plot;
 mod membership_offer;
 mod morse;
 mod morse_composition;
@@ -103,6 +104,9 @@ pub(crate) mod test_timing_sink;
 
 #[cfg(test)]
 pub(crate) mod test_replay_sink;
+
+#[cfg(test)]
+pub(crate) mod test_measurement_sink;
 
 pub(crate) mod button_attempt;
 
