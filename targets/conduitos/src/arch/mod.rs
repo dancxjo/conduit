@@ -10,9 +10,9 @@ mod x86_64;
 pub use x86_64::{
     Clock, HidError, HidKeyTransition, HidKeyboardSession, HidProof, Idle, Interrupts, Opl2,
     PcSpeaker, RebootBase, RebootError, Serial, Timer, UsbDevice, XhciReady, boot_entropy,
-    deterministic_exit, early_write, enumerate_one_at_epoch, enumerate_usb, feature_basis,
-    finish_boot_keyboard, initialize_machine, initialize_xhci, local_reboot_base,
-    pc_speaker_input_hz, prepare_boot_keyboard, receive_boot_keyboard,
+    deterministic_exit, early_write, enumerate_attached_at_epochs, enumerate_one_at_epoch,
+    enumerate_usb, feature_basis, finish_boot_keyboard, initialize_machine, initialize_xhci,
+    local_reboot_base, pc_speaker_input_hz, prepare_boot_keyboard, receive_boot_keyboard,
     receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
     start_boot_keyboard_session, wait_for_attachment_state,
 };

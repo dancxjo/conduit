@@ -32,6 +32,7 @@ pub struct UsbInterface {
 pub struct UsbDevice {
     pub root_port: u8,
     pub slot: u8,
+    pub dma_slot: u8,
     pub address: u8,
     pub attachment_epoch: u32,
     pub usb_version: u16,
@@ -82,6 +83,7 @@ pub(crate) fn device_from_descriptor(
     Ok(UsbDevice {
         root_port: port,
         slot,
+        dma_slot: 0,
         address,
         attachment_epoch: 1,
         usb_version: u16::from_le_bytes([bytes[2], bytes[3]]),

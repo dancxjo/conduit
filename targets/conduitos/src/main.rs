@@ -44,9 +44,17 @@ extern "C" fn conduitos_start() -> ! {
             };
             arch::early_write(b"CONDUIT_BOOT_STAGE xhci-ready\n");
             arch::early_write(b"CONDUIT_BOOT_STAGE usb-enumeration-start\n");
-            let usb = match arch::enumerate_usb(&mut xhci, boot::executable_physical_address) {
-                Ok(device) => device,
+            let mut usb_devices = match arch::enumerate_attached_at_epochs(
+                &mut xhci,
+                boot::executable_physical_address,
+                [1; 3],
+            ) {
+                Ok(devices) => devices,
                 Err(error) => emit_machine_refusal(error.as_str()),
+            };
+            let usb = match usb_devices[0].take() {
+                Some(device) => device,
+                None => emit_machine_refusal("usb-primary-device-absent"),
             };
             arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
             let Some(arena_virtual_start) = record
