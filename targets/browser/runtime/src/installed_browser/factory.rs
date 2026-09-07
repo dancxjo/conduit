@@ -49,6 +49,8 @@ static INSTALLATIONS: &[&BrowserInstallation] = &[
     &super::typed_record::DEFRAME,
     &super::typed_record::RECORD_TO_TEXT,
     &super::record_queue::INSTALLATION,
+    &super::record_temporal::SINGLETON,
+    &super::record_temporal::EXACTLY_ONE,
     &text::LITERAL,
     &text::UPPER,
     &text::JOIN,

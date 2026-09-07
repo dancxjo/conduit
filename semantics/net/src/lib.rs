@@ -35,6 +35,10 @@ mod ordered_record_queue_catalog;
 #[cfg(feature = "form-catalog")]
 pub use ordered_record_queue_catalog::*;
 #[cfg(feature = "form-catalog")]
+mod record_temporal_catalog;
+#[cfg(feature = "form-catalog")]
+pub use record_temporal_catalog::*;
+#[cfg(feature = "form-catalog")]
 mod record_transcript_catalog;
 #[cfg(feature = "form-catalog")]
 pub use record_transcript_catalog::*;

@@ -22,6 +22,7 @@ mod presentation;
 mod quantity;
 mod quantity_output;
 pub(crate) mod record_queue;
+mod record_temporal;
 pub(crate) mod resource;
 mod state_time;
 mod text;
