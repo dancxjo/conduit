@@ -4,7 +4,9 @@
 mod source;
 
 use super::plan::PreparedPlan;
-use super::protocol::{self, LineFrame, MultiHostReceipt, Output, PlanProjection};
+use super::protocol::{
+    self, LineFrame, MultiHostReceipt, Output, PlanProjection, RecordDeliveryProjection,
+};
 use crate::form_runner::engine::{self, BrowserHostEffect, DriveStatus, PendingHostEffect};
 use crate::form_runner::protocol::{
     decode_manifestation, TourBackEvidence, TourEffect, TourGearEvidence,
@@ -48,6 +50,7 @@ pub(super) struct Session {
     latest_presentation: Option<PresentationIdentity>,
     sequence: u64,
     transferred_values: u32,
+    deliveries: Vec<conduit_net::RecordDeliveryTracker>,
 }
 
 impl Session {
@@ -124,6 +127,9 @@ impl Session {
             latest_presentation: None,
             sequence: 0,
             transferred_values: 0,
+            deliveries: Vec::with_capacity(
+                conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS.into(),
+            ),
         };
         let output = match role {
             Role::Source => session.source_offer()?,
@@ -247,6 +253,12 @@ impl Session {
         };
         self.scheduler
             .remote_egress_delivered(endpoint, cord, self.sequence)
+            .map_err(debug_error)?;
+        let receipt = self.sink_active_play_id.as_str().as_bytes();
+        self.deliveries
+            .get_mut(usize::try_from(self.sequence).map_err(debug_error)?)
+            .ok_or("delivered Line value has no correlated delivery tracker")?
+            .remote_accepted(receipt)
             .map_err(debug_error)?;
         self.sequence = self
             .sequence
@@ -422,12 +434,58 @@ impl Session {
             boot_id: self.fragment.boot_id.as_str().into(),
             terminal_sign_id: sign.sign_id.as_str().into(),
             transferred_values: self.transferred_values,
+            deliveries: self
+                .deliveries
+                .iter()
+                .enumerate()
+                .map(|(sequence, tracker)| delivery_projection(sequence as u64, tracker))
+                .collect(),
         }
     }
 
     fn remote(&self) -> &conduit_plan_lowering::lowering::LoweredRemoteEndpoint {
         &self.lowered.remote_endpoints[0]
     }
+}
+
+fn delivery_projection(
+    sequence: u64,
+    tracker: &conduit_net::RecordDeliveryTracker,
+) -> RecordDeliveryProjection {
+    use conduit_net::RecordDeliveryStateRef::*;
+    let (state, queue_sequence, sent_bytes, receipt, code) = match tracker.state() {
+        LocallyAccepted => ("locally-accepted", None, None, None, None),
+        FramedQueued { queue_sequence } => {
+            ("framed-queued", Some(queue_sequence), None, None, None)
+        }
+        PartiallySent { sent_bytes, .. } => ("partially-sent", None, Some(sent_bytes), None, None),
+        RemoteAccepted { receipt } => ("remote-accepted", None, None, Some(receipt), None),
+        TransportUnavailable { code } => ("transport-unavailable", None, None, None, Some(code)),
+        Disconnected { code } => ("disconnected", None, None, None, Some(code)),
+        TimedOut { code } => ("timed-out", None, None, None, Some(code)),
+        Refused { code } => ("refused", None, None, None, Some(code)),
+        Failed { code } => ("failed", None, None, None, Some(code)),
+    };
+    RecordDeliveryProjection {
+        sequence,
+        correlation_hex: hex(tracker.correlation()),
+        frame_bytes: tracker.frame_bytes(),
+        state,
+        queue_sequence,
+        sent_bytes,
+        remote_receipt_hex: receipt.map(hex),
+        failure_code: code,
+    }
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        encoded.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    encoded
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {

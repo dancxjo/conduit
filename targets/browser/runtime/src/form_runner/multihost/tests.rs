@@ -103,6 +103,9 @@ fn unchanged_form_executes_two_exact_fragments_over_one_planned_line() {
             assert_eq!(receipt.transferred_values, 1);
             assert_ne!(receipt.fragment_id, sink_receipt.fragment_id);
             assert_ne!(receipt.active_play_id, sink_receipt.active_play_id);
+            assert_eq!(receipt.deliveries.len(), 1);
+            assert_eq!(receipt.deliveries[0].state, "remote-accepted");
+            assert!(receipt.deliveries[0].remote_receipt_hex.is_some());
         }
         _ => panic!("source did not retain terminal truth"),
     }
@@ -136,6 +139,9 @@ fn wrong_boot_frame_refuses_before_remote_admission_and_cancel_is_distinct() {
         Output::Receipt { receipt, .. } => {
             assert_eq!(receipt.disposition, "cancelled");
             assert_eq!(receipt.transferred_values, 0);
+            assert_eq!(receipt.deliveries.len(), 1);
+            assert_eq!(receipt.deliveries[0].state, "framed-queued");
+            assert!(receipt.deliveries[0].remote_receipt_hex.is_none());
         }
         _ => panic!("cancellation did not retain a distinct receipt"),
     }
@@ -274,4 +280,37 @@ fn unchanged_desk_telegraph_executes_over_a_second_compatible_line_implementatio
         source_session.ingest(*accepted).unwrap(),
         Output::Waiting { .. }
     ));
+}
+
+#[test]
+fn renderer_loss_cannot_be_promoted_from_queued_to_remote_accepted() {
+    let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
+    let ((mut source_session, source_output), (mut sink_session, _)) = prepare_pair_for(source);
+    let offered = match source_output {
+        Output::Line { frame, .. } => frame,
+        _ => panic!("Desk Telegraph did not offer its framed value"),
+    };
+    assert!(matches!(
+        sink_session.ingest(*offered).unwrap(),
+        Output::Manifestation { .. }
+    ));
+    let Output::Receipt {
+        receipt: sink_cancelled,
+        ..
+    } = sink_session.cancel().unwrap()
+    else {
+        panic!("renderer loss did not cancel the sink Play")
+    };
+    assert_eq!(sink_cancelled.disposition, "cancelled");
+
+    let Output::Receipt {
+        receipt: source_cancelled,
+        ..
+    } = source_session.cancel().unwrap()
+    else {
+        panic!("sender cancellation did not retain delivery truth")
+    };
+    assert_eq!(source_cancelled.deliveries.len(), 1);
+    assert_eq!(source_cancelled.deliveries[0].state, "framed-queued");
+    assert!(source_cancelled.deliveries[0].remote_receipt_hex.is_none());
 }

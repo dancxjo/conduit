@@ -123,6 +123,23 @@ pub(super) struct MultiHostReceipt {
     pub(super) boot_id: String,
     pub(super) terminal_sign_id: String,
     pub(super) transferred_values: u32,
+    pub(super) deliveries: Vec<RecordDeliveryProjection>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(super) struct RecordDeliveryProjection {
+    pub(super) sequence: u64,
+    pub(super) correlation_hex: String,
+    pub(super) frame_bytes: u32,
+    pub(super) state: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) queue_sequence: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) sent_bytes: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) remote_receipt_hex: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) failure_code: Option<u16>,
 }
 
 pub(super) fn projection(plan: &Plan, play_sequence: u64) -> Result<PlanProjection, String> {
