@@ -40,7 +40,7 @@ jobs:
               --body "Automatically returns the accepted release fixes from \`$MERGE_SHA\` to development.")
           fi
           printf 'url=%s\n' "$pr_url" >> "$GITHUB_OUTPUT"
-          gh pr merge "$pr_url" --auto --merge
+          gh pr merge "$pr_url" --auto --rebase
       - name: Summarize the development sync
         env:
           PR_URL: ${{ steps.pull-request.outputs.url }}
