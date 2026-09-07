@@ -9,10 +9,12 @@ use conduit_presentation::{
     StatusKind,
 };
 
+mod layout;
+pub use layout::*;
+
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspacePhase {
     LessonReady,
