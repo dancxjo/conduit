@@ -150,7 +150,10 @@ function setupTourModes() {
   const galleryButton = document.querySelector('[data-tour-mode="gallery"]');
   if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
   guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
-  galleryButton.addEventListener("click", () => renderGallery());
+  galleryButton.addEventListener("click", () => {
+    try { renderGallery(); }
+    catch (error) { showTourFailure(error); }
+  });
 }
 
 function setTourMode(mode) {
@@ -164,6 +167,7 @@ function setTourMode(mode) {
 function renderGallery() {
   retireActiveLaboratory();
   setTourMode("gallery");
+  document.title = "Form Gallery · Tour";
   workspace.showLesson();
   chapter.replaceChildren();
   const crecheUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content;
@@ -186,7 +190,6 @@ function renderGallery() {
   document.querySelector("#laboratory-slot").replaceChildren(laboratory);
   chapter.scrollTop = 0;
   gallerySurface.heading().focus({ preventScroll: true });
-  document.title = "Form Gallery · Tour";
 }
 
 function setNavigationDisabled(disabled) {
