@@ -146,8 +146,8 @@ async function renderPage(index, routeChange = "none") {
 }
 
 function setupTourModes() {
-  const guided = document.querySelector('[data-tour-mode="guided"]');
-  const galleryButton = document.querySelector('[data-tour-mode="gallery"]');
+  const guided = document.querySelector('button[data-tour-mode="guided"]');
+  const galleryButton = document.querySelector('button[data-tour-mode="gallery"]');
   if (!guided || !galleryButton) throw new Error("Tour entrances are incomplete");
   guided.addEventListener("click", () => renderPage(currentPage).catch(showTourFailure));
   galleryButton.addEventListener("click", () => renderGallery());
@@ -426,7 +426,7 @@ function createRunner(source, recursive = false, presentation = {}) {
       <div data-application-slot="${fieldSlot}"></div>
       <div data-application-slot="${actionsSlot}"></div>
       ${recursive ? "" : `<label>Structured output
-        <select class="structured-output-profile">
+        <select class="structured-output-profile" data-application-component="select">
           <option value="0">Annotations</option>
           <option value="1">Quantities</option>
           <option value="2">Relative durations</option>
