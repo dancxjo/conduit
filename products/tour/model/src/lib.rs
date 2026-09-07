@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{format, string::String, vec, vec::Vec};
 use conduit_presentation::{
     ActionAvailability, AdmittedNavigationDestination, ApplicationEventKind, PresentationMechanism,
     SemanticAction, SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal,
@@ -11,8 +11,10 @@ use conduit_presentation::{
 
 mod controller;
 mod layout;
+mod pointer;
 pub use controller::*;
 pub use layout::*;
+pub use pointer::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-form:meet-one-gear";
 pub const CANONICAL_LITERAL: &str = "hello";
@@ -27,6 +29,11 @@ pub const CANONICAL_SOURCE: &str = concat!(
 );
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "tour.open-patchbay";
+pub const CANONICAL_PATCHBAY_GEARS: [&str; 3] = [
+    "meet-one-gear/words",
+    "meet-one-gear/change",
+    "meet-one-gear/result",
+];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspacePhase {
     LessonReady,
@@ -43,6 +50,8 @@ pub struct TourWorkspaceState {
     pub source: String,
     pub result: Option<String>,
     pub run_pending: bool,
+    pub hovered_patchbay_subject: Option<String>,
+    pub selected_patchbay_subject: Option<String>,
 }
 
 impl TourWorkspaceState {
@@ -59,6 +68,8 @@ impl TourWorkspaceState {
             source: CANONICAL_SOURCE.into(),
             result: (phase == TourWorkspacePhase::ResultVisible).then(|| CANONICAL_RESULT.into()),
             run_pending: false,
+            hovered_patchbay_subject: None,
+            selected_patchbay_subject: None,
         }
     }
 
@@ -126,7 +137,7 @@ impl TourWorkspaceState {
                                 vec![node(
                                     "patchbay",
                                     PresentationMechanism::PatchbayCanvas {
-                                        label: format_phase(self.phase).into(),
+                                        label: patchbay_label(self),
                                     },
                                     vec![],
                                 )],
@@ -204,6 +215,17 @@ fn format_phase(phase: TourWorkspacePhase) -> &'static str {
         TourWorkspacePhase::LessonReady => "meet-one-gear graph ready",
         TourWorkspacePhase::ResultVisible => "meet-one-gear graph played",
         TourWorkspacePhase::PatchbayOpen => "meet-one-gear graph inspection",
+    }
+}
+
+fn patchbay_label(state: &TourWorkspaceState) -> String {
+    match (
+        state.selected_patchbay_subject.as_deref(),
+        state.hovered_patchbay_subject.as_deref(),
+    ) {
+        (Some(selected), _) => format!("{}; selected {selected}", format_phase(state.phase)),
+        (None, Some(hovered)) => format!("{}; hover {hovered}", format_phase(state.phase)),
+        (None, None) => format_phase(state.phase).into(),
     }
 }
 
