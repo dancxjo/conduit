@@ -27,13 +27,13 @@ test("browser projection agrees exactly with the portable navigation observation
     await expect(page.evaluate(async value=>(await import("/assets/portable-navigation.js")).observeCurrent(value),stale)).rejects.toThrow("stale portable navigation identity");
 
     await page.locator("#toggle-palette").click();
-    await page.locator('#subjects input[type="radio"][data-role="Gear"]').first().click();
+    await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
+    await page.locator('#structured-navigator input[type="radio"][data-role="Gear"]').first().click();
     const focused=await expectCurrentObservation(page,url);
     expect(focused.navigation.cursor.focus).toMatch(/^gear\//);
     expect(focused.navigation.cursor.depth).toBe("Detail");
 
-    await page.locator("#toggle-structured").click();
-    await page.locator("#structured-navigator [data-follow]").filter({hasText:"Host:"}).first().click();
+    await page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Host:/}).first().click();
     const followed=await expectCurrentObservation(page,url);
     expect(followed.navigation.cursor.place).toBe("Body");
     expect(followed.navigation.cursor.aspect).toBe("Plan");

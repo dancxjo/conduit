@@ -37,10 +37,8 @@ test("Inspect and advanced evidence preserve portable identity and Back",async({
     await page.locator("#deep-inspection > summary").click();
     await expect(page.locator("#deep-inspection #plan")).toBeHidden();
     expect((await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth).toBe("Detail");
-    await page.locator("#toggle-inspector").click();
-    await expect(page.locator("#inspector")).toBeVisible();
-    await expect.poll(async()=>(await(await fetch(`${url}/api/snapshot`)).json()).navigation.cursor.depth).toBe("Detail");
-    await page.locator("#toggle-inspector").click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#inspector")).toBeHidden();
     const returned=await(await fetch(`${url}/api/snapshot`)).json();
     expect(returned.navigation.cursor.depth).toBe(original.navigation.cursor.depth);
     expect(returned.navigation.cursor.focus).toBe(original.navigation.cursor.focus);
