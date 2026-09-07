@@ -87,6 +87,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
     let mut template_stores = core::array::from_fn(|_| None);
     let mut structured_selectors = core::array::from_fn(|_| None);
     let mut measurement_windows = core::array::from_fn(|_| None);
+    let mut measurement_hysteresis = core::array::from_fn(|_| None);
     for (fragment, node) in partitions
         .iter()
         .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))
@@ -148,6 +149,11 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         measurement_windows[usize::from(node.node.0)] =
             crate::installed_browser::measurement_window::PreparedWindow::for_placement(placement)?
                 .map(Box::new);
+        measurement_hysteresis[usize::from(node.node.0)] =
+            crate::installed_browser::measurement_hysteresis::PreparedHysteresis::for_placement(
+                placement,
+            )?
+            .map(Box::new);
         if placement.host_operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == crate::installed_browser::pointer_selector::HOST_OPERATION
@@ -258,6 +264,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         template_stores,
         structured_selectors,
         measurement_windows,
+        measurement_hysteresis,
         attempts,
         comparisons,
         snapshots,

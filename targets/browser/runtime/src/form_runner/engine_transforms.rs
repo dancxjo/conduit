@@ -433,6 +433,44 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
+    if crate::installed_browser::measurement_hysteresis::OPERATIONS
+        .contains(&operation.contract_id.as_str())
+    {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.measurement_hysteresis[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("measurement hysteresis was not prepared before Play")?
+            .execute(operation.contract_id.as_str(), input);
+        let outcome = match result {
+            Ok(bytes) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Completed,
+                output: bytes
+                    .map(|bytes| {
+                        let value = scheduler
+                            .kernel
+                            .store_host_value(&bytes)
+                            .map_err(debug_error)?;
+                        BoundedValueRef::new(value, operation.maximum_output_bytes)
+                            .map_err(debug_error)
+                    })
+                    .transpose()?,
+                failure: None,
+            },
+            Err(failure) => HostOperationOutcome {
+                disposition: HostOperationDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_operation(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if crate::installed_browser::typed_record::OPERATIONS.contains(&operation.contract_id.as_str())
     {
         let result = crate::installed_browser::typed_record::execute(
