@@ -14,9 +14,7 @@ jobs:
   approve:
     if: >-
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.actor.login == 'github-actions[bot]' &&
-      (startsWith(github.event.workflow_run.head_branch, 'release/') ||
-       startsWith(github.event.workflow_run.head_branch, 'sync-release/'))
+      github.event.workflow_run.actor.login == 'github-actions[bot]'
     runs-on: ubuntu-slim
     timeout-minutes: 2
     steps:
@@ -24,7 +22,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
-          HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
         run: |
-          test "$HEAD_REPOSITORY" = "$GITHUB_REPOSITORY"
+          run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r '.event' <<<"$run_json")" = pull_request
+          test "$(jq -r '.actor.login' <<<"$run_json")" = 'github-actions[bot]'
+          test "$(jq -r '.head_repository.full_name' <<<"$run_json")" = "$GITHUB_REPOSITORY"
+          test "$(jq '.pull_requests | length' <<<"$run_json")" -eq 1
+
+          pr_number="$(jq -r '.pull_requests[0].number' <<<"$run_json")"
+          pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number")"
+          test "$(jq -r '.head.repo.full_name' <<<"$pr_json")" = "$GITHUB_REPOSITORY"
+          test "$(jq -r '.head.sha' <<<"$pr_json")" = "$(jq -r '.head_sha' <<<"$run_json")"
+
+          head_ref="$(jq -r '.head.ref' <<<"$pr_json")"
+          base_ref="$(jq -r '.base.ref' <<<"$pr_json")"
+          case "$head_ref:$base_ref" in
+            release/*:main|sync-release/*:dev) ;;
+            *) exit 1 ;;
+          esac
+
           gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/approve"

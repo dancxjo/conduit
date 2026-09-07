@@ -103,9 +103,12 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
   assert.match(approval, /actor\.login == 'github-actions\[bot\]'/);
-  assert.match(approval, /startsWith\(github\.event\.workflow_run\.head_branch, 'release\/'\)/);
-  assert.match(approval, /startsWith\(github\.event\.workflow_run\.head_branch, 'sync-release\/'\)/);
-  assert.match(approval, /test "\$HEAD_REPOSITORY" = "\$GITHUB_REPOSITORY"/);
+  assert.doesNotMatch(approval, /workflow_run\.head_branch/);
+  assert.match(approval, /actions\/runs\/\$RUN_ID/);
+  assert.match(approval, /\.pull_requests \| length/);
+  assert.match(approval, /\.head\.repo\.full_name/);
+  assert.match(approval, /\.head\.sha.*\.head_sha/s);
+  assert.match(approval, /release\/\*:main\|sync-release\/\*:dev/);
   assert.match(approval, /actions\/runs\/\$RUN_ID\/approve/);
   for (const retired of [
     "candidate-shared-compile.yml",
