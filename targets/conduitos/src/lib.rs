@@ -145,4 +145,6 @@ pub mod timer_nucleus;
 mod timing_plan;
 pub mod timing_profile;
 pub mod tour_play;
+#[cfg(any(test, target_arch = "x86_64"))]
+pub mod tour_product;
 pub mod tour_workspace;

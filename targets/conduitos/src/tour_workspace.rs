@@ -32,6 +32,14 @@ pub fn scene(
     phase: TourWorkspacePhase,
 ) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let state = TourWorkspaceState::canonical(revision, phase);
+    scene_for_state(width, height, &state)
+}
+
+pub fn scene_for_state(
+    width: u16,
+    height: u16,
+    state: &TourWorkspaceState,
+) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let view = state
         .presentation()
         .and_then(|presentation| presentation.lower())
