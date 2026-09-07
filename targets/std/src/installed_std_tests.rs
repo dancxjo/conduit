@@ -34,6 +34,7 @@ mod sequence_normalization_conformance;
 mod sound_replanning;
 mod structured_selector_conformance;
 mod structured_values_conformance;
+mod talking_polaroid_body;
 mod template_pattern_selection_conformance;
 mod template_storage_conformance;
 mod timed_button_attempt_conformance;

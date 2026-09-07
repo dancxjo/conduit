@@ -21,6 +21,8 @@ pub(crate) struct BodyKernel {
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostOperation>,
     typed_record_hosts: Vec<Option<super::typed_record_operation::TypedRecordHost>>,
+    image_text_hosts: Vec<Option<super::image_text_operation::ImageTextHost>>,
+    image_text_record_hosts: Vec<Option<super::image_text_record_operation::ImageTextRecordHost>>,
     requests: Vec<HostOperationRequest>,
 }
 
@@ -47,6 +49,14 @@ fn typed_record_codec(contract: &conduit_core::HostOperationContractId) -> bool 
         conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
     ]
     .contains(&contract.as_str())
+}
+fn image_text(contract: &conduit_core::HostOperationContractId) -> bool {
+    matches!(
+        contract.as_str(),
+        conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION
+            | conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION
+            | conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION
+    )
 }
 fn presentation(operation: &LoweredHostOperation) -> bool {
     operation.target_kind.as_ref().is_some_and(|target| {
@@ -92,6 +102,7 @@ impl BodyKernel {
                 }
             } else if !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
+                && !image_text(&operation.contract_id)
                 && !presentation(operation)
             {
                 return Err(format!(
@@ -147,6 +158,14 @@ impl BodyKernel {
             .iter()
             .flat_map(|fragment| super::typed_record_operation::prepare_hosts(fragment))
             .collect();
+        let image_text_hosts = fragments
+            .iter()
+            .flat_map(|fragment| super::image_text_operation::prepare_hosts(fragment))
+            .collect();
+        let image_text_record_hosts = fragments
+            .iter()
+            .flat_map(|fragment| super::image_text_record_operation::prepare_hosts(fragment))
+            .collect();
         Ok(Self {
             scheduler: tables.install(drivers, values, signs)?,
             operations: lowered
@@ -160,6 +179,8 @@ impl BodyKernel {
                 .map(|part| part.identity)
                 .collect(),
             typed_record_hosts,
+            image_text_hosts,
+            image_text_record_hosts,
             requests: Vec::with_capacity(request_capacity),
         })
     }
@@ -269,6 +290,105 @@ impl BodyKernel {
                                 },
                             )
                             .map_err(|error| format!("Body typed-record completion: {error:?}"))?;
+                        continue;
+                    }
+                    if operation.contract_id.as_str()
+                        == conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION
+                    {
+                        let completion = self
+                            .image_text_record_hosts
+                            .get_mut(usize::from(request.node.0))
+                            .and_then(Option::as_mut)
+                            .ok_or("Body image-text record operation has no admitted Host")?
+                            .execute(input);
+                        let (disposition, output, failure) = match completion {
+                            Ok(encoded) => {
+                                let value =
+                                    self.scheduler.store_host_value(encoded).map_err(|error| {
+                                        format!("Body image-text record output: {error:?}")
+                                    })?;
+                                let output = BoundedValueRef::new(
+                                    value,
+                                    operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("Body image-text record output bound: {error:?}")
+                                })?;
+                                (HostOperationDisposition::Completed, Some(output), None)
+                            }
+                            Err(_) => (
+                                HostOperationDisposition::Failed,
+                                None,
+                                Some(conduit_kernel::Failure {
+                                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                                    detail: 1,
+                                }),
+                            ),
+                        };
+                        self.scheduler
+                            .complete_host_operation(
+                                request.node,
+                                request.request,
+                                HostOperationOutcome {
+                                    disposition,
+                                    output,
+                                    failure,
+                                },
+                            )
+                            .map_err(|error| {
+                                format!("Body image-text record completion: {error:?}")
+                            })?;
+                        continue;
+                    }
+                    if matches!(
+                        operation.contract_id.as_str(),
+                        conduit_std_offers::IMAGE_TEXT_IMAGE_OPERATION
+                            | conduit_std_offers::IMAGE_TEXT_CAPTION_OPERATION
+                    ) {
+                        let completion = self
+                            .image_text_hosts
+                            .get_mut(usize::from(request.node.0))
+                            .and_then(Option::as_mut)
+                            .ok_or("Body image-text operation has no admitted Host")?
+                            .execute(operation.contract_id.as_str(), input);
+                        let (disposition, output, failure) = match completion {
+                            Ok(encoded) => {
+                                let output = encoded
+                                    .map(|encoded| self.scheduler.store_host_value(encoded))
+                                    .transpose()
+                                    .map_err(|error| format!("Body image-text output: {error:?}"))?
+                                    .map(|value| {
+                                        BoundedValueRef::new(
+                                            value,
+                                            operation.binding.maximum_output_bytes,
+                                        )
+                                    })
+                                    .transpose()
+                                    .map_err(|error| {
+                                        format!("Body image-text output bound: {error:?}")
+                                    })?;
+                                (HostOperationDisposition::Completed, output, None)
+                            }
+                            Err(_) => (
+                                HostOperationDisposition::Failed,
+                                None,
+                                Some(conduit_kernel::Failure {
+                                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                                    detail: 1,
+                                }),
+                            ),
+                        };
+                        self.scheduler
+                            .complete_host_operation(
+                                request.node,
+                                request.request,
+                                HostOperationOutcome {
+                                    disposition,
+                                    output,
+                                    failure,
+                                },
+                            )
+                            .map_err(|error| format!("Body image-text completion: {error:?}"))?;
                         continue;
                     }
                     if timer(&operation.contract_id) {

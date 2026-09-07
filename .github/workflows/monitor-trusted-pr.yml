@@ -112,19 +112,26 @@ jobs:
           pr_url=$(jq -r .url <<<"$current")
           git fetch --no-tags origin "$base_branch"
           base_sha=$(git rev-parse "origin/$base_branch")
-          gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+          if test "$KIND" = release; then
+            gh pr merge "$pr_url" --merge --match-head-commit "$HEAD_SHA"
+          else
+            expected_tree=$(git merge-tree --write-tree "$base_sha" "$HEAD_SHA")
+            [[ "$expected_tree" =~ ^[0-9a-f]{40}$ ]]
+            gh pr merge "$pr_url" --squash --match-head-commit "$HEAD_SHA"
+          fi
           merge_sha=$(gh pr view "$PR_NUMBER" --json state,mergeCommit --jq 'select(.state == "MERGED") | .mergeCommit.oid')
           [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
           git fetch --no-tags origin "$base_branch"
           test "$(git rev-parse "origin/$base_branch")" = "$merge_sha"
           test "$(git rev-parse "$merge_sha^1")" = "$base_sha"
-          test "$(git rev-parse "$merge_sha^2")" = "$HEAD_SHA"
           if test "$KIND" = release; then
+            test "$(git rev-parse "$merge_sha^2")" = "$HEAD_SHA"
             test "$(git rev-parse "$merge_sha^{tree}")" = "$(git rev-parse "$HEAD_SHA^{tree}")"
             gh workflow run tour-and-creche-pages --ref main -f pr_number="$PR_NUMBER"
             gh workflow run sync-release-to-dev.yml --ref main \
               -f pr_number="$PR_NUMBER" -f merge_sha="$merge_sha"
           else
+            test "$(git rev-parse "$merge_sha^{tree}")" = "$expected_tree"
             gh workflow run dev-integration.yml --ref dev \
               -f base_sha="$base_sha" -f candidate_sha="$merge_sha"
           fi

@@ -97,6 +97,9 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(finalizer, /types: \[completed\]/);
   assert.match(finalizer, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
   assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^2"\)" = "\$HEAD_SHA"/);
+  assert.match(finalizer, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
+  assert.match(finalizer, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
+  assert.match(finalizer, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
   assert.match(finalizer, /gh workflow run tour-and-creche-pages --ref main/);
   assert.match(finalizer, /gh workflow run sync-release-to-dev\.yml --ref main/);
   assert.match(finalizer, /gh workflow run dev-integration\.yml --ref dev/);
@@ -110,6 +113,9 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /actions\/runs\/\$run_id\/approve/);
   assert.match(monitor, /sleep 30/);
   assert.match(monitor, /gh pr merge "\$pr_url" --merge --match-head-commit "\$HEAD_SHA"/);
+  assert.match(monitor, /gh pr merge "\$pr_url" --squash --match-head-commit "\$HEAD_SHA"/);
+  assert.match(monitor, /git merge-tree --write-tree "\$base_sha" "\$HEAD_SHA"/);
+  assert.match(monitor, /test "\$\(git rev-parse "\$merge_sha\^\{tree\}"\)" = "\$expected_tree"/);
   assert.match(monitor, /gh workflow run tour-and-creche-pages --ref main/);
   assert.match(monitor, /gh workflow run dev-integration\.yml --ref dev/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
