@@ -103,7 +103,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         value_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
         host_requests: 1,
         sign_items: 16,
-        maximum_value_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+        maximum_value_bytes: conduit_tongues::RECOGNITION_RESULT_QUEUE_BYTES,
     })
 }
 

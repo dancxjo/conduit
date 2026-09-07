@@ -17,6 +17,7 @@ pub const SPEECH_RECOGNITION_TO_TEXT_KIND: &str = "speech/recognition-to-text";
 pub const SPEECH_RECOGNITION_TO_TEXT_REVISION: &str = "conduit.speech/recognition-to-text@1";
 pub const MAXIMUM_RECOGNIZED_TEXT_BYTES: usize = 256;
 pub const MAXIMUM_RECOGNITION_RESULT_BYTES: usize = 2_048;
+pub const RECOGNITION_RESULT_QUEUE_BYTES: u32 = 4_096;
 pub const MAXIMUM_RECOGNITION_FIXTURES: usize = 8;
 pub const MAXIMUM_RECOGNITION_AUDIO_BYTES: usize = 32_768;
 
@@ -129,7 +130,7 @@ pub fn speech_recognition_to_text_contract() -> SpeechRecognitionContract {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+            max_queue_bytes: RECOGNITION_RESULT_QUEUE_BYTES,
         },
     }
 }

@@ -61,6 +61,8 @@ use super::record_temporal_operation::{
     EXACTLY_ONE as RECORD_EXACTLY_ONE_FACTORY, SINGLETON as RECORD_SINGLETON_STREAM_FACTORY,
 };
 use super::record_transcript_operation::FACTORY as RECORD_TRANSCRIPT_FACTORY;
+#[cfg(any(test, feature = "local-model-proof"))]
+use super::recorded_speech_operation::FACTORY as RECORDED_SPEECH_FACTORY;
 use super::recurrence_operation::FACTORY as RECURRENCE_FACTORY;
 use super::render_demand_operation::AUDIO_RENDER_DEMAND_FACTORY;
 use super::rhythm_compare_operation::FACTORY as RHYTHM_COMPARE_FACTORY;
@@ -124,6 +126,8 @@ use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTOR
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&InstalledFactory] = &[
+    #[cfg(any(test, feature = "local-model-proof"))]
+    &RECORDED_SPEECH_FACTORY,
     &ADDRESS_DETECT_FACTORY,
     &RECOGNITION_TEXT_FACTORY,
     &KEYBOARD_INPUT_FACTORY,

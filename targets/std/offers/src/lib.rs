@@ -216,8 +216,6 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         text_literal_offer(),
         text_upper_offer(),
         text_join_offer(),
-        address_detect_offer(),
-        recognition_to_text_std_offer(),
         text_presentation_offer(),
         key_event_tee_offer(),
         keymap_offer(),

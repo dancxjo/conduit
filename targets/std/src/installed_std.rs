@@ -68,6 +68,8 @@ mod record_delivery_operation;
 mod record_queue_operation;
 mod record_temporal_operation;
 mod record_transcript_operation;
+#[cfg(any(test, feature = "local-model-proof"))]
+pub(crate) mod recorded_speech_operation;
 mod recurrence_codec;
 mod recurrence_encoding;
 mod recurrence_operation;
@@ -394,6 +396,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
     let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
+    #[cfg(any(test, feature = "local-model-proof"))]
+    let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
@@ -1402,6 +1406,38 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete proof PCM source yield: {error:?}"))?;
                 continue;
+            } else if contract.as_str() == "conduit.host/proof-recorded-speech-recognize@1" {
+                #[cfg(any(test, feature = "local-model-proof"))]
+                {
+                    let encoded = recorded_speech_hosts
+                        .get_mut(usize::from(request.node.0))
+                        .and_then(Option::as_mut)
+                        .ok_or_else(|| {
+                            "recorded-speech request has no admitted proof Host".to_string()
+                        })?
+                        .execute(input)?;
+                    let value = scheduler
+                        .store_host_value(encoded)
+                        .map_err(|error| format!("store recorded recognition: {error:?}"))?;
+                    let output =
+                        BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
+                            .map_err(|error| format!("bound recorded recognition: {error:?}"))?;
+                    requests.push(request);
+                    scheduler
+                        .complete_host_operation(
+                            request.node,
+                            request.request,
+                            HostOperationOutcome {
+                                disposition: HostOperationDisposition::Completed,
+                                output: Some(output),
+                                failure: None,
+                            },
+                        )
+                        .map_err(|error| format!("complete recorded recognition: {error:?}"))?;
+                    continue;
+                }
+                #[cfg(not(any(test, feature = "local-model-proof")))]
+                return Err("proof-only recorded-speech contract is unavailable".into());
             } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
                     Ok(text) => {

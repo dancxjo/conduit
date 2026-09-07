@@ -75,6 +75,8 @@ use super::vector_search_operation::VectorSearchOperation;
 use conduit_kernel::{Failure, FailureCode, OperationAction};
 
 pub(super) enum InstalledOperation {
+    #[cfg(any(test, feature = "local-model-proof"))]
+    RecordedSpeech(super::recorded_speech_operation::RecordedSpeechOperation),
     AddressDetect(super::address_detect_operation::AddressDetectOperation),
     RecognitionText(super::recognition_text_operation::RecognitionTextOperation),
     TypedState(Box<crate::state_value::TypedStateOperation>),

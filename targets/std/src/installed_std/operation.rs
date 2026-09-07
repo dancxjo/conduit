@@ -72,6 +72,8 @@ impl Operation for InstalledOperation {
             Self::ExternalWebSocketListener(operation) => operation.start(),
             Self::GenerateText(operation) => operation.start(),
             Self::AddressDetect(operation) => operation.start(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::RecordedSpeech(operation) => operation.start(),
             Self::RecognitionText(operation) => operation.start(),
             Self::HousePrompt(operation) => operation.start(),
             Self::LocalModel(operation) => operation.start(),
@@ -204,6 +206,8 @@ impl Operation for InstalledOperation {
             (Self::ExternalWebSocketListener(operation), input) => operation.resume(input),
             (Self::GenerateText(operation), input) => operation.resume(input),
             (Self::AddressDetect(operation), input) => operation.resume(input),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            (Self::RecordedSpeech(operation), input) => operation.resume(input),
             (Self::RecognitionText(operation), input) => operation.resume(input),
             (Self::HousePrompt(operation), input) => operation.resume(input),
             (Self::LocalModel(operation), input) => operation.resume(input),
@@ -389,6 +393,8 @@ impl Operation for InstalledOperation {
             Self::ExternalWebSocketListener(operation) => operation.advance(),
             Self::GenerateText(operation) => operation.advance(),
             Self::AddressDetect(operation) => operation.advance(),
+            #[cfg(any(test, feature = "local-model-proof"))]
+            Self::RecordedSpeech(operation) => operation.advance(),
             Self::RecognitionText(operation) => operation.advance(),
             Self::HousePrompt(operation) => operation.advance(),
             Self::LocalModel(operation) => operation.advance(),
