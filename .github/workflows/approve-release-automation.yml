@@ -1,0 +1,30 @@
+name: Approve trusted release automation
+
+on:
+  workflow_run:
+    workflows: [promotion, candidate]
+    types: [requested]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  approve:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'github-actions[bot]' &&
+      (startsWith(github.event.workflow_run.head_branch, 'release/') ||
+       startsWith(github.event.workflow_run.head_branch, 'sync-release/'))
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    steps:
+      - name: Approve only the pending same-repository release run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: |
+          test "$HEAD_REPOSITORY" = "$GITHUB_REPOSITORY"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/approve"
