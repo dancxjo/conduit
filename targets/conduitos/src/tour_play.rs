@@ -1,12 +1,32 @@
 //! Exact Plan and production-kernel preparation for the canonical Tour specimen.
 
-use conduit_tour_model::{CANONICAL_LITERAL, CANONICAL_SOURCE};
+use conduit_tour_model::{CANONICAL_LITERAL, CANONICAL_RESULT, CANONICAL_SOURCE};
 
 use crate::{
+    composition::{MachineRunError, MachineRunReceipt},
     identity::BootIdentities,
+    machine::{BaseError, IdleBase, InterruptBase, MonotonicClockBase, SerialBase},
     offer::HostOffer,
     ordinary_plan::{PreparationError, PreparedOrdinaryPlay},
 };
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TourPlayEvidence {
+    pub source_document_id: conduit_core::SourceDocumentId,
+    pub checked_form_id: conduit_core::CheckedFormId,
+    pub expanded_form_id: conduit_core::ExpandedFormId,
+    pub plan_id: conduit_core::PlanId,
+    pub active_play_id: conduit_core::ActivePlayId,
+    pub result: &'static str,
+    pub run: MachineRunReceipt,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TourPlayError {
+    Machine(MachineRunError),
+    ResultMismatch,
+    ResultMissing,
+}
 
 pub fn prepare(
     identities: &BootIdentities,
@@ -23,11 +43,74 @@ pub fn prepare(
     )
 }
 
+pub fn run<C, S, I, D>(
+    prepared: &mut PreparedOrdinaryPlay,
+    clock: &mut C,
+    serial: &mut S,
+    interrupts: &mut I,
+    idle: &mut D,
+) -> Result<TourPlayEvidence, TourPlayError>
+where
+    C: MonotonicClockBase,
+    S: SerialBase,
+    I: InterruptBase,
+    D: IdleBase,
+{
+    let mut exact_serial = ExactTourSerial {
+        inner: serial,
+        observed: false,
+        mismatch: false,
+    };
+    let run = crate::text_composition::run(
+        &mut prepared.kernel,
+        clock,
+        &mut exact_serial,
+        interrupts,
+        idle,
+    );
+    if exact_serial.mismatch {
+        return Err(TourPlayError::ResultMismatch);
+    }
+    let run = run.map_err(TourPlayError::Machine)?;
+    if !exact_serial.observed {
+        return Err(TourPlayError::ResultMissing);
+    }
+    Ok(TourPlayEvidence {
+        source_document_id: prepared.source_document_id.clone(),
+        checked_form_id: prepared.checked_form_id.clone(),
+        expanded_form_id: prepared.expanded_form_id.clone(),
+        plan_id: prepared.plan_id.clone(),
+        active_play_id: prepared.active_play.active_play_id.clone(),
+        result: CANONICAL_RESULT,
+        run,
+    })
+}
+
+struct ExactTourSerial<'a, S> {
+    inner: &'a mut S,
+    observed: bool,
+    mismatch: bool,
+}
+
+impl<S: SerialBase> SerialBase for ExactTourSerial<'_, S> {
+    fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
+        if bytes != CANONICAL_RESULT.as_bytes() || self.observed {
+            self.mismatch = true;
+            return Err(BaseError::UnsupportedValue);
+        }
+        self.inner.present(bytes)?;
+        self.observed = true;
+        Ok(())
+    }
+
+    fn presentation_count(&self) -> u32 {
+        self.inner.presentation_count()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
-
-    use conduit_tour_model::CANONICAL_RESULT;
 
     use super::*;
     use crate::{
@@ -123,8 +206,8 @@ mod tests {
         let mut serial = Serial::default();
         let mut interrupts = Interrupts::default();
         let mut idle = Idle::default();
-        let receipt = crate::text_composition::run(
-            &mut prepared.kernel,
+        let evidence = run(
+            &mut prepared,
             &mut clock,
             &mut serial,
             &mut interrupts,
@@ -132,9 +215,18 @@ mod tests {
         )
         .unwrap();
         assert_eq!(serial.0, [CANONICAL_RESULT.as_bytes()]);
-        assert_eq!(receipt.logical_operations, 3);
-        assert_eq!(receipt.serial_presentations, 1);
-        assert_eq!(receipt.pending_host_operations, 0);
+        assert_eq!(
+            evidence.source_document_id,
+            prepared.plan.source_document_id
+        );
+        assert_eq!(evidence.checked_form_id, prepared.plan.checked_form_id);
+        assert_eq!(evidence.expanded_form_id, prepared.plan.expanded_form_id);
+        assert_eq!(evidence.plan_id, prepared.plan.plan_id);
+        assert_eq!(evidence.active_play_id, prepared.active_play.active_play_id);
+        assert_eq!(evidence.result, CANONICAL_RESULT);
+        assert_eq!(evidence.run.logical_operations, 3);
+        assert_eq!(evidence.run.serial_presentations, 1);
+        assert_eq!(evidence.run.pending_host_operations, 0);
     }
 
     #[test]
@@ -152,5 +244,30 @@ mod tests {
             .err(),
             Some(PreparationError::KernelRejected)
         );
+    }
+
+    #[test]
+    fn result_correlation_refuses_wrong_or_duplicate_presentations() {
+        let mut serial = Serial::default();
+        let mut exact = ExactTourSerial {
+            inner: &mut serial,
+            observed: false,
+            mismatch: false,
+        };
+        assert_eq!(exact.present(b"WRONG"), Err(BaseError::UnsupportedValue));
+        assert!(exact.mismatch && !exact.observed);
+
+        let mut serial = Serial::default();
+        let mut exact = ExactTourSerial {
+            inner: &mut serial,
+            observed: false,
+            mismatch: false,
+        };
+        assert_eq!(exact.present(CANONICAL_RESULT.as_bytes()), Ok(()));
+        assert_eq!(
+            exact.present(CANONICAL_RESULT.as_bytes()),
+            Err(BaseError::UnsupportedValue)
+        );
+        assert!(exact.mismatch && exact.observed);
     }
 }
