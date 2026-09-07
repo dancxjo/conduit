@@ -22,6 +22,7 @@ pub enum RecordTranscriptDirection {
 pub enum RecordTranscriptTerminal {
     Completed,
     Cancelled,
+    TransportUnavailable,
     Disconnected,
     TimedOut,
     Refused(u16),
@@ -77,10 +78,11 @@ pub fn encode_record_transcript_terminal(
     let (tag, code) = match terminal {
         RecordTranscriptTerminal::Completed => (0, 0),
         RecordTranscriptTerminal::Cancelled => (1, 0),
-        RecordTranscriptTerminal::Disconnected => (2, 0),
-        RecordTranscriptTerminal::TimedOut => (3, 0),
-        RecordTranscriptTerminal::Refused(code) => (4, code),
-        RecordTranscriptTerminal::Failed(code) => (5, code),
+        RecordTranscriptTerminal::TransportUnavailable => (2, 0),
+        RecordTranscriptTerminal::Disconnected => (3, 0),
+        RecordTranscriptTerminal::TimedOut => (4, 0),
+        RecordTranscriptTerminal::Refused(code) => (5, code),
+        RecordTranscriptTerminal::Failed(code) => (6, code),
     };
     let code = code.to_le_bytes();
     [
@@ -103,10 +105,11 @@ pub fn decode_record_transcript_terminal(
     match (wire[1], code) {
         (0, 0) => Ok(RecordTranscriptTerminal::Completed),
         (1, 0) => Ok(RecordTranscriptTerminal::Cancelled),
-        (2, 0) => Ok(RecordTranscriptTerminal::Disconnected),
-        (3, 0) => Ok(RecordTranscriptTerminal::TimedOut),
-        (4, code) => Ok(RecordTranscriptTerminal::Refused(code)),
-        (5, code) => Ok(RecordTranscriptTerminal::Failed(code)),
+        (2, 0) => Ok(RecordTranscriptTerminal::TransportUnavailable),
+        (3, 0) => Ok(RecordTranscriptTerminal::Disconnected),
+        (4, 0) => Ok(RecordTranscriptTerminal::TimedOut),
+        (5, code) => Ok(RecordTranscriptTerminal::Refused(code)),
+        (6, code) => Ok(RecordTranscriptTerminal::Failed(code)),
         _ => Err(RecordTranscriptRefusal::MalformedTerminal),
     }
 }
