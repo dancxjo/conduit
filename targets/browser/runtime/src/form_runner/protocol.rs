@@ -270,6 +270,19 @@ pub(super) fn decode_manifestation(
                 )),
             ))
         }
+        conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND => {
+            let quantity =
+                crate::installed_browser::decode_quantity_leaf(&manifestation.canonical_value)?;
+            Ok((
+                0,
+                Vec::new(),
+                Some(format!(
+                    "{} {}",
+                    quantity.value(),
+                    quantity.unit().form_suffix()
+                )),
+            ))
+        }
         conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND => {
             let scalar = conduit_core::Scalar::decode(&manifestation.canonical_value)
                 .map_err(|error| format!("decode scalar manifestation: {error:?}"))?;

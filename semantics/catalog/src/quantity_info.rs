@@ -11,6 +11,8 @@ use conduit_core::{
 
 pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
 pub const QUANTITY_INFO_WRAP_REVISION: &str = "conduit.std/wrap-quantity@1";
+pub const QUANTITY_PRESENTATION_KIND: &str = "presentation/quantity";
+pub const QUANTITY_PRESENTATION_REVISION: &str = "conduit.std/presentation-quantity@1";
 pub const QUANTITY_INFO_MAXIMUM_BYTES: usize = 128;
 
 pub fn wrapped_quantity_type() -> StructuredInfoType {
@@ -66,6 +68,27 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
     }
 }
 
+pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
+    conduit_form::KindDefinition {
+        kind_id: kind_id(QUANTITY_PRESENTATION_KIND),
+        kind_contract_revision: conduit_core::KindContractRevision::from(
+            QUANTITY_PRESENTATION_REVISION,
+        ),
+        inputs: vec![PortDescriptor {
+            port_id: port_id("input"),
+            value_kind: wrapped_quantity_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone(),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Value,
+        }],
+        outputs: Vec::new(),
+        configuration: Vec::new(),
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_quantity_info_catalog(
     startup: &mut conduit_form::StartupCatalog,
@@ -86,6 +109,13 @@ pub fn install_quantity_info_catalog(
             outputs: contract.outputs,
             configuration: Vec::new(),
         })
+        .map_err(|error| alloc::format!("{error}"))?;
+    startup.insert(conduit_form::KindSignature {
+        kind: QUANTITY_PRESENTATION_KIND.into(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert(quantity_presentation_definition())
         .map_err(|error| alloc::format!("{error}"))
 }
 

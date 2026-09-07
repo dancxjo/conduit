@@ -234,6 +234,9 @@ pub(crate) fn factory(
     if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
         return Some(&quantity_output::PRESENTATION);
     }
+    if implementation_id.as_str() == quantity_output::DIRECT_PRESENTATION_IMPLEMENTATION {
+        return Some(&quantity_output::DIRECT_PRESENTATION);
+    }
     INSTALLATIONS
         .iter()
         .copied()
@@ -262,7 +265,7 @@ pub(crate) fn advertisement_for_presentation(
         offer.kind_id.as_str() != conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
     });
     let mut presenter = match profile {
-        super::PresentationProfile::Quantity => quantity_output::presentation_offer(),
+        super::PresentationProfile::Quantity => quantity_output::direct_presentation_offer(),
         super::PresentationProfile::PatternComparison => super::comparison_presentation::offer(),
         super::PresentationProfile::NormalizedDurations => super::normalized_presentation::offer(),
         super::PresentationProfile::Annotation => unreachable!(),

@@ -15,6 +15,7 @@ use std::sync::OnceLock;
 pub(crate) const WRAP_OPERATION: &str = "conduit.host/wrap-quantity@1";
 const WRAP_IMPLEMENTATION: &str = "browser/kernel-wrap-quantity@1";
 pub(crate) const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-quantity-leaf@1";
+pub(crate) const DIRECT_PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-quantity@1";
 static PREFIX: OnceLock<Vec<u8>> = OnceLock::new();
 
 pub(super) static WRAP: BrowserInstallation = BrowserInstallation {
@@ -28,6 +29,12 @@ pub(super) static PRESENTATION: BrowserInstallation = BrowserInstallation {
     offer: presentation_offer,
     prepare: prepare_presentation,
     perform: Some(present),
+};
+pub(super) static DIRECT_PRESENTATION: BrowserInstallation = BrowserInstallation {
+    implementation_id: DIRECT_PRESENTATION_IMPLEMENTATION,
+    offer: direct_presentation_offer,
+    prepare: prepare_direct_presentation,
+    perform: Some(present_direct),
 };
 
 fn wrap_offer() -> CapabilityOffer {
@@ -67,27 +74,25 @@ pub(super) fn presentation_offer() -> CapabilityOffer {
     )
 }
 
+pub(super) fn direct_presentation_offer() -> CapabilityOffer {
+    let mut offer = presentation_offer();
+    let contract = conduit_semantic_catalog::quantity_presentation_definition();
+    offer.kind_id = contract.kind_id.clone();
+    offer.kind_contract_revision = contract.kind_contract_revision;
+    offer.capability_id = DIRECT_PRESENTATION_IMPLEMENTATION.into();
+    offer.implementation.execution_profile_id = DIRECT_PRESENTATION_IMPLEMENTATION.into();
+    offer.implementation.implementation_id = DIRECT_PRESENTATION_IMPLEMENTATION.into();
+    offer.implementation.artifact_id = "conduit-browser-runtime/quantity-presentation@1".into();
+    offer.host_operations[0].contract_id = "conduit.host/presentation-quantity@1".into();
+    offer.host_operations[0].target_kind = Some(contract.kind_id);
+    offer
+}
+
 pub(super) fn install_catalogs(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+    _: &mut conduit_form::StartupCatalog,
+    _: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    let contract = conduit_semantic_catalog::structured_presentation_contract(
-        "Quantity",
-        &wrapped_quantity_type(),
-    );
-    startup.insert(conduit_form::KindSignature {
-        kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
-    })?;
-    profile
-        .insert(conduit_form::KindDefinition {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Vec::new(),
-        })
-        .map_err(|error| error.to_string())
+    Ok(())
 }
 
 fn prepare_wrap(
@@ -125,6 +130,17 @@ fn prepare_presentation(
     ))
 }
 
+fn prepare_direct_presentation(
+    placement: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<BrowserOperation, String> {
+    validate_placement(placement, &direct_presentation_offer())?;
+    Ok(BrowserOperation::presentation(
+        QUANTITY_INFO_MAXIMUM_BYTES as u32,
+        1,
+    ))
+}
+
 pub(crate) fn decode(input: &[u8]) -> Result<Quantity, String> {
     let value = StructuredInfoValue::from_canonical_bytes(input)
         .map_err(|error| format!("decode Quantity leaf: {error:?}"))?;
@@ -143,6 +159,17 @@ fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
         output: None,
         manifestation: Some(BrowserManifestation {
             kind_id: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND,
+            canonical_value: input.to_vec(),
+        }),
+    })
+}
+
+fn present_direct(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    decode(input)?;
+    Ok(BrowserHostResult {
+        output: None,
+        manifestation: Some(BrowserManifestation {
+            kind_id: conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND,
             canonical_value: input.to_vec(),
         }),
     })
