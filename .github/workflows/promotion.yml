@@ -10,8 +10,8 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: promotion-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  group: promotion-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   boundary:
