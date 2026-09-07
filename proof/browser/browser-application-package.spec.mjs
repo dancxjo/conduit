@@ -375,7 +375,7 @@ test("Tour navigation is one finite Host-manifested view with stale and pressure
       presentation.present("tour-navigation", {
         revision: 999,
         actions: [],
-        nodes: Array.from({ length: 41 }, (_, index) => ({
+        nodes: Array.from({ length: 129 }, (_, index) => ({
           parent: index === 0 ? null : 0,
           component: "paragraph",
           key: `oversized-${index}`,
