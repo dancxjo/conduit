@@ -84,6 +84,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
     let mut histories = core::array::from_fn(|_| None);
     let mut replay_sources = core::array::from_fn(|_| None);
     let mut replay_controls = core::array::from_fn(|_| None);
+    let mut template_stores = core::array::from_fn(|_| None);
     for (fragment, node) in partitions
         .iter()
         .flat_map(|(fragment, part)| part.nodes.iter().map(move |node| (*fragment, node)))
@@ -130,6 +131,11 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
             .map(Box::new);
         replay_controls[usize::from(node.node.0)] =
             crate::installed_browser::replay_control::PreparedReplayControl::for_placement(
+                placement,
+            )?
+            .map(Box::new);
+        template_stores[usize::from(node.node.0)] =
+            crate::installed_browser::template_storage::PreparedTemplateStore::for_placement(
                 placement,
             )?
             .map(Box::new);
@@ -240,6 +246,7 @@ pub(in crate::form_runner) fn prepare_partition_scheduler(
         histories,
         replay_sources,
         replay_controls,
+        template_stores,
         attempts,
         comparisons,
         snapshots,

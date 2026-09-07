@@ -65,6 +65,9 @@ pub(super) struct TourScheduler {
         MAXIMUM_BROWSER_GEARS],
     replay_controls: [Option<Box<crate::installed_browser::replay_control::PreparedReplayControl>>;
         MAXIMUM_BROWSER_GEARS],
+    template_stores: [Option<
+        Box<crate::installed_browser::template_storage::PreparedTemplateStore>,
+    >; MAXIMUM_BROWSER_GEARS],
 }
 
 impl core::ops::Deref for TourScheduler {
