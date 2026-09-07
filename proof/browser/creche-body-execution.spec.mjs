@@ -48,7 +48,11 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     processes.push(probe.process);
     const patchbay = spawn("target/debug/patchbay-html", [
       "--body-evidence", evidencePath, "--external-reader", "--body-invitation", probe.url,
-      ...["button-across-room", "clock", "desk-telegraph"].flatMap(name => ["--form", name, `forms/${name}/main.conduit`]),
+      ...[
+        ["button-across-room", "button-across-room"],
+        ["clock", "clock"],
+        ["desk_telegraph", "desk-telegraph"],
+      ].flatMap(([name, path]) => ["--form", name, `forms/${path}/main.conduit`]),
     ], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
     processes.push(patchbay);
     const url = await new Promise((resolve, reject) => {

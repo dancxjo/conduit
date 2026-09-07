@@ -70,14 +70,27 @@ pub fn load_form_sources(sources: &[FormSource]) -> Result<Vec<FormCandidate>, F
             path: source.path.clone(),
             detail: "source is not valid UTF-8".into(),
         })?;
-        let candidate = FormCandidate::from_source(
+        let provenance = format!("explicit repository Form {}", source.path.display());
+        let evidence_sign = SignId::from(format!("patchbay-html/form-source/{}", index + 1));
+        let candidate = FormCandidate::from_source_form(
             &source.label,
             source_name,
-            text,
-            format!("explicit repository Form {}", source.path.display()),
-            SignId::from(format!("patchbay-html/form-source/{}", index + 1)),
+            text.clone(),
+            &source.label,
+            &provenance,
+            evidence_sign.clone(),
             index as u64 + 2,
         )
+        .or_else(|_| {
+            FormCandidate::from_source(
+                &source.label,
+                source_name,
+                text,
+                provenance,
+                evidence_sign,
+                index as u64 + 2,
+            )
+        })
         .map_err(|detail| FormSourceError::InvalidSource {
             path: source.path.clone(),
             detail,
@@ -139,6 +152,17 @@ mod tests {
         assert_eq!(candidates[0].label, "Alpha");
         assert_eq!(candidates[1].label, "Beta");
         assert_ne!(candidates[0].checked_form_id, candidates[1].checked_form_id);
+    }
+
+    #[test]
+    fn an_exact_label_selects_a_named_form_from_a_multi_form_source() {
+        let path = temporary_source(
+            "multiple.conduit",
+            include_str!("../../../../forms/desk-telegraph/main.conduit"),
+        );
+        let named = load_form_sources(&[FormSource::new("desk_telegraph", &path)]).unwrap();
+        let default = load_form_sources(&[FormSource::new("Display label", path)]).unwrap();
+        assert_ne!(named[0].checked_form_id, default[0].checked_form_id);
     }
 
     #[test]
