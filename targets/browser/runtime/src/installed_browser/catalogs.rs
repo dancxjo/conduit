@@ -142,5 +142,6 @@ pub(crate) fn backs(
     let mut backs = conduit_form::CanonicalBackCatalog::new();
     conduit_text::install_morse_backs(startup, profile, &mut backs)?;
     conduit_data::install_measurement_plot_form_back(startup, profile, &mut backs)?;
+    conduit_semantic_catalog::install_signal_garden_backs(startup, profile, &mut backs)?;
     Ok(backs)
 }

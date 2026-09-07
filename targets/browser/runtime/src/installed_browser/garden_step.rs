@@ -242,6 +242,7 @@ fn evolution_detail(error: conduit_semantic_catalog::GardenEvolutionRefusal) -> 
         MalformedContactObservation => 7,
         StepCapacityExceeded => 8,
         ArithmeticOverflow => 9,
+        MalformedEnrichedObservation => 10,
     }
 }
 
