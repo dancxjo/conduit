@@ -433,8 +433,7 @@ function createRunner(source, recursive = false, presentation = {}) {
     ${compactPatchbayFrame()}
     <div class="editor">
       <div data-application-slot="${fieldSlot}"></div>
-      <div data-application-slot="${actionsSlot}"></div>
-      ${recursive ? "" : `<label>Structured output
+      ${recursive ? "" : `<label class="source-output-controls">Structured output
         <select class="structured-output-profile" data-application-component="select">
           <option value="0">Annotations</option>
           <option value="1">Quantities</option>
@@ -442,6 +441,7 @@ function createRunner(source, recursive = false, presentation = {}) {
           <option value="3">Pattern comparison</option>
         </select>
       </label>`}
+      <div data-application-slot="${actionsSlot}"></div>
     </div>
     <div class="result">
       <div class="indicator" role="img" aria-label="Indicator off"></div>

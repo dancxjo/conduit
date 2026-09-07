@@ -71,16 +71,19 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
   background: var(--panel); box-shadow: 0 18px 50px rgb(43 54 47 / 9%);
 }
-.editor { position: relative; grid-area: editor; min-width: 0; min-height: 0; overflow: hidden; background: var(--conduit-background); }
-[data-application-key="source-editor"] { position: relative; min-width: 0; height: 100%; min-height: 0; }
-[data-application-key="source-field"] { height: 100%; min-height: 0; --conduit-syntax-padding: 3rem 1.25rem 5.5rem; }
+.editor { grid-area: editor; min-width: 0; min-height: 0; padding: 1rem; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: .7rem; overflow: hidden; background: var(--conduit-background); }
+.editor > [data-application-slot^="tour-runner-field-"] { min-width: 0; min-height: 0; }
+[data-application-key="source-editor"] { min-width: 0; height: 100%; min-height: 0; }
+[data-application-key="source-field"] { height: 100%; min-height: 0; grid-template-rows: auto minmax(0, 1fr); --conduit-syntax-padding: 1rem 1.25rem; }
+[data-application-key="source-field"] > [data-application-key="source-label"] { grid-row: 1; }
+[data-application-key="source-field"] > .syntax-editor { grid-row: 2; min-height: 0; border: 1px solid #52655b; border-radius: .45rem; overflow: hidden; }
 .syntax-example {
   max-width: 43rem; margin: 1.5rem 0; padding: 1.25rem; overflow: auto;
   border: 1px solid var(--conduit-structure-secondary); border-radius: 10px; color: var(--conduit-text-primary); background: var(--conduit-background);
   white-space: pre; font: 500 .86rem/1.6 var(--conduit-font-mono); tab-size: 4;
 }
 .syntax-example:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-[data-application-key="source-label"] { position: absolute; top: .8rem; left: 1rem; z-index: 2; color: #f2bd71; font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
+[data-application-key="source-label"] { color: #f2bd71; font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; }
 [data-application-key="source-help"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .birth-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-content: start; padding: 1.25rem; }
 .birth-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; min-width: 0; position: relative; }
@@ -103,7 +106,7 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 .birth-editor .actions { position: static; margin-top: auto; }
 .editor textarea {
   position: relative; z-index: 1; width: 100%; height: 100%; min-height: 0; resize: none; border: 0; outline: 0;
-  padding: 3rem 1.25rem 5.5rem;
+  padding: 1rem 1.25rem;
   font: 500 .91rem/1.65 var(--conduit-font-mono); tab-size: 4;
 }
 .compact-patchbay { grid-area: patchbay; min-width: 0; min-height: 0; margin: 0; padding: .9rem; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: auto; border-bottom: 1px solid var(--conduit-structure-secondary); color: var(--conduit-text-primary); background: var(--conduit-surface); }
@@ -123,7 +126,7 @@ p { max-width: 43rem; color: var(--muted); line-height: 1.65; }
 .gear-back-expansion > header button { padding: .4rem .7rem; color: var(--conduit-text-primary); background: var(--conduit-surface); }
 .gear-back-flow { height: 100%; min-height: 10rem; }
 .actions { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; display: flex; gap: .55rem; align-items: center; }
-[data-application-slot^="tour-runner-actions-"] { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2; }
+[data-application-slot^="tour-runner-actions-"] { min-width: 0; }
 [data-application-slot^="tour-runner-actions-"] [data-application-component="action-group"] { display: flex; gap: .55rem; align-items: center; }
 [data-application-key="run"] { background: var(--amber); color: var(--paper); }
 [data-application-key="run"]:not(:disabled):hover { background:var(--conduit-focus); }
