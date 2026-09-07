@@ -112,29 +112,31 @@ pub(super) fn project_with_presentation(
     // The visible graph is authored meaning. A recursive realization may have a
     // different expanded identity and Back evidence, but it cannot replace the
     // checked Gear/Port/Cord face shown beside the source.
-    let visible = match conduit_form::expand_canonical_form(&checked, &entry, &catalog) {
-        Ok(visible) => visible,
-        Err(error) if error.code == "CND-FRM-045" => {
-            return project_incompatible_cord(
-                interaction.proposal_identity,
-                sequence,
-                &checked,
-                &entry,
-                &catalog,
-                error,
-            )
-        }
-        Err(error) => return Err(format!("expand compact Tour Patchbay: {error:?}")),
-    };
+    let visible =
+        match conduit_form::expand_canonical_form_for_authoring(&checked, &entry, &catalog) {
+            Ok(visible) => visible.expanded,
+            Err(error) if error.code == "CND-FRM-045" => {
+                return project_incompatible_cord(
+                    interaction.proposal_identity,
+                    sequence,
+                    &checked,
+                    &entry,
+                    &catalog,
+                    error,
+                )
+            }
+            Err(error) => return Err(format!("expand compact Tour Patchbay: {error:?}")),
+        };
     admit_topology(&visible)?;
     let realized = recursive
         .then(|| {
-            conduit_form::expand_canonical_form_with_backs(
+            conduit_form::expand_canonical_form_for_authoring_with_backs(
                 &checked,
                 &entry,
                 &catalog,
                 &backs(&startup, &catalog)?,
             )
+            .map(|realized| realized.expanded)
             .map_err(|error| format!("expand recursive compact Tour Patchbay: {error:?}"))
         })
         .transpose()?;
@@ -396,6 +398,22 @@ mod tests {
         for forbidden in ["host_id", "boot_id", "implementation_id", "plan_id"] {
             assert!(!encoded.contains(forbidden));
         }
+    }
+
+    #[test]
+    fn projects_reusable_form_with_unbound_face_port_for_authoring() {
+        let source = r#"form pulse-manifestation (
+    > tick: value/tick@1...|
+) {
+    observe: time/pulse-observe(period-ms = 240, maximum-pulses = 4)
+    tick > observe.tick
+}"#;
+
+        let projection = project(source, 8, false).unwrap();
+        assert_eq!(projection.form_name, "pulse-manifestation");
+        assert_eq!(projection.gears.len(), 1);
+        assert!(projection.cords.is_empty());
+        assert!(projection.diagnostics.is_empty());
     }
 
     #[test]

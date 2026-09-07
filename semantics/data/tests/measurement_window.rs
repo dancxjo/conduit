@@ -126,6 +126,14 @@ fn reusable_window_has_an_exact_checked_form_contract() {
     assert_eq!(gear.kind_id.as_str(), MEASUREMENT_COUNT_WINDOW_KIND);
     assert_eq!(
         gear.inputs[0].value_kind.as_str(),
+        measurement_window_profile_type()
+            .profile()
+            .unwrap()
+            .value_kind()
+            .as_str()
+    );
+    assert_eq!(
+        gear.inputs[1].value_kind.as_str(),
         measurement_sample_type()
             .profile()
             .unwrap()
@@ -141,10 +149,10 @@ fn reusable_window_has_an_exact_checked_form_contract() {
             .as_str()
     );
     assert_eq!(
-        gear.inputs[0].temporal,
+        gear.inputs[1].temporal,
         conduit_core::PortTemporal::Flow { closes: true }
     );
-    assert_eq!(authored.input_bindings.len(), 1);
+    assert_eq!(authored.input_bindings.len(), 2);
     assert_eq!(authored.output_bindings.len(), 1);
 }
 
