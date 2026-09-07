@@ -107,13 +107,15 @@ These stable links are published only after the frozen promotion boots the exact
 Crèche-produced spore and the main-only Pages carrier accepts its complete,
 correlated 1280 by 800 RGBA8 visual journey.
 
-The journey retains all eleven checkpoints. Each link opens a provenance page
+The journey retains all thirteen checkpoints. Each link opens a provenance page
 with the full-size screenshot and exact manifest correlation:
 
 - [Front door ready](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/front-door-ready.png)) — the ordinary product entrance after the exact Crèche artifact boots.
 - [Tour opened](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-opened/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-opened.png)) — Tour opened from WORLD through emulated xHCI/USB/HID and the portable keyboard bridge, showing the canonical `meet-one-gear` lesson before execution.
 - [Tour result visible](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-result-visible/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-result-visible.png)) — the same Tour workspace after its canonical Form runs through the production kernel and exposes `HELLO`, correlated to exact source, checked Form, expanded Form, Plan, and active Play identities.
 - [Tour Patchbay open](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-patchbay-open/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/tour-patchbay-open.png)) — the shared Patchbay surface opened in that workspace while preserving the canonical specimen and visible result; no additional Play is claimed.
+- [Pointer hover or focus](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-hover-or-focus/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-hover-or-focus.png)) — a real QEMU USB mouse report crossed the admitted xHCI, USB, HID, and portable pointer path; the shared Patchbay layout visibly identifies the hovered Gear while the correlated guest record retains exact image, Host, Boot, Tour revision, position, and sequence facts.
+- [Pointer selected](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-selected/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/pointer-selected.png)) — a distinct primary-button press selected the hit-tested Gear through the same real device path; the screenshot shows the selection and the correlated record distinguishes press from the subsequently observed release.
 - [Form opened](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/form-opened.png)) — the selected product Form before Body birth or execution.
 - [Born, lulled](https://dancxjo.github.io/conduit/current/conduitos/x86_64/born-lulled/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/born-lulled.png)) — the newly born Body retained without an active Play.
 - [Awake](https://dancxjo.github.io/conduit/current/conduitos/x86_64/awake/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/awake.png)) — the same Body after Wake and before planning.
@@ -123,7 +125,7 @@ with the full-size screenshot and exact manifest correlation:
 - [Lulled](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled/) ([PNG](https://dancxjo.github.io/conduit/current/conduitos/x86_64/lulled.png)) — the completed journey returned to Lulled with the same Body retained.
 
 Each image links to a provenance page containing the exact accepted commit and
-the manifest correlation context. The gallery also retains all eleven named
+the manifest correlation context. The gallery also retains all thirteen named
 checkpoints under the commit-addressed journey index. Emulator pixels remain
 documentary evidence and never imply physical hardware acceptance.
 

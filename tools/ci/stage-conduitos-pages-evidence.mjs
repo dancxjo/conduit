@@ -6,6 +6,7 @@ import path from "node:path";
 
 const CHECKPOINTS = [
   "front-door-ready", "tour-opened", "tour-result-visible", "tour-patchbay-open",
+  "pointer-hover-or-focus", "pointer-selected",
   "form-opened", "born-lulled", "awake",
   "planned", "playing", "result-visible", "lulled",
 ];
@@ -14,6 +15,8 @@ const DESCRIPTIONS = Object.freeze({
   "tour-opened": "Tour opened from the ordinary ConduitOS front door through emulated xHCI, USB HID, and the admitted portable keyboard path; the canonical meet-one-gear lesson is ready but has not run.",
   "tour-result-visible": "The canonical Tour Form has run through the production kernel and the visible HELLO result is correlated with exact source, checked Form, expanded Form, Plan, and active Play identities.",
   "tour-patchbay-open": "The same Tour workspace has opened its shared Patchbay surface while retaining the canonical specimen and visible result; this frame documents presentation continuity rather than a new Play.",
+  "pointer-hover-or-focus": "A real emulated USB boot-pointer report crossed xHCI, USB, HID, and the portable pointer contract before the shared Patchbay geometry visibly marked the hovered Gear.",
+  "pointer-selected": "A distinct primary-button press crossed the same admitted USB pointer path and visibly selected the hit-tested Patchbay Gear; the screenshot documents manifestation while the correlated guest record proves the semantic transition.",
   "form-opened": "The selected product Form opened in the same guest, before Body birth or Play execution.",
   "born-lulled": "The newly born Body retained in its Lulled state, with no active execution claimed.",
   "awake": "The same Body after Wake, ready for planning while preserving the boot and manifestation context.",

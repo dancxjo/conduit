@@ -14,7 +14,9 @@ use serde_json::Value;
 
 use crate::cli::GlobalOpts;
 
-use super::{hid_qmp, image, profile::Paths, report::git_head, ConduitosArch, ConduitosError};
+use super::{
+    hid_qmp, image, journey_input, profile::Paths, report::git_head, ConduitosArch, ConduitosError,
+};
 
 use super::journey_records::decode as journey_records;
 
@@ -54,6 +56,10 @@ struct JourneyProof {
     tour_plan_id: String,
     tour_active_play_id: String,
     tour_result: String,
+    pointer_hover_subject: String,
+    pointer_selected_subject: String,
+    pointer_press_sequence: u64,
+    pointer_release_sequence: u64,
     open_effects: u8,
     body_retained_after_lull: bool,
     remained_alive: bool,
@@ -141,9 +147,11 @@ fn execute_image(
             "-net",
             "none",
             "-device",
-            "qemu-xhci,id=conduitos-xhci,p2=1,p3=0",
+            "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
             "-device",
-            "usb-kbd,bus=conduitos-xhci.0,port=1",
+            "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+            "-device",
+            "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
             "-cdrom",
             image_path.to_str().ok_or_else(|| {
                 ConduitosError::refusal("product-journey-image-path-invalid", "non-UTF-8 ISO path")
@@ -182,16 +190,13 @@ fn execute_image(
                 "product-journey-front-door-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-            key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
-            wait_tour_status(&serial_path, &mut child, "tour-opened")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
+            journey_input::wait_tour_status(&serial_path, &mut child, "tour-opened")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
-            key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
-            wait_tour_status(&serial_path, &mut child, "result-visible")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f10", "tour-run")?;
+            journey_input::wait_tour_status(&serial_path, &mut child, "result-visible")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-result-visible", true)?;
-            key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
-            wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
-            artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
-            key_pair(&mut qmp, &mut reader, "esc", "tour-return")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "tour-return")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
                 &mut child,
@@ -204,8 +209,8 @@ fn execute_image(
                 ("f4", "awake"),
                 ("f5", "planned"),
             ] {
-                key_pair(&mut qmp, &mut reader, key, status)?;
-                wait_status(&serial_path, &mut child, status)?;
+                journey_input::key_pair(&mut qmp, &mut reader, key, status)?;
+                journey_input::wait_status(&serial_path, &mut child, status)?;
                 artifacts.capture(&mut qmp, &mut reader, status, true)?;
             }
             for label in [
@@ -223,7 +228,7 @@ fn execute_image(
                 "WAKE ID",
                 "PLAN ID",
             ] {
-                key_pair(&mut qmp, &mut reader, "f2", "planned-detail")?;
+                journey_input::key_pair(&mut qmp, &mut reader, "f2", "planned-detail")?;
                 hid_qmp::wait_for_stage(
                     &serial_path,
                     &mut child,
@@ -231,16 +236,41 @@ fn execute_image(
                     "product-journey-plan-inspection-timeout",
                 )?;
             }
-            key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
-            key_pair(&mut qmp, &mut reader, "f6", "playing")?;
-            wait_status(&serial_path, &mut child, "playing")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f6", "playing")?;
+            journey_input::wait_status(&serial_path, &mut child, "playing")?;
             artifacts.capture(&mut qmp, &mut reader, "playing", true)?;
-            key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;
-            wait_status(&serial_path, &mut child, "result-visible")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "a", "semantic-input")?;
+            journey_input::wait_status(&serial_path, &mut child, "result-visible")?;
             artifacts.capture(&mut qmp, &mut reader, "result-visible", true)?;
-            key_pair(&mut qmp, &mut reader, "f7", "lull")?;
-            wait_status(&serial_path, &mut child, "lulled")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
+            journey_input::wait_status(&serial_path, &mut child, "lulled")?;
             artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-reopen")?;
+            hid_qmp::wait_for_stage_count(
+                &serial_path,
+                &mut child,
+                "CONDUIT_TOUR_CHECKPOINT workspace-opened",
+                2,
+                "product-journey-tour-reopen-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
+            journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
+            artifacts.capture(&mut qmp, &mut reader, "tour-patchbay-open", true)?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "CONDUIT_BOOT_STAGE pointer-awaiting-report",
+                "product-journey-pointer-ready-timeout",
+            )?;
+            journey_input::relative_motion(&mut qmp, &mut reader, 0, -100, "pointer-hover")?;
+            journey_input::wait_pointer_status(&serial_path, &mut child, "hovered")?;
+            artifacts.capture(&mut qmp, &mut reader, "pointer-hover-or-focus", true)?;
+            journey_input::primary_button(&mut qmp, &mut reader, true, "pointer-select")?;
+            journey_input::wait_pointer_status(&serial_path, &mut child, "selected")?;
+            artifacts.capture(&mut qmp, &mut reader, "pointer-selected", true)?;
+            journey_input::primary_button(&mut qmp, &mut reader, false, "pointer-release")?;
+            journey_input::wait_pointer_status_count(&serial_path, &mut child, "hovered", 2)?;
             thread::sleep(Duration::from_millis(250));
             if child
                 .try_wait()
@@ -269,6 +299,7 @@ fn execute_image(
         })?;
         let records = journey_records(&serial)?;
         let tour_records = super::journey_records::tour(&serial)?;
+        let pointer_records = super::journey_records::pointer(&serial)?;
         let by_status = records
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
@@ -327,6 +358,49 @@ fn execute_image(
             {
                 return Err(ConduitosError::refusal(
                     "product-journey-tour-identity-drift",
+                    identity,
+                ));
+            }
+        }
+        if pointer_records.len() != 3 {
+            return Err(ConduitosError::refusal(
+                "product-journey-pointer-record-count",
+                "hover, press, and release must produce exactly three pointer records",
+            ));
+        }
+        let pointer_hover = &pointer_records[0];
+        let pointer_press = &pointer_records[1];
+        let pointer_release = &pointer_records[2];
+        if pointer_hover.get("status").and_then(Value::as_str) != Some("hovered")
+            || pointer_hover
+                .get("primary_pressed")
+                .and_then(Value::as_bool)
+                != Some(false)
+            || pointer_press.get("status").and_then(Value::as_str) != Some("selected")
+            || pointer_press
+                .get("primary_pressed")
+                .and_then(Value::as_bool)
+                != Some(true)
+            || pointer_release.get("status").and_then(Value::as_str) != Some("hovered")
+            || pointer_release
+                .get("primary_pressed")
+                .and_then(Value::as_bool)
+                != Some(false)
+            || number(pointer_hover, "sequence")? >= number(pointer_press, "sequence")?
+            || number(pointer_press, "sequence")? >= number(pointer_release, "sequence")?
+        {
+            return Err(ConduitosError::refusal(
+                "product-journey-pointer-causality-invalid",
+                "portable hover, primary press, and primary release were not distinct and ordered",
+            ));
+        }
+        for identity in ["profile_id", "build_id", "image_id", "host_id", "boot_id"] {
+            if pointer_records
+                .iter()
+                .any(|record| record.get(identity) != opened.get(identity))
+            {
+                return Err(ConduitosError::refusal(
+                    "product-journey-pointer-identity-drift",
                     identity,
                 ));
             }
@@ -412,7 +486,7 @@ fn execute_image(
             build_id: text(opened, "build_id")?,
             image_id: text(opened, "image_id")?,
             host_id: text(opened, "host_id")?,
-            profile: super::demo::DEMO_PROFILE,
+            profile: "q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-adlib",
             boot_id: text(opened, "boot_id")?,
             source_document_id: text(opened, "source_document_id")?,
             checked_form_id: text(opened, "checked_form_id")?,
@@ -439,6 +513,10 @@ fn execute_image(
             tour_plan_id: text(tour_result, "plan_id")?,
             tour_active_play_id: text(tour_result, "active_play_id")?,
             tour_result: text(tour_result, "result")?,
+            pointer_hover_subject: text(pointer_hover, "subject")?,
+            pointer_selected_subject: text(pointer_press, "subject")?,
+            pointer_press_sequence: number(pointer_press, "sequence")?,
+            pointer_release_sequence: number(pointer_release, "sequence")?,
             open_effects: 0,
             body_retained_after_lull: true,
             remained_alive: true,
@@ -493,70 +571,6 @@ fn execute_image(
     result
 }
 
-fn key_pair(
-    qmp: &mut std::os::unix::net::UnixStream,
-    reader: &mut super::qmp::Reader,
-    key: &str,
-    label: &'static str,
-) -> Result<(), ConduitosError> {
-    hid_qmp::send_named_keys(qmp, reader, &[key], true, label)?;
-    hid_qmp::send_named_keys(qmp, reader, &[key], false, label)
-}
-
-fn wait_status(
-    serial: &std::path::Path,
-    child: &mut std::process::Child,
-    status: &str,
-) -> Result<(), ConduitosError> {
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
-    loop {
-        let text = fs::read_to_string(serial).map_err(|error| {
-            ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
-        })?;
-        if journey_records(&text)?
-            .iter()
-            .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
-        {
-            return Ok(());
-        }
-        if std::time::Instant::now() >= deadline {
-            return hid_qmp::stop(
-                child,
-                "product-journey-stage-timeout",
-                format!("no complete guest record for {status}"),
-            );
-        }
-        thread::sleep(Duration::from_millis(1));
-    }
-}
-
-fn wait_tour_status(
-    serial: &std::path::Path,
-    child: &mut std::process::Child,
-    status: &str,
-) -> Result<(), ConduitosError> {
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
-    loop {
-        let text = fs::read_to_string(serial).map_err(|error| {
-            ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
-        })?;
-        if super::journey_records::tour(&text)?
-            .iter()
-            .any(|record| record.get("status").and_then(Value::as_str) == Some(status))
-        {
-            return Ok(());
-        }
-        if std::time::Instant::now() >= deadline {
-            return hid_qmp::stop(
-                child,
-                "product-journey-tour-stage-timeout",
-                format!("no complete Tour guest record for {status}"),
-            );
-        }
-        thread::sleep(Duration::from_millis(1));
-    }
-}
-
 fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {
     record
         .get(field)
@@ -576,4 +590,11 @@ fn strings(record: &Value, field: &str) -> Result<Vec<String>, ConduitosError> {
                 .collect()
         })
         .ok_or_else(|| ConduitosError::refusal("product-journey-identity-missing", field))
+}
+
+fn number(record: &Value, field: &str) -> Result<u64, ConduitosError> {
+    record
+        .get(field)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| ConduitosError::refusal("product-journey-value-missing", field))
 }

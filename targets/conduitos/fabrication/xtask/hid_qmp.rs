@@ -349,7 +349,7 @@ pub(super) fn wait_for_stage(
     }
 }
 
-fn wait_for_stage_count(
+pub(super) fn wait_for_stage_count(
     serial_path: &Path,
     child: &mut Child,
     stage: &str,
