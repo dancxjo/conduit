@@ -8,11 +8,13 @@
 
 extern crate alloc;
 
+mod administration;
 #[cfg(feature = "authenticated-admission")]
 mod admission;
 mod biography;
 mod candidate;
 mod continuity;
+mod durable_body;
 mod events;
 mod hold;
 mod identity;
@@ -28,13 +30,16 @@ mod reservations;
 mod space;
 mod validation;
 mod workload_plan;
+mod workload_transition;
 mod workset;
 
+pub use administration::*;
 #[cfg(feature = "authenticated-admission")]
 pub use admission::*;
 pub use biography::*;
 pub use candidate::*;
 pub use continuity::*;
+pub use durable_body::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
@@ -54,4 +59,5 @@ pub use provenance::*;
 pub use reservations::*;
 pub use space::*;
 pub use workload_plan::*;
+pub use workload_transition::*;
 pub use workset::*;

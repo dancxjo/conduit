@@ -95,7 +95,7 @@ fn every_admitted_resource_has_exact_staged_and_http_bytes_and_media_type() {
 fn invalid_dynamic_bytes_refuse_before_staging_resources() {
     let destination =
         std::env::temp_dir().join(format!("patchbay-registry-invalid-{}", std::process::id()));
-    for runtime in [Vec::new(), vec![0; 5242881]] {
+    for runtime in [Vec::new(), vec![0; 6291457]] {
         assert!(patchbay_html::application_resources::stage(&destination, &runtime).is_err());
         assert!(!destination.exists());
     }
