@@ -14,6 +14,7 @@ use conduit_planner::{
 use std::collections::BTreeMap;
 
 pub(super) const MEMORY_BASE: &str = "conduit.base/browser-memory@1";
+pub(super) const ALTERNATE_MEMORY_BASE: &str = "conduit.base/browser-memory-buffered@1";
 const LINE_ID: &str = "tour/browser-memory-line";
 const BINDING_ID: &str = "tour/browser-memory-binding";
 const BASE_INSTANCE_ID: &str = "tour/browser-memory-instance";
@@ -33,6 +34,24 @@ pub(super) fn prepare(
     sink_host_id: &str,
     sink_boot_id: &str,
     source: &str,
+) -> Result<PreparedPlan, String> {
+    prepare_with_base(
+        source_host_id,
+        source_boot_id,
+        sink_host_id,
+        sink_boot_id,
+        source,
+        MEMORY_BASE,
+    )
+}
+
+fn prepare_with_base(
+    source_host_id: &str,
+    source_boot_id: &str,
+    sink_host_id: &str,
+    sink_boot_id: &str,
+    source: &str,
+    line_base: &str,
 ) -> Result<PreparedPlan, String> {
     if source_host_id == sink_host_id || source_boot_id == sink_boot_id {
         return Err("two-browser lesson requires distinct Host and Boot identities".into());
@@ -128,14 +147,14 @@ pub(super) fn prepare(
             })
             .collect::<Result<_, String>>()?,
     };
-    let line = memory_line(&source_host, &sink_host);
+    let line = memory_line(&source_host, &sink_host, line_base)?;
     let plan = plan_expanded_canonical_with_options(
         &form,
         &[source_host.clone(), sink_host.clone()],
         &placements,
         &[
             BaseImplementationId::from("conduit.base/local@1"),
-            BaseImplementationId::from(MEMORY_BASE),
+            BaseImplementationId::from(line_base),
         ],
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
@@ -201,7 +220,7 @@ pub(super) fn accept(
         admitted.binding.sink.host_id.clone(),
         admitted.binding.sink.boot_id.clone(),
     );
-    let line = memory_line(&source_host, &sink_host);
+    let line = memory_line(&source_host, &sink_host, admitted.binding.base.as_str())?;
     if admitted != &line.admitted_line() {
         return Err("received multi-Host Plan changed the exact browser-memory Line".into());
     }
@@ -234,9 +253,27 @@ fn capability(host: &HostAdvertisement, kind: &str) -> Result<CapabilityId, Stri
         .ok_or_else(|| format!("browser Host does not offer {kind}"))
 }
 
-fn memory_line(source: &HostAdvertisement, sink: &HostAdvertisement) -> LineOffer {
+fn memory_line(
+    source: &HostAdvertisement,
+    sink: &HostAdvertisement,
+    base: &str,
+) -> Result<LineOffer, String> {
+    let supported = base == MEMORY_BASE || base == ALTERNATE_MEMORY_BASE;
+    if !supported {
+        return Err("browser multi-Host runner does not install the selected Line base".into());
+    }
+    let alternate = base == ALTERNATE_MEMORY_BASE;
+    let line_id = if alternate {
+        "tour/browser-memory-buffered-line"
+    } else {
+        LINE_ID
+    };
     let binding = LinkBinding {
-        binding_id: LinkBindingId::from(BINDING_ID),
+        binding_id: LinkBindingId::from(if alternate {
+            "tour/browser-memory-buffered-binding"
+        } else {
+            BINDING_ID
+        }),
         source: LinkEndpoint {
             host_id: source.host_id.clone(),
             boot_id: source.boot_id.clone(),
@@ -247,24 +284,33 @@ fn memory_line(source: &HostAdvertisement, sink: &HostAdvertisement) -> LineOffe
             boot_id: sink.boot_id.clone(),
             endpoint_id: LinkEndpointId::from(SINK_ENDPOINT_ID),
         },
-        base: BaseImplementationId::from(MEMORY_BASE),
-        base_instance_id: BaseInstanceId::from(BASE_INSTANCE_ID),
+        base: BaseImplementationId::from(base),
+        base_instance_id: BaseInstanceId::from(if alternate {
+            "tour/browser-memory-buffered-instance"
+        } else {
+            BASE_INSTANCE_ID
+        }),
         credential: LinkCredentialReference::None,
         authority: LinkAuthorityReference::ProcessOwned,
         limits: LinkLimits {
-            maximum_in_flight_items: 1,
+            maximum_in_flight_items: if alternate { 2 } else { 1 },
             maximum_payload_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            maximum_buffered_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            maximum_buffered_bytes: (MAXIMUM_BROWSER_VALUE_BYTES as u32)
+                * if alternate { 2 } else { 1 },
             maximum_frame_bytes: 4_096,
         },
     };
-    LineOffer {
-        line_id: LineId::from(LINE_ID),
+    Ok(LineOffer {
+        line_id: LineId::from(line_id),
         availability: LineAvailabilitySign {
-            line_id: LineId::from(LINE_ID),
+            line_id: LineId::from(line_id),
             binding_id: binding.binding_id.clone(),
             availability: LineAvailability::Ready,
-            sign_id: SignId::from("tour/browser-memory-line/ready"),
+            sign_id: SignId::from(if alternate {
+                "tour/browser-memory-buffered-line/ready"
+            } else {
+                "tour/browser-memory-line/ready"
+            }),
         },
         binding,
         contract: LineContract {
@@ -276,5 +322,23 @@ fn memory_line(source: &HostAdvertisement, sink: &HostAdvertisement) -> LineOffe
             continuation: LineContinuation::None,
             security: LineSecurity::ProcessBoundary,
         },
-    }
+    })
+}
+
+#[cfg(test)]
+pub(super) fn prepare_with_alternate_line(
+    source_host_id: &str,
+    source_boot_id: &str,
+    sink_host_id: &str,
+    sink_boot_id: &str,
+    source: &str,
+) -> Result<PreparedPlan, String> {
+    prepare_with_base(
+        source_host_id,
+        source_boot_id,
+        sink_host_id,
+        sink_boot_id,
+        source,
+        ALTERNATE_MEMORY_BASE,
+    )
 }

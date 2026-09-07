@@ -22,6 +22,23 @@ fn prepare_pair_for(source: &str) -> ((Session, Output), (Session, Output)) {
     )
 }
 
+fn prepare_pair_for_alternate_line(source: &str) -> ((Session, Output), (Session, Output)) {
+    let interaction = crate::source_interaction::admit_source(source.as_bytes(), 7).unwrap();
+    let source_plan = super::plan::prepare_with_alternate_line(
+        "browser/a",
+        "boot/a",
+        "browser/b",
+        "boot/b",
+        source,
+    )
+    .unwrap();
+    let sink_plan = super::plan::accept(source_plan.plan.clone(), "browser/b", "boot/b").unwrap();
+    (
+        Session::prepare(Role::Source, source_plan, 9, interaction.clone()).unwrap(),
+        Session::prepare(Role::Sink, sink_plan, 9, interaction).unwrap(),
+    )
+}
+
 #[test]
 fn unchanged_form_executes_two_exact_fragments_over_one_planned_line() {
     let ((mut source, source_output), (mut sink, sink_output)) = prepare_pair();
@@ -215,6 +232,43 @@ fn desk_telegraph_frames_before_one_planned_line_and_deframes_on_the_remote_host
             accepted_frame
         }
         _ => panic!("remote Desk Telegraph did not present reconstructed text"),
+    };
+    assert!(matches!(
+        source_session.ingest(*accepted).unwrap(),
+        Output::Waiting { .. }
+    ));
+}
+
+#[test]
+fn unchanged_desk_telegraph_executes_over_a_second_compatible_line_implementation() {
+    let source = include_str!("../../../../../../forms/desk-telegraph/main.conduit");
+    let ((mut source_session, source_output), (mut sink_session, sink_output)) =
+        prepare_pair_for_alternate_line(source);
+    assert!(matches!(sink_output, Output::Waiting { .. }));
+    let offered = match source_output {
+        Output::Line {
+            frame,
+            plan_projection: Some(projection),
+            ..
+        } => {
+            assert_eq!(
+                projection.cord.base_implementation_id,
+                super::plan::ALTERNATE_MEMORY_BASE
+            );
+            frame
+        }
+        _ => panic!("alternate Line did not offer the Desk Telegraph frame"),
+    };
+    let accepted = match sink_session.ingest(*offered).unwrap() {
+        Output::Manifestation {
+            accepted_frame,
+            manifestation,
+            ..
+        } => {
+            assert_eq!(manifestation.text.as_deref(), Some("CALLING"));
+            accepted_frame
+        }
+        _ => panic!("alternate Line did not reconstruct Desk Telegraph text"),
     };
     assert!(matches!(
         source_session.ingest(*accepted).unwrap(),
